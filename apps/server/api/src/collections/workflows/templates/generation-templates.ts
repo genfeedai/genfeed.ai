@@ -1241,6 +1241,398 @@ const FOUNDER_EDITORIAL_ILLUSTRATION_TEMPLATE: WorkflowTemplate = {
   steps: [],
 };
 
+const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
+  category: 'generation',
+  description:
+    'Generate three 16:9 YouTube thumbnail variations and a livestream/video script brief from a title, concept, audience, style, and optional reference image',
+  edges: [
+    {
+      id: 'edge-youtube-title-thumbnail-prompt',
+      source: 'workflow-input-youtube-title',
+      sourceHandle: 'value',
+      target: 'ai-prompt-constructor-youtube-thumbnail',
+      targetHandle: 'titleText',
+    },
+    {
+      id: 'edge-youtube-concept-thumbnail-prompt',
+      source: 'workflow-input-youtube-concept',
+      sourceHandle: 'value',
+      target: 'ai-prompt-constructor-youtube-thumbnail',
+      targetHandle: 'thumbnailConcept',
+    },
+    {
+      id: 'edge-youtube-audience-thumbnail-prompt',
+      source: 'workflow-input-youtube-audience',
+      sourceHandle: 'value',
+      target: 'ai-prompt-constructor-youtube-thumbnail',
+      targetHandle: 'targetAudience',
+    },
+    {
+      id: 'edge-youtube-style-thumbnail-prompt',
+      source: 'workflow-input-youtube-style',
+      sourceHandle: 'value',
+      target: 'ai-prompt-constructor-youtube-thumbnail',
+      targetHandle: 'visualStyle',
+    },
+    {
+      id: 'edge-youtube-thumbnail-prompt-v1',
+      source: 'ai-prompt-constructor-youtube-thumbnail',
+      sourceHandle: 'prompt',
+      target: 'ai-generate-youtube-thumbnail-v1',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'edge-youtube-thumbnail-prompt-v2',
+      source: 'ai-prompt-constructor-youtube-thumbnail',
+      sourceHandle: 'prompt',
+      target: 'ai-generate-youtube-thumbnail-v2',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'edge-youtube-thumbnail-prompt-v3',
+      source: 'ai-prompt-constructor-youtube-thumbnail',
+      sourceHandle: 'prompt',
+      target: 'ai-generate-youtube-thumbnail-v3',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'edge-youtube-reference-v1',
+      source: 'workflow-input-youtube-reference',
+      sourceHandle: 'value',
+      target: 'ai-generate-youtube-thumbnail-v1',
+      targetHandle: 'image',
+    },
+    {
+      id: 'edge-youtube-reference-v2',
+      source: 'workflow-input-youtube-reference',
+      sourceHandle: 'value',
+      target: 'ai-generate-youtube-thumbnail-v2',
+      targetHandle: 'image',
+    },
+    {
+      id: 'edge-youtube-reference-v3',
+      source: 'workflow-input-youtube-reference',
+      sourceHandle: 'value',
+      target: 'ai-generate-youtube-thumbnail-v3',
+      targetHandle: 'image',
+    },
+    {
+      id: 'edge-youtube-thumbnail-v1-output',
+      source: 'ai-generate-youtube-thumbnail-v1',
+      sourceHandle: 'image',
+      target: 'workflow-output-youtube-thumbnail-v1',
+      targetHandle: 'value',
+    },
+    {
+      id: 'edge-youtube-thumbnail-v2-output',
+      source: 'ai-generate-youtube-thumbnail-v2',
+      sourceHandle: 'image',
+      target: 'workflow-output-youtube-thumbnail-v2',
+      targetHandle: 'value',
+    },
+    {
+      id: 'edge-youtube-thumbnail-v3-output',
+      source: 'ai-generate-youtube-thumbnail-v3',
+      sourceHandle: 'image',
+      target: 'workflow-output-youtube-thumbnail-v3',
+      targetHandle: 'value',
+    },
+    {
+      id: 'edge-youtube-title-script-prompt',
+      source: 'workflow-input-youtube-title',
+      sourceHandle: 'value',
+      target: 'ai-prompt-constructor-youtube-script',
+      targetHandle: 'titleText',
+    },
+    {
+      id: 'edge-youtube-topic-script-prompt',
+      source: 'workflow-input-youtube-topic',
+      sourceHandle: 'value',
+      target: 'ai-prompt-constructor-youtube-script',
+      targetHandle: 'topicContext',
+    },
+    {
+      id: 'edge-youtube-audience-script-prompt',
+      source: 'workflow-input-youtube-audience',
+      sourceHandle: 'value',
+      target: 'ai-prompt-constructor-youtube-script',
+      targetHandle: 'targetAudience',
+    },
+    {
+      id: 'edge-youtube-script-prompt-llm',
+      source: 'ai-prompt-constructor-youtube-script',
+      sourceHandle: 'prompt',
+      target: 'llm-youtube-script',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'edge-youtube-script-output',
+      source: 'llm-youtube-script',
+      sourceHandle: 'text',
+      target: 'workflow-output-youtube-script',
+      targetHandle: 'value',
+    },
+  ],
+  icon: 'youtube',
+  id: 'youtube-thumbnail-script',
+  inputVariables: [
+    {
+      key: 'titleText',
+      label: 'Title Text',
+      required: true,
+      type: 'text',
+    },
+    {
+      key: 'thumbnailConcept',
+      label: 'Thumbnail Concept',
+      required: true,
+      type: 'text',
+    },
+    {
+      defaultValue: 'YouTube viewers who decide in under two seconds',
+      key: 'targetAudience',
+      label: 'Target Audience',
+      required: false,
+      type: 'text',
+    },
+    {
+      defaultValue:
+        'high contrast creator thumbnail, bold clean typography, expressive face, clear focal point',
+      key: 'visualStyle',
+      label: 'Visual Style',
+      required: false,
+      type: 'text',
+    },
+    {
+      key: 'referenceImage',
+      label: 'Reference Image',
+      required: false,
+      type: 'image',
+    },
+    {
+      key: 'topicContext',
+      label: 'Topic Context',
+      required: false,
+      type: 'text',
+    },
+  ],
+  name: 'YouTube Thumbnail and Script Generator',
+  nodes: [
+    {
+      data: {
+        config: {
+          inputName: 'titleText',
+          inputType: 'text',
+          required: true,
+        },
+        label: 'Title Text',
+      },
+      id: 'workflow-input-youtube-title',
+      position: { x: 0, y: 40 },
+      type: 'workflowInput',
+    },
+    {
+      data: {
+        config: {
+          inputName: 'thumbnailConcept',
+          inputType: 'text',
+          required: true,
+        },
+        label: 'Thumbnail Concept',
+      },
+      id: 'workflow-input-youtube-concept',
+      position: { x: 0, y: 180 },
+      type: 'workflowInput',
+    },
+    {
+      data: {
+        config: {
+          defaultValue: 'YouTube viewers who decide in under two seconds',
+          inputName: 'targetAudience',
+          inputType: 'text',
+          required: false,
+        },
+        label: 'Target Audience',
+      },
+      id: 'workflow-input-youtube-audience',
+      position: { x: 0, y: 320 },
+      type: 'workflowInput',
+    },
+    {
+      data: {
+        config: {
+          defaultValue:
+            'high contrast creator thumbnail, bold clean typography, expressive face, clear focal point',
+          inputName: 'visualStyle',
+          inputType: 'text',
+          required: false,
+        },
+        label: 'Visual Style',
+      },
+      id: 'workflow-input-youtube-style',
+      position: { x: 0, y: 460 },
+      type: 'workflowInput',
+    },
+    {
+      data: {
+        config: {
+          inputName: 'referenceImage',
+          inputType: 'image',
+          required: false,
+        },
+        label: 'Reference Image',
+      },
+      id: 'workflow-input-youtube-reference',
+      position: { x: 0, y: 600 },
+      type: 'workflowInput',
+    },
+    {
+      data: {
+        config: {
+          inputName: 'topicContext',
+          inputType: 'text',
+          required: false,
+        },
+        label: 'Topic Context',
+      },
+      id: 'workflow-input-youtube-topic',
+      position: { x: 0, y: 740 },
+      type: 'workflowInput',
+    },
+    {
+      data: {
+        config: {
+          template:
+            'Create a YouTube thumbnail prompt for a 16:9 thumbnail. Title text to include: "{{titleText}}". Concept: {{thumbnailConcept}}. Target audience: {{targetAudience}}. Visual style: {{visualStyle}}. Keep the composition readable at small size, with one dominant subject, bold typography, clean negative space, emotional clarity, and no clutter. Generate a polished final thumbnail image, not a mockup.',
+          variables: {},
+        },
+        label: 'Thumbnail Prompt',
+      },
+      id: 'ai-prompt-constructor-youtube-thumbnail',
+      position: { x: 340, y: 240 },
+      type: 'promptConstructor',
+    },
+    {
+      data: {
+        config: {
+          model: 'qwen/qwen-image',
+          negativePrompt:
+            'tiny unreadable text, clutter, muddy colors, extra words, misspelled words, distorted face, low contrast, generic stock photo, watermark, logo',
+          style:
+            'high-converting YouTube thumbnail with bold readable title text',
+        },
+        label: 'Thumbnail V1',
+      },
+      id: 'ai-generate-youtube-thumbnail-v1',
+      position: { x: 720, y: 80 },
+      type: 'imageGen',
+    },
+    {
+      data: {
+        config: {
+          model: 'qwen/qwen-image',
+          negativePrompt:
+            'tiny unreadable text, clutter, muddy colors, extra words, misspelled words, distorted face, low contrast, generic stock photo, watermark, logo',
+          seed: 1107,
+          style:
+            'alternate high-converting YouTube thumbnail with strong contrast and a different layout',
+        },
+        label: 'Thumbnail V2',
+      },
+      id: 'ai-generate-youtube-thumbnail-v2',
+      position: { x: 720, y: 280 },
+      type: 'imageGen',
+    },
+    {
+      data: {
+        config: {
+          model: 'qwen/qwen-image',
+          negativePrompt:
+            'tiny unreadable text, clutter, muddy colors, extra words, misspelled words, distorted face, low contrast, generic stock photo, watermark, logo',
+          seed: 2209,
+          style:
+            'alternate YouTube thumbnail concept with dramatic focal point and readable text hierarchy',
+        },
+        label: 'Thumbnail V3',
+      },
+      id: 'ai-generate-youtube-thumbnail-v3',
+      position: { x: 720, y: 480 },
+      type: 'imageGen',
+    },
+    {
+      data: {
+        config: {
+          template:
+            'Write a concise YouTube livestream/video script brief for title "{{titleText}}". Topic context: {{topicContext}}. Audience: {{targetAudience}}. Include: opening hook, 5-7 talking points, retention beats, thumbnail/title rationale, audience engagement prompts, and a closing CTA.',
+          variables: {},
+        },
+        label: 'Script Prompt',
+      },
+      id: 'ai-prompt-constructor-youtube-script',
+      position: { x: 340, y: 760 },
+      type: 'promptConstructor',
+    },
+    {
+      data: {
+        config: {
+          maxTokens: 1600,
+          model: 'openai/gpt-4o-mini',
+          temperature: 0.7,
+        },
+        label: 'Script Brief',
+      },
+      id: 'llm-youtube-script',
+      position: { x: 720, y: 760 },
+      type: 'llm',
+    },
+    {
+      data: {
+        config: {
+          outputName: 'thumbnailV1',
+        },
+        label: 'Thumbnail V1 Output',
+      },
+      id: 'workflow-output-youtube-thumbnail-v1',
+      position: { x: 1080, y: 80 },
+      type: 'workflowOutput',
+    },
+    {
+      data: {
+        config: {
+          outputName: 'thumbnailV2',
+        },
+        label: 'Thumbnail V2 Output',
+      },
+      id: 'workflow-output-youtube-thumbnail-v2',
+      position: { x: 1080, y: 280 },
+      type: 'workflowOutput',
+    },
+    {
+      data: {
+        config: {
+          outputName: 'thumbnailV3',
+        },
+        label: 'Thumbnail V3 Output',
+      },
+      id: 'workflow-output-youtube-thumbnail-v3',
+      position: { x: 1080, y: 480 },
+      type: 'workflowOutput',
+    },
+    {
+      data: {
+        config: {
+          outputName: 'scriptBrief',
+        },
+        label: 'Script Brief Output',
+      },
+      id: 'workflow-output-youtube-script',
+      position: { x: 1080, y: 760 },
+      type: 'workflowOutput',
+    },
+  ],
+  steps: [],
+};
+
 export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
   'avatar-ugc-heygen':
     AVATAR_UGC_WORKFLOW_TEMPLATE as unknown as WorkflowTemplate,
@@ -1556,4 +1948,5 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
       },
     ],
   },
+  'youtube-thumbnail-script': YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE,
 };
