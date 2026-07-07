@@ -58,7 +58,7 @@ function toTrendItem(item: TrendContentItem): TrendItem {
     isCurrent: true,
     mentions: item.trendMentions,
     metadata: {
-      source: item.sourcePreviewState === 'fallback' ? 'apify' : 'apify',
+      source: item.sourceClassification ? 'public-reference' : 'apify',
     },
     platform: item.platform,
     requiresAuth: item.requiresAuth,
@@ -79,6 +79,7 @@ function toSourceItem(item: TrendContentItem): TrendSourceItem {
     platform: item.platform,
     publishedAt: item.publishedAt,
     sourceReferenceId: item.sourceReferenceId,
+    sourceClassification: item.sourceClassification,
     sourceUrl: item.sourceUrl,
     text: item.text,
     thumbnailUrl: item.thumbnailUrl,

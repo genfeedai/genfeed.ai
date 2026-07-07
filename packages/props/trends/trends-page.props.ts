@@ -16,7 +16,13 @@ export interface TrendItem {
     videoUrl?: string;
     creatorHandle?: string;
     trendType?: 'topic' | 'hashtag' | 'sound' | 'video' | 'creator';
-    source?: 'apify' | 'grok' | 'grok-4' | 'native-api' | 'curated';
+    source?:
+      | 'apify'
+      | 'curated'
+      | 'grok'
+      | 'grok-4'
+      | 'native-api'
+      | 'public-reference';
   };
   requiresAuth: boolean;
   isCurrent: boolean;
@@ -46,6 +52,32 @@ export interface RefreshTrendsResponse {
   count: number;
 }
 
+export type TrendSourceConfidence = 'high' | 'low' | 'medium';
+
+export type TrendSourceIntendedUse =
+  | 'evergreen_prompt_context'
+  | 'organic_trend_discovery'
+  | 'paid_creative_analysis';
+
+export type TrendSourceKind =
+  | 'manual_curated_reference'
+  | 'owned_brand_reference'
+  | 'paid_creative_reference'
+  | 'public_platform_reference';
+
+export interface TrendSourceClassification {
+  capturedAt: string;
+  confidence: TrendSourceConfidence;
+  freshnessWindowDays: number;
+  intendedUse: TrendSourceIntendedUse;
+  platform?: string;
+  sourceAuthor?: string;
+  sourceKind: TrendSourceKind;
+  sourceLabel?: string;
+  sourceTimestamp?: string;
+  sourceTopic?: string;
+}
+
 export interface TrendContentItem {
   id: string;
   sourceReferenceId?: string;
@@ -67,6 +99,7 @@ export interface TrendContentItem {
     shares?: number;
     views?: number;
   };
+  sourceClassification?: TrendSourceClassification;
   trendViralityScore: number;
   trendMentions: number;
   sourcePreviewState: 'live' | 'fallback' | 'empty';
@@ -140,4 +173,5 @@ export interface TrendSourceItem {
     shares?: number;
     views?: number;
   };
+  sourceClassification?: TrendSourceClassification;
 }

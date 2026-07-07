@@ -2,6 +2,7 @@ import type {
   TrendSourceClassification,
   TrendSourceItem,
 } from '@api/collections/trends/interfaces/trend.interfaces';
+import { buildPublicPlatformReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 
 export interface PrelaunchReferenceCorpusSeed {
   growthRate: number;
@@ -198,13 +199,17 @@ export function buildPrelaunchReferenceCorpusSeeds(
       const publishedAt = new Date(
         capturedAt.getTime() - (themeIndex + platformIndex + 1) * 86_400_000,
       ).toISOString();
-      const sourceClassification = buildPublicReferenceClassification({
+      const sourceClassification = buildPublicPlatformReferenceClassification({
         capturedAt,
         confidence: themeIndex < 4 ? 'medium' : 'low',
         freshnessWindowDays: platform.freshnessWindowDays,
+        platform: platform.key,
         sourceLabel: platform.label,
+        sourceTimestamp: capturedAt,
         sourceTopic: theme.title,
       });
+      const primaryAuthor = `${platform.accountPrefix}-${theme.key}`;
+      const secondaryAuthor = `${platform.accountPrefix}-reference-${themeIndex + 1}`;
 
       return {
         growthRate: 35 + themeIndex * 3 + platformIndex,
@@ -219,7 +224,7 @@ export function buildPrelaunchReferenceCorpusSeeds(
         platform: platform.key,
         sourcePreview: [
           {
-            authorHandle: `${platform.accountPrefix}-${theme.key}`,
+            authorHandle: primaryAuthor,
             contentType: platform.contentType,
             id: `${trendKey}-fallback-primary`,
             metrics: {
@@ -230,13 +235,22 @@ export function buildPrelaunchReferenceCorpusSeeds(
             },
             platform: platform.key,
             publishedAt,
-            sourceClassification,
+            sourceClassification: buildPublicPlatformReferenceClassification({
+              capturedAt,
+              confidence: themeIndex < 4 ? 'medium' : 'low',
+              freshnessWindowDays: platform.freshnessWindowDays,
+              platform: platform.key,
+              sourceAuthor: primaryAuthor,
+              sourceLabel: platform.label,
+              sourceTimestamp: publishedAt,
+              sourceTopic: theme.title,
+            }),
             sourceUrl: platform.sourcePath(theme),
             text: theme.angle,
             title: `${theme.shortTitle} on ${platform.label}`,
           },
           {
-            authorHandle: `${platform.accountPrefix}-reference-${themeIndex + 1}`,
+            authorHandle: secondaryAuthor,
             contentType: platform.contentType,
             id: `${trendKey}-fallback-secondary`,
             metrics: {
@@ -247,7 +261,16 @@ export function buildPrelaunchReferenceCorpusSeeds(
             },
             platform: platform.key,
             publishedAt,
-            sourceClassification,
+            sourceClassification: buildPublicPlatformReferenceClassification({
+              capturedAt,
+              confidence: themeIndex < 4 ? 'medium' : 'low',
+              freshnessWindowDays: platform.freshnessWindowDays,
+              platform: platform.key,
+              sourceAuthor: secondaryAuthor,
+              sourceLabel: platform.label,
+              sourceTimestamp: publishedAt,
+              sourceTopic: theme.title,
+            }),
             sourceUrl: platform.sourcePathAlt(theme),
             text: `Reference example for ${theme.title.toLowerCase()} in the ${platform.label} launch corpus.`,
             title: `${theme.title}: ${platform.label} reference`,
@@ -258,22 +281,4 @@ export function buildPrelaunchReferenceCorpusSeeds(
       };
     }),
   );
-}
-
-function buildPublicReferenceClassification(input: {
-  capturedAt: Date;
-  confidence: TrendSourceClassification['confidence'];
-  freshnessWindowDays: number;
-  sourceLabel: string;
-  sourceTopic: string;
-}): TrendSourceClassification {
-  return {
-    capturedAt: input.capturedAt.toISOString(),
-    confidence: input.confidence,
-    freshnessWindowDays: input.freshnessWindowDays,
-    intendedUse: 'organic_trend_discovery',
-    sourceKind: 'public_platform_reference',
-    sourceLabel: input.sourceLabel,
-    sourceTopic: input.sourceTopic,
-  };
 }

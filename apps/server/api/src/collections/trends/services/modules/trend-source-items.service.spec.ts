@@ -89,6 +89,14 @@ describe('TrendSourceItemsService', () => {
         contentType: 'image',
         id: 'ig-1',
         platform: 'instagram',
+        sourceClassification: expect.objectContaining({
+          intendedUse: 'organic_trend_discovery',
+          platform: 'instagram',
+          sourceAuthor: 'creator',
+          sourceKind: 'public_platform_reference',
+          sourceLabel: 'Instagram',
+          sourceTopic: 'AI trends',
+        }),
         sourceUrl: 'https://www.instagram.com/p/abc/',
       });
     });
@@ -243,7 +251,9 @@ describe('TrendSourceItemsService', () => {
         contentType: 'post',
         id: 'trend-1-fallback-1',
         sourceClassification: expect.objectContaining({
+          platform: 'youtube',
           sourceKind: 'public_platform_reference',
+          sourceTimestamp: '2026-01-01T00:00:00.000Z',
         }),
         sourceUrl: 'https://a.com',
         text: 'sample',

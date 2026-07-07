@@ -219,6 +219,7 @@ export interface IEnvConfig {
   LINKEDIN_CLIENT_ID?: string;
   LINKEDIN_CLIENT_SECRET?: string;
   LINKEDIN_REDIRECT_URI?: string;
+  LINKEDIN_TREND_SOURCE_URLS?: string;
 
   // === Medium ===
   MEDIUM_CLIENT_ID?: string;

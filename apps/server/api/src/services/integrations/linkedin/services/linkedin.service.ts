@@ -1,5 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
+import { buildPublicPlatformReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
@@ -812,15 +813,14 @@ export class LinkedInService {
     sourceLabel: string;
     sourceTopic: string;
   }): TrendSourceClassification {
-    return {
-      capturedAt: input.capturedAt.toISOString(),
+    return buildPublicPlatformReferenceClassification({
+      capturedAt: input.capturedAt,
       confidence: input.confidence,
-      freshnessWindowDays: 7,
-      intendedUse: 'organic_trend_discovery',
-      sourceKind: 'public_platform_reference',
+      platform: 'linkedin',
       sourceLabel: input.sourceLabel,
+      sourceTimestamp: input.capturedAt,
       sourceTopic: input.sourceTopic,
-    };
+    });
   }
 
   private getPublicReferenceLabel(sourceUrl: string): string {

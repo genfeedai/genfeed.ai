@@ -4,6 +4,7 @@ import type {
   TrendSourceItem,
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import { TREND_SOURCE_PREVIEW_LIMIT } from '@api/collections/trends/services/modules/trend-source.constants';
+import { normalizeTrendSourceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import type {
   ApifyInstagramPost,
   ApifyNormalizedTweet,
@@ -119,7 +120,9 @@ export class TrendSourceItemsService {
     };
 
     const fetcher = fetchers[trend.platform];
-    return fetcher ? fetcher() : [];
+    const items = fetcher ? await fetcher() : [];
+
+    return items.map((item) => this.withSourceClassification(item, trend));
   }
 
   /**
@@ -138,10 +141,6 @@ export class TrendSourceItemsService {
       : [];
     const resolvedSourceUrls =
       sourceUrls.length > 0 ? sourceUrls : mediaUrl ? [mediaUrl] : [];
-    const sourceClassification = this.getTrendSourceClassification(
-      trend.metadata?.sourceClassification,
-    );
-
     return resolvedSourceUrls.map((sourceUrl, index) => ({
       authorHandle:
         typeof trend.metadata?.creatorHandle === 'string'
@@ -158,7 +157,17 @@ export class TrendSourceItemsService {
       platform: trend.platform,
       publishedAt: trend.createdAt?.toISOString(),
       sourceUrl,
-      sourceClassification,
+      sourceClassification: this.resolveSourceClassification(
+        {
+          authorHandle:
+            typeof trend.metadata?.creatorHandle === 'string'
+              ? trend.metadata.creatorHandle
+              : undefined,
+          platform: trend.platform,
+          publishedAt: trend.createdAt?.toISOString(),
+        },
+        trend,
+      ),
       text:
         typeof trend.metadata?.sampleContent === 'string'
           ? trend.metadata.sampleContent
@@ -401,25 +410,54 @@ export class TrendSourceItemsService {
     );
   }
 
-  private getTrendSourceClassification(
-    value: unknown,
+  private withSourceClassification(
+    item: TrendSourceItem,
+    trend: TrendEntity,
+  ): TrendSourceItem {
+    return {
+      ...item,
+      sourceClassification: this.resolveSourceClassification(item, trend),
+    };
+  }
+
+  private resolveSourceClassification(
+    item: {
+      authorHandle?: string;
+      platform: string;
+      publishedAt?: string;
+      sourceClassification?: TrendSourceClassification;
+    },
+    trend: TrendEntity,
   ): TrendSourceClassification | undefined {
-    if (!value || typeof value !== 'object') {
-      return undefined;
-    }
+    return normalizeTrendSourceClassification({
+      capturedAt: new Date(),
+      confidence: 'medium',
+      intendedUse: 'organic_trend_discovery',
+      platform: item.platform,
+      sourceAuthor:
+        item.authorHandle ??
+        (typeof trend.metadata?.creatorHandle === 'string'
+          ? trend.metadata.creatorHandle
+          : undefined),
+      sourceKind: 'public_platform_reference',
+      sourceLabel: this.getPlatformSourceLabel(item.platform),
+      sourceTimestamp: item.publishedAt ?? trend.createdAt?.toISOString(),
+      sourceTopic: trend.topic,
+      value: item.sourceClassification ?? trend.metadata?.sourceClassification,
+    });
+  }
 
-    const classification = value as Record<string, unknown>;
-    if (
-      typeof classification.capturedAt !== 'string' ||
-      typeof classification.confidence !== 'string' ||
-      typeof classification.freshnessWindowDays !== 'number' ||
-      typeof classification.intendedUse !== 'string' ||
-      typeof classification.sourceKind !== 'string'
-    ) {
-      return undefined;
-    }
+  private getPlatformSourceLabel(platform: string): string {
+    const labels: Record<string, string> = {
+      instagram: 'Instagram',
+      linkedin: 'LinkedIn',
+      reddit: 'Reddit',
+      tiktok: 'TikTok',
+      twitter: 'X / Twitter',
+      youtube: 'YouTube',
+    };
 
-    return classification as unknown as TrendSourceClassification;
+    return labels[platform] ?? platform;
   }
 
   private truncateText(

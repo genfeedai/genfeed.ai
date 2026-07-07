@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALL_TREND_PLATFORMS,
-  CURATED_TREND_PLATFORMS,
   getNewestTrendByCreatedAt,
   getTrendPlatformLabel,
   isTrendPlatform,
+  PUBLIC_REFERENCE_TREND_PLATFORMS,
   REALTIME_TREND_PLATFORMS,
 } from './trends-platforms';
 
 describe('trends-platforms', () => {
   it('keeps platform groupings stable', () => {
     expect(REALTIME_TREND_PLATFORMS).toContain('tiktok');
-    expect(CURATED_TREND_PLATFORMS).toEqual(['linkedin']);
+    expect(PUBLIC_REFERENCE_TREND_PLATFORMS).toEqual(['linkedin']);
     expect(ALL_TREND_PLATFORMS).toContain('youtube');
   });
 

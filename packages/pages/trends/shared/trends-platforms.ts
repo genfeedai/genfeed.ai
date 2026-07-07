@@ -9,11 +9,11 @@ export const REALTIME_TREND_PLATFORMS = [
   'pinterest',
 ] as const;
 
-export const CURATED_TREND_PLATFORMS = ['linkedin'] as const;
+export const PUBLIC_REFERENCE_TREND_PLATFORMS = ['linkedin'] as const;
 
 export const ALL_TREND_PLATFORMS = [
   ...REALTIME_TREND_PLATFORMS,
-  ...CURATED_TREND_PLATFORMS,
+  ...PUBLIC_REFERENCE_TREND_PLATFORMS,
 ] as const;
 
 export type TrendPlatform = (typeof ALL_TREND_PLATFORMS)[number];
