@@ -1,4 +1,3 @@
-import { getToolsForSurface, toMcpTools } from '@genfeedai/tools';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import * as appMetadata from '@mcp/config/app-metadata.json';
@@ -8,7 +7,6 @@ import { type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ServerService } from '@mcp/services/server.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
-import type { McpTool } from '@mcp/shared/interfaces/mcp-server.interface';
 import { Controller, Get, Param, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
@@ -22,6 +20,7 @@ export class McpController {
     private readonly mcpService: MCPService,
     private readonly clientService: ClientService,
     private readonly serverService: ServerService,
+    private readonly toolRegistry: ToolRegistryService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -113,9 +112,8 @@ export class McpController {
   @Get('tools')
   getTools(@Req() request: AuthenticatedRequest) {
     const role: McpRole = request?.authContext?.role ?? 'user';
-    const tools = toMcpTools(getToolsForSurface('mcp')) as McpTool[];
     return {
-      tools: ToolRegistryService.filterToolsByRole(tools, role),
+      tools: this.toolRegistry.getToolsForRole(role),
     };
   }
 
