@@ -54,57 +54,57 @@ export function getRetargetingRoutes(
   eventName: WebsiteMarketingEventName,
   providers: MarketingRetargetingProviderConfig[] = [],
 ): MarketingRetargetingRoute[] {
-  return providers.flatMap((providerConfig) => {
+  const routes: MarketingRetargetingRoute[] = [];
+
+  for (const providerConfig of providers) {
     if (providerConfig.provider === 'meta') {
       const pixelId = getValue(providerConfig.pixelId);
 
       if (!pixelId) {
-        return [];
+        continue;
       }
 
-      return [
-        {
-          accountId: pixelId,
-          eventName: META_EVENT_NAMES[eventName],
-          provider: providerConfig.provider,
-        },
-      ];
+      routes.push({
+        accountId: pixelId,
+        eventName: META_EVENT_NAMES[eventName],
+        provider: providerConfig.provider,
+      });
+      continue;
     }
 
     if (providerConfig.provider === 'linkedin') {
       const partnerId = getValue(providerConfig.partnerId);
 
       if (!partnerId) {
-        return [];
+        continue;
       }
 
       const conversionId = getValue(providerConfig.conversionIds?.[eventName]);
 
-      return [
-        {
-          accountId: partnerId,
-          ...(conversionId ? { conversionId } : {}),
-          eventName: LINKEDIN_EVENT_NAMES[eventName],
-          provider: providerConfig.provider,
-        },
-      ];
+      routes.push({
+        accountId: partnerId,
+        ...(conversionId ? { conversionId } : {}),
+        eventName: LINKEDIN_EVENT_NAMES[eventName],
+        provider: providerConfig.provider,
+      });
+      continue;
     }
 
     const pixelId = getValue(providerConfig.pixelId);
 
     if (!pixelId) {
-      return [];
+      continue;
     }
 
     const conversionId = getValue(providerConfig.eventIds?.[eventName]);
 
-    return [
-      {
-        accountId: pixelId,
-        ...(conversionId ? { conversionId } : {}),
-        eventName: X_EVENT_NAMES[eventName],
-        provider: providerConfig.provider,
-      },
-    ];
-  });
+    routes.push({
+      accountId: pixelId,
+      ...(conversionId ? { conversionId } : {}),
+      eventName: X_EVENT_NAMES[eventName],
+      provider: providerConfig.provider,
+    });
+  }
+
+  return routes;
 }
