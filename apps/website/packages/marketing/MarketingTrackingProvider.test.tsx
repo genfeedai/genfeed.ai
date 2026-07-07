@@ -7,6 +7,7 @@ import {
 } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MarketingTrackingConfig } from './browser';
 import { MARKETING_CONSENT_STORAGE_KEY } from './consent';
 import { WEBSITE_MARKETING_EVENTS } from './events';
 import MarketingTrackingProvider from './MarketingTrackingProvider';
@@ -50,14 +51,12 @@ vi.mock('./browser', () => ({
 
 function renderProvider(
   children: ReactNode = <button type="button">Child</button>,
+  config: MarketingTrackingConfig = {
+    gtmContainerId: 'GTM-TEST',
+  },
 ) {
   return render(
-    <MarketingTrackingProvider
-      config={{
-        gtmContainerId: 'GTM-TEST',
-      }}
-      consentDefault="denied"
-    >
+    <MarketingTrackingProvider config={config} consentDefault="denied">
       {children}
     </MarketingTrackingProvider>,
   );
@@ -124,6 +123,17 @@ describe('MarketingTrackingProvider', () => {
 
     expect(browserMocks.loadMarketingTags).not.toHaveBeenCalled();
     expect(browserMocks.trackWebsiteMarketingEvent).not.toHaveBeenCalled();
+  });
+
+  it('shows the consent prompt when retargeting routes are configured without GTM', async () => {
+    renderProvider(<button type="button">Child</button>, {
+      retargetingProviders: [{ pixelId: 'meta-pixel', provider: 'meta' }],
+    });
+
+    expect(
+      await screen.findByRole('button', { name: /accept/i }),
+    ).toBeVisible();
+    expect(browserMocks.loadMarketingTags).not.toHaveBeenCalled();
   });
 
   it('loads tags and routes typed page and CTA events after consent', async () => {

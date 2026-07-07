@@ -42,7 +42,14 @@ interface MarketingPageTrackerProps {
 }
 
 const hasConfiguredMarketingTag = (config: MarketingTrackingConfig): boolean =>
-  Boolean(config.gtmContainerId);
+  Boolean(
+    config.gtmContainerId ||
+      config.retargetingProviders?.some((provider) =>
+        provider.provider === 'linkedin'
+          ? Boolean(provider.partnerId.trim())
+          : Boolean(provider.pixelId.trim()),
+      ),
+  );
 
 /**
  * Renders no UI — owns the page-view and CTA tracking effects that depend on
