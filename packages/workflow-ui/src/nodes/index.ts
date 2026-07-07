@@ -5,6 +5,7 @@ export * from './input';
 export { NodeDetailModal } from './NodeDetailModal';
 export * from './output';
 export * from './processing';
+export * from './saas';
 
 // Node type mapping for React Flow
 import type { NodeTypes } from '@xyflow/react';
@@ -45,6 +46,7 @@ import {
   VideoStitchNode,
   VideoTrimNode,
 } from './processing';
+import { workflowSaaSNodeTypes } from './saas';
 
 export const nodeTypes: NodeTypes = {
   animation: AnimationNode,
@@ -81,4 +83,5 @@ export const nodeTypes: NodeTypes = {
   workflowInput: WorkflowInputNode,
   workflowOutput: WorkflowOutputNode,
   workflowRef: WorkflowRefNode,
+  ...workflowSaaSNodeTypes,
 };

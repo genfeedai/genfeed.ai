@@ -27,7 +27,10 @@ import type {
 import {
   createPublishExecutor,
   createSendEmailExecutor,
+  createTrendHashtagInspirationExecutor,
+  createTrendSoundInspirationExecutor,
   createTrendTriggerExecutor,
+  createTrendVideoInspirationExecutor,
   TrendDigestExecutor,
   type WorkflowEngine,
 } from '@genfeedai/workflow-engine';
@@ -54,6 +57,7 @@ export class WorkflowTrendPublishExecutorRegistrarService {
 
   register(engine: WorkflowEngine): void {
     this.registerTrendTriggerExecutor(engine);
+    this.registerTrendInspirationExecutors(engine);
     this.registerSendEmailExecutor(engine);
     this.registerTrendDigestExecutor(engine);
     this.registerPublishExecutor(engine);
@@ -151,6 +155,165 @@ export class WorkflowTrendPublishExecutorRegistrarService {
       executor.nodeType,
       this.helper.wrapEngineExecutor(executor),
     );
+  }
+
+  private registerTrendInspirationExecutors(engine: WorkflowEngine): void {
+    const trendsService = this.trendsService;
+
+    const hashtagExecutor = createTrendHashtagInspirationExecutor(
+      trendsService
+        ? async ({ platform, hashtag }) => {
+            const hashtags = await trendsService.getTrendingHashtags({
+              limit: 25,
+              platform,
+            });
+            const selected =
+              (hashtag
+                ? hashtags.find(
+                    (item) =>
+                      item.hashtag.replace(/^#/, '').toLowerCase() ===
+                      hashtag.toLowerCase(),
+                  )
+                : undefined) ?? hashtags[0];
+            if (!selected) {
+              return null;
+            }
+
+            return {
+              hashtag: selected.hashtag,
+              platform:
+                typeof selected.platform === 'string'
+                  ? this.normalizeTrendPlatform(selected.platform)
+                  : platform,
+              postCount:
+                typeof selected.postCount === 'number'
+                  ? selected.postCount
+                  : null,
+              relatedHashtags: selected.relatedHashtags ?? [],
+            };
+          }
+        : undefined,
+    );
+    const soundExecutor = createTrendSoundInspirationExecutor(
+      trendsService
+        ? async ({ minUsageCount, maxDuration }) => {
+            const sounds = await trendsService.getTrendingSounds({ limit: 50 });
+            const selected = sounds.find((sound) => {
+              const usageCount =
+                typeof sound.usageCount === 'number' ? sound.usageCount : 0;
+              const duration =
+                typeof sound.duration === 'number' ? sound.duration : null;
+              return (
+                usageCount >= minUsageCount &&
+                (maxDuration === null ||
+                  duration === null ||
+                  duration <= maxDuration)
+              );
+            });
+            if (!selected) {
+              return null;
+            }
+
+            const soundId =
+              selected.soundId ?? selected.externalId ?? selected.id;
+            if (!soundId) {
+              return null;
+            }
+
+            return {
+              authorName: selected.authorName ?? null,
+              coverUrl: selected.coverUrl ?? null,
+              duration:
+                typeof selected.duration === 'number'
+                  ? selected.duration
+                  : null,
+              growthRate:
+                typeof selected.growthRate === 'number'
+                  ? selected.growthRate
+                  : null,
+              soundId,
+              soundName: selected.soundName ?? soundId,
+              soundUrl: selected.playUrl ?? null,
+              usageCount:
+                typeof selected.usageCount === 'number'
+                  ? selected.usageCount
+                  : null,
+            };
+          }
+        : undefined,
+    );
+    const videoExecutor = createTrendVideoInspirationExecutor(
+      trendsService
+        ? async ({ platform, trendId, minViralScore }) => {
+            const videos = await trendsService.getViralVideos({
+              limit: 25,
+              minViralScore,
+              platform,
+            });
+            const selected =
+              (trendId
+                ? videos.find(
+                    (item) =>
+                      item.id === trendId ||
+                      item.externalId === trendId ||
+                      item._id === trendId,
+                  )
+                : undefined) ?? videos[0];
+            if (!selected) {
+              return null;
+            }
+
+            const selectedTrendId =
+              selected.id ?? selected.externalId ?? selected._id;
+            if (!selectedTrendId) {
+              return null;
+            }
+
+            return {
+              description: selected.description ?? null,
+              duration:
+                typeof selected.duration === 'number'
+                  ? selected.duration
+                  : null,
+              hashtags: selected.hashtags ?? [],
+              hook: selected.hook ?? null,
+              platform:
+                typeof selected.platform === 'string'
+                  ? this.normalizeTrendPlatform(selected.platform)
+                  : platform,
+              soundId: selected.soundId ?? null,
+              title: selected.title ?? null,
+              trendId: selectedTrendId,
+              videoUrl: selected.videoUrl ?? selected.playUrl ?? null,
+            };
+          }
+        : undefined,
+    );
+
+    for (const executor of [hashtagExecutor, soundExecutor, videoExecutor]) {
+      engine.registerExecutor(
+        executor.nodeType,
+        this.helper.wrapEngineExecutor(executor),
+      );
+    }
+  }
+
+  private normalizeTrendPlatform(
+    platform: string,
+  ): 'tiktok' | 'instagram' | 'twitter' | 'youtube' | 'reddit' {
+    switch (platform.toLowerCase()) {
+      case 'instagram':
+      case 'twitter':
+      case 'youtube':
+      case 'reddit':
+        return platform.toLowerCase() as
+          | 'instagram'
+          | 'twitter'
+          | 'youtube'
+          | 'reddit';
+      default:
+        return 'tiktok';
+    }
   }
 
   private registerSendEmailExecutor(engine: WorkflowEngine): void {

@@ -35,6 +35,7 @@ import {
   Film,
   GitBranch,
   Grid3X3,
+  Hash,
   Image,
   Layers,
   LayoutGrid,
@@ -44,6 +45,7 @@ import {
   Maximize2,
   MessageSquare,
   Mic,
+  Music,
   Navigation,
   Pencil,
   Puzzle,
@@ -95,6 +97,7 @@ const ICON_MAP: Record<string, typeof Image> = {
   Film,
   GitBranch,
   Grid3X3,
+  Hash,
   Image,
   Layers,
   LayoutGrid,
@@ -102,6 +105,7 @@ const ICON_MAP: Record<string, typeof Image> = {
   Maximize2,
   MessageSquare,
   Mic,
+  Music,
   Navigation,
   Pencil,
   Puzzle,
@@ -121,6 +125,7 @@ const HANDLE_COLORS: Record<string, string> = {
   image: 'var(--handle-image)',
   number: 'var(--handle-number)',
   text: 'var(--handle-text)',
+  'text[]': 'var(--handle-text)',
   video: 'var(--handle-video)',
 };
 
@@ -140,6 +145,13 @@ function StatusIndicator({ status }: { status: NodeStatus }) {
 
 interface BaseNodeProps extends NodeProps {
   children?: ReactNode;
+  nodeDefinition?: {
+    category: string;
+    icon: string;
+    inputs: VisualHandleDefinition[];
+    label?: string;
+    outputs: VisualHandleDefinition[];
+  };
   headerActions?: ReactNode;
   title?: string;
   titleElement?: ReactNode;
@@ -147,6 +159,11 @@ interface BaseNodeProps extends NodeProps {
   hideStatusIndicator?: boolean;
   /** Input handle IDs that should appear disabled (reduced opacity) when model doesn't support them */
   disabledInputs?: string[];
+}
+
+interface VisualHandleDefinition extends Omit<HandleDefinition, 'type'> {
+  type: string;
+  optional?: boolean;
 }
 
 // Hover delay for showing preview tooltip (ms)
@@ -189,8 +206,8 @@ function BaseNodeHandles({
   sortedInputs,
 }: {
   disabledInputs?: string[];
-  outputs: HandleDefinition[];
-  sortedInputs: HandleDefinition[];
+  outputs: VisualHandleDefinition[];
+  sortedInputs: VisualHandleDefinition[];
 }) {
   return (
     <>
@@ -205,7 +222,7 @@ function BaseNodeHandles({
             isConnectableEnd={!isDisabled}
             className={clsx('!w-3 !h-3', isDisabled && 'opacity-30')}
             style={{
-              background: HANDLE_COLORS[input.type],
+              background: HANDLE_COLORS[input.type] ?? HANDLE_COLORS.text,
               top: `${((index + 1) / (sortedInputs.length + 1)) * 100}%`,
             }}
           />
@@ -396,6 +413,7 @@ function BaseNodeComponent({
   width,
   height,
   disabledInputs,
+  nodeDefinition,
 }: BaseNodeProps) {
   // Check if node has been manually resized (has explicit dimensions)
   const isResized = width !== undefined || height !== undefined;
@@ -412,7 +430,7 @@ function BaseNodeComponent({
     (state) => state.stopNodeExecution,
   );
   const updateNodeInternals = useUpdateNodeInternals();
-  const nodeDef = NODE_DEFINITIONS[type as NodeType];
+  const nodeDef = nodeDefinition ?? NODE_DEFINITIONS[type as NodeType];
   const nodeData = data as WorkflowNodeData;
 
   // Hover preview tooltip state
@@ -428,7 +446,10 @@ function BaseNodeComponent({
   const sortedInputs = useMemo(() => {
     const staticInputs = nodeDef?.inputs ?? [];
     if (!selectedModel?.inputSchema) return staticInputs;
-    return generateHandlesFromSchema(selectedModel.inputSchema, staticInputs);
+    return generateHandlesFromSchema(
+      selectedModel.inputSchema,
+      staticInputs as HandleDefinition[],
+    ) as VisualHandleDefinition[];
   }, [nodeDef?.inputs, selectedModel?.inputSchema]);
 
   const _disabledInputsKey = disabledInputs?.join(',') ?? '';
@@ -643,7 +664,6 @@ function BaseNodeComponent({
           <BaseNodeHeader
             Icon={Icon}
             headerActions={normalizedHeaderActions}
-            nodeLabel={nodeData.label}
             onLockToggle={handleLockToggle}
             onStopNode={handleStopNode}
             state={{
@@ -656,6 +676,7 @@ function BaseNodeComponent({
             status={nodeData.status}
             title={title}
             titleElement={titleElement}
+            nodeLabel={nodeData.label ?? nodeDef.label ?? String(type)}
           />
           <BaseNodeContent
             nodeData={nodeData}
@@ -707,6 +728,9 @@ function arePropsEqual(prev: BaseNodeProps, next: BaseNodeProps): boolean {
 
   // Check hideStatusIndicator
   if (prev.hideStatusIndicator !== next.hideStatusIndicator) return false;
+
+  // Check custom node definition
+  if (prev.nodeDefinition !== next.nodeDefinition) return false;
 
   // Check disabledInputs array (shallow compare)
   const prevDisabled = prev.disabledInputs ?? [];
