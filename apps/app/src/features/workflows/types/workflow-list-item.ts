@@ -8,6 +8,7 @@ export interface WorkflowListItem {
   name: string;
   description?: string;
   lifecycle: 'draft' | 'published' | 'archived';
+  brandId?: string | null;
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
   createdAt: string;

@@ -126,7 +126,8 @@ describe('Server Serializers', () => {
     it('includes the visual workflow attributes required by the cloud editor', () => {
       expect(workflowAttributes).toEqual(
         expect.arrayContaining([
-          'brands',
+          'brand',
+          'brandId',
           'edges',
           'inputVariables',
           'lifecycle',

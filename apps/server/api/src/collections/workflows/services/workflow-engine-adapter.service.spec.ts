@@ -150,7 +150,7 @@ describe('WorkflowEngineAdapterService', () => {
     it('injects the workflow primary brand into avatar and media processing nodes', () => {
       const workflowDoc = {
         _id: { toString: () => 'wf-1' },
-        brands: [{ toString: () => 'brand-1' }],
+        brandId: 'brand-1',
         nodes: [
           {
             data: { config: {}, label: 'Avatar' },
@@ -542,7 +542,7 @@ describe('WorkflowEngineAdapterService', () => {
     it('executes analytics feedback without a performance summary service', async () => {
       const workflow = service.convertToExecutableWorkflow({
         _id: { toString: () => 'wf-analytics-feedback' },
-        brands: [{ toString: () => 'brand-1' }],
+        brandId: 'brand-1',
         nodes: [
           {
             data: { config: { topN: 5, worstN: 3 }, label: 'Analytics' },
@@ -779,7 +779,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const workflow = avatarService.convertToExecutableWorkflow({
         _id: { toString: () => 'wf-1' },
-        brands: [{ toString: () => 'brand-1' }],
+        brandId: 'brand-1',
         edges: [],
         nodes: [
           {
@@ -885,7 +885,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const captionsWorkflow = executionService.convertToExecutableWorkflow({
         _id: { toString: () => 'wf-caption' },
-        brands: [{ toString: () => brandId }],
+        brandId,
         edges: [
           {
             id: 'avatar-caption',
@@ -922,7 +922,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const musicWorkflow = executionService.convertToExecutableWorkflow({
         _id: { toString: () => 'wf-music' },
-        brands: [{ toString: () => brandId }],
+        brandId,
         edges: [],
         nodes: [
           {
@@ -942,7 +942,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const overlayWorkflow = executionService.convertToExecutableWorkflow({
         _id: { toString: () => 'wf-overlay' },
-        brands: [{ toString: () => brandId }],
+        brandId,
         edges: [
           {
             id: 'caption-overlay',
@@ -1061,7 +1061,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       const workflowDoc = {
         _id: { toString: () => 'wf-real-estate' },
-        brands: [{ toString: () => '507f1f77bcf86cd799439011' }],
+        brandId: '507f1f77bcf86cd799439011',
         edges: template.edges,
         inputVariables: template.inputVariables,
         nodes: template.nodes,

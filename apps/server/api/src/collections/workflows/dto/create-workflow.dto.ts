@@ -1,5 +1,4 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { LabeledCreateDto } from '@api/shared/dto/base/base.dto';
 import {
   WorkflowRecurrenceType,
   WorkflowStatus,
@@ -14,6 +13,7 @@ import {
   IsBoolean,
   IsDate,
   IsEnum,
+  IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
@@ -246,7 +246,57 @@ export class WorkflowRecurrenceDto {
   readonly endDate?: Date;
 }
 
-export class CreateWorkflowDto extends LabeledCreateDto {
+export class CreateWorkflowDto {
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description: 'The user ID who created this resource. Server-owned.',
+    required: false,
+  })
+  readonly user?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description: 'The organization ID that owns this resource. Server-owned.',
+    required: false,
+  })
+  readonly organization?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty({
+    description: 'The display label/name of the workflow',
+    required: true,
+  })
+  readonly label!: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Optional detailed description of the workflow',
+    required: false,
+  })
+  readonly description?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Brand ID this workflow is scoped to',
+    required: false,
+  })
+  readonly brandId?: string;
+
+  @IsArray()
+  @IsEntityId({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Deprecated legacy brand IDs input. Only the first brand ID is used.',
+    required: false,
+  })
+  readonly brands?: string[];
+
   @IsArray()
   @IsOptional()
   @ApiProperty({

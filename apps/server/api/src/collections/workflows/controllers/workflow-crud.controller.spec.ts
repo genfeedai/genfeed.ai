@@ -104,6 +104,7 @@ describe('WorkflowCrudController', () => {
         mockUser.publicMetadata.user,
         mockUser.publicMetadata.organization,
         createDto,
+        undefined,
       );
       expect(result).toBeDefined();
     });
@@ -194,6 +195,27 @@ describe('WorkflowCrudController', () => {
         mockUser.publicMetadata.brand,
       );
       expect(result).toBeDefined();
+    });
+
+    it('should clone a workflow for an explicit target brand', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      mockWorkflowsService.cloneWorkflow.mockResolvedValue({
+        ...mockWorkflow,
+        _id: '507f1f77bcf86cd799439015',
+        brandId: '507f1f77bcf86cd799439016',
+        label: 'Test Workflow (Copy)',
+      });
+
+      await controller.cloneWorkflow(mockRequest, id, mockUser, {
+        brandId: '507f1f77bcf86cd799439016',
+      });
+
+      expect(service.cloneWorkflow).toHaveBeenCalledWith(
+        id,
+        mockUser.publicMetadata.user,
+        mockUser.publicMetadata.organization,
+        '507f1f77bcf86cd799439016',
+      );
     });
   });
 

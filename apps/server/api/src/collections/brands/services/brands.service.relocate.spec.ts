@@ -7,20 +7,17 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-import { createHash } from 'node:crypto';
 import {
   FIRST_ORDER_TARGETS,
   SECOND_ORDER_TARGETS,
 } from '@api/collections/brands/constants/brand-org-cascade.constants';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { WorkflowStatus } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
@@ -37,7 +34,7 @@ type Delegate = {
 function makeDelegate(): Delegate {
   return {
     count: vi.fn().mockResolvedValue(0),
-    create: vi.fn().mockResolvedValue({ id: 'clone_id' }),
+    create: vi.fn().mockResolvedValue({ id: 'created_id' }),
     findFirst: vi.fn(),
     findMany: vi.fn().mockResolvedValue([]),
     update: vi.fn().mockResolvedValue({}),
@@ -58,17 +55,6 @@ const EMPTY_RELOCATION_SUMMARY = {
   workflowsMoved: 0,
 };
 
-function computeAckToken(
-  multiBrandWorkflowIds: string[],
-  brandId: string,
-  destOrgId: string,
-): string {
-  const sorted = [...multiBrandWorkflowIds].sort();
-  return createHash('sha256')
-    .update(`${sorted.join(',')}|${brandId}|${destOrgId}`)
-    .digest('hex');
-}
-
 describe('BrandsService.relocateToOrganization', () => {
   let delegates: Map<string, Delegate>;
   let queryRaw: ReturnType<typeof vi.fn>;
@@ -77,9 +63,6 @@ describe('BrandsService.relocateToOrganization', () => {
     invalidate: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
     invalidatePattern: ReturnType<typeof vi.fn>;
-  };
-  let workflowExecutionQueueService: {
-    upsertWorkflowScheduler: ReturnType<typeof vi.fn>;
   };
   let prismaProxy: unknown;
   let service: BrandsService;
@@ -106,10 +89,6 @@ describe('BrandsService.relocateToOrganization', () => {
       invalidateByTags: vi.fn(),
       invalidatePattern: vi.fn(),
     };
-    workflowExecutionQueueService = {
-      upsertWorkflowScheduler: vi.fn().mockResolvedValue(undefined),
-    };
-
     prismaProxy = new Proxy(
       {},
       {
@@ -141,7 +120,6 @@ describe('BrandsService.relocateToOrganization', () => {
       {} as unknown as LlmDispatcherService,
       cacheInvalidationService as unknown as CacheInvalidationService,
       {} as unknown as FilesClientService,
-      workflowExecutionQueueService as unknown as WorkflowExecutionQueueService,
     );
   });
 
@@ -170,17 +148,8 @@ describe('BrandsService.relocateToOrganization', () => {
     getDelegate('organization').findFirst.mockResolvedValue({ id: DEST_ORG });
   }
 
-  // `severCrossOrgLinks` issues two workflow.findMany queries: the first (no `AND`)
-  // returns every cross-org workflow on the brand; the second (with `AND`) returns
-  // only the multi-brand subset. Route each by the presence of `where.AND`.
-  function mockWorkflowSplit(opts: {
-    cross: { id: string }[];
-    shared: { id: string }[];
-  }): void {
-    getDelegate('workflow').findMany.mockImplementation(
-      (args: { where?: { AND?: unknown } }) =>
-        Promise.resolve(args.where?.AND ? opts.shared : opts.cross),
-    );
+  function mockBrandWorkflows(workflows: { id: string }[]): void {
+    getDelegate('workflow').findMany.mockResolvedValue(workflows);
   }
 
   it('does not relocate (or open a transaction) when the org is unchanged', async () => {
@@ -338,8 +307,7 @@ describe('BrandsService.relocateToOrganization', () => {
 
   it('moves a sole-brand workflow (with its execution + batch history) with the brand', async () => {
     primeRelocatableBrand();
-    // wf_sole is attached only to the moving brand → it should move, not sever.
-    mockWorkflowSplit({ cross: [{ id: 'wf_sole' }], shared: [] });
+    mockBrandWorkflows([{ id: 'wf_sole' }]);
 
     await service.relocateToOrganization(
       BRAND_ID,
@@ -376,279 +344,30 @@ describe('BrandsService.relocateToOrganization', () => {
     });
   });
 
-  it('severs the original link but clones a multi-brand workflow into the destination org', async () => {
+  it('ignores deprecated relocationAck and moves brand-owned workflows without cloning', async () => {
     primeRelocatableBrand();
-    // wf_shared drives another brand too → the original stays; only the brand link is
-    // cut, and a scoped clone is created in the destination org.
-    mockWorkflowSplit({
-      cross: [{ id: 'wf_shared' }],
-      shared: [{ id: 'wf_shared' }],
-    });
-    getDelegate('workflow').findFirst.mockResolvedValue({
-      config: { theme: 'dark' },
-      defaultRecurringBrandId: null,
-      description: 'desc',
-      edges: [],
-      id: 'wf_shared',
-      inputVariables: {},
-      isScheduleEnabled: true,
-      label: 'Shared workflow',
-      lifecycle: 'recurring',
-      lockedNodeIds: [],
-      metadata: { systemWorkflow: true },
-      nodes: [{ brandId: BRAND_ID }],
-      organizationId: SOURCE_ORG,
-      recurrence: null,
-      schedule: '0 9 * * *',
-      status: WorkflowStatus.ACTIVE,
-      steps: [],
-      thumbnail: null,
-      thumbnailNodeId: null,
-      timezone: 'UTC',
-      userId: USER_ID,
-    });
-    // Source owner is not an active member of the dest org (default falsy mock) →
-    // ownership falls back to the acting user, who is also USER_ID here.
-    const ack = computeAckToken(['wf_shared'], BRAND_ID, DEST_ORG);
+    mockBrandWorkflows([{ id: 'wf_owned' }]);
 
     const result = await service.relocateToOrganization(
       BRAND_ID,
-      { organizationId: DEST_ORG, relocationAck: ack },
+      { organizationId: DEST_ORG, relocationAck: 'legacy-token' },
       { isSuperAdmin: true, userId: USER_ID },
     );
 
-    // Brand link severed for the shared workflow.
-    expect(getDelegate('brand').update).toHaveBeenCalledWith({
-      data: {
-        members: { disconnect: [] },
-        workflows: { disconnect: [{ id: 'wf_shared' }] },
-      },
-      where: { id: BRAND_ID },
-    });
-    // A severed original is NOT re-homed and its history stays put.
-    expect(getDelegate('workflowExecution').updateMany).not.toHaveBeenCalled();
-    expect(getDelegate('batchWorkflowJob').updateMany).not.toHaveBeenCalled();
-    expect(getDelegate('workflow').updateMany).not.toHaveBeenCalledWith(
-      expect.objectContaining({ data: { organizationId: DEST_ORG } }),
-    );
-    // Nothing moved (only cloned) → default-recurring null-out carries no move-exclusion.
+    expect(getDelegate('workflow').create).not.toHaveBeenCalled();
     expect(getDelegate('workflow').updateMany).toHaveBeenCalledWith({
-      data: { defaultRecurringBrandId: null },
-      where: { defaultRecurringBrandId: BRAND_ID },
-    });
-
-    // Clone created scoped to the destination org + moved brand only, no legacy fields.
-    expect(getDelegate('workflow').create).toHaveBeenCalledWith({
-      data: {
-        brands: { connect: [{ id: BRAND_ID }] },
-        config: { theme: 'dark' },
-        defaultRecurringBrandId: null,
-        description: 'desc',
-        edges: [],
-        executionCount: 0,
-        inputVariables: {},
-        isDeleted: false,
-        isScheduleEnabled: true,
-        label: 'Shared workflow',
-        lifecycle: 'recurring',
-        lockedNodeIds: [],
-        metadata: {},
-        nodes: [{ brandId: BRAND_ID }],
-        organizationId: DEST_ORG,
-        progress: 0,
-        recurrence: null,
-        schedule: '0 9 * * *',
-        status: WorkflowStatus.ACTIVE,
-        steps: [],
-        thumbnail: null,
-        thumbnailNodeId: null,
-        timezone: 'UTC',
-        userId: USER_ID,
-      },
-    });
-    const createCallData = getDelegate('workflow').create.mock.calls[0]?.[0]
-      ?.data as Record<string, unknown>;
-    expect(createCallData.id).toBeUndefined();
-    expect(createCallData.mongoId).toBeUndefined();
-    expect(createCallData.tags).toBeUndefined();
-
-    // Activated (source was effectively active+scheduled, and clean) → scheduler
-    // registered post-commit.
-    expect(
-      workflowExecutionQueueService.upsertWorkflowScheduler,
-    ).toHaveBeenCalledWith({
-      cronExpression: '0 9 * * *',
-      timezone: 'UTC',
-      workflowId: 'clone_id',
+      data: { organizationId: DEST_ORG },
+      where: { id: { in: ['wf_owned'] }, organizationId: { not: DEST_ORG } },
     });
     expect(result.summary).toEqual({
       ...EMPTY_RELOCATION_SUMMARY,
-      workflowsClonedActive: 1,
+      workflowsMoved: 1,
     });
-  });
-
-  it('clones a multi-brand workflow as DRAFT when it references a foreign-org resource', async () => {
-    primeRelocatableBrand();
-    mockWorkflowSplit({
-      cross: [{ id: 'wf_shared' }],
-      shared: [{ id: 'wf_shared' }],
-    });
-    const FOREIGN_CREDENTIAL_ID = 'cred1234567890123456789';
-    getDelegate('workflow').findFirst.mockResolvedValue({
-      config: { credentialId: FOREIGN_CREDENTIAL_ID },
-      defaultRecurringBrandId: null,
-      description: null,
-      edges: [],
-      id: 'wf_shared',
-      inputVariables: {},
-      isScheduleEnabled: true,
-      label: 'Shared workflow',
-      lifecycle: 'recurring',
-      lockedNodeIds: [],
-      metadata: {},
-      nodes: [],
-      organizationId: SOURCE_ORG,
-      recurrence: null,
-      schedule: '0 9 * * *',
-      status: WorkflowStatus.ACTIVE,
-      steps: [],
-      thumbnail: null,
-      thumbnailNodeId: null,
-      timezone: 'UTC',
-      userId: USER_ID,
-    });
-    // Credential referenced in the config belongs to a different (non-dest) org.
-    getDelegate('credential').findFirst.mockResolvedValue({
-      id: FOREIGN_CREDENTIAL_ID,
-    });
-    const ack = computeAckToken(['wf_shared'], BRAND_ID, DEST_ORG);
-
-    const result = await service.relocateToOrganization(
-      BRAND_ID,
-      { organizationId: DEST_ORG, relocationAck: ack },
-      { isSuperAdmin: true, userId: USER_ID },
-    );
-
-    expect(getDelegate('workflow').create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          isScheduleEnabled: false,
-          status: WorkflowStatus.DRAFT,
-        }),
-      }),
-    );
-    // Not activated → no scheduler registration for this clone.
-    expect(
-      workflowExecutionQueueService.upsertWorkflowScheduler,
-    ).not.toHaveBeenCalled();
-    expect(result.summary).toEqual({
-      ...EMPTY_RELOCATION_SUMMARY,
-      workflowsClonedPaused: 1,
-    });
-  });
-
-  it('clones a protected system workflow as DRAFT (never active), matching the scheduler skip rule', async () => {
-    primeRelocatableBrand();
-    mockWorkflowSplit({
-      cross: [{ id: 'wf_system' }],
-      shared: [{ id: 'wf_system' }],
-    });
-    // A REAL system-workflow marker (object shape recognised by
-    // getSystemWorkflowMetadata) — its systemWorkflowAction nodes have no user-scheduler
-    // executor, so it must never be cloned into an active, scheduled state.
-    getDelegate('workflow').findFirst.mockResolvedValue({
-      config: {},
-      defaultRecurringBrandId: null,
-      description: null,
-      edges: [],
-      id: 'wf_system',
-      inputVariables: {},
-      isScheduleEnabled: true,
-      label: 'System workflow',
-      lifecycle: 'recurring',
-      lockedNodeIds: [],
-      metadata: {
-        systemWorkflow: {
-          canonicalId: 'default-recurring-post',
-          kind: 'system-workflow',
-          owner: 'genfeed',
-        },
-      },
-      nodes: [],
-      organizationId: SOURCE_ORG,
-      recurrence: null,
-      schedule: '0 9 * * *',
-      status: WorkflowStatus.ACTIVE,
-      steps: [],
-      thumbnail: null,
-      thumbnailNodeId: null,
-      timezone: 'UTC',
-      userId: USER_ID,
-    });
-    const ack = computeAckToken(['wf_system'], BRAND_ID, DEST_ORG);
-
-    const result = await service.relocateToOrganization(
-      BRAND_ID,
-      { organizationId: DEST_ORG, relocationAck: ack },
-      { isSuperAdmin: true, userId: USER_ID },
-    );
-
-    // Forced to DRAFT + unscheduled, and the system marker stripped from the clone.
-    expect(getDelegate('workflow').create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          isScheduleEnabled: false,
-          metadata: {},
-          status: WorkflowStatus.DRAFT,
-        }),
-      }),
-    );
-    expect(
-      workflowExecutionQueueService.upsertWorkflowScheduler,
-    ).not.toHaveBeenCalled();
-    expect(result.summary).toEqual({
-      ...EMPTY_RELOCATION_SUMMARY,
-      workflowsClonedPaused: 1,
-    });
-  });
-
-  it('rejects the move with 409 when the relocationAck does not match the recomputed impact', async () => {
-    primeRelocatableBrand();
-    mockWorkflowSplit({
-      cross: [{ id: 'wf_shared' }],
-      shared: [{ id: 'wf_shared' }],
-    });
-
-    await expect(
-      service.relocateToOrganization(
-        BRAND_ID,
-        { organizationId: DEST_ORG, relocationAck: 'stale-token' },
-        { isSuperAdmin: true, userId: USER_ID },
-      ),
-    ).rejects.toBeInstanceOf(ConflictException);
-    // Aborted before any write → caches untouched.
-    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
-    expect(getDelegate('workflow').create).not.toHaveBeenCalled();
-  });
-
-  it('does not require a relocationAck when the move has no clone impact', async () => {
-    primeRelocatableBrand();
-    // wf_sole is sole-brand only → no clone impact, ack should be optional.
-    mockWorkflowSplit({ cross: [{ id: 'wf_sole' }], shared: [] });
-
-    await expect(
-      service.relocateToOrganization(
-        BRAND_ID,
-        { organizationId: DEST_ORG },
-        { isSuperAdmin: true, userId: USER_ID },
-      ),
-    ).resolves.toBeDefined();
-    expect(getDelegate('workflow').create).not.toHaveBeenCalled();
   });
 
   it('retries the relocation transaction once on a P2034 serialization failure', async () => {
     primeRelocatableBrand();
-    mockWorkflowSplit({ cross: [], shared: [] });
+    mockBrandWorkflows([]);
     let attempt = 0;
     transactionSpy.mockImplementation(
       async (fn: (tx: unknown) => Promise<unknown>) => {
@@ -678,13 +397,12 @@ describe('BrandsService.relocateToOrganization', () => {
 
   it('rolls back when a brand-linked workflow/member is left stranded in the source org', async () => {
     primeRelocatableBrand();
-    mockWorkflowSplit({ cross: [], shared: [] });
-    // The M2M backstop recomputes the post-state and finds a workflow still attached to
-    // the moved brand from a source org (e.g. a concurrent re-link the scalar auditor
-    // cannot see).
+    mockBrandWorkflows([]);
+    // The post-state backstop finds a live workflow for the moved brand that still
+    // has the source organization id.
     getDelegate('workflow').count.mockImplementation(
-      (args: { where?: { brands?: { some?: { id?: string } } } }) =>
-        Promise.resolve(args.where?.brands?.some?.id === BRAND_ID ? 1 : 0),
+      (args: { where?: { brandId?: string } }) =>
+        Promise.resolve(args.where?.brandId === BRAND_ID ? 1 : 0),
     );
 
     await expect(
@@ -698,93 +416,11 @@ describe('BrandsService.relocateToOrganization', () => {
     expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
   });
 
-  it('rolls back when a moved workflow is still linked to a source-org brand', async () => {
+  it('rolls back when a moved workflow still has the source organization id', async () => {
     primeRelocatableBrand();
-    mockWorkflowSplit({ cross: [{ id: 'wf_sole' }], shared: [] });
-    // Post-move recheck: the moved workflow is scoped by `id: { in: [...] }` and turns
-    // out to still reference a brand outside the destination org.
-    getDelegate('workflow').count.mockImplementation(
-      (args: { where?: { id?: unknown } }) =>
-        Promise.resolve(args.where?.id ? 1 : 0),
-    );
-
-    await expect(
-      service.relocateToOrganization(
-        BRAND_ID,
-        { organizationId: DEST_ORG },
-        { isSuperAdmin: true, userId: USER_ID },
-      ),
-    ).rejects.toThrow(/cross-org association/);
-    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
-  });
-
-  it('moves a sole-brand workflow (with its execution + batch history) with the brand', async () => {
-    primeRelocatableBrand();
-    // wf_sole is attached only to the moving brand → it should move, not sever.
-    mockWorkflowSplit({ cross: [{ id: 'wf_sole' }], shared: [] });
-
-    await service.relocateToOrganization(
-      BRAND_ID,
-      { organizationId: DEST_ORG },
-      { isSuperAdmin: true, userId: USER_ID },
-    );
-
-    // Workflow definition re-homed to the destination org.
-    expect(getDelegate('workflow').updateMany).toHaveBeenCalledWith({
-      data: { organizationId: DEST_ORG },
-      where: { id: { in: ['wf_sole'] }, organizationId: { not: DEST_ORG } },
-    });
-    // Org-keyed execution + batch history followed the workflow.
-    expect(getDelegate('workflowExecution').updateMany).toHaveBeenCalledWith({
-      data: { organizationId: DEST_ORG },
-      where: {
-        organizationId: { not: DEST_ORG },
-        workflowId: { in: ['wf_sole'] },
-      },
-    });
-    expect(getDelegate('batchWorkflowJob').updateMany).toHaveBeenCalledWith({
-      data: { organizationId: DEST_ORG },
-      where: {
-        organizationId: { not: DEST_ORG },
-        workflowId: { in: ['wf_sole'] },
-      },
-    });
-    // A moved workflow keeps its brand link (never disconnected)...
-    expect(getDelegate('brand').update).not.toHaveBeenCalled();
-    // ...and keeps its default-recurring marker (excluded from the null-out).
-    expect(getDelegate('workflow').updateMany).toHaveBeenCalledWith({
-      data: { defaultRecurringBrandId: null },
-      where: { defaultRecurringBrandId: BRAND_ID, id: { notIn: ['wf_sole'] } },
-    });
-  });
-
-  it('rolls back when a brand-linked workflow/member is left stranded in the source org', async () => {
-    primeRelocatableBrand();
-    mockWorkflowSplit({ cross: [], shared: [] });
-    // The M2M backstop recomputes the post-state and finds a workflow still attached to
-    // the moved brand from a source org (e.g. a concurrent re-link the scalar auditor
-    // cannot see).
-    getDelegate('workflow').count.mockImplementation(
-      (args: { where?: { brands?: { some?: { id?: string } } } }) =>
-        Promise.resolve(args.where?.brands?.some?.id === BRAND_ID ? 1 : 0),
-    );
-
-    await expect(
-      service.relocateToOrganization(
-        BRAND_ID,
-        { organizationId: DEST_ORG },
-        { isSuperAdmin: true, userId: USER_ID },
-      ),
-    ).rejects.toThrow(/cross-org association/);
-    // Aborted → caches untouched.
-    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
-  });
-
-  it('rolls back when a moved workflow is still linked to a source-org brand', async () => {
-    primeRelocatableBrand();
-    mockWorkflowSplit({ cross: [{ id: 'wf_sole' }], shared: [] });
-    // Post-move recheck: the moved workflow is scoped by `id: { in: [...] }` and turns
-    // out to still reference a brand outside the destination org.
+    mockBrandWorkflows([{ id: 'wf_sole' }]);
+    // Post-move recheck: the moved workflow is scoped by `id: { in: [...] }`
+    // and still has the source organization id.
     getDelegate('workflow').count.mockImplementation(
       (args: { where?: { id?: unknown } }) =>
         Promise.resolve(args.where?.id ? 1 : 0),

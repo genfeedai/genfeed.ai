@@ -23,6 +23,7 @@ export interface WorkflowData {
   edgeStyle: string;
   groups?: NodeGroup[];
   tags?: string[];
+  brandId?: string | null;
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
   createdAt: string;
@@ -37,6 +38,7 @@ export interface CreateWorkflowInput {
   edgeStyle?: string;
   groups?: NodeGroup[];
   tags?: string[];
+  brandId?: string | null;
 }
 
 export interface UpdateWorkflowInput {
@@ -47,6 +49,7 @@ export interface UpdateWorkflowInput {
   edgeStyle?: string;
   groups?: NodeGroup[];
   tags?: string[];
+  brandId?: string | null;
 }
 
 export const workflowsApi = {
@@ -56,8 +59,14 @@ export const workflowsApi = {
   create: (
     data: CreateWorkflowInput,
     signal?: AbortSignal,
-  ): Promise<WorkflowData> =>
-    apiClient.post<WorkflowData>('/workflows', data, { signal }),
+  ): Promise<WorkflowData> => {
+    const { name, ...rest } = data;
+    return apiClient.post<WorkflowData>(
+      '/workflows',
+      { ...rest, label: name },
+      { signal },
+    );
+  },
 
   /**
    * Delete a workflow (soft delete)
@@ -86,10 +95,22 @@ export const workflowsApi = {
   /**
    * Duplicate a workflow
    */
-  duplicate: (id: string, signal?: AbortSignal): Promise<WorkflowData> =>
-    apiClient.post<WorkflowData>(`/workflows/${id}/duplicate`, undefined, {
-      signal,
-    }),
+  duplicate: (
+    id: string,
+    optionsOrSignal?: { brandId?: string | null } | AbortSignal,
+    signal?: AbortSignal,
+  ): Promise<WorkflowData> => {
+    const isAbortSignal =
+      optionsOrSignal &&
+      'aborted' in optionsOrSignal &&
+      'addEventListener' in optionsOrSignal;
+    const options = isAbortSignal ? undefined : optionsOrSignal;
+    const requestSignal = isAbortSignal ? optionsOrSignal : signal;
+
+    return apiClient.post<WorkflowData>(`/workflows/${id}/clone`, options, {
+      signal: requestSignal,
+    });
+  },
 
   // Export/Import endpoints
 
@@ -188,7 +209,7 @@ export const workflowsApi = {
     nodeId: string,
     signal?: AbortSignal,
   ): Promise<WorkflowData> =>
-    apiClient.put<WorkflowData>(
+    apiClient.patch<WorkflowData>(
       `/workflows/${id}`,
       { thumbnail: thumbnailUrl, thumbnailNodeId: nodeId },
       { signal },
@@ -201,8 +222,17 @@ export const workflowsApi = {
     id: string,
     data: UpdateWorkflowInput,
     signal?: AbortSignal,
-  ): Promise<WorkflowData> =>
-    apiClient.put<WorkflowData>(`/workflows/${id}`, data, { signal }),
+  ): Promise<WorkflowData> => {
+    const { name, ...rest } = data;
+    return apiClient.patch<WorkflowData>(
+      `/workflows/${id}`,
+      {
+        ...rest,
+        ...(name !== undefined ? { label: name } : {}),
+      },
+      { signal },
+    );
+  },
 
   /**
    * Validate a workflow reference (checks for circular references)

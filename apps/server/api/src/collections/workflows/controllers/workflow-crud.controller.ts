@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CloneWorkflowDto } from '@api/collections/workflows/dto/clone-workflow.dto';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowQueryDto } from '@api/collections/workflows/dto/query-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
@@ -43,6 +44,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBody } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 type WorkflowStatistics = Awaited<
@@ -83,6 +85,7 @@ export class WorkflowCrudController {
         publicMetadata.user,
         publicMetadata.organization,
         createWorkflowDto,
+        publicMetadata.brand || undefined,
       );
 
       return serializeSingle(request, WorkflowSerializer, workflow);
@@ -193,21 +196,24 @@ export class WorkflowCrudController {
   }
 
   @Post(':workflowId/clone')
+  @ApiBody({ required: false, type: CloneWorkflowDto })
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async cloneWorkflow(
     @Req() request: Request,
     @Param('workflowId') workflowId: string,
     @CurrentUser() user: User,
+    @Body() dto: CloneWorkflowDto = {},
   ): Promise<JsonApiSingleResponse> {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
+      const targetBrandId = dto.brandId ?? (publicMetadata.brand || undefined);
 
       const clonedWorkflow = await this.workflowsService.cloneWorkflow(
         workflowId,
         publicMetadata.user,
         publicMetadata.organization,
-        publicMetadata.brand || undefined,
+        targetBrandId,
       );
 
       return serializeSingle(request, WorkflowSerializer, clonedWorkflow);

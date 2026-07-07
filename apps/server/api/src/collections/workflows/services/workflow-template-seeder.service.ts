@@ -743,6 +743,7 @@ export class WorkflowTemplateSeederService {
     timezone: string | null;
   }): Record<string, unknown> {
     return {
+      brandId: schedule.brandId,
       description: `Workflow-backed content schedule ${schedule.id}`,
       edges: [] as never,
       isScheduleEnabled: schedule.isEnabled === true,

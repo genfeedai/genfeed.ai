@@ -91,6 +91,7 @@ export interface WorkflowDocument
   > {
   organization?: string;
   user?: string;
+  brand?: string | null;
   name?: string | null;
   trigger?: string;
   sourceAsset?: string | null;
@@ -118,7 +119,6 @@ export interface WorkflowDocument
   isPublic?: boolean;
   lifecycle?: string;
   lockedNodeIds?: string[];
-  brands?: string[];
   webhookAuthType?: string | null;
   webhookId?: string | null;
   webhookSecret?: string | null;

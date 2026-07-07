@@ -7,6 +7,7 @@ vi.mock('./client', () => ({
   apiClient: {
     delete: vi.fn(),
     get: vi.fn(),
+    patch: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
   },
@@ -87,9 +88,17 @@ describe('workflowsApi', () => {
 
       const result = await workflowsApi.create(createData);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/workflows', createData, {
-        signal: undefined,
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/workflows',
+        {
+          edges: [],
+          label: 'Test Workflow',
+          nodes: [],
+        },
+        {
+          signal: undefined,
+        },
+      );
       expect(result).toEqual(mockWorkflow);
     });
 
@@ -108,9 +117,20 @@ describe('workflowsApi', () => {
 
       await workflowsApi.create(createData);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/workflows', createData, {
-        signal: undefined,
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/workflows',
+        {
+          description: 'With all fields',
+          edgeStyle: 'step',
+          edges: [],
+          groups: [],
+          label: 'Full Workflow',
+          nodes: [],
+        },
+        {
+          signal: undefined,
+        },
+      );
     });
   });
 
@@ -118,14 +138,14 @@ describe('workflowsApi', () => {
     it('should update an existing workflow', async () => {
       const { apiClient } = await import('./client');
       const updatedWorkflow = { ...mockWorkflow, name: 'Updated Workflow' };
-      vi.mocked(apiClient.put).mockResolvedValueOnce(updatedWorkflow);
+      vi.mocked(apiClient.patch).mockResolvedValueOnce(updatedWorkflow);
 
       const updateData = { name: 'Updated Workflow' };
       const result = await workflowsApi.update('workflow-1', updateData);
 
-      expect(apiClient.put).toHaveBeenCalledWith(
+      expect(apiClient.patch).toHaveBeenCalledWith(
         '/workflows/workflow-1',
-        updateData,
+        { label: 'Updated Workflow' },
         {
           signal: undefined,
         },
@@ -135,7 +155,7 @@ describe('workflowsApi', () => {
 
     it('should update nodes and edges', async () => {
       const { apiClient } = await import('./client');
-      vi.mocked(apiClient.put).mockResolvedValueOnce(mockWorkflow);
+      vi.mocked(apiClient.patch).mockResolvedValueOnce(mockWorkflow);
 
       const updateData = {
         edges: [],
@@ -154,7 +174,7 @@ describe('workflowsApi', () => {
         updateData as unknown as Parameters<typeof workflowsApi.update>[1],
       );
 
-      expect(apiClient.put).toHaveBeenCalledWith(
+      expect(apiClient.patch).toHaveBeenCalledWith(
         '/workflows/workflow-1',
         expect.objectContaining({
           edges: expect.any(Array),
@@ -191,7 +211,7 @@ describe('workflowsApi', () => {
       const result = await workflowsApi.duplicate('workflow-1');
 
       expect(apiClient.post).toHaveBeenCalledWith(
-        '/workflows/workflow-1/duplicate',
+        '/workflows/workflow-1/clone',
         undefined,
         {
           signal: undefined,
@@ -199,6 +219,41 @@ describe('workflowsApi', () => {
       );
       expect(result._id).toBe('workflow-2');
       expect(result.name).toBe('Test Workflow (Copy)');
+    });
+
+    it('should duplicate a workflow for a target brand', async () => {
+      const { apiClient } = await import('./client');
+      vi.mocked(apiClient.post).mockResolvedValueOnce({
+        ...mockWorkflow,
+        _id: 'workflow-2',
+        brandId: 'brand-2',
+      });
+
+      await workflowsApi.duplicate('workflow-1', { brandId: 'brand-2' });
+
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/workflows/workflow-1/clone',
+        { brandId: 'brand-2' },
+        {
+          signal: undefined,
+        },
+      );
+    });
+
+    it('should duplicate a workflow with an abort signal as the second argument', async () => {
+      const { apiClient } = await import('./client');
+      const abortController = new AbortController();
+      vi.mocked(apiClient.post).mockResolvedValueOnce(mockWorkflow);
+
+      await workflowsApi.duplicate('workflow-1', abortController.signal);
+
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/workflows/workflow-1/clone',
+        undefined,
+        {
+          signal: abortController.signal,
+        },
+      );
     });
   });
 });

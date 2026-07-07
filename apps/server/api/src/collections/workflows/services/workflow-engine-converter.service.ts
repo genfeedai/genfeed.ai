@@ -15,7 +15,7 @@ import type {
 } from '@genfeedai/workflow-engine';
 
 export interface WorkflowDocumentShape {
-  brands?: Array<string | { toString(): string }>;
+  brandId?: string | null;
   id?: string;
   nodes?: WorkflowVisualNode[];
   edges?: WorkflowEdge[];
@@ -94,10 +94,7 @@ export class WorkflowEngineConverterService {
   convertToExecutableWorkflow(
     workflowDoc: WorkflowDocumentShape,
   ): ExecutableWorkflow {
-    const primaryBrandId =
-      workflowDoc.brands && workflowDoc.brands.length > 0
-        ? workflowDoc.brands[0]?.toString()
-        : undefined;
+    const primaryBrandId = workflowDoc.brandId ?? undefined;
     const nodes: ExecutableNode[] = (workflowDoc.nodes || []).map((node) => {
       const config =
         node.data?.config ||

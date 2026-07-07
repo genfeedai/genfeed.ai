@@ -70,7 +70,7 @@ export class DefaultRecurringContentService {
     const workflows = await this.prisma.workflow.findMany({
       orderBy: { createdAt: 'desc' },
       where: {
-        brands: { some: { id: brandId } },
+        brandId,
         isDeleted: false,
         isScheduleEnabled: true,
         organizationId,
@@ -176,7 +176,7 @@ export class DefaultRecurringContentService {
       orderBy: { createdAt: 'desc' },
       select: { id: true, isScheduleEnabled: true, metadata: true },
       where: {
-        brands: { some: { id: params.brandId } },
+        brandId: params.brandId,
         isDeleted: false,
         organizationId: params.organizationId,
       },
@@ -299,7 +299,7 @@ export class DefaultRecurringContentService {
             const existing = await tx.workflow.findFirst({
               select: { id: true, isScheduleEnabled: true },
               where: {
-                brands: { some: { id: params.brandId } },
+                brandId: params.brandId,
                 isDeleted: false,
                 metadata: {
                   equals: params.contentType,
@@ -419,7 +419,7 @@ export class DefaultRecurringContentService {
     );
     const workflow = await params.tx.workflow.create({
       data: {
-        brands: { connect: [{ id: brandId }] },
+        brandId,
         // Denormalized brand identity used by the partial unique index
         // `workflows_default_recurring_brand_org_type_uidx`. Setting this
         // allows Postgres to enforce at-most-one default recurring workflow

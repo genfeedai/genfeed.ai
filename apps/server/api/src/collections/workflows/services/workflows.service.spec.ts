@@ -31,26 +31,37 @@ describe('WorkflowsService template creation', () => {
   });
 
   it('copies productized routine metadata and schedule defaults from the selected template', async () => {
-    await service.createWorkflow('user-1', 'org-1', {
-      edges: [],
-      metadata: {
-        createdFrom: 'templates',
-      },
-      nodes: [],
-      templateId: 'release-loop',
-    } as never);
+    await service.createWorkflow(
+      'user-1',
+      'org-1',
+      {
+        edges: [],
+        metadata: {
+          createdFrom: 'templates',
+        },
+        nodes: [],
+        templateId: 'release-loop',
+      } as never,
+      'brand-1',
+    );
 
     const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as {
+      brandId?: string;
       isScheduleEnabled?: boolean;
       metadata?: Record<string, unknown>;
       nodes?: Array<{ id: string; type: string }>;
+      organization?: string;
+      organizationId?: string;
       schedule?: string;
       status?: WorkflowStatus;
       steps?: Array<{ id: string; status: WorkflowStepStatus }>;
       timezone?: string;
+      user?: string;
+      userId?: string;
     };
 
     expect(createInput).toMatchObject({
+      brandId: 'brand-1',
       isScheduleEnabled: true,
       metadata: {
         createdFrom: 'templates',
@@ -76,6 +87,10 @@ describe('WorkflowsService template creation', () => {
       status: WorkflowStatus.ACTIVE,
       timezone: 'UTC',
     });
+    expect(createInput.organizationId).toBe('org-1');
+    expect(createInput.userId).toBe('user-1');
+    expect(createInput.organization).toBeUndefined();
+    expect(createInput.user).toBeUndefined();
     expect(createInput.nodes?.map((node) => node.type)).toEqual(
       expect.arrayContaining(['llm', 'reviewGate', 'workflow-output']),
     );
@@ -114,6 +129,47 @@ describe('WorkflowsService template creation', () => {
       schedule: '30 10 * * *',
       timezone: 'Europe/Malta',
     });
+  });
+
+  it('drops non-column create fields before delegating to Prisma', async () => {
+    await service.createWorkflow(
+      'user-1',
+      'org-1',
+      {
+        edges: [],
+        isPublic: true,
+        isTemplate: true,
+        label: 'Browser Workflow',
+        nodes: [],
+        scheduledFor: new Date('2026-01-01T00:00:00.000Z'),
+        sourceAsset: 'asset-1',
+        templateId: 'custom-template',
+        trigger: 'manual',
+      } as never,
+      'brand-1',
+    );
+
+    const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+
+    expect(createInput).toMatchObject({
+      brandId: 'brand-1',
+      edges: [],
+      label: 'Browser Workflow',
+      nodes: [],
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    expect(createInput.isPublic).toBeUndefined();
+    expect(createInput.isTemplate).toBeUndefined();
+    expect(createInput.organization).toBeUndefined();
+    expect(createInput.scheduledFor).toBeUndefined();
+    expect(createInput.sourceAsset).toBeUndefined();
+    expect(createInput.templateId).toBeUndefined();
+    expect(createInput.trigger).toBeUndefined();
+    expect(createInput.user).toBeUndefined();
   });
 });
 
@@ -173,6 +229,7 @@ describe('WorkflowsService system workflow guardrails', () => {
       },
       nodes: [],
       organization: 'org-1',
+      brandId: 'source-brand',
       schedule: '0 7 * * *',
       steps: [],
       user: 'owner-user',
@@ -186,9 +243,15 @@ describe('WorkflowsService system workflow guardrails', () => {
       steps: [],
     } as never);
 
-    await service.cloneWorkflow('system-workflow-1', 'user-1', 'org-1');
+    await service.cloneWorkflow(
+      'system-workflow-1',
+      'user-1',
+      'org-1',
+      'target-brand',
+    );
 
     const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as {
+      brandId?: string;
       isScheduleEnabled?: boolean;
       label?: string;
       lockedNodeIds?: string[];
@@ -198,6 +261,7 @@ describe('WorkflowsService system workflow guardrails', () => {
     };
 
     expect(createInput).toMatchObject({
+      brandId: 'target-brand',
       isScheduleEnabled: false,
       label: 'Daily Trends Digest (Copy)',
       lockedNodeIds: [],
@@ -219,6 +283,59 @@ describe('WorkflowsService system workflow guardrails', () => {
         upgradeStatus: 'current',
       }),
     );
+  });
+
+  it('duplicates editable workflows into the target brand without carrying source ownership state', async () => {
+    vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
+      _id: 'workflow-1',
+      brandId: 'source-brand',
+      edges: [],
+      executionCount: 3,
+      id: 'workflow-1',
+      inputVariables: [],
+      isScheduleEnabled: true,
+      label: 'Launch Workflow',
+      lockedNodeIds: ['review-node'],
+      metadata: { createdFrom: 'user' },
+      nodes: [],
+      organization: 'org-1',
+      schedule: '0 9 * * *',
+      steps: [],
+      user: 'owner-user',
+    } as never);
+    vi.spyOn(service, 'create').mockResolvedValue({
+      _id: 'copy-workflow-1',
+      id: 'copy-workflow-1',
+      label: 'Launch Workflow (Copy)',
+      metadata: {},
+      nodes: [],
+      steps: [],
+    } as never);
+
+    await service.cloneWorkflow('workflow-1', 'user-1', 'org-1', 'brand-2');
+
+    const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+
+    expect(createInput).toMatchObject({
+      brandId: 'brand-2',
+      defaultRecurringBrandId: 'brand-2',
+      executionCount: 0,
+      isScheduleEnabled: true,
+      label: 'Launch Workflow (Copy)',
+      lockedNodeIds: ['review-node'],
+      organizationId: 'org-1',
+      progress: 0,
+      schedule: '0 9 * * *',
+      status: WorkflowStatus.DRAFT,
+      userId: 'user-1',
+    });
+    expect(createInput.id).toBeUndefined();
+    expect(createInput.mongoId).toBeUndefined();
+    expect(createInput.organization).toBeUndefined();
+    expect(createInput.user).toBeUndefined();
   });
 });
 

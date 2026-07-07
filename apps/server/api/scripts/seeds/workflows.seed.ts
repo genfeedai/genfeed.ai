@@ -300,7 +300,7 @@ async function ensureDefaultBundle(params: {
       metadata: true,
     },
     where: {
-      brands: { some: { id: params.brand.id } },
+      brandId: params.brand.id,
       isDeleted: false,
       organizationId: params.brand.organizationId,
     },
@@ -361,7 +361,7 @@ async function ensureDefaultBundle(params: {
 
     await params.prisma.workflow.create({
       data: {
-        brands: { connect: { id: params.brand.id } },
+        brandId: params.brand.id,
         description: buildWorkflowDescription(
           contentType,
           DEFAULT_RECURRING_SCHEDULE,

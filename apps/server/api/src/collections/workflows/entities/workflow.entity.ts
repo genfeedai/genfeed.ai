@@ -35,7 +35,9 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare mongoId: string | null;
   declare defaultRecurringBrandId: string | null;
   declare organizationId: string;
+  declare brandId: string | null;
   declare userId: string;
+  brand?: string | null;
   user?: string;
   organization?: string;
   label!: string;
@@ -69,5 +71,4 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   // New workflow engine fields
   lifecycle?: WorkflowDocument['lifecycle'];
   lockedNodeIds?: string[];
-  brands?: string[];
 }

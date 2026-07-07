@@ -3271,6 +3271,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   Workflow: {
     allFields: [
+      'brand',
+      'brandId',
       'completedAt',
       'config',
       'createdAt',
