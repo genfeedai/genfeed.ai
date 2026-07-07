@@ -20,6 +20,10 @@ import { useEffect, useRef } from 'react';
  */
 const ONBOARDING_DISMISSED_KEY = 'genfeed:onboarding-dismissed';
 
+function markDismissed(): void {
+  localStorage.setItem(ONBOARDING_DISMISSED_KEY, 'true');
+}
+
 export default function OnboardingTrigger() {
   const { isFirstLogin, isLoading, checkOnboardingStatus } = useOnboarding();
   const hasTriggeredRef = useRef(false);
@@ -41,10 +45,6 @@ export default function OnboardingTrigger() {
       return () => clearTimeout(timer);
     }
   }, [isLoading, isFirstLogin]);
-
-  const markDismissed = () => {
-    localStorage.setItem(ONBOARDING_DISMISSED_KEY, 'true');
-  };
 
   const handleComplete = () => {
     markDismissed();

@@ -1,10 +1,12 @@
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
+import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
+import { normalizeTrendSourceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 
 /**
- * Owns trend read queries against Prisma and the curated bootstrap fallback.
+ * Owns trend read queries against Prisma and the bootstrap reference fallback.
  *
  * Extracted from TrendsService (issue #752). The previously near-duplicate
  * `findActiveTrends` / `findLastGoodTrends` helpers are unified behind a single
@@ -20,7 +22,7 @@ export class TrendQueryService {
         hashtags: ['#AIAgents', '#WorkflowAutomation'],
         sampleContent:
           'Creators are showing how AI agents turn recurring workflows into reusable content systems.',
-        source: 'curated',
+        source: 'public-reference',
         sourcePreviewState: 'fallback',
         trendType: 'topic',
         urls: ['https://genfeed.ai/articles'],
@@ -36,7 +38,7 @@ export class TrendQueryService {
         hashtags: ['#CreatorOps', '#ContentSystems'],
         sampleContent:
           'Teams are packaging trend research, briefs, reviews, and publishing into repeatable creator ops loops.',
-        source: 'curated',
+        source: 'public-reference',
         sourcePreviewState: 'fallback',
         trendType: 'topic',
         urls: ['https://genfeed.ai/workflows'],
@@ -52,7 +54,7 @@ export class TrendQueryService {
         hashtags: ['#VideoRepurposing', '#ShortFormVideo'],
         sampleContent:
           'Short-form creators are remixing long-form clips into hooks, captions, and platform-native edits.',
-        source: 'curated',
+        source: 'public-reference',
         sourcePreviewState: 'fallback',
         trendType: 'video',
         urls: ['https://genfeed.ai/studio'],
@@ -68,7 +70,7 @@ export class TrendQueryService {
         hashtags: ['#CarouselDesign', '#CreatorStrategy'],
         sampleContent:
           'Instagram teams are turning dense strategy notes into swipeable carousel lessons and remixable Reel hooks.',
-        source: 'curated',
+        source: 'public-reference',
         sourcePreviewState: 'fallback',
         trendType: 'topic',
         urls: ['https://genfeed.ai/studio'],
@@ -84,7 +86,7 @@ export class TrendQueryService {
         hashtags: ['#TikTokTrends', '#AICreators'],
         sampleContent:
           'TikTok creators are testing fast before-and-after demos that show a manual content workflow becoming automated.',
-        source: 'curated',
+        source: 'public-reference',
         sourcePreviewState: 'fallback',
         trendType: 'video',
         urls: ['https://genfeed.ai/workflows'],
@@ -100,7 +102,7 @@ export class TrendQueryService {
         hashtags: ['#CreatorTools', '#SaaS'],
         sampleContent:
           'Reddit discussions are comparing lightweight creator stacks for briefs, assets, scheduling, and analytics.',
-        source: 'curated',
+        source: 'public-reference',
         sourcePreviewState: 'fallback',
         trendType: 'topic',
         urls: ['https://genfeed.ai/articles'],
@@ -171,7 +173,7 @@ export class TrendQueryService {
   }
 
   /**
-   * Curated bootstrap trends used as a final fallback when no data is cached.
+   * Bootstrap reference trends used as a final fallback when no data is cached.
    */
   getBootstrapTrends(platform?: string): TrendEntity[] {
     const now = new Date();
@@ -181,8 +183,13 @@ export class TrendQueryService {
       (trend) => !platform || trend.platform === platform,
     ).map((trend, index) => {
       const id = `bootstrap-trend-${trend.platform}-${index + 1}`;
+      const sourceClassification = this.buildBootstrapSourceClassification(
+        trend,
+        now,
+      );
       const metadata = {
         ...trend.metadata,
+        sourceClassification,
         sourcePreviewCache: [
           {
             contentType:
@@ -193,6 +200,7 @@ export class TrendQueryService {
                   : 'post',
             id: `${id}-fallback-1`,
             platform: trend.platform,
+            sourceClassification,
             sourceUrl: trend.metadata.urls[0],
             text: trend.metadata.sampleContent,
             title: trend.topic,
@@ -227,6 +235,30 @@ export class TrendQueryService {
         viralityScore: trend.viralityScore,
       } as unknown as TrendDocument);
     });
+  }
+
+  private buildBootstrapSourceClassification(
+    trend: { platform: string; topic: string },
+    now: Date,
+  ): TrendSourceClassification {
+    const sourceClassification = normalizeTrendSourceClassification({
+      capturedAt: now,
+      confidence: 'low',
+      freshnessWindowDays: 30,
+      intendedUse: 'evergreen_prompt_context',
+      platform: trend.platform,
+      sourceAuthor: 'genfeed',
+      sourceKind: 'owned_brand_reference',
+      sourceLabel: 'Genfeed bootstrap references',
+      sourceTimestamp: now,
+      sourceTopic: trend.topic,
+    });
+
+    if (!sourceClassification) {
+      throw new Error('Failed to build bootstrap source classification');
+    }
+
+    return sourceClassification;
   }
 
   /**

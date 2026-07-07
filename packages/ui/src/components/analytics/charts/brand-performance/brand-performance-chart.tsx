@@ -44,6 +44,12 @@ const METRIC_LABELS = {
   views: 'Views',
 };
 
+type BrandMetricKey = keyof typeof METRIC_COLORS;
+
+function formatBrandName(name: string): string {
+  return name.length > 15 ? `${name.substring(0, 15)}…` : name;
+}
+
 export function BrandPerformanceChart({
   data,
   title = 'Top Brands Performance',
@@ -52,7 +58,6 @@ export function BrandPerformanceChart({
   height = 300,
   className = '',
 }: BrandPerformanceChartProps) {
-  type BrandMetricKey = keyof typeof METRIC_COLORS;
   const [activeMetric, setActiveMetric] = useState<BrandMetricKey>(
     String(metric).toLowerCase() as BrandMetricKey,
   );
@@ -76,11 +81,6 @@ export function BrandPerformanceChart({
   const sortedData = data
     .toSorted((a, b) => b[activeMetric] - a[activeMetric])
     .slice(0, 10);
-
-  // Truncate long brand names
-  const formatBrandName = (name: string) => {
-    return name.length > 15 ? `${name.substring(0, 15)}…` : name;
-  };
 
   return (
     <Card className={className}>

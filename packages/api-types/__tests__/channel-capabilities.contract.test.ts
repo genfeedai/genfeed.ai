@@ -1,4 +1,5 @@
 import {
+  channelTargetValidationResultSchema,
   getChannelCapability,
   listChannelCapabilities,
   PRODUCTIZED_SCHEDULER_PLATFORMS,
@@ -87,6 +88,47 @@ describe('validateChannelTargetSettings', () => {
     expect(result.valid).toBe(true);
     expect(result.validationState).toBe(TargetValidationState.VALID);
     expect(result.errors).toEqual([]);
+  });
+
+  test('allows provider readiness to travel with validation results', () => {
+    const result = channelTargetValidationResultSchema.parse({
+      errors: [
+        {
+          code: 'channel_target.provider_blocked',
+          message: 'Instagram cannot publish until app review is complete.',
+          severity: 'error',
+        },
+      ],
+      platform: CredentialPlatform.INSTAGRAM,
+      readiness: {
+        appReviewStatus: 'fail',
+        callbackUrlStatus: 'pass',
+        canSchedule: false,
+        diagnostics: [
+          {
+            classification: 'missing_provider_approval',
+            code: 'meta_app_review_required',
+            correctiveAction: 'Move the Meta app out of development mode.',
+            isRetryable: false,
+            message: 'Meta app review is required before publishing.',
+            severity: 'error',
+          },
+        ],
+        isRetryable: false,
+        permissionScopeStatus: 'pass',
+        providerKey: CredentialPlatform.INSTAGRAM,
+        quotaStatus: 'unknown',
+        requiredAction: 'Move the Meta app out of development mode.',
+        state: 'blocked',
+        tokenFreshness: 'pass',
+      },
+      valid: false,
+      validationState: TargetValidationState.INVALID,
+      warnings: [],
+    });
+
+    expect(result.readiness?.state).toBe('blocked');
+    expect(result.readiness?.canSchedule).toBe(false);
   });
 
   test('returns the same required-setting failure shape for YouTube privacy', () => {

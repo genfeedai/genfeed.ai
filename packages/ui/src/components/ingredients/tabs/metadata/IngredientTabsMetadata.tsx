@@ -13,6 +13,16 @@ import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import { HiArrowPath } from 'react-icons/hi2';
 
+function formatValue(
+  value: number,
+  formatter: (val: number) => string,
+): string {
+  if (value === 0) {
+    return '-';
+  }
+  return formatter(value);
+}
+
 export default function IngredientTabsMetadata({
   ingredient,
   onRefresh,
@@ -73,17 +83,6 @@ export default function IngredientTabsMetadata({
     hasZeroOrUnknownHeight ||
     hasZeroOrUnknownDuration ||
     hasZeroOrUnknownSize;
-
-  // Helper function to format value or show '-'
-  const formatValue = (
-    value: number,
-    formatter: (val: number) => string,
-  ): string => {
-    if (value === 0) {
-      return '-';
-    }
-    return formatter(value);
-  };
 
   const metadataRows = [
     // Dimensions: always show, use '-' for zero/unknown, otherwise use getters

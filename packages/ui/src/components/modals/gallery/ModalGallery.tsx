@@ -17,6 +17,29 @@ import Modal from '@ui/modals/modal/Modal';
 
 const EMPTY_ARRAY: never[] = [];
 
+function getImageFormat(image: IImage): IngredientFormat | null {
+  if (!image.width || !image.height) {
+    return null;
+  }
+  const aspectRatio = image.width / image.height;
+
+  if (Math.abs(aspectRatio - 16 / 9) < 0.1) {
+    return IngredientFormat.LANDSCAPE;
+  }
+
+  if (Math.abs(aspectRatio - 9 / 16) < 0.1) {
+    return IngredientFormat.PORTRAIT;
+  }
+
+  if (Math.abs(aspectRatio - 1) < 0.1) {
+    return IngredientFormat.SQUARE;
+  }
+
+  return aspectRatio > 1
+    ? IngredientFormat.LANDSCAPE
+    : IngredientFormat.PORTRAIT;
+}
+
 export default function ModalGallery({
   isOpen,
   onClose,
@@ -86,30 +109,6 @@ export default function ModalGallery({
       default:
         return '9:16';
     }
-  };
-
-  // Get format from image dimensions
-  const getImageFormat = (image: IImage): IngredientFormat | null => {
-    if (!image.width || !image.height) {
-      return null;
-    }
-    const aspectRatio = image.width / image.height;
-
-    if (Math.abs(aspectRatio - 16 / 9) < 0.1) {
-      return IngredientFormat.LANDSCAPE;
-    }
-
-    if (Math.abs(aspectRatio - 9 / 16) < 0.1) {
-      return IngredientFormat.PORTRAIT;
-    }
-
-    if (Math.abs(aspectRatio - 1) < 0.1) {
-      return IngredientFormat.SQUARE;
-    }
-
-    return aspectRatio > 1
-      ? IngredientFormat.LANDSCAPE
-      : IngredientFormat.PORTRAIT;
   };
 
   const handleReferenceSelect = (selectedIds: string[]) => {

@@ -140,30 +140,19 @@ COPY configs/ configs/
 COPY packages/ packages/
 COPY apps/server/ apps/server/
 
-# Build @genfeedai/enums FIRST. It is a composite `tsc --build` project that many
-# downstream packages reference via `references: [{ "path": "../enums" }]`
-# (@genfeedai/integrations, helpers, serializers). A `references` entry makes
-# tsc redirect every `@genfeedai/enums` import to enums' BUILD OUTPUT
-# (packages/enums/dist/index.d.ts) and abort with
-# `TS6305: Output file '/app/packages/enums/dist/index.d.ts' has not been built
-# from source file '/app/packages/enums/src/index.ts'` if that output does not
-# already exist. In a clean build context (no host-built packages/*/dist) nothing
-# else in this block guarantees enums/dist before the serial tail — `config`'s
-# `tsc --build` references only ../pricing, not enums — so @genfeedai/integrations
-# (a plain `tsc`, no --build) fails on its very first import. Building enums up
-# front makes its dist present for every referencer; the downstream `tsc --build`
-# packages (helpers, serializers) then see it up-to-date and skip rebuilding it.
-RUN bun --filter @genfeedai/enums build
+# Build the shared packages that downstream project references resolve through
+# package exports before the parallel batch. A clean Docker context has no host
+# dist output, so this must mirror docker/Dockerfile.server's dependency order:
+# enums -> constants -> interfaces -> pricing -> client, then config can build.
+RUN set -e; \
+    bun --filter @genfeedai/enums build; \
+    bun --filter @genfeedai/constants build; \
+    bun --filter @genfeedai/interfaces build; \
+    bun --filter @genfeedai/pricing build; \
+    bun --filter @genfeedai/client build
 
 # Build the remaining shared workspace packages.
 #
-# @genfeedai/workflow-engine and @genfeedai/workflow-saas build with plain `tsc`
-# (not `tsc --build`) and path-map @genfeedai/interfaces to source, so tsc pulls
-# the interfaces *.ts into their program. Those interface files import
-# @genfeedai/enums, so both tsconfigs path-map @genfeedai/enums to ../enums/src
-# (mirroring @genfeedai/integrations) — resolving enums from source for their own
-# compile, independent of the enums/dist built above. Without that path-map a
-# clean context fails with `TS2307: Cannot find module '@genfeedai/enums'`.
 # Parallel builds: capture every pid in the MAIN shell (`;`, not `&&`) and wait
 # for ALL of them, failing if any build fails. The prior `& pidN=$! && ... wait
 # $pid1 $pid2 $pid3` captured pids inside backgrounded subshells (so only the

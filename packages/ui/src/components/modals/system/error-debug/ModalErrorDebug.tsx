@@ -30,6 +30,10 @@ interface ErrorSectionProps {
   onToggle?: () => void;
 }
 
+function handleCancel(): void {
+  closeModal(ModalEnum.ERROR_DEBUG);
+}
+
 function ErrorSection({
   children,
   title,
@@ -83,11 +87,6 @@ export default function ModalErrorDebug() {
     }
     return subscribe((info) => setErrorInfo(info));
   }, []);
-
-  // Called when Close button is clicked - initiates the close
-  const handleCancel = () => {
-    closeModal(ModalEnum.ERROR_DEBUG);
-  };
 
   // Called by Modal's onClose after modal is closed - cleanup state
   const handleModalClosed = () => {

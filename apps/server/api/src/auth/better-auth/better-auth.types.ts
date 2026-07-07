@@ -57,6 +57,15 @@ export interface IBetterAuthVerificationEmailParams {
   };
 }
 
+/** Arguments handed to Better Auth's password-reset delivery callback. */
+export interface IBetterAuthResetPasswordParams {
+  token: string;
+  url: string;
+  user: {
+    email: string;
+  };
+}
+
 /**
  * Minimal shared KV (Redis) used to back Better Auth's rate-limit counters
  * across stateless API instances. Implementations must fail open — a Redis
@@ -112,6 +121,7 @@ export interface ICreateBetterAuthOptions {
   sendVerificationEmail: (
     params: IBetterAuthVerificationEmailParams,
   ) => Promise<void>;
+  sendResetPassword: (params: IBetterAuthResetPasswordParams) => Promise<void>;
   /**
    * Invoked (and awaited) from the `user.create.after` hook so a newly created
    * user is provisioned — org / settings / brand / member / credits — before the

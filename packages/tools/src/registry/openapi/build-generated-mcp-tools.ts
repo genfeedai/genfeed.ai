@@ -21,7 +21,7 @@
 import type {
   CanonicalToolDefinition,
   ToolParameterSchema,
-} from '../../interfaces/tool-definition.interface.js';
+} from '@genfeedai/tools';
 import type {
   IOpenApiDocument,
   IOpenApiOperation,

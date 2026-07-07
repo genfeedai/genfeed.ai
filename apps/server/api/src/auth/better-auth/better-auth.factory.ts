@@ -441,6 +441,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     experimentalJoins,
     rateLimitStore,
     sendMagicLink,
+    sendResetPassword,
     sendVerificationEmail,
     onUserCreated,
   } = options;
@@ -481,6 +482,14 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     emailAndPassword: {
       enabled: true,
       requireEmailVerification,
+      revokeSessionsOnPasswordReset: true,
+      sendResetPassword: async ({ token, url, user }) => {
+        await sendResetPassword({
+          token,
+          url,
+          user: { email: user.email },
+        });
+      },
     },
     emailVerification: {
       autoSignInAfterVerification: true,

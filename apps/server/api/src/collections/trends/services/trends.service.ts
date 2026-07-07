@@ -26,11 +26,7 @@ import { TrendAnalysisService } from '@api/collections/trends/services/modules/t
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
-import {
-  type PrelaunchReferenceCorpusBackfillOptions,
-  type PrelaunchReferenceCorpusBackfillResult,
-  TrendPrelaunchCorpusService,
-} from '@api/collections/trends/services/modules/trend-prelaunch-corpus.service';
+import { TrendPrelaunchCorpusService } from '@api/collections/trends/services/modules/trend-prelaunch-corpus.service';
 import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
 import { TrendSourcePreviewService } from '@api/collections/trends/services/modules/trend-source-preview.service';
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
@@ -285,8 +281,8 @@ export class TrendsService {
     // The raw getTrends probe returns [] on a cold cache so programmatic callers
     // (e.g. the agent tool executor) can detect a true cache-miss and trigger a
     // live fetch themselves. Access-control / display consumers reach trends
-    // through this wrapper and still need a curated set to render, so restore the
-    // bootstrap fallback here when nothing is cached.
+    // through this wrapper and still need bootstrap references to render, so
+    // restore the fallback here when nothing is cached.
     if (trends.length === 0) {
       trends = this.trendQueryService.getBootstrapTrends(platform);
     }

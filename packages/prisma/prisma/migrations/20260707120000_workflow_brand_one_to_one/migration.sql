@@ -34,6 +34,7 @@ WHERE ranked_links.workflow_id = wf."id"
 WITH ranked_links AS (
   SELECT
     wf."id" AS workflow_id,
+    wf."organizationId" AS workflow_org_id,
     wb."A" AS brand_id,
     b."organizationId" AS brand_org_id,
     ROW_NUMBER() OVER (

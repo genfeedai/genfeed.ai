@@ -37,6 +37,33 @@ type ImageDetailTab =
   | 'sharing'
   | 'evaluation';
 
+const IMAGE_DETAIL_TABS: TabItem[] = [
+  {
+    id: 'info',
+    label: 'info',
+  },
+  {
+    id: 'evaluation',
+    label: 'quality',
+  },
+  {
+    id: 'sharing',
+    label: 'sharing',
+  },
+  {
+    id: 'posts',
+    label: 'posts',
+  },
+  {
+    id: 'metadata',
+    label: 'metadata',
+  },
+  {
+    id: 'prompts',
+    label: 'prompts',
+  },
+];
+
 export default function IngredientDetailImage({
   image,
   // childIngredients,
@@ -127,33 +154,6 @@ export default function IngredientDetailImage({
   const imageHeight = metadata?.height || 1920;
   const isPortrait = imageHeight > imageWidth;
 
-  const tabs: TabItem[] = [
-    {
-      id: 'info',
-      label: 'info',
-    },
-    {
-      id: 'evaluation',
-      label: 'quality',
-    },
-    {
-      id: 'sharing',
-      label: 'sharing',
-    },
-    {
-      id: 'posts',
-      label: 'posts',
-    },
-    {
-      id: 'metadata',
-      label: 'metadata',
-    },
-    {
-      id: 'prompts',
-      label: 'prompts',
-    },
-  ];
-
   return (
     <>
       <div className="space-y-4">
@@ -222,7 +222,7 @@ export default function IngredientDetailImage({
       <div className="col-span-2 space-y-4">
         <IngredientWorkspacePanel
           title="Refine image details"
-          tabs={tabs}
+          tabs={IMAGE_DETAIL_TABS}
           activeTab={tab}
           onTabChange={(nextTab) => setTab(nextTab as ImageDetailTab)}
         >

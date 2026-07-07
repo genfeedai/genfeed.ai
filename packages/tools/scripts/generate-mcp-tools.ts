@@ -22,10 +22,7 @@ import {
   buildGeneratedMcpTools,
   type IGeneratedMcpOperationBinding,
 } from '../src/registry/openapi/build-generated-mcp-tools.js';
-import type {
-  IOpenApiDocument,
-  IOpenApiSchema,
-} from '../src/registry/openapi/openapi-types.js';
+import type { IOpenApiDocument } from '../src/registry/openapi/openapi-types.js';
 
 interface IInternalRouteAllowlist {
   internalRoutes: { pathPrefix: string; reason: string }[];
@@ -110,17 +107,16 @@ function loadSpec(): {
   document: IOpenApiDocument;
   internalPrefixes: string[];
 } {
-  const document = JSON.parse(readFileSync(SPEC_PATH, 'utf8')) as {
-    paths?: Record<string, Record<string, unknown>>;
-    components?: { schemas?: Record<string, IOpenApiSchema> };
-  };
+  const document = JSON.parse(
+    readFileSync(SPEC_PATH, 'utf8'),
+  ) as IOpenApiDocument;
   const allowlist = JSON.parse(
     readFileSync(ALLOWLIST_PATH, 'utf8'),
   ) as IInternalRouteAllowlist;
   const internalPrefixes = allowlist.internalRoutes.map(
     (route) => route.pathPrefix,
   );
-  return { document: document as IOpenApiDocument, internalPrefixes };
+  return { document, internalPrefixes };
 }
 
 function main(): void {

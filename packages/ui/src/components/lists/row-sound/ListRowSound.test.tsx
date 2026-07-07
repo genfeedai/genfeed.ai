@@ -24,7 +24,7 @@ describe('ListRowSound', () => {
   it('handles legacy row click interactions', () => {
     const mockOnClick = vi.fn();
     const mockOnPlay = vi.fn();
-    const { container } = render(
+    render(
       <ListRowSound
         ingredient={mockIngredient}
         index={0}
@@ -32,14 +32,13 @@ describe('ListRowSound', () => {
         onPlay={mockOnPlay}
       />,
     );
-    const listItem = container.querySelector('div[role="button"]');
-    expect(listItem).toBeInTheDocument();
+    const listItem = screen.getByRole('button', { name: /Test Sound/i });
     fireEvent.click(listItem);
     expect(mockOnClick).toHaveBeenCalledWith('test-id');
   });
 
   it('renders slot-based content and active state', () => {
-    const { container } = render(
+    render(
       <ListRowSound
         actions={<button type="button">Action</button>}
         badges={<span>Catalog</span>}
@@ -50,7 +49,9 @@ describe('ListRowSound', () => {
         title="Rachel"
       />,
     );
-    const rootElement = container.querySelector('div[role="button"]');
+    const rootElement = screen
+      .getByText('Rachel')
+      .closest('li')?.firstElementChild;
     expect(rootElement).toBeInTheDocument();
     expect(rootElement?.className).toContain('bg-white/[0.06]');
     expect(screen.getByText('Rachel')).toBeInTheDocument();

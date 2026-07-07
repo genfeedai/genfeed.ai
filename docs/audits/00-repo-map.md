@@ -216,9 +216,9 @@ image and runs `test:e2e:release`, reporting to a deduped issue.
 
 ### 5.1 CI surface (24 workflows — full table verified)
 
-- **On PR (the only automatic gates):** `ci.yml` (trust-gated: gitleaks, secretlint, react-doctor@0.4.2, architecture guards, format, lint, typecheck, build; heavy test shards only with `run_heavy_tests` or on push) and `link-check.yml` (paths-filtered).
+- **On PR:** `ci.yml` (trust-gated: gitleaks, secretlint, react-doctor@0.5.6, architecture guards, format, lint, typecheck, build; heavy test shards only with `run_heavy_tests` or on push), `link-check.yml` (paths-filtered), and `codebase-health.yml` (Fallow changed-code audit, report-only).
 - **QA gate for releases:** `full-suite.yml` = ci(heavy) + `build-verify.yml` (boots all 12 bundles + EE api bundle) + `e2e.yml` (API e2e with Postgres/Redis service containers + 12-way sharded frontend e2e). Required by both `deploy-ecs.yml` and `docker-publish.yml`.
-- **Scheduled:** nightly e2e (`17 2 * * *`), nightly self-hosted release e2e (`23 5 * * *`), weekly coverage → Codecov (non-blocking), weekly `codebase-health.yml` (fallow 2.96.0 + react-doctor@0.5.6 + skills integrity, report-only), daily Claude pattern miner.
+- **Scheduled:** nightly e2e (`17 2 * * *`), nightly self-hosted release e2e (`23 5 * * *`), weekly coverage → Codecov (non-blocking), weekly `codebase-health.yml` (fallow 2.96.0 + `.fallowrc.json` + react-doctor@0.5.6 + skills integrity, report-only), daily Claude pattern miner.
 - **Manual-only despite their names:** `codeql.yml`, `security-scan.yml` (Trivy), `ide-extension-ci.yml` — no cron, no PR trigger.
 - **Absent:** `dependabot.yml`, `CODEOWNERS` (find: 0 matches repo-wide).
 - OIDC AWS auth in deploy workflows; shared `setup-bun-env` composite (bun/turbo caches, 3× retry install); GHCR registry build cache with provenance/sbom.
@@ -235,7 +235,7 @@ image and runs `test:e2e:release`, reporting to a deduped issue.
 - Pre-commit (`.husky/pre-commit` via `core.hooksPath`): lint-staged → secretlint shim, biome-staged, `scripts/lint-no-raw-html.sh` (raw HTML element ban with primitive-dir whitelist).
 - Architecture guards run in CI: cron boundary, no-API-BullMQ-processors, import cycles, multi-tenancy, serializer drift, package API surface, design system, pages boundary, generated-source artifacts.
 - Knip dead-code config (`knip.config.ts`) — **stale**: declares workspaces `apps/server/fanvue` and `apps/server/llm` (don't exist) and omits `apps/server/images`/`voices` (exist).
-- `doctor.config.json` — most plausibly consumed by react-doctor (used in ci.yml + codebase-health.yml); **UNCLEAR**: codebase-health's comment references `react-doctor.config.json`, a filename that doesn't exist; exact consumer unconfirmed.
+- `doctor.config.json` — consumed by react-doctor in ci.yml + codebase-health.yml.
 
 ---
 

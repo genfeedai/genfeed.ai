@@ -1,17 +1,66 @@
 name: Codebase Health Check
 
 on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '**/*.cjs'
+      - '**/*.css'
+      - '**/*.cts'
+      - '**/*.js'
+      - '**/*.jsx'
+      - '**/*.json'
+      - '**/*.mjs'
+      - '**/*.mts'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '.fallowrc.json'
+      - '.github/workflows/codebase-health.yml'
+      - 'bun.lock'
+      - 'package.json'
   schedule:
     - cron: '0 9 * * 1' # Every Monday at 9am UTC
   workflow_dispatch:
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  pr-audit:
+    name: Fallow PR Audit
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: fallow-rs/fallow@v2
+        with:
+          version: '2.96.0'
+          config: .fallowrc.json
+          command: audit
+          gate: new-only
+          format: compact
+          comment: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          comment-layout: gate-only
+          summary-scope: diff
+          diff-filter: added
+          max-annotations: 30
+          fail-on-issues: false
+
   health:
     name: Health Score
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -27,11 +76,14 @@ jobs:
           # Pinned 2026-06-19 (#684); revisit once the fallow CLI contract is
           # stable, then consider letting it float again or adding Renovate.
           version: '2.96.0'
+          config: .fallowrc.json
           # fallow v2 takes a bare subcommand here; flags moved to dedicated
           # inputs below (the old `health --score --hotspots --min-score 60`
           # string is rejected as an invalid command).
           command: health
+          score: true
           hotspots: true
+          targets: true
           format: sarif
           # Report-only: still produce the SARIF for code scanning, but don't
           # red-line the weekly run on transient complexity findings. Re-enable
@@ -49,6 +101,7 @@ jobs:
 
   dead-code:
     name: Dead Code & Unused Deps
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -60,9 +113,10 @@ jobs:
         with:
           # Keep in sync with the health job's pin above (pinned 2026-06-19, #684).
           version: '2.96.0'
+          config: .fallowrc.json
           command: dead-code
           # The --unused-* / --circular-deps flags are now the issue-types input.
-          issue-types: unused-exports,unused-deps,circular-deps
+          issue-types: unused-files,unused-exports,unused-types,unused-deps,circular-deps
           # `format: annotations` is invalid in fallow v2 (valid: human, json,
           # sarif, compact, markdown, ...). Inline annotations are a separate
           # boolean input.
@@ -74,6 +128,7 @@ jobs:
 
   duplication:
     name: Code Duplication
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -82,6 +137,7 @@ jobs:
       - uses: fallow-rs/fallow@v2
         with:
           version: '2.96.0'
+          config: .fallowrc.json
           command: dupes
           dupes-mode: mild
           annotations: true
@@ -90,6 +146,7 @@ jobs:
 
   skills:
     name: Skills Integrity
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -107,10 +164,11 @@ jobs:
 
   # Full-repo React health gate. The PR job in ci.yml only scans the diff, so
   # pre-existing errors in untouched files never gate it. This scans every
-  # React workspace project (scoped by react-doctor.config.json) and fails on
+  # React workspace project (scoped by doctor.config.json) and fails on
   # any error-severity diagnostic, catching latent regressions repo-wide.
   react-doctor-full:
     name: React Doctor (full repo)
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

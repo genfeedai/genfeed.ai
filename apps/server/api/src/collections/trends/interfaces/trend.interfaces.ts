@@ -94,8 +94,11 @@ export interface TrendSourceClassification {
   freshnessWindowDays: number;
   intendedUse: TrendSourceIntendedUse;
   paidCreative?: TrendPaidCreativeMetadata;
+  platform?: string;
+  sourceAuthor?: string;
   sourceKind: TrendSourceKind;
   sourceLabel?: string;
+  sourceTimestamp?: string;
   sourceTopic?: string;
 }
 

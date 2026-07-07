@@ -8,8 +8,13 @@ import {
 } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
-import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
+import type {
+  ISubscriptionFindAllOptions,
+  ISubscriptionFindAllResult,
+  ISubscriptionsService,
+} from '@genfeedai/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -32,6 +37,9 @@ type SubscriptionStateSync = {
   stripeSubscriptionId?: string | null;
   status?: string | null;
 };
+
+type SubscriptionsFindAllResult =
+  AggregatePaginateResult<SubscriptionDocument> & ISubscriptionFindAllResult;
 
 /**
  * Enterprise subscriptions service. The OSS-callable surface (`findOne`,
@@ -141,6 +149,20 @@ export class SubscriptionsService
     private readonly creditsUtilsService: CreditsUtilsService,
   ) {
     super(prisma, 'subscription', logger);
+  }
+
+  override async findAll(
+    input: unknown,
+    options: ISubscriptionFindAllOptions,
+    enableCache: boolean = true,
+  ): Promise<SubscriptionsFindAllResult> {
+    const result = await super.findAll(input, options, enableCache);
+
+    return {
+      ...result,
+      total: result.totalDocs,
+      totalDocs: result.totalDocs,
+    };
   }
 
   /**

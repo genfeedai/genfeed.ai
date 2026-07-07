@@ -169,7 +169,7 @@ describe('TrendQueryService', () => {
   });
 
   describe('getBootstrapTrends', () => {
-    it('returns the curated set, filtered by platform', () => {
+    it('returns the bootstrap reference set, filtered by platform', () => {
       const all = service.getBootstrapTrends();
       const tiktok = service.getBootstrapTrends('tiktok');
 

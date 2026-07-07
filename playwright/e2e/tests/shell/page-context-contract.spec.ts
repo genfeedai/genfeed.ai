@@ -24,6 +24,7 @@ const CONTRACTS: PageContextContract[] = [
   {
     route: `${BRAND_BASE}/workspace/overview`,
     currentApp: 'workspace',
+    sectionLabel: 'Workspace',
     sidebarLabels: ['Dashboard', 'Inbox', 'Tasks', 'Activity'],
   },
   {
@@ -44,6 +45,7 @@ const CONTRACTS: PageContextContract[] = [
   {
     route: `${BRAND_BASE}/posts/scheduled`,
     currentApp: 'posts',
+    sectionLabel: 'Workspace',
     pageLabels: ['Drafts', 'Scheduled', 'Published'],
   },
   {

@@ -20,6 +20,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FaInstagram } from 'react-icons/fa6';
 import { HiCheckCircle } from 'react-icons/hi2';
 
+function closeAccountInstagramModal(): void {
+  closeModal(ModalEnum.BRAND_INSTAGRAM);
+}
+
 export default function ModalBrandInstagram({
   brand,
   credential,
@@ -153,10 +157,6 @@ export default function ModalBrandInstagram({
       setError('Failed to connect Instagram account');
       setIsConnecting(false);
     }
-  };
-
-  const closeAccountInstagramModal = () => {
-    closeModal(ModalEnum.BRAND_INSTAGRAM);
   };
 
   return (

@@ -7,8 +7,15 @@ import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentType, ReactNode, SVGProps } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { HiBars3, HiChevronDown, HiXMark } from 'react-icons/hi2';
+import { useMounted } from '../../../lib/hooks';
 import TopbarPublicDesktopDropdown from './TopbarPublicDesktopDropdown';
 import TopbarPublicMobileMenu from './TopbarPublicMobileMenu';
 
@@ -55,6 +62,19 @@ function isLinkActive(pathname: string | null, href: string): boolean {
   return pathname.startsWith(href);
 }
 
+function getScrolledSnapshot(): boolean {
+  return typeof window !== 'undefined' && window.scrollY > 20;
+}
+
+function subscribeScroll(onStoreChange: () => void): () => void {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+
+  window.addEventListener('scroll', onStoreChange, { passive: true });
+  return () => window.removeEventListener('scroll', onStoreChange);
+}
+
 export default function TopbarPublic({
   navLinks = EMPTY_ARRAY,
   dropdowns = EMPTY_ARRAY,
@@ -68,30 +88,18 @@ export default function TopbarPublic({
     top: 0,
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
+  const isScrolled = useSyncExternalStore(
+    subscribeScroll,
+    getScrolledSnapshot,
+    () => false,
+  );
   const triggerRefs = useRef<Map<string, HTMLButtonElement> | null>(null);
   const _megaMenuRef = useRef<HTMLDivElement>(null);
   if (triggerRefs.current === null) {
     triggerRefs.current = new Map<string, HTMLButtonElement>();
   }
   const triggerRefsMap = triggerRefs.current;
-
-  // Handle hydration
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Lock body scroll when mobile menu is open
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  useEffect(() => {
-    function handleScroll() {
-      setIsScrolled(window.scrollY > 20);
-    }
-    handleScroll();
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   useEffect(() => {
     if (isMobileMenuOpen) {

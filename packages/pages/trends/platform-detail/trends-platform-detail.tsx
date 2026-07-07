@@ -45,6 +45,7 @@ export default function TrendsPlatformDetail({
   const unsupportedContentFeed = ![
     Platform.TWITTER,
     Platform.INSTAGRAM,
+    Platform.LINKEDIN,
     Platform.TIKTOK,
     Platform.YOUTUBE,
     Platform.REDDIT,
@@ -118,16 +119,12 @@ export default function TrendsPlatformDetail({
   });
 
   const feedModeLabel = useMemo(() => {
-    if (platform === Platform.LINKEDIN) {
-      return 'Curated';
-    }
-
     if (unsupportedContentFeed) {
       return 'Metadata only';
     }
 
-    return 'Saved daily feed';
-  }, [platform, unsupportedContentFeed]);
+    return 'Public references';
+  }, [unsupportedContentFeed]);
 
   const handleRefresh = async () => {
     await refreshTrendContent();
@@ -165,14 +162,7 @@ export default function TrendsPlatformDetail({
           totalTrends={summary.totalTrends}
         />
 
-        {platform === Platform.LINKEDIN ? (
-          <div className="mb-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 text-sm text-foreground/65">
-            LinkedIn topics are curated because LinkedIn does not provide a
-            public trends API.
-          </div>
-        ) : null}
-
-        {unsupportedContentFeed && platform !== Platform.LINKEDIN ? (
+        {unsupportedContentFeed ? (
           <div className="mb-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 text-sm text-foreground/65">
             No public source-post feed is available for this platform yet. We
             only show adjacent trend metadata for now.

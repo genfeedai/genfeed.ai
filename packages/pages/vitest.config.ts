@@ -58,6 +58,14 @@ export default defineConfig({
         replacement: path.resolve(packageSrc('agent'), '$1'),
       },
       {
+        find: /^@genfeedai\/auth-client$/,
+        replacement: path.resolve(packageSrc('auth-client'), './index.ts'),
+      },
+      {
+        find: /^@genfeedai\/auth-client\/(.*)$/,
+        replacement: path.resolve(packageSrc('auth-client'), '$1'),
+      },
+      {
         find: /^@genfeedai\/client$/,
         replacement: packageSrc('client'),
       },
@@ -120,6 +128,14 @@ export default defineConfig({
       {
         find: /^@genfeedai\/models\/(.*)$/,
         replacement: path.resolve(packageRoot('models'), '$1'),
+      },
+      {
+        find: /^@genfeedai\/pricing$/,
+        replacement: path.resolve(packageSrc('pricing'), './index.ts'),
+      },
+      {
+        find: /^@genfeedai\/pricing\/(.*)$/,
+        replacement: path.resolve(packageSrc('pricing'), '$1'),
       },
       {
         find: /^@genfeedai\/props$/,
@@ -289,6 +305,7 @@ export default defineConfig({
       'studio/generate/utils/**/*.test.ts',
       'studio/fastlane/**/*.test.ts',
       'studio/fastlane/**/*.test.tsx',
+      'trends/**/*.test.ts',
       'trends/**/*.test.tsx',
       'twitter-pipeline/**/*.test.tsx',
     ],

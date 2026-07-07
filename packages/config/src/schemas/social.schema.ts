@@ -135,6 +135,7 @@ export const linkedinSchema = {
   LINKEDIN_CLIENT_ID: Joi.string().optional().allow(''),
   LINKEDIN_CLIENT_SECRET: Joi.string().optional().allow(''),
   LINKEDIN_REDIRECT_URI: Joi.string().uri().optional().allow(''),
+  LINKEDIN_TREND_SOURCE_URLS: Joi.string().optional().allow(''),
 };
 
 /**

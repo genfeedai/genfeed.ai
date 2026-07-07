@@ -165,7 +165,7 @@ describe('TrendsPlatformDetail', () => {
     expect(screen.getByText('Trending sounds')).toBeInTheDocument();
   });
 
-  it('renders curated LinkedIn messaging for curated sources', () => {
+  it('renders LinkedIn through the public-reference feed contract', () => {
     mockUseTrendContent.mockReturnValue({
       error: null,
       isLoading: false,
@@ -190,15 +190,13 @@ describe('TrendsPlatformDetail', () => {
 
     render(<TrendsPlatformDetail platform="linkedin" />);
 
-    expect(screen.getByText('Curated')).toBeInTheDocument();
+    expect(screen.getByText('Public references')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'LinkedIn topics are curated because LinkedIn does not provide a public trends API.',
-      ),
-    ).toBeInTheDocument();
+      screen.queryByText(/LinkedIn topics are curated/i),
+    ).not.toBeInTheDocument();
   });
 
-  it('keeps LinkedIn labeled as curated even when the feed is empty', () => {
+  it('keeps LinkedIn on the public-reference feed when the feed is empty', () => {
     mockUsePathname.mockReturnValue('/research/linkedin');
 
     mockUseTrendContent.mockReturnValue({
@@ -225,11 +223,11 @@ describe('TrendsPlatformDetail', () => {
 
     render(<TrendsPlatformDetail platform="linkedin" />);
 
-    expect(screen.getByText('Curated')).toBeInTheDocument();
+    expect(screen.getByText('Public references')).toBeInTheDocument();
     expect(screen.queryByText('Real-time')).not.toBeInTheDocument();
   });
 
-  it('activates the matching platform tab for curated pages too', () => {
+  it('activates the matching platform tab for reference-feed pages too', () => {
     mockUsePathname.mockReturnValue('/research/linkedin');
 
     mockUseTrendContent.mockReturnValue({

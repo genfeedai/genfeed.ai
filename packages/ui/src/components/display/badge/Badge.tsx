@@ -38,6 +38,15 @@ const PRIMITIVE_VARIANT_MAP = {
   warning: 'warning',
 } as const;
 
+const BADGE_SIZE_MAP: Record<
+  string,
+  VariantProps<typeof badgeVariants>['size']
+> = {
+  [ComponentSize.LG]: 'lg',
+  [ComponentSize.MD]: 'default',
+  [ComponentSize.SM]: 'sm',
+};
+
 /**
  * Get complete badge configuration from status string
  * Returns variant, icon, label, and animation state
@@ -172,16 +181,9 @@ export default function Badge({
   const effectiveIcon = statusConfig?.icon ?? icon;
   const effectiveLabel = statusConfig?.label ?? children;
 
-  // Map size prop to CVA size
-  const sizeMap: Record<string, VariantProps<typeof badgeVariants>['size']> = {
-    [ComponentSize.LG]: 'lg',
-    [ComponentSize.MD]: 'default',
-    [ComponentSize.SM]: 'sm',
-  };
-
   const badgeClasses = cn(
     badgeVariants({
-      size: sizeMap[size] ?? 'default',
+      size: BADGE_SIZE_MAP[size] ?? 'default',
       variant: effectiveVariant as VariantProps<
         typeof badgeVariants
       >['variant'],

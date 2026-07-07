@@ -51,6 +51,6 @@ export function parseMarketingConsent(
 
 export function hasMarketingConsent(
   state: MarketingConsentState | null,
-): boolean {
+): state is MarketingConsentState {
   return state?.adStorage === 'granted';
 }

@@ -82,6 +82,15 @@ export function getAuthCallbackURL(
   return options.defaultCallbackURL ?? ROOT_CALLBACK_URL;
 }
 
+export function getAuthFlowHref(path: string, callbackURL: string): string {
+  if (callbackURL === ROOT_CALLBACK_URL) {
+    return path;
+  }
+
+  const params = new URLSearchParams({ callbackUrl: callbackURL });
+  return `${path}?${params.toString()}`;
+}
+
 /**
  * Hosts an authenticated callback is allowed to land on, in addition to the
  * active window origin. Anything outside this set is treated as an open-redirect

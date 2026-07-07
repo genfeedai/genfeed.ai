@@ -27,7 +27,7 @@ describe('OssSubscriptionsService', () => {
         },
         false,
       ),
-    ).resolves.toEqual({ docs: [], total: 0 });
+    ).resolves.toEqual({ docs: [], total: 0, totalDocs: 0 });
   });
 
   it('never throws on always-on webhook paths', async () => {

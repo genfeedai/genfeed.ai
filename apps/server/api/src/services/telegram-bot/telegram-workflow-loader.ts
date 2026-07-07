@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import type {
   TelegramWorkflowName,
   WorkflowInput,
+  WorkflowInputVariable,
   WorkflowJson,
 } from '@api/services/telegram-bot/telegram-bot.types';
 import type {
@@ -60,6 +61,8 @@ const TELEGRAM_INPUT_NODE_TYPES: Record<
   },
 };
 
+const WORKFLOW_INPUT_NODE_TYPES = new Set(['workflowInput', 'workflow-input']);
+
 const TELEGRAM_WORKFLOW_FILES: TelegramWorkflowName[] = [
   'single-image',
   'image-series',
@@ -68,6 +71,109 @@ const TELEGRAM_WORKFLOW_FILES: TelegramWorkflowName[] = [
   'full-pipeline',
   'ugc-factory',
 ];
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function readString(
+  source: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = source?.[key];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function readBoolean(
+  source: Record<string, unknown> | undefined,
+  key: string,
+): boolean | undefined {
+  const value = source?.[key];
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function toSupportedInputType(
+  value: unknown,
+): WorkflowInput['inputType'] | undefined {
+  return value === 'audio' ||
+    value === 'image' ||
+    value === 'text' ||
+    value === 'video'
+    ? value
+    : undefined;
+}
+
+function getNodeConfig(
+  node: WorkflowJson['nodes'][number],
+): Record<string, unknown> {
+  return isRecord(node.data.config) ? node.data.config : node.data;
+}
+
+function isWorkflowInputNode(nodeType: string): boolean {
+  return WORKFLOW_INPUT_NODE_TYPES.has(nodeType);
+}
+
+function workflowInputKey(node: WorkflowJson['nodes'][number]): string {
+  return readString(getNodeConfig(node), 'inputName') ?? node.id;
+}
+
+function findWorkflowInputNode(
+  workflow: WorkflowJson,
+  inputKey: string,
+): WorkflowJson['nodes'][number] | undefined {
+  return workflow.nodes.find(
+    (node) =>
+      isWorkflowInputNode(node.type) && workflowInputKey(node) === inputKey,
+  );
+}
+
+function createRuntimeWorkflowInput(
+  variable: WorkflowInputVariable,
+  node: WorkflowJson['nodes'][number] | undefined,
+): WorkflowInput | undefined {
+  const inputType = toSupportedInputType(variable.type);
+  if (!inputType) {
+    return undefined;
+  }
+
+  const nodeConfig = node ? getNodeConfig(node) : undefined;
+  const defaultValue =
+    typeof variable.defaultValue === 'string'
+      ? variable.defaultValue
+      : readString(nodeConfig, 'defaultValue');
+
+  return {
+    defaultValue,
+    inputKey: variable.key,
+    inputType,
+    label: variable.label || readString(node?.data, 'label') || variable.key,
+    nodeId: node?.id ?? variable.key,
+    nodeType: node?.type ?? 'workflowInput',
+    required: variable.required ?? readBoolean(nodeConfig, 'required') ?? true,
+  };
+}
+
+function createWorkflowInputNodeInput(
+  node: WorkflowJson['nodes'][number],
+): WorkflowInput | undefined {
+  const nodeConfig = getNodeConfig(node);
+  const inputType = toSupportedInputType(nodeConfig.inputType);
+  if (!inputType) {
+    return undefined;
+  }
+
+  const inputKey = workflowInputKey(node);
+
+  return {
+    defaultValue: readString(nodeConfig, 'defaultValue'),
+    inputKey,
+    inputType,
+    label: readString(node.data, 'label') ?? inputKey,
+    nodeId: node.id,
+    nodeType: node.type,
+    required: readBoolean(nodeConfig, 'required') ?? false,
+  };
+}
 
 /**
  * Load workflow JSONs from the core workflows package into a name → JSON map.
@@ -139,7 +245,29 @@ export function resolveWorkflowFallbackPath(name: string): string | null {
 export function extractWorkflowInputs(workflow: WorkflowJson): WorkflowInput[] {
   const inputs: WorkflowInput[] = [];
 
+  if (workflow.inputVariables && workflow.inputVariables.length > 0) {
+    for (const variable of workflow.inputVariables) {
+      const input = createRuntimeWorkflowInput(
+        variable,
+        findWorkflowInputNode(workflow, variable.key),
+      );
+      if (input) {
+        inputs.push(input);
+      }
+    }
+
+    return inputs;
+  }
+
   for (const node of workflow.nodes) {
+    if (isWorkflowInputNode(node.type)) {
+      const input = createWorkflowInputNodeInput(node);
+      if (input) {
+        inputs.push(input);
+      }
+      continue;
+    }
+
     const descriptor = TELEGRAM_INPUT_NODE_TYPES[node.type];
     if (!descriptor) {
       continue;
@@ -174,15 +302,51 @@ export function toExecutableWorkflow(
   organizationId?: string,
   userId?: string,
 ): ExecutableWorkflow {
+  const inputDefaultsByKey = new Map(
+    (workflow.inputVariables ?? []).map((variable) => [
+      variable.key,
+      variable.defaultValue,
+    ]),
+  );
+  const lockedNodeIds = new Set<string>();
+
   const nodes: ExecutableNode[] = workflow.nodes.map((node) => {
-    const config = { ...node.data };
+    const config = { ...getNodeConfig(node) };
 
     // Inject collected inputs into node config
     const collectedValue = collectedInputs.get(node.id);
-    if (collectedValue) {
+    if (isWorkflowInputNode(node.type)) {
+      const inputKey = workflowInputKey(node);
+      const runtimeValue =
+        collectedInputs.get(inputKey) ??
+        collectedValue ??
+        inputDefaultsByKey.get(inputKey) ??
+        config.defaultValue;
+      if (runtimeValue !== undefined) {
+        lockedNodeIds.add(node.id);
+        config.value = runtimeValue;
+      }
+    } else if (collectedValue) {
       const descriptor = TELEGRAM_INPUT_NODE_TYPES[node.type];
       if (descriptor) {
         config[descriptor.configField] = collectedValue;
+      }
+    }
+
+    const inputVariableKeys = Array.isArray(node.data.inputVariableKeys)
+      ? node.data.inputVariableKeys.filter(
+          (key): key is string => typeof key === 'string',
+        )
+      : Array.isArray(config.inputVariableKeys)
+        ? config.inputVariableKeys.filter(
+            (key): key is string => typeof key === 'string',
+          )
+        : [];
+    for (const inputKey of inputVariableKeys) {
+      const runtimeValue =
+        collectedInputs.get(inputKey) ?? inputDefaultsByKey.get(inputKey);
+      if (runtimeValue !== undefined) {
+        config[inputKey] = runtimeValue;
       }
     }
 
@@ -192,8 +356,10 @@ export function toExecutableWorkflow(
 
     return {
       config,
+      cachedOutput: lockedNodeIds.has(node.id) ? config.value : undefined,
       id: node.id,
       inputs,
+      isLocked: lockedNodeIds.has(node.id),
       label: (node.data.label as string) || node.type,
       type: node.type,
     };
@@ -210,7 +376,7 @@ export function toExecutableWorkflow(
   return {
     edges,
     id: workflowId,
-    lockedNodeIds: [],
+    lockedNodeIds: Array.from(lockedNodeIds),
     nodes,
     // Execute under the connected chat's real tenant when available; fall back
     // to the bot sentinel only for unauthenticated (no /connect) chats.

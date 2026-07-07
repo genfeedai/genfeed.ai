@@ -1,0 +1,76 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/.turbo/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "apps/server/clips/**",
+    "artifacts/**",
+    "playwright/artifacts/**",
+    "packages/api-types/src/generated/**",
+    "packages/tools/src/registry/generated/**",
+    "**/*.d.ts"
+  ],
+  "ignoreDependencies": [
+    "@biomejs/biome",
+    "@google/design.md",
+    "@playwright/test",
+    "@types/node",
+    "@types/react",
+    "@types/react-dom",
+    "lint-staged",
+    "secretlint",
+    "turbo",
+    "typescript",
+    "vitest"
+  ],
+  "ignoreExportsUsedInFile": {
+    "type": true,
+    "interface": true
+  },
+  "duplicates": {
+    "mode": "mild",
+    "minTokens": 50,
+    "minLines": 30,
+    "threshold": 0,
+    "ignore": [
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/*.stories.*",
+      "docs/**",
+      "scripts/**",
+      "packages/api-types/src/generated/**",
+      "packages/tools/src/registry/generated/**"
+    ],
+    "ignoreImports": true
+  },
+  "health": {
+    "maxCyclomatic": 20,
+    "maxCognitive": 15,
+    "maxCrap": 30,
+    "ignore": [
+      "**/*.test.*",
+      "**/*.spec.*",
+      "**/*.stories.*",
+      "docs/**",
+      "scripts/**",
+      "packages/api-types/src/generated/**",
+      "packages/tools/src/registry/generated/**"
+    ],
+    "suggestInlineSuppression": false
+  },
+  "audit": {
+    "gate": "new-only",
+    "css": true,
+    "cssDeep": true,
+    "cacheMaxAgeDays": 14
+  },
+  "production": {
+    "deadCode": false,
+    "health": true,
+    "dupes": false
+  }
+}

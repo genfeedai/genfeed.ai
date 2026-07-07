@@ -18,6 +18,9 @@ describe('executor-registry', () => {
       expect(types).toContain('delay');
       expect(types).toContain('hookGenerator');
       expect(types).toContain('noop');
+      expect(types).toContain('trendHashtagInspiration');
+      expect(types).toContain('trendSoundInspiration');
+      expect(types).toContain('trendVideoInspiration');
     });
   });
 
@@ -109,6 +112,9 @@ describe('executor-registry', () => {
       expect(registry.getKeywordTriggerExecutor()).toBeDefined();
       expect(registry.getEngagementTriggerExecutor()).toBeDefined();
       expect(registry.getCommentTriggerExecutor()).toBeDefined();
+      expect(registry.getTrendHashtagInspirationExecutor()).toBeDefined();
+      expect(registry.getTrendSoundInspirationExecutor()).toBeDefined();
+      expect(registry.getTrendVideoInspirationExecutor()).toBeDefined();
     });
 
     it('allows setting custom executor', () => {

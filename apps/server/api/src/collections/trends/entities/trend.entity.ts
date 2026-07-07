@@ -24,7 +24,7 @@ export class TrendEntity extends BaseEntity implements Trend {
     videoUrl?: string;
     creatorHandle?: string;
     trendType?: 'topic' | 'hashtag' | 'sound' | 'video' | 'creator';
-    source?: 'apify' | 'curated' | 'grok' | 'native-api';
+    source?: 'apify' | 'curated' | 'grok' | 'native-api' | 'public-reference';
     sourcePreviewCache?: TrendSourceItem[];
     sourcePreviewCachedAt?: string;
     sourcePreviewState?: 'live' | 'fallback' | 'empty';

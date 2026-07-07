@@ -172,6 +172,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
           prisma,
           secret,
           sendMagicLink: (params) => mailer.sendMagicLink(params),
+          sendResetPassword: (params) => mailer.sendResetPassword(params),
           sendVerificationEmail: (params) =>
             mailer.sendVerificationEmail(params),
           trustedOrigins: parseTrustedOrigins(

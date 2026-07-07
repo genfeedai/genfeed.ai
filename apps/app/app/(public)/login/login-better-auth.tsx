@@ -18,6 +18,7 @@ import {
 import { FcGoogle } from 'react-icons/fc';
 import {
   getAuthCallbackURL,
+  getAuthFlowHref,
   toAbsoluteAuthCallbackURL,
 } from '../auth-callback-url';
 
@@ -36,15 +37,6 @@ const AUTH_BUTTON_CLASS_NAME =
 
 const AUTH_LINK_CLASS_NAME =
   'text-sm font-medium text-foreground underline underline-offset-4';
-
-function getLoginModeHref(path: string, callbackURL: string) {
-  if (callbackURL === '/') {
-    return path;
-  }
-
-  const params = new URLSearchParams({ callbackUrl: callbackURL });
-  return `${path}?${params.toString()}`;
-}
 
 export default function LoginBetterAuth({
   mode = 'chooser',
@@ -71,10 +63,11 @@ export default function LoginBetterAuth({
   );
   const callbackURL = getAuthCallbackURL(searchParams);
   const authCallbackURL = toAbsoluteAuthCallbackURL(callbackURL);
-  const chooserHref = getLoginModeHref('/login', callbackURL);
-  const magicLinkHref = getLoginModeHref('/login/magic-link', callbackURL);
-  const passwordHref = getLoginModeHref('/login/password', callbackURL);
-  const signUpHref = getLoginModeHref('/sign-up', callbackURL);
+  const chooserHref = getAuthFlowHref('/login', callbackURL);
+  const magicLinkHref = getAuthFlowHref('/login/magic-link', callbackURL);
+  const passwordHref = getAuthFlowHref('/login/password', callbackURL);
+  const forgotPasswordHref = getAuthFlowHref('/forgot-password', callbackURL);
+  const signUpHref = getAuthFlowHref('/sign-up', callbackURL);
 
   async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -273,6 +266,12 @@ export default function LoginBetterAuth({
                 hasError={!!passwordErrorMessage}
               />
             </Field>
+
+            <div className="text-right">
+              <Link href={forgotPasswordHref} className={AUTH_LINK_CLASS_NAME}>
+                Forgot password?
+              </Link>
+            </div>
 
             {passwordErrorMessage ? (
               <p className="text-sm text-destructive">{passwordErrorMessage}</p>

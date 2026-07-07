@@ -7,16 +7,22 @@ import { describe, expect, it, vi } from 'vitest';
 // Mock dependencies
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
+    children,
     label,
     onClick,
     className,
   }: {
+    children?: ReactNode;
     className?: string;
     label?: ReactNode;
     onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   }) => (
-    <button onClick={onClick} className={className} data-testid="play-button">
-      {typeof label === 'object' ? 'icon' : label}
+    <button
+      onClick={onClick}
+      className={className}
+      data-testid={label ? 'play-button' : undefined}
+    >
+      {children ?? (typeof label === 'object' ? 'icon' : label)}
     </button>
   ),
   buttonVariants: () => '',
@@ -73,11 +79,8 @@ describe('ModalGalleryItemMusic', () => {
   it('calls onSelect when clicked', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
-    const { container } = render(
-      <ModalGalleryItemMusic {...defaultProps} onSelect={onSelect} />,
-    );
-    const rootDiv = container.firstChild as HTMLElement;
-    await user.click(rootDiv);
+    render(<ModalGalleryItemMusic {...defaultProps} onSelect={onSelect} />);
+    await user.click(screen.getByRole('button', { name: /Test Music/i }));
     expect(onSelect).toHaveBeenCalledWith(defaultProps.music);
   });
 

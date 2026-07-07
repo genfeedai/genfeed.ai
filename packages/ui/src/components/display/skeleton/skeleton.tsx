@@ -18,6 +18,16 @@ const VARIANT_CLASSES: Record<SkeletonVariant, string> = {
   text: 'rounded',
 };
 
+const MASONRY_SKELETON_HEIGHTS = [
+  'h-48',
+  'h-60',
+  'h-72',
+  'h-56',
+  'h-64',
+  'h-80',
+  'h-52',
+];
+
 function formatDimension(
   value: number | string | undefined,
 ): string | undefined {
@@ -209,8 +219,6 @@ export function SkeletonMasonryGrid({
   count = 12,
   className,
 }: SkeletonMasonryProps) {
-  const heights = ['h-48', 'h-60', 'h-72', 'h-56', 'h-64', 'h-80', 'h-52'];
-
   return (
     <div
       className={cn(
@@ -219,7 +227,8 @@ export function SkeletonMasonryGrid({
       )}
     >
       {Array.from({ length: count }).map((_, index) => {
-        const height = heights[index % heights.length];
+        const height =
+          MASONRY_SKELETON_HEIGHTS[index % MASONRY_SKELETON_HEIGHTS.length];
         const masonryKey = `masonry-skeleton-${index}`;
 
         return (

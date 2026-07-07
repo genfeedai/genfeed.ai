@@ -177,6 +177,7 @@ export * from './organization/organization-setting.interface';
 export * from './organization/quota-status.interface';
 export * from './providers/providers.interface';
 export * from './publisher/publisher.interface';
+export * from './publisher/publishing-readiness.interface';
 export * from './scheduler/channel-target.interface';
 export * from './scheduler/recurrence-rule.interface';
 export * from './scheduler/release-attachment.interface';
