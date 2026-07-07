@@ -180,6 +180,43 @@ export class WorkflowsService extends BaseService<
     });
   }
 
+  private isMissingInputValue(value: unknown): boolean {
+    return (
+      value === undefined ||
+      value === null ||
+      (typeof value === 'string' && value.trim().length === 0)
+    );
+  }
+
+  private getDefaultInputValuesFromWorkflowData(
+    workflowData: Pick<CreateWorkflowDto, 'inputVariables'>,
+  ): Record<string, unknown> {
+    const defaults: Record<string, unknown> = {};
+
+    for (const variable of workflowData.inputVariables ?? []) {
+      if (variable.defaultValue !== undefined) {
+        defaults[variable.key] = variable.defaultValue;
+      }
+    }
+
+    return defaults;
+  }
+
+  private getMissingRequiredInputKeys(
+    workflowData: Pick<CreateWorkflowDto, 'inputVariables'>,
+    inputValues: Record<string, unknown>,
+  ): string[] {
+    return (workflowData.inputVariables ?? [])
+      .filter((variable) => {
+        if (!variable.required) {
+          return false;
+        }
+
+        return this.isMissingInputValue(inputValues[variable.key]);
+      })
+      .map((variable) => variable.key);
+  }
+
   /**
    * Upsert or remove the BullMQ job scheduler for one workflow row based on
    * its current schedule/enabled/status state. No-ops when the queue service
@@ -256,17 +293,32 @@ export class WorkflowsService extends BaseService<
       workflow as unknown as WorkflowSchedulerSyncRow,
     );
 
-    // If trigger is manual, start execution immediately
+    // If trigger is manual, start execution immediately when all required
+    // inputs have defaults. Required-input templates must wait for a run form.
     if ((workflowData.trigger as string) === 'manual') {
-      this.executeWorkflowCompat(
-        String(workflow.id),
-        userId,
-        organizationId,
-      ).catch((error) => {
-        if (this.logger) {
-          this.logger.error('Workflow execution failed', error);
-        }
-      });
+      const initialInputValues =
+        this.getDefaultInputValuesFromWorkflowData(workflowData);
+      const missingRequiredInputs = this.getMissingRequiredInputKeys(
+        workflowData,
+        initialInputValues,
+      );
+
+      if (missingRequiredInputs.length === 0) {
+        this.executeWorkflowCompat(
+          String(workflow.id),
+          userId,
+          organizationId,
+          initialInputValues,
+        ).catch((error) => {
+          if (this.logger) {
+            this.logger.error('Workflow execution failed', error);
+          }
+        });
+      } else {
+        this.logger?.warn?.(
+          `Skipped initial workflow execution for ${String(workflow.id)} because required inputs are missing: ${missingRequiredInputs.join(', ')}`,
+        );
+      }
     }
 
     return EntityFactory.fromDocument(WorkflowEntity, workflow);

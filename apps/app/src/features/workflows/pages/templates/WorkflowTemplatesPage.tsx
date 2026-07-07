@@ -148,7 +148,6 @@ function WorkflowTemplatesPageContent() {
           name: 'Untitled Workflow',
           nodes: [],
           templateId,
-          trigger: 'manual',
         });
 
         if (!isCancelled) {

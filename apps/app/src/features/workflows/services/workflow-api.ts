@@ -17,6 +17,16 @@ import type { Edge, Node } from '@xyflow/react';
 // =============================================================================
 
 /** Full workflow data returned from the cloud API */
+export interface WorkflowInputVariable {
+  key: string;
+  type: string;
+  label: string;
+  description?: string;
+  defaultValue?: unknown;
+  required?: boolean;
+  validation?: Record<string, unknown>;
+}
+
 export interface CloudWorkflowData {
   _id: string;
   name: string;
@@ -25,11 +35,15 @@ export interface CloudWorkflowData {
   edges: Edge[];
   edgeStyle: string;
   groups?: NodeGroup[];
+  inputVariables?: WorkflowInputVariable[];
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
   lifecycle: 'draft' | 'published' | 'archived';
   organization: string;
   brandId?: string | null;
+  schedule?: string;
+  timezone?: string;
+  isScheduleEnabled?: boolean;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
@@ -73,8 +87,12 @@ export interface CreateWorkflowInput {
   edgeStyle?: string;
   groups?: NodeGroup[];
   brandId?: string | null;
+  inputVariables?: WorkflowInputVariable[];
+  isScheduleEnabled?: boolean;
   metadata?: Record<string, unknown>;
+  schedule?: string;
   templateId?: string;
+  timezone?: string;
   trigger?: string;
 }
 
@@ -87,9 +105,13 @@ export interface UpdateWorkflowInput {
   edgeStyle?: string;
   groups?: NodeGroup[];
   brandId?: string | null;
+  inputVariables?: WorkflowInputVariable[];
+  isScheduleEnabled?: boolean;
   metadata?: Record<string, unknown>;
+  schedule?: string;
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
+  timezone?: string;
 }
 
 /** Options for executing a workflow */
@@ -217,15 +239,7 @@ export interface WorkflowTemplate {
   category: string;
   icon?: string;
   isScheduleEnabled?: boolean;
-  inputVariables?: Array<{
-    key: string;
-    type: string;
-    label: string;
-    description?: string;
-    defaultValue?: unknown;
-    required?: boolean;
-    validation?: Record<string, unknown>;
-  }>;
+  inputVariables?: WorkflowInputVariable[];
   routine?: {
     cadence: 'daily';
     inputContract: Array<{

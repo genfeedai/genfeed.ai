@@ -122,4 +122,43 @@ describe('GenerationTemplates', () => {
       GENERATION_WORKFLOW_TEMPLATES['founder-editorial-illustration'],
     ).toBeDefined();
   });
+
+  it('registers the YouTube thumbnail and script starter from the core archive', () => {
+    const template = GENERATION_WORKFLOW_TEMPLATES['youtube-thumbnail-script'];
+
+    expect(template).toBeDefined();
+    expect(template.name).toBe('YouTube Thumbnail and Script Generator');
+    expect(template.category).toBe('generation');
+    expect(template.inputVariables?.map((variable) => variable.key)).toEqual([
+      'titleText',
+      'thumbnailConcept',
+      'targetAudience',
+      'visualStyle',
+      'referenceImage',
+      'topicContext',
+    ]);
+    expect(
+      template.nodes?.filter((node) => node.type === 'imageGen'),
+    ).toHaveLength(3);
+    expect(template.nodes?.some((node) => node.type === 'llm')).toBe(true);
+    expect(template.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'workflow-input-youtube-reference',
+          target: 'ai-generate-youtube-thumbnail-v1',
+          targetHandle: 'image',
+        }),
+        expect.objectContaining({
+          source: 'ai-prompt-constructor-youtube-script',
+          target: 'llm-youtube-script',
+          targetHandle: 'prompt',
+        }),
+        expect.objectContaining({
+          source: 'llm-youtube-script',
+          target: 'workflow-output-youtube-script',
+          targetHandle: 'value',
+        }),
+      ]),
+    );
+  });
 });

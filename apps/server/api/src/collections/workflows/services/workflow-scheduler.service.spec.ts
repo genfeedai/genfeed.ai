@@ -279,6 +279,43 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     );
   });
 
+  it('skips scheduled node execution when required input defaults are missing', async () => {
+    const prisma = createMockPrisma();
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'wf-1',
+      inputVariables: [
+        {
+          key: 'titleText',
+          label: 'Title text',
+          required: true,
+          type: 'text',
+        },
+      ],
+      nodes: [{ id: 'node-1' }],
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    const workflowExecutorService = {
+      executeManualWorkflow: vi.fn().mockResolvedValue({}),
+      executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
+    };
+    const { logger, service } = createService({
+      prisma,
+      workflowExecutorService,
+    });
+
+    await service.executeScheduledWorkflow('wf-1');
+
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(
+      workflowExecutorService.executeManualWorkflowDocument,
+    ).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('titleText'),
+      'WorkflowSchedulerService',
+    );
+  });
+
   it('creates an execution record for legacy step-based workflows', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue({

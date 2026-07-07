@@ -10,6 +10,7 @@ import type {
   BrandSummary,
   CloudWorkflowData,
   WorkflowApiService,
+  WorkflowInputVariable,
 } from '@/features/workflows/services/workflow-api';
 
 // =============================================================================
@@ -41,6 +42,8 @@ interface CloudWorkflowState {
   brands: BrandSummary[];
   /** Whether brands are being loaded */
   isBrandsLoading: boolean;
+  /** Input variables exposed by the workflow template/run contract */
+  inputVariables: WorkflowInputVariable[];
 }
 
 interface CloudWorkflowActions {
@@ -61,6 +64,11 @@ interface CloudWorkflowActions {
   ) => Promise<CloudWorkflowData>;
   /** Load brands for BrandNode */
   loadBrands: (service: WorkflowApiService) => Promise<void>;
+  /** Persist current run values as the default values used by scheduled runs */
+  updateInputVariableDefaults: (
+    service: WorkflowApiService,
+    inputValues: Record<string, unknown>,
+  ) => Promise<void>;
   /** Schedule an auto-save after a debounce period */
   scheduleAutoSave: (service: WorkflowApiService) => void;
   /** Cancel any pending auto-save */
@@ -127,6 +135,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
     },
     autoSaveTimeoutId: null,
     brands: [],
+    inputVariables: [],
 
     cancelAutoSave: () => {
       const { autoSaveTimeoutId } = get();
@@ -231,6 +240,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
 
         // Update cloud-specific state
         set({
+          inputVariables: data.inputVariables ?? [],
           isCloudLoading: false,
           lifecycle: data.lifecycle,
           organizationId: data.organization,
@@ -284,6 +294,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         cloudError: null,
         isCloudLoading: false,
         isHydrated: false,
+        inputVariables: [],
         lifecycle: 'draft',
         organizationId: null,
         pendingCreateMetadata: null,
@@ -293,7 +304,12 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
     },
 
     saveToCloud: async (service) => {
-      const { pendingCreateMetadata, pendingTemplateId, workflowId } = get();
+      const {
+        inputVariables,
+        pendingCreateMetadata,
+        pendingTemplateId,
+        workflowId,
+      } = get();
       const workflowStore = useWorkflowStore.getState();
 
       // Prevent concurrent saves
@@ -312,6 +328,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
           edgeStyle: workflowStore.edgeStyle,
           edges: workflowStore.edges,
           groups: workflowStore.groups,
+          inputVariables,
           name: workflowStore.workflowName,
           nodes: restoredNodes,
         };
@@ -334,6 +351,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
 
           // Update IDs after first save
           set({
+            inputVariables: savedData.inputVariables ?? [],
             pendingCreateMetadata: null,
             pendingTemplateId: null,
             workflowId: savedData._id,
@@ -342,7 +360,10 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         }
 
         useWorkflowStore.setState({ isDirty: false, isSaving: false });
-        set({ cloudError: null });
+        set({
+          cloudError: null,
+          inputVariables: savedData.inputVariables ?? inputVariables,
+        });
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Failed to save workflow';
@@ -388,6 +409,51 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         pendingCreateMetadata: metadata,
         pendingTemplateId: templateId,
       });
+    },
+    updateInputVariableDefaults: async (service, inputValues) => {
+      const { inputVariables, workflowId } = get();
+
+      if (!workflowId) {
+        set({
+          cloudError:
+            'Cannot save workflow defaults: workflow has not been saved',
+        });
+        return;
+      }
+
+      const nextInputVariables = inputVariables.map((variable) => {
+        if (!Object.hasOwn(inputValues, variable.key)) {
+          return variable;
+        }
+
+        return {
+          ...variable,
+          defaultValue: inputValues[variable.key],
+        };
+      });
+
+      set({ inputVariables: nextInputVariables });
+
+      try {
+        const data = await service.update(workflowId, {
+          inputVariables: nextInputVariables,
+        });
+        set({
+          cloudError: null,
+          inputVariables: data.inputVariables ?? nextInputVariables,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to save workflow defaults';
+        logger.error('Cloud workflow defaults update failed', {
+          error,
+          workflowId,
+        });
+        set({ cloudError: message, inputVariables });
+        throw error;
+      }
     },
     // ---------------------------------------------------------------------------
     // Initial State
