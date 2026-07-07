@@ -422,11 +422,27 @@ export function useAgentChatStream(
         );
 
         const metadata = response.message.metadata;
-        if (metadata?.uiBlocks && metadata?.dashboardOperation) {
+        const uiBlocksState =
+          metadata?.uiBlocks &&
+          typeof metadata.uiBlocks === 'object' &&
+          !Array.isArray(metadata.uiBlocks)
+            ? (metadata.uiBlocks as Record<string, unknown>)
+            : null;
+        const dashboardOperation =
+          typeof metadata?.dashboardOperation === 'string'
+            ? metadata.dashboardOperation
+            : typeof uiBlocksState?.operation === 'string'
+              ? uiBlocksState.operation
+              : undefined;
+        const dashboardPayload =
+          uiBlocksState?.blocks ??
+          (uiBlocksState?.components ? uiBlocksState : metadata?.uiBlocks);
+
+        if (dashboardOperation && metadata?.uiBlocks) {
           applyDashboardOperation(
-            metadata.dashboardOperation,
-            metadata.uiBlocks,
-            metadata.blockIds,
+            dashboardOperation,
+            dashboardPayload,
+            uiBlocksState?.blockIds ?? metadata.blockIds,
           );
         }
 
