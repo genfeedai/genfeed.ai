@@ -22,12 +22,6 @@ import {
   TopContentQueryDto,
   ViralHooksQueryDto,
 } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
-import { AnalyticEntity } from '@api/endpoints/analytics/entities/analytics.entity';
-import {
-  OrgLeaderboardItemEntity,
-  PaginatedBrandsResponse,
-  PaginatedOrgsResponse,
-} from '@api/endpoints/analytics/entities/organization-leaderboard.entity';
 import { EntityLeaderboardService } from '@api/endpoints/analytics/entity-leaderboard.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -231,9 +225,18 @@ export class AnalyticsController {
       ),
     ]);
 
-    // Extract count from paginated results - the total property contains the count
-    const extractTotal = (result: unknown): number =>
-      (result as Record<string, number>)?.total || 0;
+    const extractTotal = (result: unknown): number => {
+      if (!result || typeof result !== 'object') {
+        return 0;
+      }
+
+      const counts = result as { total?: unknown; totalDocs?: unknown };
+      if (typeof counts.total === 'number') {
+        return counts.total;
+      }
+
+      return typeof counts.totalDocs === 'number' ? counts.totalDocs : 0;
+    };
 
     const flattenedData = {
       activeBots: extractTotal(activeBots),
