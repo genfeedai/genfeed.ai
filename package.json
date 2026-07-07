@@ -307,5 +307,8 @@
     "winston": "3.19.0",
     "yet-another-react-lightbox": "3.32.0",
     "zod": "4.4.3"
+  },
+  "patchedDependencies": {
+    "nextra-theme-docs@4.6.1": "patches/nextra-theme-docs@4.6.1.patch"
   }
 }
