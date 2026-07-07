@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/enums';
 import type { IBaseEntity } from '../core/base.interface';
 import type { ICredential } from '../organization/credential.interface';
+import type { IPublishingProviderReadiness } from '../publisher/publishing-readiness.interface';
 import type { IReleaseAttachment } from './release-attachment.interface';
 import type { IScheduleStatusTransition } from './status-transition.interface';
 
@@ -56,6 +57,12 @@ export interface IChannelTarget extends IBaseEntity {
   validationState: TargetValidationState;
   /** Non-empty when `validationState` is `WARNING` or `INVALID`. */
   validationIssues: string[];
+  /**
+   * Provider credential/setup readiness surfaced before scheduling. This
+   * contains only sanitized diagnostics; raw provider payloads stay out of the
+   * public scheduler response.
+   */
+  readiness?: IPublishingProviderReadiness | null;
   executionState: TargetExecutionState;
   /** Provider's ID for the published item (used for analytics reconciliation). */
   externalProviderId?: string | null;

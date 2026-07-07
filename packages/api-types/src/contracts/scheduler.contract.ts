@@ -28,6 +28,7 @@
  * The mapping is backward-compatible: no legacy field is dropped, only relocated.
  */
 
+import { publishingProviderReadinessSchema } from '@api-types/contracts/publishing-readiness.contract';
 import {
   dateStringSchema,
   daysOfWeekSchema,
@@ -162,6 +163,7 @@ export const updateChannelTargetSchema = z.object({
   lastAttemptAt: dateStringSchema.optional(),
   order: nonNegativeIntSchema.optional(),
   publishedAt: dateStringSchema.optional(),
+  readiness: publishingProviderReadinessSchema.nullable().optional(),
   retryCount: nonNegativeIntSchema.optional(),
   scheduledDate: dateStringSchema.optional(),
   settings: channelTargetSettingsSchema.optional(),

@@ -169,6 +169,48 @@ describe('Channel target serialization', () => {
       isRetryable: false,
     });
   });
+
+  test('serializes sanitized provider readiness for scheduling surfaces', () => {
+    const result = ChannelTargetSerializer.serialize({
+      id: 'tgt_ready',
+      executionState: 'scheduled',
+      platform: 'instagram',
+      readiness: {
+        appReviewStatus: 'fail',
+        callbackUrlStatus: 'pass',
+        canSchedule: false,
+        diagnostics: [
+          {
+            classification: 'missing_provider_approval',
+            code: 'meta_app_review_required',
+            correctiveAction: 'Move the Meta app out of development mode.',
+            details: { appMode: 'development' },
+            isRetryable: false,
+            message: 'Meta app review is required before publishing.',
+            severity: 'error',
+          },
+        ],
+        isRetryable: false,
+        permissionScopeStatus: 'pass',
+        providerKey: 'instagram',
+        quotaStatus: 'unknown',
+        requiredAction: 'Move the Meta app out of development mode.',
+        state: 'blocked',
+        tokenFreshness: 'pass',
+      },
+    });
+
+    expect(result.data.attributes.readiness).toMatchObject({
+      appReviewStatus: 'fail',
+      canSchedule: false,
+      providerKey: 'instagram',
+      state: 'blocked',
+    });
+    expect(result.data.attributes.readiness.diagnostics[0]).toMatchObject({
+      classification: 'missing_provider_approval',
+      code: 'meta_app_review_required',
+    });
+  });
 });
 
 describe('Recurrence + attachment serialization', () => {
