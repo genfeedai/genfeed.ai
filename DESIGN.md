@@ -26,6 +26,8 @@ colors:
   text-muted: "#6b6b78"
 
   # Accent — inverted for dark mode (white CTA on dark bg)
+  primary: "#fafafa"
+  primary-foreground: "#050607"
   accent: "#fafafa"
   accent-foreground: "#050607"
   accent-hover: "#e4e4e7"
@@ -33,7 +35,7 @@ colors:
   # Semantic status
   success: "#10b981"
   warning: "#f59e0b"
-  danger: "#ef4444"
+  danger: "#dc2626"
   info: "#3b82f6"
 
   # Domain-specific
@@ -104,8 +106,8 @@ spacing:
 
 components:
   button-default:
-    backgroundColor: "{colors.accent}"
-    textColor: "{colors.accent-foreground}"
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.primary-foreground}"
     rounded: "{rounded.md}"
     height: 32px
   button-secondary:
@@ -127,7 +129,6 @@ components:
     backgroundColor: "{colors.card}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.none}"
-    shadow: "inset 0 0 0 1px {colors.border}"
   dialog:
     backgroundColor: "{colors.bg-primary}"
     textColor: "{colors.text-primary}"
@@ -145,8 +146,8 @@ components:
     textColor: "{colors.warning}"
     rounded: "{rounded.full}"
   badge-danger:
-    backgroundColor: "{colors.bg-secondary}"
-    textColor: "{colors.danger}"
+    backgroundColor: "{colors.danger}"
+    textColor: "#ffffff"
     rounded: "{rounded.full}"
   tooltip:
     backgroundColor: "{colors.bg-elevated}"
@@ -160,11 +161,9 @@ components:
     backgroundColor: "{colors.bg-secondary}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
-    shadow: "inset 0 0 0 1px {colors.border}, 0 10px 15px -3px rgba(0,0,0,0.3)"
   sidebar:
     backgroundColor: "{colors.bg-primary}"
     textColor: "{colors.text-secondary}"
-    borderRight: "1px solid {colors.border}"
   popover:
     backgroundColor: "{colors.bg-elevated}"
     textColor: "{colors.text-primary}"
@@ -264,7 +263,7 @@ for text on accent surfaces.
 Four standard status colors:
 - **Success** (#10b981) -- completed, passing, published
 - **Warning** (#f59e0b) -- needs attention, awaiting approval
-- **Danger** (#ef4444) -- failed, errored, rejected
+- **Danger** (#dc2626) -- failed, errored, rejected
 - **Info** (#3b82f6) -- informational, neutral status
 
 ### Domain colors

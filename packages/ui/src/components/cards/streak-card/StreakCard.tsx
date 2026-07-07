@@ -49,7 +49,7 @@ export default function StreakCard() {
 
   return (
     <Card
-      className="mx-3 mb-3 overflow-visible shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] bg-white/[0.04]"
+      className="mx-3 mb-3 overflow-visible bg-card shadow-border"
       bodyClassName="gap-0 p-3"
     >
       <StreakCelebrationBurst isVisible={isCelebrating} />
@@ -97,12 +97,12 @@ export default function StreakCard() {
 
       <Link
         href={APP_ROUTES.SETTINGS.ROOT}
-        className="flex items-center justify-between border border-white/8 bg-white/[0.04] px-2.5 py-2 text-[12px] text-white/80 transition-colors duration-150 hover:bg-white/[0.06]"
+        className="flex items-center justify-between bg-secondary px-2.5 py-2 text-[12px] text-foreground/80 shadow-border transition-colors duration-150 hover:bg-accent"
       >
         <span>
           {currentStreak > 0 ? 'Open streak view' : 'Start your streak today'}
         </span>
-        <span className="text-white/40">View</span>
+        <span className="text-foreground/40">View</span>
       </Link>
     </Card>
   );

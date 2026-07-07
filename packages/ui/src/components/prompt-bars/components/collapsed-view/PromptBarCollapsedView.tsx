@@ -40,7 +40,6 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
   isGenerateBlocked,
   isGenerateDisabled,
   isGenerating,
-  selectedModelCost,
   onSubmit,
   generateLabel,
   activeGenerationsCount,
@@ -96,7 +95,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center gap-1.5 border border-white/14 bg-[#171717]/58 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_16px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+      <div className="flex items-center gap-1.5 bg-card/95 p-1.5 shadow-border-strong backdrop-blur-xl">
         {hasReferences && firstReference && (
           <>
             <Button

@@ -136,10 +136,10 @@ export default function AgentsContent() {
       >
         {/* Highlight Card */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <div className="p-8 border border-[var(--gen-accent-border)] bg-white/[0.04]">
+          <div className="bg-background p-8 shadow-border">
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
-                <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
+                <div className="flex size-20 items-center justify-center bg-card shadow-border">
                   <HiUserGroup className="size-10 text-surface" />
                 </div>
               </div>
@@ -175,7 +175,7 @@ export default function AgentsContent() {
                 key={role}
                 className="gen-contact-sheet aspect-square flex items-center justify-center p-6 bg-fill/[0.02]"
               >
-                <Text className="text-sm font-semibold text-surface/70 uppercase tracking-wider text-center">
+                <Text className="text-center text-sm font-semibold tracking-[-0.01em] text-surface/70">
                   {role}
                 </Text>
               </div>
@@ -188,15 +188,17 @@ export default function AgentsContent() {
           <Heading as="h3" className="text-2xl font-bold text-center mb-8">
             Built for Autonomous Execution
           </Heading>
-          <div className="gsap-grid grid grid-cols-1 md:grid-cols-3 gap-1.5">
-            {FEATURES.map((feature) => {
+          <div className="gsap-grid grid grid-cols-1 gap-1.5 md:grid-cols-2">
+            {FEATURES.map((feature, index) => {
               const Icon = feature.icon;
               return (
                 <div
                   key={feature.title}
-                  className="gsap-card gen-card-spotlight p-8 bg-fill/[0.02] text-center"
+                  className={`gsap-card gen-card-spotlight bg-fill/[0.02] p-8 ${
+                    index === 0 ? 'md:col-span-2' : ''
+                  }`}
                 >
-                  <div className="flex justify-center mb-4">
+                  <div className="mb-4 flex">
                     <div className="size-12 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
@@ -247,7 +249,7 @@ export default function AgentsContent() {
 
         {/* Pricing CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
+          <div className="bg-background p-12 text-center shadow-border">
             <div className="flex justify-center mb-4">
               <HiUserGroup className="size-8 text-surface" />
             </div>

@@ -68,7 +68,7 @@ export default function Pagination({
         <PaginationItem>
           {onPageChange ? (
             <PaginationPrevious
-              href="#"
+              href={createPageHref(Math.max(clampedPage - 1, 1))}
               onClick={(event) => {
                 event.preventDefault();
                 handlePageChange(clampedPage - 1);
@@ -102,7 +102,7 @@ export default function Pagination({
             return (
               <PaginationItem key={item}>
                 <PaginationLink
-                  href="#"
+                  href={createPageHref(item)}
                   isActive={item === clampedPage}
                   onClick={(event) => {
                     event.preventDefault();
@@ -135,7 +135,7 @@ export default function Pagination({
         <PaginationItem>
           {onPageChange ? (
             <PaginationNext
-              href="#"
+              href={createPageHref(Math.min(clampedPage + 1, totalPages))}
               onClick={(event) => {
                 event.preventDefault();
                 handlePageChange(clampedPage + 1);
