@@ -17,6 +17,7 @@ let capturedOnSelect: ((id: string) => void) | undefined;
 let capturedIsLoading: boolean | undefined;
 let capturedEmptyMessage: string | undefined;
 let mockIsSubscriptionActive = true;
+let mockSubscriptionTier: string | null = 'scale';
 
 vi.mock('next/navigation', () => ({
   useParams: () => mockParams,
@@ -87,6 +88,7 @@ const TWO_ORGS = [
     // Server marks Bravo active (lastUsedOrganizationId), but the URL is Alpha —
     // the URL must win so the checkmark tracks what the user is viewing.
     isActive: false,
+    isOwner: true,
     label: 'Alpha',
     slug: 'alpha',
   },
@@ -94,10 +96,17 @@ const TWO_ORGS = [
     brand: null,
     id: 'org_bravo',
     isActive: true,
+    isOwner: false,
     label: 'Bravo',
     slug: 'bravo',
   },
 ];
+
+function renderSwitcher() {
+  return render(
+    <OrganizationSwitcher subscriptionTier={mockSubscriptionTier} />,
+  );
+}
 
 describe('OrganizationSwitcher', () => {
   beforeEach(() => {
@@ -107,6 +116,7 @@ describe('OrganizationSwitcher', () => {
     capturedEmptyMessage = undefined;
     capturedOnSelect = undefined;
     mockIsSubscriptionActive = true;
+    mockSubscriptionTier = 'scale';
     mockParams = { orgSlug: 'acme-org' };
     mockGetMyOrganizations.mockReset();
     mockSwitchOrganization.mockReset();
@@ -120,6 +130,7 @@ describe('OrganizationSwitcher', () => {
         brand: null,
         id: 'org_1',
         isActive: true,
+        isOwner: true,
         label: 'Acme Org',
         slug: 'acme-org',
       },
@@ -138,7 +149,7 @@ describe('OrganizationSwitcher', () => {
   });
 
   it('loads organizations and exposes contextual row settings action', async () => {
-    render(<OrganizationSwitcher />);
+    renderSwitcher();
 
     await waitFor(() => {
       expect(capturedItems).toHaveLength(1);
@@ -160,7 +171,7 @@ describe('OrganizationSwitcher', () => {
   it('hides organization creation when the subscription is inactive', async () => {
     mockIsSubscriptionActive = false;
 
-    render(<OrganizationSwitcher />);
+    renderSwitcher();
 
     await waitFor(() => {
       expect(capturedItems).toHaveLength(1);
@@ -169,8 +180,58 @@ describe('OrganizationSwitcher', () => {
     expect(capturedFooterActions).toEqual([]);
   });
 
+  it('hides organization creation when the plan has reached its org limit', async () => {
+    mockSubscriptionTier = 'pro';
+
+    renderSwitcher();
+
+    await waitFor(() => {
+      expect(capturedItems).toHaveLength(1);
+    });
+
+    expect(capturedFooterActions).toEqual([]);
+  });
+
+  it('allows organization creation when a capped plan only belongs to another org', async () => {
+    mockSubscriptionTier = 'pro';
+    mockGetMyOrganizations.mockResolvedValue([
+      {
+        brand: null,
+        id: 'org_member',
+        isActive: true,
+        isOwner: false,
+        label: 'Client Org',
+        slug: 'client-org',
+      },
+    ]);
+
+    renderSwitcher();
+
+    await waitFor(() => {
+      expect(capturedItems).toHaveLength(1);
+    });
+
+    expect(capturedFooterActions.map((action) => action.label)).toEqual([
+      'New Organization',
+    ]);
+  });
+
+  it('allows organization creation on unlimited-org tiers', async () => {
+    mockSubscriptionTier = 'scale';
+
+    renderSwitcher();
+
+    await waitFor(() => {
+      expect(capturedItems).toHaveLength(1);
+    });
+
+    expect(capturedFooterActions.map((action) => action.label)).toEqual([
+      'New Organization',
+    ]);
+  });
+
   it('renders the sidebar trigger with compact spacing and a square avatar', async () => {
-    render(<OrganizationSwitcher />);
+    renderSwitcher();
 
     await waitFor(() => {
       expect(screen.getByText('Acme Org')).toBeInTheDocument();
@@ -187,7 +248,7 @@ describe('OrganizationSwitcher', () => {
   it('passes a completed error state when organizations fail to load', async () => {
     mockGetMyOrganizations.mockRejectedValue(new Error('boom'));
 
-    render(<OrganizationSwitcher />);
+    renderSwitcher();
 
     await waitFor(() => {
       expect(capturedIsLoading).toBe(false);
@@ -201,7 +262,7 @@ describe('OrganizationSwitcher', () => {
     mockParams = { orgSlug: 'alpha' };
     mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
 
-    render(<OrganizationSwitcher />);
+    renderSwitcher();
 
     await waitFor(() => {
       expect(capturedItems).toHaveLength(2);
@@ -217,7 +278,7 @@ describe('OrganizationSwitcher', () => {
     mockParams = {};
     mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
 
-    render(<OrganizationSwitcher />);
+    renderSwitcher();
 
     await waitFor(() => {
       expect(capturedItems).toHaveLength(2);
@@ -236,12 +297,13 @@ describe('OrganizationSwitcher', () => {
         brand: null,
         id: 'org_solo',
         isActive: false,
+        isOwner: true,
         label: 'Solo Org',
         slug: 'solo-org',
       },
     ]);
 
-    render(<OrganizationSwitcher />);
+    renderSwitcher();
 
     await waitFor(() => {
       expect(capturedItems).toHaveLength(1);
@@ -260,7 +322,7 @@ describe('OrganizationSwitcher', () => {
     mockParams = { orgSlug: 'alpha' };
     mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
 
-    render(<OrganizationSwitcher />);
+    renderSwitcher();
 
     await waitFor(() => {
       expect(capturedOnSelect).toBeDefined();
@@ -280,7 +342,7 @@ describe('OrganizationSwitcher', () => {
     mockParams = { orgSlug: 'alpha' };
     mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
 
-    render(<OrganizationSwitcher />);
+    renderSwitcher();
 
     await waitFor(() => {
       expect(capturedOnSelect).toBeDefined();

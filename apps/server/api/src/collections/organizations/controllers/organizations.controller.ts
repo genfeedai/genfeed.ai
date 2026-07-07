@@ -31,11 +31,13 @@ import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
+  getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
@@ -50,10 +52,15 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { IS_CLOUD_MODE } from '@genfeedai/config';
 import type {
   JsonApiCollectionResponse,
   SortObject,
 } from '@genfeedai/interfaces';
+import {
+  getOrganizationLimitForTier,
+  getUpgradeTierForLimit,
+} from '@genfeedai/pricing';
 import {
   ActivitySerializer,
   BrandSerializer,
@@ -509,6 +516,7 @@ export class OrganizationsController extends BaseCRUDController<
               : null,
             id: org.id.toString(),
             isActive: publicMetadata.organization === org.id.toString(),
+            isOwner: this.isOrganizationOwner(org, userId),
             label: org.label,
             slug: org.slug ?? '',
           };
@@ -635,6 +643,8 @@ export class OrganizationsController extends BaseCRUDController<
       );
     }
 
+    await this.assertOrganizationCreationAllowed(user, userId);
+
     const userDoc = await this.usersService.findOne({
       _id: userId,
       isDeleted: false,
@@ -760,6 +770,71 @@ export class OrganizationsController extends BaseCRUDController<
       brand: { id: brand.id.toString(), label: brand.label },
       organization: { id: org.id.toString(), label: org.label },
     };
+  }
+
+  private async assertOrganizationCreationAllowed(
+    user: User,
+    userId: string,
+  ): Promise<void> {
+    if (!IS_CLOUD_MODE || getIsSuperAdmin(user)) {
+      return;
+    }
+
+    const publicMetadata = getPublicMetadata(user);
+    const settings = publicMetadata.organization
+      ? await this.organizationSettingsService.findOne({
+          organization: publicMetadata.organization,
+        })
+      : null;
+
+    const tier = settings?.subscriptionTier ?? getSubscriptionTier(user);
+    const organizationLimit = getOrganizationLimitForTier(tier);
+
+    if (organizationLimit === null) {
+      return;
+    }
+
+    const organizationCount = await this.organizationsService.count({
+      isDeleted: false,
+      userId,
+    });
+
+    if (organizationCount < organizationLimit) {
+      return;
+    }
+
+    throw new PlanLimitExceededException({
+      currentCount: organizationCount,
+      limit: organizationLimit,
+      resource: 'organizations',
+      upgradeTier: getUpgradeTierForLimit('organizations', tier),
+    });
+  }
+
+  private isOrganizationOwner(
+    organization: { user?: unknown; userId?: unknown },
+    userId: string,
+  ): boolean {
+    const ownerId =
+      this.resolveEntityId(organization.userId) ??
+      this.resolveEntityId(organization.user);
+
+    return ownerId === userId;
+  }
+
+  private resolveEntityId(value: unknown): string | null {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const record = value as { _id?: unknown; id?: unknown };
+    const candidate = record.id ?? record._id;
+
+    return typeof candidate === 'string' ? candidate : null;
   }
 
   private async provisionDefaultRecurringWorkflows(

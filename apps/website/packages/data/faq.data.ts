@@ -96,7 +96,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Brands and connected channels are unlimited. Credits are the meter for generated output; Teams and Enterprise add organizations, seats, shared approvals, and higher API limits.',
+          'Brands and connected channels are unlimited. Pay As You Go and Creator include one organization; Teams and Enterprise add multi-organization workflows, seats, shared approvals, and higher API limits.',
         question: 'How many brands and channels can I connect?',
       },
       {
@@ -136,7 +136,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
     questions: [
       {
         answer:
-          'Pay As You Go includes a personal workspace, unlimited brand kits, unlimited connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. Creator adds 8,000 monthly credits at a better rate and paid API access.',
+          'Pay As You Go includes one personal organization, unlimited brand kits, unlimited connected channels, auto-routed premium models, and multi-platform publishing, with no monthly fee. Creator adds 8,000 monthly credits at a better rate and paid API access.',
         question: "What's included in the free and Creator plans?",
       },
       {

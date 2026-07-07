@@ -5,6 +5,7 @@ import {
   getApiRateLimitForTier,
   getBrandLimitForTier,
   getChannelLimitForTier,
+  getOrganizationLimitForTier,
   getPlanEntitlementForTier,
   getSeatLimitForTier,
   getUpgradeTierForLimit,
@@ -12,6 +13,7 @@ import {
   hasApiAccess,
   PLAN_LIMIT_UNLIMITED,
   SCALE_API_RATE_LIMIT,
+  SINGLE_ORGANIZATION_LIMIT,
   TIER_API_ENTITLEMENTS,
   TIER_PLAN_ENTITLEMENTS,
 } from '@genfeedai/pricing';
@@ -84,20 +86,25 @@ describe('tier API entitlements', () => {
     for (const tier of [SubscriptionTier.FREE, SubscriptionTier.BYOK]) {
       expect(getBrandLimitForTier(tier)).toBeNull();
       expect(getChannelLimitForTier(tier)).toBeNull();
+      expect(getOrganizationLimitForTier(tier)).toBe(SINGLE_ORGANIZATION_LIMIT);
       expect(getSeatLimitForTier(tier)).toBe(FREE_SEAT_LIMIT);
     }
   });
 
-  it('resolves paid tier product limits: unlimited seats, brands, and channels', () => {
+  it('resolves Pro product limits: unlimited seats/brands/channels and one organization', () => {
     expect(getPlanEntitlementForTier(SubscriptionTier.PRO)).toMatchObject({
       brandLimit: PLAN_LIMIT_UNLIMITED,
       channelLimit: PLAN_LIMIT_UNLIMITED,
+      organizationLimit: SINGLE_ORGANIZATION_LIMIT,
       seatLimit: PLAN_LIMIT_UNLIMITED,
     });
+  });
 
+  it('resolves Scale+ product limits: unlimited seats, brands, channels, and organizations', () => {
     for (const tier of [SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE]) {
       expect(getBrandLimitForTier(tier)).toBeNull();
       expect(getChannelLimitForTier(tier)).toBeNull();
+      expect(getOrganizationLimitForTier(tier)).toBeNull();
       expect(getSeatLimitForTier(tier)).toBeNull();
     }
   });
@@ -106,6 +113,7 @@ describe('tier API entitlements', () => {
     for (const tier of ['', 'bogus', null, undefined]) {
       expect(getBrandLimitForTier(tier)).toBeNull();
       expect(getChannelLimitForTier(tier)).toBeNull();
+      expect(getOrganizationLimitForTier(tier)).toBe(SINGLE_ORGANIZATION_LIMIT);
       expect(getSeatLimitForTier(tier)).toBe(FREE_SEAT_LIMIT);
     }
   });
@@ -115,6 +123,15 @@ describe('tier API entitlements', () => {
     expect(getUpgradeTierForLimit('seats', SubscriptionTier.BYOK)).toBe(
       SubscriptionTier.PRO,
     );
+    expect(getUpgradeTierForLimit('organizations', SubscriptionTier.FREE)).toBe(
+      SubscriptionTier.SCALE,
+    );
+    expect(getUpgradeTierForLimit('organizations', SubscriptionTier.PRO)).toBe(
+      SubscriptionTier.SCALE,
+    );
+    expect(
+      getUpgradeTierForLimit('organizations', SubscriptionTier.SCALE),
+    ).toBe(null);
     expect(getUpgradeTierForLimit('channels', SubscriptionTier.FREE)).toBe(
       null,
     );

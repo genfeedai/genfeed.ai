@@ -12,9 +12,9 @@
  *   credits are priced at ~50% margin (Pro $49 → 8,000 credits ≈ $80 of
  *   PAYG output; Scale $499 → 80,000 credits ≈ $800 of PAYG output)
  * - Seats are never a usage meter: FREE/BYOK is solo (1 seat); every paid tier
- *   (Pro, Scale, Enterprise) has unlimited seats. Brands and connected channels
- *   are unlimited so credits stay the only output meter (account-sharing can't
- *   dodge a usage meter).
+ *   (Pro, Scale, Enterprise) has unlimited seats. Multi-organization workflows
+ *   start at Scale. Brands and connected channels are unlimited so credits stay
+ *   the only output meter (account-sharing can't dodge a usage meter).
  * - Models are never user-selected: the Genfeed router picks the best model
  *   for each format, brief, and budget
  *
@@ -231,6 +231,7 @@ export const websitePlans: PricingPlanProps[] = [
       'Best model auto-routed for every job',
       'Unlimited brand kits',
       'Unlimited connected channels',
+      '1 organization',
       'Multi-platform publishing',
       'Email support',
     ],
@@ -255,6 +256,7 @@ export const websitePlans: PricingPlanProps[] = [
       'Best model auto-routed for every job',
       'Unlimited brands',
       'Unlimited connected channels',
+      '1 organization',
       'API access (standard rate limits)',
       'Top up with credit packs anytime',
       'Email support',

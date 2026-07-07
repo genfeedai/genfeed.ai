@@ -54,7 +54,7 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Brands and connected channels are unlimited. Credits meter generated output; paid plans add API access, included monthly credits, and team scale.',
+      'Brands and connected channels are unlimited. Pay As You Go and Pro include one organization; Scale and Enterprise add multi-organization workflows.',
     question: 'How many brands and channels can I connect?',
   },
   {
@@ -178,7 +178,7 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="md">
           <SectionHeader
             title="Start free. Subscribe when volume makes it cheaper."
-            description="Pay As You Go covers bursty campaigns with zero commitment. Pro and Scale include monthly credits at a ~40% better rate, plus API access and unlimited team seats."
+            description="Pay As You Go covers bursty campaigns with zero commitment. Pro and Scale include monthly credits at a ~40% better rate; Scale adds multi-organization workflows."
             className="[&_h2]:text-5xl mb-4"
           />
 

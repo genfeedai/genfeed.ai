@@ -10,6 +10,7 @@ import { RESEARCH_LOGO_HREF } from '@app-config/research-menu-items.config';
 import { SETTINGS_LOGO_HREF } from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_LOGO_HREF } from '@app-config/workflows-menu-items.config';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
@@ -93,7 +94,10 @@ export default function AppProtectedLayoutSidebar({
   onOpenCommandPalette,
 }: Props) {
   const { href: buildHref, orgHref } = useOrgUrl();
-  const orgSwitcherSlot = <OrganizationSwitcher />;
+  const { settings } = useBrand();
+  const orgSwitcherSlot = (
+    <OrganizationSwitcher subscriptionTier={settings?.subscriptionTier} />
+  );
 
   if (isFocusedOnboardingRoute) {
     return null;

@@ -4,11 +4,11 @@
  *
  *   Marketing plan (plans-pricing.ts)      → SubscriptionTier   → finite gates
  *   ─────────────────────────────────────────────────────────────────────────
- *   Pay As You Go (free)                   → FREE               → no API, solo
- *   BYOK (free, bring-your-own-key)        → BYOK               → no API, solo
- *   Pro                                    → PRO                → API, unlimited seats
- *   Scale                                  → SCALE              → API, unlimited seats
- *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats
+ *   Pay As You Go (free)                   → FREE               → no API, solo, 1 org
+ *   BYOK (free, bring-your-own-key)        → BYOK               → no API, solo, 1 org
+ *   Pro                                    → PRO                → API, unlimited seats, 1 org
+ *   Scale                                  → SCALE              → API, unlimited seats/orgs
+ *   Enterprise                             → ENTERPRISE         → custom API, unlimited seats/orgs
  *
  * Enforcement lives in the API:
  *   - seat gate:    apps/server/api/src/helpers/guards/member-credits/member-credits.guard.ts
@@ -41,17 +41,25 @@ export type TierPlanEntitlement = ApiTierEntitlement & {
   brandLimit: TierLimit;
   /** Connected publishing/integration channels. `null` means unlimited. */
   channelLimit: TierLimit;
+  /** Owned organizations/workspaces. `null` means unlimited organizations. */
+  organizationLimit: TierLimit;
   /** Organization seats. `null` means unlimited team seats. */
   seatLimit: TierLimit;
 };
 
-export type LimitedPlanResource = 'brands' | 'channels' | 'seats';
+export type LimitedPlanResource =
+  | 'brands'
+  | 'channels'
+  | 'organizations'
+  | 'seats';
 
 /** Sentinel for product limits that are unlimited for a tier. */
 export const PLAN_LIMIT_UNLIMITED = null;
 
 /** PAYG/BYOK solo workspace seat cap. */
 export const FREE_SEAT_LIMIT = 1;
+/** Free/Creator single-organization workspace cap. */
+export const SINGLE_ORGANIZATION_LIMIT = 1;
 
 /** Higher ceiling for the Pro tier. */
 export const HIGHER_API_RATE_LIMIT = 300;
@@ -62,6 +70,7 @@ export const SCALE_API_RATE_LIMIT = 600;
  * Exhaustive tier → cloud entitlement map. Free tiers (FREE, BYOK) are solo
  * workspaces with no managed API access; every tier has unlimited brands and
  * channels so credits remain the output meter instead of account topology.
+ * Multi-organization workflows start at Scale.
  */
 export const TIER_PLAN_ENTITLEMENTS: Record<
   SubscriptionTier,
@@ -72,6 +81,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: 0,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,
   },
   [SubscriptionTier.BYOK]: {
@@ -79,6 +89,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: 0,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,
   },
   [SubscriptionTier.PRO]: {
@@ -86,6 +97,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: HIGHER_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: PLAN_LIMIT_UNLIMITED,
   },
   [SubscriptionTier.SCALE]: {
@@ -93,6 +105,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: SCALE_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
   },
   [SubscriptionTier.ENTERPRISE]: {
@@ -100,6 +113,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: null,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    organizationLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
   },
 };
@@ -192,6 +206,13 @@ export function getSeatLimitForTier(
   return getPlanEntitlementForTier(tier).seatLimit;
 }
 
+/** Organization/workspace limit for a tier. `null` means unlimited. */
+export function getOrganizationLimitForTier(
+  tier: string | null | undefined,
+): TierLimit {
+  return getPlanEntitlementForTier(tier).organizationLimit;
+}
+
 /**
  * Next tier that lifts the given finite resource cap. Used for upgrade prompts.
  */
@@ -213,6 +234,13 @@ export function getUpgradeTierForLimit(
     ].includes(currentTier as SubscriptionTier)
   ) {
     return SubscriptionTier.PRO;
+  }
+
+  if (
+    resource === 'organizations' &&
+    ![SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE].includes(currentTier)
+  ) {
+    return SubscriptionTier.SCALE;
   }
 
   return null;
