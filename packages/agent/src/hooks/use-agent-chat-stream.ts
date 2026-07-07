@@ -424,11 +424,9 @@ export function useAgentChatStream(
         const metadata = response.message.metadata;
         if (metadata?.uiBlocks && metadata?.dashboardOperation) {
           applyDashboardOperation(
-            metadata.dashboardOperation as Parameters<
-              typeof applyDashboardOperation
-            >[0],
-            metadata.uiBlocks as Parameters<typeof applyDashboardOperation>[1],
-            metadata.blockIds as Parameters<typeof applyDashboardOperation>[2],
+            metadata.dashboardOperation,
+            metadata.uiBlocks,
+            metadata.blockIds,
           );
         }
 

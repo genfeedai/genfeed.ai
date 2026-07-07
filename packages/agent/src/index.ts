@@ -25,6 +25,7 @@ export { AgentToolCallDisplay } from '@genfeedai/agent/components/AgentToolCallD
 // Block renderers
 export {
   CompositeLayout,
+  DashboardOpenUIRenderer,
   DynamicBlockGrid,
   DynamicChart,
   DynamicTable,
@@ -47,9 +48,19 @@ export {
 export { AGENT_PANEL_ICON_STRIP_WIDTH } from '@genfeedai/agent/constants/agent-panel.constant';
 export type { AgentSlashCommand } from '@genfeedai/agent/constants/agent-slash-commands.constant';
 export { AGENT_SLASH_COMMANDS } from '@genfeedai/agent/constants/agent-slash-commands.constant';
+export type {
+  DashboardBlocksParseResult,
+  DashboardOpenUIComponent,
+  DashboardValidationIssue,
+  DashboardValidationIssueCode,
+} from '@genfeedai/agent/dashboard';
 export {
+  createUnsupportedDashboardTreeBlock,
   DASHBOARD_KPI_CATALOG,
+  DASHBOARD_OPENUI_COMPONENTS,
   getDashboardPreset,
+  parseAgentDashboardBlocks,
+  parseDashboardOpenUIDocument,
 } from '@genfeedai/agent/dashboard';
 // Hooks
 export { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';

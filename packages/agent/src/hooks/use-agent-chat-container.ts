@@ -22,10 +22,6 @@ import { deriveTimeline } from '@genfeedai/agent/utils/derive-timeline';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import type {
-  AgentDashboardOperation,
-  AgentUIBlock,
-} from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -537,22 +533,23 @@ export function useAgentChatContainer({
           metadata?.uiBlocks &&
           typeof metadata.uiBlocks === 'object' &&
           !Array.isArray(metadata.uiBlocks)
-            ? (metadata.uiBlocks as {
-                blockIds?: string[];
-                blocks?: AgentUIBlock[];
-                operation?: AgentDashboardOperation;
-              })
+            ? (metadata.uiBlocks as Record<string, unknown>)
             : null;
         const dashboardOperation =
           typeof metadata?.dashboardOperation === 'string'
-            ? (metadata.dashboardOperation as AgentDashboardOperation)
-            : uiBlocksState?.operation;
+            ? metadata.dashboardOperation
+            : typeof uiBlocksState?.operation === 'string'
+              ? uiBlocksState.operation
+              : undefined;
+        const dashboardPayload =
+          uiBlocksState?.blocks ??
+          (uiBlocksState?.components ? uiBlocksState : undefined);
 
-        if (uiBlocksState?.blocks && dashboardOperation) {
+        if (dashboardOperation) {
           applyDashboardOperation(
             dashboardOperation,
-            uiBlocksState.blocks,
-            uiBlocksState.blockIds,
+            dashboardPayload,
+            uiBlocksState?.blockIds,
           );
         }
       } catch (err) {
