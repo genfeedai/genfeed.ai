@@ -54,7 +54,10 @@ export * from '@workflow-engine/executors/saas/sound-overlay-executor';
 // Text to speech executor
 export * from '@workflow-engine/executors/saas/text-to-speech-executor';
 export * from '@workflow-engine/executors/saas/trend-digest-executor';
+export * from '@workflow-engine/executors/saas/trend-hashtag-inspiration-executor';
+export * from '@workflow-engine/executors/saas/trend-sound-inspiration-executor';
 export * from '@workflow-engine/executors/saas/trend-trigger-executor';
+export * from '@workflow-engine/executors/saas/trend-video-inspiration-executor';
 export * from '@workflow-engine/executors/saas/tweet-input-executor';
 export * from '@workflow-engine/executors/saas/tweet-remix-executor';
 // Upscale executor

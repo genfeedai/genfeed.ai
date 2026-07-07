@@ -5,6 +5,22 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@genfeedai\/enums$/,
+        replacement: path.resolve(__dirname, '../enums/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/enums\/(.*)$/,
+        replacement: path.resolve(__dirname, '../enums/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/interfaces$/,
+        replacement: path.resolve(__dirname, '../interfaces/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(__dirname, '../interfaces/src/$1'),
+      },
+      {
         find: '@genfeedai/workflow-engine',
         replacement: path.resolve(__dirname, './src'),
       },

@@ -99,9 +99,21 @@ import {
 import { TextToSpeechExecutor } from '@workflow-engine/executors/saas/text-to-speech-executor';
 import { TrendDigestExecutor } from '@workflow-engine/executors/saas/trend-digest-executor';
 import {
+  createTrendHashtagInspirationExecutor,
+  TrendHashtagInspirationExecutor,
+} from '@workflow-engine/executors/saas/trend-hashtag-inspiration-executor';
+import {
+  createTrendSoundInspirationExecutor,
+  TrendSoundInspirationExecutor,
+} from '@workflow-engine/executors/saas/trend-sound-inspiration-executor';
+import {
   createTrendTriggerExecutor,
   TrendTriggerExecutor,
 } from '@workflow-engine/executors/saas/trend-trigger-executor';
+import {
+  createTrendVideoInspirationExecutor,
+  TrendVideoInspirationExecutor,
+} from '@workflow-engine/executors/saas/trend-video-inspiration-executor';
 import {
   createTweetInputExecutor,
   TweetInputExecutor,
@@ -465,12 +477,33 @@ export const EXECUTOR_REGISTRY: Record<string, ExecutorRegistryEntry> = {
     nodeType: 'trendDigest',
     requiresResolver: true,
   },
+  trendHashtagInspiration: {
+    description: 'Generates a content prompt from a trending hashtag',
+    executorClass: TrendHashtagInspirationExecutor,
+    factory: () => createTrendHashtagInspirationExecutor(),
+    nodeType: 'trendHashtagInspiration',
+    requiresResolver: false,
+  },
+  trendSoundInspiration: {
+    description: 'Selects a trending sound for content inspiration',
+    executorClass: TrendSoundInspirationExecutor,
+    factory: () => createTrendSoundInspirationExecutor(),
+    nodeType: 'trendSoundInspiration',
+    requiresResolver: false,
+  },
   trendTrigger: {
     description: 'Starts workflow when new trend matches criteria',
     executorClass: TrendTriggerExecutor,
     factory: () => createTrendTriggerExecutor(),
     nodeType: 'trendTrigger',
     requiresResolver: true,
+  },
+  trendVideoInspiration: {
+    description: 'Extracts a generation prompt from a trending video',
+    executorClass: TrendVideoInspirationExecutor,
+    factory: () => createTrendVideoInspirationExecutor(),
+    nodeType: 'trendVideoInspiration',
+    requiresResolver: false,
   },
   tweetInput: {
     description: 'Fetches tweet content from URL or accepts text input',
@@ -689,6 +722,30 @@ export class ExecutorRegistryInstance {
   }
 
   /**
+   * Get the trend hashtag inspiration executor for resolver injection
+   */
+  getTrendHashtagInspirationExecutor():
+    | TrendHashtagInspirationExecutor
+    | undefined {
+    const executor = this.executors.get('trendHashtagInspiration');
+    return executor instanceof TrendHashtagInspirationExecutor
+      ? executor
+      : undefined;
+  }
+
+  /**
+   * Get the trend sound inspiration executor for resolver injection
+   */
+  getTrendSoundInspirationExecutor():
+    | TrendSoundInspirationExecutor
+    | undefined {
+    const executor = this.executors.get('trendSoundInspiration');
+    return executor instanceof TrendSoundInspirationExecutor
+      ? executor
+      : undefined;
+  }
+
+  /**
    * Get the sound overlay executor for processor injection
    */
   getSoundOverlayExecutor(): SoundOverlayExecutor | undefined {
@@ -866,6 +923,18 @@ export class ExecutorRegistryInstance {
   getCommentTriggerExecutor(): CommentTriggerExecutor | undefined {
     const executor = this.executors.get('commentTrigger');
     return executor instanceof CommentTriggerExecutor ? executor : undefined;
+  }
+
+  /**
+   * Get the trend video inspiration executor for resolver injection
+   */
+  getTrendVideoInspirationExecutor():
+    | TrendVideoInspirationExecutor
+    | undefined {
+    const executor = this.executors.get('trendVideoInspiration');
+    return executor instanceof TrendVideoInspirationExecutor
+      ? executor
+      : undefined;
   }
 
   /**
