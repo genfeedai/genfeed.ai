@@ -6,6 +6,10 @@ import {
   createMarketingEventId,
   type WebsiteMarketingEvent,
 } from './events';
+import {
+  getRetargetingRoutes,
+  type MarketingRetargetingProviderConfig,
+} from './retargeting';
 
 declare global {
   interface Window {
@@ -16,6 +20,7 @@ declare global {
 
 export interface MarketingTrackingConfig {
   gtmContainerId?: string;
+  retargetingProviders?: MarketingRetargetingProviderConfig[];
 }
 
 export interface TrackWebsiteMarketingEventOptions {
@@ -92,10 +97,15 @@ function pushMarketingDataLayerEvent(
   event: Required<Pick<WebsiteMarketingEvent, 'eventId' | 'name'>> &
     WebsiteMarketingEvent,
   consent: MarketingConsentState,
+  config: MarketingTrackingConfig,
 ): void {
   const payload = event.payload ?? {};
   const eventUrl =
     event.url || (typeof window !== 'undefined' ? window.location.href : '');
+  const retargetingRoutes = getRetargetingRoutes(
+    event.name,
+    config.retargetingProviders,
+  );
 
   pushDataLayer({
     event: 'genfeed_marketing_event',
@@ -104,6 +114,8 @@ function pushMarketingDataLayerEvent(
     event_source_url: eventUrl,
     marketing_consent_ad_storage: consent.adStorage,
     marketing_consent_analytics_storage: consent.analyticsStorage,
+    retargeting_providers: retargetingRoutes.map((route) => route.provider),
+    retargeting_routes: retargetingRoutes,
     ...payload,
   });
 }
@@ -150,7 +162,7 @@ export function trackWebsiteMarketingEvent(
   const eventId = event.eventId || createMarketingEventId(event.name);
   const nextEvent = { ...event, eventId };
 
-  pushMarketingDataLayerEvent(nextEvent, consent);
+  pushMarketingDataLayerEvent(nextEvent, consent, options.config);
   sendServerConversion(nextEvent);
 
   return eventId;

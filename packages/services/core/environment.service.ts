@@ -13,6 +13,35 @@ type DesktopEnvironmentOverrides = Partial<{
   wsEndpoint: string;
 }>;
 
+type PublicRetargetingEventName =
+  | 'book_call'
+  | 'cta_click'
+  | 'lead_submit'
+  | 'page_view'
+  | 'signup_complete'
+  | 'start_signup'
+  | 'view_pricing';
+
+type PublicRetargetingConversionIds = Partial<
+  Record<PublicRetargetingEventName, string>
+>;
+
+type PublicRetargetingProviderConfig =
+  | {
+      provider: 'meta';
+      pixelId: string;
+    }
+  | {
+      conversionIds?: PublicRetargetingConversionIds;
+      partnerId: string;
+      provider: 'linkedin';
+    }
+  | {
+      eventIds?: PublicRetargetingConversionIds;
+      pixelId: string;
+      provider: 'x';
+    };
+
 declare global {
   var __GENFEED_DESKTOP_ENV__: DesktopEnvironmentOverrides | undefined;
 }
@@ -23,6 +52,125 @@ const getDesktopEnvironmentOverrides = (): DesktopEnvironmentOverrides => {
   }
 
   return globalThis.__GENFEED_DESKTOP_ENV__ ?? {};
+};
+
+const getOptionalEnv = (value: string | undefined): string | undefined => {
+  const trimmed = value?.trim();
+
+  return trimmed ? trimmed : undefined;
+};
+
+function setOptionalRetargetingId(
+  target: PublicRetargetingConversionIds,
+  key: PublicRetargetingEventName,
+  value: string | undefined,
+): void {
+  const id = getOptionalEnv(value);
+
+  if (id) {
+    target[key] = id;
+  }
+}
+
+const getLinkedInBrowserConversionIds = (): PublicRetargetingConversionIds => {
+  const conversionIds: PublicRetargetingConversionIds = {};
+  setOptionalRetargetingId(
+    conversionIds,
+    'cta_click',
+    process.env.NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_CTA_CLICK,
+  );
+  setOptionalRetargetingId(
+    conversionIds,
+    'book_call',
+    process.env.NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_BOOK_CALL,
+  );
+  setOptionalRetargetingId(
+    conversionIds,
+    'lead_submit',
+    process.env.NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_LEAD_SUBMIT,
+  );
+  setOptionalRetargetingId(
+    conversionIds,
+    'signup_complete',
+    process.env.NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_SIGNUP_COMPLETE,
+  );
+  setOptionalRetargetingId(
+    conversionIds,
+    'start_signup',
+    process.env.NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_START_SIGNUP,
+  );
+  setOptionalRetargetingId(
+    conversionIds,
+    'view_pricing',
+    process.env.NEXT_PUBLIC_LINKEDIN_CONVERSION_ID_VIEW_PRICING,
+  );
+
+  return conversionIds;
+};
+
+const getXBrowserEventIds = (): PublicRetargetingConversionIds => {
+  const eventIds: PublicRetargetingConversionIds = {};
+  setOptionalRetargetingId(
+    eventIds,
+    'cta_click',
+    process.env.NEXT_PUBLIC_X_CTA_CLICK_EVENT_ID,
+  );
+  setOptionalRetargetingId(
+    eventIds,
+    'book_call',
+    process.env.NEXT_PUBLIC_X_BOOK_CALL_EVENT_ID,
+  );
+  setOptionalRetargetingId(
+    eventIds,
+    'lead_submit',
+    process.env.NEXT_PUBLIC_X_LEAD_SUBMIT_EVENT_ID,
+  );
+  setOptionalRetargetingId(
+    eventIds,
+    'signup_complete',
+    process.env.NEXT_PUBLIC_X_SIGNUP_COMPLETE_EVENT_ID,
+  );
+  setOptionalRetargetingId(
+    eventIds,
+    'start_signup',
+    process.env.NEXT_PUBLIC_X_START_SIGNUP_EVENT_ID,
+  );
+  setOptionalRetargetingId(
+    eventIds,
+    'view_pricing',
+    process.env.NEXT_PUBLIC_X_VIEW_PRICING_EVENT_ID,
+  );
+
+  return eventIds;
+};
+
+const getPublicRetargetingProviders = (): PublicRetargetingProviderConfig[] => {
+  const providers: PublicRetargetingProviderConfig[] = [];
+  const metaPixelId = getOptionalEnv(process.env.NEXT_PUBLIC_META_PIXEL_ID);
+  const linkedinPartnerId = getOptionalEnv(
+    process.env.NEXT_PUBLIC_LINKEDIN_PARTNER_ID,
+  );
+  const xPixelId = getOptionalEnv(process.env.NEXT_PUBLIC_X_PIXEL_ID);
+
+  if (metaPixelId) {
+    providers.push({ pixelId: metaPixelId, provider: 'meta' });
+  }
+  if (linkedinPartnerId) {
+    providers.push({
+      conversionIds: getLinkedInBrowserConversionIds(),
+      partnerId: linkedinPartnerId,
+      provider: 'linkedin',
+    });
+  }
+  if (xPixelId) {
+    providers.push({
+      eventIds: getXBrowserEventIds(),
+      pixelId: xPixelId,
+      provider: 'x',
+    });
+  }
+
+  return providers;
 };
 
 export const EnvironmentService = {
@@ -161,6 +309,7 @@ export const EnvironmentService = {
         ? 'granted'
         : 'denied',
     gtmContainerId: process.env.NEXT_PUBLIC_GTM_CONTAINER_ID || '',
+    retargetingProviders: getPublicRetargetingProviders(),
   },
 
   getApiUrl(): string {

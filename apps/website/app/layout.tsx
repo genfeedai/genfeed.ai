@@ -113,6 +113,9 @@ export default async function RootLayout({ children }: LayoutProps) {
         storageKey={THEME_STORAGE_KEY}
         marketingConsentDefault={EnvironmentService.marketing.consentDefault}
         marketingGtmContainerId={EnvironmentService.marketing.gtmContainerId}
+        marketingRetargetingProviders={
+          EnvironmentService.marketing.retargetingProviders
+        }
       >
         {children}
       </AppProviders>

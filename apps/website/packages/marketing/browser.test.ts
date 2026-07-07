@@ -65,7 +65,22 @@ describe('website marketing browser layer', () => {
         url: 'https://genfeed.ai/demo',
       },
       {
-        config: { gtmContainerId: 'GTM-TEST' },
+        config: {
+          gtmContainerId: 'GTM-TEST',
+          retargetingProviders: [
+            { pixelId: 'meta-pixel', provider: 'meta' },
+            {
+              conversionIds: { book_call: 'linkedin-book-call' },
+              partnerId: 'linkedin-partner',
+              provider: 'linkedin',
+            },
+            {
+              eventIds: { book_call: 'x-book-call' },
+              pixelId: 'x-pixel',
+              provider: 'x',
+            },
+          ],
+        },
         consent,
       },
     );
@@ -87,6 +102,26 @@ describe('website marketing browser layer', () => {
           event_name: WEBSITE_MARKETING_EVENTS.BOOK_CALL,
           event_source_url: 'https://genfeed.ai/demo',
           marketing_consent_ad_storage: 'granted',
+          retargeting_providers: ['meta', 'linkedin', 'x'],
+          retargeting_routes: [
+            {
+              accountId: 'meta-pixel',
+              eventName: 'Schedule',
+              provider: 'meta',
+            },
+            {
+              accountId: 'linkedin-partner',
+              conversionId: 'linkedin-book-call',
+              eventName: 'book_call',
+              provider: 'linkedin',
+            },
+            {
+              accountId: 'x-pixel',
+              conversionId: 'x-book-call',
+              eventName: 'BookCall',
+              provider: 'x',
+            },
+          ],
         }),
       ]),
     );
