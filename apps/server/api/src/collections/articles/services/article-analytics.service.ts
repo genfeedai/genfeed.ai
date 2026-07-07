@@ -191,36 +191,13 @@ export class ArticleAnalyticsService extends BaseService<
       };
     }
 
-    const totalViews = Math.max(
-      ...rows.map(
-        (r) => ((r as Record<string, unknown>).totalViews as number) ?? 0,
-      ),
-    );
-    const totalLikes = Math.max(
-      ...rows.map(
-        (r) => ((r as Record<string, unknown>).totalLikes as number) ?? 0,
-      ),
-    );
-    const totalComments = Math.max(
-      ...rows.map(
-        (r) => ((r as Record<string, unknown>).totalComments as number) ?? 0,
-      ),
-    );
-    const totalShares = Math.max(
-      ...rows.map(
-        (r) => ((r as Record<string, unknown>).totalShares as number) ?? 0,
-      ),
-    );
+    const totalViews = Math.max(...rows.map((r) => r.totalViews ?? 0));
+    const totalLikes = Math.max(...rows.map((r) => r.totalLikes ?? 0));
+    const totalComments = Math.max(...rows.map((r) => r.totalComments ?? 0));
+    const totalShares = Math.max(...rows.map((r) => r.totalShares ?? 0));
     const avgEngagementRate =
-      rows.reduce(
-        (sum, r) =>
-          sum +
-          (((r as Record<string, unknown>).engagementRate as number) ?? 0),
-        0,
-      ) / rows.length;
-    const lastUpdated = rows[0]
-      ? ((rows[0] as Record<string, unknown>).updatedAt as Date)
-      : undefined;
+      rows.reduce((sum, r) => sum + (r.engagementRate ?? 0), 0) / rows.length;
+    const lastUpdated = rows[0]?.updatedAt;
 
     return {
       avgClickThroughRate: 0,

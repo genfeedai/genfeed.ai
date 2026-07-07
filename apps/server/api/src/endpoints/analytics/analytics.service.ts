@@ -11,6 +11,11 @@ import { Injectable } from '@nestjs/common';
 type PrismaSql = ReturnType<typeof Prisma.sql>;
 type PostAnalyticsTextColumn = 'brandId' | 'organizationId';
 type RawRow = Record<string, unknown>;
+type PlatformTotals = {
+  engagement: number;
+  posts: number;
+  views: number;
+};
 
 /** Platform metrics for time series */
 interface PlatformMetrics {
@@ -626,7 +631,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     `;
 
     // Calculate totals for percentage calculation
-    const totals = results.reduce(
+    const totals = results.reduce<PlatformTotals>(
       (acc, platform) => {
         acc.views += Number(platform.total_views);
         acc.engagement += Number(platform.total_engagement);
