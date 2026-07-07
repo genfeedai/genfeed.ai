@@ -182,6 +182,13 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/api-types/src/$1',
+        ),
+      },
+      {
         find: /^@genfeedai\/queue-contracts\/(.*)$/,
         replacement: path.resolve(
           serviceDir,

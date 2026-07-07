@@ -5,6 +5,7 @@ import {
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import { PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -20,6 +21,10 @@ describe('CronTiktokStatusService', () => {
     getPublishStatus: ReturnType<typeof vi.fn>;
     refreshToken: ReturnType<typeof vi.fn>;
   };
+  let publishEventWebhookService: {
+    emitLegacyPostFailed: ReturnType<typeof vi.fn>;
+    emitLegacyPostPublished: ReturnType<typeof vi.fn>;
+  };
   let provenanceService: { runAction: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
@@ -30,6 +35,10 @@ describe('CronTiktokStatusService', () => {
     tiktokService = {
       getPublishStatus: vi.fn(),
       refreshToken: vi.fn(),
+    };
+    publishEventWebhookService = {
+      emitLegacyPostFailed: vi.fn().mockResolvedValue(undefined),
+      emitLegacyPostPublished: vi.fn().mockResolvedValue(undefined),
     };
     provenanceService = {
       runAction: vi.fn(
@@ -73,6 +82,10 @@ describe('CronTiktokStatusService', () => {
           provide: SystemWorkflowProvenanceService,
           useValue: provenanceService,
         },
+        {
+          provide: PublishEventWebhookService,
+          useValue: publishEventWebhookService,
+        },
       ],
     }).compile();
 
@@ -91,9 +104,11 @@ describe('CronTiktokStatusService', () => {
         _id: 'credential-1',
         accessToken: 'encrypted-token',
         externalHandle: 'creator',
+        id: 'credential-1',
         isConnected: true,
       },
       externalId: 'publish-1',
+      id: 'post-1',
       organization: 'org-1',
       updatedAt: new Date().toISOString(),
       user: 'user-1',
@@ -122,6 +137,16 @@ describe('CronTiktokStatusService', () => {
         status: PostStatus.PUBLIC,
       }),
     );
+    expect(
+      publishEventWebhookService.emitLegacyPostPublished,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalProviderId: 'tiktok-post-1',
+        platform: 'tiktok',
+        post,
+        url: 'https://www.tiktok.com/@creator/video/tiktok-post-1',
+      }),
+    );
   });
 
   it('marks timed-out pending posts failed inside a provenance execution', async () => {
@@ -131,9 +156,11 @@ describe('CronTiktokStatusService', () => {
       credential: {
         _id: 'credential-1',
         accessToken: 'encrypted-token',
+        id: 'credential-1',
         isConnected: true,
       },
       externalId: 'publish-2',
+      id: 'post-2',
       organization: 'org-1',
       // Became PENDING 48h ago - beyond the 24h max age
       updatedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
@@ -152,6 +179,15 @@ describe('CronTiktokStatusService', () => {
     expect(postsService.patch).toHaveBeenCalledWith('post-2', {
       status: PostStatus.FAILED,
     });
+    expect(
+      publishEventWebhookService.emitLegacyPostFailed,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorMessage: 'TikTok moderation timeout - exceeded 24 hours',
+        platform: 'tiktok',
+        post,
+      }),
+    );
     expect(tiktokService.getPublishStatus).not.toHaveBeenCalled();
   });
 
@@ -162,9 +198,11 @@ describe('CronTiktokStatusService', () => {
       credential: {
         _id: 'credential-1',
         accessToken: 'encrypted-token',
+        id: 'credential-1',
         isConnected: true,
       },
       externalId: 'publish-3',
+      id: 'post-3',
       organization: 'org-1',
       updatedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
       user: 'user-1',

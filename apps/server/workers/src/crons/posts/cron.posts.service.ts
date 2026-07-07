@@ -16,6 +16,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -60,6 +61,7 @@ export class CronPostsService {
     private readonly quotaService: QuotaService,
     private readonly publisherFactory: PublisherFactoryService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly publishEventWebhookService: PublishEventWebhookService,
   ) {}
 
   /**
@@ -209,6 +211,7 @@ export class CronPostsService {
       if (!credential) {
         this.logger.error(`${url} credential not found`, { postId: post.id });
         await this.postsService.patch(post.id, { status: PostStatus.FAILED });
+        this.emitPublishFailedWebhook(post, 'Credential not found');
         return this.createFailedResult('', 'Credential not found');
       }
 
@@ -222,6 +225,7 @@ export class CronPostsService {
           postId: post.id,
         });
         await this.postsService.patch(post.id, { status: PostStatus.FAILED });
+        this.emitPublishFailedWebhook(post, 'Organization not found');
         return this.createFailedResult('', 'Organization not found');
       }
 
@@ -244,6 +248,11 @@ export class CronPostsService {
           quotaCheck,
           credential.platform,
         );
+        this.emitPublishFailedWebhook(
+          post,
+          'Quota exceeded',
+          credential.platform,
+        );
 
         return this.createFailedResult(credential.platform, 'Quota exceeded');
       }
@@ -257,6 +266,7 @@ export class CronPostsService {
           postId: post.id,
         });
         await this.postsService.patch(post.id, { status: PostStatus.FAILED });
+        this.emitPublishFailedWebhook(post, 'Unsupported platform', platform);
         return this.createFailedResult(platform, 'Unsupported platform');
       }
 
@@ -358,6 +368,8 @@ export class CronPostsService {
           }
         }
 
+        this.emitPublishPublishedWebhook(post, result, credential.platform);
+
         this.logger.log(`${url} published post successfully`, {
           childrenCount: children.length,
           externalId: result.externalId,
@@ -443,6 +455,7 @@ export class CronPostsService {
       };
     }
 
+    this.emitPublishFailedWebhook(post, errorMessage, platform);
     return result;
   }
 
@@ -483,7 +496,34 @@ export class CronPostsService {
       };
     }
 
+    this.emitPublishFailedWebhook(post, errorMessage);
     return this.createFailedResult('', errorMessage);
+  }
+
+  private emitPublishPublishedWebhook(
+    post: PostEntity,
+    result: PublishResult,
+    platform: CredentialPlatform | string,
+  ): void {
+    void this.publishEventWebhookService.emitLegacyPostPublished({
+      externalProviderId: result.externalId ?? null,
+      externalShortcode: result.externalShortcode ?? null,
+      platform,
+      post,
+      url: result.url || null,
+    });
+  }
+
+  private emitPublishFailedWebhook(
+    post: PostEntity,
+    errorMessage: string,
+    platform?: CredentialPlatform | string,
+  ): void {
+    void this.publishEventWebhookService.emitLegacyPostFailed({
+      errorMessage,
+      platform,
+      post,
+    });
   }
 
   /**

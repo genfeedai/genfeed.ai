@@ -6,6 +6,7 @@ import {
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import {
   CredentialPlatform,
   PostStatus,
@@ -30,6 +31,7 @@ export class CronYoutubeStatusService {
     private readonly postsService: PostsService,
     private readonly youtubeService: YoutubeService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
+    private readonly publishEventWebhookService: PublishEventWebhookService,
   ) {}
 
   /**
@@ -134,7 +136,7 @@ export class CronYoutubeStatusService {
           updateData.publicationDate = new Date();
         }
 
-        await this.recordStatusTransition(
+        const transitioned = await this.recordStatusTransition(
           post,
           targetStatus,
           `YouTube reports ${videoStatus.privacyStatus} - syncing post from ${post.status} to ${targetStatus}`,
@@ -142,6 +144,19 @@ export class CronYoutubeStatusService {
             await this.postsService.patch(post.id.toString(), updateData);
           },
         );
+        if (
+          transitioned &&
+          [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED].includes(
+            targetStatus,
+          )
+        ) {
+          void this.publishEventWebhookService.emitLegacyPostPublished({
+            externalProviderId: post.externalId,
+            platform: CredentialPlatform.YOUTUBE,
+            post,
+            url: `https://www.youtube.com/watch?v=${post.externalId}`,
+          });
+        }
 
         this.logger.log(
           `${url} YouTube video ${post.externalId} status synced`,
@@ -224,7 +239,7 @@ export class CronYoutubeStatusService {
     outcome: string,
     detail: string,
     transition: () => Promise<void>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     try {
       await this.systemWorkflowProvenanceService.runAction(
         {
@@ -248,12 +263,14 @@ export class CronYoutubeStatusService {
         },
         transition,
       );
+      return true;
     } catch (error: unknown) {
       this.logger.error('Failed to record YouTube status transition', {
         error: (error as Error)?.message,
         outcome,
         postId: String(post._id),
       });
+      return false;
     }
   }
 }

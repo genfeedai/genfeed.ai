@@ -5,6 +5,7 @@ import { PostsModule } from '@api/collections/posts/posts.module';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
+import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 
@@ -14,6 +15,7 @@ import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
     forwardRef(() => CredentialsModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
+    forwardRef(() => WebhookClientModule),
     PublishersModule,
     QuotaModule,
   ],
