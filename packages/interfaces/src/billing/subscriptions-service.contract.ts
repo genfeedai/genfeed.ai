@@ -63,6 +63,7 @@ export interface ISubscriptionFindAllOptions {
   page?: number;
   limit?: number;
   pagination?: boolean;
+  sort?: Record<string, 1 | -1>;
   [key: string]: unknown;
 }
 
@@ -73,19 +74,22 @@ export interface ISubscriptionFindAllOptions {
  * open.
  *
  * `docs` mirrors `AggregatePaginateResult<T>.docs` on the concrete EE service
- * (`BaseService.findAll`). The webhook reads `data.docs` then guards
- * `length === 0`, so the OSS no-op returns `{ docs: [], total: 0 }`.
+ * (`BaseService.findAll`). `total` is required for OSS-facing consumers, while
+ * `totalDocs` preserves the concrete paginated service shape. The OSS no-op
+ * returns both count fields as zero.
  */
 export interface ISubscriptionFindAllResult {
-  docs?: ISubscriptionOssReadModel[];
-  /**
-   * Optional, not required: the concrete EE `findAll` returns
-   * `AggregatePaginateResult<SubscriptionDocument>`, which exposes `totalDocs`
-   * rather than a statically-guaranteed `total`, while the OSS no-op returns
-   * `{ total: 0 }`. Keeping this optional lets both producers satisfy the
-   * contract without either lying about its shape; OSS reads it defensively.
-   */
-  total?: number;
+  docs: ISubscriptionOssReadModel[];
+  total: number;
+  totalDocs: number;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
+  limit?: number;
+  nextPage?: number | null;
+  page?: number;
+  pagingCounter?: number;
+  prevPage?: number | null;
+  totalPages?: number;
   [key: string]: unknown;
 }
 
@@ -109,7 +113,8 @@ export interface ISubscriptionsService {
   ): Promise<ISubscriptionOssReadModel | null>;
 
   /**
-   * Aggregation query; OSS reads `.total`. OSS no-op returns `{ total: 0 }`.
+   * Aggregation query; OSS reads `.total`. OSS no-op returns
+   * `{ docs: [], total: 0, totalDocs: 0 }`.
    *
    * `options` is required (not optional): the concrete `BaseService.findAll`
    * dereferences `options.pagination` unconditionally, so omitting it would

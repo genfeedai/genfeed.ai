@@ -47,7 +47,7 @@ export class OssSubscriptionsService implements ISubscriptionsService {
     _options: ISubscriptionFindAllOptions,
     _enableCache?: boolean,
   ): Promise<ISubscriptionFindAllResult> {
-    return { docs: [], total: 0 };
+    return { docs: [], total: 0, totalDocs: 0 };
   }
 
   async patch(
