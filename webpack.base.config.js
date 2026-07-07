@@ -115,6 +115,7 @@ module.exports = function createWebpackConfig({
         }
       : {}),
     '@genfeedai-types': path.resolve(cloudPackagesRoot, 'types/src'),
+    '@api-types': path.resolve(cloudPackagesRoot, 'api-types/src'),
     '@helpers': path.resolve(cloudPackagesRoot, 'helpers/src'),
     '@integrations': path.resolve(cloudPackagesRoot, 'integrations/src'),
     '@libs': path.resolve(cloudPackagesRoot, 'libs'),
@@ -186,6 +187,7 @@ module.exports = function createWebpackConfig({
           // node_modules package — keep it bundled so the DI fragment is inlined.
           /^@billing-providers$/,
           /^@genfeedai\//,
+          /^@api-types\//,
           /^@cloud\//,
           /^@api\//,
           /^@helpers\//,
