@@ -122,7 +122,9 @@ export class AgentRunsService extends BaseService<
       });
     }
 
-    return super.create(dto as CreateAgentRunDto) as Promise<AgentRunDocument>;
+    return super.create(
+      dto as unknown as CreateAgentRunDto,
+    ) as Promise<AgentRunDocument>;
   }
 
   override async patch(
