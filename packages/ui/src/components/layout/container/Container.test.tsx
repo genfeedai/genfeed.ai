@@ -48,6 +48,34 @@ describe('Container', () => {
     expect(header).toHaveClass('lg:px-6');
   });
 
+  it('insets full-width body content to match the header gutter', () => {
+    render(
+      <Container label="Dashboard">
+        <div data-testid="body-content">content</div>
+      </Container>,
+    );
+
+    const bodyWrapper = screen.getByTestId('body-content').parentElement;
+
+    expect(bodyWrapper).toHaveClass('px-5');
+    expect(bodyWrapper).toHaveClass('sm:px-6');
+    expect(bodyWrapper).toHaveClass('lg:px-6');
+  });
+
+  it('does not double-inset constrained body content', () => {
+    render(
+      <Container fullWidth={false} label="Dashboard">
+        <div data-testid="body-content">content</div>
+      </Container>,
+    );
+
+    const bodyWrapper = screen.getByTestId('body-content').parentElement;
+
+    expect(bodyWrapper).not.toHaveClass('px-5');
+    expect(bodyWrapper).not.toHaveClass('sm:px-6');
+    expect(bodyWrapper).not.toHaveClass('lg:px-6');
+  });
+
   it('can keep the h1 for assistive tech without rendering the visible header row', () => {
     const { container } = render(
       <Container label="Dashboard" titleVisibility="sr-only">
@@ -59,7 +87,7 @@ describe('Container', () => {
     expect(screen.getByRole('heading', { name: 'Dashboard' })).toHaveClass(
       'sr-only',
     );
-    expect(rootElement.childElementCount).toBe(1);
+    expect(rootElement.querySelector('.border-b')).toBeNull();
   });
 
   it('keeps header controls visible when the title is screen-reader only', () => {
