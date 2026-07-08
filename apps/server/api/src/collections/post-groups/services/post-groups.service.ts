@@ -1088,9 +1088,9 @@ export class PostGroupsService {
     if (!Array.isArray(value)) {
       return [];
     }
-    return value.filter((item): item is IReleaseMediaReference =>
-      this.isReleaseMediaReference(item),
-    );
+    return value
+      .filter((item) => this.isReleaseMediaReference(item))
+      .map((item) => item as unknown as IReleaseMediaReference);
   }
 
   private isReleaseMediaReference(
@@ -1143,9 +1143,9 @@ export class PostGroupsService {
     if (!Array.isArray(value)) {
       return [];
     }
-    return value.filter((item): item is IScheduleStatusTransition =>
-      this.isTransition(item),
-    );
+    return value
+      .filter((item) => this.isTransition(item))
+      .map((item) => item as unknown as IScheduleStatusTransition);
   }
 
   private isTransition(value: unknown): value is IScheduleStatusTransition {
