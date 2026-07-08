@@ -56,7 +56,7 @@ export function AgentWorkspacePageShell({
         threadId={threadId}
         onNavigateToBilling={() => {
           push(
-            orgHref(isEEEnabled() ? '/settings/billing' : '/settings/api-keys'),
+            orgHref(isEEEnabled() ? '/settings/billing' : '/settings/credits'),
           );
         }}
         onOAuthConnect={handleOAuthConnect}
@@ -65,7 +65,7 @@ export function AgentWorkspacePageShell({
           push(
             isEEEnabled()
               ? orgHref(`/settings/billing?pack=${pack.label.toLowerCase()}`)
-              : orgHref('/settings/api-keys'),
+              : orgHref('/settings/credits'),
           );
         }}
       />

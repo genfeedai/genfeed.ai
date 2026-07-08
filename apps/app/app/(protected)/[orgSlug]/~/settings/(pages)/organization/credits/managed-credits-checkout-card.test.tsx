@@ -83,7 +83,7 @@ describe('ManagedCreditsCheckoutCard', () => {
     });
 
     locationState = {
-      href: 'http://localhost/settings/api-keys',
+      href: 'http://localhost/settings/credits',
       origin: 'http://localhost',
     };
     Object.defineProperty(window, 'location', {
@@ -105,7 +105,7 @@ describe('ManagedCreditsCheckoutCard', () => {
 
     await waitFor(() => {
       expect(createCheckoutSessionMock).toHaveBeenCalledWith({
-        cancelUrl: 'http://localhost/settings/api-keys',
+        cancelUrl: 'http://localhost/settings/credits',
         email: 'buyer@example.com',
         firstName: 'Local',
         lastName: 'User',

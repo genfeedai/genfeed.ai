@@ -108,6 +108,13 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
         ]
       : []),
     {
+      href: APP_ROUTES.SETTINGS.CREDITS,
+      hrefScope: 'organization',
+      label: 'Credits',
+      outline: HiOutlineCreditCard,
+      solid: HiCreditCard,
+    },
+    {
       href: APP_ROUTES.SETTINGS.API_KEYS,
       hrefScope: 'organization',
       label: 'API Keys',

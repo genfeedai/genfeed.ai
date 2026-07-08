@@ -351,7 +351,7 @@ export function useAppProtectedLayout(
   useAgentPageContext(role);
 
   const handleNavigateToBilling = useCallback(() => {
-    push(orgHref(isEEEnabled() ? '/settings/billing' : '/settings/api-keys'));
+    push(orgHref(isEEEnabled() ? '/settings/billing' : '/settings/credits'));
   }, [push, orgHref]);
 
   const handleNavigate = useCallback(

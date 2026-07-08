@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { redirect } from 'next/navigation';
@@ -8,9 +8,16 @@ import SettingsBillingPage from './content';
 
 export const generateMetadata = createPageMetadata('Billing Settings');
 
-export default function SettingsOrganizationBillingRoute() {
+interface SettingsOrganizationBillingRouteProps {
+  params: Promise<{ orgSlug: string }>;
+}
+
+export default async function SettingsOrganizationBillingRoute({
+  params,
+}: SettingsOrganizationBillingRouteProps) {
   if (!isEEEnabled()) {
-    redirect(APP_ROUTES.SETTINGS.API_KEYS);
+    const { orgSlug } = await params;
+    redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.CREDITS));
   }
 
   return (

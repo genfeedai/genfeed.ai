@@ -1,8 +1,25 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import Module from './agent-page-content.tsx';
+
+function readSource() {
+  return readFileSync(
+    join(process.cwd(), 'agent/agent-page-content.tsx'),
+    'utf8',
+  );
+}
 
 describe('agent-page-content.tsx', () => {
   it('exports a component', () => {
-    expect(Module).toBeDefined();
+    expect(readSource()).toContain('export default function AgentPageContent');
+  });
+
+  it('routes non-EE credit actions to credits settings', () => {
+    const source = readSource();
+
+    expect(source).toContain("'/settings/credits'");
+    expect(source).not.toContain(
+      "isEEEnabled() ? '/settings/billing' : '/settings/api-keys'",
+    );
   });
 });

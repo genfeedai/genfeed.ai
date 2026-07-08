@@ -1,6 +1,7 @@
 'use client';
 
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ReactElement } from 'react';
 import { HiCurrencyDollar } from 'react-icons/hi2';
@@ -15,8 +16,8 @@ export function CreditsBalanceCard({
   const { orgHref } = useOrgUrl();
   const billingHref = orgHref(
     process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY
-      ? '/settings/billing'
-      : '/settings/api-keys',
+      ? APP_ROUTES.SETTINGS.BILLING
+      : APP_ROUTES.SETTINGS.CREDITS,
   );
   const balance = action.balance ?? 0;
   const usagePercent = action.usagePercent ?? 0;
@@ -86,9 +87,7 @@ export function CreditsBalanceCard({
           className="flex w-full items-center justify-center gap-1.5 bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <HiCurrencyDollar className="size-4" />
-          {process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY
-            ? 'Buy Credits'
-            : 'Configure Providers'}
+          Buy Credits
         </a>
       )}
     </div>

@@ -13,4 +13,18 @@ describe('app/(protected)/[orgSlug]/~/settings/(pages)/organization/billing/page
     );
     expect(source).toContain('export ');
   });
+
+  it('keeps the non-EE credits redirect scoped to the active organization', () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'app/(protected)/[orgSlug]/~/settings/(pages)/organization/billing/page.tsx',
+      ),
+      'utf8',
+    );
+
+    expect(source).toContain('createOrganizationAppRoute');
+    expect(source).toContain('APP_ROUTES.SETTINGS.CREDITS');
+    expect(source).toContain('orgSlug');
+  });
 });

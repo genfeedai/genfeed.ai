@@ -36,6 +36,7 @@ describe('buildSettingsMenuItems', () => {
       ).toEqual([
         'General',
         'Members',
+        'Credits',
         'API Keys',
         'Webhooks',
         'Policy',
@@ -54,6 +55,7 @@ describe('buildSettingsMenuItems', () => {
         'General',
         'Members',
         'Billing',
+        'Credits',
         'API Keys',
         'Webhooks',
         'Policy',
@@ -76,6 +78,9 @@ describe('buildSettingsMenuItems', () => {
 
     it('points Brands and Models at their hubs (prefix-active, not exact)', () => {
       const items = buildSettingsMenuItems({ scope: 'organization' });
+      expect(items.find((i) => i.label === 'Credits')?.href).toBe(
+        '/settings/credits',
+      );
       expect(items.find((i) => i.label === 'Brands')?.href).toBe(
         '/settings/brands',
       );

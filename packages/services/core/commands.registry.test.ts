@@ -498,7 +498,7 @@ describe('commands.registry', () => {
       );
     });
 
-    it('billing action should navigate to API keys in OSS mode', () => {
+    it('billing action should navigate to Credits in OSS mode', () => {
       delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
       const settingsCommands = createSettingsCommands(TEST_ORG);
       const billingCmd = settingsCommands.find(
@@ -508,7 +508,7 @@ describe('commands.registry', () => {
       billingCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/api-keys`,
+        `https://app.genfeed.ai/${TEST_ORG}/~/settings/credits`,
       );
     });
   });

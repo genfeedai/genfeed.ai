@@ -27,7 +27,6 @@ import { isSelfHosted } from '@/lib/config/edition';
 import { isDesktopShell } from '@/lib/desktop/runtime';
 import ApiKeysHeader from './api-keys-header';
 import ByokProviderCard from './byok-provider-card';
-import ManagedCreditsCheckoutCard from './managed-credits-checkout-card';
 
 type ApiKeysState = {
   providerStatuses: IByokProviderStatus[];
@@ -535,7 +534,6 @@ export default function SettingsApiKeysPage() {
   return (
     <div className="space-y-6">
       {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
-      {isSelfHostedDeployment ? <ManagedCreditsCheckoutCard /> : null}
 
       <ApiKeysHeader />
 
