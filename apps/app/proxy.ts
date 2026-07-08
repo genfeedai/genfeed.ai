@@ -153,20 +153,6 @@ function isSeededWorkspaceEntrypoint(pathname: string): boolean {
   );
 }
 
-function isScopedWorkspacePath(pathname: string): boolean {
-  const parts = pathname.split('/').filter(Boolean);
-
-  // Only the org-root workspace scope (/:orgSlug/~/...) gates onboarding here.
-  // Brand-scoped (/:orgSlug/:brandSlug/...) and bare protected paths are
-  // handled by their own branches above, so matching them here would fire a
-  // redundant bootstrap fetch on every authenticated navigation.
-  if (parts.length < 2 || parts[0] === 'admin') {
-    return false;
-  }
-
-  return parts[1] === '~';
-}
-
 type WorkspaceSlugs = {
   brandCount: number;
   brandSlug?: string;
@@ -633,7 +619,7 @@ function isPlaywrightBypassRequest(req: NextRequest): boolean {
   return isPlaywrightTestBuild && hasPlaywrightBypassCookie;
 }
 
-export default async function proxy(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   if (req.nextUrl.pathname === '/playwright-ready') {
     return NextResponse.next();
   }
@@ -829,6 +815,8 @@ export default async function proxy(req: NextRequest) {
 
   return NextResponse.next();
 }
+
+export default proxy;
 
 export const config = {
   matcher: [

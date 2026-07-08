@@ -9,6 +9,8 @@ describe('ProtectedRootPage', () => {
       'utf8',
     );
 
+    expect(source).toContain("import { redirect } from 'next/navigation'");
+    expect(source).toContain('NEXT_PUBLIC_BETTER_AUTH_ENABLED');
     expect(source).toContain('ProtectedRootResolver');
     expect(source).toContain('return <ProtectedRootResolver />');
   });
