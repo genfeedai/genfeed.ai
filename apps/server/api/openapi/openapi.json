@@ -13124,6 +13124,11 @@
               "organization"
             ],
             "type": "string"
+          },
+          "selectedBrandId": {
+            "description": "Active brand selection id for the current user. Send null to clear the brand selection and return to organization scope.",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object"
@@ -47112,21 +47117,6 @@
           }
         },
         "summary": "getAvatarUploadUrl",
-        "tags": [
-          "users"
-        ]
-      }
-    },
-    "/users/me/brand-selection": {
-      "delete": {
-        "operationId": "UsersController.clearBrandSelection",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "clearBrandSelection",
         "tags": [
           "users"
         ]

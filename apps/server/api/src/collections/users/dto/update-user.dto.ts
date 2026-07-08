@@ -78,6 +78,7 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
       'Active brand selection id for the current user. Send null to clear the brand selection and return to organization scope.',
     nullable: true,
     required: false,
+    type: String,
   })
   readonly selectedBrandId?: string | null;
 }

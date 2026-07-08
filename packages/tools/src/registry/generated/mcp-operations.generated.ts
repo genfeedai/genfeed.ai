@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1012 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1011 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -13850,17 +13850,6 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     "bodyFields": [],
     "bodyRequired": false,
     "bodyStyle": "none",
-    "method": "delete",
-    "operationId": "UsersController.clearBrandSelection",
-    "path": "/users/me/brand-selection",
-    "pathParams": [],
-    "queryParams": [],
-    "toolName": "users__clear_brand_selection"
-  },
-  {
-    "bodyFields": [],
-    "bodyRequired": false,
-    "bodyStyle": "none",
     "method": "get",
     "operationId": "UsersController.findAll",
     "path": "/users",
@@ -14003,7 +13992,8 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
       "onboardingCompletedAt",
       "onboardingStartedAt",
       "onboardingStepsCompleted",
-      "onboardingType"
+      "onboardingType",
+      "selectedBrandId"
     ],
     "bodyRequired": true,
     "bodyStyle": "properties",

@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1012 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1011 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -39086,25 +39086,6 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "clearBrandSelection (DELETE /users/me/brand-selection)",
-    "name": "users__clear_brand_selection",
-    "parameters": {
-      "properties": {},
-      "type": "object"
-    },
-    "requiredRole": "user",
-    "surfaces": {
-      "agent": false,
-      "cliAgentVisible": false,
-      "mcp": true
-    },
-    "tags": [
-      "users"
-    ]
-  },
-  {
-    "category": "other",
-    "creditCost": 0,
     "description": "findAll (GET /users)",
     "name": "users__find_all",
     "parameters": {
@@ -39482,6 +39463,11 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             "creator",
             "organization"
           ],
+          "type": "string"
+        },
+        "selectedBrandId": {
+          "description": "Active brand selection id for the current user. Send null to clear the brand selection and return to organization scope.",
+          "nullable": true,
           "type": "string"
         }
       },
