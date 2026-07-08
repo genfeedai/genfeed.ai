@@ -49,12 +49,10 @@ import {
 } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   Body,
   Controller,
-  Delete,
   Get,
-  HttpCode,
-  HttpStatus,
   Inject,
   Param,
   Patch,
@@ -161,6 +159,51 @@ export class UsersController {
       this.accessBootstrapCacheService.invalidateForUser(userId),
       this.betterAuthIdentityCacheService.invalidateForUser(userId),
     ]);
+  }
+
+  private async setBrandSelectionForUser(
+    user: User,
+    selectedBrandId: string | null,
+  ): Promise<void> {
+    const publicMetadata = getPublicMetadata(user);
+
+    if (selectedBrandId === null) {
+      await this.brandsService.clearBrandSelectionForUser(
+        publicMetadata.user,
+        publicMetadata.organization,
+      );
+
+      await this.membersService.setLastUsedBrand(
+        {
+          isActive: true,
+          isDeleted: false,
+          organization: publicMetadata.organization,
+          user: publicMetadata.user,
+        },
+        null,
+      );
+
+      await this.invalidateUserAccessCaches(publicMetadata.user);
+      return;
+    }
+
+    const selectedBrand = await this.brandsService.selectBrandForUser(
+      selectedBrandId,
+      publicMetadata.user,
+      publicMetadata.organization,
+    );
+
+    await this.membersService.setLastUsedBrand(
+      {
+        isActive: true,
+        isDeleted: false,
+        organization: publicMetadata.organization,
+        user: publicMetadata.user,
+      },
+      selectedBrand.id,
+    );
+
+    await this.invalidateUserAccessCaches(publicMetadata.user);
   }
 
   @Get()
@@ -467,32 +510,6 @@ export class UsersController {
     return serializeSingle(request, BrandSerializer, data);
   }
 
-  @Delete('me/brand-selection')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async clearBrandSelection(@CurrentUser() user: User): Promise<void> {
-    const publicMetadata = getPublicMetadata(user);
-
-    await this.brandsService.clearBrandSelectionForUser(
-      publicMetadata.user,
-      publicMetadata.organization,
-    );
-
-    // Clear the member's lastUsedBrandId so the identity resolvers fall back to
-    // the org default instead of a stale brand (epic #735, Phase C — no legacy auth provider).
-    await this.membersService.setLastUsedBrand(
-      {
-        isActive: true,
-        isDeleted: false,
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
-      },
-      null,
-    );
-
-    await this.invalidateUserAccessCaches(user.id);
-  }
-
   @Post('me/avatar')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getAvatarUploadUrl(
@@ -520,6 +537,11 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
   ) {
     const publicMetadata = getPublicMetadata(user);
+    const hasSelectedBrandPatch = Object.hasOwn(
+      updateUserDto,
+      'selectedBrandId',
+    );
+    const { selectedBrandId, ...userPatchDto } = updateUserDto;
 
     // Completing onboarding is a cascade, not a plain field write: it marks any
     // proactive lead paid and invalidates the access caches so OnboardingGuard
@@ -527,15 +549,31 @@ export class UsersController {
     // #1354 — dissolves POST /onboarding/complete-funnel) so UsersController no
     // longer imports OnboardingService; the proactive-lead cascade runs behind
     // OnboardingModule via an event.
-    if (updateUserDto.isOnboardingCompleted === true) {
+    if (userPatchDto.isOnboardingCompleted === true) {
       const completed = await this.completeOnboardingFunnel(request, user);
       return completed;
     }
 
-    const data = await this.usersService.patch(
-      publicMetadata.user,
-      updateUserDto,
-    );
+    if (hasSelectedBrandPatch) {
+      if (
+        selectedBrandId !== null &&
+        (typeof selectedBrandId !== 'string' || selectedBrandId.length === 0)
+      ) {
+        throw new BadRequestException(
+          'selectedBrandId must be a brand id or null',
+        );
+      }
+
+      await this.setBrandSelectionForUser(user, selectedBrandId);
+    }
+
+    const hasUserPatch = Object.keys(userPatchDto).length > 0;
+    const data = hasUserPatch
+      ? await this.usersService.patch(publicMetadata.user, userPatchDto)
+      : await this.usersService.findOne({
+          _id: publicMetadata.user,
+          isDeleted: false,
+        });
 
     return data
       ? serializeSingle(request, UserSerializer, data)

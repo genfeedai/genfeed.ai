@@ -7,7 +7,7 @@ import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
-const mockDeleteMeBrandSelection = vi.hoisted(() => vi.fn());
+const mockClearMeBrandSelection = vi.hoisted(() => vi.fn());
 const mockPatchMeBrand = vi.hoisted(() => vi.fn());
 const mockReloadUser = vi.hoisted(() => vi.fn());
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
@@ -54,7 +54,7 @@ vi.mock(
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () =>
     vi.fn(async () => ({
-      deleteMeBrandSelection: mockDeleteMeBrandSelection,
+      clearMeBrandSelection: mockClearMeBrandSelection,
       patchMeBrand: mockPatchMeBrand,
     })),
 }));
@@ -62,7 +62,7 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@genfeedai/services/organization/users.service', () => ({
   UsersService: {
     getInstance: () => ({
-      deleteMeBrandSelection: mockDeleteMeBrandSelection,
+      clearMeBrandSelection: mockClearMeBrandSelection,
       patchMeBrand: mockPatchMeBrand,
     }),
   },
@@ -114,8 +114,8 @@ describe('MenuBrandSwitcher', () => {
     capturedFooterActions = [];
     capturedItems = [];
     capturedMinWidth = undefined;
-    mockDeleteMeBrandSelection.mockReset();
-    mockDeleteMeBrandSelection.mockResolvedValue(undefined);
+    mockClearMeBrandSelection.mockReset();
+    mockClearMeBrandSelection.mockResolvedValue({});
     mockPatchMeBrand.mockReset();
     mockPatchMeBrand.mockResolvedValue({});
     mockReloadUser.mockReset();
@@ -245,7 +245,7 @@ describe('MenuBrandSwitcher', () => {
     );
 
     await waitFor(() => {
-      expect(mockDeleteMeBrandSelection).toHaveBeenCalledTimes(1);
+      expect(mockClearMeBrandSelection).toHaveBeenCalledTimes(1);
     });
     expect(onClearSelection).toHaveBeenCalledTimes(1);
     expect(mockPatchMeBrand).not.toHaveBeenCalled();

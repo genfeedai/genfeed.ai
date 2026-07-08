@@ -55,8 +55,8 @@ export class UsersService extends BaseService<User> {
       .then((res) => new Brand(this.extractResource<Partial<IBrand>>(res)));
   }
 
-  public async deleteMeBrandSelection(): Promise<void> {
-    await this.instance.delete('me/brand-selection');
+  public async clearMeBrandSelection(): Promise<IUser> {
+    return await this.patchMe({ selectedBrandId: null });
   }
 
   public async patchSettings(
@@ -76,7 +76,9 @@ export class UsersService extends BaseService<User> {
       .then((res) => this.mapOne(res.data));
   }
 
-  public async patchMe(body: Partial<IUser>): Promise<IUser> {
+  public async patchMe(
+    body: Partial<IUser> & { selectedBrandId?: string | null },
+  ): Promise<IUser> {
     return await this.instance
       .patch<JsonApiResponseDocument>('me', body)
       .then((res) => this.mapOne(res.data));

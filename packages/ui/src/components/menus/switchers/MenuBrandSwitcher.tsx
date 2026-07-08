@@ -70,11 +70,11 @@ export default function MenuBrandSwitcher({
       return;
     }
 
-    const url = 'DELETE /users/me/brand-selection';
+    const url = 'PATCH /users/me';
     try {
       setIsUpdatingBrand(true);
       const service = await getUsersService();
-      await service.deleteMeBrandSelection();
+      await service.clearMeBrandSelection();
       logger.info(`${url} success`);
       clearSelectionAction.onSelect();
       const reloadPromise = user?.reload();
