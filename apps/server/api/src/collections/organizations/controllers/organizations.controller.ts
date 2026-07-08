@@ -244,19 +244,11 @@ export class OrganizationsController extends BaseCRUDController<
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    // Check if the user is a member of the organization
-    const member = await this.membersService.findOne({
-      isDeleted: false,
-      organization: organizationId,
-      user: publicMetadata.user,
-    });
-
-    if (!member) {
-      throw new HttpException(
-        'Forbidden: You are not a member of this organization',
-        HttpStatus.FORBIDDEN,
-      );
-    }
+    await this.verifyOrganizationAccess(
+      organizationId,
+      publicMetadata.user,
+      getIsSuperAdmin(user, request),
+    );
 
     const options = {
       customLabels,

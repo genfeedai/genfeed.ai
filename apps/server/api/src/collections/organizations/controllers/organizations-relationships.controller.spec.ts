@@ -159,6 +159,45 @@ describe('OrganizationsRelationshipsController', () => {
     });
   });
 
+  describe('findAllIngredients', () => {
+    it('allows an organization owner without a membership row', async () => {
+      mockServices.membersService.findOne.mockResolvedValueOnce(null);
+      mockServices.organizationsService.findOne.mockResolvedValueOnce({
+        id: '507f1f77bcf86cd799439012',
+        userId: '507f1f77bcf86cd799439011',
+      });
+
+      await controller.findAllIngredients(
+        {} as never,
+        '507f1f77bcf86cd799439012',
+        mockUser,
+        { category: 'video' } as never,
+      );
+
+      expect(mockServices.membersService.findOne).toHaveBeenCalledWith({
+        isActive: true,
+        isDeleted: false,
+        organization: '507f1f77bcf86cd799439012',
+        user: '507f1f77bcf86cd799439011',
+      });
+      expect(mockServices.organizationsService.findOne).toHaveBeenCalledWith({
+        _id: '507f1f77bcf86cd799439012',
+        user: '507f1f77bcf86cd799439011',
+      });
+      expect(mockServices.ingredientsService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { createdAt: -1 },
+          where: {
+            category: 'video',
+            isDeleted: false,
+            organization: '507f1f77bcf86cd799439012',
+          },
+        },
+        expect.objectContaining({ limit: 10, page: 1 }),
+      );
+    });
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });
