@@ -92,9 +92,8 @@ vi.mock('@ui/primitives/button', () => ({
 vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
   default: (props: {
     brandId?: string;
-    organizationScopeOption?: {
-      isActive?: boolean;
-      label: string;
+    clearSelectionAction?: {
+      ariaLabel?: string;
       onSelect: () => void;
     };
     variant?: string;
@@ -102,14 +101,21 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
     brandSwitcherSpy(props);
 
     return (
-      <button
-        type="button"
-        data-testid="brand-switcher"
-        onClick={props.organizationScopeOption?.onSelect}
-      >
-        {props.variant}:{props.brandId || 'none'}:
-        {props.organizationScopeOption?.label}
-      </button>
+      <div>
+        <button type="button" data-testid="brand-switcher">
+          {props.variant}:{props.brandId || 'none'}
+        </button>
+        {props.clearSelectionAction ? (
+          <button
+            type="button"
+            data-testid="clear-brand-selection"
+            aria-label={props.clearSelectionAction.ariaLabel}
+            onClick={props.clearSelectionAction.onSelect}
+          >
+            clear
+          </button>
+        ) : null}
+      </div>
     );
   },
 }));
@@ -393,18 +399,18 @@ describe('AppProtectedTopbar', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows all-brands scope on explicit organization routes', () => {
+  it('clears the visible brand on explicit organization routes', () => {
     render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
 
     expect(brandSwitcherSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: '',
-        organizationScopeOption: expect.objectContaining({
-          isActive: true,
-          label: 'All brands',
-        }),
+        clearSelectionAction: undefined,
       }),
     );
+    expect(
+      screen.queryByTestId('clear-brand-selection'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows the selected brand on explicit brand routes', () => {
@@ -419,15 +425,15 @@ describe('AppProtectedTopbar', () => {
     expect(brandSwitcherSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         brandId: 'brand',
-        organizationScopeOption: expect.objectContaining({
-          isActive: false,
-          label: 'All brands',
+        clearSelectionAction: expect.objectContaining({
+          ariaLabel: 'Clear brand selection',
         }),
       }),
     );
+    expect(screen.getByTestId('clear-brand-selection')).toBeInTheDocument();
   });
 
-  it('routes the all-brands option to organization overview', () => {
+  it('routes the clear-brand action to organization overview', () => {
     render(
       <AppProtectedTopbar
         orgSlug="acme"
@@ -436,7 +442,7 @@ describe('AppProtectedTopbar', () => {
       />,
     );
 
-    fireEvent.click(screen.getByTestId('brand-switcher'));
+    fireEvent.click(screen.getByTestId('clear-brand-selection'));
 
     expect(mockPush).toHaveBeenCalledWith('/acme/~/overview');
   });

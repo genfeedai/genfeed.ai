@@ -2,15 +2,17 @@ import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
+const mockDeleteMeBrandSelection = vi.hoisted(() => vi.fn());
+const mockPatchMeBrand = vi.hoisted(() => vi.fn());
+const mockReloadUser = vi.hoisted(() => vi.fn());
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
 let capturedItems: SwitcherDropdownItem[] = [];
 let capturedMinWidth: number | undefined;
-let capturedOnSelect: ((id: string) => void) | undefined;
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({
@@ -35,7 +37,7 @@ vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
   useAuthUser: () => ({
     user: {
       id: 'user_123',
-      reload: vi.fn(),
+      reload: mockReloadUser,
     },
   }),
 }));
@@ -50,12 +52,19 @@ vi.mock(
 );
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => vi.fn(),
+  useAuthedService: () =>
+    vi.fn(async () => ({
+      deleteMeBrandSelection: mockDeleteMeBrandSelection,
+      patchMeBrand: mockPatchMeBrand,
+    })),
 }));
 
 vi.mock('@genfeedai/services/organization/users.service', () => ({
   UsersService: {
-    getInstance: () => ({}),
+    getInstance: () => ({
+      deleteMeBrandSelection: mockDeleteMeBrandSelection,
+      patchMeBrand: mockPatchMeBrand,
+    }),
   },
 }));
 
@@ -68,7 +77,6 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
     footerActions = [],
     items = [],
     minWidth,
-    onSelect,
     renderTrigger,
   }: {
     footerActions?: SwitcherDropdownFooterAction[];
@@ -83,7 +91,6 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
     capturedFooterActions = footerActions;
     capturedItems = items;
     capturedMinWidth = minWidth;
-    capturedOnSelect = onSelect;
     return (
       <div data-testid="switcher-dropdown">
         {renderTrigger({ isDisabled: false, isOpen: false })}
@@ -107,7 +114,12 @@ describe('MenuBrandSwitcher', () => {
     capturedFooterActions = [];
     capturedItems = [];
     capturedMinWidth = undefined;
-    capturedOnSelect = undefined;
+    mockDeleteMeBrandSelection.mockReset();
+    mockDeleteMeBrandSelection.mockResolvedValue(undefined);
+    mockPatchMeBrand.mockReset();
+    mockPatchMeBrand.mockResolvedValue({});
+    mockReloadUser.mockReset();
+    mockReloadUser.mockResolvedValue(undefined);
     mockPush.mockReset();
   });
 
@@ -202,34 +214,40 @@ describe('MenuBrandSwitcher', () => {
     expect(mockPush).toHaveBeenCalledWith('/test-org/test-brand/settings');
   });
 
-  it('renders an organization scope row without treating it as a brand patch', () => {
-    const onScopeSelect = vi.fn();
+  it('renders a clear-selection control without adding a synthetic scope row', async () => {
+    const onClearSelection = vi.fn();
 
     render(
       <MenuBrandSwitcher
         variant="labeled"
         brands={brandsWithSlug}
-        brandId=""
+        brandId="brand_1"
         onBrandChange={vi.fn()}
-        organizationScopeOption={{
-          isActive: true,
-          label: 'All brands',
-          onSelect: onScopeSelect,
+        clearSelectionAction={{
+          ariaLabel: 'Clear brand selection',
+          onSelect: onClearSelection,
         }}
       />,
     );
 
     expect(screen.getByTestId('brand-switcher-trigger')).toHaveTextContent(
-      'All brands',
+      'Test Brand',
     );
+    expect(capturedItems).toHaveLength(1);
     expect(capturedItems[0]).toMatchObject({
-      id: '__organization_scope__',
+      id: 'brand_1',
       isActive: true,
-      label: 'All brands',
+      label: 'Test Brand',
     });
 
-    capturedOnSelect?.('__organization_scope__');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Clear brand selection' }),
+    );
 
-    expect(onScopeSelect).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mockDeleteMeBrandSelection).toHaveBeenCalledTimes(1);
+    });
+    expect(onClearSelection).toHaveBeenCalledTimes(1);
+    expect(mockPatchMeBrand).not.toHaveBeenCalled();
   });
 });

@@ -143,7 +143,7 @@ function AppProtectedTopbarContent({
     ],
   );
 
-  const handleOrganizationScopeSelect = useCallback(() => {
+  const handleClearBrandSelection = useCallback(() => {
     setBrandId('');
 
     if (effectiveOrgSlug) {
@@ -217,11 +217,14 @@ function AppProtectedTopbarContent({
                 brands={brands}
                 brandId={visibleBrandId}
                 onBrandChange={handleBrandChange}
-                organizationScopeOption={{
-                  isActive: isOrganizationScopeRoute,
-                  label: 'All brands',
-                  onSelect: handleOrganizationScopeSelect,
-                }}
+                clearSelectionAction={
+                  visibleBrandId
+                    ? {
+                        ariaLabel: 'Clear brand selection',
+                        onSelect: handleClearBrandSelection,
+                      }
+                    : undefined
+                }
               />
             </div>
           ) : null}
