@@ -6,6 +6,7 @@ import {
   type IngredientStatus,
   ViewType,
 } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
 import type { IImage, IIngredient } from '@genfeedai/interfaces';
 import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
@@ -16,12 +17,13 @@ import StudioSelectionActionsBar from '@pages/studio/selection/StudioSelectionAc
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import AmbientColorWash from '@ui/ambient/AmbientColorWash';
 import InfiniteScroll from '@ui/feedback/infinite-scroll/InfiniteScroll';
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 
 interface GenerateContentAreaProps {
   // Category flags
   isVideoCategory: boolean;
   isEmptyStudioState: boolean;
+  emptyComposer?: ReactNode;
 
   // Storyboard props (video only)
   cameraMovementPreset: CameraMovementPreset;
@@ -80,6 +82,7 @@ interface GenerateContentAreaProps {
 export function GenerateContentArea({
   isVideoCategory,
   isEmptyStudioState,
+  emptyComposer,
   cameraMovementPreset,
   customCameraPrompt,
   storyboardFormat,
@@ -156,7 +159,12 @@ export function GenerateContentArea({
     <div className="flex flex-1 overflow-hidden relative w-full">
       <AmbientColorWash color={ambientColor?.rgb ?? null} />
       <div className="relative z-[1] flex flex-1 flex-col overflow-hidden">
-        <div className="flex-1 overflow-auto px-6 pt-6 pb-40 md:pb-40">
+        <div
+          className={cn(
+            'flex-1 overflow-auto px-6 pt-6',
+            isEmptyStudioState ? 'pb-6' : 'pb-40 md:pb-40',
+          )}
+        >
           {isVideoCategory && (
             <StoryboardPanel
               cameraMovementPreset={cameraMovementPreset}
@@ -184,7 +192,12 @@ export function GenerateContentArea({
           )}
 
           {isEmptyStudioState ? (
-            <GenerateEmptyState />
+            <div className="flex min-h-full flex-col items-center justify-center py-8">
+              <GenerateEmptyState />
+              {emptyComposer ? (
+                <div className="w-full max-w-4xl">{emptyComposer}</div>
+              ) : null}
+            </div>
           ) : (
             <InfiniteScroll
               onLoadMore={onLoadMore}

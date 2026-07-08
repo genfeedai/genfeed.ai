@@ -274,6 +274,57 @@ export default defineConfig({
         replacement: path.resolve(packageSrc('ui'), './primitives/$1'),
       },
       {
+        find: /^@ui\/utils$/,
+        replacement: path.resolve(packageSrc('ui'), './utils'),
+      },
+      {
+        find: /^@ui\/utils\/(.*)$/,
+        replacement: path.resolve(packageSrc('ui'), './utils/$1'),
+      },
+      {
+        find: /^@ui\/core$/,
+        replacement: path.resolve(packageSrc('ui'), './core'),
+      },
+      {
+        find: /^@ui\/core\/(.*)$/,
+        replacement: path.resolve(packageSrc('ui'), './core/$1'),
+      },
+      {
+        find: /^@ui\/generators$/,
+        replacement: path.resolve(packageSrc('ui'), './generators'),
+      },
+      {
+        find: /^@ui\/generators\/(.*)$/,
+        replacement: path.resolve(packageSrc('ui'), './generators/$1'),
+      },
+      {
+        find: /^@ui\/semantic$/,
+        replacement: path.resolve(packageSrc('ui'), './semantic'),
+      },
+      {
+        find: /^@ui\/semantic\/(.*)$/,
+        replacement: path.resolve(packageSrc('ui'), './semantic/$1'),
+      },
+      {
+        find: /^@ui\/dashboard\/(.*)$/,
+        replacement: path.resolve(packageSrc('ui'), './dashboard/$1'),
+      },
+      {
+        find: /^@ui\/charts$/,
+        replacement: path.resolve(packageSrc('ui'), './charts.ts'),
+      },
+      {
+        find: /^@ui-constants$/,
+        replacement: path.resolve(packageSrc('ui'), './components/constants'),
+      },
+      {
+        find: /^@ui-constants\/(.*)$/,
+        replacement: path.resolve(
+          packageSrc('ui'),
+          './components/constants/$1',
+        ),
+      },
+      {
         find: /^@ui$/,
         replacement: path.resolve(packageSrc('ui'), './components'),
       },
@@ -302,6 +353,8 @@ export default defineConfig({
     include: [
       'packages/pages/analytics/overview/analytics-overview.test.tsx',
       'brands/components/**/*.test.tsx',
+      'studio/generate/StudioGenerateLayout.test.tsx',
+      'studio/generate/components/StudioComposer.test.tsx',
       'studio/generate/utils/**/*.test.ts',
       'studio/fastlane/**/*.test.ts',
       'studio/fastlane/**/*.test.tsx',

@@ -1,17 +1,19 @@
 'use client';
 
+import { HiOutlineSparkles } from 'react-icons/hi2';
+
 export function GenerateEmptyState() {
   return (
-    <div className="flex min-h-[55vh] flex-col items-center justify-center gap-3 px-6 text-center">
-      <span className="rounded-full bg-secondary px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-foreground/45 shadow-border">
-        Studio
-      </span>
-      <h2 className="text-2xl font-semibold text-foreground">
-        Start with a prompt, then refine in place.
+    <div className="flex flex-col items-center text-center">
+      <div className="mb-3 flex size-9 items-center justify-center rounded-md bg-foreground/[0.05] ring-1 ring-inset ring-foreground/[0.08]">
+        <HiOutlineSparkles className="size-4 text-foreground/68" />
+      </div>
+
+      <h2 className="mb-1 text-center text-base font-semibold tracking-[-0.02em] text-foreground">
+        Start with a prompt
       </h2>
-      <p className="max-w-xl text-sm text-foreground/60">
-        The composer stays docked while you iterate, compare outputs, and queue
-        generations without the UI jumping between modes.
+      <p className="max-w-md text-center text-xs leading-5 text-foreground/52">
+        Describe the first asset, then refine it in Studio.
       </p>
     </div>
   );

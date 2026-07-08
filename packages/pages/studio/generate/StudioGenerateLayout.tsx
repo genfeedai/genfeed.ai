@@ -98,6 +98,36 @@ export default function StudioGenerateLayout({
     voiceOptions,
   } = useStudioGenerateLayout({ defaultCategoryType, onCategoryChange });
 
+  const studioComposer = (
+    <StudioComposer
+      promptText={promptText}
+      onTextChange={setPromptText}
+      promptConfig={promptConfig}
+      onConfigChange={handlePromptConfigChange}
+      isGenerating={isGenerationCooldown}
+      generateLabel={generateLabel}
+      models={currentModels}
+      trainings={trainings}
+      presets={filteredPresets}
+      folders={folders ?? undefined}
+      categoryType={categoryType}
+      onIngredientCategoryChange={handleCategoryTypeChange}
+      onSubmit={handleSubmit}
+      avatars={isAvatarCategory ? avatarOptions : undefined}
+      voices={isAvatarCategory ? voiceOptions : undefined}
+      avatarPreviewUrl={avatarPreviewUrl}
+      moods={!isMusicCategory ? moods : undefined}
+      styles={!isMusicCategory ? styles : undefined}
+      cameras={isVideoCategory ? cameras : undefined}
+      sounds={isVideoCategory ? sounds : undefined}
+      tags={!isMusicCategory ? tags : undefined}
+      scenes={!isMusicCategory ? scenes : undefined}
+      fontFamilies={!isMusicCategory ? fontFamilies : undefined}
+      blacklists={isVideoCategory ? blacklists : undefined}
+      isEmptyState={isEmptyStudioState}
+    />
+  );
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <AssetControlsHeader
@@ -115,6 +145,7 @@ export default function StudioGenerateLayout({
       <GenerateContentArea
         isVideoCategory={isVideoCategory}
         isEmptyStudioState={isEmptyStudioState}
+        emptyComposer={isEmptyStudioState ? studioComposer : undefined}
         cameraMovementPreset={cameraMovementPreset}
         customCameraPrompt={customCameraPrompt}
         storyboardFormat={storyboardFormat}
@@ -164,35 +195,9 @@ export default function StudioGenerateLayout({
         onTableSelectionChange={setTableSelectedIds}
       />
 
-      <div className="relative shrink-0">
-        <StudioComposer
-          promptText={promptText}
-          onTextChange={setPromptText}
-          promptConfig={promptConfig}
-          onConfigChange={handlePromptConfigChange}
-          isGenerating={isGenerationCooldown}
-          generateLabel={generateLabel}
-          models={currentModels}
-          trainings={trainings}
-          presets={filteredPresets}
-          folders={folders ?? undefined}
-          categoryType={categoryType}
-          onIngredientCategoryChange={handleCategoryTypeChange}
-          onSubmit={handleSubmit}
-          avatars={isAvatarCategory ? avatarOptions : undefined}
-          voices={isAvatarCategory ? voiceOptions : undefined}
-          avatarPreviewUrl={avatarPreviewUrl}
-          moods={!isMusicCategory ? moods : undefined}
-          styles={!isMusicCategory ? styles : undefined}
-          cameras={isVideoCategory ? cameras : undefined}
-          sounds={isVideoCategory ? sounds : undefined}
-          tags={!isMusicCategory ? tags : undefined}
-          scenes={!isMusicCategory ? scenes : undefined}
-          fontFamilies={!isMusicCategory ? fontFamilies : undefined}
-          blacklists={isVideoCategory ? blacklists : undefined}
-          isEmptyState={isEmptyStudioState}
-        />
-      </div>
+      {!isEmptyStudioState && (
+        <div className="relative shrink-0">{studioComposer}</div>
+      )}
 
       <MediaLightbox
         items={allAssets}

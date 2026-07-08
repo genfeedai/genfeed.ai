@@ -2,7 +2,7 @@ import { IngredientCategory } from '@genfeedai/enums';
 import { StudioComposer } from '@pages/studio/generate/components/StudioComposer';
 import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const promptBarSpy = vi.fn();
 const promptBarSurfaceSpy = vi.fn();
@@ -50,7 +50,11 @@ describe('StudioComposer', () => {
     trainings: [],
   };
 
-  it('renders the same docked prompt bar in empty state', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders the empty prompt bar in the compact inflow surface', () => {
     render(<StudioComposer {...baseProps} isEmptyState={true} />);
 
     expect(
@@ -66,14 +70,15 @@ describe('StudioComposer', () => {
       expect.objectContaining({
         surface: expect.objectContaining({
           container: expect.objectContaining({
-            layoutMode: 'surface-fixed',
+            layoutMode: 'inflow',
+            maxWidth: '4xl',
           }),
         }),
       }),
     );
   });
 
-  it('renders empty-state suggestions above the docked composer', () => {
+  it('renders empty-state suggestions with the compact composer', () => {
     const onTextChange = vi.fn();
 
     render(
@@ -101,6 +106,15 @@ describe('StudioComposer', () => {
     expect(
       screen.getByTestId('studio-composer-prompt-bar'),
     ).toBeInTheDocument();
+    expect(promptBarSurfaceSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        surface: expect.objectContaining({
+          container: expect.objectContaining({
+            layoutMode: 'surface-fixed',
+          }),
+        }),
+      }),
+    );
     expect(
       screen.queryByText(
         'Create a short product teaser with smooth camera moves',
