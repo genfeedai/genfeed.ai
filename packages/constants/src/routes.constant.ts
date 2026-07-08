@@ -178,6 +178,7 @@ export const APP_ROUTES = {
     API_KEYS: '/settings/api-keys',
     BILLING: '/settings/billing',
     BRANDS: '/settings/brands',
+    CREDITS: '/settings/credits',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',
     MODELS: '/settings/models',

@@ -2,11 +2,14 @@ import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
 } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.fn();
+const mockClearMeBrandSelection = vi.hoisted(() => vi.fn());
+const mockPatchMeBrand = vi.hoisted(() => vi.fn());
+const mockReloadUser = vi.hoisted(() => vi.fn());
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
 let capturedItems: SwitcherDropdownItem[] = [];
 let capturedMinWidth: number | undefined;
@@ -34,7 +37,7 @@ vi.mock('@genfeedai/hooks/auth/use-auth-user/use-auth-user', () => ({
   useAuthUser: () => ({
     user: {
       id: 'user_123',
-      reload: vi.fn(),
+      reload: mockReloadUser,
     },
   }),
 }));
@@ -49,12 +52,19 @@ vi.mock(
 );
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => vi.fn(),
+  useAuthedService: () =>
+    vi.fn(async () => ({
+      clearMeBrandSelection: mockClearMeBrandSelection,
+      patchMeBrand: mockPatchMeBrand,
+    })),
 }));
 
 vi.mock('@genfeedai/services/organization/users.service', () => ({
   UsersService: {
-    getInstance: () => ({}),
+    getInstance: () => ({
+      clearMeBrandSelection: mockClearMeBrandSelection,
+      patchMeBrand: mockPatchMeBrand,
+    }),
   },
 }));
 
@@ -72,6 +82,7 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
     footerActions?: SwitcherDropdownFooterAction[];
     items?: SwitcherDropdownItem[];
     minWidth?: number;
+    onSelect: (id: string) => void;
     renderTrigger: (state: {
       isDisabled: boolean;
       isOpen: boolean;
@@ -103,6 +114,12 @@ describe('MenuBrandSwitcher', () => {
     capturedFooterActions = [];
     capturedItems = [];
     capturedMinWidth = undefined;
+    mockClearMeBrandSelection.mockReset();
+    mockClearMeBrandSelection.mockResolvedValue({});
+    mockPatchMeBrand.mockReset();
+    mockPatchMeBrand.mockResolvedValue({});
+    mockReloadUser.mockReset();
+    mockReloadUser.mockResolvedValue(undefined);
     mockPush.mockReset();
   });
 
@@ -195,5 +212,42 @@ describe('MenuBrandSwitcher', () => {
     capturedItems[0]?.trailingAction?.onAction();
 
     expect(mockPush).toHaveBeenCalledWith('/test-org/test-brand/settings');
+  });
+
+  it('renders a clear-selection control without adding a synthetic scope row', async () => {
+    const onClearSelection = vi.fn();
+
+    render(
+      <MenuBrandSwitcher
+        variant="labeled"
+        brands={brandsWithSlug}
+        brandId="brand_1"
+        onBrandChange={vi.fn()}
+        clearSelectionAction={{
+          ariaLabel: 'Clear brand selection',
+          onSelect: onClearSelection,
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('brand-switcher-trigger')).toHaveTextContent(
+      'Test Brand',
+    );
+    expect(capturedItems).toHaveLength(1);
+    expect(capturedItems[0]).toMatchObject({
+      id: 'brand_1',
+      isActive: true,
+      label: 'Test Brand',
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Clear brand selection' }),
+    );
+
+    await waitFor(() => {
+      expect(mockClearMeBrandSelection).toHaveBeenCalledTimes(1);
+    });
+    expect(onClearSelection).toHaveBeenCalledTimes(1);
+    expect(mockPatchMeBrand).not.toHaveBeenCalled();
   });
 });

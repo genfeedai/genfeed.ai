@@ -30,13 +30,13 @@ export default function AgentPageContent({
     () =>
       new AgentApiService({
         baseUrl: process.env.NEXT_PUBLIC_API_ENDPOINT ?? '',
-        getToken: async () => resolveAuthToken(getToken),
+        getToken: async (options) => resolveAuthToken(getToken, options),
       }),
     [getToken],
   );
   const handleNavigateToBilling = useCallback(() => {
     window.open(
-      orgHref(isEEEnabled() ? '/settings/billing' : '/settings/api-keys'),
+      orgHref(isEEEnabled() ? '/settings/billing' : '/settings/credits'),
       '_self',
     );
   }, [orgHref]);
@@ -46,7 +46,7 @@ export default function AgentPageContent({
       window.open(
         isEEEnabled()
           ? orgHref(`/settings/billing?pack=${pack.label.toLowerCase()}`)
-          : orgHref('/settings/api-keys'),
+          : orgHref('/settings/credits'),
         '_self',
       );
     },

@@ -5,6 +5,7 @@ import {
 import { fireEvent, render, screen } from '@testing-library/react';
 import { type ReactNode, useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AppProtectedLayout from './app-protected-layout';
 
 const {
@@ -117,8 +118,12 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
   default: (props: {
     conversationActions?: ReactNode;
     collapsedSidebarWidth?: number;
+    isCollapsed?: boolean;
     shellChromeVariant?: 'default' | 'transparent';
+    items?: { href: string; hrefScope?: string; label: string }[];
+    logoHref?: string;
     mobileSidebarWidth?: number;
+    onToggleCollapse?: () => void;
     orgSwitcherSlot?: ReactNode;
     primaryAction?:
       | { href: string; label: string }
@@ -130,6 +135,7 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     sectionLabel?: string;
     shellMode?: 'default' | 'workspace';
     showPrimaryItems?: boolean;
+    showUserProfile?: boolean;
     sidebarWidth?: number;
     backHref?: string;
     backLabel?: string;
@@ -911,6 +917,79 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByRole('link', { name: 'Back to Workspace' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('renders admin navigation through the shared app sidebar shell', () => {
+    mockPathname.value = '/admin';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        logoHref: '/admin',
+        showUserProfile: true,
+        items: expect.arrayContaining([
+          expect.objectContaining({
+            href: '/admin/agent',
+            hrefScope: 'global',
+            label: 'Agent',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('forwards collapse controls into the dedicated Library sidebar', () => {
+    const onToggleCollapse = vi.fn();
+
+    render(
+      <AppProtectedLayoutSidebar
+        shellChromeVariant="default"
+        taskContextSearchParams={new URLSearchParams()}
+        currentApp="library"
+        isCollapsed={false}
+        onToggleCollapse={onToggleCollapse}
+        isAdminRoute={false}
+        isAnalyticsRoute={false}
+        isComposeRoute={false}
+        isConversationRoute={false}
+        isEditorRoute={false}
+        isFocusedOnboardingRoute={false}
+        isLibraryRoute
+        isOrgRoute={false}
+        isResearchRoute={false}
+        isSettingsRoute={false}
+        isStudioRoute={false}
+        isWorkflowsRoute={false}
+        adminMenuItems={[]}
+        analyticsMenuItems={[]}
+        composeMenuItems={[]}
+        libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
+        menuItems={[]}
+        orgMenuItems={[]}
+        researchMenuItems={[]}
+        secondaryMenuItems={[]}
+        settingsMenuItems={[]}
+        studioMenuItems={[]}
+        workflowsMenuItems={[]}
+        conversationActions={null}
+        renderConversations={() => null}
+        onOpenCommandPalette={vi.fn()}
+      />,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'library',
+        isCollapsed: false,
+        onToggleCollapse,
+        sectionLabel: 'Library',
+      }),
+    );
   });
 
   it('filters disabled studio categories from the dedicated studio sidebar', () => {

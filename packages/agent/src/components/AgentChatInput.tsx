@@ -12,7 +12,6 @@ import type {
 } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { EditorContent } from '@tiptap/react';
-import { Input } from '@ui/primitives/input';
 import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
 import { type ReactElement, useMemo } from 'react';
 
@@ -83,11 +82,8 @@ export function AgentChatInput({
 }: AgentChatInputProps): ReactElement {
   const {
     canSendMessage,
-    draftPlanModeEnabled,
     editor,
-    fileInputRef,
-    handleFileInputChange,
-    handlePlanModeToggle,
+    handlePasteImages,
     handleRemoveAttachment,
     handleSend,
     handleShellPointerDown,
@@ -120,7 +116,11 @@ export function AgentChatInput({
   );
 
   return (
-    <div className="relative w-full" {...dragHandlers}>
+    <div
+      className="relative w-full"
+      onPaste={handlePasteImages}
+      {...dragHandlers}
+    >
       <AgentChatInputStyles />
 
       {isDragActive && (
@@ -130,15 +130,6 @@ export function AgentChatInput({
           </p>
         </div>
       )}
-
-      <Input
-        inputRef={fileInputRef}
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={handleFileInputChange}
-      />
 
       <PromptBarShell
         className={cn(
@@ -153,7 +144,6 @@ export function AgentChatInput({
           <AgentChatInputAttachmentTray
             assets={trayAssets}
             isDisabled={disabled}
-            onBrowseAssets={() => fileInputRef.current?.click()}
             onRemoveAttachedAsset={handleRemoveAttachment}
           />
         )}
@@ -163,10 +153,6 @@ export function AgentChatInput({
         </div>
 
         <AgentChatInputToolbar
-          draftPlanModeEnabled={draftPlanModeEnabled}
-          onPlanModeToggle={() => {
-            void handlePlanModeToggle();
-          }}
           disabled={disabled}
           isUploading={isUploading}
           showStop={showStop}
@@ -180,9 +166,6 @@ export function AgentChatInput({
           onStartListening={startListening}
           onStopListening={stopListening}
           onSend={handleSend}
-          onAttachClick={
-            addFiles ? () => fileInputRef.current?.click() : undefined
-          }
         />
       </PromptBarShell>
     </div>

@@ -50,9 +50,25 @@ describe('app next.config redirects', () => {
       source: '/workspace/:path*',
     });
     expect(rewrites).toContainEqual({
+      destination: '/default/default/agent/:path*',
+      source: '/agent/:path*',
+    });
+    expect(rewrites).toContainEqual({
       destination: '/default/~/settings/:path*',
       source: '/settings/:path*',
     });
+  });
+
+  it('does not redirect brand-scoped agent routes back to org scope', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(
+      redirects?.some(
+        (redirect) =>
+          redirect.source === '/:orgSlug/:brandSlug([^~/][^/]*)/agent/:path*' &&
+          redirect.destination === '/:orgSlug/~/agent/:path*',
+      ),
+    ).toBe(false);
   });
 
   it('redirects org-scoped /research to /research/discovery', async () => {

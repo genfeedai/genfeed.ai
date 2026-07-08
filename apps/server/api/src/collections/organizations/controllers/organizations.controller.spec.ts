@@ -88,6 +88,10 @@ describe('OrganizationsController', () => {
     ensureDefaultBundle: vi.fn(),
   };
 
+  const mockIngredientsService = {
+    findAll: vi.fn(),
+  };
+
   const mockInvalidatingCache = {
     invalidateForUser: vi.fn().mockResolvedValue(undefined),
   };
@@ -127,6 +131,13 @@ describe('OrganizationsController', () => {
     });
     mockMembersService.create.mockResolvedValue({ id: 'member_new' });
     mockMembersService.setLastUsedBrand.mockResolvedValue(undefined);
+    mockIngredientsService.findAll.mockResolvedValue({
+      docs: [],
+      limit: 10,
+      page: 1,
+      pages: 0,
+      total: 0,
+    });
     mockRolesService.findOne.mockResolvedValue({ id: 'role_admin' });
     mockUsersService.findOne.mockResolvedValue({ id: 'user_1' });
     mockUsersService.patch.mockResolvedValue({ id: 'user_1' });
@@ -146,7 +157,7 @@ describe('OrganizationsController', () => {
         { provide: PostsService, useValue: {} },
         { provide: TagsService, useValue: {} },
         { provide: VideosService, useValue: {} },
-        { provide: IngredientsService, useValue: {} },
+        { provide: IngredientsService, useValue: mockIngredientsService },
         { provide: UsersService, useValue: mockUsersService },
         { provide: RolesService, useValue: mockRolesService },
         {
@@ -169,6 +180,45 @@ describe('OrganizationsController', () => {
     }).compile();
 
     controller = module.get<OrganizationsController>(OrganizationsController);
+  });
+
+  describe('findAllIngredients', () => {
+    it('allows an organization owner without a membership row', async () => {
+      mockMembersService.findOne.mockResolvedValue(null);
+      mockOrganizationsService.findOne.mockResolvedValue({
+        id: 'org_active',
+        userId: 'user_1',
+      });
+
+      await controller.findAllIngredients(
+        {
+          originalUrl: '/v1/organizations/org_active/ingredients',
+        } as never,
+        'org_active',
+        currentUser,
+        {} as never,
+      );
+
+      expect(mockMembersService.findOne).toHaveBeenCalledWith({
+        isActive: true,
+        isDeleted: false,
+        organization: 'org_active',
+        user: 'user_1',
+      });
+      expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
+        _id: 'org_active',
+        user: 'user_1',
+      });
+      expect(mockIngredientsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isDeleted: false,
+            organization: 'org_active',
+          }),
+        }),
+        expect.objectContaining({ limit: 10, page: 1 }),
+      );
+    });
   });
 
   describe('findMine', () => {

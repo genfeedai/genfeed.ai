@@ -70,4 +70,15 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   // `usersService.patch`; the resolvers re-validate it against live membership.
   // Kept on the DTO type so those internal calls remain type-safe.
   readonly lastUsedOrganizationId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description:
+      'Active brand selection id for the current user. Send null to clear the brand selection and return to organization scope.',
+    nullable: true,
+    required: false,
+    type: String,
+  })
+  readonly selectedBrandId?: string | null;
 }

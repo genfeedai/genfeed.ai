@@ -4547,11 +4547,6 @@
       "path": "/services/unipile/status"
     },
     {
-      "method": "delete",
-      "operationId": "UsersController.clearBrandSelection",
-      "path": "/users/me/brand-selection"
-    },
-    {
       "method": "get",
       "operationId": "UsersController.findAll",
       "path": "/users"

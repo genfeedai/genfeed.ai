@@ -123,14 +123,30 @@ describe('proxy', () => {
 
   // ─── Signed-in redirect away from root / public entry points ──────────────
 
-  it('does not force-redirect a signed-in user off a public auth page', async () => {
-    // /login is a real Better Auth public page (isBetterAuthPublicRoute). proxy
-    // only auto-redirects at the root path; on /login it passes through and lets
-    // the page itself handle any client-side redirect. So a signed-in user on
-    // /login is NOT bounced by the proxy (no 307, no Location).
+  it.each([
+    '/login',
+    '/login/password',
+    '/login/magic-link',
+  ])('redirects a signed-in user away from %s to default workspace routing', async (pathname) => {
     const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedInRequest('/login'), {} as never);
+    const response = await proxy(
+      makeSignedInRequest(pathname, {
+        search: '?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('keeps logout reachable for a signed-in user', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(makeSignedInRequest('/logout'), {} as never);
 
     expect(response.status).not.toBe(307);
     expect(response.headers.get('location')).toBeNull();
@@ -687,7 +703,47 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects signed-in flat chat to the canonical org-scoped chat path', async () => {
+  it('redirects signed-in flat agent to the canonical brand-scoped agent path', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(makeSignedInRequest('/agent'), {} as never);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/agent',
+    );
+  });
+
+  it('redirects signed-in flat agent to org scope when no brand exists', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: {},
+            brands: [],
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/organizations/mine')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(makeSignedInRequest('/agent'), {} as never);

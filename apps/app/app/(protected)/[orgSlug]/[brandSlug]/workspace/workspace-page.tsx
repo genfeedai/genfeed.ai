@@ -8,12 +8,12 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import type { Task } from '@services/management/tasks.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import Card from '@ui/card/Card';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { Suspense, startTransition, useMemo } from 'react';
@@ -273,13 +273,13 @@ function WorkspacePageContentContent({
                   {inboxTable}
                 </>
               ) : (
-                <Card
-                  label="Inbox"
+                <WorkspaceSurface
+                  title="Inbox"
                   description="Latest items waiting on your review."
-                  bodyClassName="space-y-3 p-4"
+                  density="compact"
                 >
                   {inboxTable}
-                </Card>
+                </WorkspaceSurface>
               )}
             </section>
           ) : null}

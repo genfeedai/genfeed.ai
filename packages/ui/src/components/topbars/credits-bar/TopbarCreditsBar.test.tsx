@@ -73,6 +73,7 @@ vi.mock('./CreditsBarTrigger', () => ({
 describe('TopbarCreditsBar', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     mockGetCreditsService.mockResolvedValue({
       getTopbarBalances: mockGetTopbarBalances,
     });
@@ -100,10 +101,25 @@ describe('TopbarCreditsBar', () => {
 
     expect(screen.getByTestId('credits-link')).toHaveAttribute(
       'href',
-      '/genfeed/settings/billing',
+      '/genfeed/settings/credits',
     );
     expect(mockLoggerError).not.toHaveBeenCalled();
     expect(mockLoggerWarn).not.toHaveBeenCalled();
+  });
+
+  it('links to billing when EE billing is enabled', async () => {
+    process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-license';
+
+    render(<TopbarCreditsBar />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Credits 42')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('credits-link')).toHaveAttribute(
+      'href',
+      '/genfeed/settings/billing',
+    );
   });
 
   it('treats balance timeouts as non-critical topbar warnings', async () => {

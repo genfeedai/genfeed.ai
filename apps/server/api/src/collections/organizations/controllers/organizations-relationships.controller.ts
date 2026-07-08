@@ -45,7 +45,6 @@ import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
-import { BrandFilterUtil } from '@api/helpers/utils/brand-filter/brand-filter.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -110,6 +109,37 @@ export class OrganizationsRelationshipsController {
     private readonly tagsService: TagsService,
     private readonly videosService: VideosService,
   ) {}
+
+  private async verifyOrganizationAccess(
+    request: Request,
+    organizationId: string,
+    user: User,
+  ): Promise<void> {
+    const publicMetadata = getPublicMetadata(user);
+
+    const [member, isOwner] = await Promise.all([
+      this.membersService.findOne({
+        isActive: true,
+        isDeleted: false,
+        organization: organizationId,
+        user: publicMetadata.user,
+      }),
+      this.organizationsService.findOne({
+        _id: organizationId,
+        user: publicMetadata.user,
+      }),
+    ]);
+
+    if (!isOwner && !member && !getIsSuperAdmin(user, request)) {
+      throw new HttpException(
+        {
+          detail: 'Access denied to this organization',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+  }
 
   @Get(':organizationId/brands')
   @Cache({ tags: ['brands'], ttl: 300 })
@@ -334,21 +364,7 @@ export class OrganizationsRelationshipsController {
     @CurrentUser() user: User,
     @Query() query: IngredientsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
-    // Check if the user is a member of the organization
-    const member = await this.membersService.findOne({
-      isDeleted: false,
-      organization: organizationId,
-      user: publicMetadata.user,
-    });
-
-    if (!member) {
-      throw new HttpException(
-        'Forbidden: You are not a member of this organization',
-        HttpStatus.FORBIDDEN,
-      );
-    }
+    await this.verifyOrganizationAccess(request, organizationId, user);
 
     const options = {
       customLabels,

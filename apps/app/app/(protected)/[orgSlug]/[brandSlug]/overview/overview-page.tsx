@@ -116,7 +116,7 @@ function SectionSummaryCard({
 }: SectionSummaryCardProps) {
   return (
     <Card
-      className="ship-ui gen-shell-panel flex h-full flex-col justify-between gap-5 rounded-[1.25rem]"
+      className="flex h-full flex-col justify-between gap-5"
       bodyClassName="flex h-full flex-col justify-between gap-5 p-5"
     >
       <div>

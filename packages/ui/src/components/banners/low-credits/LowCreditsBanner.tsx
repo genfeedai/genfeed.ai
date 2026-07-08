@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
@@ -71,7 +72,9 @@ export default function LowCreditsBanner({
   const { orgHref } = useOrgUrl();
   const isBillingEnabled = Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY);
   const ctaHref = orgHref(
-    isBillingEnabled ? '/settings/billing' : '/settings/api-keys',
+    isBillingEnabled
+      ? APP_ROUTES.SETTINGS.BILLING
+      : APP_ROUTES.SETTINGS.CREDITS,
   );
   const balance = creditsBreakdown?.total ?? null;
   const [isDismissed, setIsDismissed] = useState(() =>
@@ -120,7 +123,7 @@ export default function LowCreditsBanner({
     : isCritical
       ? 'Your local install is missing usable provider capacity. Add or update API keys so generations and workflows can keep running.'
       : 'Your provider capacity is getting tight. Review API keys now so active generations and automations do not get blocked later.';
-  const ctaLabel = isBillingEnabled ? 'Top up credits' : 'Configure providers';
+  const ctaLabel = isBillingEnabled ? 'Top up credits' : 'Buy credits';
   const isInline = variant === 'inline';
 
   return (

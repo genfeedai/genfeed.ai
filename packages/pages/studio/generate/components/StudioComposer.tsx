@@ -2,6 +2,7 @@
 
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { ButtonVariant, type IngredientCategory } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -17,6 +18,7 @@ import type {
   ITraining,
 } from '@genfeedai/interfaces';
 import type { AvatarVoiceOption } from '@genfeedai/interfaces/studio/studio-generate.interface';
+import type { PromptBarSurfaceConfig } from '@genfeedai/props/prompt-bars/prompt-bar-surface.props';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import { Button } from '@ui/primitives/button';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
@@ -78,6 +80,15 @@ const CATEGORY_SUGGESTIONS: Record<string, string[]> = {
   ],
 };
 
+const EMPTY_STUDIO_PROMPT_BAR_SURFACE: PromptBarSurfaceConfig = {
+  container: {
+    className: 'mt-4 w-full',
+    layoutMode: 'inflow',
+    maxWidth: '4xl',
+    zIndex: 60,
+  },
+};
+
 export function StudioComposer({
   promptText,
   onTextChange,
@@ -106,13 +117,51 @@ export function StudioComposer({
   isEmptyState,
 }: StudioComposerProps) {
   const suggestions = CATEGORY_SUGGESTIONS[categoryType] ?? [];
+  const surface = isEmptyState
+    ? EMPTY_STUDIO_PROMPT_BAR_SURFACE
+    : STUDIO_PROMPT_BAR_SURFACE;
 
   return (
     <PromptBarSurfaceRenderer
-      surface={STUDIO_PROMPT_BAR_SURFACE}
+      surface={surface}
       topContent={<LowCreditsBanner />}
     >
-      <div className="flex flex-col gap-3">
+      <div className={cn('flex flex-col', isEmptyState ? 'gap-4' : 'gap-3')}>
+        <div
+          className={cn(
+            isEmptyState &&
+              'rounded-md border border-border bg-card shadow-border',
+          )}
+        >
+          <PromptBar
+            features={{ collapsible: false, dragDrop: false }}
+            promptText={promptText}
+            onTextChange={onTextChange}
+            promptConfig={promptConfig}
+            onConfigChange={onConfigChange}
+            isGenerating={isGenerating}
+            generateLabel={generateLabel}
+            models={models}
+            trainings={trainings}
+            presets={presets}
+            folders={folders}
+            categoryType={categoryType}
+            onIngredientCategoryChange={onIngredientCategoryChange}
+            onSubmit={onSubmit}
+            avatars={avatars}
+            voices={voices}
+            avatarPreviewUrl={avatarPreviewUrl}
+            moods={moods}
+            styles={styles}
+            cameras={cameras}
+            sounds={sounds}
+            tags={tags}
+            scenes={scenes}
+            fontFamilies={fontFamilies}
+            blacklists={blacklists}
+          />
+        </div>
+
         {isEmptyState && suggestions.length > 0 && (
           <div className="flex flex-wrap items-center justify-center gap-2 px-2">
             {suggestions.map((suggestion) => (
@@ -130,34 +179,6 @@ export function StudioComposer({
             ))}
           </div>
         )}
-
-        <PromptBar
-          features={{ collapsible: false, dragDrop: false }}
-          promptText={promptText}
-          onTextChange={onTextChange}
-          promptConfig={promptConfig}
-          onConfigChange={onConfigChange}
-          isGenerating={isGenerating}
-          generateLabel={generateLabel}
-          models={models}
-          trainings={trainings}
-          presets={presets}
-          folders={folders}
-          categoryType={categoryType}
-          onIngredientCategoryChange={onIngredientCategoryChange}
-          onSubmit={onSubmit}
-          avatars={avatars}
-          voices={voices}
-          avatarPreviewUrl={avatarPreviewUrl}
-          moods={moods}
-          styles={styles}
-          cameras={cameras}
-          sounds={sounds}
-          tags={tags}
-          scenes={scenes}
-          fontFamilies={fontFamilies}
-          blacklists={blacklists}
-        />
       </div>
     </PromptBarSurfaceRenderer>
   );

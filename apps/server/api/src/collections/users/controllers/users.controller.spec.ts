@@ -411,9 +411,16 @@ describe('UsersController', () => {
     });
   });
 
-  describe('clearBrandSelection', () => {
+  describe('updateMe brand selection', () => {
     it('should clear brand selection and clear last-used brand on member', async () => {
-      await controller.clearBrandSelection(mockUser);
+      usersService.findOne.mockResolvedValue({
+        _id: userId,
+        firstName: 'Current',
+      });
+
+      const result = await controller.updateMe(mockRequest, mockUser, {
+        selectedBrandId: null,
+      } as never);
 
       expect(brandsService.clearBrandSelectionForUser).toHaveBeenCalledWith(
         userId,
@@ -429,11 +436,50 @@ describe('UsersController', () => {
         null,
       );
       expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
-        'authProvider_user_123',
+        userId,
       );
       expect(
         accessBootstrapCacheService.invalidateForUser,
-      ).toHaveBeenCalledWith('authProvider_user_123');
+      ).toHaveBeenCalledWith(userId);
+      expect(usersService.patch).not.toHaveBeenCalled();
+      expect(usersService.findOne).toHaveBeenCalledWith({
+        _id: userId,
+        isDeleted: false,
+      });
+      expect(result).toBeDefined();
+    });
+
+    it('should select a brand and persist last-used brand from PATCH /users/me', async () => {
+      const canonicalId = 'clbrandcuid000000000000002';
+      brandsService.selectBrandForUser.mockResolvedValue({
+        id: canonicalId,
+        label: 'Selected Brand',
+      });
+      usersService.findOne.mockResolvedValue({
+        _id: userId,
+        firstName: 'Current',
+      });
+
+      const result = await controller.updateMe(mockRequest, mockUser, {
+        selectedBrandId: canonicalId,
+      } as never);
+
+      expect(brandsService.selectBrandForUser).toHaveBeenCalledWith(
+        canonicalId,
+        userId,
+        orgId,
+      );
+      expect(membersService.setLastUsedBrand).toHaveBeenCalledWith(
+        {
+          isActive: true,
+          isDeleted: false,
+          organization: orgId,
+          user: userId,
+        },
+        canonicalId,
+      );
+      expect(usersService.patch).not.toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
   });
 

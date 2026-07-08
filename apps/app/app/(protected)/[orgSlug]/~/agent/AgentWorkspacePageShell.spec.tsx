@@ -111,7 +111,7 @@ describe('AgentWorkspacePageShell', () => {
     );
   });
 
-  it('routes billing actions to api keys in OSS mode', () => {
+  it('routes billing actions to Credits in OSS mode', () => {
     render(<AgentWorkspacePageShell />);
 
     const props = agentFullPageSpy.mock.calls[0]?.[0] as {
@@ -119,10 +119,10 @@ describe('AgentWorkspacePageShell', () => {
     };
     props.onNavigateToBilling();
 
-    expect(pushMock).toHaveBeenCalledWith('/test-org/~/settings/api-keys');
+    expect(pushMock).toHaveBeenCalledWith('/test-org/~/settings/credits');
   });
 
-  it('routes credit pack selection to api keys in OSS mode', () => {
+  it('routes credit pack selection to Credits in OSS mode', () => {
     render(<AgentWorkspacePageShell />);
 
     const props = agentFullPageSpy.mock.calls[0]?.[0] as {
@@ -130,7 +130,7 @@ describe('AgentWorkspacePageShell', () => {
     };
     props.onSelectCreditPack({ label: 'Pro' });
 
-    expect(pushMock).toHaveBeenCalledWith('/test-org/~/settings/api-keys');
+    expect(pushMock).toHaveBeenCalledWith('/test-org/~/settings/credits');
   });
 
   it('creates workspace follow-up tasks through the shared workspace service', async () => {

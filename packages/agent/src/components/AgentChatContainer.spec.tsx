@@ -671,7 +671,7 @@ describe('AgentChatContainer', () => {
     expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'auto' });
   });
 
-  it('renders contextual suggested actions through the shared prompt bar suggestions UI', () => {
+  it('renders contextual suggested actions through the shared prompt bar suggestions UI without plan mode shortcuts', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -699,8 +699,8 @@ describe('AgentChatContainer', () => {
       screen.getByRole('button', { name: 'Create a plan' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Use plan mode' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: 'Use plan mode' }),
+    ).not.toBeInTheDocument();
   });
 
   it('submits a shared suggestion chip through chat send in the empty state', async () => {
@@ -724,7 +724,10 @@ describe('AgentChatContainer', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Review' }));
 
-    expect(sendNonStreaming).toHaveBeenCalledWith('Review the current branch');
+    expect(sendNonStreaming).toHaveBeenCalledWith('Review the current branch', {
+      attachments: undefined,
+      planModeEnabled: false,
+    });
   });
 
   it('scrolls to the latest turn when retrying from an older message', async () => {
@@ -765,7 +768,7 @@ describe('AgentChatContainer', () => {
     });
   });
 
-  it('turns on plan mode from the suggestion shortcut without sending a prompt', async () => {
+  it('filters the plan mode suggestion shortcut without sending a prompt', async () => {
     const apiService = createApiService({
       updateThread: vi.fn().mockResolvedValue({}),
     });
@@ -787,13 +790,10 @@ describe('AgentChatContainer', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Use plan mode' }));
-
-    await waitFor(() => {
-      expect(apiService.updateThread).toHaveBeenCalledWith('thread-1', {
-        planModeEnabled: true,
-      });
-    });
+    expect(
+      screen.queryByRole('button', { name: 'Use plan mode' }),
+    ).not.toBeInTheDocument();
+    expect(apiService.updateThread).not.toHaveBeenCalled();
     expect(sendNonStreaming).not.toHaveBeenCalled();
   });
 

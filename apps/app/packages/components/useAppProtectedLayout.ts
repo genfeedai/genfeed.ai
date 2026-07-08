@@ -195,7 +195,8 @@ export function useAppProtectedLayout(
     shouldMountAgentPanel || isConversationRoute;
 
   const { push, refresh } = useRouter();
-  const { getToken, isSignedIn } = useOptionalAuth();
+  const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useOptionalAuth();
+  const isAuthReadyForAgentPanel = isAuthLoaded && isSignedIn;
   const prevIsSignedInRef = useRef(false);
   useEffect(() => {
     if (isSignedIn && !prevIsSignedInRef.current) {
@@ -230,7 +231,8 @@ export function useAppProtectedLayout(
 
     return new AgentApiService({
       baseUrl: process.env.NEXT_PUBLIC_API_ENDPOINT ?? '',
-      getToken: async () => resolveAuthToken(getTokenRef.current),
+      getToken: async (options) =>
+        resolveAuthToken(getTokenRef.current, options),
     });
   }, [shouldInitAgentApiService]);
 
@@ -351,7 +353,7 @@ export function useAppProtectedLayout(
   useAgentPageContext(role);
 
   const handleNavigateToBilling = useCallback(() => {
-    push(orgHref(isEEEnabled() ? '/settings/billing' : '/settings/api-keys'));
+    push(orgHref(isEEEnabled() ? '/settings/billing' : '/settings/credits'));
   }, [push, orgHref]);
 
   const handleNavigate = useCallback(
@@ -531,6 +533,7 @@ export function useAppProtectedLayout(
       ADMIN_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
+          hrefScope: 'global',
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),
@@ -568,6 +571,7 @@ export function useAppProtectedLayout(
     brandSlug,
     // agent
     agentApiService,
+    isAuthReadyForAgentPanel,
     isAgentOpen,
     toggleAgent,
     threads,

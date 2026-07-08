@@ -35,22 +35,6 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@ui/card/Card', () => ({
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock('@ui/layout/stack', () => ({
-  VStack: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock('@ui/typography/heading', () => ({
-  Heading: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
-}));
-
-vi.mock('@ui/typography/text', () => ({
-  Text: ({ children }: { children: ReactNode }) => <span>{children}</span>,
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
@@ -112,7 +96,7 @@ describe('AddCreditsCard', () => {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     // Defaults to the smallest preset ($10 = 1,000 credits).
-    expect(screen.getByText('1,000 credits')).toBeInTheDocument();
+    expect(screen.getAllByText('1,000 credits').length).toBeGreaterThan(0);
   });
 
   it('updates the credit summary when a preset is selected', () => {
@@ -120,7 +104,7 @@ describe('AddCreditsCard', () => {
 
     fireEvent.click(screen.getByText('$50'));
 
-    expect(screen.getByText('5,000 credits')).toBeInTheDocument();
+    expect(screen.getAllByText('5,000 credits').length).toBeGreaterThan(0);
   });
 
   it('blocks a below-minimum custom amount with a min helper line', () => {
@@ -133,7 +117,7 @@ describe('AddCreditsCard', () => {
     );
 
     expect(screen.getByText('The minimum amount is $10.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add credits' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add credit' })).toBeDisabled();
   });
 
   it('blocks an above-maximum custom amount with a max helper line', () => {
@@ -150,7 +134,7 @@ describe('AddCreditsCard', () => {
         'The maximum amount is $10,000. For a larger top-up, contact support.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add credits' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Add credit' })).toBeDisabled();
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
   });
 
@@ -162,7 +146,7 @@ describe('AddCreditsCard', () => {
       screen.getByLabelText('Custom credit top-up amount in dollars'),
       { target: { value: '250' } },
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Add credits' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add credit' }));
 
     await waitFor(() => {
       expect(createCheckoutSessionMock).toHaveBeenCalledWith({

@@ -43,10 +43,6 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@ui/card/Card', () => ({
-  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
@@ -64,7 +60,12 @@ vi.mock('@ui/primitives/button', () => ({
 }));
 
 vi.mock('@ui/primitives/input', () => ({
-  Input: (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+  Input: ({
+    hasError: _hasError,
+    ...props
+  }: InputHTMLAttributes<HTMLInputElement> & { hasError?: boolean }) => (
+    <input {...props} />
+  ),
 }));
 
 describe('ManagedCreditsCheckoutCard', () => {
@@ -83,7 +84,7 @@ describe('ManagedCreditsCheckoutCard', () => {
     });
 
     locationState = {
-      href: 'http://localhost/settings/api-keys',
+      href: 'http://localhost/settings/credits',
       origin: 'http://localhost',
     };
     Object.defineProperty(window, 'location', {
@@ -92,24 +93,22 @@ describe('ManagedCreditsCheckoutCard', () => {
     });
   });
 
-  it('starts managed checkout using the editable email and quantity', async () => {
+  it('starts managed checkout using the editable email and selected pack', async () => {
     render(<ManagedCreditsCheckoutCard />);
 
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'buyer@example.com' },
     });
-    fireEvent.change(screen.getByDisplayValue('1000'), {
-      target: { value: '2500' },
-    });
-    fireEvent.click(screen.getByText('Get Credits'));
+    fireEvent.click(screen.getByText('$50'));
+    fireEvent.click(screen.getByText('Get credits'));
 
     await waitFor(() => {
       expect(createCheckoutSessionMock).toHaveBeenCalledWith({
-        cancelUrl: 'http://localhost/settings/api-keys',
+        cancelUrl: 'http://localhost/settings/credits',
         email: 'buyer@example.com',
         firstName: 'Local',
         lastName: 'User',
-        quantity: 2500,
+        quantity: 5000,
         successUrl:
           'http://localhost/managed-credits/success?session_id={CHECKOUT_SESSION_ID}',
       });
@@ -118,36 +117,39 @@ describe('ManagedCreditsCheckoutCard', () => {
     expect(locationState.href).toBe('https://checkout.stripe.test/session');
   });
 
-  it('blocks checkout when the email or credit quantity is missing', () => {
+  it('blocks checkout when the email is missing', () => {
     render(<ManagedCreditsCheckoutCard />);
 
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: '' },
     });
-    fireEvent.click(screen.getByText('Get Credits'));
+    fireEvent.click(screen.getByText('Get credits'));
 
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
     expect(notificationErrorMock).toHaveBeenCalledWith(
-      'Add a valid email and credit quantity before checkout.',
+      'Add a valid email before checkout.',
     );
   });
 
-  it('rejects partial and non-whole credit quantities', () => {
+  it('starts managed checkout using a custom whole-dollar amount', async () => {
     render(<ManagedCreditsCheckoutCard />);
 
-    const creditsInput = screen.getByDisplayValue('1000');
+    fireEvent.click(screen.getByText('Custom'));
+    fireEvent.change(
+      screen.getByLabelText('Custom credit top-up amount in dollars'),
+      {
+        target: { value: '250' },
+      },
+    );
+    fireEvent.click(screen.getByText('Get credits'));
 
-    fireEvent.change(creditsInput, {
-      target: { value: '1e3' },
+    await waitFor(() => {
+      expect(createCheckoutSessionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: 'local@example.com',
+          quantity: 25_000,
+        }),
+      );
     });
-    fireEvent.click(screen.getByText('Get Credits'));
-
-    fireEvent.change(creditsInput, {
-      target: { value: '1.9' },
-    });
-    fireEvent.click(screen.getByText('Get Credits'));
-
-    expect(createCheckoutSessionMock).not.toHaveBeenCalled();
-    expect(notificationErrorMock).toHaveBeenCalledTimes(2);
   });
 });

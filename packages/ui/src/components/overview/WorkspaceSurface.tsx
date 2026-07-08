@@ -5,13 +5,11 @@ type WorkspaceSurfaceDensity = 'compact' | 'comfortable';
 export type WorkspaceSurfaceTone = 'default' | 'muted' | 'elevated' | 'card';
 
 const FRAME_TONE_CLASSES: Record<WorkspaceSurfaceTone, string> = {
-  // Canonical dashboard card surface (DESIGN.md §Card): bg-card + inset
-  // shadow-border instead of the shell-panel drop shadow.
   card: 'ship-ui rounded-card bg-card text-card-foreground shadow-border',
-  default: 'ship-ui rounded-md bg-card text-card-foreground shadow-border',
+  default: 'ship-ui rounded-card bg-card text-card-foreground shadow-border',
   elevated:
-    'ship-ui rounded-md bg-card text-card-foreground shadow-border-strong',
-  muted: 'ship-ui rounded-md bg-secondary text-card-foreground shadow-border',
+    'ship-ui rounded-card bg-card text-card-foreground shadow-border-strong',
+  muted: 'ship-ui rounded-card bg-card text-card-foreground shadow-border',
 };
 
 const HEADER_GAP_CLASSES: Record<WorkspaceSurfaceDensity, string> = {
@@ -31,6 +29,7 @@ export interface WorkspaceSurfaceProps
   className?: string;
   contentClassName?: string;
   density?: WorkspaceSurfaceDensity;
+  description?: ReactNode;
   eyebrow?: ReactNode;
   framed?: boolean;
   title?: ReactNode;
@@ -43,6 +42,7 @@ export function WorkspaceSurface({
   className,
   contentClassName,
   density = 'comfortable',
+  description,
   eyebrow,
   framed = true,
   title,
@@ -54,10 +54,7 @@ export function WorkspaceSurface({
       {...props}
       className={cn(
         framed
-          ? cn(
-              tone === 'card' ? 'rounded-card' : 'rounded',
-              FRAME_TONE_CLASSES[tone],
-            )
+          ? FRAME_TONE_CLASSES[tone]
           : 'ship-ui border-0 bg-transparent shadow-none',
         className,
       )}
@@ -69,7 +66,7 @@ export function WorkspaceSurface({
           contentClassName,
         )}
       >
-        {eyebrow || title || actions ? (
+        {eyebrow || title || description || actions ? (
           <div
             className={cn(
               'flex flex-col lg:flex-row lg:items-center lg:justify-between',
@@ -86,6 +83,11 @@ export function WorkspaceSurface({
                 <h2 className="text-lg font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
                   {title}
                 </h2>
+              ) : null}
+              {description ? (
+                <p className="text-sm leading-6 text-foreground/55">
+                  {description}
+                </p>
               ) : null}
             </div>
             {actions ? (

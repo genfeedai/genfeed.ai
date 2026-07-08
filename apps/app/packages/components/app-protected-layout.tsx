@@ -6,6 +6,7 @@ import type { AgentApiService } from '@genfeedai/agent';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
+import type { TopbarProps } from '@props/navigation/topbar.props';
 import ProtectedProviders from '@providers/protected-providers/protected-providers';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBanner';
@@ -13,7 +14,6 @@ import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-i
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import AdminTopbar from '@ui/shell/topbars/AdminTopbar';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, Suspense, useCallback, useMemo } from 'react';
@@ -31,6 +31,7 @@ import {
 
 type AgentPanelProps = {
   apiService: AgentApiService;
+  authReady?: boolean;
   isActive?: boolean;
   onNavigateToBilling?: () => void;
   onOAuthConnect?: (platform: string) => void;
@@ -85,6 +86,10 @@ const LazyCommandPalette = dynamic(
   { ssr: false },
 );
 
+function AdminAppProtectedTopbar(props: TopbarProps) {
+  return <AppProtectedTopbar {...props} chrome="admin" currentApp="admin" />;
+}
+
 function AgentThreadCommandsBridge({
   threads,
   enabled,
@@ -135,6 +140,7 @@ function AppLayoutWithDynamicMenu({
     orgSlug,
     brandSlug,
     agentApiService,
+    isAuthReadyForAgentPanel,
     isAgentOpen,
     toggleAgent,
     threads,
@@ -248,13 +254,14 @@ function AppLayoutWithDynamicMenu({
     isEditorCanvasRoute || isFocusedOnboardingRoute || isMoodboardRoute
       ? undefined
       : isAdminRoute
-        ? AdminTopbar
+        ? AdminAppProtectedTopbar
         : AppProtectedTopbar;
   const topbarChromeVariant = 'default';
   const agentPanel =
     !shouldMountAgentPanel || !agentApiService ? undefined : (
       <LazyAgentPanel
         apiService={agentApiService}
+        authReady={isAuthReadyForAgentPanel}
         isActive={isAgentOpen}
         onNavigateToBilling={handleNavigateToBilling}
       />

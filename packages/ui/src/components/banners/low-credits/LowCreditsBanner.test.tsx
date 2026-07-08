@@ -107,16 +107,17 @@ describe('LowCreditsBanner', () => {
     expect(screen.getByTestId('library-credit-notice')).toBeInTheDocument();
   });
 
-  it('sends OSS installs to API keys instead of billing', () => {
+  it('sends OSS installs to Credits instead of API keys', () => {
     mockUseSubscription.mockReturnValue({
       creditsBreakdown: { total: 250 },
     });
 
     render(<LowCreditsBanner />);
 
-    expect(
-      screen.getByRole('link', { name: 'Configure providers' }),
-    ).toHaveAttribute('href', '/test-org/~/settings/api-keys');
+    expect(screen.getByRole('link', { name: 'Buy credits' })).toHaveAttribute(
+      'href',
+      '/test-org/~/settings/credits',
+    );
   });
 
   it('keeps the billing CTA in EE mode', () => {

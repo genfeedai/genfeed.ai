@@ -22,7 +22,7 @@ export default function CollapsedSidebarLogoToggle({
       withWrapper={false}
       onClick={onClick}
       ariaLabel="Expand sidebar"
-      className="fixed left-2 z-[60] hidden size-8 items-center justify-center rounded-md bg-background text-foreground shadow-sm transition-colors hover:bg-background-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:flex"
+      className="fixed left-2 z-[60] hidden size-8 items-center justify-center rounded-md border border-border/70 bg-background/95 text-foreground shadow-sm backdrop-blur transition-colors hover:border-foreground/20 hover:bg-background-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:flex"
       style={{ top: 'calc(var(--desktop-titlebar-height) + 0.5rem)' }}
     >
       {logoUrl ? (

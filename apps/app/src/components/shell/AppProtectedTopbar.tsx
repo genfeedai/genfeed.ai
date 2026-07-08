@@ -1,6 +1,10 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+  createOrganizationAppRoute,
+} from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -20,8 +24,12 @@ import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
-import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
-import { PiSidebarSimple } from 'react-icons/pi';
+import {
+  HiBars3,
+  HiOutlineCommandLine,
+  HiOutlineSparkles,
+  HiXMark,
+} from 'react-icons/hi2';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { isHostedCloudApp } from '@/lib/config/edition';
 import {
@@ -48,17 +56,23 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   workspace: 'Workspace',
 };
 
+type AppProtectedTopbarChrome = 'app' | 'admin';
+
+type AppProtectedTopbarProps = TopbarProps & {
+  chrome?: AppProtectedTopbarChrome;
+};
+
 function AppProtectedTopbarContent({
+  chrome = 'app',
   isMenuOpen,
   onMenuToggle,
   isSidebarCollapsed,
-  onSidebarToggle,
   isAgentCollapsed,
   onAgentToggle,
   currentApp,
   orgSlug,
   brandSlug,
-}: TopbarProps = {}) {
+}: AppProtectedTopbarProps = {}) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { push } = useRouter();
@@ -81,7 +95,9 @@ function AppProtectedTopbarContent({
   const effectiveBrandSlug = hasExplicitOrgScope
     ? explicitBrandSlug
     : (explicitBrandSlug ?? resolvedBrandSlug) || undefined;
+  const isOrganizationScopeRoute = hasExplicitOrgScope && !explicitBrandSlug;
   const effectiveBrandId = brandId || getBrandEntityId(selectedBrand);
+  const visibleBrandId = isOrganizationScopeRoute ? '' : effectiveBrandId;
 
   const handleBrandChange = useCallback(
     (nextBrandId: string) => {
@@ -100,23 +116,52 @@ function AppProtectedTopbarContent({
 
       if (nextOrgSlug && nextBrand?.slug) {
         push(
-          getBrandSwitchHref({
-            nextBrandSlug: nextBrand.slug,
-            nextOrgSlug,
-            pathname,
-          }),
+          isOrganizationScopeRoute
+            ? createBrandAppRoute(
+                nextOrgSlug,
+                nextBrand.slug,
+                APP_ROUTES.WORKSPACE.OVERVIEW,
+              )
+            : getBrandSwitchHref({
+                nextBrandSlug: nextBrand.slug,
+                nextOrgSlug,
+                pathname,
+              }),
         );
       }
     },
-    [brands, effectiveOrgSlug, pathname, push, setBrandId, setOrganizationId],
+    [
+      brands,
+      effectiveOrgSlug,
+      isOrganizationScopeRoute,
+      pathname,
+      push,
+      setBrandId,
+      setOrganizationId,
+    ],
   );
+
+  const handleClearBrandSelection = useCallback(() => {
+    setBrandId('');
+
+    if (effectiveOrgSlug) {
+      push(createOrganizationAppRoute(effectiveOrgSlug, '/overview'));
+    }
+  }, [effectiveOrgSlug, push, setBrandId]);
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
+  const isAdminChrome = chrome === 'admin';
   const shouldRenderAgentToggle =
     Boolean(onAgentToggle) &&
     (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' || !isHostedCloudApp());
+  const effectiveCurrentApp = isAdminChrome
+    ? 'admin'
+    : (currentApp ?? 'workspace');
+  const AgentToggleIcon = isAdminChrome
+    ? HiOutlineSparkles
+    : HiOutlineCommandLine;
   const backToTaskHref = taskId
     ? href(
         appendSearchParamsToHref(
@@ -128,10 +173,12 @@ function AppProtectedTopbarContent({
 
   return (
     <header className="ship-ui h-full w-full bg-transparent">
-      {/* Brand trigger has px-2 internally, so pl-4 aligns its visible mark to the 24px page gutter. */}
+      {/* Brand trigger has px-2 internally; collapsed sidebar leaves room for the fixed logo toggle. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pl-4 pr-6"
+        className={`grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pr-6 ${
+          isSidebarCollapsed ? 'pl-14' : 'pl-4'
+        }`}
       >
         <div className="flex min-w-0 items-center gap-2 justify-self-start">
           {onMenuToggle ? (
@@ -150,26 +197,21 @@ function AppProtectedTopbarContent({
             </Button>
           ) : null}
 
-          {isSidebarCollapsed && onSidebarToggle ? (
-            <Button
-              type="button"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className="hidden size-7 md:flex"
-              ariaLabel="Expand sidebar"
-              onClick={onSidebarToggle}
-            >
-              <PiSidebarSimple className="size-4" />
-            </Button>
-          ) : null}
-
-          {brands.length > 0 ? (
+          {!isAdminChrome && brands.length > 0 ? (
             <div className="w-36 min-w-0 sm:w-44 md:w-48">
               <MenuBrandSwitcher
                 variant="labeled"
                 brands={brands}
-                brandId={effectiveBrandId}
+                brandId={visibleBrandId}
                 onBrandChange={handleBrandChange}
+                clearSelectionAction={
+                  visibleBrandId
+                    ? {
+                        ariaLabel: 'Clear brand selection',
+                        onSelect: handleClearBrandSelection,
+                      }
+                    : undefined
+                }
               />
             </div>
           ) : null}
@@ -178,7 +220,12 @@ function AppProtectedTopbarContent({
         <div className="hidden min-w-0 justify-center md:flex">
           <TopbarBreadcrumbs
             fallbackRootLabel={
-              TOPBAR_BREADCRUMB_ROOT_LABELS[currentApp ?? 'workspace']
+              TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
+            }
+            rootLabel={
+              isAdminChrome
+                ? TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
+                : undefined
             }
           />
         </div>
@@ -217,11 +264,11 @@ function AppProtectedTopbarContent({
               }
               onClick={onAgentToggle}
             >
-              <HiOutlineCommandLine className="size-4" />
+              <AgentToggleIcon className="size-4" />
             </Button>
           ) : null}
 
-          <CloudSyncIndicator />
+          {!isAdminChrome ? <CloudSyncIndicator /> : null}
 
           {/* Grouped account controls: section switcher sits directly beside
               the settings/user menu so they read as one cluster. */}
@@ -229,18 +276,18 @@ function AppProtectedTopbarContent({
             {effectiveOrgSlug ? (
               <AppSwitcher
                 variant="icon"
-                currentApp={currentApp ?? 'workspace'}
+                currentApp={effectiveCurrentApp}
                 currentPath={pathname}
                 orgSlug={effectiveOrgSlug}
                 brandSlug={effectiveBrandSlug}
-                showAdmin={isSuperAdmin}
+                showAdmin={isAdminChrome || isSuperAdmin}
               />
             ) : null}
 
-            <TopbarEnd />
+            {!isAdminChrome ? <TopbarEnd /> : null}
           </div>
 
-          <TopbarCreditsBar />
+          {!isAdminChrome ? <TopbarCreditsBar /> : null}
         </div>
       </div>
     </header>

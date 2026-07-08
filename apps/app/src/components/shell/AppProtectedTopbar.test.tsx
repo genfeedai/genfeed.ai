@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
 const appSwitcherSpy = vi.hoisted(() => vi.fn());
+const brandSwitcherSpy = vi.hoisted(() => vi.fn());
+const mockPush = vi.hoisted(() => vi.fn());
 const mockAccessState = vi.hoisted(() => ({
   isSuperAdmin: false,
 }));
@@ -20,6 +22,10 @@ vi.mock('@genfeedai/constants', () => ({
       OVERVIEW: '/workspace/overview',
     },
   },
+  createBrandAppRoute: (orgSlug: string, brandSlug: string, routePath = '/') =>
+    `/${orgSlug}/${brandSlug}${routePath.startsWith('/') ? routePath : `/${routePath}`}`,
+  createOrganizationAppRoute: (orgSlug: string, routePath = '/') =>
+    `/${orgSlug}/~${routePath.startsWith('/') ? routePath : `/${routePath}`}`,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -84,9 +90,34 @@ vi.mock('@ui/primitives/button', () => ({
 }));
 
 vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
-  default: ({ variant }: { variant?: string }) => (
-    <div data-testid="brand-switcher">{variant}</div>
-  ),
+  default: (props: {
+    brandId?: string;
+    clearSelectionAction?: {
+      ariaLabel?: string;
+      onSelect: () => void;
+    };
+    variant?: string;
+  }) => {
+    brandSwitcherSpy(props);
+
+    return (
+      <div>
+        <button type="button" data-testid="brand-switcher">
+          {props.variant}:{props.brandId || 'none'}
+        </button>
+        {props.clearSelectionAction ? (
+          <button
+            type="button"
+            data-testid="clear-brand-selection"
+            aria-label={props.clearSelectionAction.ariaLabel}
+            onClick={props.clearSelectionAction.onSelect}
+          >
+            clear
+          </button>
+        ) : null}
+      </div>
+    );
+  },
 }));
 
 vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
@@ -131,7 +162,7 @@ vi.mock('next/link', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/brand/workspace/overview',
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
   useSearchParams: () => mockSearchParams,
 }));
 
@@ -142,6 +173,8 @@ describe('AppProtectedTopbar', () => {
     mockSearchParams = new URLSearchParams();
     mockAccessState.isSuperAdmin = false;
     appSwitcherSpy.mockClear();
+    brandSwitcherSpy.mockClear();
+    mockPush.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
     Object.defineProperty(window, 'location', {
@@ -224,6 +257,36 @@ describe('AppProtectedTopbar', () => {
         orgSlug: 'acme',
       }),
     );
+  });
+
+  it('renders admin chrome without brand, credits, account, or cloud controls', () => {
+    render(
+      <AppProtectedTopbar
+        chrome="admin"
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    expect(
+      screen.getByRole('navigation', { name: 'Breadcrumb' }),
+    ).toHaveTextContent('Admin');
+    expect(screen.getByTestId('app-switcher')).toHaveTextContent('icon');
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandSlug: 'brand',
+        currentApp: 'admin',
+        orgSlug: 'acme',
+        showAdmin: true,
+      }),
+    );
+    expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('cloud-sync-indicator'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('topbar-end')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('topbar-credits-bar')).not.toBeInTheDocument();
   });
 
   it('enables the admin app switcher item for platform admins', () => {
@@ -318,7 +381,7 @@ describe('AppProtectedTopbar', () => {
     expect(screen.queryByTitle('Settings')).not.toBeInTheDocument();
   });
 
-  it('renders close and expand controls for open mobile menu and collapsed sidebar', () => {
+  it('renders mobile close control and reserves space for the collapsed sidebar logo', () => {
     render(
       <AppProtectedTopbar
         isMenuOpen
@@ -332,7 +395,58 @@ describe('AppProtectedTopbar', () => {
       screen.getByRole('button', { name: 'Close navigation menu' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Expand sidebar' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: 'Expand sidebar' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-protected-topbar-inner')).toHaveClass(
+      'pl-14',
+    );
+  });
+
+  it('clears the visible brand on explicit organization routes', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(brandSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: '',
+        clearSelectionAction: undefined,
+      }),
+    );
+    expect(
+      screen.queryByTestId('clear-brand-selection'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the selected brand on explicit brand routes', () => {
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    expect(brandSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand',
+        clearSelectionAction: expect.objectContaining({
+          ariaLabel: 'Clear brand selection',
+        }),
+      }),
+    );
+    expect(screen.getByTestId('clear-brand-selection')).toBeInTheDocument();
+  });
+
+  it('routes the clear-brand action to organization overview', () => {
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('clear-brand-selection'));
+
+    expect(mockPush).toHaveBeenCalledWith('/acme/~/overview');
   });
 });

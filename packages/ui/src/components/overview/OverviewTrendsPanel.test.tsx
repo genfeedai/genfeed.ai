@@ -175,12 +175,12 @@ describe('OverviewTrendsPanel', () => {
     );
 
     const list = screen.getByTestId('overview-trends-list');
-    const rows = list.querySelectorAll('[class*="gen-shell-surface"]');
+    const rows = Array.from(list.children);
     expect(rows).toHaveLength(5);
 
     // First item should be highest virality
-    expect(rows[0]).toHaveTextContent('Reels growth');
-    expect(rows[4]).toHaveTextContent('B2B content tips');
+    expect(rows.at(0)).toHaveTextContent('Reels growth');
+    expect(rows.at(4)).toHaveTextContent('B2B content tips');
 
     // The low-score trend-6 should NOT appear
     expect(screen.queryByText('Low-score outlier')).not.toBeInTheDocument();

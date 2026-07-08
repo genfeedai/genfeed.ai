@@ -101,9 +101,6 @@ export function AgentChatContainer({
     clearAllAttachments,
     getCompletedAttachments,
     dragHandlers,
-    sendMessage,
-    followLatestTurn,
-    togglePlanMode,
     handleSend,
     handleIngredientSelect,
     handleCopy,
@@ -134,16 +131,11 @@ export function AgentChatContainer({
     ? 'max-w-[52rem]'
     : 'max-w-[46rem]';
 
-  const handlePlanModeToggle = useCallback(() => {
-    void togglePlanMode(true);
-  }, [togglePlanMode]);
-
   const handleSuggestionSend = useCallback(
     (prompt: string) => {
-      followLatestTurn('smooth');
-      sendMessage(prompt);
+      handleSend(prompt, undefined, undefined, { planModeEnabled: false });
     },
-    [followLatestTurn, sendMessage],
+    [handleSend],
   );
 
   const promptBarSuggestions = suggestedActions?.length ? (
@@ -151,7 +143,6 @@ export function AgentChatContainer({
       suggestedActions={suggestedActions}
       isBusy={isBusy}
       isReadOnly={isReadOnly}
-      onPlanModeToggle={handlePlanModeToggle}
       onSend={handleSuggestionSend}
     />
   ) : null;
@@ -320,6 +311,14 @@ export function AgentChatContainer({
             placeholder={placeholder}
             showSuggestedActionsWhenNotEmpty={showSuggestedActionsWhenNotEmpty}
             promptBarSuggestions={promptBarSuggestions}
+            chatAttachments={chatAttachments}
+            isAttachmentUploading={isAttachmentUploading}
+            dragState={dragState}
+            dragHandlers={dragHandlers}
+            addFiles={addFiles}
+            removeAttachment={removeAttachment}
+            getCompletedAttachments={getCompletedAttachments}
+            clearAllAttachments={clearAllAttachments}
             onSend={handleSend}
             onStop={handleStopRun}
           />

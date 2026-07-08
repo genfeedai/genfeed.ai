@@ -361,22 +361,20 @@ export function createSettingsCommands(orgSlug: string): ICommand[] {
       action: () => {
         navigate(
           `${orgPath}${
-            isBillingEnabled ? '/settings/billing' : '/settings/api-keys'
+            isBillingEnabled ? '/settings/billing' : '/settings/credits'
           }`,
         );
       },
       category: 'settings',
       description: isBillingEnabled
         ? 'Manage billing and plan'
-        : 'Manage API keys and provider access',
+        : 'Buy and manage credits',
       icon: HiOutlineCreditCard,
       id: 'settings-billing',
       keywords: isBillingEnabled
         ? ['billing', 'subscription', 'plan', 'payment']
-        : ['api keys', 'providers', 'credentials', 'integrations'],
-      label: isBillingEnabled
-        ? 'Billing & Subscription'
-        : 'API Keys & Providers',
+        : ['credits', 'billing', 'top up', 'payment'],
+      label: isBillingEnabled ? 'Billing & Subscription' : 'Credits',
       priority: 6,
     },
   ];

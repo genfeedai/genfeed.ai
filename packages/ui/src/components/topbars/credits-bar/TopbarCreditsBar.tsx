@@ -176,7 +176,11 @@ export default function TopbarCreditsBar() {
 
   // Remaining percentage for the fill bar (how much is left)
   const remainingPercent = planLimit > 0 ? (planBalance / planLimit) * 100 : 0;
-  const billingHref = orgHref(APP_ROUTES.SETTINGS.BILLING);
+  const billingHref = orgHref(
+    process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY
+      ? APP_ROUTES.SETTINGS.BILLING
+      : APP_ROUTES.SETTINGS.CREDITS,
+  );
 
   return (
     <CreditsBarTrigger

@@ -132,10 +132,7 @@ export function OverviewTopStatStrip({
       {items.map((item) => (
         <Card
           key={item.label}
-          className={cn(
-            'ship-ui gen-shell-panel min-h-[136px] rounded-[1.25rem]',
-            item.tone,
-          )}
+          className={cn('min-h-[136px]', item.tone)}
           bodyClassName="flex h-full flex-col justify-between gap-6 p-5"
         >
           <div className="space-y-2">
@@ -261,7 +258,7 @@ export function OverviewOperationsSection({
             items={displayRuns}
             columns={columns}
             emptyState={
-              <div className="ship-ui gen-shell-empty-state flex items-center justify-center rounded-[1rem] p-8 text-sm text-foreground/55">
+              <div className="flex items-center justify-center rounded-card bg-background p-8 text-sm text-foreground/55 shadow-border">
                 No runs match the current filters.
               </div>
             }
@@ -307,7 +304,7 @@ export function OverviewPerformanceChartSection({
         Last 14 days of synced analytics
       </div>
 
-      <div className="ship-ui gen-shell-surface overflow-hidden rounded-[1rem] border-white/[0.06] bg-background/52 p-4">
+      <div className="overflow-hidden rounded-card bg-background p-4 shadow-border">
         <PlatformTimeSeriesChart
           data={data}
           platforms={platforms}
@@ -355,14 +352,14 @@ export function OverviewPublishingInboxSection({
 
       <div className="space-y-3">
         {recentItems.length === 0 ? (
-          <div className="ship-ui gen-shell-empty-state rounded-[1rem] px-4 py-5 text-sm text-foreground/55">
+          <div className="rounded-card bg-background px-4 py-5 text-sm text-foreground/55 shadow-border">
             No items are waiting in the publishing inbox.
           </div>
         ) : (
           recentItems.map((item) => (
             <div
               key={item.id}
-              className="ship-ui gen-shell-surface rounded-[1rem] border-white/[0.06] bg-background/52 p-4"
+              className="rounded-card bg-background p-4 shadow-border"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 space-y-1">

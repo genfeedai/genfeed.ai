@@ -35,6 +35,7 @@ const ONBOARDING_STEPS = ['brand', 'providers', 'summary'] as const;
 
 const BRAND_SCOPED_PREFIXES = [
   'analytics',
+  'agent',
   'compose',
   'editor',
   'tasks',
@@ -48,7 +49,7 @@ const BRAND_SCOPED_PREFIXES = [
   'workspace',
 ] as const;
 
-const ORG_SCOPED_PREFIXES = ['agent', 'settings'] as const;
+const ORG_SCOPED_PREFIXES = ['settings'] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   ['/analytics', '/analytics/overview'],
@@ -87,7 +88,7 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
 /** Slug segments must be alphanumeric + hyphens only (no dots, slashes, etc.). */
 const SLUG_RE = /^[a-zA-Z0-9-]+$/;
 
-function redirectPreservingSearch(req: NextRequest, pathname: string) {
+function createSafeRedirectUrl(req: NextRequest, pathname: string): URL {
   const url = new URL(pathname, req.url);
   const requestOrigin = req.nextUrl.origin ?? new URL(req.url).origin;
   // Guard: the resolved URL must share the same origin as the incoming request.
@@ -95,16 +96,22 @@ function redirectPreservingSearch(req: NextRequest, pathname: string) {
   // redirects via the `new URL(pathname, base)` constructor.
   if (url.origin !== requestOrigin) {
     // Fall back to the workspace home rather than redirecting off-origin.
-    const safe = new URL(SEEDED_WORKSPACE_PATH, req.url);
-    const search = req.nextUrl.search;
-    if (search) safe.search = search;
-    return NextResponse.redirect(safe);
+    return new URL(SEEDED_WORKSPACE_PATH, req.url);
   }
+  return url;
+}
+
+function redirectPreservingSearch(req: NextRequest, pathname: string) {
+  const url = createSafeRedirectUrl(req, pathname);
   const search = req.nextUrl.search;
   if (search) {
     url.search = search;
   }
   return NextResponse.redirect(url);
+}
+
+function redirectDroppingSearch(req: NextRequest, pathname: string) {
+  return NextResponse.redirect(createSafeRedirectUrl(req, pathname));
 }
 
 function getTopLevelSegment(pathname: string): string | null {
@@ -609,6 +616,33 @@ async function getBetterAuthBearerToken(
   }
 }
 
+async function redirectSignedInUserToDefaultRoute(
+  req: NextRequest,
+  token: string,
+  cacheKey?: string | null,
+): Promise<NextResponse | null> {
+  if (await shouldRedirectSignedInUserToOnboarding(token)) {
+    return redirectDroppingSearch(req, ONBOARDING_PATH);
+  }
+
+  const resolved = await resolveCanonicalProtectedPath(
+    '/workspace/overview',
+    token,
+    cacheKey,
+    req,
+  );
+
+  if (!resolved) {
+    return null;
+  }
+
+  const response = redirectDroppingSearch(req, resolved.path);
+  if (resolved.cookieValue) {
+    setSlugCookie(response, resolved.cookieValue);
+  }
+  return response;
+}
+
 function isPlaywrightBypassRequest(req: NextRequest): boolean {
   const isPlaywrightTestBuild =
     process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true' ||
@@ -737,22 +771,13 @@ export async function proxy(req: NextRequest) {
     }
 
     if (isBetterAuthPublicRoute(pathname)) {
-      if (hasSession && pathname === '/') {
+      if (hasSession && pathname.startsWith('/login')) {
         const token = await getBetterAuthBearerToken(req);
-        const resolved = token
-          ? await resolveCanonicalProtectedPath(
-              '/workspace/overview',
-              token,
-              sessionCookie,
-              req,
-            )
+        const response = token
+          ? await redirectSignedInUserToDefaultRoute(req, token, sessionCookie)
           : null;
 
-        if (resolved) {
-          const response = redirectPreservingSearch(req, resolved.path);
-          if (resolved.cookieValue) {
-            setSlugCookie(response, resolved.cookieValue);
-          }
+        if (response) {
           return response;
         }
       }

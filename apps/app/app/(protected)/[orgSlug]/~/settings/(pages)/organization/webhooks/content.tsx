@@ -1,10 +1,10 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   PUBLISH_WEBHOOK_EVENT_TYPES,
   type PublishWebhookEventType,
-} from '@genfeedai/api-types/contracts';
+} from '@api-types/contracts';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { webhookSettingsSchema } from '@genfeedai/client/schemas/integrations/webhook.schema';
 import type { ButtonVariant } from '@genfeedai/enums';
 import type {

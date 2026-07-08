@@ -1,8 +1,6 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Effect } from 'effect';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const updateThreadMock = vi.fn();
 const storeState = {
   activeThreadId: null as string | null,
   clearComposerSeed: vi.fn(),
@@ -64,92 +62,53 @@ describe('AgentChatInput', () => {
     expect(screen.getByLabelText('Stop agent')).toBeTruthy();
   });
 
-  it('renders a plan mode toggle and persists the change for the active thread', async () => {
-    storeState.activeThreadId = 'thread-1';
-    storeState.threads = [{ id: 'thread-1', planModeEnabled: false }];
+  it('keeps plan mode and file picker controls out of the composer', () => {
+    render(<AgentChatInput onSend={vi.fn()} addFiles={vi.fn()} />);
 
-    render(
-      <AgentChatInput
-        apiService={
-          {
-            updateThread: updateThreadMock,
-            updateThreadEffect: vi.fn(
-              (...args: Parameters<typeof updateThreadMock>) =>
-                Effect.promise(() => updateThreadMock(...args)),
-            ),
-          } as never
-        }
-        onSend={vi.fn()}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Enable plan mode' }));
-
-    await waitFor(() => {
-      expect(updateThreadMock).toHaveBeenCalledWith('thread-1', {
-        planModeEnabled: true,
-      });
-    });
+    expect(screen.queryByText(/Plan mode/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Attach image')).not.toBeInTheDocument();
   });
 
-  it('toggles plan mode with Shift+Tab', async () => {
-    storeState.activeThreadId = 'thread-1';
-    storeState.threads = [{ id: 'thread-1', planModeEnabled: false }];
+  it('adds pasted image files to the prompt attachments', () => {
+    const addFiles = vi.fn();
+    const file = new File(['image'], 'image.png', { type: 'image/png' });
 
-    render(
-      <AgentChatInput
-        apiService={
-          {
-            updateThread: updateThreadMock,
-            updateThreadEffect: vi.fn(
-              (...args: Parameters<typeof updateThreadMock>) =>
-                Effect.promise(() => updateThreadMock(...args)),
-            ),
-          } as never
-        }
-        onSend={vi.fn()}
-      />,
-    );
+    render(<AgentChatInput onSend={vi.fn()} addFiles={addFiles} />);
 
-    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
-
-    await waitFor(() => {
-      expect(updateThreadMock).toHaveBeenCalledWith('thread-1', {
-        planModeEnabled: true,
-      });
+    fireEvent.paste(screen.getByTestId('agent-chat-input-shell'), {
+      clipboardData: { files: [file] },
     });
+
+    expect(addFiles).toHaveBeenCalledWith([file]);
   });
 
-  it('does not toggle plan mode with Shift+Tab while a listbox overlay is open', async () => {
-    storeState.activeThreadId = 'thread-1';
-    storeState.threads = [{ id: 'thread-1', planModeEnabled: false }];
-
-    const overlay = document.createElement('div');
-    overlay.setAttribute('role', 'listbox');
-    overlay.setAttribute('data-state', 'open');
-    document.body.appendChild(overlay);
+  it('renders image attachments above the editor with a remove action', () => {
+    const removeAttachment = vi.fn();
+    const file = new File(['image'], 'image.png', { type: 'image/png' });
 
     render(
       <AgentChatInput
-        apiService={
-          {
-            updateThread: updateThreadMock,
-            updateThreadEffect: vi.fn(
-              (...args: Parameters<typeof updateThreadMock>) =>
-                Effect.promise(() => updateThreadMock(...args)),
-            ),
-          } as never
-        }
         onSend={vi.fn()}
+        attachments={[
+          {
+            file,
+            id: 'attachment-1',
+            kind: 'image',
+            name: 'image.png',
+            previewUrl: 'blob:image-preview',
+            status: 'completed',
+          },
+        ]}
+        removeAttachment={removeAttachment}
       />,
     );
 
-    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
-
-    await waitFor(() => {
-      expect(updateThreadMock).not.toHaveBeenCalled();
+    const removeButton = screen.getByRole('button', {
+      name: 'Remove image.png',
     });
 
-    overlay.remove();
+    expect(screen.getByAltText('image.png')).toBeInTheDocument();
+    fireEvent.click(removeButton);
+    expect(removeAttachment).toHaveBeenCalledWith('attachment-1');
   });
 });

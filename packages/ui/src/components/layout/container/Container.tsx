@@ -32,6 +32,7 @@ export default function Container({
   const hasVisibleTitle = Boolean(label && titleVisibility !== 'sr-only');
   const hasScreenReaderTitle = Boolean(label && titleVisibility === 'sr-only');
   const insetClassName = fullWidth ? 'px-5 sm:px-6 lg:px-6' : '';
+  const bodyInsetClassName = fullWidth ? insetClassName : '';
 
   return (
     <div
@@ -87,7 +88,7 @@ export default function Container({
         </div>
       )}
 
-      {children}
+      <div className={cn(bodyInsetClassName)}>{children}</div>
     </div>
   );
 }
