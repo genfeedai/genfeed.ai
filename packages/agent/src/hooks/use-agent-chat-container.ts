@@ -247,10 +247,10 @@ export function useAgentChatContainer({
       followLatestTurn('smooth');
       sendMessage(content, {
         attachments,
-        planModeEnabled: options?.planModeEnabled ?? draftPlanModeEnabled,
+        planModeEnabled: options?.planModeEnabled ?? false,
       });
     },
-    [draftPlanModeEnabled, followLatestTurn, isReadOnly, sendMessage, setError],
+    [followLatestTurn, isReadOnly, sendMessage, setError],
   );
 
   const handleIngredientSelect = useCallback(

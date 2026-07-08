@@ -6,23 +6,30 @@ interface AgentChatSuggestionsBarProps {
   suggestedActions: SuggestedAction[];
   isBusy: boolean;
   isReadOnly: boolean;
-  onPlanModeToggle: () => void;
   onSend: (prompt: string) => void;
+}
+
+function isPlanModeSuggestion(action: SuggestedAction): boolean {
+  return (
+    action.prompt.trim().toLowerCase() === 'use plan mode in this thread' ||
+    action.label.trim().toLowerCase() === 'use plan mode'
+  );
 }
 
 export function AgentChatSuggestionsBar({
   suggestedActions,
   isBusy,
   isReadOnly,
-  onPlanModeToggle,
   onSend,
 }: AgentChatSuggestionsBarProps): ReactElement | null {
   const normalized = useMemo(
     () =>
-      suggestedActions.map((action, index) => ({
-        ...action,
-        id: action.id ?? `suggested-action-${index}-${action.label}`,
-      })),
+      suggestedActions
+        .filter((action) => !isPlanModeSuggestion(action))
+        .map((action, index) => ({
+          ...action,
+          id: action.id ?? `suggested-action-${index}-${action.label}`,
+        })),
     [suggestedActions],
   );
 
@@ -34,17 +41,6 @@ export function AgentChatSuggestionsBar({
     <PromptBarSuggestions
       suggestions={normalized}
       onSuggestionSelect={(action) => {
-        const normalizedPrompt = action.prompt.trim().toLowerCase();
-        const normalizedLabel = action.label.trim().toLowerCase();
-
-        if (
-          normalizedPrompt === 'use plan mode in this thread' ||
-          normalizedLabel === 'use plan mode'
-        ) {
-          onPlanModeToggle();
-          return;
-        }
-
         onSend(action.prompt);
       }}
       isDisabled={isBusy || isReadOnly}

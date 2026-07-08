@@ -13,7 +13,6 @@ import { useCredentialMentions } from '@genfeedai/agent/hooks/use-credential-men
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import { useTeamMentions } from '@genfeedai/agent/hooks/use-team-mentions';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import type {
   AttachmentItem,
@@ -28,7 +27,7 @@ import { ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import type { SuggestionProps } from '@tiptap/suggestion';
 import {
-  type ChangeEvent,
+  type ClipboardEvent,
   type ComponentType,
   type PointerEvent as ReactPointerEvent,
   useCallback,
@@ -182,24 +181,6 @@ function buildMentionSuggestion<T>({
   };
 }
 
-function shouldIgnorePlanModeShortcut(): boolean {
-  if (typeof document === 'undefined') {
-    return false;
-  }
-
-  return Boolean(
-    document.querySelector(
-      [
-        '[role="dialog"][data-state="open"]',
-        '[role="menu"][data-state="open"]',
-        '[role="listbox"][data-state="open"]',
-        '[data-radix-popper-content-wrapper] [role="menu"]',
-        '[data-radix-popper-content-wrapper] [role="listbox"]',
-      ].join(', '),
-    ),
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Hook params — mirror the public props that drive logic
 // ---------------------------------------------------------------------------
@@ -245,14 +226,6 @@ export function useAgentChatInput({
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const composerSeed = useAgentChatStore((s) => s.composerSeed);
   const clearComposerSeed = useAgentChatStore((s) => s.clearComposerSeed);
-  const draftPlanModeEnabled = useAgentChatStore((s) => s.draftPlanModeEnabled);
-  const setDraftPlanModeEnabled = useAgentChatStore(
-    (s) => s.setDraftPlanModeEnabled,
-  );
-  const updateThread = useAgentChatStore((s) => s.updateThread);
-  const activeThread = useAgentChatStore((s) =>
-    s.threads.find((thread) => thread.id === s.activeThreadId),
-  );
 
   const { mentions: credentialMentions } = useCredentialMentions(
     apiService ?? null,
@@ -263,7 +236,6 @@ export function useAgentChatInput({
 
   const [isEmpty, setIsEmpty] = useState(true);
   const editorRef = useRef<Editor | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const hasAttachments = attachments.length > 0;
   const hasCompletedAttachments =
@@ -277,14 +249,6 @@ export function useAgentChatInput({
       ed.commands.focus('end');
     }
   }, []);
-
-  useEffect(() => {
-    if (!activeThreadId) {
-      return;
-    }
-
-    setDraftPlanModeEnabled(activeThread?.planModeEnabled ?? false);
-  }, [activeThread?.planModeEnabled, activeThreadId, setDraftPlanModeEnabled]);
 
   const {
     isListening,
@@ -435,7 +399,7 @@ export function useAgentChatInput({
         text,
         mentionData.length > 0 ? mentionData : undefined,
         completed && completed.length > 0 ? completed : undefined,
-        { planModeEnabled: draftPlanModeEnabled },
+        { planModeEnabled: false },
       );
       editor.commands.clearContent();
       clearAllAttachments?.();
@@ -451,7 +415,6 @@ export function useAgentChatInput({
     hasCompletedAttachments,
     getCompletedAttachments,
     clearAllAttachments,
-    draftPlanModeEnabled,
   ]);
 
   // Sync disabled state
@@ -477,7 +440,7 @@ export function useAgentChatInput({
       text,
       mentionData.length > 0 ? mentionData : undefined,
       completed && completed.length > 0 ? completed : undefined,
-      { planModeEnabled: draftPlanModeEnabled },
+      { planModeEnabled: false },
     );
     editor.commands.clearContent();
     clearAllAttachments?.();
@@ -488,60 +451,7 @@ export function useAgentChatInput({
     hasCompletedAttachments,
     getCompletedAttachments,
     clearAllAttachments,
-    draftPlanModeEnabled,
   ]);
-
-  const handlePlanModeToggle = useCallback(async () => {
-    const nextEnabled = !draftPlanModeEnabled;
-
-    setDraftPlanModeEnabled(nextEnabled);
-
-    if (!activeThreadId || !apiService) {
-      return;
-    }
-
-    updateThread(activeThreadId, { planModeEnabled: nextEnabled });
-
-    try {
-      await runAgentApiEffect(
-        apiService.updateThreadEffect(activeThreadId, {
-          planModeEnabled: nextEnabled,
-        }),
-      );
-    } catch {
-      updateThread(activeThreadId, {
-        planModeEnabled: draftPlanModeEnabled,
-      });
-      setDraftPlanModeEnabled(draftPlanModeEnabled);
-    }
-  }, [
-    activeThreadId,
-    apiService,
-    draftPlanModeEnabled,
-    setDraftPlanModeEnabled,
-    updateThread,
-  ]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (!event.shiftKey || event.key !== 'Tab') {
-        return;
-      }
-
-      if (shouldIgnorePlanModeShortcut()) {
-        return;
-      }
-
-      event.preventDefault();
-      void handlePlanModeToggle();
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handlePlanModeToggle]);
 
   const handleShellPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -560,14 +470,22 @@ export function useAgentChatInput({
     [editor],
   );
 
-  const handleFileInputChange = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(event.target.files ?? []);
-      if (files.length > 0 && addFiles) {
-        addFiles(files);
+  const handlePasteImages = useCallback(
+    (event: ClipboardEvent<HTMLDivElement>) => {
+      if (!addFiles) {
+        return;
       }
-      // Reset so the same file can be selected again
-      event.target.value = '';
+
+      const files = Array.from(event.clipboardData.files ?? []).filter((file) =>
+        file.type.startsWith('image/'),
+      );
+
+      if (files.length === 0) {
+        return;
+      }
+
+      event.preventDefault();
+      addFiles(files);
     },
     [addFiles],
   );
@@ -596,11 +514,8 @@ export function useAgentChatInput({
 
   return {
     canSendMessage,
-    draftPlanModeEnabled,
     editor,
-    fileInputRef,
-    handleFileInputChange,
-    handlePlanModeToggle,
+    handlePasteImages,
     handleRemoveAttachment,
     handleSend,
     handleShellPointerDown,
