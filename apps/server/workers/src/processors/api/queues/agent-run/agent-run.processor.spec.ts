@@ -135,11 +135,10 @@ describe('AgentRunProcessor', () => {
       'Found 20 TikTok trends for review.',
     );
     expect(agentRunsService.patch).toHaveBeenCalledTimes(1);
-    expect(
-      (
-        agentRunsService.patch.mock.calls[0]?.[1] as { thread: string }
-      ).thread.toString(),
-    ).toBe(threadId);
+    const patchPayload = agentRunsService.patch.mock.calls[0]?.[1] as
+      | { thread?: { toString(): string } }
+      | undefined;
+    expect(patchPayload?.thread?.toString()).toBe(threadId);
     expect(agentRunsService.mergeMetadata).toHaveBeenCalledWith(
       runId,
       organizationId,
