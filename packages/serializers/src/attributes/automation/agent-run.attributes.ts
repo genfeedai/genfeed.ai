@@ -1,6 +1,7 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const agentRunAttributes = createEntityAttributes([
+  'brand',
   'completedAt',
   'creditBudget',
   'creditsUsed',
@@ -15,6 +16,7 @@ export const agentRunAttributes = createEntityAttributes([
   'retryCount',
   'startedAt',
   'status',
+  'steps',
   'strategy',
   'summary',
   'thread',

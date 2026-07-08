@@ -5,10 +5,7 @@ import {
 } from '@api/collections/agent-runs/dto/agent-runs-query.dto';
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import { UpdateAgentRunDto } from '@api/collections/agent-runs/dto/update-agent-run.dto';
-import {
-  AgentRun,
-  type AgentRunDocument,
-} from '@api/collections/agent-runs/schemas/agent-run.schema';
+import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -75,13 +72,19 @@ export class AgentRunsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const dto = createDto as Record<string, unknown>;
 
-    // Strip any organization/organizationId supplied in the request body.
+    // Strip tenant/user scope supplied in the body; auth metadata is authoritative.
+    delete dto.brand;
+    delete dto.brandId;
     delete dto.organization;
     delete dto.organizationId;
+    delete dto.user;
+    delete dto.userId;
 
     return {
       ...createDto,
+      ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
       organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     } as CreateAgentRunDto;
   }
 
@@ -94,6 +97,11 @@ export class AgentRunsController extends BaseCRUDController<
     const organizationId = publicMetadata.organization?.toString();
     if (organizationId) {
       match.organization = organizationId;
+    }
+
+    const brandId = query.brand ?? publicMetadata.brand?.toString();
+    if (brandId) {
+      match.brand = brandId;
     }
 
     if (query.historyOnly) {
@@ -202,9 +210,24 @@ export class AgentRunsController extends BaseCRUDController<
   public canUserModifyEntity(user: User, entity: AgentRunDocument): boolean {
     const publicMetadata = getPublicMetadata(user);
 
+    if (publicMetadata?.isSuperAdmin) {
+      return true;
+    }
+
     const entityOrganizationId =
       (entity.organization as unknown as { id: string })?.id?.toString() ||
       entity.organization?.toString();
+    const entityBrandId =
+      (entity.brand as unknown as { id?: string })?.id?.toString() ||
+      entity.brand?.toString();
+
+    if (
+      publicMetadata.brand &&
+      entityBrandId &&
+      entityBrandId !== publicMetadata.brand
+    ) {
+      return false;
+    }
 
     if (
       entityOrganizationId &&
@@ -214,7 +237,7 @@ export class AgentRunsController extends BaseCRUDController<
       return true;
     }
 
-    return Boolean(publicMetadata?.isSuperAdmin);
+    return false;
   }
 
   @Get('active')
@@ -231,6 +254,7 @@ export class AgentRunsController extends BaseCRUDController<
     const runs = await this.agentRunsService.getActiveRuns(
       publicMetadata.organization,
       {
+        brandId: publicMetadata.brand,
         cursor,
         limit: limit ? Number.parseInt(limit, 10) : undefined,
       },
@@ -250,6 +274,7 @@ export class AgentRunsController extends BaseCRUDController<
     return await this.agentRunsService.getStats(
       publicMetadata.organization,
       query,
+      publicMetadata.brand,
     );
   }
 
@@ -281,6 +306,7 @@ export class AgentRunsController extends BaseCRUDController<
     const runs = await this.agentRunsService.getBatchWithContent(
       ids,
       publicMetadata.organization,
+      publicMetadata.brand,
     );
 
     return { runs };
@@ -298,6 +324,7 @@ export class AgentRunsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const doc = await this.agentRunsService.findOne({
       _id: id,
+      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
       isDeleted: false,
       organization: publicMetadata.organization,
     });
@@ -318,6 +345,7 @@ export class AgentRunsController extends BaseCRUDController<
     const content = await this.agentRunsService.getRunContent(
       id,
       publicMetadata.organization,
+      publicMetadata.brand,
     );
 
     if (!content) {
@@ -340,6 +368,7 @@ export class AgentRunsController extends BaseCRUDController<
     const run = await this.agentRunsService.cancel(
       id,
       publicMetadata.organization,
+      publicMetadata.brand,
     );
 
     if (!run) {

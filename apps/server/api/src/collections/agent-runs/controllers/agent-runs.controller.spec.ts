@@ -6,7 +6,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentRunsController } from '@api/collections/agent-runs/controllers/agent-runs.controller';
+import type {
+  AgentRunStatsQueryDto,
+  AgentRunsQueryDto,
+} from '@api/collections/agent-runs/dto/agent-runs-query.dto';
+import type { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
+import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -16,7 +23,7 @@ import type { Request } from 'express';
 describe('AgentRunsController', () => {
   let controller: AgentRunsController;
 
-  const mockUser = {
+  const mockUser: User = {
     id: 'user_123',
     publicMetadata: {
       brand: '507f1f77bcf86cd799439013',
@@ -26,6 +33,9 @@ describe('AgentRunsController', () => {
   };
 
   const mockRequest = { originalUrl: '/api/runs', query: {} } as Request;
+
+  const buildQuery = (query: Partial<AgentRunsQueryDto> = {}) =>
+    controller.buildFindAllQuery(mockUser, query as AgentRunsQueryDto);
 
   const mockServiceMethods = {
     cancel: vi.fn(),
@@ -71,24 +81,32 @@ describe('AgentRunsController', () => {
 
   describe('buildFindAllQuery', () => {
     it('should build query with organization filter', () => {
-      const query = controller.buildFindAllQuery(mockUser as any, {} as any);
+      const query = buildQuery();
 
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
         where: {
+          brand: '507f1f77bcf86cd799439013',
           isDeleted: false,
           organization: '507f1f77bcf86cd799439012',
         },
       });
     });
 
+    it('should prefer explicit brand filter over auth metadata brand', () => {
+      const query = buildQuery({
+        brand: '507f1f77bcf86cd799439099',
+      });
+
+      expect(query.where).toMatchObject({
+        brand: '507f1f77bcf86cd799439099',
+      });
+    });
+
     it('should filter routingPolicy using Prisma JSON path syntax', () => {
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        {
-          routingPolicy: 'cost-optimized',
-        } as any,
-      );
+      const query = buildQuery({
+        routingPolicy: 'cost-optimized',
+      });
 
       expect(query.where).toMatchObject({
         metadata: { path: ['routingPolicy'], equals: 'cost-optimized' },
@@ -97,12 +115,9 @@ describe('AgentRunsController', () => {
     });
 
     it('should filter webSearchEnabled using Prisma JSON path syntax', () => {
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        {
-          webSearchEnabled: true,
-        } as any,
-      );
+      const query = buildQuery({
+        webSearchEnabled: true,
+      });
 
       expect(query.where).toMatchObject({
         metadata: { path: ['webSearchEnabled'], equals: true },
@@ -111,13 +126,10 @@ describe('AgentRunsController', () => {
     });
 
     it('should combine routingPolicy and webSearchEnabled via AND when both present', () => {
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        {
-          routingPolicy: 'cost-optimized',
-          webSearchEnabled: false,
-        } as any,
-      );
+      const query = buildQuery({
+        routingPolicy: 'cost-optimized',
+        webSearchEnabled: false,
+      });
 
       expect(Array.isArray(query.where.AND)).toBe(true);
       expect(query.where.AND).toContainEqual({
@@ -129,12 +141,9 @@ describe('AgentRunsController', () => {
     });
 
     it('should filter by model using Prisma JSON path string_contains', () => {
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        {
-          model: 'gpt-4o',
-        } as any,
-      );
+      const query = buildQuery({
+        model: 'gpt-4o',
+      });
 
       expect(query.where.OR).toEqual([
         { metadata: { path: ['actualModel'], string_contains: 'gpt-4o' } },
@@ -143,12 +152,9 @@ describe('AgentRunsController', () => {
     });
 
     it('should build search OR with real column contains and JSON path string_contains', () => {
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        {
-          q: 'test search',
-        } as any,
-      );
+      const query = buildQuery({
+        q: 'test search',
+      });
 
       expect(Array.isArray(query.where.OR)).toBe(true);
       const orConditions = query.where.OR as unknown[];
@@ -174,13 +180,10 @@ describe('AgentRunsController', () => {
     });
 
     it('should wrap both model OR and search OR inside AND when both are present', () => {
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        {
-          model: 'gpt-4o',
-          q: 'hello',
-        } as any,
-      );
+      const query = buildQuery({
+        model: 'gpt-4o',
+        q: 'hello',
+      });
 
       expect(Array.isArray(query.where.AND)).toBe(true);
       const andConditions = query.where.AND as Array<{ OR: unknown[] }>;
@@ -191,34 +194,25 @@ describe('AgentRunsController', () => {
     });
 
     it('should apply credits sortMode', () => {
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        {
-          sortMode: 'credits',
-        } as any,
-      );
+      const query = buildQuery({
+        sortMode: 'credits',
+      });
 
       expect(query.orderBy).toEqual({ createdAt: -1, creditsUsed: -1 });
     });
 
     it('should apply duration sortMode', () => {
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        {
-          sortMode: 'duration',
-        } as any,
-      );
+      const query = buildQuery({
+        sortMode: 'duration',
+      });
 
       expect(query.orderBy).toEqual({ createdAt: -1, durationMs: -1 });
     });
 
     it('should filter by trigger column directly', () => {
-      const query = controller.buildFindAllQuery(
-        mockUser as any,
-        {
-          trigger: 'manual',
-        } as any,
-      );
+      const query = buildQuery({
+        trigger: 'manual',
+      });
 
       expect(query.where).toMatchObject({ trigger: 'manual' });
     });
@@ -228,26 +222,81 @@ describe('AgentRunsController', () => {
     it('should return true when organization matches', () => {
       const entity = { organization: { id: '507f1f77bcf86cd799439012' } };
       expect(
-        controller.canUserModifyEntity(mockUser as any, entity as any),
+        controller.canUserModifyEntity(mockUser, entity as AgentRunDocument),
       ).toBe(true);
     });
 
     it('should return true for super admin', () => {
-      const superAdmin = {
+      const superAdmin: User = {
         ...mockUser,
         publicMetadata: { ...mockUser.publicMetadata, isSuperAdmin: true },
       };
       const entity = { organization: { _id: 'different_org' } };
       expect(
-        controller.canUserModifyEntity(superAdmin as any, entity as any),
+        controller.canUserModifyEntity(superAdmin, entity as AgentRunDocument),
+      ).toBe(true);
+    });
+
+    it('should let super admin bypass brand scope', () => {
+      const superAdmin: User = {
+        ...mockUser,
+        publicMetadata: { ...mockUser.publicMetadata, isSuperAdmin: true },
+      };
+      const entity = {
+        brand: '507f1f77bcf86cd799439099',
+        organization: { _id: 'different_org' },
+      };
+
+      expect(
+        controller.canUserModifyEntity(superAdmin, entity as AgentRunDocument),
       ).toBe(true);
     });
 
     it('should return false for non-matching organization', () => {
       const entity = { organization: { _id: 'different_org' } };
       expect(
-        controller.canUserModifyEntity(mockUser as any, entity as any),
+        controller.canUserModifyEntity(mockUser, entity as AgentRunDocument),
       ).toBe(false);
+    });
+
+    it('should return false for a different brand in the same organization', () => {
+      const entity = {
+        brand: '507f1f77bcf86cd799439099',
+        organization: { id: '507f1f77bcf86cd799439012' },
+      };
+
+      expect(
+        controller.canUserModifyEntity(mockUser, entity as AgentRunDocument),
+      ).toBe(false);
+    });
+  });
+
+  describe('enrichCreateDto', () => {
+    it('replaces body supplied scope with authenticated scope', () => {
+      const bodySuppliedScope = {
+        brand: 'other-brand',
+        brandId: 'other-brand-id',
+        label: 'Run',
+        organization: 'other-org',
+        organizationId: 'other-org-id',
+        trigger: 'manual',
+        user: 'other-user',
+        userId: 'other-user-id',
+      } satisfies Partial<CreateAgentRunDto> & Record<string, unknown>;
+
+      const dto = controller.enrichCreateDto(
+        bodySuppliedScope,
+        mockUser,
+      ) as CreateAgentRunDto & Record<string, unknown>;
+
+      expect(dto).toMatchObject({
+        brandId: '507f1f77bcf86cd799439013',
+        organizationId: '507f1f77bcf86cd799439012',
+        userId: '507f1f77bcf86cd799439014',
+      });
+      expect(dto).not.toHaveProperty('brand');
+      expect(dto).not.toHaveProperty('organization');
+      expect(dto).not.toHaveProperty('user');
     });
   });
 
@@ -256,11 +305,15 @@ describe('AgentRunsController', () => {
       const mockRuns = [{ _id: 'run1', status: 'running' }];
       mockServiceMethods.getActiveRuns.mockResolvedValue(mockRuns);
 
-      await controller.getActiveRuns(mockRequest, mockUser as any);
+      await controller.getActiveRuns(mockRequest, mockUser);
 
       expect(mockServiceMethods.getActiveRuns).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439012',
-        { cursor: undefined, limit: undefined },
+        {
+          brandId: '507f1f77bcf86cd799439013',
+          cursor: undefined,
+          limit: undefined,
+        },
       );
     });
   });
@@ -270,13 +323,14 @@ describe('AgentRunsController', () => {
       const mockStats = { active: 2, completed: 8, total: 10 };
       mockServiceMethods.getStats.mockResolvedValue(mockStats);
 
-      const result = await controller.getStats(mockUser as any, {
+      const result = await controller.getStats(mockUser, {
         timeRange: '30d',
-      });
+      } as AgentRunStatsQueryDto);
 
       expect(mockServiceMethods.getStats).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439012',
         { timeRange: '30d' },
+        '507f1f77bcf86cd799439013',
       );
       expect(result).toEqual(mockStats);
     });
@@ -287,11 +341,12 @@ describe('AgentRunsController', () => {
       const mockRun = { _id: 'run1', status: 'cancelled' };
       mockServiceMethods.cancel.mockResolvedValue(mockRun);
 
-      await controller.cancelRun(mockRequest, 'run1', mockUser as any);
+      await controller.cancelRun(mockRequest, 'run1', mockUser);
 
       expect(mockServiceMethods.cancel).toHaveBeenCalledWith(
         'run1',
         '507f1f77bcf86cd799439012',
+        '507f1f77bcf86cd799439013',
       );
     });
 
@@ -299,7 +354,7 @@ describe('AgentRunsController', () => {
       mockServiceMethods.cancel.mockResolvedValue(null);
 
       await expect(
-        controller.cancelRun(mockRequest, 'nonexistent', mockUser as any),
+        controller.cancelRun(mockRequest, 'nonexistent', mockUser),
       ).rejects.toThrow(NotFoundException);
     });
   });

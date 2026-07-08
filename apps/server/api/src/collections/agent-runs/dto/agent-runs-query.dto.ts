@@ -12,6 +12,14 @@ import { IsBoolean, IsIn, IsOptional, IsString } from 'class-validator';
 
 export class AgentRunsQueryDto extends BaseQueryDto {
   @ApiProperty({
+    description: 'Filter by brand id',
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  brand?: string;
+
+  @ApiProperty({
     description: 'Exclude pending and running runs from the response',
     required: false,
   })
