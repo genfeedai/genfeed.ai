@@ -314,6 +314,45 @@ describe('AgentPanel', () => {
     });
   });
 
+  it('waits for auth before connecting the terminal socket', async () => {
+    const apiService = createCreditsInfoApiService();
+
+    render(<AgentPanel apiService={apiService as never} authReady={false} />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('waiting for authenticated session...'),
+      ).toBeInTheDocument();
+    });
+
+    expect(resolveAuthTokenMock).not.toHaveBeenCalled();
+    expect(apiService.getToken).not.toHaveBeenCalled();
+    expect(xtermMocks.open).not.toHaveBeenCalled();
+  });
+
+  it('connects the terminal after auth becomes ready', async () => {
+    const apiService = createCreditsInfoApiService();
+
+    const { rerender } = render(
+      <AgentPanel apiService={apiService as never} authReady={false} />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('waiting for authenticated session...'),
+      ).toBeInTheDocument();
+    });
+
+    rerender(<AgentPanel apiService={apiService as never} authReady />);
+
+    await waitFor(() => {
+      expect(resolveAuthTokenMock).toHaveBeenCalledWith(expect.any(Function), {
+        forceRefresh: true,
+      });
+      expect(apiService.getToken).toHaveBeenCalledWith({ forceRefresh: true });
+    });
+  });
+
   it('opens the Claude CLI from the terminal session menu', async () => {
     socketMocks.connected = true;
     render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);

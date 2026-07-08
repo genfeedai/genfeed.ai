@@ -195,7 +195,8 @@ export function useAppProtectedLayout(
     shouldMountAgentPanel || isConversationRoute;
 
   const { push, refresh } = useRouter();
-  const { getToken, isSignedIn } = useOptionalAuth();
+  const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useOptionalAuth();
+  const isAuthReadyForAgentPanel = isAuthLoaded && isSignedIn;
   const prevIsSignedInRef = useRef(false);
   useEffect(() => {
     if (isSignedIn && !prevIsSignedInRef.current) {
@@ -230,7 +231,8 @@ export function useAppProtectedLayout(
 
     return new AgentApiService({
       baseUrl: process.env.NEXT_PUBLIC_API_ENDPOINT ?? '',
-      getToken: async () => resolveAuthToken(getTokenRef.current),
+      getToken: async (options) =>
+        resolveAuthToken(getTokenRef.current, options),
     });
   }, [shouldInitAgentApiService]);
 
@@ -569,6 +571,7 @@ export function useAppProtectedLayout(
     brandSlug,
     // agent
     agentApiService,
+    isAuthReadyForAgentPanel,
     isAgentOpen,
     toggleAgent,
     threads,

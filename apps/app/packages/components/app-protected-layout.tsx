@@ -31,6 +31,7 @@ import {
 
 type AgentPanelProps = {
   apiService: AgentApiService;
+  authReady?: boolean;
   isActive?: boolean;
   onNavigateToBilling?: () => void;
   onOAuthConnect?: (platform: string) => void;
@@ -139,6 +140,7 @@ function AppLayoutWithDynamicMenu({
     orgSlug,
     brandSlug,
     agentApiService,
+    isAuthReadyForAgentPanel,
     isAgentOpen,
     toggleAgent,
     threads,
@@ -259,6 +261,7 @@ function AppLayoutWithDynamicMenu({
     !shouldMountAgentPanel || !agentApiService ? undefined : (
       <LazyAgentPanel
         apiService={agentApiService}
+        authReady={isAuthReadyForAgentPanel}
         isActive={isAgentOpen}
         onNavigateToBilling={handleNavigateToBilling}
       />

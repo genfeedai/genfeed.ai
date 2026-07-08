@@ -30,6 +30,7 @@ import {
 
 interface AgentPanelProps {
   apiService: AgentApiService;
+  authReady?: boolean;
   isActive?: boolean;
   onNavigateToBilling?: () => void;
   onOAuthConnect?: (platform: string) => void;
@@ -62,6 +63,7 @@ function readPersistedPanelTab(): AgentRailTab {
 
 export function AgentPanel({
   apiService,
+  authReady = true,
   isActive = true,
 }: AgentPanelProps): ReactElement {
   const router = useRouter();
@@ -254,7 +256,7 @@ export function AgentPanel({
     [activeThreadId, apiService, updateThread],
   );
 
-  const terminalController = useAgentCliTerminal(apiService);
+  const terminalController = useAgentCliTerminal(apiService, authReady);
 
   const handleSendSelection = useCallback(
     (text: string) => {

@@ -266,6 +266,7 @@ function attachTerminalSocketHandlers({
 
 export function useAgentCliTerminal(
   apiService: AgentApiService,
+  authReady = true,
 ): AgentCliTerminalController {
   const hostedCloud = isHostedCloud();
   const [activeKind, setActiveKind] = useState<TerminalSessionKind>('shell');
@@ -273,7 +274,9 @@ export function useAgentCliTerminal(
   const [status, setStatus] = useState(() =>
     hostedCloud
       ? 'terminal unavailable on hosted cloud'
-      : 'connecting to local terminal...',
+      : authReady
+        ? 'connecting to local terminal...'
+        : 'waiting for authenticated session...',
   );
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQueryState] = useState('');
@@ -349,6 +352,11 @@ export function useAgentCliTerminal(
   // Spawn a brand-new session for the current thread + kind
   const startSession = useCallback(
     (kind: TerminalSessionKind) => {
+      if (!authReady) {
+        setStatus('waiting for authenticated session...');
+        return;
+      }
+
       const socket = socketRef.current;
       const terminal = terminalRef.current;
 
@@ -372,7 +380,7 @@ export function useAgentCliTerminal(
         threadId: activeThreadIdRef.current ?? undefined,
       } satisfies TerminalCreatePayload);
     },
-    [fitAndSyncSize],
+    [authReady, fitAndSyncSize],
   );
 
   // Attach to an existing session — clears xterm, unsubscribes old data,
@@ -477,6 +485,11 @@ export function useAgentCliTerminal(
   // Boot effect — mounts xterm, establishes socket, lists existing sessions
   useEffect(() => {
     if (hostedCloud) {
+      return undefined;
+    }
+
+    if (!authReady) {
+      setStatus('waiting for authenticated session...');
       return undefined;
     }
 
@@ -675,7 +688,7 @@ export function useAgentCliTerminal(
       sessionIdRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiService, hostedCloud]);
+  }, [apiService, authReady, hostedCloud]);
 
   // T7: Cmd/Ctrl+F → open search bar
   useEffect(() => {
