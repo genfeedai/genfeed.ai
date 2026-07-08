@@ -3,7 +3,7 @@
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
-    "@slack/web-api": "7.18.0",
+    "@slack/web-api": "7.19.0",
     "jose": "^6.2.3",
     "node-pty": "1.1.0"
   },

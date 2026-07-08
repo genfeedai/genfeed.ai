@@ -1865,13 +1865,10 @@ Respond ONLY with the JSON array.`;
         const errorCode = (error as { code?: string }).code;
 
         if (errorCode === PRISMA_UNIQUE_CONSTRAINT_VIOLATION) {
-          const target = Array.isArray(
-            (error as Prisma.PrismaClientKnownRequestError).meta?.target,
-          )
-            ? (
-                (error as Prisma.PrismaClientKnownRequestError).meta
-                  ?.target as string[]
-              ).join(', ')
+          const uniqueTarget = (error as Prisma.PrismaClientKnownRequestError)
+            .meta?.target;
+          const target = Array.isArray(uniqueTarget)
+            ? uniqueTarget.join(', ')
             : 'a unique constraint';
           throw new ConflictException(
             `Cannot move brand: a record in the destination organization already conflicts on ${target}.`,
