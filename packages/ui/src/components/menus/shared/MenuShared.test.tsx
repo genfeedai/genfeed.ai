@@ -321,6 +321,20 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
+  it('renders an explicit sidebar collapse control separate from the logo', () => {
+    const onToggleCollapse = vi.fn();
+
+    render(<MenuShared config={config} onToggleCollapse={onToggleCollapse} />);
+
+    const collapseButton = screen.getByRole('button', {
+      name: 'Collapse sidebar',
+    });
+
+    expect(collapseButton.querySelector('svg')).not.toBeNull();
+    fireEvent.click(collapseButton);
+    expect(onToggleCollapse).toHaveBeenCalledTimes(1);
+  });
+
   it('omits the org switcher slot when not provided', () => {
     render(<MenuShared config={config} />);
 

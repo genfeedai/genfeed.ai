@@ -521,6 +521,7 @@ function AppSwitcherGridItem({
 }
 
 export function AppSwitcher({
+  brandAwareSlug,
   brandSlug,
   currentApp,
   currentPath,
@@ -533,8 +534,19 @@ export function AppSwitcher({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  function getRouteBrandSlug(app: AppSwitcherItemConfig) {
+    if (app.id === 'agent') {
+      return brandSlug ?? brandAwareSlug;
+    }
+
+    return brandSlug;
+  }
+
   function getAppHref(app: AppSwitcherItemConfig) {
-    return withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch);
+    return withPreservedSearch(
+      app.route(orgSlug, getRouteBrandSlug(app)),
+      preservedSearch,
+    );
   }
 
   const handleNavigateStart = () => {

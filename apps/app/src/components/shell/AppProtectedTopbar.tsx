@@ -98,6 +98,16 @@ function AppProtectedTopbarContent({
   const isOrganizationScopeRoute = hasExplicitOrgScope && !explicitBrandSlug;
   const effectiveBrandId = brandId || getBrandEntityId(selectedBrand);
   const visibleBrandId = isOrganizationScopeRoute ? '' : effectiveBrandId;
+  const selectedBrandForContext = effectiveBrandId
+    ? brands.find((brand) => getBrandEntityId(brand) === effectiveBrandId) ||
+      selectedBrand
+    : undefined;
+  const brandAwareAppSlug =
+    effectiveBrandSlug || selectedBrandForContext?.slug || undefined;
+  const isOrganizationSettingsRoute =
+    Boolean(effectiveOrgSlug) &&
+    isOrganizationScopeRoute &&
+    pathname.startsWith(`/${effectiveOrgSlug}/~/settings`);
 
   const handleBrandChange = useCallback(
     (nextBrandId: string) => {
@@ -197,7 +207,9 @@ function AppProtectedTopbarContent({
             </Button>
           ) : null}
 
-          {!isAdminChrome && brands.length > 0 ? (
+          {!isAdminChrome &&
+          brands.length > 0 &&
+          !isOrganizationSettingsRoute ? (
             <div className="w-36 min-w-0 sm:w-44 md:w-48">
               <MenuBrandSwitcher
                 variant="labeled"
@@ -279,6 +291,7 @@ function AppProtectedTopbarContent({
                 currentApp={effectiveCurrentApp}
                 currentPath={pathname}
                 orgSlug={effectiveOrgSlug}
+                brandAwareSlug={brandAwareAppSlug}
                 brandSlug={effectiveBrandSlug}
                 showAdmin={isAdminChrome || isSuperAdmin}
               />

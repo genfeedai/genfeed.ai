@@ -6,6 +6,9 @@ let mockSearchParams = new URLSearchParams();
 const appSwitcherSpy = vi.hoisted(() => vi.fn());
 const brandSwitcherSpy = vi.hoisted(() => vi.fn());
 const mockPush = vi.hoisted(() => vi.fn());
+const mockPathname = vi.hoisted(() => ({
+  value: '/acme/brand/workspace/overview',
+}));
 const mockAccessState = vi.hoisted(() => ({
   isSuperAdmin: false,
 }));
@@ -122,6 +125,7 @@ vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
 
 vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
   AppSwitcher: (props: {
+    brandAwareSlug?: string;
     brandSlug?: string;
     currentApp?: string;
     orgSlug: string;
@@ -161,7 +165,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/acme/brand/workspace/overview',
+  usePathname: () => mockPathname.value,
   useRouter: () => ({ push: mockPush }),
   useSearchParams: () => mockSearchParams,
 }));
@@ -171,6 +175,7 @@ const { default: AppProtectedTopbar } = await import('./AppProtectedTopbar');
 describe('AppProtectedTopbar', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
+    mockPathname.value = '/acme/brand/workspace/overview';
     mockAccessState.isSuperAdmin = false;
     appSwitcherSpy.mockClear();
     brandSwitcherSpy.mockClear();
@@ -234,8 +239,24 @@ describe('AppProtectedTopbar', () => {
 
     expect(appSwitcherSpy).toHaveBeenCalledWith(
       expect.objectContaining({
+        brandAwareSlug: 'brand',
         brandSlug: undefined,
         currentApp: 'workspace',
+        orgSlug: 'acme',
+      }),
+    );
+  });
+
+  it('hides the brand switcher on organization settings routes', () => {
+    mockPathname.value = '/acme/~/settings/api-keys';
+
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandAwareSlug: 'brand',
+        brandSlug: undefined,
         orgSlug: 'acme',
       }),
     );
