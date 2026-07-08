@@ -1,32 +1,16 @@
 'use client';
 
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { ButtonVariant } from '@genfeedai/enums';
 import { ManagedCreditsService } from '@services/billing/managed-credits.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Card from '@ui/card/Card';
-import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useEffect, useState } from 'react';
-import { HiOutlineCreditCard, HiOutlineKey } from 'react-icons/hi2';
-
-const DEFAULT_CREDIT_PACK = 1000;
-
-function parseCredits(value: string): number | null {
-  const normalized = value.trim();
-  if (!/^[1-9]\d*$/.test(normalized)) {
-    return null;
-  }
-
-  const parsed = Number(normalized);
-  return Number.isSafeInteger(parsed) ? parsed : null;
-}
+import CreditTopUpPanel from './credit-top-up-panel';
 
 export default function ManagedCreditsCheckoutCard() {
   const { currentUser } = useCurrentUser();
   const [email, setEmail] = useState(currentUser?.email ?? '');
-  const [credits, setCredits] = useState(String(DEFAULT_CREDIT_PACK));
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
 
   useEffect(() => {
@@ -35,13 +19,12 @@ export default function ManagedCreditsCheckoutCard() {
     }
   }, [currentUser?.email]);
 
-  const handleStartCheckout = async () => {
+  const handleStartCheckout = async ({ credits }: { credits: number }) => {
     const normalizedEmail = email.trim();
-    const quantity = parseCredits(credits);
 
-    if (!normalizedEmail || !quantity) {
+    if (!normalizedEmail) {
       NotificationsService.getInstance().error(
-        'Add a valid email and credit quantity before checkout.',
+        'Add a valid email before checkout.',
       );
       return;
     }
@@ -54,7 +37,7 @@ export default function ManagedCreditsCheckoutCard() {
         email: normalizedEmail,
         firstName: currentUser?.firstName || undefined,
         lastName: currentUser?.lastName || undefined,
-        quantity,
+        quantity: credits,
         successUrl: `${window.location.origin}/managed-credits/success?session_id={CHECKOUT_SESSION_ID}`,
       });
 
@@ -69,58 +52,36 @@ export default function ManagedCreditsCheckoutCard() {
   };
 
   return (
-    <Card className="p-5">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-white/60">
-              <HiOutlineKey className="size-4" />
-            </span>
-            <div>
-              <h3 className="text-sm font-semibold">Genfeed managed credits</h3>
-              <p className="text-xs text-muted-foreground">
-                Buy hosted image-generation credits and copy one managed key
-                into this self-hosted install.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_10rem]">
-            <div>
-              <span className="mb-1 block text-xs text-muted-foreground">
-                Provisioning email
-              </span>
-              <Input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@example.com"
-              />
-            </div>
-            <div>
-              <span className="mb-1 block text-xs text-muted-foreground">
-                Credits
-              </span>
-              <Input
-                type="number"
-                min={1}
-                value={credits}
-                onChange={(event) => setCredits(event.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        <Button
-          variant={ButtonVariant.DEFAULT}
-          onClick={handleStartCheckout}
-          isDisabled={isStartingCheckout}
-          className="w-full shrink-0 lg:mt-8 lg:w-auto"
+    <CreditTopUpPanel
+      description="Buy hosted image-generation credits and provision one managed key for this self-hosted install."
+      helperContent={
+        <section
+          className="max-w-xl space-y-3"
+          aria-labelledby="provisioning-email-heading"
         >
-          <HiOutlineCreditCard className="size-4" />
-          {isStartingCheckout ? 'Opening checkout...' : 'Get Credits'}
-        </Button>
-      </div>
-    </Card>
+          <div className="space-y-1">
+            <h3
+              id="provisioning-email-heading"
+              className="text-2xl font-semibold tracking-normal text-foreground"
+            >
+              Provisioning email
+            </h3>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Checkout and the managed key receipt will be sent here.
+            </p>
+          </div>
+          <Input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="you@example.com"
+            aria-label="Provisioning email"
+          />
+        </section>
+      }
+      isStartingCheckout={isStartingCheckout}
+      submitLabel="Get credits"
+      onSubmit={handleStartCheckout}
+    />
   );
 }
