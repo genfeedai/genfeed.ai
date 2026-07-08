@@ -1,6 +1,10 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+  createOrganizationAppRoute,
+} from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -93,7 +97,9 @@ function AppProtectedTopbarContent({
   const effectiveBrandSlug = hasExplicitOrgScope
     ? explicitBrandSlug
     : (explicitBrandSlug ?? resolvedBrandSlug) || undefined;
+  const isOrganizationScopeRoute = hasExplicitOrgScope && !explicitBrandSlug;
   const effectiveBrandId = brandId || getBrandEntityId(selectedBrand);
+  const visibleBrandId = isOrganizationScopeRoute ? '' : effectiveBrandId;
 
   const handleBrandChange = useCallback(
     (nextBrandId: string) => {
@@ -112,16 +118,38 @@ function AppProtectedTopbarContent({
 
       if (nextOrgSlug && nextBrand?.slug) {
         push(
-          getBrandSwitchHref({
-            nextBrandSlug: nextBrand.slug,
-            nextOrgSlug,
-            pathname,
-          }),
+          isOrganizationScopeRoute
+            ? createBrandAppRoute(
+                nextOrgSlug,
+                nextBrand.slug,
+                APP_ROUTES.WORKSPACE.OVERVIEW,
+              )
+            : getBrandSwitchHref({
+                nextBrandSlug: nextBrand.slug,
+                nextOrgSlug,
+                pathname,
+              }),
         );
       }
     },
-    [brands, effectiveOrgSlug, pathname, push, setBrandId, setOrganizationId],
+    [
+      brands,
+      effectiveOrgSlug,
+      isOrganizationScopeRoute,
+      pathname,
+      push,
+      setBrandId,
+      setOrganizationId,
+    ],
   );
+
+  const handleOrganizationScopeSelect = useCallback(() => {
+    setBrandId('');
+
+    if (effectiveOrgSlug) {
+      push(createOrganizationAppRoute(effectiveOrgSlug, '/overview'));
+    }
+  }, [effectiveOrgSlug, push, setBrandId]);
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
@@ -187,8 +215,13 @@ function AppProtectedTopbarContent({
               <MenuBrandSwitcher
                 variant="labeled"
                 brands={brands}
-                brandId={effectiveBrandId}
+                brandId={visibleBrandId}
                 onBrandChange={handleBrandChange}
+                organizationScopeOption={{
+                  isActive: isOrganizationScopeRoute,
+                  label: 'All brands',
+                  onSelect: handleOrganizationScopeSelect,
+                }}
               />
             </div>
           ) : null}

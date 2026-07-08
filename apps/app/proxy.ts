@@ -35,6 +35,7 @@ const ONBOARDING_STEPS = ['brand', 'providers', 'summary'] as const;
 
 const BRAND_SCOPED_PREFIXES = [
   'analytics',
+  'agent',
   'compose',
   'editor',
   'tasks',
@@ -48,7 +49,7 @@ const BRAND_SCOPED_PREFIXES = [
   'workspace',
 ] as const;
 
-const ORG_SCOPED_PREFIXES = ['agent', 'settings'] as const;
+const ORG_SCOPED_PREFIXES = ['settings'] as const;
 
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   ['/analytics', '/analytics/overview'],

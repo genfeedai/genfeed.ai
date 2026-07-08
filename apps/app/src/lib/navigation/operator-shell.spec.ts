@@ -21,6 +21,9 @@ describe('operator-shell helpers', () => {
     expect(normalizeProtectedPathname('/acme/~/agent/thread-1')).toBe(
       '/agent/thread-1',
     );
+    expect(normalizeProtectedPathname('/acme/brand-x/agent/thread-1')).toBe(
+      '/agent/thread-1',
+    );
   });
 
   it('keeps the current brand-scoped path when switching brands', () => {

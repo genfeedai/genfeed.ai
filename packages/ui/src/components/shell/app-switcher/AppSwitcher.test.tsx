@@ -350,7 +350,7 @@ describe('AppSwitcher', () => {
       );
       expect(screen.getByRole('link', { name: 'Agent' })).toHaveAttribute(
         'href',
-        '/acme/~/agent',
+        '/acme/my-brand/agent',
       );
       expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
         'href',

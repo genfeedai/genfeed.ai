@@ -10,6 +10,7 @@ const mockPush = vi.fn();
 let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
 let capturedItems: SwitcherDropdownItem[] = [];
 let capturedMinWidth: number | undefined;
+let capturedOnSelect: ((id: string) => void) | undefined;
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({
@@ -67,11 +68,13 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
     footerActions = [],
     items = [],
     minWidth,
+    onSelect,
     renderTrigger,
   }: {
     footerActions?: SwitcherDropdownFooterAction[];
     items?: SwitcherDropdownItem[];
     minWidth?: number;
+    onSelect: (id: string) => void;
     renderTrigger: (state: {
       isDisabled: boolean;
       isOpen: boolean;
@@ -80,6 +83,7 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
     capturedFooterActions = footerActions;
     capturedItems = items;
     capturedMinWidth = minWidth;
+    capturedOnSelect = onSelect;
     return (
       <div data-testid="switcher-dropdown">
         {renderTrigger({ isDisabled: false, isOpen: false })}
@@ -103,6 +107,7 @@ describe('MenuBrandSwitcher', () => {
     capturedFooterActions = [];
     capturedItems = [];
     capturedMinWidth = undefined;
+    capturedOnSelect = undefined;
     mockPush.mockReset();
   });
 
@@ -195,5 +200,36 @@ describe('MenuBrandSwitcher', () => {
     capturedItems[0]?.trailingAction?.onAction();
 
     expect(mockPush).toHaveBeenCalledWith('/test-org/test-brand/settings');
+  });
+
+  it('renders an organization scope row without treating it as a brand patch', () => {
+    const onScopeSelect = vi.fn();
+
+    render(
+      <MenuBrandSwitcher
+        variant="labeled"
+        brands={brandsWithSlug}
+        brandId=""
+        onBrandChange={vi.fn()}
+        organizationScopeOption={{
+          isActive: true,
+          label: 'All brands',
+          onSelect: onScopeSelect,
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('brand-switcher-trigger')).toHaveTextContent(
+      'All brands',
+    );
+    expect(capturedItems[0]).toMatchObject({
+      id: '__organization_scope__',
+      isActive: true,
+      label: 'All brands',
+    });
+
+    capturedOnSelect?.('__organization_scope__');
+
+    expect(onScopeSelect).toHaveBeenCalledTimes(1);
   });
 });

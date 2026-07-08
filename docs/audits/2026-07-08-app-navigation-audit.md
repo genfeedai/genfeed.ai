@@ -146,6 +146,8 @@ Continue with the route-scope fixes from issues 3-6 so compact presentation does
 
 Severity: P1 navigation/context loss
 
+Status: Fixed in local implementation. Agent now has brand-scoped route aliases, the app switcher routes Agent to `/:org/:brand/agent` when a brand slug is available, and Next/proxy canonicalization no longer redirects brand-scoped Agent URLs back to `/:org/~/agent`.
+
 ### Actual
 
 `AppProtectedTopbar` treats route props as authoritative. On explicit org routes like `/:org/~/...`, it intentionally leaves `effectiveBrandSlug` undefined:
@@ -331,6 +333,8 @@ Thread creation, OAuth connect, and agent tool calls should carry the resolved s
 ## Issue 5 - Brand dropdown remains enabled on organization settings routes
 
 Severity: P2 scope affordance bug
+
+Status: Fixed in local implementation. Organization-scoped topbar routes now show an explicit `All brands` scope state, and that scope option clears brand context by routing to `/:org/~/overview`.
 
 ### Actual
 

@@ -74,7 +74,10 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'agent',
         itemKey: 'home-agent',
         label: 'Agent',
-        route: (org) => createOrganizationAppRoute(org, '/agent'),
+        route: (org, brand) =>
+          brand
+            ? createBrandAppRoute(org, brand, '/agent')
+            : createOrganizationAppRoute(org, '/agent'),
       },
       {
         description: 'Reply to audience.',

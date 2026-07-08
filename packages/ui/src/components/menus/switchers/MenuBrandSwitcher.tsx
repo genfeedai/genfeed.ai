@@ -17,11 +17,14 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { HiChevronDown, HiOutlineCog6Tooth } from 'react-icons/hi2';
 
+const ORGANIZATION_SCOPE_ITEM_ID = '__organization_scope__';
+
 export default function MenuBrandSwitcher({
   brands,
   brandId,
   isUpdatingBrand: externalIsUpdating,
   onBrandChange,
+  organizationScopeOption,
   variant = 'avatar',
 }: BrandSwitcherProps) {
   const getUsersService = useAuthedService((token: string) =>
@@ -35,11 +38,19 @@ export default function MenuBrandSwitcher({
 
   const isUpdating = externalIsUpdating ?? isUpdatingBrand;
   const selectedBrand = brands.find((b) => b.id === brandId);
-  const selectedBrandLabel = selectedBrand?.label || 'Select Brand';
+  const selectedBrandLabel =
+    organizationScopeOption?.isActive === true
+      ? organizationScopeOption.label
+      : selectedBrand?.label || 'Select Brand';
   const avatarSizeClassName = variant === 'labeled' ? 'size-6' : 'size-8';
 
   const handleSelect = useCallback(
     async (id: string) => {
+      if (id === ORGANIZATION_SCOPE_ITEM_ID) {
+        organizationScopeOption?.onSelect();
+        return;
+      }
+
       const url = `PATCH /brands/${id}`;
       try {
         setIsUpdatingBrand(true);
@@ -59,36 +70,49 @@ export default function MenuBrandSwitcher({
         setIsUpdatingBrand(false);
       }
     },
-    [getUsersService, onBrandChange, user],
+    [getUsersService, onBrandChange, organizationScopeOption, user],
   );
 
   if (brands.length === 0) {
     return null;
   }
 
+  const items = [
+    ...(organizationScopeOption
+      ? [
+          {
+            id: ORGANIZATION_SCOPE_ITEM_ID,
+            isActive: organizationScopeOption.isActive === true,
+            label: organizationScopeOption.label,
+          },
+        ]
+      : []),
+    ...brands.map((b) => {
+      const label = `${b.label ?? 'Untitled'}${b.isDarkroomEnabled ? ' · Darkroom' : ''}`;
+      const orgSlug = getBrandOrganizationSlug(b);
+
+      return {
+        id: b.id,
+        imageUrl: b.logoUrl || undefined,
+        isActive: b.id === brandId,
+        label,
+        trailingAction:
+          orgSlug && b.slug
+            ? {
+                ariaLabel: `Open ${b.label ?? 'brand'} settings`,
+                icon: HiOutlineCog6Tooth,
+                onAction: () =>
+                  push(createBrandAppRoute(orgSlug, b.slug, '/settings')),
+              }
+            : undefined,
+      };
+    }),
+  ];
+
   return (
     <SwitcherDropdown
       className={variant === 'labeled' ? 'w-full' : 'w-full flex justify-end'}
-      items={brands.map((b) => {
-        const label = `${b.label ?? 'Untitled'}${b.isDarkroomEnabled ? ' · Darkroom' : ''}`;
-        const orgSlug = getBrandOrganizationSlug(b);
-
-        return {
-          id: b.id,
-          imageUrl: b.logoUrl || undefined,
-          isActive: b.id === brandId,
-          label,
-          trailingAction:
-            orgSlug && b.slug
-              ? {
-                  ariaLabel: `Open ${b.label ?? 'brand'} settings`,
-                  icon: HiOutlineCog6Tooth,
-                  onAction: () =>
-                    push(createBrandAppRoute(orgSlug, b.slug, '/settings')),
-                }
-              : undefined,
-        };
-      })}
+      items={items}
       renderTrigger={({ isOpen }) => (
         <Button
           type="button"
@@ -150,7 +174,7 @@ export default function MenuBrandSwitcher({
       )}
       onSelect={(id) => void handleSelect(id)}
       isDisabled={isUpdating}
-      hasSearch={brands.length >= 5}
+      hasSearch={items.length >= 5}
       minWidth={variant === 'labeled' ? 224 : 220}
       searchPlaceholder="Search brands…"
       footerActions={[

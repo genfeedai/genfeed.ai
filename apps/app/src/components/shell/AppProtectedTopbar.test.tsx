@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
 const appSwitcherSpy = vi.hoisted(() => vi.fn());
+const brandSwitcherSpy = vi.hoisted(() => vi.fn());
+const mockPush = vi.hoisted(() => vi.fn());
 const mockAccessState = vi.hoisted(() => ({
   isSuperAdmin: false,
 }));
@@ -20,6 +22,10 @@ vi.mock('@genfeedai/constants', () => ({
       OVERVIEW: '/workspace/overview',
     },
   },
+  createBrandAppRoute: (orgSlug: string, brandSlug: string, routePath = '/') =>
+    `/${orgSlug}/${brandSlug}${routePath.startsWith('/') ? routePath : `/${routePath}`}`,
+  createOrganizationAppRoute: (orgSlug: string, routePath = '/') =>
+    `/${orgSlug}/~${routePath.startsWith('/') ? routePath : `/${routePath}`}`,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -84,9 +90,28 @@ vi.mock('@ui/primitives/button', () => ({
 }));
 
 vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
-  default: ({ variant }: { variant?: string }) => (
-    <div data-testid="brand-switcher">{variant}</div>
-  ),
+  default: (props: {
+    brandId?: string;
+    organizationScopeOption?: {
+      isActive?: boolean;
+      label: string;
+      onSelect: () => void;
+    };
+    variant?: string;
+  }) => {
+    brandSwitcherSpy(props);
+
+    return (
+      <button
+        type="button"
+        data-testid="brand-switcher"
+        onClick={props.organizationScopeOption?.onSelect}
+      >
+        {props.variant}:{props.brandId || 'none'}:
+        {props.organizationScopeOption?.label}
+      </button>
+    );
+  },
 }));
 
 vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
@@ -131,7 +156,7 @@ vi.mock('next/link', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/acme/brand/workspace/overview',
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: mockPush }),
   useSearchParams: () => mockSearchParams,
 }));
 
@@ -142,6 +167,8 @@ describe('AppProtectedTopbar', () => {
     mockSearchParams = new URLSearchParams();
     mockAccessState.isSuperAdmin = false;
     appSwitcherSpy.mockClear();
+    brandSwitcherSpy.mockClear();
+    mockPush.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
     Object.defineProperty(window, 'location', {
@@ -364,5 +391,53 @@ describe('AppProtectedTopbar', () => {
     expect(
       screen.getByRole('button', { name: 'Expand sidebar' }),
     ).toBeInTheDocument();
+  });
+
+  it('shows all-brands scope on explicit organization routes', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="workspace" />);
+
+    expect(brandSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: '',
+        organizationScopeOption: expect.objectContaining({
+          isActive: true,
+          label: 'All brands',
+        }),
+      }),
+    );
+  });
+
+  it('shows the selected brand on explicit brand routes', () => {
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    expect(brandSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand',
+        organizationScopeOption: expect.objectContaining({
+          isActive: false,
+          label: 'All brands',
+        }),
+      }),
+    );
+  });
+
+  it('routes the all-brands option to organization overview', () => {
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('brand-switcher'));
+
+    expect(mockPush).toHaveBeenCalledWith('/acme/~/overview');
   });
 });

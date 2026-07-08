@@ -89,6 +89,7 @@ const resolvedApiBaseUrl = (
 const selfHostedRewrites = IS_LOCAL_APP_SHELL
   ? [
       'workspace',
+      'agent',
       'studio',
       'posts',
       'compose',
@@ -105,7 +106,7 @@ const selfHostedRewrites = IS_LOCAL_APP_SHELL
   : [];
 
 const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
-  ? ['agent', 'settings'].map((segment) => ({
+  ? ['settings'].map((segment) => ({
       destination: `/${DEFAULT_ORG}/~/${segment}/:path*`,
       source: `/${segment}/:path*`,
     }))
@@ -165,11 +166,6 @@ const config = createAppNextConfig({
       destination: '/compose/article',
       permanent: false,
       source: '/compose',
-    },
-    {
-      destination: '/:orgSlug/~/agent/:path*',
-      permanent: false,
-      source: '/:orgSlug/:brandSlug([^~/][^/]*)/agent/:path*',
     },
     {
       destination: '/studio/image',
