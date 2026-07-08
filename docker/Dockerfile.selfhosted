@@ -146,10 +146,12 @@ COPY apps/server/ apps/server/
 
 # Build the shared packages that downstream project references resolve through
 # package exports before the parallel batch. A clean Docker context has no host
-# dist output, so this must mirror docker/Dockerfile.server's dependency order:
-# enums -> constants -> interfaces -> pricing -> client, then config can build.
+# dist output, so this follows docker/Dockerfile.server's dependency order and
+# includes api-types because the self-hosted image also builds the Next.js app:
+# enums -> api-types -> constants -> interfaces -> pricing -> client, then config can build.
 RUN set -e; \
     bun --filter @genfeedai/enums build; \
+    bun --filter @genfeedai/api-types build; \
     bun --filter @genfeedai/constants build; \
     bun --filter @genfeedai/interfaces build; \
     bun --filter @genfeedai/pricing build; \
