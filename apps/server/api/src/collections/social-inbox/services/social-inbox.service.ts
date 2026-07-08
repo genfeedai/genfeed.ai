@@ -843,11 +843,15 @@ export class SocialInboxService {
       authorId: input.participantExternalId,
       authorUsername: input.participantHandle ?? input.participantName,
       brandId: input.brandId,
+      commentId: input.externalMessageId,
       conversationId: conversation.id,
+      contentId: input.sourceContentId,
+      contentUrl: input.sourceContentUrl,
       credentialId: input.credentialId,
       externalMessageId: input.externalMessageId,
       externalParentId: input.externalParentId,
       messageId: message.id,
+      parentId: input.externalParentId,
       platform: conversation.platform,
       postId:
         input.externalParentId ??
