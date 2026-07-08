@@ -10,6 +10,5 @@ export * from './lazy-load.interface';
 export * from './mask-editor.interface';
 export * from './masonry-grid.interface';
 export * from './storyboard.interface';
-export * from './topbar-activities.interface';
 export * from './video-operations.interface';
 export * from './virtual-list.interface';

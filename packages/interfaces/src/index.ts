@@ -73,7 +73,6 @@ export * from './components/lazy-load.interface';
 export * from './components/mask-editor.interface';
 export * from './components/masonry-grid.interface';
 export * from './components/storyboard.interface';
-export * from './components/topbar-activities.interface';
 export * from './components/video-operations.interface';
 export * from './components/virtual-list.interface';
 export * from './content/account-publishing-context.interface';
