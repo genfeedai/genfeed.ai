@@ -2646,11 +2646,10 @@ describe('AgentOrchestratorService', () => {
       ],
     });
 
-    const approvalPayload = (
-      draftResponse.message.metadata?.uiActions as Array<
-        Record<string, unknown>
-      >
-    )[0]?.data as Record<string, unknown>;
+    const uiActions = draftResponse.message.metadata?.uiActions as
+      | Array<Record<string, unknown>>
+      | undefined;
+    const approvalPayload = uiActions?.[0]?.data as Record<string, unknown>;
 
     const saveResponse = await service.handleThreadUiAction(
       {
