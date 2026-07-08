@@ -9,19 +9,24 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AppContext, AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import Link from 'next/link';
-import { useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   HiChevronDown,
   HiOutlineArrowPathRoundedSquare,
   HiOutlineArrowTrendingUp,
+  HiOutlineBriefcase,
   HiOutlineChartBarSquare,
   HiOutlineChatBubbleLeftRight,
   HiOutlineCheckCircle,
   HiOutlineClock,
   HiOutlineCommandLine,
+  HiOutlineMagnifyingGlass,
+  HiOutlineMegaphone,
   HiOutlinePaperAirplane,
   HiOutlineRectangleStack,
   HiOutlineShieldCheck,
+  HiOutlineSignal,
+  HiOutlineSparkles,
   HiOutlineSquares2X2,
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
@@ -30,11 +35,10 @@ import { Button } from '../../../primitives/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '../../../primitives/dropdown-menu';
+import { Input } from '../../../primitives/input';
 
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   activeIds?: AppContext[];
@@ -293,6 +297,30 @@ const ADMIN_APP_SWITCHER_SECTION: AppSwitcherSectionConfig = {
   ],
 };
 
+const PRIMARY_APP_ITEM_KEYS = [
+  'home-workspace',
+  'home-agent',
+  'home-messages',
+  'trends-discovery',
+  'trends-socials',
+  'trends-ads',
+  'create-studio',
+  'create-remix',
+  'create-library',
+] as const;
+
+const PRIMARY_APP_ICONS: Partial<
+  Record<
+    (typeof PRIMARY_APP_ITEM_KEYS)[number],
+    LifecycleAppSwitcherItemConfig['icon']
+  >
+> = {
+  'create-library': HiOutlineBriefcase,
+  'create-studio': HiOutlineSparkles,
+  'trends-ads': HiOutlineMegaphone,
+  'trends-socials': HiOutlineSignal,
+};
+
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {
     return path;
@@ -317,6 +345,49 @@ function withPreservedSearch(path: string, preservedSearch?: string): string {
   const nextSearch = mergedSearchParams.toString();
 
   return nextSearch ? `${pathname}?${nextSearch}` : pathname;
+}
+
+function humanizeSlug(value?: string): string {
+  if (!value) {
+    return 'Default Workspace';
+  }
+
+  return value
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
+function isPrimaryApp(app: LifecycleAppSwitcherItemConfig): boolean {
+  return PRIMARY_APP_ITEM_KEYS.includes(
+    app.itemKey as (typeof PRIMARY_APP_ITEM_KEYS)[number],
+  );
+}
+
+function getPrimaryApps(
+  apps: LifecycleAppSwitcherItemConfig[],
+): LifecycleAppSwitcherItemConfig[] {
+  return PRIMARY_APP_ITEM_KEYS.map((itemKey) =>
+    apps.find((app) => app.itemKey === itemKey),
+  ).filter((app): app is LifecycleAppSwitcherItemConfig => Boolean(app));
+}
+
+function matchesAppSearch({
+  app,
+  query,
+  sectionLabel,
+}: {
+  app: LifecycleAppSwitcherItemConfig;
+  query: string;
+  sectionLabel?: string;
+}): boolean {
+  const haystack = [app.label, app.description, app.itemKey, sectionLabel]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return haystack.includes(query);
 }
 
 function isActiveApp(
@@ -395,7 +466,7 @@ function getActiveItemKey({
   return apps.find((app) => isActiveApp(app, currentApp))?.itemKey;
 }
 
-function AppSwitcherMenuItem({
+function AppSwitcherGridItem({
   app,
   isActive,
   href,
@@ -406,7 +477,9 @@ function AppSwitcherMenuItem({
   href: string;
   onNavigateStart: () => void;
 }) {
-  const Icon = app.icon;
+  const Icon =
+    PRIMARY_APP_ICONS[app.itemKey as (typeof PRIMARY_APP_ITEM_KEYS)[number]] ??
+    app.icon;
 
   return (
     <DropdownMenuItem asChild>
@@ -415,77 +488,32 @@ function AppSwitcherMenuItem({
         aria-current={isActive ? 'page' : undefined}
         onClick={onNavigateStart}
         className={cn(
-          'group flex min-h-10 min-w-0 items-start gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] outline-none transition-colors',
-          'hover:bg-foreground/[0.06] focus:bg-foreground/[0.06]',
-          isActive && 'bg-foreground/[0.08] shadow-border-strong',
+          'group grid min-h-[5.75rem] min-w-0 grid-rows-[2.75rem_1.25rem] place-items-center gap-1.5 rounded-lg border border-transparent px-1.5 py-2 text-center outline-none transition-colors',
+          'hover:border-border hover:bg-foreground/[0.04] focus:border-border focus:bg-foreground/[0.06]',
+          isActive &&
+            'border-border-strong bg-foreground/[0.08] shadow-border-strong',
         )}
       >
-        <Icon
+        <span
           className={cn(
-            'mt-0.5 size-4 shrink-0 transition-colors',
+            'inline-flex size-10 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
             isActive
-              ? 'text-foreground'
-              : 'text-foreground/50 group-hover:text-foreground/78',
+              ? 'bg-foreground text-background'
+              : 'group-hover:text-foreground/82',
           )}
-        />
-        <span className="min-w-0 flex-1">
-          <span
-            className={cn(
-              'block truncate leading-5',
-              isActive
-                ? 'font-medium text-foreground'
-                : 'font-medium text-foreground/85',
-            )}
-          >
-            {app.label}
-          </span>
-          <span
-            aria-hidden="true"
-            className="mt-0.5 block truncate text-[12px] leading-4 text-foreground/52"
-          >
-            {app.description}
-          </span>
+        >
+          <Icon aria-hidden="true" className="size-5" />
+        </span>
+        <span
+          className={cn(
+            'block max-w-full truncate text-[13px] font-semibold leading-5',
+            isActive ? 'text-foreground' : 'text-foreground/58',
+          )}
+        >
+          {app.label}
         </span>
       </Link>
     </DropdownMenuItem>
-  );
-}
-
-function AppSwitcherMenuSection({
-  activeItemKey,
-  getAppHref,
-  onNavigateStart,
-  section,
-}: {
-  activeItemKey?: string;
-  getAppHref: (app: AppSwitcherItemConfig) => string;
-  onNavigateStart: () => void;
-  section: AppSwitcherSectionConfig;
-}) {
-  return (
-    <DropdownMenuGroup
-      key={section.id}
-      aria-labelledby={`app-switcher-${section.id}`}
-      className="min-w-0"
-    >
-      <DropdownMenuLabel
-        id={`app-switcher-${section.id}`}
-        className="px-2 pb-1.5 pt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/42"
-      >
-        {section.label}
-      </DropdownMenuLabel>
-      <div className="space-y-0.5">
-        {section.apps.map((app) => (
-          <AppSwitcherMenuItem
-            key={app.itemKey}
-            app={app}
-            isActive={app.itemKey === activeItemKey}
-            href={getAppHref(app)}
-            onNavigateStart={onNavigateStart}
-          />
-        ))}
-      </div>
-    </DropdownMenuGroup>
   );
 }
 
@@ -499,6 +527,8 @@ export function AppSwitcher({
   variant = 'icon',
 }: AppSwitcherProps) {
   const preventTriggerAutoFocusRef = useRef(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   function getAppHref(app: AppSwitcherItemConfig) {
     return withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch);
@@ -508,10 +538,28 @@ export function AppSwitcher({
     preventTriggerAutoFocusRef.current = true;
   };
 
-  const sections = showAdmin
-    ? [...APP_SWITCHER_SECTIONS, ADMIN_APP_SWITCHER_SECTION]
-    : APP_SWITCHER_SECTIONS;
-  const apps = sections.flatMap((section) => section.apps);
+  const sections = useMemo(
+    () =>
+      showAdmin
+        ? [...APP_SWITCHER_SECTIONS, ADMIN_APP_SWITCHER_SECTION]
+        : APP_SWITCHER_SECTIONS,
+    [showAdmin],
+  );
+  const apps = useMemo(
+    () => sections.flatMap((section) => section.apps),
+    [sections],
+  );
+  const sectionLabelByItemKey = useMemo(() => {
+    const labels = new Map<string, string>();
+
+    for (const section of sections) {
+      for (const app of section.apps) {
+        labels.set(app.itemKey, section.label);
+      }
+    }
+
+    return labels;
+  }, [sections]);
   const activeItemKey = getActiveItemKey({
     apps,
     brandSlug,
@@ -524,6 +572,27 @@ export function AppSwitcher({
     apps.find((app) => isActiveApp(app, currentApp));
   const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
   const activeLabel = activeApp?.label ?? 'Apps';
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const visibleApps = useMemo(() => {
+    if (normalizedSearchQuery) {
+      return apps.filter((app) =>
+        matchesAppSearch({
+          app,
+          query: normalizedSearchQuery,
+          sectionLabel: sectionLabelByItemKey.get(app.itemKey),
+        }),
+      );
+    }
+
+    const primaryApps = getPrimaryApps(apps);
+
+    if (activeApp && !isPrimaryApp(activeApp)) {
+      return [...primaryApps, activeApp];
+    }
+
+    return primaryApps;
+  }, [activeApp, apps, normalizedSearchQuery, sectionLabelByItemKey]);
+  const tenantLabel = humanizeSlug(brandSlug || orgSlug);
 
   return (
     <DropdownMenu modal={false}>
@@ -533,7 +602,7 @@ export function AppSwitcher({
             type="button"
             variant={ButtonVariant.GHOST}
             className="flex h-7 items-center gap-2 rounded-md px-2 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
-            ariaLabel="Switch section"
+            ariaLabel="Switch app"
           >
             <ActiveIcon className="size-4 shrink-0 text-foreground/70" />
             <span className="max-w-[12rem] truncate text-[13px] font-semibold text-foreground">
@@ -547,7 +616,7 @@ export function AppSwitcher({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
             className="size-7 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
-            ariaLabel="Switch section"
+            ariaLabel="Switch app"
           >
             <TbGridDots className="size-4" />
           </Button>
@@ -556,8 +625,14 @@ export function AppSwitcher({
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="max-h-[80vh] w-[calc(100vw-2rem)] overflow-y-auto p-2 sm:w-[22rem]"
+        className="max-h-[min(80vh,38rem)] w-[calc(100vw-2rem)] overflow-y-auto p-0 sm:w-[23.5rem]"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          searchInputRef.current?.focus();
+        }}
         onCloseAutoFocus={(event) => {
+          setSearchQuery('');
+
           if (!preventTriggerAutoFocusRef.current) {
             return;
           }
@@ -566,25 +641,66 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        <div className="border-b border-border px-2 pb-2 pt-1">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/42">
-            Switch app
+        <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border px-3.5 py-2.5">
+          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/52">
+            Apps
           </div>
-          <div className="mt-1 flex items-center gap-2 text-sm font-medium text-foreground">
-            <ActiveIcon className="size-4 shrink-0 text-foreground/70" />
-            <span className="truncate">{activeLabel}</span>
+          <div className="min-w-0 truncate text-[13px] font-semibold text-foreground/58">
+            {tenantLabel}
           </div>
         </div>
 
-        {sections.map((section) => (
-          <AppSwitcherMenuSection
-            key={section.id}
-            section={section}
-            activeItemKey={activeItemKey}
-            getAppHref={getAppHref}
-            onNavigateStart={handleNavigateStart}
-          />
-        ))}
+        <div className="px-3.5 pt-3">
+          <div className="relative">
+            <HiOutlineMagnifyingGlass
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/42"
+            />
+            <Input
+              ref={searchInputRef}
+              aria-label="Search apps"
+              className="h-10 rounded-lg border-border bg-background-secondary pl-9 pr-3 text-[13px] font-medium placeholder:text-foreground/46"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              onKeyDown={(event) => event.stopPropagation()}
+              placeholder="Search apps"
+              type="search"
+              value={searchQuery}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-x-1 gap-y-2 px-3.5 py-3.5">
+          {visibleApps.map((app) => (
+            <AppSwitcherGridItem
+              key={app.itemKey}
+              app={app}
+              isActive={app.itemKey === activeItemKey}
+              href={getAppHref(app)}
+              onNavigateStart={handleNavigateStart}
+            />
+          ))}
+        </div>
+
+        {visibleApps.length === 0 ? (
+          <div className="px-3.5 pb-4 text-center text-[12px] font-medium text-foreground/46">
+            No apps found
+          </div>
+        ) : null}
+
+        {normalizedSearchQuery ? (
+          <div className="border-t border-border px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/42">
+            Search results
+          </div>
+        ) : null}
+
+        <div className="sr-only" aria-live="polite">
+          {activeApp ? (
+            <>
+              Current app:
+              <span className="truncate">{activeLabel}</span>
+            </>
+          ) : null}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

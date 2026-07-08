@@ -18,7 +18,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
-import AdminSidebar from '@ui/shell/menus/AdminSidebar';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import type { ReactNode } from 'react';
 import { HiPlus } from 'react-icons/hi2';
@@ -30,10 +29,22 @@ type ShellChromeVariant = 'default';
 
 type TaskContextSearchParams = URLSearchParams;
 
+type AppSidebarSurface = {
+  active: boolean;
+  items: MenuItemConfig[];
+  logoHref: string;
+  currentApp?: MenuSharedProps['currentApp'];
+  sectionLabel?: string;
+  showOrgSwitcher?: boolean;
+  showUserProfile?: boolean;
+};
+
 type Props = {
   shellChromeVariant: ShellChromeVariant;
   taskContextSearchParams: TaskContextSearchParams;
   currentApp?: MenuSharedProps['currentApp'];
+  isCollapsed?: MenuSharedProps['isCollapsed'];
+  onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
   isAdminRoute: boolean;
   isAnalyticsRoute: boolean;
   isComposeRoute: boolean;
@@ -66,6 +77,8 @@ export default function AppProtectedLayoutSidebar({
   shellChromeVariant,
   taskContextSearchParams,
   currentApp,
+  isCollapsed,
+  onToggleCollapse,
   isAdminRoute,
   isAnalyticsRoute,
   isComposeRoute,
@@ -98,166 +111,119 @@ export default function AppProtectedLayoutSidebar({
   const orgSwitcherSlot = (
     <OrganizationSwitcher subscriptionTier={settings?.subscriptionTier} />
   );
+  const collapseProps = {
+    isCollapsed,
+    onToggleCollapse,
+  };
 
   if (isFocusedOnboardingRoute) {
     return null;
   }
 
-  if (isLibraryRoute) {
+  const surface = (
+    [
+      {
+        active: isLibraryRoute,
+        currentApp,
+        items: libraryMenuItems,
+        logoHref: buildHref(LIBRARY_LOGO_HREF),
+        sectionLabel: 'Library',
+        showOrgSwitcher: true,
+      },
+      {
+        active: isStudioRoute,
+        currentApp,
+        items: studioMenuItems,
+        logoHref: buildHref(STUDIO_LOGO_HREF),
+        sectionLabel: 'Studio',
+        showOrgSwitcher: true,
+      },
+      {
+        active: isAdminRoute,
+        items: adminMenuItems,
+        logoHref: ADMIN_LOGO_HREF,
+        showUserProfile: true,
+      },
+      {
+        active: isComposeRoute,
+        currentApp,
+        items: composeMenuItems,
+        logoHref: buildHref(COMPOSE_LOGO_HREF),
+        sectionLabel: 'Compose',
+        showOrgSwitcher: true,
+      },
+      {
+        active: isWorkflowsRoute,
+        currentApp,
+        items: workflowsMenuItems,
+        logoHref: buildHref(WORKFLOWS_LOGO_HREF),
+        sectionLabel: 'Workflows',
+        showOrgSwitcher: true,
+      },
+      {
+        active: isEditorRoute,
+        currentApp,
+        items: [],
+        logoHref: buildHref(APP_ROUTES.WORKSPACE.OVERVIEW),
+        sectionLabel: 'Editor',
+        showOrgSwitcher: true,
+      },
+      {
+        active: isAnalyticsRoute,
+        currentApp,
+        items: analyticsMenuItems,
+        logoHref: buildHref(ANALYTICS_LOGO_HREF),
+        sectionLabel: 'Analytics',
+        showOrgSwitcher: true,
+      },
+      {
+        active: isResearchRoute,
+        currentApp,
+        items: researchMenuItems,
+        logoHref: buildHref(RESEARCH_LOGO_HREF),
+        sectionLabel: 'Research',
+        showOrgSwitcher: true,
+      },
+      {
+        active: isOrgRoute,
+        currentApp,
+        items: orgMenuItems,
+        logoHref: orgHref(ORG_LOGO_HREF),
+        sectionLabel: 'Organization',
+        showOrgSwitcher: true,
+      },
+      {
+        active: isSettingsRoute,
+        currentApp,
+        items: settingsMenuItems,
+        logoHref: buildHref(SETTINGS_LOGO_HREF),
+        sectionLabel: 'Settings',
+        showOrgSwitcher: true,
+      },
+    ] satisfies AppSidebarSurface[]
+  ).find(({ active }) => active);
+
+  if (surface) {
     return (
       <AppSidebar
-        items={libraryMenuItems}
+        {...collapseProps}
+        currentApp={surface.currentApp}
+        items={surface.items}
         logoHref={withTaskContextHref(
-          buildHref(LIBRARY_LOGO_HREF),
+          surface.logoHref,
           taskContextSearchParams,
         )}
-        currentApp={currentApp}
-        sectionLabel="Library"
+        sectionLabel={surface.sectionLabel}
         shellChromeVariant={shellChromeVariant}
-        orgSwitcherSlot={orgSwitcherSlot}
-      />
-    );
-  }
-
-  if (isStudioRoute) {
-    return (
-      <AppSidebar
-        items={studioMenuItems}
-        logoHref={withTaskContextHref(
-          buildHref(STUDIO_LOGO_HREF),
-          taskContextSearchParams,
-        )}
-        currentApp={currentApp}
-        sectionLabel="Studio"
-        shellChromeVariant={shellChromeVariant}
-        orgSwitcherSlot={orgSwitcherSlot}
-      />
-    );
-  }
-
-  if (isAdminRoute) {
-    return (
-      <AdminSidebar
-        items={adminMenuItems}
-        logoHref={withTaskContextHref(ADMIN_LOGO_HREF, taskContextSearchParams)}
-      />
-    );
-  }
-
-  if (isComposeRoute) {
-    return (
-      <AppSidebar
-        items={composeMenuItems}
-        logoHref={withTaskContextHref(
-          buildHref(COMPOSE_LOGO_HREF),
-          taskContextSearchParams,
-        )}
-        currentApp={currentApp}
-        sectionLabel="Compose"
-        shellChromeVariant={shellChromeVariant}
-        orgSwitcherSlot={orgSwitcherSlot}
-      />
-    );
-  }
-
-  if (isWorkflowsRoute) {
-    return (
-      <AppSidebar
-        items={workflowsMenuItems}
-        logoHref={withTaskContextHref(
-          buildHref(WORKFLOWS_LOGO_HREF),
-          taskContextSearchParams,
-        )}
-        currentApp={currentApp}
-        sectionLabel="Workflows"
-        shellChromeVariant={shellChromeVariant}
-        orgSwitcherSlot={orgSwitcherSlot}
-      />
-    );
-  }
-
-  if (isEditorRoute) {
-    return (
-      <AppSidebar
-        items={[]}
-        logoHref={withTaskContextHref(
-          buildHref(APP_ROUTES.WORKSPACE.OVERVIEW),
-          taskContextSearchParams,
-        )}
-        currentApp={currentApp}
-        sectionLabel="Editor"
-        shellChromeVariant={shellChromeVariant}
-        orgSwitcherSlot={orgSwitcherSlot}
-      />
-    );
-  }
-
-  if (isAnalyticsRoute) {
-    return (
-      <AppSidebar
-        items={analyticsMenuItems}
-        logoHref={withTaskContextHref(
-          buildHref(ANALYTICS_LOGO_HREF),
-          taskContextSearchParams,
-        )}
-        currentApp={currentApp}
-        sectionLabel="Analytics"
-        shellChromeVariant={shellChromeVariant}
-        orgSwitcherSlot={orgSwitcherSlot}
-      />
-    );
-  }
-
-  if (isResearchRoute) {
-    return (
-      <AppSidebar
-        items={researchMenuItems}
-        logoHref={withTaskContextHref(
-          buildHref(RESEARCH_LOGO_HREF),
-          taskContextSearchParams,
-        )}
-        currentApp={currentApp}
-        sectionLabel="Research"
-        shellChromeVariant={shellChromeVariant}
-        orgSwitcherSlot={orgSwitcherSlot}
-      />
-    );
-  }
-
-  if (isOrgRoute) {
-    return (
-      <AppSidebar
-        items={orgMenuItems}
-        logoHref={withTaskContextHref(
-          orgHref(ORG_LOGO_HREF),
-          taskContextSearchParams,
-        )}
-        currentApp={currentApp}
-        sectionLabel="Organization"
-        shellChromeVariant={shellChromeVariant}
-        orgSwitcherSlot={orgSwitcherSlot}
-      />
-    );
-  }
-
-  if (isSettingsRoute) {
-    return (
-      <AppSidebar
-        items={settingsMenuItems}
-        logoHref={withTaskContextHref(
-          buildHref(SETTINGS_LOGO_HREF),
-          taskContextSearchParams,
-        )}
-        currentApp={currentApp}
-        sectionLabel="Settings"
-        shellChromeVariant={shellChromeVariant}
-        orgSwitcherSlot={orgSwitcherSlot}
+        orgSwitcherSlot={surface.showOrgSwitcher ? orgSwitcherSlot : undefined}
+        showUserProfile={surface.showUserProfile}
       />
     );
   }
 
   return (
     <AppSidebar
+      {...collapseProps}
       currentApp={currentApp}
       items={isConversationRoute ? [] : menuItems}
       logoHref={withTaskContextHref(

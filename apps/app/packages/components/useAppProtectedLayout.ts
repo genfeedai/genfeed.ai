@@ -531,6 +531,7 @@ export function useAppProtectedLayout(
       ADMIN_MENU_ITEMS.map(
         (item): MenuItemConfig => ({
           ...item,
+          hrefScope: 'global',
           href: withTaskContextHref(item.href, taskContextSearchParams),
         }),
       ),

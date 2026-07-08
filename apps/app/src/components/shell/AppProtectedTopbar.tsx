@@ -20,7 +20,12 @@ import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
-import { HiBars3, HiOutlineCommandLine, HiXMark } from 'react-icons/hi2';
+import {
+  HiBars3,
+  HiOutlineCommandLine,
+  HiOutlineSparkles,
+  HiXMark,
+} from 'react-icons/hi2';
 import { PiSidebarSimple } from 'react-icons/pi';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { isHostedCloudApp } from '@/lib/config/edition';
@@ -48,7 +53,14 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   workspace: 'Workspace',
 };
 
+type AppProtectedTopbarChrome = 'app' | 'admin';
+
+type AppProtectedTopbarProps = TopbarProps & {
+  chrome?: AppProtectedTopbarChrome;
+};
+
 function AppProtectedTopbarContent({
+  chrome = 'app',
   isMenuOpen,
   onMenuToggle,
   isSidebarCollapsed,
@@ -58,7 +70,7 @@ function AppProtectedTopbarContent({
   currentApp,
   orgSlug,
   brandSlug,
-}: TopbarProps = {}) {
+}: AppProtectedTopbarProps = {}) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { push } = useRouter();
@@ -114,9 +126,16 @@ function AppProtectedTopbarContent({
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
+  const isAdminChrome = chrome === 'admin';
   const shouldRenderAgentToggle =
     Boolean(onAgentToggle) &&
     (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' || !isHostedCloudApp());
+  const effectiveCurrentApp = isAdminChrome
+    ? 'admin'
+    : (currentApp ?? 'workspace');
+  const AgentToggleIcon = isAdminChrome
+    ? HiOutlineSparkles
+    : HiOutlineCommandLine;
   const backToTaskHref = taskId
     ? href(
         appendSearchParamsToHref(
@@ -163,7 +182,7 @@ function AppProtectedTopbarContent({
             </Button>
           ) : null}
 
-          {brands.length > 0 ? (
+          {!isAdminChrome && brands.length > 0 ? (
             <div className="w-36 min-w-0 sm:w-44 md:w-48">
               <MenuBrandSwitcher
                 variant="labeled"
@@ -178,7 +197,12 @@ function AppProtectedTopbarContent({
         <div className="hidden min-w-0 justify-center md:flex">
           <TopbarBreadcrumbs
             fallbackRootLabel={
-              TOPBAR_BREADCRUMB_ROOT_LABELS[currentApp ?? 'workspace']
+              TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
+            }
+            rootLabel={
+              isAdminChrome
+                ? TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
+                : undefined
             }
           />
         </div>
@@ -217,11 +241,11 @@ function AppProtectedTopbarContent({
               }
               onClick={onAgentToggle}
             >
-              <HiOutlineCommandLine className="size-4" />
+              <AgentToggleIcon className="size-4" />
             </Button>
           ) : null}
 
-          <CloudSyncIndicator />
+          {!isAdminChrome ? <CloudSyncIndicator /> : null}
 
           {/* Grouped account controls: section switcher sits directly beside
               the settings/user menu so they read as one cluster. */}
@@ -229,18 +253,18 @@ function AppProtectedTopbarContent({
             {effectiveOrgSlug ? (
               <AppSwitcher
                 variant="icon"
-                currentApp={currentApp ?? 'workspace'}
+                currentApp={effectiveCurrentApp}
                 currentPath={pathname}
                 orgSlug={effectiveOrgSlug}
                 brandSlug={effectiveBrandSlug}
-                showAdmin={isSuperAdmin}
+                showAdmin={isAdminChrome || isSuperAdmin}
               />
             ) : null}
 
-            <TopbarEnd />
+            {!isAdminChrome ? <TopbarEnd /> : null}
           </div>
 
-          <TopbarCreditsBar />
+          {!isAdminChrome ? <TopbarCreditsBar /> : null}
         </div>
       </div>
     </header>

@@ -226,6 +226,36 @@ describe('AppProtectedTopbar', () => {
     );
   });
 
+  it('renders admin chrome without brand, credits, account, or cloud controls', () => {
+    render(
+      <AppProtectedTopbar
+        chrome="admin"
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="workspace"
+      />,
+    );
+
+    expect(
+      screen.getByRole('navigation', { name: 'Breadcrumb' }),
+    ).toHaveTextContent('Admin');
+    expect(screen.getByTestId('app-switcher')).toHaveTextContent('icon');
+    expect(appSwitcherSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandSlug: 'brand',
+        currentApp: 'admin',
+        orgSlug: 'acme',
+        showAdmin: true,
+      }),
+    );
+    expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('cloud-sync-indicator'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('topbar-end')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('topbar-credits-bar')).not.toBeInTheDocument();
+  });
+
   it('enables the admin app switcher item for platform admins', () => {
     mockAccessState.isSuperAdmin = true;
 
