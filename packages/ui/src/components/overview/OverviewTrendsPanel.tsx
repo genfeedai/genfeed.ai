@@ -86,7 +86,7 @@ export function OverviewTrendsPanel({
       ) : topTrends.length === 0 ? (
         <div
           data-testid="overview-trends-empty"
-          className="ship-ui gen-shell-empty-state flex items-center justify-center rounded-[1rem] p-8 text-sm text-foreground/55"
+          className="flex items-center justify-center rounded-card bg-background p-8 text-sm text-foreground/55 shadow-border"
         >
           No trends yet.
         </div>
@@ -95,7 +95,7 @@ export function OverviewTrendsPanel({
           {topTrends.map((trend) => (
             <div
               key={trend.id}
-              className="ship-ui gen-shell-surface flex items-center gap-3 rounded-[1rem] border-white/[0.06] bg-background/52 px-4 py-3"
+              className="flex items-center gap-3 rounded-card bg-background px-4 py-3 shadow-border"
             >
               <span
                 className={cn(
