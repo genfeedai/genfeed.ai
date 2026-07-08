@@ -210,7 +210,13 @@ function SwitcherItem({
   const TrailingIcon = item.trailingAction?.icon;
 
   return (
-    <div className="group flex w-full items-center">
+    <div
+      className={cn(
+        'group mx-1 flex items-center rounded-sm transition-colors duration-150',
+        'hover:bg-foreground/[0.06] focus-within:bg-foreground/[0.06] has-[[data-selected=true]]:bg-foreground/[0.06]',
+        item.isActive && 'bg-foreground/[0.06]',
+      )}
+    >
       {/* cmdk Item = the selectable row. The active row is `disabled` so cmdk
           skips it in keyboard nav and never fires onSelect for it. The gear is
           a sibling (below), not nested here, to avoid interactive-in-interactive. */}
@@ -219,11 +225,11 @@ function SwitcherItem({
         disabled={item.isActive}
         onSelect={() => onSelect(item.id)}
         className={cn(
-          'flex min-w-0 flex-1 items-center gap-2.5 rounded-none py-2 pl-3 text-sm transition-colors duration-150',
+          'flex min-w-0 flex-1 items-center gap-2.5 rounded-sm bg-transparent py-2 pl-2 text-sm transition-colors duration-150 data-[selected=true]:bg-transparent',
           item.trailingAction ? 'pr-1' : 'pr-3',
           item.isActive
             ? 'cursor-default text-foreground data-[disabled=true]:opacity-100'
-            : 'cursor-pointer text-foreground/70 data-[selected=true]:bg-foreground/[0.06] data-[selected=true]:text-foreground',
+            : 'cursor-pointer text-foreground/70 data-[selected=true]:text-foreground group-hover:text-foreground',
         )}
       >
         {/* Avatar */}
@@ -266,7 +272,7 @@ function SwitcherItem({
           onClick={onAction}
           className={cn(
             'mr-1 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
-            'hover:bg-foreground/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
+            'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
           )}
         >
           <TrailingIcon className="size-3.5" />

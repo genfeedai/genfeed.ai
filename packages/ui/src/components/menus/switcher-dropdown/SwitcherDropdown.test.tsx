@@ -197,6 +197,34 @@ describe('SwitcherDropdown', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  it('applies hover treatment to the full row when a trailing action is present', () => {
+    renderDropdown({
+      items: [
+        {
+          id: '1',
+          isActive: true,
+          label: 'Alpha',
+          trailingAction: {
+            ariaLabel: 'Open Alpha settings',
+            icon: HiOutlineCog6Tooth,
+            onAction: vi.fn(),
+          },
+        },
+      ],
+    });
+
+    fireEvent.click(screen.getByText('Open'));
+
+    const settingsButton = screen.getByRole('button', {
+      name: 'Open Alpha settings',
+    });
+    const row = settingsButton.parentElement;
+
+    expect(row).toHaveClass('hover:bg-foreground/[0.06]');
+    expect(row).toHaveClass('bg-foreground/[0.06]');
+    expect(settingsButton).not.toHaveClass('hover:bg-foreground/[0.08]');
+  });
+
   it('shows search when hasSearch is true', () => {
     renderDropdown({ hasSearch: true, searchPlaceholder: 'Find…' });
     fireEvent.click(screen.getByText('Open'));
