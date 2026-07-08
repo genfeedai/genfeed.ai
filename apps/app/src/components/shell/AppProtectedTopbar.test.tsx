@@ -381,7 +381,7 @@ describe('AppProtectedTopbar', () => {
     expect(screen.queryByTitle('Settings')).not.toBeInTheDocument();
   });
 
-  it('renders close and expand controls for open mobile menu and collapsed sidebar', () => {
+  it('renders mobile close control and reserves space for the collapsed sidebar logo', () => {
     render(
       <AppProtectedTopbar
         isMenuOpen
@@ -395,8 +395,11 @@ describe('AppProtectedTopbar', () => {
       screen.getByRole('button', { name: 'Close navigation menu' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Expand sidebar' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('button', { name: 'Expand sidebar' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-protected-topbar-inner')).toHaveClass(
+      'pl-14',
+    );
   });
 
   it('clears the visible brand on explicit organization routes', () => {

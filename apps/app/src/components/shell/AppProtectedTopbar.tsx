@@ -30,7 +30,6 @@ import {
   HiOutlineSparkles,
   HiXMark,
 } from 'react-icons/hi2';
-import { PiSidebarSimple } from 'react-icons/pi';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { isHostedCloudApp } from '@/lib/config/edition';
 import {
@@ -68,7 +67,6 @@ function AppProtectedTopbarContent({
   isMenuOpen,
   onMenuToggle,
   isSidebarCollapsed,
-  onSidebarToggle,
   isAgentCollapsed,
   onAgentToggle,
   currentApp,
@@ -175,10 +173,12 @@ function AppProtectedTopbarContent({
 
   return (
     <header className="ship-ui h-full w-full bg-transparent">
-      {/* Brand trigger has px-2 internally, so pl-4 aligns its visible mark to the 24px page gutter. */}
+      {/* Brand trigger has px-2 internally; collapsed sidebar leaves room for the fixed logo toggle. */}
       <div
         data-testid="app-protected-topbar-inner"
-        className="grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pl-4 pr-6"
+        className={`grid h-full w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pr-6 ${
+          isSidebarCollapsed ? 'pl-14' : 'pl-4'
+        }`}
       >
         <div className="flex min-w-0 items-center gap-2 justify-self-start">
           {onMenuToggle ? (
@@ -194,19 +194,6 @@ function AppProtectedTopbarContent({
               onClick={onMenuToggle}
             >
               <ToggleIcon className="size-5" />
-            </Button>
-          ) : null}
-
-          {isSidebarCollapsed && onSidebarToggle ? (
-            <Button
-              type="button"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className="hidden size-7 md:flex"
-              ariaLabel="Expand sidebar"
-              onClick={onSidebarToggle}
-            >
-              <PiSidebarSimple className="size-4" />
             </Button>
           ) : null}
 
