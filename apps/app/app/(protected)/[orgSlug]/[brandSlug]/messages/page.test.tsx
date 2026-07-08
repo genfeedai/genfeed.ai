@@ -155,6 +155,17 @@ const messages = [
     updatedAt: '2026-07-02T08:00:00.000Z',
   },
   {
+    actionProvenance: {
+      action: 'draft',
+      actedAt: '2026-07-02T08:05:30.000Z',
+      actorType: 'agent',
+      agentRunId: 'agent-run-1',
+      platform: 'youtube',
+      status: 'draft',
+      userId: 'user-1',
+      workflowRunId: 'workflow-run-1',
+    },
+    agentRunId: 'agent-run-1',
     body: 'Here is a drafted answer.',
     conversationId: 'conversation-1',
     createdAt: '2026-07-02T08:05:00.000Z',
@@ -164,6 +175,8 @@ const messages = [
     platform: 'youtube',
     status: 'draft',
     updatedAt: '2026-07-02T08:05:00.000Z',
+    userId: 'user-1',
+    workflowRunId: 'workflow-run-1',
   },
 ];
 
@@ -206,6 +219,10 @@ describe('SocialMessagesPage', () => {
     expect(
       await screen.findByText('Here is a drafted answer.'),
     ).toBeInTheDocument();
+    expect(screen.getByText('workflow-run-1')).toBeInTheDocument();
+    expect(screen.getByText('agent-run-1')).toBeInTheDocument();
+    expect(screen.getByText('user-1')).toBeInTheDocument();
+    expect(screen.getByText('Draft')).toBeInTheDocument();
 
     const automationLink = screen.getByRole('link', { name: /Automation/i });
     expect(automationLink).toHaveAttribute(

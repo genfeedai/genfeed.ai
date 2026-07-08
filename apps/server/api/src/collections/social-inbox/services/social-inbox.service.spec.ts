@@ -398,6 +398,15 @@ describe('SocialInboxService', () => {
       messages.filter((message) => message.direction === 'outbound'),
     ).toHaveLength(1);
     expect(youtubeService.postCommentReply).toHaveBeenCalledTimes(1);
+    expect(first.actionProvenance).toMatchObject({
+      action: 'post_reply',
+      actedAt: expect.any(String),
+      actorType: 'workflow',
+      platform: 'youtube',
+      status: 'sent',
+      userId: 'user-1',
+      workflowRunId: 'workflow-run-1',
+    });
     expect(first.workflowRunId).toBe('workflow-run-1');
     expect(first.status).toBe('sent');
   });
@@ -505,7 +514,12 @@ describe('SocialInboxService', () => {
     expect(draft).toMatchObject({
       actionProvenance: {
         action: 'draft',
+        actedAt: expect.any(String),
+        actorType: 'agent',
         agentRunId: 'agent-run-1',
+        platform: 'youtube',
+        status: 'draft',
+        userId: 'user-1',
         workflowRunId: 'workflow-run-1',
       },
       body: 'Try this answer',
@@ -536,7 +550,12 @@ describe('SocialInboxService', () => {
     expect(sent).toMatchObject({
       actionProvenance: {
         action: 'post_reply',
+        actedAt: expect.any(String),
+        actorType: 'agent',
         agentRunId: 'agent-run-1',
+        platform: 'youtube',
+        status: 'sent',
+        userId: 'user-1',
         workflowRunId: 'workflow-run-1',
       },
       status: 'sent',
