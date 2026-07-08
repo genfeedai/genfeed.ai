@@ -629,10 +629,6 @@ export function AppSwitcher({
         align="end"
         sideOffset={8}
         className="max-h-[min(80vh,38rem)] w-[calc(100vw-2rem)] overflow-y-auto p-0 sm:w-[23.5rem]"
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          searchInputRef.current?.focus();
-        }}
         onCloseAutoFocus={(event) => {
           setSearchQuery('');
 
@@ -662,6 +658,7 @@ export function AppSwitcher({
             <Input
               ref={searchInputRef}
               aria-label="Search apps"
+              autoFocus
               className="h-10 rounded-lg border-border bg-background-secondary pl-9 pr-3 text-[13px] font-medium placeholder:text-foreground/46"
               onChange={(event) => setSearchQuery(event.target.value)}
               onKeyDown={(event) => event.stopPropagation()}
