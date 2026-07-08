@@ -212,7 +212,7 @@ function SwitcherItem({
   return (
     <div
       className={cn(
-        'group mx-1 flex items-center rounded-sm transition-colors duration-150',
+        'group mx-1 flex min-h-9 w-[calc(100%-0.5rem)] items-center rounded-sm transition-colors duration-150',
         'hover:bg-foreground/[0.06] focus-within:bg-foreground/[0.06] has-[[data-selected=true]]:bg-foreground/[0.06]',
         item.isActive && 'bg-foreground/[0.06]',
       )}

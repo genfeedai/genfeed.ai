@@ -1,10 +1,8 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
-import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
-import Image from 'next/image';
+import { HiBars3BottomLeft, HiChevronRight } from 'react-icons/hi2';
 
 type CollapsedSidebarLogoToggleProps = {
   onClick: () => void;
@@ -13,8 +11,6 @@ type CollapsedSidebarLogoToggleProps = {
 export default function CollapsedSidebarLogoToggle({
   onClick,
 }: CollapsedSidebarLogoToggleProps) {
-  const logoUrl = useThemeLogo();
-
   return (
     <Button
       type="button"
@@ -22,21 +18,13 @@ export default function CollapsedSidebarLogoToggle({
       withWrapper={false}
       onClick={onClick}
       ariaLabel="Expand sidebar"
-      className="fixed left-2 z-[60] hidden size-8 items-center justify-center rounded-md border border-border/70 bg-background/95 text-foreground shadow-sm backdrop-blur transition-colors hover:border-foreground/20 hover:bg-background-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:flex"
+      className="group fixed left-2 z-[60] hidden size-8 items-center justify-center rounded-md border border-border/70 bg-background/95 text-foreground/72 shadow-sm backdrop-blur transition-colors hover:border-foreground/20 hover:bg-background-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 md:flex"
       style={{ top: 'calc(var(--desktop-titlebar-height) + 0.5rem)' }}
     >
-      {logoUrl ? (
-        <Image
-          src={logoUrl}
-          alt={EnvironmentService.LOGO_ALT}
-          className="size-4 object-contain dark:invert"
-          width={16}
-          height={16}
-          sizes="16px"
-        />
-      ) : (
-        <span className="text-sm font-bold leading-none">G</span>
-      )}
+      <span className="relative flex size-4 items-center justify-center">
+        <HiBars3BottomLeft className="size-4" />
+        <HiChevronRight className="absolute -right-1 size-3 rounded-full bg-background text-foreground/46 transition-colors group-hover:text-foreground/82" />
+      </span>
     </Button>
   );
 }

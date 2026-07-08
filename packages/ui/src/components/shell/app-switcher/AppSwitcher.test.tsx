@@ -234,6 +234,25 @@ describe('AppSwitcher', () => {
     );
   });
 
+  it('routes the agent tile to the selected brand when the current route is org-scoped', () => {
+    render(
+      <AppSwitcher
+        orgSlug="acme"
+        currentApp="workspace"
+        brandAwareSlug="moonrise"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Agent' })).toHaveAttribute(
+      'href',
+      '/acme/moonrise/agent',
+    );
+    expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
+      'href',
+      '/acme/~/workspace/overview',
+    );
+  });
+
   it('marks messages active when the messages shell is current', () => {
     render(
       <AppSwitcher orgSlug="acme" brandSlug="my-brand" currentApp="messages" />,

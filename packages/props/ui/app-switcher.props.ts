@@ -1,6 +1,8 @@
 import type { AppContext } from '@genfeedai/interfaces';
 
 export interface AppSwitcherProps {
+  /** Selected brand context used by brand-aware apps when the current route is org-scoped. */
+  brandAwareSlug?: string;
   brandSlug?: string;
   currentApp: AppContext;
   currentPath?: string;
