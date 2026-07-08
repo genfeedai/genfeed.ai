@@ -95,6 +95,10 @@ type SchedulerPostTarget = {
   url: string | null;
 };
 
+type ChannelValidationMedia = NonNullable<
+  Parameters<typeof validateChannelTargetSettings>[0]['media']
+>;
+
 const CREATE_ALLOWED_STATUSES = new Set<string>([
   ReleaseStatus.DRAFT,
   ReleaseStatus.SCHEDULED,
@@ -280,7 +284,7 @@ export class PostGroupsService {
               nextStatus,
               userId,
             )
-          : existing.statusTransitions;
+          : undefined;
 
       const updated = (await tx.postGroup.update({
         data: {
@@ -303,7 +307,7 @@ export class PostGroupsService {
           ...(input.status !== undefined && { status: input.status }),
           ...(input.timezone !== undefined && { timezone: input.timezone }),
           ...(input.title !== undefined && { title: input.title }),
-          statusTransitions: transition,
+          ...(transition !== undefined && { statusTransitions: transition }),
         },
         where: { id: existing.id },
       })) as SchedulerPostGroup;
@@ -578,12 +582,12 @@ export class PostGroupsService {
             status,
             userId,
           )
-        : group.statusTransitions;
+        : undefined;
 
     const updated = (await tx.postGroup.update({
       data: {
         status,
-        statusTransitions: transitions,
+        ...(transitions !== undefined && { statusTransitions: transitions }),
       },
       where: { id: group.id },
     })) as SchedulerPostGroup;
@@ -1045,13 +1049,28 @@ export class PostGroupsService {
 
   private toValidationMedia(
     media: readonly ReleaseMediaReferenceInput[] | undefined,
-  ): Array<{ id?: string; kind: string }> | undefined {
+  ): ChannelValidationMedia | undefined {
     if (!media?.length) {
       return undefined;
     }
     return media
-      .filter((item) => item.kind)
-      .map((item) => ({ id: item.assetId, kind: item.kind as string }));
+      .filter((item) => this.isValidationMediaKind(item.kind))
+      .map((item) => {
+        const kind = item.kind as ChannelValidationMedia[number]['kind'];
+        return item.assetId ? { id: item.assetId, kind } : { kind };
+      });
+  }
+
+  private isValidationMediaKind(
+    kind: ReleaseMediaReferenceInput['kind'],
+  ): kind is ChannelValidationMedia[number]['kind'] {
+    return (
+      kind === 'carousel' ||
+      kind === 'image' ||
+      kind === 'link' ||
+      kind === 'short_video' ||
+      kind === 'video'
+    );
   }
 
   private buildIngredientConnect(
@@ -1069,7 +1088,9 @@ export class PostGroupsService {
     if (!Array.isArray(value)) {
       return [];
     }
-    return value.filter(this.isReleaseMediaReference);
+    return value.filter((item): item is IReleaseMediaReference =>
+      this.isReleaseMediaReference(item),
+    );
   }
 
   private isReleaseMediaReference(
@@ -1122,7 +1143,9 @@ export class PostGroupsService {
     if (!Array.isArray(value)) {
       return [];
     }
-    return value.filter(this.isTransition);
+    return value.filter((item): item is IScheduleStatusTransition =>
+      this.isTransition(item),
+    );
   }
 
   private isTransition(value: unknown): value is IScheduleStatusTransition {
@@ -1140,7 +1163,7 @@ export class PostGroupsService {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return null;
     }
-    return value as IReleaseGroup['recurrence'];
+    return value as unknown as IReleaseGroup['recurrence'];
   }
 
   private asRecord(value: Prisma.JsonValue): Record<string, unknown> {
@@ -1156,7 +1179,7 @@ export class PostGroupsService {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return null;
     }
-    return value as IChannelTarget['readiness'];
+    return value as unknown as IChannelTarget['readiness'];
   }
 
   private asTargetError(
@@ -1165,6 +1188,6 @@ export class PostGroupsService {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return null;
     }
-    return value as IChannelTarget['error'];
+    return value as unknown as IChannelTarget['error'];
   }
 }
