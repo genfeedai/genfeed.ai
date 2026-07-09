@@ -273,6 +273,10 @@ describe('TiktokService', () => {
     it('maps connected account videos without static fallback trends', async () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue({
         accessToken: 'access',
+        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+        id: 'credential-id',
+        isConnected: true,
+        oauthTokenHash: '',
       });
       (httpService.get as vi.Mock).mockReturnValue(
         of({

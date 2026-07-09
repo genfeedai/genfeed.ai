@@ -98,7 +98,10 @@ describe('InstagramService', () => {
     it('maps connected account hashtag engagement without static fallback trends', async () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue({
         accessToken: 'token',
+        accessTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         externalId: 'instagram-account',
+        id: 'credential-id',
+        isConnected: true,
       });
       (httpServiceMock.get as vi.Mock).mockReturnValue(
         of({
@@ -122,7 +125,10 @@ describe('InstagramService', () => {
     it('does not return hard-coded hashtags when provider lookup fails', async () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue({
         accessToken: 'token',
+        accessTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         externalId: 'instagram-account',
+        id: 'credential-id',
+        isConnected: true,
       });
       (httpServiceMock.get as vi.Mock).mockReturnValue(
         throwError(() => new Error('Meta unavailable')),
