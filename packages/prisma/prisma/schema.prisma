@@ -841,6 +841,7 @@ model Brand {
   agentStrategies            AgentStrategy[]
   agentCampaigns             AgentCampaign[]
   agentGoals                 AgentGoal[]
+  agentRuns                  AgentRun[]
   agentMemories              AgentMemory[]
   agentMessages              AgentMessage[]
   socialConversations        SocialConversation[]
@@ -2699,6 +2700,8 @@ model AgentRun {
   organization   Organization   @relation(fields: [organizationId], references: [id])
   userId         String
   user           User           @relation(fields: [userId], references: [id])
+  brandId        String?
+  brand          Brand?         @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   strategyId     String?
   strategy       AgentStrategy? @relation(fields: [strategyId], references: [id])
   threadId       String?
@@ -2727,10 +2730,17 @@ model AgentRun {
   label       String?
   objective   String?
   trigger     String?
-  creditsUsed Int     @default(0)
-  durationMs  Int?
+  steps       Json    @default("[]")
+  toolCalls   Json    @default("[]")
+  summary     String?
+  progress    Int     @default(0)
+  retryCount  Int     @default(0)
+  creditBudget Int?
+  creditsUsed  Int     @default(0)
+  durationMs   Int?
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "agent_runs_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, status, createdAt(sort: Desc)])
   @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, isDeleted, status, completedAt(sort: Desc)], map: "agent_runs_org_deleted_status_completed_at_idx")

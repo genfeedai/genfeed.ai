@@ -2,6 +2,7 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentExecutionTrigger } from '@genfeedai/enums';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsEnum,
   IsNumber,
   IsObject,
@@ -11,13 +12,15 @@ import {
 } from 'class-validator';
 
 export class CreateAgentRunDto {
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsEntityId()
-  organization!: string;
+  organization?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsEntityId()
-  user!: string;
+  user?: string;
 
   @ApiProperty()
   @IsEnum(AgentExecutionTrigger)
@@ -39,6 +42,11 @@ export class CreateAgentRunDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsEntityId()
+  brand?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsNumber()
   @Min(0)
   creditBudget?: number;
@@ -47,4 +55,16 @@ export class CreateAgentRunDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: [Object] })
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  steps?: Record<string, unknown>[];
+
+  @ApiPropertyOptional({ type: [Object] })
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  toolCalls?: Record<string, unknown>[];
 }

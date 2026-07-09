@@ -12,10 +12,23 @@ export interface IAgentRunToolCall {
   executedAt: string;
 }
 
+export interface IAgentRunStep {
+  id?: string;
+  index: number;
+  label: string;
+  status: AgentExecutionStatus;
+  startedAt?: string;
+  completedAt?: string;
+  durationMs?: number;
+  toolCallIds?: string[];
+  metadata?: Record<string, unknown>;
+}
+
 export interface IAgentRun {
   id: string;
   organization: string;
   user: string;
+  brand?: string | null;
   trigger: AgentExecutionTrigger;
   status: AgentExecutionStatus;
   strategy?: string;
@@ -23,6 +36,7 @@ export interface IAgentRun {
   parentRun?: string;
   label: string;
   objective?: string;
+  steps: IAgentRunStep[];
   toolCalls: IAgentRunToolCall[];
   summary?: string;
   creditsUsed: number;
