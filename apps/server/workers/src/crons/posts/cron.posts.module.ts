@@ -8,6 +8,7 @@ import { QuotaModule } from '@api/services/quota/quota.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
+import { WorkersQueuesModule } from '@workers/queues/queues.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
     forwardRef(() => WebhookClientModule),
     PublishersModule,
     QuotaModule,
+    forwardRef(() => WorkersQueuesModule),
   ],
   exports: [CronPostsService],
   providers: [CronPostsService, SystemWorkflowProvenanceService],

@@ -33,6 +33,7 @@ import type {
   IScheduleStatusTransition,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { PostPublishQueueService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { ZodError } from 'zod';
@@ -116,6 +117,7 @@ export class PostGroupsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly postPublishQueueService: PostPublishQueueService,
   ) {}
 
   async create(
@@ -492,13 +494,15 @@ export class PostGroupsService {
     userId: string,
     groupId: string,
   ): Promise<IReleaseGroup> {
-    return this.prisma.$transaction(async (tx) => {
+    const release = await this.prisma.$transaction(async (tx) => {
       const group = await this.getGroupOrThrow(tx, organizationId, groupId);
       const targets = await this.getTargets(tx, organizationId, group.id);
 
       for (const target of targets) {
         const validation = validateChannelTargetSettings({
+          caption: group.baseContent,
           credentialId: target.credentialId,
+          media: this.toValidationMedia(this.asMedia(group.media)),
           platform: target.platform,
           publishMode: 'publish_now',
           settings: this.asRecord(target.targetSettings),
@@ -531,6 +535,30 @@ export class PostGroupsService {
 
       return this.recalculateAndHydrate(tx, organizationId, group.id, userId);
     });
+
+    await this.enqueueReleaseTargets(release, userId);
+    return release;
+  }
+
+  private async enqueueReleaseTargets(
+    release: IReleaseGroup,
+    userId: string,
+  ): Promise<void> {
+    const targets = release.targets ?? [];
+    await Promise.all(
+      targets
+        .filter(
+          (target) => target.executionState === TargetExecutionState.SCHEDULED,
+        )
+        .map((target) =>
+          this.postPublishQueueService.enqueue({
+            organizationId: release.organizationId,
+            postId: target.id,
+            source: 'publish_now',
+            userId,
+          }),
+        ),
+    );
   }
 
   private async transitionGroupTargets(
@@ -1048,7 +1076,12 @@ export class PostGroupsService {
   }
 
   private toValidationMedia(
-    media: readonly ReleaseMediaReferenceInput[] | undefined,
+    media:
+      | readonly {
+          assetId: string;
+          kind?: string | null;
+        }[]
+      | undefined,
   ): ChannelValidationMedia | undefined {
     if (!media?.length) {
       return undefined;
@@ -1062,7 +1095,7 @@ export class PostGroupsService {
   }
 
   private isValidationMediaKind(
-    kind: ReleaseMediaReferenceInput['kind'],
+    kind: string | null | undefined,
   ): kind is ChannelValidationMedia[number]['kind'] {
     return (
       kind === 'carousel' ||

@@ -75,6 +75,7 @@ import { AnalyticsSocialJobService } from '@server/analytics/services/analytics-
 import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics-twitter-job.service';
 import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
 import { SERVER_TOKENS } from '@server/server.dependencies';
+import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 // --- collections/ processors ---
 import { ArticleGenerationProcessor } from '@workers/processors/api/collections/articles/processors/article-generation.processor';
 import { BatchWorkflowProcessor } from '@workers/processors/api/collections/workflows/services/batch-workflow.processor';
@@ -100,6 +101,7 @@ import { EmailDigestProcessor } from '@workers/processors/api/queues/email-diges
 import { HeygenPollProcessor } from '@workers/processors/api/queues/heygen-poll/heygen-poll.processor';
 import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycle-email/lifecycle-email.processor';
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
+import { PostPublishProcessor } from '@workers/processors/api/queues/post-publish/post-publish.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
 import { TelegramDistributeProcessor } from '@workers/processors/api/queues/telegram-distribute/telegram-distribute.processor';
 // --- services/ processors ---
@@ -119,6 +121,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     LoggerModule,
     HttpModule,
     WorkersQueuesModule,
+    forwardRef(() => CronPostsModule),
 
     // Config
     forwardRef(() => ConfigModule),
@@ -223,7 +226,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
       useExisting: YoutubeService,
     },
 
-    // --- queues/ processors (22) ---
+    // --- queues/ processors (23) ---
     AdBulkUploadProcessor,
     AdOptimizationProcessor,
     AdSyncGoogleProcessor,
@@ -244,6 +247,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     HeygenPollProcessor,
     LifecycleEmailProcessor,
     PatternExtractionProcessor,
+    PostPublishProcessor,
     ReplyBotPollingProcessor,
     TelegramDistributeProcessor,
 
