@@ -14,11 +14,25 @@ describe('app/(protected)/[orgSlug]/~/settings/(pages)/organization/billing/page
     expect(source).toContain('export ');
   });
 
-  it('keeps the non-EE credits redirect scoped to the active organization', () => {
+  it('keeps the legacy settings page hard-cut to the organization settings 404 shim', () => {
     const source = readFileSync(
       join(
         process.cwd(),
         'app/(protected)/[orgSlug]/~/settings/(pages)/organization/billing/page.tsx',
+      ),
+      'utf8',
+    );
+
+    expect(source).toContain('LegacyOrganizationSettingsNotFound');
+  });
+});
+
+describe('app/(protected)/[orgSlug]/~/settings/(organization)/billing/page.tsx', () => {
+  it('keeps the non-EE credits redirect scoped to the active organization', () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'app/(protected)/[orgSlug]/~/settings/(organization)/billing/page.tsx',
       ),
       'utf8',
     );
