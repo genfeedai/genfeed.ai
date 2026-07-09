@@ -251,6 +251,12 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'agentRun',
+    table: 'agent_runs',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'contentRun',
     table: 'content_runs',
     brandField: 'brandId',
@@ -427,9 +433,9 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
  *
  * Intentionally NOT relocated here (org- or execution-level history, ambiguous
  * ownership): `SubscriptionAttribution` (revenue, keyed to the subscriber org),
- * `AgentThread` / `AgentRun` / `AgentThreadEvent` (agent conversation/execution history
- * — no brand key, indirect ownership), `Invitation` (org-level). These stay in the
- * source org by design.
+ * `AgentThread` / `AgentThreadEvent` (agent conversation history — no brand key,
+ * indirect ownership), `Invitation` (org-level). These stay in the source org by
+ * design.
  *
  * `WorkflowExecution` / `BatchWorkflowJob` hang off the first-order `Workflow`
  * parent and now move with the brand-owned workflow row.
