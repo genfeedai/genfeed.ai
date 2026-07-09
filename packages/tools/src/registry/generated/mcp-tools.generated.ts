@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1011 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1013 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -11592,6 +11592,25 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "content_gateway"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "getMentions (GET /content/mentions)",
+    "name": "content_mentions__get_mentions",
+    "parameters": {
+      "properties": {},
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "content_mentions"
     ]
   },
   {
@@ -36444,6 +36463,25 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "tasks"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "getMentions (GET /team/mentions)",
+    "name": "team_mentions__get_mentions",
+    "parameters": {
+      "properties": {},
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "team_mentions"
     ]
   },
   {

@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import type { PostsQueryDto } from '../dto/posts-query.dto';
 
@@ -240,5 +241,85 @@ describe('PostsController.findAll (#1223)', () => {
       PostsController.prototype.findAll,
     );
     expect(roles).toBeUndefined();
+  });
+});
+
+describe('PostsService.listContentMentions', () => {
+  const prisma = {
+    post: {
+      findMany: vi.fn(),
+    },
+  };
+  const logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+  };
+
+  let service: PostsService;
+
+  beforeEach(() => {
+    prisma.post.findMany.mockReset();
+    service = new PostsService(prisma as never, logger as never);
+  });
+
+  it('returns recent organization posts as content mentions', async () => {
+    prisma.post.findMany.mockResolvedValue([
+      {
+        category: PostCategory.TEXT,
+        description: 'Fallback text',
+        entityArticle: null,
+        entityIngredient: {
+          cdnUrl: 'https://cdn.test/image.png',
+          sampleAudioUrl: null,
+        },
+        id: 'post-1',
+        label: 'Launch thread',
+      },
+      {
+        category: PostCategory.IMAGE,
+        description: 'Article fallback',
+        entityArticle: {
+          coverImageUrl: 'https://cdn.test/article.png',
+          title: 'Article title',
+        },
+        entityIngredient: null,
+        id: 'post-2',
+        label: null,
+      },
+    ]);
+
+    const result = await service.listContentMentions('org-1');
+
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 50,
+        where: {
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      }),
+    );
+    expect(result).toEqual([
+      {
+        contentTitle: 'Launch thread',
+        contentType: 'text',
+        id: 'post-1',
+        thumbnailUrl: 'https://cdn.test/image.png',
+      },
+      {
+        contentTitle: 'Article title',
+        contentType: 'image',
+        id: 'post-2',
+        thumbnailUrl: 'https://cdn.test/article.png',
+      },
+    ]);
+  });
+
+  it('does not query without organization scope', async () => {
+    const result = await service.listContentMentions('');
+
+    expect(result).toEqual([]);
+    expect(prisma.post.findMany).not.toHaveBeenCalled();
   });
 });

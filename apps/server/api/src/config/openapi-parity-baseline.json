@@ -1232,6 +1232,11 @@
       "path": "/content-gateway/signal"
     },
     {
+      "method": "get",
+      "operationId": "ContentMentionsController.getMentions",
+      "path": "/content/mentions"
+    },
+    {
       "method": "post",
       "operationId": "ContentOptimizationController.autoApplySuggestion",
       "path": "/brands/{brandId}/optimization/suggestions/auto-apply"
@@ -4200,6 +4205,11 @@
       "method": "delete",
       "operationId": "TasksController.trashOutput",
       "path": "/tasks/{id}/outputs/{outputId}"
+    },
+    {
+      "method": "get",
+      "operationId": "TeamMentionsController.getMentions",
+      "path": "/team/mentions"
     },
     {
       "method": "get",

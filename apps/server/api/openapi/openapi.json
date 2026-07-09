@@ -25975,6 +25975,21 @@
         ]
       }
     },
+    "/content/mentions": {
+      "get": {
+        "operationId": "ContentMentionsController.getMentions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "getMentions",
+        "tags": [
+          "content"
+        ]
+      }
+    },
     "/contexts": {
       "get": {
         "operationId": "ContextsController.findAll",
@@ -45107,6 +45122,21 @@
         "tags": [
           "tasks/:taskId/comments",
           "Task Comments"
+        ]
+      }
+    },
+    "/team/mentions": {
+      "get": {
+        "operationId": "TeamMentionsController.getMentions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "getMentions",
+        "tags": [
+          "team"
         ]
       }
     },

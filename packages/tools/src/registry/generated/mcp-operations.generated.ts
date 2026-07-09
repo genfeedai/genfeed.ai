@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1011 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1013 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -3827,6 +3827,17 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     "pathParams": [],
     "queryParams": [],
     "toolName": "content_gateway__route_signal"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "ContentMentionsController.getMentions",
+    "path": "/content/mentions",
+    "pathParams": [],
+    "queryParams": [],
+    "toolName": "content_mentions__get_mentions"
   },
   {
     "bodyFields": [],
@@ -12818,6 +12829,17 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     ],
     "queryParams": [],
     "toolName": "tasks__trash_output"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "TeamMentionsController.getMentions",
+    "path": "/team/mentions",
+    "pathParams": [],
+    "queryParams": [],
+    "toolName": "team_mentions__get_mentions"
   },
   {
     "bodyFields": [],
