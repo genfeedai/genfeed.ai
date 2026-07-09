@@ -20,10 +20,6 @@ vi.mock('@genfeedai/enums', async (importOriginal) => {
   };
 });
 
-vi.mock('@api/collections/models/schemas/model.schema', () => ({
-  Model: { name: 'Model' },
-}));
-
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
 }));

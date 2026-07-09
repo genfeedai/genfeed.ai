@@ -1,6 +1,6 @@
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelCategory, PricingType } from '@genfeedai/enums';
 import { applyMargin } from '@genfeedai/helpers';
+import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import type { IModelPricingEstimate } from '@workers/interfaces/model-discovery.interface';
@@ -148,7 +148,7 @@ export class ModelPricingService {
   estimateCost(
     category: string,
     creator: string,
-    existingModels: ModelDocument[],
+    existingModels: ServerModelRecord[],
   ): IModelPricingEstimate {
     const context = 'ModelPricingService estimateCost';
     const tierConfig = CATEGORY_TIER_MAP[category] || DEFAULT_TIER_CONFIG;
