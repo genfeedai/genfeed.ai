@@ -1,6 +1,6 @@
 import { SourcePostActionType } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class SourcePostDraftActionDto {
   @IsEnum(SourcePostActionType)
@@ -21,7 +21,7 @@ export class SourcePostDraftActionDto {
 }
 
 export class SourcePostTwitterActionDto {
-  @IsEnum(SourcePostActionType)
+  @IsIn([SourcePostActionType.REPLY, SourcePostActionType.QUOTE])
   @ApiProperty({
     enum: [SourcePostActionType.REPLY, SourcePostActionType.QUOTE],
     enumName: 'SourcePostTwitterActionType',

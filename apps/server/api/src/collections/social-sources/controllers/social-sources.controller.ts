@@ -1,18 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateSocialSourceDto } from '@api/collections/social-sources/dto/create-social-source.dto';
-import {
-  SocialSourceScopeQueryDto,
-  SocialSourcesQueryDto,
-} from '@api/collections/social-sources/dto/social-sources-query.dto';
+import { SocialSourcesQueryDto } from '@api/collections/social-sources/dto/social-sources-query.dto';
 import { SyncSocialSourceDto } from '@api/collections/social-sources/dto/sync-social-source.dto';
 import { UpdateSocialSourceDto } from '@api/collections/social-sources/dto/update-social-source.dto';
+import { ValidateSocialSourceDto } from '@api/collections/social-sources/dto/validate-social-source.dto';
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  extractRequestContext,
-  getIsSuperAdmin,
-} from '@api/helpers/utils/auth/auth.util';
+import { resolveRequiredBrandRequestContext } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -24,7 +20,6 @@ import {
   Delete,
   Get,
   HttpCode,
-  HttpException,
   HttpStatus,
   Param,
   Patch,
@@ -44,13 +39,13 @@ export class SocialSourcesController {
 
   @Get('feed')
   getFeed(@CurrentUser() user: User, @Query() query: SocialSourcesQueryDto) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     return this.socialSourcesService.getFeed(context, query);
   }
 
   @Post('validate')
   @HttpCode(HttpStatus.OK)
-  validate(@Body() body: { platform: string; handle: string }) {
+  validate(@Body() body: ValidateSocialSourceDto) {
     return this.socialSourcesService.validateSource(body.platform, body.handle);
   }
 
@@ -58,10 +53,10 @@ export class SocialSourcesController {
   @HttpCode(HttpStatus.OK)
   syncBrand(
     @CurrentUser() user: User,
-    @Query() query: SocialSourceScopeQueryDto,
+    @Query() query: BrandScopeQueryDto,
     @Body() body: SyncSocialSourceDto,
   ) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     return this.socialSourcesService.syncBrand(context, {
       limit: body.limit,
     });
@@ -73,7 +68,7 @@ export class SocialSourcesController {
     @CurrentUser() user: User,
     @Query() query: SocialSourcesQueryDto,
   ) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     const result = await this.socialSourcesService.findAllScoped(
       context,
       query,
@@ -87,7 +82,7 @@ export class SocialSourcesController {
     @CurrentUser() user: User,
     @Body() body: CreateSocialSourceDto,
   ) {
-    const context = resolveContext(user, {});
+    const context = resolveRequiredBrandRequestContext(user);
     const source = await this.socialSourcesService.createScoped(body, context);
     return serializeSingle(request, SocialSourceSerializer, source);
   }
@@ -96,10 +91,10 @@ export class SocialSourcesController {
   async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: SocialSourceScopeQueryDto,
+    @Query() query: BrandScopeQueryDto,
     @Param('id') id: string,
   ) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     const source = await this.socialSourcesService.findOneScoped(id, context);
     return serializeSingle(request, SocialSourceSerializer, source);
   }
@@ -108,11 +103,11 @@ export class SocialSourcesController {
   async update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: SocialSourceScopeQueryDto,
+    @Query() query: BrandScopeQueryDto,
     @Param('id') id: string,
     @Body() body: UpdateSocialSourceDto,
   ) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     const source = await this.socialSourcesService.updateScoped(
       id,
       body,
@@ -125,10 +120,10 @@ export class SocialSourcesController {
   async remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: SocialSourceScopeQueryDto,
+    @Query() query: BrandScopeQueryDto,
     @Param('id') id: string,
   ) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     const source = await this.socialSourcesService.removeScoped(id, context);
     return serializeSingle(request, SocialSourceSerializer, source);
   }
@@ -137,37 +132,13 @@ export class SocialSourcesController {
   @HttpCode(HttpStatus.OK)
   syncOne(
     @CurrentUser() user: User,
-    @Query() query: SocialSourceScopeQueryDto,
+    @Query() query: BrandScopeQueryDto,
     @Param('id') id: string,
     @Body() body: SyncSocialSourceDto,
   ) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     return this.socialSourcesService.syncSource(id, context, {
       limit: body.limit,
     });
   }
-}
-
-function resolveContext(
-  user: User,
-  query: { brand?: string; organization?: string },
-) {
-  const requestContext = extractRequestContext(user);
-  const canOverrideScope = getIsSuperAdmin(user);
-  const organizationId =
-    canOverrideScope && query.organization
-      ? query.organization
-      : requestContext.organizationId;
-  const brandId =
-    canOverrideScope && query.brand ? query.brand : requestContext.brandId;
-  const userId = requestContext.userId || user.id;
-
-  if (!organizationId || !brandId || !userId) {
-    throw new HttpException(
-      'Organization, brand, and user context are required',
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  return { brandId, organizationId, userId };
 }

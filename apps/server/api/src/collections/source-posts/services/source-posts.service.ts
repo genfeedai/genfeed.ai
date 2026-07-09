@@ -10,7 +10,9 @@ import {
   SourcePostActionType,
 } from '@genfeedai/enums';
 import type {
+  ITwitterPublishResult,
   SourcePostDraftActionInput,
+  SourcePostDraftActionResult,
   SourcePostMetrics,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -49,6 +51,25 @@ type SourcePostCreateInput = {
   hashtags?: string[];
   publishedAt?: Date | null;
   raw?: Record<string, unknown>;
+};
+
+type CollectedPostData = {
+  authorAvatarUrl: string | null;
+  authorDisplayName: string | null;
+  authorFollowersCount: number | null;
+  authorHandle: string;
+  authorId: string | null;
+  contentType: string;
+  hashtags: string[];
+  mediaUrls: string[];
+  metrics: SourcePostMetrics;
+  platform: string;
+  publishedAt: Date | null;
+  raw: Record<string, unknown>;
+  sourceUrl: string | null;
+  text: string | null;
+  thumbnailUrl: string | null;
+  userId: string | null;
 };
 
 type PrismaDelegate<T> = {
@@ -165,51 +186,18 @@ export class SourcePostsService {
     const collected: SourcePostDocument[] = [];
 
     for (const post of posts) {
+      const postData = this.buildCollectedPostData(post, source);
       const saved = await this.db.sourcePost.upsert({
         create: {
-          authorAvatarUrl: post.authorAvatarUrl ?? source.avatarUrl ?? null,
-          authorDisplayName:
-            post.authorDisplayName ?? source.displayName ?? null,
-          authorFollowersCount:
-            post.authorFollowersCount ?? source.followersCount ?? null,
-          authorHandle: post.authorHandle ?? source.handle,
-          authorId: post.authorId ?? null,
+          ...postData,
           brandId: source.brandId,
-          contentType: post.contentType,
           externalId: post.externalId,
-          hashtags: post.hashtags ?? [],
-          mediaUrls: post.mediaUrls ?? [],
-          metrics: post.metrics ?? {},
           organizationId: source.organizationId,
-          platform: source.platform,
-          publishedAt: post.publishedAt ?? null,
-          raw: post.raw ?? {},
           sourceId: source.id,
-          sourceUrl: post.sourceUrl ?? null,
-          text: post.text ?? null,
-          thumbnailUrl: post.thumbnailUrl ?? null,
-          userId: post.userId ?? source.userId ?? null,
         },
         update: {
-          authorAvatarUrl: post.authorAvatarUrl ?? source.avatarUrl ?? null,
-          authorDisplayName:
-            post.authorDisplayName ?? source.displayName ?? null,
-          authorFollowersCount:
-            post.authorFollowersCount ?? source.followersCount ?? null,
-          authorHandle: post.authorHandle ?? source.handle,
-          authorId: post.authorId ?? null,
-          contentType: post.contentType,
-          hashtags: post.hashtags ?? [],
+          ...postData,
           isDeleted: false,
-          mediaUrls: post.mediaUrls ?? [],
-          metrics: post.metrics ?? {},
-          platform: source.platform,
-          publishedAt: post.publishedAt ?? null,
-          raw: post.raw ?? {},
-          sourceUrl: post.sourceUrl ?? null,
-          text: post.text ?? null,
-          thumbnailUrl: post.thumbnailUrl ?? null,
-          userId: post.userId ?? source.userId ?? null,
         },
         where: {
           sourceId_externalId: {
@@ -222,6 +210,31 @@ export class SourcePostsService {
     }
 
     return collected;
+  }
+
+  private buildCollectedPostData(
+    post: SourcePostCreateInput,
+    source: SourceRecord,
+  ): CollectedPostData {
+    return {
+      authorAvatarUrl: post.authorAvatarUrl ?? source.avatarUrl ?? null,
+      authorDisplayName: post.authorDisplayName ?? source.displayName ?? null,
+      authorFollowersCount:
+        post.authorFollowersCount ?? source.followersCount ?? null,
+      authorHandle: post.authorHandle ?? source.handle,
+      authorId: post.authorId ?? null,
+      contentType: post.contentType,
+      hashtags: post.hashtags ?? [],
+      mediaUrls: post.mediaUrls ?? [],
+      metrics: post.metrics ?? {},
+      platform: source.platform,
+      publishedAt: post.publishedAt ?? null,
+      raw: post.raw ?? {},
+      sourceUrl: post.sourceUrl ?? null,
+      text: post.text ?? null,
+      thumbnailUrl: post.thumbnailUrl ?? null,
+      userId: post.userId ?? source.userId ?? null,
+    };
   }
 
   async getWeeklyCorpus(
@@ -263,7 +276,7 @@ export class SourcePostsService {
     id: string,
     context: { organizationId: string; brandId: string; userId: string },
     input: SourcePostDraftActionInput = {},
-  ) {
+  ): Promise<SourcePostDraftActionResult> {
     const sourcePost = await this.findOneScoped(id, context);
     const platform = normalizeCredentialPlatform(sourcePost.platform);
     const credential = await this.credentialsService.findOne({
@@ -310,7 +323,7 @@ export class SourcePostsService {
     id: string,
     context: { organizationId: string; brandId: string },
     input: { actionType: SourcePostActionType; text: string },
-  ) {
+  ): Promise<ITwitterPublishResult> {
     const sourcePost = await this.findOneScoped(id, {
       brandId: context.brandId,
       organizationId: context.organizationId,
@@ -375,7 +388,12 @@ export class SourcePostsService {
           set: Array.from(ingredientIds).map((id) => ({ id })),
         },
       },
-      where: { id: postId },
+      where: {
+        brandId: context.brandId,
+        id: postId,
+        isDeleted: false,
+        organizationId: context.organizationId,
+      },
     });
 
     return {

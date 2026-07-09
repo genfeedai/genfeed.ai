@@ -36014,7 +36014,29 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "description": "SocialSourcesController.validate (POST /social-sources/validate)",
     "name": "social_sources__validate",
     "parameters": {
-      "properties": {},
+      "properties": {
+        "handle": {
+          "description": "Platform handle or profile URL",
+          "maxLength": 512,
+          "type": "string"
+        },
+        "platform": {
+          "allOf": [
+            {
+              "enum": [
+                "twitter",
+                "instagram",
+                "tiktok"
+              ],
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "handle",
+        "platform"
+      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -36056,54 +36078,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "id": {
           "type": "string"
         },
-        "isDeleted": {
-          "default": false,
-          "description": "Filter by deleted status",
-          "type": "boolean"
-        },
-        "isFavorite": {
-          "description": "Filter by favorite status",
-          "type": "boolean"
-        },
-        "limit": {
-          "default": 10,
-          "description": "Number of items per page",
-          "maximum": 100,
-          "minimum": 1,
-          "type": "number"
-        },
         "organization": {
           "description": "Filter by organization ID (superadmin only)",
-          "type": "string"
-        },
-        "page": {
-          "default": 1,
-          "description": "Page number for pagination",
-          "minimum": 1,
-          "type": "number"
-        },
-        "pagination": {
-          "default": true,
-          "description": "Enable or disable pagination",
-          "type": "boolean"
-        },
-        "platform": {
-          "enum": [
-            "twitter",
-            "instagram",
-            "tiktok"
-          ],
-          "type": "string"
-        },
-        "search": {
-          "type": "string"
-        },
-        "sort": {
-          "default": "createdAt: -1",
-          "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-          "type": "string"
-        },
-        "source": {
           "type": "string"
         },
         "text": {
@@ -36213,54 +36189,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "id": {
           "type": "string"
         },
-        "isDeleted": {
-          "default": false,
-          "description": "Filter by deleted status",
-          "type": "boolean"
-        },
-        "isFavorite": {
-          "description": "Filter by favorite status",
-          "type": "boolean"
-        },
-        "limit": {
-          "default": 10,
-          "description": "Number of items per page",
-          "maximum": 100,
-          "minimum": 1,
-          "type": "number"
-        },
         "organization": {
           "description": "Filter by organization ID (superadmin only)",
-          "type": "string"
-        },
-        "page": {
-          "default": 1,
-          "description": "Page number for pagination",
-          "minimum": 1,
-          "type": "number"
-        },
-        "pagination": {
-          "default": true,
-          "description": "Enable or disable pagination",
-          "type": "boolean"
-        },
-        "platform": {
-          "enum": [
-            "twitter",
-            "instagram",
-            "tiktok"
-          ],
-          "type": "string"
-        },
-        "search": {
-          "type": "string"
-        },
-        "sort": {
-          "default": "createdAt: -1",
-          "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-          "type": "string"
-        },
-        "source": {
           "type": "string"
         }
       },
@@ -36304,54 +36234,8 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "id": {
           "type": "string"
         },
-        "isDeleted": {
-          "default": false,
-          "description": "Filter by deleted status",
-          "type": "boolean"
-        },
-        "isFavorite": {
-          "description": "Filter by favorite status",
-          "type": "boolean"
-        },
-        "limit": {
-          "default": 10,
-          "description": "Number of items per page",
-          "maximum": 100,
-          "minimum": 1,
-          "type": "number"
-        },
         "organization": {
           "description": "Filter by organization ID (superadmin only)",
-          "type": "string"
-        },
-        "page": {
-          "default": 1,
-          "description": "Page number for pagination",
-          "minimum": 1,
-          "type": "number"
-        },
-        "pagination": {
-          "default": true,
-          "description": "Enable or disable pagination",
-          "type": "boolean"
-        },
-        "platform": {
-          "enum": [
-            "twitter",
-            "instagram",
-            "tiktok"
-          ],
-          "type": "string"
-        },
-        "search": {
-          "type": "string"
-        },
-        "sort": {
-          "default": "createdAt: -1",
-          "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-          "type": "string"
-        },
-        "source": {
           "type": "string"
         },
         "text": {

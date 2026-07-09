@@ -1,7 +1,11 @@
 import type { CreateSocialSourceDto } from '@api/collections/social-sources/dto/create-social-source.dto';
 import type { SocialSourcesQueryDto } from '@api/collections/social-sources/dto/social-sources-query.dto';
 import type { UpdateSocialSourceDto } from '@api/collections/social-sources/dto/update-social-source.dto';
-import type { SocialSourceDocument } from '@api/collections/social-sources/schemas/social-source.schema';
+import type {
+  SocialSourceBrandSyncDocumentResult,
+  SocialSourceDocument,
+  SocialSourceSyncDocumentResult,
+} from '@api/collections/social-sources/schemas/social-source.schema';
 import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -13,21 +17,9 @@ import {
   SocialSourcePlatform,
   SocialSourceType,
 } from '@genfeedai/enums';
+import type { SocialSourceValidationResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-
-type PrismaDelegate<T> = {
-  count: (args?: Record<string, unknown>) => Promise<number>;
-  create: (args: Record<string, unknown>) => Promise<T>;
-  findFirst: (args?: Record<string, unknown>) => Promise<T | null>;
-  findMany: (args?: Record<string, unknown>) => Promise<T[]>;
-  update: (args: Record<string, unknown>) => Promise<T>;
-};
-
-type PrismaWithSocialSources = PrismaService & {
-  brand: PrismaDelegate<{ id: string }>;
-  socialSource: PrismaDelegate<SocialSourceDocument>;
-};
 
 export interface SocialSourcesFeedResult {
   sources: SocialSourceDocument[];
@@ -49,10 +41,6 @@ export class SocialSourcesService {
     private readonly socialMonitorService: SocialMonitorService,
   ) {}
 
-  private get db(): PrismaWithSocialSources {
-    return this.prisma as PrismaWithSocialSources;
-  }
-
   async createScoped(
     dto: CreateSocialSourceDto,
     context: { organizationId: string; brandId: string; userId: string },
@@ -61,7 +49,7 @@ export class SocialSourcesService {
 
     const platform = normalizePlatform(dto.platform);
     const handle = normalizeHandle(platform, dto.handle);
-    const source = await this.db.socialSource.create({
+    const source = await this.prisma.socialSource.create({
       data: {
         avatarUrl: dto.avatarUrl ?? null,
         bio: dto.bio ?? null,
@@ -92,13 +80,13 @@ export class SocialSourcesService {
     const limit = Math.min(100, Math.max(1, query.limit ?? 25));
     const where = this.buildScopedWhere(context, query);
     const [docs, total] = await Promise.all([
-      this.db.socialSource.findMany({
+      this.prisma.socialSource.findMany({
         orderBy: [{ createdAt: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
         where,
       }),
-      this.db.socialSource.count({ where }),
+      this.prisma.socialSource.count({ where }),
     ]);
 
     return {
@@ -131,7 +119,7 @@ export class SocialSourcesService {
     const sources = sourcesResult.docs;
     const lastSyncedAt = sources
       .map((source) => source.lastSyncedAt)
-      .filter((value): value is Date | string => Boolean(value))
+      .filter((value): value is Date => value instanceof Date)
       .map((value) => new Date(value).toISOString())
       .sort()
       .at(-1);
@@ -152,7 +140,7 @@ export class SocialSourcesService {
     id: string,
     context: { organizationId: string; brandId: string },
   ): Promise<SocialSourceDocument> {
-    const source = await this.db.socialSource.findFirst({
+    const source = await this.prisma.socialSource.findFirst({
       where: {
         brandId: context.brandId,
         id,
@@ -181,7 +169,12 @@ export class SocialSourcesService {
       ? normalizeHandle(platform, dto.handle)
       : undefined;
 
-    return this.db.socialSource.update({
+    const effectiveHandle = handle ?? existing.handle;
+    const shouldRefreshProfileUrl =
+      dto.profileUrl === undefined &&
+      (dto.platform !== undefined || dto.handle !== undefined);
+
+    return this.prisma.socialSource.update({
       data: {
         ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
         ...(dto.bio !== undefined && { bio: dto.bio }),
@@ -194,10 +187,19 @@ export class SocialSourcesService {
         ...(handle !== undefined && { handle }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.platform !== undefined && { platform }),
-        ...(dto.profileUrl !== undefined && { profileUrl: dto.profileUrl }),
+        ...(dto.profileUrl !== undefined
+          ? { profileUrl: dto.profileUrl }
+          : shouldRefreshProfileUrl
+            ? { profileUrl: buildProfileUrl(platform, effectiveHandle) }
+            : {}),
         ...(dto.sourceType !== undefined && { sourceType: dto.sourceType }),
       },
-      where: { id },
+      where: {
+        brandId: context.brandId,
+        id,
+        isDeleted: false,
+        organizationId: context.organizationId,
+      },
     });
   }
 
@@ -206,13 +208,21 @@ export class SocialSourcesService {
     context: { organizationId: string; brandId: string },
   ): Promise<SocialSourceDocument> {
     await this.findOneScoped(id, context);
-    return this.db.socialSource.update({
+    return this.prisma.socialSource.update({
       data: { isActive: false, isDeleted: true },
-      where: { id },
+      where: {
+        brandId: context.brandId,
+        id,
+        isDeleted: false,
+        organizationId: context.organizationId,
+      },
     });
   }
 
-  async validateSource(platformInput: string, handleInput: string) {
+  async validateSource(
+    platformInput: string,
+    handleInput: string,
+  ): Promise<SocialSourceValidationResult> {
     const platform = normalizePlatform(platformInput);
     const handle = normalizeHandle(platform, handleInput);
     const posts = await this.socialMonitorService.getUserTimeline(
@@ -242,7 +252,7 @@ export class SocialSourcesService {
     id: string,
     context: { organizationId: string; brandId: string },
     options: { limit?: number } = {},
-  ) {
+  ): Promise<SocialSourceSyncDocumentResult> {
     const source = await this.findOneScoped(id, context);
     return this.syncResolvedSource(source, options);
   }
@@ -250,8 +260,8 @@ export class SocialSourcesService {
   async syncBrand(
     context: { organizationId: string; brandId: string },
     options: { limit?: number } = {},
-  ) {
-    const sources = await this.db.socialSource.findMany({
+  ): Promise<SocialSourceBrandSyncDocumentResult> {
+    const sources = await this.prisma.socialSource.findMany({
       where: {
         brandId: context.brandId,
         isActive: true,
@@ -260,13 +270,22 @@ export class SocialSourcesService {
       },
     });
 
-    const results = [];
+    const results: SocialSourceSyncDocumentResult[] = [];
+    const failures: Array<{ error: string; sourceId: string }> = [];
     for (const source of sources) {
-      results.push(await this.syncResolvedSource(source, options));
+      try {
+        results.push(await this.syncResolvedSource(source, options));
+      } catch {
+        failures.push({
+          error: 'Source sync failed',
+          sourceId: source.id,
+        });
+      }
     }
 
     return {
       count: results.reduce((total, result) => total + result.count, 0),
+      failures,
       results,
     };
   }
@@ -274,7 +293,7 @@ export class SocialSourcesService {
   private async syncResolvedSource(
     source: SocialSourceDocument,
     options: { limit?: number },
-  ) {
+  ): Promise<SocialSourceSyncDocumentResult> {
     try {
       const content = await this.socialMonitorService.getUserTimeline(
         toReplyBotPlatform(source.platform),
@@ -288,21 +307,11 @@ export class SocialSourcesService {
         normalizeSourceContent(source, item),
       );
       const posts = await this.sourcePostsService.upsertCollectedPosts(
-        source as Required<
-          Pick<
-            SocialSourceDocument,
-            | 'brandId'
-            | 'handle'
-            | 'id'
-            | 'organizationId'
-            | 'platform'
-            | 'userId'
-          >
-        >,
+        source,
         normalizedPosts,
       );
       const latestPost = content[0];
-      const updatedSource = await this.db.socialSource.update({
+      const updatedSource = await this.prisma.socialSource.update({
         data: {
           avatarUrl: latestPost?.authorAvatarUrl ?? source.avatarUrl,
           displayName:
@@ -321,7 +330,12 @@ export class SocialSourcesService {
             latestPost?.authorUsername || source.handle,
           ),
         },
-        where: { id: source.id },
+        where: {
+          brandId: source.brandId,
+          id: source.id,
+          isDeleted: false,
+          organizationId: source.organizationId,
+        },
       });
 
       return { count: posts.length, posts, source: updatedSource };
@@ -331,13 +345,18 @@ export class SocialSourcesService {
         error: message,
         sourceId: source.id,
       });
-      await this.db.socialSource.update({
+      await this.prisma.socialSource.update({
         data: {
           lastSyncError: message,
           lastSyncStatus: 'failed',
           lastSyncedAt: new Date(),
         },
-        where: { id: source.id },
+        where: {
+          brandId: source.brandId,
+          id: source.id,
+          isDeleted: false,
+          organizationId: source.organizationId,
+        },
       });
       throw error;
     }
@@ -347,7 +366,7 @@ export class SocialSourcesService {
     organizationId: string,
     brandId: string,
   ): Promise<void> {
-    const brand = await this.db.brand.findFirst({
+    const brand = await this.prisma.brand.findFirst({
       where: { id: brandId, isDeleted: false, organizationId },
     });
     if (!brand) {
@@ -403,17 +422,48 @@ function normalizeHandle(platform: string, input: string): string {
   try {
     if (/^https?:\/\//i.test(trimmed)) {
       const url = new URL(trimmed);
-      const path = url.pathname
-        .split('/')
-        .filter(Boolean)
-        .find((segment) => segment !== '@');
-      return normalizeHandle(platform, path ?? trimmed);
+      const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
+      const allowedHosts = getPlatformHosts(platform);
+      if (!allowedHosts.includes(hostname)) {
+        throw new BadRequestException(
+          `Profile URL must use ${allowedHosts.join(' or ')}`,
+        );
+      }
+      const path = url.pathname.split('/').find(Boolean);
+      if (!path || path === '@') {
+        throw new BadRequestException('Profile URL must include a handle');
+      }
+      return normalizeHandle(platform, path);
     }
-  } catch {
-    // Fall through to string normalization.
+  } catch (error: unknown) {
+    if (error instanceof BadRequestException) {
+      throw error;
+    }
+    throw new BadRequestException('Profile URL is invalid');
   }
 
-  return trimmed.replace(/^@/, '').replace(/^\/+/, '').trim().toLowerCase();
+  const handle = trimmed
+    .replace(/^@/, '')
+    .replace(/^\/+/, '')
+    .trim()
+    .toLowerCase();
+  if (!handle) {
+    throw new BadRequestException('Social source handle is required');
+  }
+  return handle;
+}
+
+function getPlatformHosts(platform: string): string[] {
+  switch (platform) {
+    case SocialSourcePlatform.INSTAGRAM:
+      return ['instagram.com'];
+    case SocialSourcePlatform.TIKTOK:
+      return ['tiktok.com'];
+    case SocialSourcePlatform.TWITTER:
+      return ['x.com', 'twitter.com'];
+    default:
+      throw new BadRequestException(`Unsupported source platform: ${platform}`);
+  }
 }
 
 function buildProfileUrl(platform: string, handle: string): string {
@@ -455,7 +505,7 @@ function normalizeSourceContent(
     contentType: item.contentType,
     externalId: item.id,
     hashtags: item.hashtags ?? [],
-    mediaUrls: [],
+    mediaUrls: item.mediaUrls ?? [],
     metrics: item.metrics ?? {},
     organizationId: source.organizationId,
     platform: item.platform,
@@ -464,7 +514,7 @@ function normalizeSourceContent(
     sourceId: source.id,
     sourceUrl: item.contentUrl ?? null,
     text: item.text,
-    thumbnailUrl: null,
+    thumbnailUrl: item.thumbnailUrl ?? null,
     userId: source.userId,
   };
 }

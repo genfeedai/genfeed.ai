@@ -2,9 +2,10 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
+import { SOURCE_CORPUS_CONFIG_LIMITS } from '@api/collections/workflows/registry/node-registry';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import {
   HookGeneratorExecutor,
   PromptConstructorExecutor,
@@ -113,6 +114,7 @@ export class WorkflowContentExecutorRegistrarService {
         node.config,
         'credentialId',
       );
+      const platform = this.helper.readConfigString(node.config, 'platform');
       const brandLabel =
         this.helper.readConfigString(node.config, 'brandLabel') ?? 'the brand';
       const timezone =
@@ -127,6 +129,9 @@ export class WorkflowContentExecutorRegistrarService {
 
       if (credentialId) {
         credentialQuery._id = credentialId;
+      }
+      if (platform) {
+        credentialQuery.platform = platform as CredentialPlatform;
       }
 
       const credential = await credentialsService.findOne(credentialQuery);
@@ -148,32 +153,19 @@ export class WorkflowContentExecutorRegistrarService {
         completion.choices?.[0]?.message?.content?.trim() ??
         `Daily post draft for ${brandLabel}`;
 
-      const post = await (
-        postsService.prisma as unknown as {
-          post: {
-            create(args: Record<string, unknown>): Promise<{
-              description: string;
-              id: string;
-              label?: string | null;
-              platform: string;
-              status: string;
-            }>;
-          };
-        }
-      ).post.create({
-        data: {
-          brandId,
-          category: 'TEXT',
-          credentialId: credential.id,
-          description,
-          label: this.helper.buildPostLabel(description),
-          organizationId: context.organizationId,
-          platform: String(credential.platform).toLowerCase(),
-          source: 'workflow-post-generator',
-          status: PostStatus.DRAFT,
-          timezone,
-          userId: context.userId,
-        },
+      const post = await postsService.create({
+        brand: brandId,
+        category: PostCategory.TEXT,
+        credential: credential.id,
+        description,
+        ingredients: [],
+        label: this.helper.buildPostLabel(description),
+        organization: context.organizationId,
+        platform: credential.platform as CredentialPlatform,
+        source: 'workflow-post-generator',
+        status: PostStatus.DRAFT,
+        timezone,
+        user: context.userId,
       });
 
       return {
@@ -251,11 +243,27 @@ export class WorkflowContentExecutorRegistrarService {
         throw new Error('sourceCorpus requires brandId');
       }
 
-      const days = Math.round(
-        this.helper.getOptionalNumberConfig(node.config, 'days', 7),
+      const days = clampNumber(
+        Math.round(
+          this.helper.getOptionalNumberConfig(
+            node.config,
+            'days',
+            SOURCE_CORPUS_CONFIG_LIMITS.days.default,
+          ),
+        ),
+        SOURCE_CORPUS_CONFIG_LIMITS.days.min,
+        SOURCE_CORPUS_CONFIG_LIMITS.days.max,
       );
-      const limit = Math.round(
-        this.helper.getOptionalNumberConfig(node.config, 'limit', 50),
+      const limit = clampNumber(
+        Math.round(
+          this.helper.getOptionalNumberConfig(
+            node.config,
+            'limit',
+            SOURCE_CORPUS_CONFIG_LIMITS.limit.default,
+          ),
+        ),
+        SOURCE_CORPUS_CONFIG_LIMITS.limit.min,
+        SOURCE_CORPUS_CONFIG_LIMITS.limit.max,
       );
       const result = await sourcePostsService.getWeeklyCorpus(
         context.organizationId,
@@ -307,6 +315,10 @@ export class WorkflowContentExecutorRegistrarService {
       },
     );
   }
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function buildPostGenMessages(brandLabel: string, prompt: string) {

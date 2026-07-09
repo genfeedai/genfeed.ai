@@ -4,6 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -31,6 +32,7 @@ export class CreateSocialSourceDto {
   sourceType?: SocialSourceType;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(128)
   @ApiProperty({ description: 'Platform handle, with or without @' })
   handle!: string;

@@ -114,6 +114,7 @@ export const WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE: WorkflowTemplate = {
           brandId: '',
           brandLabel: 'the brand',
           credentialId: '',
+          platform: 'twitter',
           prompt: 'Draft an X post from the weekly AI thesis brief.',
           timezone: 'UTC',
         },

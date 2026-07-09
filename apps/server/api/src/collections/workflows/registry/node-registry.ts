@@ -52,6 +52,11 @@ export interface NodeDefinition {
   type?: string;
 }
 
+export const SOURCE_CORPUS_CONFIG_LIMITS = {
+  days: { default: 7, max: 30, min: 1 },
+  limit: { default: 50, max: 100, min: 1 },
+} as const;
+
 // =============================================================================
 // NODE REGISTRY
 // =============================================================================
@@ -249,6 +254,12 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
         label: 'Credential ID',
         type: 'string',
       },
+      platform: {
+        description: 'Optional connected social platform for the draft',
+        label: 'Platform',
+        options: ['twitter', 'instagram', 'tiktok', 'youtube'],
+        type: 'select',
+      },
       prompt: {
         description: 'Prompt that defines the recurring social post output',
         label: 'Prompt',
@@ -280,17 +291,17 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
         type: 'string',
       },
       days: {
-        default: 7,
+        default: SOURCE_CORPUS_CONFIG_LIMITS.days.default,
         label: 'Days',
-        max: 30,
-        min: 1,
+        max: SOURCE_CORPUS_CONFIG_LIMITS.days.max,
+        min: SOURCE_CORPUS_CONFIG_LIMITS.days.min,
         type: 'number',
       },
       limit: {
-        default: 50,
+        default: SOURCE_CORPUS_CONFIG_LIMITS.limit.default,
         label: 'Post Limit',
-        max: 100,
-        min: 1,
+        max: SOURCE_CORPUS_CONFIG_LIMITS.limit.max,
+        min: SOURCE_CORPUS_CONFIG_LIMITS.limit.min,
         type: 'number',
       },
     },

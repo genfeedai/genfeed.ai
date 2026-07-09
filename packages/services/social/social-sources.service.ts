@@ -1,8 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   CreateSocialSourceInput,
+  SocialSourceBrandSyncResult,
   SocialSourceSyncResult,
   SocialSourcesResponse,
+  SocialSourceValidationResult,
   UpdateSocialSourceInput,
 } from '@genfeedai/interfaces';
 import { SocialSource } from '@genfeedai/models/social/social-source.model';
@@ -52,8 +54,10 @@ export class SocialSourcesService extends BaseService<
     return response.data;
   }
 
-  async syncBrand(options: { brand?: string; limit?: number } = {}) {
-    const response = await this.instance.post(
+  async syncBrand(
+    options: { brand?: string; limit?: number } = {},
+  ): Promise<SocialSourceBrandSyncResult> {
+    const response = await this.instance.post<SocialSourceBrandSyncResult>(
       '/sync',
       { limit: options.limit },
       { params: { brand: options.brand } },
@@ -61,11 +65,14 @@ export class SocialSourcesService extends BaseService<
     return response.data;
   }
 
-  async validateSource(platform: string, handle: string) {
-    const response = await this.instance.post('/validate', {
-      handle,
-      platform,
-    });
+  async validateSource(
+    platform: string,
+    handle: string,
+  ): Promise<SocialSourceValidationResult> {
+    const response = await this.instance.post<SocialSourceValidationResult>(
+      '/validate',
+      { handle, platform },
+    );
     return response.data;
   }
 }

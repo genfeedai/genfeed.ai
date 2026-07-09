@@ -1,34 +1,22 @@
-import type { SocialSourcePlatform, SocialSourceType } from '@genfeedai/enums';
+import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
+import type { SocialSource } from '@genfeedai/prisma';
 
-export interface SocialSourceDocument {
-  id: string;
+export type SocialSourceDocument = SocialSource & {
   _id?: string;
-  mongoId?: string | null;
-  organizationId: string;
-  organization?: string | { id?: string } | null;
-  brandId: string;
   brand?: string | { id?: string } | null;
-  userId: string;
-  user?: string | { id?: string } | null;
-  credentialId?: string | null;
   credential?: string | { id?: string } | null;
-  platform: SocialSourcePlatform | string;
-  sourceType: SocialSourceType | string;
-  externalId?: string | null;
-  handle: string;
-  displayName?: string | null;
-  avatarUrl?: string | null;
-  profileUrl?: string | null;
-  bio?: string | null;
-  followersCount?: number | null;
-  isActive: boolean;
-  lastSyncedAt?: Date | string | null;
-  lastSyncStatus?: string | null;
-  lastSyncError?: string | null;
-  lastPostExternalId?: string | null;
-  metadata?: Record<string, unknown>;
-  isDeleted?: boolean;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
-  [key: string]: unknown;
+  organization?: string | { id?: string } | null;
+  user?: string | { id?: string } | null;
+};
+
+export interface SocialSourceSyncDocumentResult {
+  count: number;
+  posts: SourcePostDocument[];
+  source: SocialSourceDocument;
+}
+
+export interface SocialSourceBrandSyncDocumentResult {
+  count: number;
+  failures: Array<{ error: string; sourceId: string }>;
+  results: SocialSourceSyncDocumentResult[];
 }

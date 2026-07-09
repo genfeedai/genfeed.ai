@@ -3375,7 +3375,7 @@ model SocialSource {
 
   posts SourcePost[]
 
-  @@unique([brandId, platform, sourceType, handle, isDeleted], map: "social_sources_brand_platform_type_handle_deleted_key")
+  // Active-source uniqueness is enforced by the partial index in the model's migration.
   @@index([organizationId, brandId, isDeleted, isActive, platform], map: "social_sources_brand_active_idx")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "social_sources_org_created_idx")
   @@map("social_sources")

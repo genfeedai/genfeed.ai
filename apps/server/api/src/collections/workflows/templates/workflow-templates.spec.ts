@@ -41,6 +41,10 @@ describe('WorkflowTemplates', () => {
     expect(nodeTypes).toContain('ai-generate-image');
     expect(nodeTypes).toContain('attach-post-ingredient');
 
+    expect(
+      template?.nodes.find((node) => node.id === 'x-post-draft')?.data.config,
+    ).toMatchObject({ platform: 'twitter' });
+
     expect(template?.edges).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

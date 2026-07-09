@@ -25,5 +25,4 @@ export const sourcePostAttributes = createEntityAttributes([
   'hashtags',
   'publishedAt',
   'collectedAt',
-  'raw',
 ]);

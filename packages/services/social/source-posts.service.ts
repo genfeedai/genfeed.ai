@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
+  ITwitterPublishResult,
   SourcePostDraftActionInput,
   SourcePostDraftActionResult,
 } from '@genfeedai/interfaces';
@@ -33,8 +34,8 @@ export class SourcePostsService extends BaseService<SourcePost> {
     postId: string,
     body: { actionType: 'reply' | 'quote'; text: string },
     options: { brand?: string } = {},
-  ) {
-    const response = await this.instance.post(
+  ): Promise<ITwitterPublishResult> {
+    const response = await this.instance.post<ITwitterPublishResult>(
       `/${postId}/actions/twitter`,
       body,
       { params: { brand: options.brand } },

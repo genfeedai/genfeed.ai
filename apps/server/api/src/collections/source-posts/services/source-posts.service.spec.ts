@@ -148,7 +148,12 @@ describe('SourcePostsService', () => {
           set: [{ id: 'existing-ingredient' }, { id: 'new-ingredient' }],
         },
       }),
-      where: { id: 'post-1' },
+      where: {
+        brandId: 'brand-1',
+        id: 'post-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
     });
   });
 });

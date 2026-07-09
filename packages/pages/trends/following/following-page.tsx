@@ -2,6 +2,7 @@
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import {
+  AlertCategory,
   ButtonSize,
   ButtonVariant,
   SocialSourcePlatform,
@@ -16,6 +17,7 @@ import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import type {
   TrendItem,
@@ -28,6 +30,8 @@ import { SourcePostsService } from '@services/social/source-posts.service';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import Alert from '@ui/feedback/alert/Alert';
+import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
@@ -96,6 +100,7 @@ export default function FollowingPage() {
   const [newHandle, setNewHandle] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const debouncedSearch = useDebounce(search, 300);
   const getSocialSourcesService = useAuthedService((token: string) =>
     SocialSourcesService.getInstance(token),
   );
@@ -103,8 +108,13 @@ export default function FollowingPage() {
     SourcePostsService.getInstance(token),
   );
 
-  const queryKey = ['social-sources-feed', brandId, platform, search];
-  const { data = EMPTY_FEED, refetch } = useQuery<SocialSourcesResponse>({
+  const queryKey = ['social-sources-feed', brandId, platform, debouncedSearch];
+  const {
+    data = EMPTY_FEED,
+    isError,
+    isFetching,
+    refetch,
+  } = useQuery<SocialSourcesResponse>({
     enabled: Boolean(brandId),
     initialData: EMPTY_FEED,
     queryFn: async () => {
@@ -113,11 +123,13 @@ export default function FollowingPage() {
         brand: brandId,
         platform: platform === 'all' ? undefined : platform,
         postsLimit: 50,
-        search: search.trim() || undefined,
+        search: debouncedSearch.trim() || undefined,
       });
     },
     queryKey,
   });
+  const isInitialFetch =
+    isFetching && data.posts.length === 0 && data.sources.length === 0;
 
   const refreshFeed = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['social-sources-feed'] });
@@ -262,114 +274,48 @@ export default function FollowingPage() {
       />
       <SocialsNavigation active="following" />
 
-      <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
-        <aside className="space-y-5">
-          <Card bodyClassName="p-4">
-            <form className="space-y-3" onSubmit={handleAddSource}>
-              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <HiAtSymbol className="size-4 text-foreground/60" />
-                Follow source
-              </div>
-              <Select
-                value={newPlatform}
-                onValueChange={(value) =>
-                  setNewPlatform(value as SocialSourcePlatform)
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PLATFORM_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                value={newHandle}
-                onChange={(event) => setNewHandle(event.target.value)}
-                placeholder="@handle or profile URL"
-              />
+      {isError ? (
+        <div className="mt-6">
+          <Alert type={AlertCategory.ERROR}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span>Failed to load followed sources.</span>
               <Button
-                className="w-full"
-                icon={<HiPlus className="size-4" />}
-                isLoading={isAdding}
-                label="Follow"
-                size={ButtonSize.SM}
-                type="submit"
-                variant={ButtonVariant.DEFAULT}
+                label="Retry"
+                onClick={() => {
+                  refetch().catch(() => undefined);
+                }}
+                variant={ButtonVariant.OUTLINE}
               />
-            </form>
-          </Card>
-
-          <Card bodyClassName="p-0">
-            <div className="border-b border-border p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">
-                    Sources
-                  </div>
-                  <div className="mt-1 text-xs text-foreground/58">
-                    {data.summary.activeSources} active of{' '}
-                    {data.summary.totalSources}
-                  </div>
-                </div>
-                <Button
-                  icon={<HiArrowPath className="size-4" />}
-                  isLoading={busyId === 'sync-all'}
-                  label="Sync"
-                  size={ButtonSize.SM}
-                  onClick={() => {
-                    syncAll().catch(() => undefined);
-                  }}
-                  variant={ButtonVariant.SECONDARY}
-                />
-              </div>
             </div>
-            <div className="divide-y divide-border">
-              {data.sources.length ? (
-                data.sources.map((source) => (
-                  <SourceRow
-                    key={source.id}
-                    busyId={busyId}
-                    source={source}
-                    onRemove={removeSource}
-                    onSync={syncSource}
-                  />
-                ))
-              ) : (
-                <div className="p-5 text-sm text-foreground/62">
-                  No followed sources yet.
-                </div>
-              )}
-            </div>
-          </Card>
-        </aside>
+          </Alert>
+        </div>
+      ) : null}
 
-        <main className="space-y-5">
-          <Card bodyClassName="p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="grid grid-cols-3 gap-3">
-                <Metric label="Sources" value={data.summary.totalSources} />
-                <Metric label="Posts" value={data.summary.totalPosts} />
-                <Metric
-                  label="Last sync"
-                  value={
-                    data.summary.lastSyncedAt
-                      ? getRelativeTime(data.summary.lastSyncedAt)
-                      : 'Never'
+      {isInitialFetch ? (
+        <div className="mt-6 min-h-64">
+          <LoadingState isFullSize />
+        </div>
+      ) : null}
+
+      {!isError && !isInitialFetch ? (
+        <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-[340px_1fr]">
+          <aside className="space-y-5">
+            <Card bodyClassName="p-4">
+              <form className="space-y-3" onSubmit={handleAddSource}>
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <HiAtSymbol className="size-4 text-foreground/60" />
+                  Follow source
+                </div>
+                <Select
+                  value={newPlatform}
+                  onValueChange={(value) =>
+                    setNewPlatform(value as SocialSourcePlatform)
                   }
-                />
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Select value={platform} onValueChange={setPlatform}>
-                  <SelectTrigger className="min-w-36">
+                >
+                  <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All platforms</SelectItem>
                     {PLATFORM_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
@@ -377,48 +323,140 @@ export default function FollowingPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <FormSearchbar
-                  value={search}
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    setSearch(event.target.value)
-                  }
-                  onClear={() => setSearch('')}
-                  placeholder="Search source posts"
+                <Input
+                  value={newHandle}
+                  onChange={(event) => setNewHandle(event.target.value)}
+                  placeholder="@handle or profile URL"
                 />
-              </div>
-            </div>
-          </Card>
+                <Button
+                  className="w-full"
+                  icon={<HiPlus className="size-4" />}
+                  isLoading={isAdding}
+                  label="Follow"
+                  size={ButtonSize.SM}
+                  type="submit"
+                  variant={ButtonVariant.DEFAULT}
+                />
+              </form>
+            </Card>
 
-          {data.posts.length ? (
-            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-              {data.posts.map((post) => (
-                <SourcePostCard
-                  key={post.id}
-                  busyId={busyId}
-                  post={post}
-                  onCreateDraft={createDraft}
-                  onOpenAgent={openAgent}
-                  onOpenRemix={openRemix}
-                />
-              ))}
-            </div>
-          ) : (
-            <Card bodyClassName="p-10">
-              <div className="mx-auto flex max-w-md flex-col items-center text-center">
-                <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground/60">
-                  <HiOutlineInboxStack className="size-5" />
+            <Card bodyClassName="p-0">
+              <div className="border-b border-border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">
+                      Sources
+                    </div>
+                    <div className="mt-1 text-xs text-foreground/58">
+                      {data.summary.activeSources} active of{' '}
+                      {data.summary.totalSources}
+                    </div>
+                  </div>
+                  <Button
+                    icon={<HiArrowPath className="size-4" />}
+                    isLoading={busyId === 'sync-all'}
+                    label="Sync"
+                    size={ButtonSize.SM}
+                    onClick={() => {
+                      syncAll().catch(() => undefined);
+                    }}
+                    variant={ButtonVariant.SECONDARY}
+                  />
                 </div>
-                <div className="mt-4 text-base font-semibold text-foreground">
-                  No collected posts
+              </div>
+              <div className="divide-y divide-border">
+                {data.sources.length ? (
+                  data.sources.map((source) => (
+                    <SourceRow
+                      key={source.id}
+                      busyId={busyId}
+                      source={source}
+                      onRemove={removeSource}
+                      onSync={syncSource}
+                    />
+                  ))
+                ) : (
+                  <div className="p-5 text-sm text-foreground/62">
+                    No followed sources yet.
+                  </div>
+                )}
+              </div>
+            </Card>
+          </aside>
+
+          <main className="space-y-5">
+            <Card bodyClassName="p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="grid grid-cols-3 gap-3">
+                  <Metric label="Sources" value={data.summary.totalSources} />
+                  <Metric label="Posts" value={data.summary.totalPosts} />
+                  <Metric
+                    label="Last sync"
+                    value={
+                      data.summary.lastSyncedAt
+                        ? getRelativeTime(data.summary.lastSyncedAt)
+                        : 'Never'
+                    }
+                  />
                 </div>
-                <div className="mt-2 text-sm leading-6 text-foreground/68">
-                  Follow sources or sync existing sources to populate this feed.
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Select value={platform} onValueChange={setPlatform}>
+                    <SelectTrigger className="min-w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All platforms</SelectItem>
+                      {PLATFORM_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormSearchbar
+                    value={search}
+                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                      setSearch(event.target.value)
+                    }
+                    onClear={() => setSearch('')}
+                    placeholder="Search source posts"
+                  />
                 </div>
               </div>
             </Card>
-          )}
-        </main>
-      </div>
+
+            {data.posts.length ? (
+              <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                {data.posts.map((post) => (
+                  <SourcePostCard
+                    key={post.id}
+                    busyId={busyId}
+                    post={post}
+                    onCreateDraft={createDraft}
+                    onOpenAgent={openAgent}
+                    onOpenRemix={openRemix}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card bodyClassName="p-10">
+                <div className="mx-auto flex max-w-md flex-col items-center text-center">
+                  <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground/60">
+                    <HiOutlineInboxStack className="size-5" />
+                  </div>
+                  <div className="mt-4 text-base font-semibold text-foreground">
+                    No collected posts
+                  </div>
+                  <div className="mt-2 text-sm leading-6 text-foreground/68">
+                    Follow sources or sync existing sources to populate this
+                    feed.
+                  </div>
+                </div>
+              </Card>
+            )}
+          </main>
+        </div>
+      ) : null}
     </Container>
   );
 }
@@ -451,6 +489,7 @@ function SourceRow({
       </div>
       <div className="flex items-center gap-1">
         <Button
+          ariaLabel="Sync source"
           icon={<HiArrowPath className="size-4" />}
           isLoading={busyId === source.id}
           label=""
@@ -458,15 +497,18 @@ function SourceRow({
             onSync(source.id).catch(() => undefined);
           }}
           size={ButtonSize.SM}
+          tooltip="Sync source"
           variant={ButtonVariant.GHOST}
         />
         <Button
+          ariaLabel="Remove source"
           icon={<HiTrash className="size-4" />}
           label=""
           onClick={() => {
             onRemove(source.id).catch(() => undefined);
           }}
           size={ButtonSize.SM}
+          tooltip="Remove source"
           variant={ButtonVariant.GHOST}
         />
       </div>
@@ -491,20 +533,33 @@ function SourcePostCard({
   post: ISourcePost;
 }) {
   const title = post.text?.trim() || `${post.platform} source post`;
-  const mediaUrl = post.thumbnailUrl || post.mediaUrls?.[0];
+  const mediaUrl = getSafeExternalUrl(post.thumbnailUrl || post.mediaUrls?.[0]);
+  const isVideo = post.contentType === 'video' || post.contentType === 'reel';
+  const sourceUrl = getSafeExternalUrl(post.sourceUrl);
 
   return (
     <article className="overflow-hidden rounded-card bg-card shadow-border">
       {mediaUrl ? (
         <div className="relative aspect-[16/9] bg-secondary">
-          <Image
-            alt={title}
-            className="object-cover"
-            fill
-            src={mediaUrl}
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            unoptimized
-          />
+          {isVideo ? (
+            <video
+              aria-label={title}
+              className="size-full object-cover"
+              controls
+              muted
+              preload="metadata"
+              src={mediaUrl}
+            />
+          ) : (
+            <Image
+              alt={title}
+              className="object-cover"
+              fill
+              src={mediaUrl}
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              unoptimized
+            />
+          )}
         </div>
       ) : null}
       <div className="space-y-4 p-4">
@@ -575,16 +630,12 @@ function SourcePostCard({
             onClick={() => onOpenAgent(post)}
             variant={ButtonVariant.GHOST}
           />
-          {post.sourceUrl ? (
+          {sourceUrl ? (
             <Button
               icon={<HiArrowTopRightOnSquare className="size-3.5" />}
               label="Open"
               onClick={() =>
-                window.open(
-                  post.sourceUrl ?? '',
-                  '_blank',
-                  'noopener,noreferrer',
-                )
+                window.open(sourceUrl, '_blank', 'noopener,noreferrer')
               }
               variant={ButtonVariant.GHOST}
             />
@@ -593,6 +644,23 @@ function SourcePostCard({
       </div>
     </article>
   );
+}
+
+export function getSafeExternalUrl(
+  value: string | null | undefined,
+): string | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:'
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 function Metric({ label, value }: { label: string; value: string | number }) {

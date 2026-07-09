@@ -112,6 +112,29 @@ export interface SocialSourceSyncResult {
   count: number;
 }
 
+export interface SocialSourceSyncFailure {
+  error: string;
+  sourceId: string;
+}
+
+export interface SocialSourceBrandSyncResult {
+  count: number;
+  failures: SocialSourceSyncFailure[];
+  results: SocialSourceSyncResult[];
+}
+
+export interface SocialSourceValidationResult {
+  avatarUrl?: string | null;
+  displayName?: string | null;
+  error?: string;
+  externalId?: string | null;
+  followersCount?: number | null;
+  handle?: string;
+  platform?: SocialSourcePlatform | string;
+  profileUrl?: string;
+  valid: boolean;
+}
+
 export interface SourcePostDraftActionInput {
   actionType?: SourcePostActionType | string;
   text?: string;

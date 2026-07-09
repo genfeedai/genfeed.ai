@@ -6,11 +6,9 @@ import {
 import { SourcePostsQueryDto } from '@api/collections/source-posts/dto/source-posts-query.dto';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  extractRequestContext,
-  getIsSuperAdmin,
-} from '@api/helpers/utils/auth/auth.util';
+import { resolveRequiredBrandRequestContext } from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -21,7 +19,6 @@ import {
   Controller,
   Get,
   HttpCode,
-  HttpException,
   HttpStatus,
   Param,
   Post,
@@ -44,7 +41,7 @@ export class SourcePostsController {
     @CurrentUser() user: User,
     @Query() query: SourcePostsQueryDto,
   ) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     const result = await this.sourcePostsService.listByBrand(context, query);
     return serializeCollection(request, SourcePostSerializer, { ...result });
   }
@@ -53,10 +50,10 @@ export class SourcePostsController {
   async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: SourcePostsQueryDto,
+    @Query() query: BrandScopeQueryDto,
     @Param('id') id: string,
   ) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     const post = await this.sourcePostsService.findOneScoped(id, context);
     return serializeSingle(request, SourcePostSerializer, post);
   }
@@ -65,11 +62,11 @@ export class SourcePostsController {
   @HttpCode(HttpStatus.OK)
   createDraft(
     @CurrentUser() user: User,
-    @Query() query: SourcePostsQueryDto,
+    @Query() query: BrandScopeQueryDto,
     @Param('id') id: string,
     @Body() body: SourcePostDraftActionDto,
   ) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     return this.sourcePostsService.createDraftFromPost(id, context, body);
   }
 
@@ -77,35 +74,11 @@ export class SourcePostsController {
   @HttpCode(HttpStatus.OK)
   publishTwitterAction(
     @CurrentUser() user: User,
-    @Query() query: SourcePostsQueryDto,
+    @Query() query: BrandScopeQueryDto,
     @Param('id') id: string,
     @Body() body: SourcePostTwitterActionDto,
   ) {
-    const context = resolveContext(user, query);
+    const context = resolveRequiredBrandRequestContext(user, query);
     return this.sourcePostsService.publishTwitterAction(id, context, body);
   }
-}
-
-function resolveContext(
-  user: User,
-  query: { brand?: string; organization?: string },
-) {
-  const requestContext = extractRequestContext(user);
-  const canOverrideScope = getIsSuperAdmin(user);
-  const organizationId =
-    canOverrideScope && query.organization
-      ? query.organization
-      : requestContext.organizationId;
-  const brandId =
-    canOverrideScope && query.brand ? query.brand : requestContext.brandId;
-  const userId = requestContext.userId || user.id;
-
-  if (!organizationId || !brandId || !userId) {
-    throw new HttpException(
-      'Organization, brand, and user context are required',
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  return { brandId, organizationId, userId };
 }

@@ -63,7 +63,9 @@ CREATE TABLE "source_posts" (
 );
 
 CREATE UNIQUE INDEX "social_sources_mongoId_key" ON "social_sources"("mongoId");
-CREATE UNIQUE INDEX "social_sources_brand_platform_type_handle_deleted_key" ON "social_sources"("brandId", "platform", "sourceType", "handle", "isDeleted");
+CREATE UNIQUE INDEX "social_sources_brand_platform_type_handle_deleted_key"
+  ON "social_sources"("brandId", "platform", "sourceType", "handle")
+  WHERE "isDeleted" = false;
 CREATE INDEX "social_sources_brand_active_idx" ON "social_sources"("organizationId", "brandId", "isDeleted", "isActive", "platform");
 CREATE INDEX "social_sources_org_created_idx" ON "social_sources"("organizationId", "isDeleted", "createdAt" DESC);
 

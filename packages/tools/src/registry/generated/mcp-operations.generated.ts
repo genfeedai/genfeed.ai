@@ -12639,9 +12639,12 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     "toolName": "social_sources__update"
   },
   {
-    "bodyFields": [],
-    "bodyRequired": false,
-    "bodyStyle": "none",
+    "bodyFields": [
+      "handle",
+      "platform"
+    ],
+    "bodyRequired": true,
+    "bodyStyle": "properties",
     "method": "post",
     "operationId": "SocialSourcesController.validate",
     "path": "/social-sources/validate",
@@ -12664,16 +12667,7 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     ],
     "queryParams": [
       "brand",
-      "isDeleted",
-      "isFavorite",
-      "limit",
-      "organization",
-      "page",
-      "pagination",
-      "platform",
-      "search",
-      "sort",
-      "source"
+      "organization"
     ],
     "toolName": "source_posts__create_draft"
   },
@@ -12712,16 +12706,7 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     ],
     "queryParams": [
       "brand",
-      "isDeleted",
-      "isFavorite",
-      "limit",
-      "organization",
-      "page",
-      "pagination",
-      "platform",
-      "search",
-      "sort",
-      "source"
+      "organization"
     ],
     "toolName": "source_posts__find_one"
   },
@@ -12740,16 +12725,7 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     ],
     "queryParams": [
       "brand",
-      "isDeleted",
-      "isFavorite",
-      "limit",
-      "organization",
-      "page",
-      "pagination",
-      "platform",
-      "search",
-      "sort",
-      "source"
+      "organization"
     ],
     "toolName": "source_posts__publish_twitter_action"
   },
