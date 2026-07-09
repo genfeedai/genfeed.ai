@@ -59,6 +59,7 @@ export interface ProjectState {
   status: string;
   highlights: IHighlight[];
   clips: ClipResult[];
+  estimatedClips?: number;
 }
 
 // ─── Component Props ──────────────────────────────────────────────

@@ -30,6 +30,7 @@ export default function StudioClipsPage() {
     error,
     handleAnalyze,
     handleGenerate,
+    handleStartFromYoutube,
     identityDefaults,
     isSubmitting,
     maxClips,
@@ -59,7 +60,7 @@ export default function StudioClipsPage() {
     return (
       <ClipsProgressView
         project={project}
-        selectedCount={selectedCount}
+        selectedCount={project.estimatedClips ?? selectedCount}
         clipsService={clipsService}
         onReset={resetToInput}
       />
@@ -268,6 +269,14 @@ export default function StudioClipsPage() {
       error={error}
       isSubmitting={isSubmitting}
       onAnalyze={handleAnalyze}
+      onStartQuick={handleStartFromYoutube}
+      quickStartHint={
+        identityDefaults.isComplete
+          ? identityDefaults.source === 'brand'
+            ? 'Uses saved brand avatar and voice defaults.'
+            : 'Uses saved organization voice default.'
+          : 'No saved HeyGen defaults. Review highlights first to enter IDs manually.'
+      }
     />
   );
 }
