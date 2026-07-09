@@ -22,8 +22,8 @@ export default function ButtonRequestAccess({
     ? EnvironmentService.calendly
     : `${EnvironmentService.apps.app}/sign-up`;
   const trackingAction = isPreLaunch
-    ? 'book_call_request_access'
-    : 'start_signup_request_access';
+    ? 'book_call_signup_cta'
+    : 'start_signup_cta';
 
   return (
     <ButtonTracked
@@ -31,7 +31,7 @@ export default function ButtonRequestAccess({
       variant={variant}
       size={ButtonSize.PUBLIC}
       className={className}
-      trackingName="request_access_click"
+      trackingName="signup_cta_click"
       trackingData={{
         action: trackingAction,
         label: displayLabel,

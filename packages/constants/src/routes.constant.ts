@@ -4,7 +4,6 @@ export const APP_ROUTES = {
   LOGOUT: '/logout',
   MANAGED_CREDITS_SUCCESS: '/managed-credits/success',
   OAUTH: '/oauth',
-  REQUEST_ACCESS: '/request-access',
   SIGN_UP: '/sign-up',
   ADMIN: {
     ROOT: '/admin',

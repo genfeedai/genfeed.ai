@@ -564,8 +564,7 @@ function isBetterAuthPublicRoute(pathname: string): boolean {
     pathname.startsWith('/reset-password') ||
     pathname.startsWith('/logout') ||
     pathname.startsWith('/onboarding') ||
-    pathname.startsWith('/oauth') ||
-    pathname.startsWith('/request-access')
+    pathname.startsWith('/oauth')
   );
 }
 

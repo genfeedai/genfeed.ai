@@ -180,6 +180,20 @@ describe('proxy', () => {
     expect(response.headers.get('location')).toBeNull();
   });
 
+  it('does not treat the deleted request-access route as public', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedOutRequest('/request-access'),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/login',
+    );
+  });
+
   it('normalizes a bare API_URL origin before calling versioned auth endpoints', async () => {
     vi.stubEnv('API_URL', 'http://localhost:3010');
     vi.resetModules();

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import ButtonRequestAccess from './ButtonRequestAccess';
 
 describe('ButtonRequestAccess', () => {
-  it('uses the canonical marketing bridge for request-access clicks', () => {
+  it('uses the canonical marketing bridge for signup clicks', () => {
     const listener = vi.fn();
     window.addEventListener('genfeed:marketing:button-click', listener);
 
@@ -15,10 +15,10 @@ describe('ButtonRequestAccess', () => {
       expect.objectContaining({
         detail: {
           trackingData: {
-            action: 'book_call_request_access',
+            action: 'book_call_signup_cta',
             label: 'Book a Call',
           },
-          trackingName: 'request_access_click',
+          trackingName: 'signup_cta_click',
         },
       }),
     );
