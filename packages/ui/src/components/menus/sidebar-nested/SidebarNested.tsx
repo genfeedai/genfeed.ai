@@ -1,15 +1,13 @@
 'use client';
 
-import { createBrandAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import MenuItem from '@ui/menus/item/MenuItem';
 import { Button } from '@ui/primitives/button';
-import { usePathname } from 'next/navigation';
-import { Fragment, useCallback, useMemo } from 'react';
+import { Fragment, useCallback } from 'react';
 import { HiArrowLeft } from 'react-icons/hi2';
+import { useMenuRouteResolution } from '../shared/useMenuRouteResolution';
 
 interface SidebarNestedProps {
   /** Group label displayed in the back-button header */
@@ -35,132 +33,7 @@ export default function SidebarNested({
   onBack,
   onItemClick,
 }: SidebarNestedProps) {
-  const rawPathname = usePathname();
-  const { href: buildHref, orgHref, orgSlug, brandSlug } = useOrgUrl();
-  const routeScope = useMemo(() => {
-    const parts = rawPathname.split('/').filter(Boolean);
-
-    if (parts[0] === 'settings') {
-      return 'personal' as const;
-    }
-
-    if (parts[1] === '~') {
-      return 'organization' as const;
-    }
-
-    return 'brand' as const;
-  }, [rawPathname]);
-
-  /** Strip org/brand prefix so we can compare against config-level paths. */
-  const pathname = useMemo(() => {
-    const parts = rawPathname.split('/').filter(Boolean);
-    if (parts.length >= 2 && parts[1] === '~') {
-      return `/${parts.slice(2).join('/')}`;
-    }
-    if (parts.length >= 3) {
-      return `/${parts.slice(2).join('/')}`;
-    }
-    return rawPathname;
-  }, [rawPathname]);
-
-  const isAlreadyScopedHref = useCallback(
-    (path: string) => {
-      const parts = path.split('/').filter(Boolean);
-
-      return (
-        parts[0] === orgSlug &&
-        (parts[1] === '~' || (brandSlug && parts[1] === brandSlug))
-      );
-    },
-    [brandSlug, orgSlug],
-  );
-
-  const resolveLegacySettingsHref = useCallback(
-    (path: string) => {
-      if (path === '/settings/personal') {
-        return '/settings';
-      }
-
-      if (path === '/settings/organization') {
-        return orgHref('/settings');
-      }
-
-      if (path.startsWith('/settings/organization/')) {
-        return orgHref(path.replace('/settings/organization', '/settings'));
-      }
-
-      if (path.startsWith('/settings/brands/')) {
-        const [, , , routeBrandSlug, ...rest] = path.split('/');
-
-        if (routeBrandSlug) {
-          const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
-          return createBrandAppRoute(
-            orgSlug,
-            routeBrandSlug,
-            `/settings${suffix}`,
-          );
-        }
-      }
-
-      return orgHref(path);
-    },
-    [orgHref, orgSlug],
-  );
-
-  /** Prefix a config-level path with the configured route scope. */
-  const prefixHref = useCallback(
-    (item: MenuItemConfig) => {
-      const path = item.href;
-
-      if (!path) {
-        return undefined;
-      }
-
-      if (isAlreadyScopedHref(path)) {
-        return path;
-      }
-
-      if (item.hrefScope === 'personal') {
-        return path;
-      }
-
-      if (item.hrefScope === 'organization') {
-        return resolveLegacySettingsHref(path);
-      }
-
-      if (item.hrefScope === 'brand') {
-        return buildHref(path);
-      }
-
-      if (path.startsWith('/settings')) {
-        return resolveLegacySettingsHref(path);
-      }
-
-      return buildHref(path);
-    },
-    [buildHref, isAlreadyScopedHref, resolveLegacySettingsHref],
-  );
-
-  const isActive = useCallback(
-    (href: string) => {
-      if (!href || !pathname) {
-        return false;
-      }
-
-      if (href.startsWith('/elements/') && pathname.startsWith('/elements/')) {
-        return true;
-      }
-      if (
-        href.startsWith('/ingredients/') &&
-        pathname.startsWith('/ingredients/')
-      ) {
-        return true;
-      }
-
-      return pathname === href || pathname.startsWith(href);
-    },
-    [pathname],
-  );
+  const { isActive, prefixHref, routeScope } = useMenuRouteResolution();
   const isActiveItem = useCallback(
     (item: MenuItemConfig) => {
       if (!item.href) {

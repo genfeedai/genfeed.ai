@@ -62,6 +62,8 @@ export class Ingredient extends BaseEntity implements IIngredient {
   public declare reviewStatus?: string;
   public declare contentRating?: string;
   public declare campaign?: string;
+  public declare cdnUrl?: string | null;
+  public declare s3Key?: string | null;
 
   constructor(data: Partial<IIngredient> = {}) {
     super(data);

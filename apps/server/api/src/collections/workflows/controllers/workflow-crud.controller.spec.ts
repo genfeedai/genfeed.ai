@@ -7,6 +7,7 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -143,6 +144,19 @@ describe('WorkflowCrudController', () => {
       const result = await controller.findAll(mockRequest, mockUser, {});
 
       expect(service.findAll).toHaveBeenCalled();
+      const [aggregateArg] =
+        mockWorkflowsService.findAll.mock.calls[
+          mockWorkflowsService.findAll.mock.calls.length - 1
+        ];
+      expect(aggregateArg.where.OR).toEqual([
+        { user: mockUser.publicMetadata.user },
+        {
+          metadata: {
+            equals: 'organization',
+            path: ['systemWorkflow', 'visibility'],
+          },
+        },
+      ]);
       expect(result).toBeDefined();
     });
   });
@@ -332,6 +346,25 @@ describe('WorkflowCrudController', () => {
       });
       expect(service.remove).toHaveBeenCalledWith(id);
       expect(result).toBeDefined();
+    });
+
+    it('should reject deleting immutable system workflows', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      mockWorkflowsService.findMutableOwnedOrThrow.mockRejectedValue(
+        new ForbiddenException(
+          'System workflows are immutable. Duplicate the workflow before editing or deleting it.',
+        ),
+      );
+
+      await expect(
+        controller.remove(mockRequest, id, mockUser),
+      ).rejects.toThrow('System workflows are immutable');
+
+      expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith(id, {
+        organization: mockUser.publicMetadata.organization,
+        user: mockUser.publicMetadata.user,
+      });
+      expect(service.remove).not.toHaveBeenCalled();
     });
   });
 });

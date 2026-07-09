@@ -12,9 +12,11 @@ interface ClipsInputFormProps {
   maxClips: number;
   minViralityScore: number;
   onAnalyze: () => void;
+  onStartQuick: () => void;
   onSetMaxClips: (value: number) => void;
   onSetMinViralityScore: (value: number) => void;
   onSetYoutubeUrl: (value: string) => void;
+  quickStartHint: string;
   youtubeUrl: string;
 }
 
@@ -24,9 +26,11 @@ export default function ClipsInputForm({
   maxClips,
   minViralityScore,
   onAnalyze,
+  onStartQuick,
   onSetMaxClips,
   onSetMinViralityScore,
   onSetYoutubeUrl,
+  quickStartHint,
   youtubeUrl,
 }: ClipsInputFormProps) {
   return (
@@ -121,22 +125,35 @@ export default function ClipsInputForm({
           </div>
         )}
 
-        {/* Submit */}
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          onClick={onAnalyze}
-          isDisabled={isSubmitting || !youtubeUrl}
-          isLoading={isSubmitting}
-          className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
-          icon={
-            isSubmitting ? (
-              <Spinner size={ComponentSize.SM} className="text-white" />
-            ) : (
-              <HiOutlineMagnifyingGlass className="size-4" />
-            )
-          }
-          label={isSubmitting ? 'Analyzing…' : 'Analyze Video'}
-        />
+        <div className="space-y-3">
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            onClick={onStartQuick}
+            isDisabled={isSubmitting || !youtubeUrl}
+            isLoading={isSubmitting}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
+            icon={
+              isSubmitting ? (
+                <Spinner size={ComponentSize.SM} className="text-white" />
+              ) : (
+                <HiOutlineSparkles className="size-4" />
+              )
+            }
+            label={isSubmitting ? 'Starting…' : 'Start Clip Factory'}
+          />
+
+          <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
+            <p className="text-xs text-zinc-500">{quickStartHint}</p>
+            <Button
+              variant={ButtonVariant.LINK}
+              onClick={onAnalyze}
+              isDisabled={isSubmitting || !youtubeUrl}
+              className="text-xs text-zinc-500 hover:text-zinc-300"
+              icon={<HiOutlineMagnifyingGlass className="size-3.5" />}
+              label="Review highlights first"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

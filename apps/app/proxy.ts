@@ -525,20 +525,6 @@ async function resolveCanonicalProtectedPath(
       return { cookieValue, path: '/settings' };
     }
 
-    if (canonicalPath === '/settings/organization') {
-      return { cookieValue, path: `/${slugs.orgSlug}/~/settings` };
-    }
-
-    if (canonicalPath.startsWith('/settings/organization/')) {
-      return {
-        cookieValue,
-        path: `/${slugs.orgSlug}/~${canonicalPath.replace(
-          '/settings/organization',
-          '/settings',
-        )}`,
-      };
-    }
-
     return { cookieValue, path: `/${slugs.orgSlug}/~${canonicalPath}` };
   }
 

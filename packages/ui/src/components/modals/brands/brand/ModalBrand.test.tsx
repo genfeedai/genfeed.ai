@@ -3,14 +3,22 @@ import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import type { TextareaLabelActionsProps } from '@genfeedai/props/ui/forms/textarea-label-actions.props';
 import type { TabsProps } from '@genfeedai/props/ui/navigation/tabs.props';
 import type { AlertProps } from '@genfeedai/props/ui/ui.props';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ModalBrand from '@ui/modals/brands/brand/ModalBrand';
 import type { ColorPickerProps } from '@ui/primitives/color-picker';
 import type { FieldProps } from '@ui/primitives/field';
 import type { PropsWithChildren, ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
+const postBrandMock = vi.fn().mockResolvedValue({
+  id: 'brand-created',
+});
+const findBrandMock = vi.fn().mockResolvedValue({
+  id: 'brand-created',
+  label: 'Acme',
+  slug: 'acme',
+});
 
 vi.mock('@ui/overlays/entity/EntityOverlayShell', () => ({
   __esModule: true,
@@ -131,13 +139,15 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   __esModule: true,
   default: () => () =>
     Promise.resolve({
+      findOne: findBrandMock,
       patch: vi.fn(),
-      post: vi.fn().mockResolvedValue({ id: 'prompt-1' }),
+      post: postBrandMock,
     }),
   useAuthedService: () => () =>
     Promise.resolve({
+      findOne: findBrandMock,
       patch: vi.fn(),
-      post: vi.fn().mockResolvedValue({ id: 'prompt-1' }),
+      post: postBrandMock,
     }),
 }));
 
@@ -207,9 +217,12 @@ vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
 
 vi.mock('@genfeedai/hooks/utils/use-form-submit/use-form-submit', () => ({
   __esModule: true,
-  useFormSubmitWithState: () => ({
+  useFormSubmitWithState: (handler: () => Promise<void>) => ({
     isSubmitting: false,
-    onSubmit: vi.fn(),
+    onSubmit: vi.fn(async (event?: { preventDefault?: () => void }) => {
+      event?.preventDefault?.();
+      await handler();
+    }),
   }),
 }));
 
@@ -252,14 +265,32 @@ describe('ModalBrand', () => {
     onConfirm: vi.fn(),
   };
 
+  beforeEach(() => {
+    pushMock.mockReset();
+    postBrandMock.mockClear();
+    findBrandMock.mockClear();
+  });
+
   it('renders the create brand form in a dialog', () => {
     render(<ModalBrand {...defaultProps} />);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Brand' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'New brand' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Create brand' }),
     ).toBeInTheDocument();
+  });
+
+  it('routes newly created brands to the canonical brand settings page', async () => {
+    render(<ModalBrand {...defaultProps} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create brand' }));
+
+    await waitFor(() => {
+      expect(pushMock).toHaveBeenCalledWith('/acme-org/acme/settings');
+    });
   });
 
   it('opens the canonical brand detail page from the overlay header', () => {

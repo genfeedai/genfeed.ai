@@ -15,6 +15,7 @@ import {
   HiOutlinePlus,
 } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { isCanonicalSystemWorkflow } from '@/features/workflows/services/workflow-api';
 import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
 import EmptyWorkflowState from './EmptyWorkflowState';
 import { useWorkflowLibraryPage } from './useWorkflowLibraryPage';
@@ -177,79 +178,92 @@ export default function WorkflowLibraryPage() {
           </Button>
 
           {/* Workflow cards */}
-          {filteredWorkflows.map((workflow) => (
-            <Link key={workflow._id} href={href(`/workflows/${workflow._id}`)}>
-              <Card
-                className="h-full hover:-translate-y-0.5"
-                label={workflow.name}
-                description={
-                  workflow.description ??
-                  'Reusable automation workflow for content operations.'
-                }
-                headerAction={
-                  <div className="flex items-center gap-2">
-                    {isCapable && isConnected && workflow.cloudSync ? (
-                      <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
-                        <Cloud className="size-3" />
-                        synced
+          {filteredWorkflows.map((workflow) => {
+            const isSystemWorkflow = isCanonicalSystemWorkflow(workflow);
+
+            return (
+              <Link
+                key={workflow._id}
+                href={href(`/workflows/${workflow._id}`)}
+              >
+                <Card
+                  className="h-full hover:-translate-y-0.5"
+                  label={workflow.name}
+                  description={
+                    workflow.description ??
+                    'Reusable automation workflow for content operations.'
+                  }
+                  headerAction={
+                    <div className="flex items-center gap-2">
+                      {isSystemWorkflow ? (
+                        <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-xs text-sky-300">
+                          System
+                        </span>
+                      ) : null}
+                      {isCapable && isConnected && workflow.cloudSync ? (
+                        <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
+                          <Cloud className="size-3" />
+                          synced
+                        </span>
+                      ) : isCapable && isConnected && !workflow.cloudSync ? (
+                        <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                          <CloudUpload className="size-3" />
+                          local
+                        </span>
+                      ) : null}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
+                          workflow.lifecycle,
+                        )}`}
+                      >
+                        {workflow.lifecycle}
                       </span>
-                    ) : isCapable && isConnected && !workflow.cloudSync ? (
-                      <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        <CloudUpload className="size-3" />
-                        local
-                      </span>
-                    ) : null}
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
-                        workflow.lifecycle,
-                      )}`}
-                    >
-                      {workflow.lifecycle}
-                    </span>
-                    {workflow.schedule ? (
-                      <span role="none" onClick={(e) => e.preventDefault()}>
-                        <Switch
-                          checked={workflow.isScheduleEnabled ?? false}
-                          aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.name}`}
-                          onCheckedChange={(checked) =>
-                            handleToggleSchedule(workflow._id, checked)
-                          }
+                      {!isSystemWorkflow && workflow.schedule ? (
+                        <span role="none" onClick={(e) => e.preventDefault()}>
+                          <Switch
+                            checked={workflow.isScheduleEnabled ?? false}
+                            aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.name}`}
+                            onCheckedChange={(checked) =>
+                              handleToggleSchedule(workflow._id, checked)
+                            }
+                          />
+                        </span>
+                      ) : null}
+                      <WorkflowCardDropdown
+                        canDelete={!isSystemWorkflow}
+                        onDuplicate={() => handleDuplicate(workflow._id)}
+                        onDelete={() => handleDelete(workflow._id)}
+                      />
+                    </div>
+                  }
+                  bodyClassName="h-full justify-between"
+                >
+                  <div className="space-y-3">
+                    <WorkflowCardPreview
+                      name={workflow.name}
+                      thumbnail={workflow.thumbnail}
+                    />
+                    <div className="flex items-center justify-between text-xs text-foreground/50">
+                      <span>
+                        Updated{' '}
+                        <ClientFormattedDate
+                          format="relative"
+                          value={workflow.updatedAt}
                         />
                       </span>
-                    ) : null}
-                    <WorkflowCardDropdown
-                      onDuplicate={() => handleDuplicate(workflow._id)}
-                      onDelete={() => handleDelete(workflow._id)}
-                    />
+                      <span>
+                        Created{' '}
+                        <ClientFormattedDate
+                          format="date"
+                          value={workflow.createdAt}
+                        />
+                      </span>
+                    </div>
                   </div>
-                }
-                bodyClassName="h-full justify-between"
-              >
-                <div className="space-y-3">
-                  <WorkflowCardPreview
-                    name={workflow.name}
-                    thumbnail={workflow.thumbnail}
-                  />
-                  <div className="flex items-center justify-between text-xs text-foreground/50">
-                    <span>
-                      Updated{' '}
-                      <ClientFormattedDate
-                        format="relative"
-                        value={workflow.updatedAt}
-                      />
-                    </span>
-                    <span>
-                      Created{' '}
-                      <ClientFormattedDate
-                        format="date"
-                        value={workflow.createdAt}
-                      />
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            </Link>
-          ))}
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       )}
     </Container>

@@ -321,7 +321,7 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('renders an explicit sidebar collapse control separate from the logo', () => {
+  it('renders the sidebar logo as the collapse control resting state', () => {
     const onToggleCollapse = vi.fn();
 
     render(<MenuShared config={config} onToggleCollapse={onToggleCollapse} />);
@@ -330,7 +330,8 @@ describe('MenuShared', () => {
       name: 'Collapse sidebar',
     });
 
-    expect(collapseButton.querySelector('svg')).not.toBeNull();
+    expect(collapseButton).toHaveTextContent('G');
+    expect(collapseButton.querySelectorAll('svg')).toHaveLength(1);
     fireEvent.click(collapseButton);
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });

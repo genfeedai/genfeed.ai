@@ -16,6 +16,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     workflow: {
       create: vi.fn(),
       findFirst: vi.fn(),
+      update: vi.fn(),
     },
   };
   const prisma = {
@@ -52,6 +53,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     );
     tx.workflow.findFirst.mockResolvedValue(null);
     tx.workflow.create.mockResolvedValue({});
+    tx.workflow.update.mockResolvedValue({});
     prisma.$transaction.mockImplementation(
       async (
         callback: (transactionClient: typeof tx) => Promise<void>,
@@ -108,11 +110,96 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
   });
 
   it('does not seed a duplicate livestream bot workflow', async () => {
-    prisma.workflow.findFirst.mockResolvedValue({ id: 'workflow-1' });
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'workflow-1',
+      metadata: {
+        sourceIssue: 793,
+        sourceTemplateChangeSummary: SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+        sourceTemplateId: 'livestream-bot-session-processing',
+        sourceTemplateVersion: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+        sourceType: 'seeded-template',
+        systemWorkflow: buildSystemWorkflowMetadata({
+          canonicalId: 'livestream-bot-session-processing',
+          sourceIssue: 793,
+        }),
+      },
+    });
 
     await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(tx.workflow.create).not.toHaveBeenCalled();
+  });
+
+  it('repairs legacy seeded workflow metadata without creating a duplicate', async () => {
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'workflow-1',
+      metadata: {
+        legacyFlag: true,
+        sourceTemplateId: 'livestream-bot-session-processing',
+      },
+    });
+
+    await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.workflow.update).toHaveBeenCalledWith({
+      data: {
+        metadata: expect.objectContaining({
+          legacyFlag: true,
+          sourceIssue: 793,
+          sourceTemplateChangeSummary: SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+          sourceTemplateId: 'livestream-bot-session-processing',
+          sourceTemplateVersion: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+          sourceType: 'seeded-template',
+          systemWorkflow: expect.objectContaining({
+            canonicalId: 'livestream-bot-session-processing',
+            immutable: true,
+            owner: 'genfeed',
+            version: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+            visibility: 'organization',
+          }),
+        }),
+      },
+      where: { id: 'workflow-1' },
+    });
+    expect(tx.workflow.create).not.toHaveBeenCalled();
+  });
+
+  it('repairs legacy daily trends metadata while preserving the enabled repair', async () => {
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'workflow-1',
+      isScheduleEnabled: false,
+      metadata: {
+        sourceTemplateId: 'daily-trends-digest',
+      },
+    });
+
+    await service.ensureDailyTrendsDigestWorkflow('user-1', 'org-1');
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.workflow.update).toHaveBeenCalledWith({
+      data: {
+        isScheduleEnabled: true,
+        metadata: expect.objectContaining({
+          sourceIssue: 1011,
+          sourceTemplateChangeSummary:
+            'Initial daily trend digest system workflow with trend assembly and owner email delivery.',
+          sourceTemplateId: 'daily-trends-digest',
+          sourceTemplateVersion: 1,
+          sourceType: 'seeded-template',
+          systemWorkflow: expect.objectContaining({
+            canonicalId: 'daily-trends-digest',
+            immutable: true,
+            owner: 'genfeed',
+            version: 1,
+            visibility: 'organization',
+          }),
+        }),
+      },
+      where: { id: 'workflow-1' },
+    });
     expect(tx.workflow.create).not.toHaveBeenCalled();
   });
 

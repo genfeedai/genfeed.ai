@@ -1,6 +1,7 @@
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
   IsEnum,
   IsNumber,
   IsObject,
@@ -25,6 +26,12 @@ export class UpdateAgentRunDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
+  creditBudget?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   @Max(100)
   progress?: number;
 
@@ -37,4 +44,16 @@ export class UpdateAgentRunDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: [Object] })
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  steps?: Record<string, unknown>[];
+
+  @ApiPropertyOptional({ type: [Object] })
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  toolCalls?: Record<string, unknown>[];
 }

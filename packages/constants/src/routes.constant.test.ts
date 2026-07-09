@@ -68,6 +68,9 @@ describe('routes.constant', () => {
     expect(
       createOrganizationAppRoute('genfeed-ai', APP_ROUTES.SETTINGS.ROOT),
     ).toBe('/genfeed-ai/~/settings');
+    expect(
+      createOrganizationAppRoute('genfeed-ai', APP_ROUTES.OVERVIEW.ROOT),
+    ).toBe('/genfeed-ai/~/overview');
     expect(createOrganizationAppRoute('genfeed-ai', 'billing')).toBe(
       '/genfeed-ai/~/billing',
     );

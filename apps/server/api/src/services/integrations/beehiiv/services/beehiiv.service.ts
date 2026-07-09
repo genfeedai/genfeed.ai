@@ -210,7 +210,7 @@ export class BeehiivService {
         this.httpService.post<BeehiivCreatePostResponse>(
           `${this.apiBase}/publications/${publicationId}/posts`,
           {
-            content_html: contentHtml,
+            body_content: contentHtml,
             status,
             title,
           },

@@ -253,6 +253,45 @@ describe('WorkflowsService system workflow guardrails', () => {
     ).rejects.toThrow('System workflows are immutable');
   });
 
+  it('rejects direct deletion of protected system workflows', async () => {
+    const prisma = {
+      workflow: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'system-workflow-1',
+          isDeleted: false,
+          metadata: {
+            systemWorkflow: buildSystemWorkflowMetadata({
+              canonicalId: 'daily-trends-digest',
+              changeSummary: 'Initial daily digest version.',
+              sourceIssue: 1011,
+              version: 2,
+            }),
+          },
+        }),
+        update: vi.fn(),
+      },
+    };
+    const workflowExecutionQueueService = {
+      syncWorkflowScheduler: vi.fn(),
+    };
+    const guardedService = new WorkflowsService(
+      prisma as never,
+      logger as never,
+      undefined,
+      undefined,
+      workflowExecutionQueueService as never,
+    );
+
+    await expect(guardedService.remove('system-workflow-1')).rejects.toThrow(
+      'System workflows are immutable',
+    );
+
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(
+      workflowExecutionQueueService.syncWorkflowScheduler,
+    ).not.toHaveBeenCalled();
+  });
+
   it('duplicates protected system workflows as editable user drafts', async () => {
     vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
       _id: 'system-workflow-1',

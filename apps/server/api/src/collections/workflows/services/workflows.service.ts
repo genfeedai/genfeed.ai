@@ -233,6 +233,14 @@ export class WorkflowsService extends BaseService<
    * stops firing immediately.
    */
   override async remove(id: string): Promise<WorkflowDocument | null> {
+    const workflow = await this.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+    if (workflow) {
+      this.assertWorkflowMutable(workflow);
+    }
+
     const removed = await super.remove(id);
 
     if (removed) {

@@ -64,7 +64,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/collections/metadata/metadata.module',
   '@api/collections/metadata/services/metadata.service',
   '@api/collections/models/models.module',
-  '@api/collections/models/schemas/model.schema',
   '@api/collections/models/services/models.service',
   '@api/collections/organization-settings/organization-settings.module',
   '@api/collections/organization-settings/services/organization-settings.service',

@@ -1,7 +1,10 @@
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
-import type { GenerateClipsDto } from '@api/collections/clip-projects/dto/generate-clips.dto';
+import {
+  type GenerateClipHighlightDto,
+  GenerateClipsDto,
+} from '@api/collections/clip-projects/dto/generate-clips.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import type { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import type { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
@@ -217,6 +220,73 @@ describe('ClipProjectsController', () => {
       );
 
       expect(messages).toContain('Must be a valid YouTube URL');
+    });
+
+    it.each([
+      'did',
+      'tavus',
+      'musetalk',
+    ] as const)('should reject unsupported avatar provider %s', (avatarProvider) => {
+      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
+        avatarId: 'avatar-1',
+        avatarProvider,
+        voiceId: 'voice-1',
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      });
+
+      const errors = validateSync(dto);
+      const messages = errors.flatMap((error) =>
+        Object.values(error.constraints ?? {}),
+      );
+
+      expect(messages).toContain(
+        'avatarProvider must be one of the following values: heygen',
+      );
+    });
+  });
+
+  describe('GenerateClipsDto validation', () => {
+    const editedHighlights: GenerateClipHighlightDto[] = [
+      {
+        id: 'highlight-1',
+        summary: 'Edited summary',
+        title: 'Edited title',
+      },
+    ];
+
+    it('should accept the production-ready HeyGen avatar provider', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        avatarId: 'avatar-1',
+        avatarProvider: 'heygen',
+        editedHighlights,
+        selectedHighlightIds: ['highlight-1'],
+        voiceId: 'voice-1',
+      });
+
+      expect(validateSync(dto)).toEqual([]);
+    });
+
+    it.each([
+      'did',
+      'tavus',
+      'musetalk',
+    ] as const)('should reject unsupported avatar provider %s', (avatarProvider) => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        avatarId: 'avatar-1',
+        avatarProvider,
+        editedHighlights,
+        selectedHighlightIds: ['highlight-1'],
+        voiceId: 'voice-1',
+      });
+
+      const errors = validateSync(dto);
+      const messages = errors.flatMap((error) =>
+        Object.values(error.constraints ?? {}),
+      );
+
+      expect(messages).toContain(
+        'avatarProvider must be one of the following values: heygen',
+      );
     });
   });
 

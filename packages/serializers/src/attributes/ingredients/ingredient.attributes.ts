@@ -52,4 +52,6 @@ export const ingredientAttributes = createEntityAttributes([
   'evaluation',
   'agentRunId',
   'agentStrategyId',
+  'cdnUrl',
+  's3Key',
 ]);

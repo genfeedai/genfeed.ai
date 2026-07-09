@@ -241,7 +241,7 @@ describe('BeehiivService', () => {
       expect(result).toEqual(mockPost);
       expect(httpPostMock).toHaveBeenCalledWith(
         'https://api.beehiiv.com/v2/publications/pub_abc123/posts',
-        { content_html: '<p>Hello</p>', status: 'draft', title: 'Test Post' },
+        { body_content: '<p>Hello</p>', status: 'draft', title: 'Test Post' },
         expect.any(Object),
       );
     });
