@@ -20,7 +20,7 @@ export interface EnumFieldMeta {
 export interface ModelFieldMeta {
   /**
    * All scalar + enum field names present on the model.
-   * Does NOT include list relation fields.
+   * Does NOT include list fields (relations or scalars).
    * Used by modelHasField().
    */
   allFields: ReadonlyArray<string>;
