@@ -278,22 +278,16 @@ export class InstagramService {
     this.loggerService.log(url);
 
     try {
-      // Instagram trending hashtags from Meta Graph API
-      const trendingHashtags: InstagramTrendingHashtag[] = [
-        { growthRate: 42, mentions: 1850000, topic: '#instagood' },
-        { growthRate: 35, mentions: 1420000, topic: '#photooftheday' },
-        { growthRate: 28, mentions: 980000, topic: '#fashion' },
-        { growthRate: 25, mentions: 750000, topic: '#travel' },
-        { growthRate: 22, mentions: 620000, topic: '#reels' },
-        { growthRate: 48, mentions: 2100000, topic: '#love' },
-        { growthRate: 32, mentions: 1100000, topic: '#beautiful' },
-        { growthRate: 26, mentions: 850000, topic: '#art' },
-        { growthRate: 24, mentions: 720000, topic: '#photography' },
-        { growthRate: 23, mentions: 680000, topic: '#nature' },
-      ];
+      const trendingHashtags: InstagramTrendingHashtag[] = [];
 
-      // If user has connected brand, fetch personalized trends
-      if (organizationId && brandId) {
+      if (!organizationId || !brandId) {
+        this.loggerService.warn(
+          `${url} - Instagram trend provider unavailable`,
+          {
+            reason: 'missing_organization_or_brand_scope',
+          },
+        );
+      } else {
         try {
           const credential = await this.credentialsService.findOne({
             brand: brandId,
@@ -340,21 +334,27 @@ export class InstagramService {
                 });
               });
 
-              // Add personalized trending hashtags
               const personalizedTrends = Array.from(hashtagCounts.entries())
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 5)
                 .map(([tag, mentions]) => ({
-                  growthRate: 35,
+                  growthRate: 0,
                   mentions,
-                  metadata: {
-                    personalized: true,
-                  },
                   topic: tag,
                 }));
 
               trendingHashtags.push(...personalizedTrends);
             }
+          } else {
+            this.loggerService.warn(
+              `${url} - Instagram trend provider unavailable`,
+              {
+                brandId,
+                hasCredential: Boolean(credential),
+                organizationId,
+                reason: 'missing_instagram_credential',
+              },
+            );
           }
         } catch (error: unknown) {
           this.loggerService.warn(
@@ -367,14 +367,7 @@ export class InstagramService {
       return trendingHashtags;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      // Return fallback mock data if API fails
-      return [
-        { growthRate: 42, mentions: 1850000, topic: '#instagood' },
-        { growthRate: 35, mentions: 1420000, topic: '#photooftheday' },
-        { growthRate: 28, mentions: 980000, topic: '#fashion' },
-        { growthRate: 25, mentions: 750000, topic: '#travel' },
-        { growthRate: 22, mentions: 620000, topic: '#reels' },
-      ];
+      throw error;
     }
   }
 

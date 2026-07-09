@@ -337,38 +337,13 @@ export class TiktokService {
     const url = `${this.constructorName} getTrends organizationId: ${organizationId} brandId: ${brandId}`;
 
     try {
-      // TikTok Creative Center API for trending data
-      // Note: This is a public API that doesn't require authentication
-      await firstValueFrom(
-        this.httpService.get(
-          'https://www.tiktok.com/api/challenge/detail/?challengeName=',
-          {
-            headers: {
-              'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            },
-          },
-        ),
-      );
+      const trendingHashtags: ISocialTrend[] = [];
 
-      // Parse trending hashtags from response
-      // TikTok Creative Center doesn't have a direct trending API
-      // So we'll use a combination of popular hashtags
-      const trendingHashtags = [
-        { growthRate: 45, mentions: 2500000, topic: '#fyp' },
-        { growthRate: 38, mentions: 1800000, topic: '#viral' },
-        { growthRate: 32, mentions: 1200000, topic: '#dance' },
-        { growthRate: 28, mentions: 950000, topic: '#comedy' },
-        { growthRate: 25, mentions: 870000, topic: '#music' },
-        { growthRate: 52, mentions: 3200000, topic: '#foryou' },
-        { growthRate: 35, mentions: 1500000, topic: '#trending' },
-        { growthRate: 30, mentions: 1100000, topic: '#explore' },
-        { growthRate: 27, mentions: 980000, topic: '#funny' },
-        { growthRate: 42, mentions: 2100000, topic: '#love' },
-      ];
-
-      // If user has connected brand, fetch personalized trends
-      if (organizationId && brandId) {
+      if (!organizationId || !brandId) {
+        this.loggerService.warn(`${url} - TikTok trend provider unavailable`, {
+          reason: 'missing_organization_or_brand_scope',
+        });
+      } else {
         let credential = null;
         try {
           credential = await this.credentialsService.findOne({
@@ -397,11 +372,10 @@ export class TiktokService {
               }),
             );
 
-            // Add user-specific trends if available
             if (userTrends.data?.data?.videos) {
               trendingHashtags.push(
                 ...userTrends.data.data.videos.map((video: ITikTokVideo) => ({
-                  growthRate: 40,
+                  growthRate: 0,
                   mentions: video.statistics?.view_count || 0,
                   metadata: {
                     createdAt: video.create_time,
@@ -411,6 +385,16 @@ export class TiktokService {
                 })),
               );
             }
+          } else {
+            this.loggerService.warn(
+              `${url} - TikTok trend provider unavailable`,
+              {
+                brandId,
+                hasCredential: Boolean(credential),
+                organizationId,
+                reason: 'missing_tiktok_credential',
+              },
+            );
           }
         } catch (error: unknown) {
           this.loggerService.warn(
@@ -432,14 +416,7 @@ export class TiktokService {
       return trendingHashtags;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      // Return fallback mock data if API fails
-      return [
-        { growthRate: 45, mentions: 2500000, topic: '#fyp' },
-        { growthRate: 38, mentions: 1800000, topic: '#viral' },
-        { growthRate: 32, mentions: 1200000, topic: '#dance' },
-        { growthRate: 28, mentions: 950000, topic: '#comedy' },
-        { growthRate: 25, mentions: 870000, topic: '#music' },
-      ];
+      throw error;
     }
   }
 

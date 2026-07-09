@@ -153,6 +153,8 @@ describe('useInsights', () => {
       expect(result.current).toHaveProperty('isLoading');
       expect(result.current).toHaveProperty('isRefreshing');
       expect(result.current).toHaveProperty('error');
+      expect(result.current).toHaveProperty('contentInsightsStatus');
+      expect(result.current).toHaveProperty('contentInsightsUnavailableReason');
       expect(result.current).toHaveProperty('refresh');
       expect(result.current).toHaveProperty('markInsightRead');
       expect(result.current).toHaveProperty('dismissInsight');
@@ -429,21 +431,19 @@ describe('useInsights', () => {
   });
 });
 
-describe('getMockInsightsData (implicit)', () => {
+describe('predictive analytics unavailable state', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Make predictive service throw to trigger fallback to mock data
     mockPredictiveService.getContentInsights.mockRejectedValue(
       new Error('Not available'),
     );
   });
 
-  it('should return mock data when API fails', async () => {
+  it('returns empty insight arrays and exposes the provider error', async () => {
     const { result } = renderHook(() => useInsights(), {
       wrapper: createQueryWrapper(),
     });
 
-    // Wait for loading to complete — hook falls back to getMockInsightsData on error
     await waitFor(
       () => {
         expect(result.current.isLoading).toBe(false);
@@ -451,7 +451,14 @@ describe('getMockInsightsData (implicit)', () => {
       { timeout: 3000 },
     );
 
-    // The hook should handle the error gracefully and return mock alerts
-    expect(Array.isArray(result.current.alerts)).toBe(true);
+    expect(result.current.contentInsightsStatus).toBe('unavailable');
+    expect(result.current.contentInsightsUnavailableReason).toBe(
+      'Not available',
+    );
+    expect(result.current.alerts).toEqual([]);
+    expect(result.current.anomalies).toEqual([]);
+    expect(result.current.suggestions).toEqual([]);
+    expect(result.current.trends).toEqual([]);
+    expect(result.current.error?.message).toBe('Not available');
   });
 });

@@ -219,15 +219,46 @@ describe('TiktokService', () => {
   });
 
   describe('getTrends', () => {
-    it('returns trending hashtags without credentials', async () => {
-      (httpService.get as vi.Mock).mockReturnValue(of({ data: {} }));
+    it('returns empty trends without credentials', async () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue(null);
 
       const result = await service.getTrends('o', 'a');
 
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0]).toHaveProperty('topic');
+      expect(result).toEqual([]);
+      expect(httpService.get).not.toHaveBeenCalled();
+    });
+
+    it('maps connected account videos without static fallback trends', async () => {
+      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+        accessToken: 'access',
+      });
+      (httpService.get as vi.Mock).mockReturnValue(
+        of({
+          data: {
+            data: {
+              videos: [
+                {
+                  create_time: 1720000000,
+                  id: 'video-1',
+                  statistics: { view_count: 25 },
+                  title: 'launch tips',
+                },
+              ],
+            },
+          },
+        }),
+      );
+
+      const result = await service.getTrends('o', 'a');
+
+      expect(result).toEqual([
+        {
+          growthRate: 0,
+          mentions: 25,
+          metadata: { createdAt: 1720000000, videoId: 'video-1' },
+          topic: '#launch tips',
+        },
+      ]);
     });
   });
 
