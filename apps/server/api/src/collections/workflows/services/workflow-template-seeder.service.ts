@@ -3,6 +3,8 @@ import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/s
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
   buildSystemWorkflowMetadata,
+  getMetadataRecord,
+  getSystemWorkflowMetadata,
   SYSTEM_WORKFLOW_METADATA_KEY,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
@@ -89,6 +91,104 @@ export class WorkflowTemplateSeederService {
     };
   }
 
+  private buildSeededWorkflowMetadataPatch(input: {
+    desiredMetadata: unknown;
+    existingMetadata: unknown;
+  }): Record<string, unknown> | null {
+    const desiredMetadata = getMetadataRecord(input.desiredMetadata);
+    const desiredSystemWorkflow = getSystemWorkflowMetadata(desiredMetadata);
+
+    if (!desiredSystemWorkflow) {
+      return null;
+    }
+
+    const existingMetadata = getMetadataRecord(input.existingMetadata);
+    const existingSystemWorkflow = getSystemWorkflowMetadata(existingMetadata);
+    const repairedMetadata = { ...existingMetadata, ...desiredMetadata };
+
+    if (!existingSystemWorkflow) {
+      return repairedMetadata;
+    }
+
+    const existingSourceVersion = this.normalizeSeededWorkflowVersion(
+      existingMetadata.sourceTemplateVersion,
+    );
+    const desiredSourceVersion = this.normalizeSeededWorkflowVersion(
+      desiredMetadata.sourceTemplateVersion,
+    );
+    const existingSystemVersion = this.normalizeSeededWorkflowVersion(
+      existingSystemWorkflow.version,
+    );
+    const desiredSystemVersion = this.normalizeSeededWorkflowVersion(
+      desiredSystemWorkflow.version,
+    );
+
+    if (
+      existingSourceVersion < desiredSourceVersion ||
+      existingSystemVersion < desiredSystemVersion
+    ) {
+      return repairedMetadata;
+    }
+
+    for (const [key, value] of Object.entries(desiredMetadata)) {
+      if (!this.areSeededMetadataValuesEqual(existingMetadata[key], value)) {
+        return repairedMetadata;
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeSeededWorkflowVersion(version: unknown): number {
+    return typeof version === 'number' &&
+      Number.isInteger(version) &&
+      version > 0
+      ? version
+      : 0;
+  }
+
+  private areSeededMetadataValuesEqual(left: unknown, right: unknown): boolean {
+    if (left === right) {
+      return true;
+    }
+
+    if (Array.isArray(left) || Array.isArray(right)) {
+      if (!Array.isArray(left) || !Array.isArray(right)) {
+        return false;
+      }
+
+      return (
+        left.length === right.length &&
+        left.every((item, index) =>
+          this.areSeededMetadataValuesEqual(item, right[index]),
+        )
+      );
+    }
+
+    if (this.isMetadataRecord(left) || this.isMetadataRecord(right)) {
+      if (!this.isMetadataRecord(left) || !this.isMetadataRecord(right)) {
+        return false;
+      }
+
+      const leftKeys = Object.keys(left);
+      const rightKeys = Object.keys(right);
+      return (
+        leftKeys.length === rightKeys.length &&
+        leftKeys.every(
+          (key) =>
+            Object.hasOwn(right, key) &&
+            this.areSeededMetadataValuesEqual(left[key], right[key]),
+        )
+      );
+    }
+
+    return false;
+  }
+
+  private isMetadataRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  }
+
   /**
    * Race-safe idempotent insert keyed on `metadata.sourceTemplateId` within an
    * organization. Fast-path read first; otherwise a SERIALIZABLE re-check +
@@ -112,11 +212,22 @@ export class WorkflowTemplateSeederService {
     };
 
     const preCheck = await this.prisma.workflow.findFirst({
-      select: { id: true },
+      select: { id: true, metadata: true },
       where,
     });
 
     if (preCheck) {
+      const metadataPatch = this.buildSeededWorkflowMetadataPatch({
+        desiredMetadata: input.createData.metadata,
+        existingMetadata: preCheck.metadata,
+      });
+
+      if (metadataPatch) {
+        await this.prisma.workflow.update({
+          data: { metadata: metadataPatch } as never,
+          where: { id: preCheck.id },
+        });
+      }
       return;
     }
 
@@ -124,11 +235,22 @@ export class WorkflowTemplateSeederService {
       await this.prisma.$transaction(
         async (tx) => {
           const existing = await tx.workflow.findFirst({
-            select: { id: true },
+            select: { id: true, metadata: true },
             where,
           });
 
           if (existing) {
+            const metadataPatch = this.buildSeededWorkflowMetadataPatch({
+              desiredMetadata: input.createData.metadata,
+              existingMetadata: existing.metadata,
+            });
+
+            if (metadataPatch) {
+              await tx.workflow.update({
+                data: { metadata: metadataPatch } as never,
+                where: { id: existing.id },
+              });
+            }
             return;
           }
 
@@ -238,16 +360,28 @@ export class WorkflowTemplateSeederService {
       organizationId,
     };
 
+    const createData = this.buildDailyTrendsDigestCreateData(
+      userId,
+      organizationId,
+    );
+
     // Fast path: most calls hit an already-seeded org.
     const preCheck = await this.prisma.workflow.findFirst({
-      select: { id: true, isScheduleEnabled: true },
+      select: { id: true, isScheduleEnabled: true, metadata: true },
       where,
     });
 
     if (preCheck) {
-      if (!preCheck.isScheduleEnabled) {
+      const metadataPatch = this.buildSeededWorkflowMetadataPatch({
+        desiredMetadata: createData.metadata,
+        existingMetadata: preCheck.metadata,
+      });
+      if (!preCheck.isScheduleEnabled || metadataPatch) {
         await this.prisma.workflow.update({
-          data: { isScheduleEnabled: true },
+          data: {
+            ...(metadataPatch ? { metadata: metadataPatch } : {}),
+            ...(!preCheck.isScheduleEnabled ? { isScheduleEnabled: true } : {}),
+          } as never,
           where: { id: preCheck.id },
         });
       }
@@ -258,14 +392,23 @@ export class WorkflowTemplateSeederService {
       await this.prisma.$transaction(
         async (tx) => {
           const existing = await tx.workflow.findFirst({
-            select: { id: true, isScheduleEnabled: true },
+            select: { id: true, isScheduleEnabled: true, metadata: true },
             where,
           });
 
           if (existing) {
-            if (!existing.isScheduleEnabled) {
+            const metadataPatch = this.buildSeededWorkflowMetadataPatch({
+              desiredMetadata: createData.metadata,
+              existingMetadata: existing.metadata,
+            });
+            if (!existing.isScheduleEnabled || metadataPatch) {
               await tx.workflow.update({
-                data: { isScheduleEnabled: true },
+                data: {
+                  ...(metadataPatch ? { metadata: metadataPatch } : {}),
+                  ...(!existing.isScheduleEnabled
+                    ? { isScheduleEnabled: true }
+                    : {}),
+                } as never,
                 where: { id: existing.id },
               });
             }
@@ -273,10 +416,7 @@ export class WorkflowTemplateSeederService {
           }
 
           await tx.workflow.create({
-            data: this.buildDailyTrendsDigestCreateData(
-              userId,
-              organizationId,
-            ) as never,
+            data: createData as never,
           });
         },
         { isolationLevel: 'Serializable' },
