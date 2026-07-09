@@ -4,7 +4,7 @@ import {
   PostsLayoutContext,
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
-import { PostStatus } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, PostStatus } from '@genfeedai/enums';
 import {
   getPublisherPostsHref,
   getPublisherPostsStatusFromPathname,
@@ -12,6 +12,9 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
+import { Plus } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
@@ -21,6 +24,7 @@ import { HiOutlineNewspaper } from 'react-icons/hi2';
 const KNOWN_SUB_ROUTES = [
   'analytics',
   'calendar',
+  'composer',
   'newsletters',
   'published',
   'remix',
@@ -249,6 +253,17 @@ function PostsLayoutContentContent({ children }: { children: ReactNode }) {
             {filtersNode}
             {exportNode}
             {scheduleActionsNode}
+            <Button
+              asChild
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+            >
+              <Link href={href('/posts/composer')}>
+                <Plus className="size-4" />
+                New release
+              </Link>
+            </Button>
             <ButtonRefresh
               onClick={handleRefresh}
               isRefreshing={isRefreshing}
