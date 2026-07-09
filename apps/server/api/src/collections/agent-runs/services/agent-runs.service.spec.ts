@@ -201,4 +201,151 @@ describe('AgentRunsService', () => {
       },
     });
   });
+
+  describe('prepareRetry', () => {
+    const failedRun = {
+      creditBudget: 40,
+      id: 'run-1',
+      metadata: {
+        campaignId: 'campaign-1',
+        requestedModel: 'model-from-metadata',
+        source: 'test',
+      },
+      objective: 'Do the thing',
+      retryCount: 1,
+      status: 'FAILED',
+      strategy: {
+        agentType: 'content',
+        config: { autonomyMode: 'supervised', model: 'model-from-config' },
+      },
+      strategyId: 'strategy-1',
+      threadId: 'thread-1',
+      userId: 'user-1',
+    };
+
+    it('returns null when the run is not found', async () => {
+      agentRun.findFirst.mockResolvedValue(null);
+
+      const preparation = await service.prepareRetry('missing', 'org-1', {
+        retriedBy: 'user-2',
+      });
+
+      expect(preparation).toBeNull();
+      expect(agentRun.update).not.toHaveBeenCalled();
+    });
+
+    it('scopes the lookup by organization and brand', async () => {
+      agentRun.findFirst.mockResolvedValue(null);
+
+      await service.prepareRetry('run-1', 'org-1', {
+        brandId: 'brand-1',
+        retriedBy: 'user-2',
+      });
+
+      expect(agentRun.findFirst).toHaveBeenCalledWith({
+        include: { strategy: true },
+        where: {
+          brandId: 'brand-1',
+          id: 'run-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+    });
+
+    it('rejects runs that are not failed or cancelled', async () => {
+      agentRun.findFirst.mockResolvedValue({
+        ...failedRun,
+        status: 'RUNNING',
+      });
+
+      await expect(
+        service.prepareRetry('run-1', 'org-1', { retriedBy: 'user-2' }),
+      ).rejects.toThrow('Only failed or cancelled agent runs can be retried');
+      expect(agentRun.update).not.toHaveBeenCalled();
+    });
+
+    it('resets terminal state and stamps retry provenance metadata', async () => {
+      agentRun.findFirst.mockResolvedValue(failedRun);
+      agentRun.update.mockResolvedValue({ ...failedRun, status: 'PENDING' });
+
+      const preparation = await service.prepareRetry('run-1', 'org-1', {
+        retriedBy: 'user-2',
+      });
+
+      expect(preparation?.previousStatus).toBe('FAILED');
+      expect(agentRun.update).toHaveBeenCalledWith({
+        data: {
+          completedAt: null,
+          durationMs: null,
+          error: null,
+          metadata: expect.objectContaining({
+            campaignId: 'campaign-1',
+            lastRetryAt: expect.any(String),
+            retriedBy: 'user-2',
+            source: 'test',
+          }),
+          progress: 0,
+          startedAt: null,
+          status: 'PENDING',
+          summary: null,
+        },
+        where: { id: 'run-1' },
+      });
+
+      const writtenMetadata = agentRun.update.mock.calls[0]?.[0].data.metadata;
+      expect(Number.isNaN(Date.parse(writtenMetadata.lastRetryAt))).toBe(false);
+    });
+
+    it('rebuilds queue job data from the durable run and strategy records', async () => {
+      agentRun.findFirst.mockResolvedValue(failedRun);
+      agentRun.update.mockResolvedValue({ ...failedRun, status: 'PENDING' });
+
+      const preparation = await service.prepareRetry('run-1', 'org-1', {
+        retriedBy: 'user-2',
+      });
+
+      expect(preparation?.jobData).toEqual({
+        agentType: 'content',
+        autonomyMode: 'supervised',
+        campaignId: 'campaign-1',
+        creditBudget: 40,
+        model: 'model-from-metadata',
+        objective: 'Do the thing',
+        organizationId: 'org-1',
+        runId: 'run-1',
+        strategyId: 'strategy-1',
+        userId: 'user-1',
+      });
+    });
+
+    it('falls back to strategy config model and omits absent fields for cancelled runs', async () => {
+      agentRun.findFirst.mockResolvedValue({
+        id: 'run-1',
+        metadata: null,
+        status: 'CANCELLED',
+        strategy: { agentType: null, config: { model: 'model-from-config' } },
+        userId: 'user-1',
+      });
+      agentRun.update.mockResolvedValue({ id: 'run-1', status: 'PENDING' });
+
+      const preparation = await service.prepareRetry('run-1', 'org-1', {
+        retriedBy: 'user-2',
+      });
+
+      expect(preparation?.previousStatus).toBe('CANCELLED');
+      expect(preparation?.jobData).toEqual({
+        agentType: undefined,
+        autonomyMode: undefined,
+        campaignId: undefined,
+        creditBudget: undefined,
+        model: 'model-from-config',
+        objective: undefined,
+        organizationId: 'org-1',
+        runId: 'run-1',
+        strategyId: undefined,
+        userId: 'user-1',
+      });
+    });
+  });
 });
