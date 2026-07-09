@@ -105,10 +105,22 @@ describe('AgentWorkspacePageShell', () => {
         onboardingMode: true,
         onOAuthConnect: handleOAuthConnectMock,
         onOnboardingCompleted: completeOnboardingFlowMock,
+        showRunSummary: true,
         showThreadSidebar: false,
         threadId: 'thread-123',
       }),
     );
+  });
+
+  it('routes run thread handoffs to the org agent workspace', () => {
+    render(<AgentWorkspacePageShell />);
+
+    const props = agentFullPageSpy.mock.calls[0]?.[0] as {
+      onOpenRunThread: (threadId: string) => void;
+    };
+    props.onOpenRunThread('run-thread-123');
+
+    expect(pushMock).toHaveBeenCalledWith('/test-org/~/agent/run-thread-123');
   });
 
   it('routes billing actions to Credits in OSS mode', () => {
