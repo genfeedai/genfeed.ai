@@ -195,6 +195,74 @@ export function useStudioClipsPage() {
     }
   }, [youtubeUrl, maxClips, minViralityScore, clipsService]);
 
+  // ─── Step 1: One-click YouTube clip factory ───────────────────
+  const handleStartFromYoutube = useCallback(async () => {
+    if (!youtubeUrl) {
+      setError('YouTube URL is required.');
+      return;
+    }
+
+    const quickAvatarId = avatarId || identityDefaults.avatarId;
+    const quickVoiceId = voiceId || identityDefaults.voiceId;
+
+    if (!quickAvatarId || !quickVoiceId) {
+      setError(
+        'Saved HeyGen avatar and voice defaults are required for one-click generation. Review highlights first to enter IDs manually.',
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    clipCompletionReportedRef.current = null;
+    captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_STARTED, {
+      generationType: GenerationType.CLIP,
+    });
+
+    try {
+      const data = await clipsService.createFromYoutube({
+        avatarId: quickAvatarId,
+        avatarProvider,
+        language: 'en',
+        maxClips,
+        minViralityScore,
+        voiceId: quickVoiceId,
+        youtubeUrl,
+      });
+
+      setAvatarId(quickAvatarId);
+      setVoiceId(quickVoiceId);
+      setProject({
+        clips: [],
+        estimatedClips: data.estimatedClips,
+        highlights: [],
+        projectId: data.projectId,
+        status: data.status ?? 'processing',
+      });
+      setSelectedIds(new Set());
+      setEditedHighlights([]);
+      setStep('progress');
+    } catch (err: unknown) {
+      captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+        generationType: GenerationType.CLIP,
+        outcome: 'failure',
+      });
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    youtubeUrl,
+    avatarId,
+    voiceId,
+    identityDefaults.avatarId,
+    identityDefaults.voiceId,
+    avatarProvider,
+    maxClips,
+    minViralityScore,
+    clipsService,
+  ]);
+
   // ─── Poll for analysis completion ─────────────────────────────
   useEffect(() => {
     if (step !== 'review' || !project?.projectId) return;
@@ -458,6 +526,7 @@ export function useStudioClipsPage() {
     error,
     handleAnalyze,
     handleGenerate,
+    handleStartFromYoutube,
     identityDefaults,
     isSubmitting,
     maxClips,

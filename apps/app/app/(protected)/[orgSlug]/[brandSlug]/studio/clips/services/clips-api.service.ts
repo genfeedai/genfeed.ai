@@ -31,6 +31,23 @@ interface GenerateClipsPayload {
   avatarProvider: string;
 }
 
+interface CreateFromYoutubePayload {
+  avatarId: string;
+  avatarProvider: string;
+  language: string;
+  maxClips: number;
+  minViralityScore: number;
+  voiceId: string;
+  youtubeUrl: string;
+}
+
+interface CreateFromYoutubeResponse {
+  batchJobId: string;
+  estimatedClips: number;
+  projectId: string;
+  status: string;
+}
+
 interface ProjectResponse {
   status?: string;
 }
@@ -194,6 +211,18 @@ export class ClipsApiService {
   ): Promise<void> {
     await this.fetchJson(
       `${this.apiEndpoint}/clip-projects/${projectId}/generate`,
+      {
+        body: JSON.stringify(payload),
+        method: 'POST',
+      },
+    );
+  }
+
+  async createFromYoutube(
+    payload: CreateFromYoutubePayload,
+  ): Promise<CreateFromYoutubeResponse> {
+    return this.fetchJson<CreateFromYoutubeResponse>(
+      `${this.apiEndpoint}/clip-projects/from-youtube`,
       {
         body: JSON.stringify(payload),
         method: 'POST',
