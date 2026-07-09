@@ -37360,6 +37360,204 @@
         ]
       }
     },
+    "/post-groups": {
+      "post": {
+        "operationId": "PostGroupsController.create",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "idempotency-key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "create",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
+    "/post-groups/{id}": {
+      "get": {
+        "operationId": "PostGroupsController.getOne",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "getOne",
+        "tags": [
+          "PostGroups"
+        ]
+      },
+      "patch": {
+        "operationId": "PostGroupsController.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "update",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
+    "/post-groups/{id}/cancel": {
+      "post": {
+        "operationId": "PostGroupsController.cancel",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "cancel",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
+    "/post-groups/{id}/pause": {
+      "post": {
+        "operationId": "PostGroupsController.pause",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "pause",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
+    "/post-groups/{id}/publish-now": {
+      "post": {
+        "operationId": "PostGroupsController.publishNow",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "publishNow",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
+    "/post-groups/{id}/resume": {
+      "post": {
+        "operationId": "PostGroupsController.resume",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "resume",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
+    "/post-groups/{id}/targets/{targetId}": {
+      "patch": {
+        "operationId": "PostGroupsController.updateTarget",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "targetId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "updateTarget",
+        "tags": [
+          "PostGroups"
+        ]
+      }
+    },
     "/posts": {
       "get": {
         "operationId": "PostsController.findAll",

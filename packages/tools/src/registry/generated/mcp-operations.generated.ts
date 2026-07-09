@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1011 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1019 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -10234,6 +10234,109 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     ],
     "queryParams": [],
     "toolName": "playbooks__update"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "post",
+    "operationId": "PostGroupsController.cancel",
+    "path": "/post-groups/{id}/cancel",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "toolName": "post_groups__cancel"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "post",
+    "operationId": "PostGroupsController.create",
+    "path": "/post-groups",
+    "pathParams": [],
+    "queryParams": [],
+    "toolName": "post_groups__create"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "PostGroupsController.getOne",
+    "path": "/post-groups/{id}",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "toolName": "post_groups__get_one"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "post",
+    "operationId": "PostGroupsController.pause",
+    "path": "/post-groups/{id}/pause",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "toolName": "post_groups__pause"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "post",
+    "operationId": "PostGroupsController.publishNow",
+    "path": "/post-groups/{id}/publish-now",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "toolName": "post_groups__publish_now"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "post",
+    "operationId": "PostGroupsController.resume",
+    "path": "/post-groups/{id}/resume",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "toolName": "post_groups__resume"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "patch",
+    "operationId": "PostGroupsController.update",
+    "path": "/post-groups/{id}",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "toolName": "post_groups__update"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "patch",
+    "operationId": "PostGroupsController.updateTarget",
+    "path": "/post-groups/{id}/targets/{targetId}",
+    "pathParams": [
+      "id",
+      "targetId"
+    ],
+    "queryParams": [],
+    "toolName": "post_groups__update_target"
   },
   {
     "bodyFields": [

@@ -194,6 +194,15 @@ describe('deriveReleaseStatusFromTargets', () => {
     ).toBe(ReleaseStatus.SCHEDULED);
   });
 
+  test('all paused -> paused', () => {
+    expect(
+      deriveReleaseStatusFromTargets([
+        TargetExecutionState.PAUSED,
+        TargetExecutionState.PAUSED,
+      ]),
+    ).toBe(ReleaseStatus.PAUSED);
+  });
+
   // SKIPPED is terminal + benign (intentionally excluded target). It has no
   // ReleaseStatus counterpart, so it rolls up like CANCELLED. Every skipped
   // combination must land on a terminal status, never fall through to SCHEDULED.

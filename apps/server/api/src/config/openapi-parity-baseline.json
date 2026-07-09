@@ -3377,6 +3377,46 @@
       "path": "/content-intelligence/playbooks/{id}"
     },
     {
+      "method": "post",
+      "operationId": "PostGroupsController.cancel",
+      "path": "/post-groups/{id}/cancel"
+    },
+    {
+      "method": "post",
+      "operationId": "PostGroupsController.create",
+      "path": "/post-groups"
+    },
+    {
+      "method": "get",
+      "operationId": "PostGroupsController.getOne",
+      "path": "/post-groups/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "PostGroupsController.pause",
+      "path": "/post-groups/{id}/pause"
+    },
+    {
+      "method": "post",
+      "operationId": "PostGroupsController.publishNow",
+      "path": "/post-groups/{id}/publish-now"
+    },
+    {
+      "method": "post",
+      "operationId": "PostGroupsController.resume",
+      "path": "/post-groups/{id}/resume"
+    },
+    {
+      "method": "patch",
+      "operationId": "PostGroupsController.update",
+      "path": "/post-groups/{id}"
+    },
+    {
+      "method": "patch",
+      "operationId": "PostGroupsController.updateTarget",
+      "path": "/post-groups/{id}/targets/{targetId}"
+    },
+    {
       "method": "get",
       "operationId": "PostsAnalyticsController.getAnalytics",
       "path": "/posts/{postId}/analytics"
