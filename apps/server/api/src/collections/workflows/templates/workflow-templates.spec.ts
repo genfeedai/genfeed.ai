@@ -27,6 +27,38 @@ describe('WorkflowTemplates', () => {
     expect(nodeTypes).toContain('workflow-output');
   });
 
+  it('includes the weekly brand AI content loop with source collection and post image attachment', () => {
+    const template = WORKFLOW_TEMPLATES['weekly-brand-ai-content-loop'];
+
+    expect(template?.name).toBe('Weekly Brand AI Content Loop');
+    expect(template?.category).toBe('content');
+    expect(template?.schedule).toBe('0 9 * * 1');
+
+    const nodeTypes = new Set((template?.nodes ?? []).map((node) => node.type));
+    expect(nodeTypes).toContain('source-corpus');
+    expect(nodeTypes).toContain('ai-generate-newsletter');
+    expect(nodeTypes).toContain('ai-generate-post');
+    expect(nodeTypes).toContain('ai-generate-image');
+    expect(nodeTypes).toContain('attach-post-ingredient');
+
+    expect(template?.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'image-ingredient',
+          sourceHandle: 'id',
+          target: 'attach-image-to-post',
+          targetHandle: 'ingredientId',
+        }),
+        expect.objectContaining({
+          source: 'x-post-draft',
+          sourceHandle: 'id',
+          target: 'attach-image-to-post',
+          targetHandle: 'postId',
+        }),
+      ]),
+    );
+  });
+
   it('includes productized daily routine templates with review and tracking metadata', () => {
     const dailyTrendLoop = WORKFLOW_TEMPLATES['daily-trend-loop'];
     const releaseLoop = WORKFLOW_TEMPLATES['release-loop'];

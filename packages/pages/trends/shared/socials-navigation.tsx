@@ -7,7 +7,7 @@ export type SocialsNavigationBasePath = '/research' | '/analytics/trends';
 
 interface SocialsNavigationItem {
   href: string;
-  id: 'overview' | TrendPlatform;
+  id: 'overview' | 'following' | TrendPlatform;
   label: string;
   matchMode?: 'exact';
 }
@@ -45,7 +45,7 @@ function buildPlatformHref(
 function buildSocialsNavItems(
   basePath: SocialsNavigationBasePath,
 ): SocialsNavigationItem[] {
-  return PLATFORM_LABELS.map(({ id, label, matchMode }) => {
+  const platformItems = PLATFORM_LABELS.map(({ id, label, matchMode }) => {
     const item: SocialsNavigationItem = {
       href:
         id === 'overview'
@@ -59,9 +59,19 @@ function buildSocialsNavItems(
     }
     return item;
   });
+
+  if (basePath !== '/research') {
+    return platformItems;
+  }
+
+  return [
+    platformItems[0],
+    { href: '/research/following', id: 'following', label: 'Following' },
+    ...platformItems.slice(1),
+  ];
 }
 
-export type SocialsNavigationValue = 'overview' | TrendPlatform;
+export type SocialsNavigationValue = 'overview' | 'following' | TrendPlatform;
 
 export function SocialsNavigation({
   active,

@@ -1,13 +1,10 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import {
-  type CredentialPlatform,
-  PostCategory,
-  PostStatus,
-} from '@genfeedai/enums';
+import { PostStatus } from '@genfeedai/enums';
 import {
   HookGeneratorExecutor,
   PromptConstructorExecutor,
@@ -24,14 +21,17 @@ export class WorkflowContentExecutorRegistrarService {
     private readonly credentialsService?: CredentialsService,
     private readonly newslettersService?: NewslettersService,
     private readonly openRouterService?: OpenRouterService,
+    private readonly sourcePostsService?: SourcePostsService,
   ) {}
 
   register(engine: WorkflowEngine): void {
     this.registerPromptConstructorExecutor(engine);
     this.registerHookGeneratorExecutor(engine);
     this.registerLlmExecutor(engine);
+    this.registerSourceCorpusExecutor(engine);
     this.registerPostExecutor(engine);
     this.registerNewsletterExecutor(engine);
+    this.registerAttachPostIngredientExecutor(engine);
   }
 
   private registerPromptConstructorExecutor(engine: WorkflowEngine): void {
@@ -58,11 +58,9 @@ export class WorkflowContentExecutorRegistrarService {
         throw new Error('OpenRouter service is not available for llm nodes');
       }
 
-      const promptInput = inputs.get('prompt');
       const prompt =
-        typeof promptInput === 'string' && promptInput.trim().length > 0
-          ? promptInput
-          : this.helper.readConfigString(node.config, 'prompt');
+        readTextInput(inputs, ['prompt', 'content', 'text']) ??
+        this.helper.readConfigString(node.config, 'prompt');
 
       if (!prompt) {
         throw new Error('Missing required input: prompt');
@@ -101,9 +99,11 @@ export class WorkflowContentExecutorRegistrarService {
       return;
     }
 
-    engine.registerExecutor('postGen', async (node, _inputs, context) => {
+    engine.registerExecutor('postGen', async (node, inputs, context) => {
       const brandId = this.helper.readConfigString(node.config, 'brandId');
-      const prompt = this.helper.readConfigString(node.config, 'prompt');
+      const prompt =
+        readTextInput(inputs, ['prompt', 'content', 'text']) ??
+        this.helper.readConfigString(node.config, 'prompt');
 
       if (!brandId || !prompt) {
         throw new Error('postGen requires brandId and prompt');
@@ -148,18 +148,32 @@ export class WorkflowContentExecutorRegistrarService {
         completion.choices?.[0]?.message?.content?.trim() ??
         `Daily post draft for ${brandLabel}`;
 
-      const post = await postsService.create({
-        brand: brandId,
-        category: PostCategory.TEXT,
-        credential: credential.id,
-        description,
-        ingredients: [],
-        label: this.helper.buildPostLabel(description),
-        organization: context.organizationId,
-        platform: credential.platform as CredentialPlatform,
-        status: PostStatus.DRAFT,
-        timezone,
-        user: context.userId,
+      const post = await (
+        postsService.prisma as unknown as {
+          post: {
+            create(args: Record<string, unknown>): Promise<{
+              description: string;
+              id: string;
+              label?: string | null;
+              platform: string;
+              status: string;
+            }>;
+          };
+        }
+      ).post.create({
+        data: {
+          brandId,
+          category: 'TEXT',
+          credentialId: credential.id,
+          description,
+          label: this.helper.buildPostLabel(description),
+          organizationId: context.organizationId,
+          platform: String(credential.platform).toLowerCase(),
+          source: 'workflow-post-generator',
+          status: PostStatus.DRAFT,
+          timezone,
+          userId: context.userId,
+        },
       });
 
       return {
@@ -183,9 +197,11 @@ export class WorkflowContentExecutorRegistrarService {
       return;
     }
 
-    engine.registerExecutor('newsletterGen', async (node, _inputs, context) => {
+    engine.registerExecutor('newsletterGen', async (node, inputs, context) => {
       const brandId = this.helper.readConfigString(node.config, 'brandId');
-      const prompt = this.helper.readConfigString(node.config, 'prompt');
+      const prompt =
+        readTextInput(inputs, ['prompt', 'content', 'text']) ??
+        this.helper.readConfigString(node.config, 'prompt');
 
       if (!brandId || !prompt) {
         throw new Error('newsletterGen requires brandId and prompt');
@@ -220,6 +236,77 @@ export class WorkflowContentExecutorRegistrarService {
       };
     });
   }
+
+  private registerSourceCorpusExecutor(engine: WorkflowEngine): void {
+    const sourcePostsService = this.sourcePostsService;
+
+    if (!sourcePostsService) {
+      return;
+    }
+
+    engine.registerExecutor('sourceCorpus', async (node, _inputs, context) => {
+      const brandId = this.helper.readConfigString(node.config, 'brandId');
+
+      if (!brandId) {
+        throw new Error('sourceCorpus requires brandId');
+      }
+
+      const days = Math.round(
+        this.helper.getOptionalNumberConfig(node.config, 'days', 7),
+      );
+      const limit = Math.round(
+        this.helper.getOptionalNumberConfig(node.config, 'limit', 50),
+      );
+      const result = await sourcePostsService.getWeeklyCorpus(
+        context.organizationId,
+        brandId,
+        days,
+        limit,
+      );
+
+      return {
+        content: result.corpus,
+        corpus: result.corpus,
+        count: result.count,
+        markdown: result.corpus,
+        posts: result.posts,
+        text: result.corpus,
+      };
+    });
+  }
+
+  private registerAttachPostIngredientExecutor(engine: WorkflowEngine): void {
+    const sourcePostsService = this.sourcePostsService;
+
+    if (!sourcePostsService) {
+      return;
+    }
+
+    engine.registerExecutor(
+      'attachPostIngredient',
+      async (node, inputs, context) => {
+        const brandId = this.helper.readConfigString(node.config, 'brandId');
+        const postId =
+          readIdInput(inputs.get('postId')) ??
+          this.helper.readConfigString(node.config, 'postId');
+        const ingredientId =
+          readIdInput(inputs.get('ingredientId')) ??
+          readIdInput(inputs.get('image')) ??
+          this.helper.readConfigString(node.config, 'ingredientId');
+
+        if (!brandId || !postId || !ingredientId) {
+          throw new Error(
+            'attachPostIngredient requires brandId, postId, and ingredientId',
+          );
+        }
+
+        return sourcePostsService.attachIngredientToPost(postId, ingredientId, {
+          brandId,
+          organizationId: context.organizationId,
+        });
+      },
+    );
+  }
 }
 
 function buildPostGenMessages(brandLabel: string, prompt: string) {
@@ -238,4 +325,51 @@ function buildPostGenMessages(brandLabel: string, prompt: string) {
       role: 'user' as const,
     },
   ];
+}
+
+function readTextInput(
+  inputs: Map<string, unknown>,
+  keys: string[],
+): string | undefined {
+  for (const key of keys) {
+    const value = stringifyWorkflowInput(inputs.get(key));
+    if (value) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function stringifyWorkflowInput(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim();
+  }
+
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  for (const key of ['prompt', 'text', 'content', 'corpus', 'description']) {
+    const candidate = record[key];
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function readIdInput(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.trim().length > 0) {
+    return value.trim();
+  }
+
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  const id = record.id ?? record.ingredientId ?? record.postId;
+  return typeof id === 'string' && id.trim().length > 0 ? id.trim() : undefined;
 }

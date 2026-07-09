@@ -2,6 +2,7 @@ import { CONTENT_LOOP_TEMPLATE } from '@api/collections/workflows/templates/cont
 import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templates/daily-trends-digest.template';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
 import { PRODUCTIZED_DAILY_ROUTINE_TEMPLATES } from '@api/collections/workflows/templates/productized-routines.template';
+import { WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/weekly-brand-content-workflow.template';
 import { WorkflowStepCategory } from '@genfeedai/enums';
 
 export type RoutineReviewDefaults = {
@@ -107,6 +108,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
   ),
   'content-loop': CONTENT_LOOP_TEMPLATE,
   'daily-trends-digest': DAILY_TRENDS_DIGEST_TEMPLATE,
+  'weekly-brand-ai-content-loop': WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE,
   'launch-kit': {
     category: 'launch',
     description:

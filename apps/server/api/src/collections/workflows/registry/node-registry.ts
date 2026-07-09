@@ -270,6 +270,64 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
     },
   },
 
+  'source-corpus': {
+    category: 'input',
+    configSchema: {
+      brandId: {
+        description: 'Brand ID used to scope followed source posts',
+        label: 'Brand ID',
+        required: true,
+        type: 'string',
+      },
+      days: {
+        default: 7,
+        label: 'Days',
+        max: 30,
+        min: 1,
+        type: 'number',
+      },
+      limit: {
+        default: 50,
+        label: 'Post Limit',
+        max: 100,
+        min: 1,
+        type: 'number',
+      },
+    },
+    description: 'Collect recent posts from followed brand sources',
+    icon: 'HiInboxStack',
+    inputs: {},
+    label: 'Source Corpus',
+    outputs: {
+      corpus: { label: 'Corpus', type: 'text' },
+      count: { label: 'Post Count', type: 'number' },
+      posts: { label: 'Source Posts', multiple: true, type: 'any' },
+    },
+  },
+
+  'attach-post-ingredient': {
+    category: 'output',
+    configSchema: {
+      brandId: {
+        description: 'Brand ID used to scope the post draft',
+        label: 'Brand ID',
+        required: true,
+        type: 'string',
+      },
+    },
+    description: 'Attach a generated ingredient to an existing post draft',
+    icon: 'HiPaperClip',
+    inputs: {
+      ingredientId: { label: 'Ingredient ID', required: true, type: 'text' },
+      postId: { label: 'Post ID', required: true, type: 'text' },
+    },
+    label: 'Attach Ingredient',
+    outputs: {
+      post: { label: 'Updated Post', type: 'any' },
+      status: { label: 'Status', type: 'text' },
+    },
+  },
+
   'analytics-feedback': {
     category: 'input',
     configSchema: {
