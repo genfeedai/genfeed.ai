@@ -246,6 +246,16 @@ describe('UI Helpers', () => {
       expect(menuItems.length).toBeGreaterThan(0);
     });
 
+    it('should not render unavailable Rewrite Post menu item', () => {
+      const dropdown = createGenFeedDropdown('123', 'twitter');
+      const menuItems = dropdown.querySelectorAll('.genfeed-menu-item');
+
+      const hasRewritePost = Array.from(menuItems).some((item) =>
+        item.textContent?.includes('Rewrite Post'),
+      );
+      expect(hasRewritePost).toBe(false);
+    });
+
     it('should have Reply with Image menu item', () => {
       const dropdown = createGenFeedDropdown('123', 'twitter');
       const menuItems = dropdown.querySelectorAll('.genfeed-menu-item');
