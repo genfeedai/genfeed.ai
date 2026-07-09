@@ -47,6 +47,7 @@
 
 ## References
 
+- [App Page Map](reference_app_page_map.md) — current app route/page map for QA review of app switcher, sidebars, org scope, brand scope, and admin surfaces
 - [Postgres RDS](reference_postgres_rds.md) — prod `genfeed-data` + dev `local-genfeedai` instances, sslmode gotcha, PrismaService env path
 - [Production AWS Runtime](reference_prod_aws_runtime.md) — live AWS source of truth: ECS/Fargate production, AL2023 EC2 stopped as rollback host, community deploy unaffected
 - [Production Fargate + Vercel webhook](reference_production_fargate_vercel_webhook.md) — live ECS service state, Vercel webhook receiver, Discord notification sink disabled, correct webhook reset scope

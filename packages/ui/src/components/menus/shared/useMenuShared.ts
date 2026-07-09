@@ -1,11 +1,9 @@
-import { createBrandAppRoute } from '@genfeedai/constants';
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
-import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
-import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMenuRouteResolution } from './useMenuRouteResolution';
 
 export function useMenuShared({
   config,
@@ -24,124 +22,20 @@ export function useMenuShared({
   | 'renderFooterSlot'
 >) {
   const logoUrl = useThemeLogo();
-  const rawPathname = usePathname();
-  const { href, orgHref, orgSlug, brandSlug } = useOrgUrl();
   const [isConversationsCollapsed, setIsConversationsCollapsed] =
     useState(false);
   const { nestedGroupId, enterNestedGroup, exitNestedGroup } =
     useSidebarNavigation();
-
-  const routeScope = useMemo(() => {
-    const parts = rawPathname.split('/').filter(Boolean);
-
-    if (parts[0] === 'settings') {
-      return 'personal' as const;
-    }
-
-    if (parts[1] === '~') {
-      return 'organization' as const;
-    }
-
-    return 'brand' as const;
-  }, [rawPathname]);
-
-  /** Strip org/brand prefix so we can compare against config-level paths. */
-  const pathname = useMemo(() => {
-    const parts = rawPathname.split('/').filter(Boolean);
-    if (parts.length >= 2 && parts[1] === '~') {
-      return `/${parts.slice(2).join('/')}`;
-    }
-    if (parts.length >= 3) {
-      return `/${parts.slice(2).join('/')}`;
-    }
-    return rawPathname;
-  }, [rawPathname]);
-
-  const isAlreadyScopedHref = useCallback(
-    (path: string) => {
-      const parts = path.split('/').filter(Boolean);
-
-      return (
-        parts[0] === orgSlug &&
-        (parts[1] === '~' || (brandSlug && parts[1] === brandSlug))
-      );
-    },
-    [brandSlug, orgSlug],
-  );
-
-  const resolveLegacySettingsHref = useCallback(
-    (path: string) => {
-      if (path === '/settings/personal') {
-        return '/settings';
-      }
-
-      if (path === '/settings/organization') {
-        return orgHref('/settings');
-      }
-
-      if (path.startsWith('/settings/organization/')) {
-        return orgHref(path.replace('/settings/organization', '/settings'));
-      }
-
-      if (path.startsWith('/settings/brands/')) {
-        const [, , , routeBrandSlug, ...rest] = path.split('/');
-
-        if (routeBrandSlug) {
-          const suffix = rest.length > 0 ? `/${rest.join('/')}` : '';
-          return createBrandAppRoute(
-            orgSlug,
-            routeBrandSlug,
-            `/settings${suffix}`,
-          );
-        }
-      }
-
-      return orgHref(path);
-    },
-    [orgHref, orgSlug],
-  );
-
-  /** Prefix a config-level path with the configured route scope. */
-  const prefixHref = useCallback(
-    (
-      item:
-        | MenuItemConfig
-        | { href: string; hrefScope?: MenuItemConfig['hrefScope'] },
-    ) => {
-      const path = item.href;
-
-      if (!path) {
-        return undefined;
-      }
-
-      if (isAlreadyScopedHref(path)) {
-        return path;
-      }
-
-      if (item.hrefScope === 'global') {
-        return path;
-      }
-
-      if (item.hrefScope === 'personal') {
-        return path;
-      }
-
-      if (item.hrefScope === 'organization') {
-        return resolveLegacySettingsHref(path);
-      }
-
-      if (item.hrefScope === 'brand') {
-        return href(path);
-      }
-
-      if (path.startsWith('/settings')) {
-        return resolveLegacySettingsHref(path);
-      }
-
-      return href(path);
-    },
-    [href, isAlreadyScopedHref, resolveLegacySettingsHref],
-  );
+  const {
+    brandSlug,
+    href,
+    isActive,
+    orgHref,
+    orgSlug,
+    pathname,
+    prefixHref,
+    routeScope,
+  } = useMenuRouteResolution();
 
   const primaryItems = useMemo(
     () => config.items.filter((item) => item.isPrimary),
@@ -156,30 +50,6 @@ export function useMenuShared({
   const secondaryItems = useMemo(
     () => config.secondaryItems ?? [],
     [config.secondaryItems],
-  );
-
-  const isActive = useCallback(
-    (itemHref: string) => {
-      if (!itemHref) {
-        return false;
-      }
-
-      if (
-        itemHref.startsWith('/elements/') &&
-        pathname?.startsWith('/elements/')
-      ) {
-        return true;
-      }
-      if (
-        itemHref.startsWith('/ingredients/') &&
-        pathname?.startsWith('/ingredients/')
-      ) {
-        return true;
-      }
-
-      return pathname === itemHref || pathname?.startsWith(itemHref);
-    },
-    [pathname],
   );
 
   const isActiveItem = useCallback(

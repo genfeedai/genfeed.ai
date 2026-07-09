@@ -13,6 +13,7 @@ import {
   getBrandOrganizationSlug,
 } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { IBrand } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
@@ -62,6 +63,48 @@ type AppProtectedTopbarProps = TopbarProps & {
   chrome?: AppProtectedTopbarChrome;
 };
 
+function resolveTopbarScope({
+  brandId,
+  brandSlug,
+  brands,
+  orgSlug,
+  resolvedBrandSlug,
+  resolvedOrgSlug,
+  selectedBrand,
+}: {
+  brandId?: string;
+  brandSlug?: string;
+  brands: IBrand[];
+  orgSlug?: string;
+  resolvedBrandSlug?: string;
+  resolvedOrgSlug?: string;
+  selectedBrand?: IBrand | null;
+}) {
+  const explicitBrandSlug = brandSlug || undefined;
+  const hasExplicitOrgScope = Boolean(orgSlug);
+  const effectiveOrgSlug = orgSlug || resolvedOrgSlug;
+  const effectiveBrandSlug = hasExplicitOrgScope
+    ? explicitBrandSlug
+    : (explicitBrandSlug ?? resolvedBrandSlug) || undefined;
+  const isOrganizationScopeRoute = hasExplicitOrgScope && !explicitBrandSlug;
+  const effectiveBrandId = brandId || getBrandEntityId(selectedBrand);
+  const visibleBrandId = isOrganizationScopeRoute ? '' : effectiveBrandId;
+  const selectedBrandForContext = effectiveBrandId
+    ? brands.find((brand) => getBrandEntityId(brand) === effectiveBrandId) ||
+      selectedBrand
+    : undefined;
+  const brandAwareAppSlug =
+    effectiveBrandSlug || selectedBrandForContext?.slug || undefined;
+
+  return {
+    brandAwareAppSlug,
+    effectiveBrandSlug,
+    effectiveOrgSlug,
+    isOrganizationScopeRoute,
+    visibleBrandId,
+  };
+}
+
 function AppProtectedTopbarContent({
   chrome = 'app',
   isMenuOpen,
@@ -89,21 +132,21 @@ function AppProtectedTopbarContent({
     brandSlug: resolvedBrandSlug,
     orgSlug: resolvedOrgSlug,
   } = useOrgUrl();
-  const explicitBrandSlug = brandSlug || undefined;
-  const hasExplicitOrgScope = Boolean(orgSlug);
-  const effectiveOrgSlug = orgSlug || resolvedOrgSlug;
-  const effectiveBrandSlug = hasExplicitOrgScope
-    ? explicitBrandSlug
-    : (explicitBrandSlug ?? resolvedBrandSlug) || undefined;
-  const isOrganizationScopeRoute = hasExplicitOrgScope && !explicitBrandSlug;
-  const effectiveBrandId = brandId || getBrandEntityId(selectedBrand);
-  const visibleBrandId = isOrganizationScopeRoute ? '' : effectiveBrandId;
-  const selectedBrandForContext = effectiveBrandId
-    ? brands.find((brand) => getBrandEntityId(brand) === effectiveBrandId) ||
-      selectedBrand
-    : undefined;
-  const brandAwareAppSlug =
-    effectiveBrandSlug || selectedBrandForContext?.slug || undefined;
+  const {
+    brandAwareAppSlug,
+    effectiveBrandSlug,
+    effectiveOrgSlug,
+    isOrganizationScopeRoute,
+    visibleBrandId,
+  } = resolveTopbarScope({
+    brandId,
+    brandSlug,
+    brands,
+    orgSlug,
+    resolvedBrandSlug,
+    resolvedOrgSlug,
+    selectedBrand,
+  });
   const isOrganizationSettingsRoute =
     Boolean(effectiveOrgSlug) &&
     isOrganizationScopeRoute &&
@@ -264,6 +307,8 @@ function AppProtectedTopbarContent({
             </div>
           ) : null}
 
+          {!isAdminChrome ? <TopbarCreditsBar /> : null}
+
           {shouldRenderAgentToggle ? (
             <Button
               type="button"
@@ -299,8 +344,6 @@ function AppProtectedTopbarContent({
 
             {!isAdminChrome ? <TopbarEnd /> : null}
           </div>
-
-          {!isAdminChrome ? <TopbarCreditsBar /> : null}
         </div>
       </div>
     </header>

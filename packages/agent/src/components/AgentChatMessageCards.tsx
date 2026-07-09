@@ -40,18 +40,9 @@ function GenericOAuthConnectCard({
     'Connect Instagram, X, LinkedIn, TikTok, YouTube, or another supported platform to continue.';
   const rawIntegrationHref =
     action.ctas?.find((cta) => cta.href)?.href ?? '/settings/api-keys';
-  const integrationHref = rawIntegrationHref.startsWith(
-    '/settings/organization/credentials',
-  )
-    ? orgHref(
-        rawIntegrationHref.replace(
-          '/settings/organization/credentials',
-          '/settings/api-keys',
-        ),
-      )
-    : rawIntegrationHref.startsWith('/settings/api-keys')
-      ? orgHref(rawIntegrationHref)
-      : rawIntegrationHref;
+  const integrationHref = rawIntegrationHref.startsWith('/settings/api-keys')
+    ? orgHref(rawIntegrationHref)
+    : rawIntegrationHref;
 
   return (
     <div className="mt-2 rounded-lg border border-border bg-background p-3">

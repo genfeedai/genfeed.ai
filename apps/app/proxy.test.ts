@@ -811,7 +811,7 @@ describe('proxy', () => {
     }
   });
 
-  it('redirects signed-in legacy org settings routes to the canonical org settings path', async () => {
+  it('does not preserve legacy org settings detail routes as a compatibility layer', async () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
@@ -821,7 +821,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/settings/members',
+      'http://localhost:3000/acme/~/settings/organization/members',
     );
   });
 

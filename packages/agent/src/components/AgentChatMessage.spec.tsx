@@ -448,7 +448,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/organization/credentials?returnTo=/agent',
+                    href: '/settings/api-keys?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -459,7 +459,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/organization/credentials?returnTo=/agent',
+                    href: '/settings/api-keys?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],
@@ -470,7 +470,7 @@ describe('AgentChatMessage', () => {
               {
                 ctas: [
                   {
-                    href: '/settings/organization/credentials?returnTo=/agent',
+                    href: '/settings/api-keys?returnTo=/agent',
                     label: 'Open integrations',
                   },
                 ],

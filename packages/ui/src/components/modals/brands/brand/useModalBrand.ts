@@ -715,13 +715,23 @@ export function useModalBrand(
             new Brand(formData as Partial<IBrand>),
           );
           const createdBrandDetail = await service.findOne(createdBrand.id);
+          const createdBrandSlug =
+            createdBrandDetail.slug || createdBrand.slug || '';
+
+          onConfirm?.(true, createdBrand.id);
+          onClose?.();
+          closeModal(ModalEnum.BRAND);
+
+          if (createdBrandSlug) {
+            push(createBrandAppRoute(orgSlug, createdBrandSlug, '/settings'));
+            return;
+          }
 
           setOverlayBrandId(createdBrand.id);
           mutateBrand(
             createdBrand.id,
             createdBrandDetail as BrandOverlayRecord,
           );
-          onConfirm?.(true, createdBrand.id);
           setOverlayView('overview');
         }
       } catch (submitError) {
@@ -756,7 +766,10 @@ export function useModalBrand(
       getBrandsService,
       mutateBrand,
       onConfirm,
+      onClose,
       overlayBrandId,
+      orgSlug,
+      push,
       refreshBrand,
       refreshBrands,
     ],

@@ -951,7 +951,40 @@ export class AgentToolExecutorService {
     key: string,
   ): string | undefined {
     const data = this.isPlainRecord(response.data) ? response.data : undefined;
-    return this.readOptionalString(data?.[key] ?? response[key]);
+    const attributes = this.isPlainRecord(data?.attributes)
+      ? data.attributes
+      : undefined;
+    return this.readOptionalString(
+      attributes?.[key] ?? data?.[key] ?? response[key],
+    );
+  }
+
+  private readResponseAssetUrl(
+    response: Record<string, unknown>,
+    endpoint: string,
+    id?: string,
+  ): string | undefined {
+    const explicitUrl =
+      this.readResponseEnvelopeString(response, 'cdnUrl') ??
+      this.readResponseEnvelopeString(response, 'ingredientUrl') ??
+      this.readResponseEnvelopeString(response, 'url');
+
+    if (explicitUrl) {
+      return explicitUrl;
+    }
+
+    const s3Key = this.readResponseEnvelopeString(response, 's3Key');
+    if (s3Key) {
+      const cdnBaseUrl = this.configService.ingredientsEndpoint.replace(
+        /\/ingredients\/?$/,
+        '',
+      );
+      return `${cdnBaseUrl}/${s3Key.replace(/^\/+/, '')}`;
+    }
+
+    return id
+      ? `${this.configService.ingredientsEndpoint}/${endpoint}/${id}`
+      : undefined;
   }
 
   private async dispatch(
@@ -6166,9 +6199,7 @@ export class AgentToolExecutorService {
     }
 
     const id = this.readResponseEnvelopeString(response, 'id');
-    const cdnUrl = id
-      ? `${this.configService.ingredientsEndpoint}/images/${id}`
-      : undefined;
+    const cdnUrl = this.readResponseAssetUrl(response, 'images', id);
 
     // Fire-and-forget quality check — don't block the generation response
     if (id && this.contentQualityScorerService) {
@@ -6235,9 +6266,7 @@ export class AgentToolExecutorService {
     );
 
     const id = this.readResponseEnvelopeString(response, 'id');
-    const cdnUrl = id
-      ? `${this.configService.ingredientsEndpoint}/images/${id}`
-      : undefined;
+    const cdnUrl = this.readResponseAssetUrl(response, 'images', id);
 
     return {
       creditsUsed: 0,
@@ -6281,9 +6310,7 @@ export class AgentToolExecutorService {
     );
 
     const id = this.readResponseEnvelopeString(response, 'id');
-    const cdnUrl = id
-      ? `${this.configService.ingredientsEndpoint}/images/${id}`
-      : undefined;
+    const cdnUrl = this.readResponseAssetUrl(response, 'images', id);
 
     return {
       creditsUsed: 0, // endpoint handles credits
@@ -6355,9 +6382,7 @@ export class AgentToolExecutorService {
     );
 
     const id = this.readResponseEnvelopeString(response, 'id');
-    const cdnUrl = id
-      ? `${this.configService.ingredientsEndpoint}/videos/${id}`
-      : undefined;
+    const cdnUrl = this.readResponseAssetUrl(response, 'videos', id);
 
     // Fire-and-forget quality check — don't block the generation response
     if (id && this.contentQualityScorerService) {
@@ -6420,9 +6445,7 @@ export class AgentToolExecutorService {
     );
 
     const id = this.readResponseEnvelopeString(response, 'id');
-    const cdnUrl = id
-      ? `${this.configService.ingredientsEndpoint}/musics/${id}`
-      : undefined;
+    const cdnUrl = this.readResponseAssetUrl(response, 'musics', id);
 
     return {
       creditsUsed: 0,
@@ -6463,11 +6486,8 @@ export class AgentToolExecutorService {
 
     const id = this.readResponseEnvelopeString(response, 'id');
     const audioUrl = this.readResponseEnvelopeString(response, 'audioUrl');
-    const cdnUrl = audioUrl
-      ? audioUrl
-      : id
-        ? `${this.configService.ingredientsEndpoint}/voices/${id}`
-        : undefined;
+    const cdnUrl =
+      audioUrl ?? this.readResponseAssetUrl(response, 'voices', id);
 
     return {
       creditsUsed: 0,

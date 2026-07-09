@@ -12,7 +12,7 @@ interface SidebarSearchTriggerProps {
 export default function SidebarSearchTrigger({
   onClick,
   className,
-  label = 'New Search',
+  label = 'Search',
 }: SidebarSearchTriggerProps) {
   return (
     <SidebarActionTrigger

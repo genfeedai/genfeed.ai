@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  AlertCategory,
   AssetCategory,
   AssetScope,
   ButtonSize,
@@ -8,12 +9,26 @@ import {
   ModalEnum,
 } from '@genfeedai/enums';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
+import Alert from '@ui/feedback/alert/Alert';
 import { LazyModalBrandGenerate } from '@ui/lazy/modal/LazyModal';
+import { Modal } from '@ui/modals/compound/modal.compound';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import type { ChangeEvent } from 'react';
+import { useState } from 'react';
 import BrandEditorForm from './BrandEditorForm';
 import BrandOverviewPanel from './BrandOverviewPanel';
 import { useModalBrand } from './useModalBrand';
+
+function slugifyBrandLabel(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 export default function BrandOverlay({
   brand,
@@ -23,6 +38,7 @@ export default function BrandOverlay({
   onClose,
   initialView = 'edit',
 }: BrandOverlayProps) {
+  const [isCreateSlugDirty, setIsCreateSlugDirty] = useState(false);
   const {
     activeBrand,
     canMoveOrganization,
@@ -82,6 +98,114 @@ export default function BrandOverlay({
     openKey,
     initialView,
   });
+
+  const handleCreateFieldChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value } = event.target;
+    onChange(event);
+
+    if (name === 'slug') {
+      setIsCreateSlugDirty(true);
+      return;
+    }
+
+    if (name === 'label' && !isCreateSlugDirty) {
+      form.setValue('slug', slugifyBrandLabel(value), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
+  };
+
+  if (!brand && !activeBrand) {
+    return (
+      <Modal.Root
+        open={isOpen}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            closeModalBrand();
+          }
+        }}
+      >
+        <Modal.Content
+          size="md"
+          className="border-white/10 bg-secondary"
+          aria-describedby="brand-create-description"
+        >
+          <Modal.Header>
+            <Modal.Title>New brand</Modal.Title>
+            <Modal.Description id="brand-create-description">
+              Create the brand, then continue setup from its brand page.
+            </Modal.Description>
+          </Modal.Header>
+
+          <form onSubmit={onSubmit}>
+            <Modal.Body className="space-y-4">
+              {error ? (
+                <Alert type={AlertCategory.ERROR}>
+                  <div className="space-y-1">{error}</div>
+                </Alert>
+              ) : null}
+
+              <FormControl label="Label" isRequired>
+                <Input
+                  type="text"
+                  name="label"
+                  control={form.control}
+                  onChange={handleCreateFieldChange}
+                  placeholder="Acme"
+                  isRequired
+                  isDisabled={isSubmitting}
+                />
+              </FormControl>
+
+              <FormControl label="Slug" isRequired>
+                <Input
+                  type="text"
+                  name="slug"
+                  control={form.control}
+                  onChange={handleCreateFieldChange}
+                  placeholder="acme"
+                  isRequired
+                  isDisabled={isSubmitting}
+                />
+              </FormControl>
+
+              <FormControl label="Description">
+                <Input
+                  type="text"
+                  name="description"
+                  control={form.control}
+                  onChange={handleCreateFieldChange}
+                  placeholder="What this brand is about"
+                  isDisabled={isSubmitting}
+                />
+              </FormControl>
+            </Modal.Body>
+
+            <Modal.Footer>
+              <Modal.CloseButton asChild>
+                <Button
+                  variant={ButtonVariant.SECONDARY}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+              </Modal.CloseButton>
+              <Button
+                type="submit"
+                variant={ButtonVariant.DEFAULT}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Creating…' : 'Create brand'}
+              </Button>
+            </Modal.Footer>
+          </form>
+        </Modal.Content>
+      </Modal.Root>
+    );
+  }
 
   return (
     <>

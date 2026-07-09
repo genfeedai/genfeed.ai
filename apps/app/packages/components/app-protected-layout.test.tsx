@@ -174,10 +174,10 @@ vi.mock('@ui/menus/sidebar-search-trigger/SidebarSearchTrigger', () => ({
     <button
       type="button"
       data-testid="sidebar-search-trigger"
-      aria-label="New Search"
+      aria-label="Search"
       onClick={onClick}
     >
-      New Search
+      Search
     </button>
   ),
 }));
@@ -600,12 +600,12 @@ describe('AppProtectedLayout', () => {
     );
 
     const newTaskButton = screen.getByRole('button', { name: 'New Task' });
-    const newSearchButton = screen.getByRole('button', { name: 'New Search' });
+    const searchButton = screen.getByRole('button', { name: 'Search' });
 
     expect(newTaskButton).toBeInTheDocument();
-    expect(newSearchButton).toBeInTheDocument();
+    expect(searchButton).toBeInTheDocument();
     expect(
-      newTaskButton.compareDocumentPosition(newSearchButton) &
+      newTaskButton.compareDocumentPosition(searchButton) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
@@ -617,7 +617,7 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'New Search' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
 
     expect(commandPaletteOpenSpy).toHaveBeenCalledTimes(1);
   });

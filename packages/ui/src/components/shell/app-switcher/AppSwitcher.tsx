@@ -17,18 +17,13 @@ import {
   HiOutlineBriefcase,
   HiOutlineChartBarSquare,
   HiOutlineChatBubbleLeftRight,
-  HiOutlineCheckCircle,
-  HiOutlineClock,
   HiOutlineCommandLine,
   HiOutlineMagnifyingGlass,
-  HiOutlineMegaphone,
   HiOutlinePaperAirplane,
   HiOutlineRectangleStack,
   HiOutlineShieldCheck,
-  HiOutlineSignal,
   HiOutlineSparkles,
   HiOutlineSquares2X2,
-  HiOutlineViewColumns,
 } from 'react-icons/hi2';
 import { TbGridDots } from 'react-icons/tb';
 import { Button } from '../../../primitives/button';
@@ -52,6 +47,19 @@ type AppSwitcherSectionConfig = {
   apps: LifecycleAppSwitcherItemConfig[];
 };
 
+function createScopedAppRoute({
+  brandPath,
+  organizationPath = brandPath,
+}: {
+  brandPath: string;
+  organizationPath?: string;
+}): LifecycleAppSwitcherItemConfig['route'] {
+  return (org, brand) =>
+    brand
+      ? createBrandAppRoute(org, brand, brandPath)
+      : createOrganizationAppRoute(org, organizationPath);
+}
+
 const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
   {
     id: 'home',
@@ -63,10 +71,10 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'workspace',
         itemKey: 'home-workspace',
         label: 'Workspace',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/workspace/overview')
-            : createOrganizationAppRoute(org, '/workspace/overview'),
+        route: createScopedAppRoute({
+          brandPath: '/workspace/overview',
+          organizationPath: '/overview',
+        }),
       },
       {
         description: 'Ask and execute.',
@@ -74,10 +82,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'agent',
         itemKey: 'home-agent',
         label: 'Agent',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/agent')
-            : createOrganizationAppRoute(org, '/agent'),
+        route: createScopedAppRoute({ brandPath: '/agent' }),
       },
       {
         description: 'Reply to audience.',
@@ -85,10 +90,10 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'messages',
         itemKey: 'home-messages',
         label: 'Messages',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/messages')
-            : createOrganizationAppRoute(org, '/overview'),
+        route: createScopedAppRoute({
+          brandPath: '/messages',
+          organizationPath: '/overview',
+        }),
       },
     ],
   },
@@ -100,34 +105,12 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         description: 'Find winners.',
         icon: HiOutlineArrowTrendingUp,
         id: 'research',
-        itemKey: 'trends-discovery',
-        label: 'Discovery',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/research/discovery')
-            : createOrganizationAppRoute(org, '/overview'),
-      },
-      {
-        description: 'Watch platforms.',
-        icon: HiOutlineSquares2X2,
-        id: 'research',
-        itemKey: 'trends-socials',
-        label: 'Socials',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/research/socials')
-            : createOrganizationAppRoute(org, '/overview'),
-      },
-      {
-        description: 'Study ads.',
-        icon: HiOutlineViewColumns,
-        id: 'research',
-        itemKey: 'trends-ads',
-        label: 'Ads',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/research/ads')
-            : createOrganizationAppRoute(org, '/overview'),
+        itemKey: 'trends-research',
+        label: 'Research',
+        route: createScopedAppRoute({
+          brandPath: '/research/discovery',
+          organizationPath: '/overview',
+        }),
       },
     ],
   },
@@ -142,10 +125,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'studio',
         itemKey: 'create-studio',
         label: 'Studio',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/studio/image')
-            : createOrganizationAppRoute(org, '/studio/image'),
+        route: createScopedAppRoute({ brandPath: '/studio/image' }),
       },
       {
         description: 'Adapt winners.',
@@ -153,10 +133,10 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'remix',
         itemKey: 'create-remix',
         label: 'Remix',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/posts/remix')
-            : createOrganizationAppRoute(org, '/posts'),
+        route: createScopedAppRoute({
+          brandPath: '/posts/remix',
+          organizationPath: '/posts',
+        }),
       },
       {
         description: 'Use source assets.',
@@ -164,21 +144,10 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'library',
         itemKey: 'create-library',
         label: 'Library',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/library/ingredients')
-            : createOrganizationAppRoute(org, '/library'),
-      },
-      {
-        description: 'Scale creation.',
-        icon: HiOutlineRectangleStack,
-        id: 'studio',
-        itemKey: 'create-batch',
-        label: 'Batch',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/studio/batch')
-            : createOrganizationAppRoute(org, '/studio/batch'),
+        route: createScopedAppRoute({
+          brandPath: '/library/ingredients',
+          organizationPath: '/library',
+        }),
       },
     ],
   },
@@ -190,45 +159,9 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         description: 'Drafts and posts.',
         icon: HiOutlinePaperAirplane,
         id: 'posts',
-        itemKey: 'publish-posts',
-        label: 'Posts',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/posts')
-            : createOrganizationAppRoute(org, '/posts'),
-      },
-      {
-        description: 'Approve content.',
-        icon: HiOutlineCheckCircle,
-        id: 'posts',
-        itemKey: 'publish-review',
-        label: 'Review',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/posts/review')
-            : createOrganizationAppRoute(org, '/posts'),
-      },
-      {
-        description: 'Plan schedule.',
-        icon: HiOutlineViewColumns,
-        id: 'posts',
-        itemKey: 'publish-calendar',
-        label: 'Calendar',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/posts/calendar')
-            : createOrganizationAppRoute(org, '/posts'),
-      },
-      {
-        description: 'Queued posts.',
-        icon: HiOutlineClock,
-        id: 'posts',
-        itemKey: 'publish-scheduled',
-        label: 'Scheduled',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/posts/scheduled')
-            : createOrganizationAppRoute(org, '/posts'),
+        itemKey: 'publish',
+        label: 'Publish',
+        route: createScopedAppRoute({ brandPath: '/posts' }),
       },
     ],
   },
@@ -241,45 +174,8 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         icon: HiOutlineChartBarSquare,
         id: 'analytics',
         itemKey: 'analytics-overview',
-        label: 'Overview',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/analytics/overview')
-            : createOrganizationAppRoute(org, '/analytics/overview'),
-      },
-      {
-        description: 'Inspect posts.',
-        icon: HiOutlinePaperAirplane,
-        id: 'analytics',
-        itemKey: 'analytics-posts',
-        label: 'Post Analytics',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/analytics/posts')
-            : createOrganizationAppRoute(org, '/analytics/overview'),
-      },
-      {
-        description: 'Spot patterns.',
-        icon: HiOutlineArrowTrendingUp,
-        id: 'analytics',
-        itemKey: 'analytics-trends',
-        label: 'Trend Analytics',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/analytics/trends')
-            : createOrganizationAppRoute(org, '/analytics/overview'),
-      },
-      {
-        activeIds: ['workflows'],
-        description: 'Systematize wins.',
-        icon: HiOutlineArrowPathRoundedSquare,
-        id: 'workflows',
-        itemKey: 'analytics-repeat',
-        label: 'Repeat',
-        route: (org, brand) =>
-          brand
-            ? createBrandAppRoute(org, brand, '/workflows')
-            : createOrganizationAppRoute(org, '/workflows'),
+        label: 'Analytics',
+        route: createScopedAppRoute({ brandPath: '/analytics/overview' }),
       },
     ],
   },
@@ -304,12 +200,12 @@ const PRIMARY_APP_ITEM_KEYS = [
   'home-workspace',
   'home-agent',
   'home-messages',
-  'trends-discovery',
-  'trends-socials',
-  'trends-ads',
+  'trends-research',
   'create-studio',
   'create-remix',
   'create-library',
+  'publish',
+  'analytics-overview',
 ] as const;
 
 const PRIMARY_APP_ICONS: Partial<
@@ -320,8 +216,6 @@ const PRIMARY_APP_ICONS: Partial<
 > = {
   'create-library': HiOutlineBriefcase,
   'create-studio': HiOutlineSparkles,
-  'trends-ads': HiOutlineMegaphone,
-  'trends-socials': HiOutlineSignal,
 };
 
 function withPreservedSearch(path: string, preservedSearch?: string): string {
