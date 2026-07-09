@@ -1,5 +1,4 @@
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -7,6 +6,7 @@ import {
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
+import { PostPublishQueueService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

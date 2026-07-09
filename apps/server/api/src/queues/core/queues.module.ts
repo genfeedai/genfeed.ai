@@ -11,7 +11,6 @@ import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.serv
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
-import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
@@ -38,8 +37,10 @@ import {
   TELEGRAM_DISTRIBUTE_QUEUE,
   WORKSPACE_TASK_QUEUE,
 } from '@genfeedai/queue-contracts';
+import { PostPublishQueueService, SERVER_TOKENS } from '@genfeedai/server';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   buildBullMQConnection,
   parseRedisConnectionForWorkload,
@@ -278,6 +279,10 @@ import { Module } from '@nestjs/common';
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
     PostPublishQueueService,
+    {
+      provide: SERVER_TOKENS.logger,
+      useExisting: LoggerService,
+    },
   ],
 })
 export class QueuesModule {}

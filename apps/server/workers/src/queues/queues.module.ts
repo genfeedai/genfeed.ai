@@ -8,7 +8,6 @@
 
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
-import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
   AD_BULK_UPLOAD_QUEUE,
@@ -47,7 +46,9 @@ import {
   WORKFLOW_EXECUTION_QUEUE,
   WORKSPACE_TASK_QUEUE,
 } from '@genfeedai/queue-contracts';
+import { PostPublishQueueService, SERVER_TOKENS } from '@genfeedai/server';
 import { LoggerModule } from '@libs/logger/logger.module';
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   buildBullMQConnection,
   parseRedisConnectionForWorkload,
@@ -405,6 +406,10 @@ import { ConfigService } from '@workers/config/config.service';
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
     PostPublishQueueService,
+    {
+      provide: SERVER_TOKENS.logger,
+      useExisting: LoggerService,
+    },
   ],
 })
 export class WorkersQueuesModule {}

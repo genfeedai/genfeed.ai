@@ -1,9 +1,8 @@
-import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import {
   POST_PUBLISH_JOB_NAME,
   POST_PUBLISH_QUEUE,
 } from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
+import { PostPublishQueueService, SERVER_TOKENS } from '@genfeedai/server';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test } from '@nestjs/testing';
 
@@ -34,7 +33,7 @@ describe('PostPublishQueueService', () => {
           useValue: queue,
         },
         {
-          provide: LoggerService,
+          provide: SERVER_TOKENS.logger,
           useValue: {
             log: vi.fn(),
             warn: vi.fn(),

@@ -1,5 +1,4 @@
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type ChannelTargetValidationResult,
@@ -34,6 +33,7 @@ import type {
   IScheduleStatusTransition,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { PostPublishQueueService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { ZodError } from 'zod';
@@ -1076,7 +1076,12 @@ export class PostGroupsService {
   }
 
   private toValidationMedia(
-    media: readonly ReleaseMediaReferenceInput[] | undefined,
+    media:
+      | readonly {
+          assetId: string;
+          kind?: string | null;
+        }[]
+      | undefined,
   ): ChannelValidationMedia | undefined {
     if (!media?.length) {
       return undefined;
@@ -1090,7 +1095,7 @@ export class PostGroupsService {
   }
 
   private isValidationMediaKind(
-    kind: ReleaseMediaReferenceInput['kind'],
+    kind: string | null | undefined,
   ): kind is ChannelValidationMedia[number]['kind'] {
     return (
       kind === 'carousel' ||

@@ -3,9 +3,9 @@ import {
   POST_PUBLISH_QUEUE,
   type PostPublishJobData,
 } from '@genfeedai/queue-contracts';
-import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Optional } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { SERVER_TOKENS, type ServerLogger } from '@server/server.dependencies';
 import type { Queue } from 'bullmq';
 
 @Injectable()
@@ -16,7 +16,8 @@ export class PostPublishQueueService {
     @InjectQueue(POST_PUBLISH_QUEUE)
     @Optional()
     private readonly queue: Queue<PostPublishJobData> | undefined,
-    private readonly logger: LoggerService,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   async enqueue(data: Omit<PostPublishJobData, 'enqueuedAt'>): Promise<string> {

@@ -10,7 +10,6 @@ import {
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import type {
   PublishContext,
   PublishResult,
@@ -29,6 +28,7 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
+import { PostPublishQueueService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
