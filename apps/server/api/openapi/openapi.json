@@ -4457,9 +4457,6 @@
           "bio": {
             "type": "string"
           },
-          "brand": {
-            "type": "string"
-          },
           "credential": {
             "type": "string"
           },
@@ -4480,9 +4477,6 @@
             "default": true,
             "type": "boolean"
           },
-          "organization": {
-            "type": "string"
-          },
           "platform": {
             "allOf": [
               {
@@ -4500,9 +4494,6 @@
               }
             ],
             "default": "account"
-          },
-          "user": {
-            "type": "string"
           }
         },
         "required": [
@@ -12980,9 +12971,6 @@
           "bio": {
             "type": "string"
           },
-          "brand": {
-            "type": "string"
-          },
           "credential": {
             "type": "string"
           },
@@ -13003,9 +12991,6 @@
             "default": true,
             "type": "boolean"
           },
-          "organization": {
-            "type": "string"
-          },
           "platform": {
             "allOf": [
               {
@@ -13023,9 +13008,6 @@
               }
             ],
             "default": "account"
-          },
-          "user": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -44974,60 +44956,6 @@
         "operationId": "SocialSourcesController.syncBrand",
         "parameters": [
           {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -45036,67 +44964,11 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
             "in": "query",
             "name": "brand",
             "required": false,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "enum": [
-                "twitter",
-                "instagram",
-                "tiktok"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "isActive",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "source",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "postsLimit",
-            "required": false,
-            "schema": {
-              "default": 25,
-              "type": "number"
             }
           }
         ],
@@ -45139,60 +45011,6 @@
         "operationId": "SocialSourcesController.remove",
         "parameters": [
           {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -45201,67 +45019,11 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
             "in": "query",
             "name": "brand",
             "required": false,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "enum": [
-                "twitter",
-                "instagram",
-                "tiktok"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "isActive",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "source",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "postsLimit",
-            "required": false,
-            "schema": {
-              "default": 25,
-              "type": "number"
             }
           },
           {
@@ -45286,60 +45048,6 @@
         "operationId": "SocialSourcesController.findOne",
         "parameters": [
           {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -45348,67 +45056,11 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
             "in": "query",
             "name": "brand",
             "required": false,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "enum": [
-                "twitter",
-                "instagram",
-                "tiktok"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "isActive",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "source",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "postsLimit",
-            "required": false,
-            "schema": {
-              "default": 25,
-              "type": "number"
             }
           },
           {
@@ -45433,60 +45085,6 @@
         "operationId": "SocialSourcesController.update",
         "parameters": [
           {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -45495,67 +45093,11 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
             "in": "query",
             "name": "brand",
             "required": false,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "enum": [
-                "twitter",
-                "instagram",
-                "tiktok"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "isActive",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "source",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "postsLimit",
-            "required": false,
-            "schema": {
-              "default": 25,
-              "type": "number"
             }
           },
           {
@@ -45592,60 +45134,6 @@
         "operationId": "SocialSourcesController.syncOne",
         "parameters": [
           {
-            "description": "Page number for pagination",
-            "in": "query",
-            "name": "page",
-            "required": false,
-            "schema": {
-              "default": 1,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Number of items per page",
-            "in": "query",
-            "name": "limit",
-            "required": false,
-            "schema": {
-              "default": 10,
-              "maximum": 100,
-              "minimum": 1,
-              "type": "number"
-            }
-          },
-          {
-            "description": "Enable or disable pagination",
-            "in": "query",
-            "name": "pagination",
-            "required": false,
-            "schema": {
-              "default": true,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Filter by deleted status",
-            "in": "query",
-            "name": "isDeleted",
-            "required": false,
-            "schema": {
-              "default": false,
-              "type": "boolean"
-            }
-          },
-          {
-            "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
-            "in": "query",
-            "name": "sort",
-            "required": false,
-            "schema": {
-              "default": "createdAt: -1",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter by organization ID (superadmin only)",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -45654,67 +45142,11 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
             "in": "query",
             "name": "brand",
             "required": false,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "description": "Filter by favorite status",
-            "in": "query",
-            "name": "isFavorite",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "enum": [
-                "twitter",
-                "instagram",
-                "tiktok"
-              ],
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "isActive",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "search",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "source",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "postsLimit",
-            "required": false,
-            "schema": {
-              "default": 25,
-              "type": "number"
             }
           },
           {

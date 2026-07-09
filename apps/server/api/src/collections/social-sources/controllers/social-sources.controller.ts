@@ -1,6 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateSocialSourceDto } from '@api/collections/social-sources/dto/create-social-source.dto';
-import { SocialSourcesQueryDto } from '@api/collections/social-sources/dto/social-sources-query.dto';
+import {
+  SocialSourceScopeQueryDto,
+  SocialSourcesQueryDto,
+} from '@api/collections/social-sources/dto/social-sources-query.dto';
 import { SyncSocialSourceDto } from '@api/collections/social-sources/dto/sync-social-source.dto';
 import { UpdateSocialSourceDto } from '@api/collections/social-sources/dto/update-social-source.dto';
 import { SocialSourcesService } from '@api/collections/social-sources/services/social-sources.service';
@@ -55,7 +58,7 @@ export class SocialSourcesController {
   @HttpCode(HttpStatus.OK)
   syncBrand(
     @CurrentUser() user: User,
-    @Query() query: SocialSourcesQueryDto,
+    @Query() query: SocialSourceScopeQueryDto,
     @Body() body: SyncSocialSourceDto,
   ) {
     const context = resolveContext(user, query);
@@ -93,7 +96,7 @@ export class SocialSourcesController {
   async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: SocialSourcesQueryDto,
+    @Query() query: SocialSourceScopeQueryDto,
     @Param('id') id: string,
   ) {
     const context = resolveContext(user, query);
@@ -105,7 +108,7 @@ export class SocialSourcesController {
   async update(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: SocialSourcesQueryDto,
+    @Query() query: SocialSourceScopeQueryDto,
     @Param('id') id: string,
     @Body() body: UpdateSocialSourceDto,
   ) {
@@ -122,7 +125,7 @@ export class SocialSourcesController {
   async remove(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Query() query: SocialSourcesQueryDto,
+    @Query() query: SocialSourceScopeQueryDto,
     @Param('id') id: string,
   ) {
     const context = resolveContext(user, query);
@@ -134,7 +137,7 @@ export class SocialSourcesController {
   @HttpCode(HttpStatus.OK)
   syncOne(
     @CurrentUser() user: User,
-    @Query() query: SocialSourcesQueryDto,
+    @Query() query: SocialSourceScopeQueryDto,
     @Param('id') id: string,
     @Body() body: SyncSocialSourceDto,
   ) {

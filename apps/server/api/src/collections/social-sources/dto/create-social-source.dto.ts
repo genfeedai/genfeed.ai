@@ -14,21 +14,6 @@ export class CreateSocialSourceDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  organization?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({ required: false })
-  brand?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({ required: false })
-  user?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({ required: false })
   credential?: string;
 
   @IsEnum(SocialSourcePlatform)

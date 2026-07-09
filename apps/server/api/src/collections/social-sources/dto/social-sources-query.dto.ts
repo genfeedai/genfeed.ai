@@ -14,6 +14,18 @@ import {
   ValidateIf,
 } from 'class-validator';
 
+export class SocialSourceScopeQueryDto {
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  organization?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  brand?: string;
+}
+
 export class SocialSourcesQueryDto extends BaseQueryDto {
   @IsEnum(SocialSourcePlatform)
   @IsOptional()

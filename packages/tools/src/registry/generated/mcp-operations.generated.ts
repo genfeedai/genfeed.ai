@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1021 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1034 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -12470,6 +12470,288 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     ],
     "queryParams": [],
     "toolName": "social_inbox__update_draft"
+  },
+  {
+    "bodyFields": [
+      "avatarUrl",
+      "bio",
+      "credential",
+      "displayName",
+      "externalId",
+      "followersCount",
+      "handle",
+      "isActive",
+      "platform",
+      "profileUrl",
+      "sourceType"
+    ],
+    "bodyRequired": true,
+    "bodyStyle": "properties",
+    "method": "post",
+    "operationId": "SocialSourcesController.create",
+    "path": "/social-sources",
+    "pathParams": [],
+    "queryParams": [],
+    "toolName": "social_sources__create"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "SocialSourcesController.findAll",
+    "path": "/social-sources",
+    "pathParams": [],
+    "queryParams": [
+      "brand",
+      "isActive",
+      "isDeleted",
+      "isFavorite",
+      "limit",
+      "organization",
+      "page",
+      "pagination",
+      "platform",
+      "postsLimit",
+      "search",
+      "sort",
+      "source"
+    ],
+    "toolName": "social_sources__find_all"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "SocialSourcesController.findOne",
+    "path": "/social-sources/{id}",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [
+      "brand",
+      "organization"
+    ],
+    "toolName": "social_sources__find_one"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "SocialSourcesController.getFeed",
+    "path": "/social-sources/feed",
+    "pathParams": [],
+    "queryParams": [
+      "brand",
+      "isActive",
+      "isDeleted",
+      "isFavorite",
+      "limit",
+      "organization",
+      "page",
+      "pagination",
+      "platform",
+      "postsLimit",
+      "search",
+      "sort",
+      "source"
+    ],
+    "toolName": "social_sources__get_feed"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "delete",
+    "operationId": "SocialSourcesController.remove",
+    "path": "/social-sources/{id}",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [
+      "brand",
+      "organization"
+    ],
+    "toolName": "social_sources__remove"
+  },
+  {
+    "bodyFields": [
+      "limit"
+    ],
+    "bodyRequired": true,
+    "bodyStyle": "properties",
+    "method": "post",
+    "operationId": "SocialSourcesController.syncBrand",
+    "path": "/social-sources/sync",
+    "pathParams": [],
+    "queryParams": [
+      "brand",
+      "organization"
+    ],
+    "toolName": "social_sources__sync_brand"
+  },
+  {
+    "bodyFields": [
+      "limit"
+    ],
+    "bodyRequired": true,
+    "bodyStyle": "properties",
+    "method": "post",
+    "operationId": "SocialSourcesController.syncOne",
+    "path": "/social-sources/{id}/sync",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [
+      "brand",
+      "organization"
+    ],
+    "toolName": "social_sources__sync_one"
+  },
+  {
+    "bodyFields": [
+      "avatarUrl",
+      "bio",
+      "credential",
+      "displayName",
+      "externalId",
+      "followersCount",
+      "handle",
+      "isActive",
+      "platform",
+      "profileUrl",
+      "sourceType"
+    ],
+    "bodyRequired": true,
+    "bodyStyle": "properties",
+    "method": "patch",
+    "operationId": "SocialSourcesController.update",
+    "path": "/social-sources/{id}",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [
+      "brand",
+      "organization"
+    ],
+    "toolName": "social_sources__update"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "post",
+    "operationId": "SocialSourcesController.validate",
+    "path": "/social-sources/validate",
+    "pathParams": [],
+    "queryParams": [],
+    "toolName": "social_sources__validate"
+  },
+  {
+    "bodyFields": [
+      "actionType",
+      "text"
+    ],
+    "bodyRequired": true,
+    "bodyStyle": "properties",
+    "method": "post",
+    "operationId": "SourcePostsController.createDraft",
+    "path": "/source-posts/{id}/actions/draft",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [
+      "brand",
+      "isDeleted",
+      "isFavorite",
+      "limit",
+      "organization",
+      "page",
+      "pagination",
+      "platform",
+      "search",
+      "sort",
+      "source"
+    ],
+    "toolName": "source_posts__create_draft"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "SourcePostsController.findAll",
+    "path": "/source-posts",
+    "pathParams": [],
+    "queryParams": [
+      "brand",
+      "isDeleted",
+      "isFavorite",
+      "limit",
+      "organization",
+      "page",
+      "pagination",
+      "platform",
+      "search",
+      "sort",
+      "source"
+    ],
+    "toolName": "source_posts__find_all"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "SourcePostsController.findOne",
+    "path": "/source-posts/{id}",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [
+      "brand",
+      "isDeleted",
+      "isFavorite",
+      "limit",
+      "organization",
+      "page",
+      "pagination",
+      "platform",
+      "search",
+      "sort",
+      "source"
+    ],
+    "toolName": "source_posts__find_one"
+  },
+  {
+    "bodyFields": [
+      "actionType",
+      "text"
+    ],
+    "bodyRequired": true,
+    "bodyStyle": "properties",
+    "method": "post",
+    "operationId": "SourcePostsController.publishTwitterAction",
+    "path": "/source-posts/{id}/actions/twitter",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [
+      "brand",
+      "isDeleted",
+      "isFavorite",
+      "limit",
+      "organization",
+      "page",
+      "pagination",
+      "platform",
+      "search",
+      "sort",
+      "source"
+    ],
+    "toolName": "source_posts__publish_twitter_action"
   },
   {
     "bodyFields": [

@@ -101,7 +101,7 @@ export class SourcePostsService {
   ) {}
 
   private get db(): PrismaWithSourcePosts {
-    return this.prisma as PrismaWithSourcePosts;
+    return this.prisma as unknown as PrismaWithSourcePosts;
   }
 
   async listByBrand(
