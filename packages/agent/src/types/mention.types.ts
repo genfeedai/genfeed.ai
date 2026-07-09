@@ -1,20 +1,5 @@
-export interface BrandMentionItem {
-  id: string;
-  brandName: string;
-  brandSlug: string;
-}
-
-export interface TeamMentionItem {
-  id: string;
-  displayName: string;
-  role: string;
-  isAgent: boolean;
-  avatar?: string;
-}
-
-export interface ContentMentionItem {
-  id: string;
-  contentTitle: string;
-  contentType: string;
-  thumbnailUrl?: string;
-}
+export type {
+  AgentBrandMentionItem as BrandMentionItem,
+  AgentContentMentionItem as ContentMentionItem,
+  AgentTeamMentionItem as TeamMentionItem,
+} from '@genfeedai/interfaces';

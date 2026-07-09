@@ -76,6 +76,7 @@ export * from './components/storyboard.interface';
 export * from './components/video-operations.interface';
 export * from './components/virtual-list.interface';
 export * from './content/account-publishing-context.interface';
+export * from './content/agent-mention.interface';
 export * from './content/article.interface';
 export * from './content/article-extended.interface';
 export * from './content/clip-terminal-contract.interface';

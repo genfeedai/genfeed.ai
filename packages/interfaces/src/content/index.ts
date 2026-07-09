@@ -1,4 +1,5 @@
 export * from './account-publishing-context.interface';
+export * from './agent-mention.interface';
 export * from './article.interface';
 export * from './article-extended.interface';
 export * from './clip-terminal-contract.interface';

@@ -488,4 +488,123 @@ describe('AgentApiService', () => {
       );
     });
   });
+
+  describe('mentions', () => {
+    it('fetches credential mentions', async () => {
+      mockOk({
+        mentions: [
+          {
+            avatar: null,
+            handle: '@genfeed',
+            id: 'credential-1',
+            name: 'Genfeed',
+            platform: 'twitter',
+          },
+        ],
+      });
+      const service = makeService();
+
+      const result = await Effect.runPromise(service.getMentionsEffect());
+
+      expect(result).toEqual([
+        {
+          avatar: null,
+          handle: '@genfeed',
+          id: 'credential-1',
+          name: 'Genfeed',
+          platform: 'twitter',
+        },
+      ]);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/credentials/mentions',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        }),
+      );
+    });
+
+    it('fetches team mentions from the API', async () => {
+      mockOk({
+        mentions: [
+          {
+            displayName: 'Ada Lovelace',
+            id: 'member-1',
+            isAgent: false,
+            role: 'Admin',
+          },
+        ],
+      });
+      const service = makeService();
+
+      const result = await Effect.runPromise(service.getTeamMentionsEffect());
+
+      expect(result).toEqual([
+        {
+          displayName: 'Ada Lovelace',
+          id: 'member-1',
+          isAgent: false,
+          role: 'Admin',
+        },
+      ]);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/team/mentions',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        }),
+      );
+    });
+
+    it('fetches content mentions from the API', async () => {
+      mockOk({
+        mentions: [
+          {
+            contentTitle: 'Launch thread',
+            contentType: 'text',
+            id: 'post-1',
+          },
+        ],
+      });
+      const service = makeService();
+
+      const result = await Effect.runPromise(
+        service.getContentMentionsEffect(),
+      );
+
+      expect(result).toEqual([
+        {
+          contentTitle: 'Launch thread',
+          contentType: 'text',
+          id: 'post-1',
+        },
+      ]);
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/content/mentions',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token',
+          }),
+        }),
+      );
+    });
+
+    it('fails team mentions through the AgentApiError path', async () => {
+      mockError(401, { message: 'Unauthorized' });
+      const service = makeService();
+
+      const error = await Effect.runPromise(
+        Effect.flip(service.getTeamMentionsEffect()),
+      );
+
+      expect(error).toEqual(
+        expect.objectContaining({
+          _tag: 'AgentApiRequestError',
+          status: 401,
+        }),
+      );
+    });
+  });
 });
