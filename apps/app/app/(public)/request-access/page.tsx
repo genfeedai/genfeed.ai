@@ -1,15 +1,10 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import { redirect } from 'next/navigation';
 
 export const generateMetadata = createPageMetadata('Request Access');
 
-export default function AppRequestAccessPage() {
-  return <PlaceholderPage />;
-}
+const REQUEST_ACCESS_SIGNUP_PATH = '/sign-up?source=request-access';
 
-function PlaceholderPage() {
-  return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-semibold">Coming soon</h1>
-    </div>
-  );
+export default function AppRequestAccessPage() {
+  redirect(REQUEST_ACCESS_SIGNUP_PATH);
 }
