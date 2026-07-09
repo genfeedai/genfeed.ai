@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AVATAR_VIDEO_PROVIDER_NAMES,
+  isSupportedAvatarVideoProviderName,
+  SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
+} from './job-data/clip-factory-job.interface';
+import {
   AGENT_RUN_QUEUE,
   ALL_QUEUE_NAMES,
   ANALYTICS_SOCIAL_QUEUE,
@@ -45,5 +50,25 @@ describe('queue-names.constant', () => {
       expect(typeof name).toBe('string');
       expect(name.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('clip avatar provider contracts', () => {
+  it('keeps future provider names known while only advertising implemented providers', () => {
+    expect(AVATAR_VIDEO_PROVIDER_NAMES).toEqual([
+      'heygen',
+      'did',
+      'tavus',
+      'musetalk',
+    ]);
+    expect(SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES).toEqual(['heygen']);
+  });
+
+  it('recognizes only production-ready avatar providers as supported', () => {
+    expect(isSupportedAvatarVideoProviderName('heygen')).toBe(true);
+    expect(isSupportedAvatarVideoProviderName('did')).toBe(false);
+    expect(isSupportedAvatarVideoProviderName('tavus')).toBe(false);
+    expect(isSupportedAvatarVideoProviderName('musetalk')).toBe(false);
+    expect(isSupportedAvatarVideoProviderName('unknown')).toBe(false);
   });
 });

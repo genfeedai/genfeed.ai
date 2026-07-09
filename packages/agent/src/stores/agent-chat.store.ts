@@ -8,7 +8,7 @@ import type {
   AgentUiAction,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
-import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
 import type {
   OnboardingChecklistStatus,
@@ -85,19 +85,6 @@ function persistPanelPreference(isOpen: boolean): void {
     return;
   }
   localStorage.setItem(AGENT_PANEL_OPEN_KEY, String(isOpen));
-}
-
-interface AgentPageContext {
-  contentFormat?: string;
-  draftBody?: string;
-  draftInstructions?: string;
-  draftSummary?: string;
-  draftTitle?: string;
-  draftType?: string;
-  route: string;
-  selectedText?: string;
-  suggestedActions: SuggestedAction[];
-  placeholder?: string;
 }
 
 export type AgentSocketConnectionState =
@@ -204,7 +191,7 @@ interface AgentChatState {
   modelCosts: Record<string, number>;
   threadPrompts: Record<string, string | undefined>;
   pendingInputRequest: AgentInputRequest | null;
-  pageContext: AgentPageContext | null;
+  pageContext: AgentPageContextState | null;
   overlayActiveIds: string[];
   overlayAutoCollapsedAgent: boolean;
   userChangedAgentDuringOverlay: boolean;
@@ -258,7 +245,7 @@ interface AgentChatActions {
   clearMessages: () => void;
   resetActiveConversationState: () => void;
   toggleOpen: () => void;
-  setPageContext: (context: AgentPageContext | null) => void;
+  setPageContext: (context: AgentPageContextState | null) => void;
   setMemoryEntries: (entries: AgentMemoryEntry[]) => void;
   addMemoryEntry: (entry: AgentMemoryEntry) => void;
   removeMemoryEntry: (entryId: string) => void;

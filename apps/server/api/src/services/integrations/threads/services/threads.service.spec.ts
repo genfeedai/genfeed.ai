@@ -33,7 +33,7 @@ describe('ThreadsService', () => {
         },
         {
           provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn() },
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
         {
           provide: HttpService,
@@ -100,17 +100,10 @@ describe('ThreadsService', () => {
   });
 
   describe('getTrends', () => {
-    it('should return mock trend data for Threads', () => {
+    it('returns empty trends because Threads has no trending API', () => {
       const trends = service.getTrends();
 
-      expect(Array.isArray(trends)).toBe(true);
-      expect(trends.length).toBe(5);
-      expect(trends[0]).toEqual(
-        expect.objectContaining({
-          platform: 'threads',
-          topic: 'AI',
-        }),
-      );
+      expect(trends).toEqual([]);
     });
   });
 

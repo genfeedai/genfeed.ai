@@ -15,17 +15,37 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import type {
+  AgentContentMentionItem,
+  PopulateOption,
+} from '@genfeedai/interfaces';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
+const DEFAULT_CONTENT_MENTION_LIMIT = 50;
+const MAX_CONTENT_MENTION_LIMIT = 100;
 const PRISMA_POST_STATUS = {
   PUBLIC: 'PUBLIC',
   SCHEDULED: 'SCHEDULED',
 } as const;
+
+type ContentMentionPostRecord = {
+  category: string;
+  description: string;
+  entityArticle: {
+    coverImageUrl: string | null;
+    title: string;
+  } | null;
+  entityIngredient: {
+    cdnUrl: string | null;
+    sampleAudioUrl: string | null;
+  } | null;
+  id: string;
+  label: string | null;
+};
 
 @Injectable()
 export class PostsService extends BaseService<
@@ -151,6 +171,67 @@ export class PostsService extends BaseService<
     });
 
     return results as unknown as PostDocument[];
+  }
+
+  async listContentMentions(
+    organizationId: string,
+    limit: number = DEFAULT_CONTENT_MENTION_LIMIT,
+  ): Promise<AgentContentMentionItem[]> {
+    if (!organizationId) {
+      return [];
+    }
+
+    const safeLimit = Math.min(Math.max(limit, 1), MAX_CONTENT_MENTION_LIMIT);
+    const posts = (await this.prisma.post.findMany({
+      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+      select: {
+        category: true,
+        description: true,
+        entityArticle: {
+          select: {
+            coverImageUrl: true,
+            title: true,
+          },
+        },
+        entityIngredient: {
+          select: {
+            cdnUrl: true,
+            sampleAudioUrl: true,
+          },
+        },
+        id: true,
+        label: true,
+      },
+      take: safeLimit,
+      where: {
+        isDeleted: false,
+        organizationId,
+      },
+    })) as unknown as ContentMentionPostRecord[];
+
+    return posts.map((post) => ({
+      contentTitle: this.formatContentMentionTitle(post),
+      contentType: String(post.category).toLowerCase(),
+      id: post.id,
+      thumbnailUrl:
+        post.entityArticle?.coverImageUrl ??
+        post.entityIngredient?.cdnUrl ??
+        post.entityIngredient?.sampleAudioUrl ??
+        undefined,
+    }));
+  }
+
+  private formatContentMentionTitle(post: ContentMentionPostRecord): string {
+    const title =
+      post.label?.trim() ||
+      post.entityArticle?.title.trim() ||
+      post.description.trim();
+
+    if (title.length <= 80) {
+      return title;
+    }
+
+    return `${title.slice(0, 77)}...`;
   }
 
   async patch(

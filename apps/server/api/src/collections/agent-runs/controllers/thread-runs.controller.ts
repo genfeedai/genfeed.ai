@@ -37,6 +37,7 @@ export class ThreadRunsController {
       threadId,
       publicMetadata.organization,
       {
+        brandId: publicMetadata.brand,
         cursor,
         limit: limit ? Number.parseInt(limit, 10) : undefined,
       },

@@ -55,6 +55,10 @@ describe('PostsLayoutContent', () => {
       'href',
       '/acme-org/acme-creator/posts/published?platform=youtube',
     );
+    expect(screen.getByRole('link', { name: /new release/i })).toHaveAttribute(
+      'href',
+      '/acme-org/acme-creator/posts/composer',
+    );
     expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
       'data-state',
       'active',

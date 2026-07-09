@@ -52,6 +52,8 @@ export interface IIngredient extends IBaseEntity {
   aspectRatio?: string;
   format?: IngredientFormat;
   ingredientFormat?: IngredientFormat;
+  cdnUrl?: string | null;
+  s3Key?: string | null;
   thumbnailUrl?: string;
   ingredientUrl?: string;
   brandLogoUrl?: string;

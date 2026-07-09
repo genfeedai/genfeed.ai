@@ -11,6 +11,7 @@ import {
   TasksService,
 } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import {
@@ -32,7 +33,6 @@ import {
 import { Textarea } from '@ui/primitives/textarea';
 import { type JSX, useCallback, useEffect, useReducer, useRef } from 'react';
 import {
-  HiOutlineExclamationTriangle,
   HiOutlineListBullet,
   HiOutlinePlusCircle,
   HiOutlineViewColumns,
@@ -449,15 +449,10 @@ export default function IssuesList() {
       {isLoading ? (
         <LazyLoadingFallback variant="minimal" />
       ) : issues.length === 0 ? (
-        <Card>
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <HiOutlineExclamationTriangle className="mb-3 size-8 text-white/20" />
-            <p className="text-sm text-white/50">No tasks found</p>
-            <p className="mt-1 text-xs text-white/30">
-              Tasks will appear here once created
-            </p>
-          </div>
-        </Card>
+        <CardEmpty
+          label="No tasks found"
+          description="Tasks will appear here once created."
+        />
       ) : viewMode === 'list' ? (
         <Card>
           <div className="divide-y divide-white/[0.04]">

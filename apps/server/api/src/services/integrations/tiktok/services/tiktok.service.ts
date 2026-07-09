@@ -25,6 +25,16 @@ import { Injectable } from '@nestjs/common';
 import { AxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 
+const TIKTOK_TOKEN_REFRESH_BUFFER_MS = 15 * 60 * 1000;
+
+interface TikTokTokenResponse {
+  access_token?: string;
+  expires_in?: number;
+  refresh_expires_in?: number;
+  refresh_token?: string;
+  refresh_token_expires_in?: number;
+}
+
 @Injectable()
 export class TiktokService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -117,6 +127,61 @@ export class TiktokService {
         patchError,
       );
     }
+  }
+
+  private async findCredential(
+    organizationId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<CredentialDocument | null> {
+    return credentialId
+      ? this.credentialsService.findOne({ _id: credentialId })
+      : this.credentialsService.findOne({
+          brand: brandId,
+          organization: organizationId,
+          platform: CredentialPlatform.TIKTOK,
+        });
+  }
+
+  private shouldRefreshAccessToken(expiresAt?: Date | string | null): boolean {
+    if (!expiresAt) {
+      return true;
+    }
+
+    const expiresAtMs = new Date(expiresAt).getTime();
+    if (!Number.isFinite(expiresAtMs)) {
+      return true;
+    }
+
+    return expiresAtMs <= Date.now() + TIKTOK_TOKEN_REFRESH_BUFFER_MS;
+  }
+
+  public async getValidCredential(
+    organizationId: string,
+    brandId: string,
+    credentialId?: string,
+  ): Promise<CredentialEntity> {
+    const credential = await this.findCredential(
+      organizationId,
+      brandId,
+      credentialId,
+    );
+
+    if (!credential) {
+      throw new Error('TikTok credential not found');
+    }
+
+    if (
+      !credential.accessToken ||
+      this.shouldRefreshAccessToken(credential.accessTokenExpiry)
+    ) {
+      return this.refreshToken(organizationId, brandId, credentialId);
+    }
+
+    return new CredentialEntity({
+      ...credential,
+      oauthTokenHash: credential.oauthTokenHash ?? '',
+    });
   }
 
   /**
@@ -240,17 +305,13 @@ export class TiktokService {
     this.loggerService.log(`${url} started`);
 
     try {
-      // If credentialId is provided, fetch by ID directly (more reliable)
-      // Otherwise fall back to org+brand+platform lookup
-      const credential = credentialId
-        ? await this.credentialsService.findOne({ _id: credentialId })
-        : await this.credentialsService.findOne({
-            brand: brandId,
-            organization: organizationId,
-            platform: CredentialPlatform.TIKTOK,
-          });
+      const credential = await this.findCredential(
+        organizationId,
+        brandId,
+        credentialId,
+      );
 
-      if (!credential || !credential.refreshToken) {
+      if (!credential?.refreshToken) {
         throw new Error('No refresh token available');
       }
 
@@ -281,9 +342,15 @@ export class TiktokService {
       const {
         access_token,
         expires_in,
+        refresh_expires_in,
         refresh_token,
         refresh_token_expires_in,
-      } = tokenRes.data || {};
+      } = (tokenRes.data || {}) as TikTokTokenResponse;
+      const refreshExpiresIn = refresh_expires_in ?? refresh_token_expires_in;
+
+      if (!access_token) {
+        throw new Error('TikTok refresh response missing access token');
+      }
 
       const updatedCredential = await this.credentialsService.patch(
         credential.id,
@@ -294,8 +361,8 @@ export class TiktokService {
             : undefined,
           isConnected: true,
           refreshToken: refresh_token,
-          refreshTokenExpiry: refresh_token_expires_in
-            ? new Date(Date.now() + refresh_token_expires_in * 1000)
+          refreshTokenExpiry: refreshExpiresIn
+            ? new Date(Date.now() + refreshExpiresIn * 1000)
             : undefined,
         },
       );
@@ -310,13 +377,11 @@ export class TiktokService {
 
       // If auth error, mark credential as disconnected
       if (this.isAuthError(error)) {
-        const credential = credentialId
-          ? await this.credentialsService.findOne({ _id: credentialId })
-          : await this.credentialsService.findOne({
-              brand: brandId,
-              organization: organizationId,
-              platform: CredentialPlatform.TIKTOK,
-            });
+        const credential = await this.findCredential(
+          organizationId,
+          brandId,
+          credentialId,
+        );
         if (credential) {
           await this.handleAuthError(
             credential.id,
@@ -337,45 +402,16 @@ export class TiktokService {
     const url = `${this.constructorName} getTrends organizationId: ${organizationId} brandId: ${brandId}`;
 
     try {
-      // TikTok Creative Center API for trending data
-      // Note: This is a public API that doesn't require authentication
-      await firstValueFrom(
-        this.httpService.get(
-          'https://www.tiktok.com/api/challenge/detail/?challengeName=',
-          {
-            headers: {
-              'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            },
-          },
-        ),
-      );
+      const trendingHashtags: ISocialTrend[] = [];
 
-      // Parse trending hashtags from response
-      // TikTok Creative Center doesn't have a direct trending API
-      // So we'll use a combination of popular hashtags
-      const trendingHashtags = [
-        { growthRate: 45, mentions: 2500000, topic: '#fyp' },
-        { growthRate: 38, mentions: 1800000, topic: '#viral' },
-        { growthRate: 32, mentions: 1200000, topic: '#dance' },
-        { growthRate: 28, mentions: 950000, topic: '#comedy' },
-        { growthRate: 25, mentions: 870000, topic: '#music' },
-        { growthRate: 52, mentions: 3200000, topic: '#foryou' },
-        { growthRate: 35, mentions: 1500000, topic: '#trending' },
-        { growthRate: 30, mentions: 1100000, topic: '#explore' },
-        { growthRate: 27, mentions: 980000, topic: '#funny' },
-        { growthRate: 42, mentions: 2100000, topic: '#love' },
-      ];
-
-      // If user has connected brand, fetch personalized trends
-      if (organizationId && brandId) {
-        let credential = null;
+      if (!organizationId || !brandId) {
+        this.loggerService.warn(`${url} - TikTok trend provider unavailable`, {
+          reason: 'missing_organization_or_brand_scope',
+        });
+      } else {
+        let credential: CredentialEntity | null = null;
         try {
-          credential = await this.credentialsService.findOne({
-            brand: brandId,
-            organization: organizationId,
-            platform: CredentialPlatform.TIKTOK,
-          });
+          credential = await this.getValidCredential(organizationId, brandId);
 
           if (credential?.accessToken) {
             // Decrypt the access token
@@ -397,11 +433,10 @@ export class TiktokService {
               }),
             );
 
-            // Add user-specific trends if available
             if (userTrends.data?.data?.videos) {
               trendingHashtags.push(
                 ...userTrends.data.data.videos.map((video: ITikTokVideo) => ({
-                  growthRate: 40,
+                  growthRate: 0,
                   mentions: video.statistics?.view_count || 0,
                   metadata: {
                     createdAt: video.create_time,
@@ -411,6 +446,16 @@ export class TiktokService {
                 })),
               );
             }
+          } else {
+            this.loggerService.warn(
+              `${url} - TikTok trend provider unavailable`,
+              {
+                brandId,
+                hasCredential: Boolean(credential),
+                organizationId,
+                reason: 'missing_tiktok_credential',
+              },
+            );
           }
         } catch (error: unknown) {
           this.loggerService.warn(
@@ -432,14 +477,7 @@ export class TiktokService {
       return trendingHashtags;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
-      // Return fallback mock data if API fails
-      return [
-        { growthRate: 45, mentions: 2500000, topic: '#fyp' },
-        { growthRate: 38, mentions: 1800000, topic: '#viral' },
-        { growthRate: 32, mentions: 1200000, topic: '#dance' },
-        { growthRate: 28, mentions: 950000, topic: '#comedy' },
-        { growthRate: 25, mentions: 870000, topic: '#music' },
-      ];
+      throw error;
     }
   }
 
@@ -462,7 +500,7 @@ export class TiktokService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    let credential: CredentialDocument | null = null;
+    let credential: CredentialDocument | CredentialEntity | null = null;
 
     try {
       let decryptedAccessToken: string;
@@ -471,13 +509,9 @@ export class TiktokService {
       if (accessToken) {
         decryptedAccessToken = EncryptionUtil.decrypt(accessToken);
       } else {
-        credential = await this.credentialsService.findOne({
-          brand: brandId,
-          organization: organizationId,
-          platform: CredentialPlatform.TIKTOK,
-        });
+        credential = await this.getValidCredential(organizationId, brandId);
 
-        if (!credential || !credential.accessToken) {
+        if (!credential.accessToken) {
           throw new Error('TikTok credential not found or invalid');
         }
 
@@ -587,7 +621,7 @@ export class TiktokService {
     try {
       this.loggerService.log(`${url} started`, { videoUrl });
 
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.getValidCredential(organizationId, brandId);
 
       if (!credential?.accessToken) {
         throw new Error('TikTok credential not found or invalid');
@@ -664,7 +698,7 @@ export class TiktokService {
         throw new Error('Maximum 35 images allowed per post');
       }
 
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.getValidCredential(organizationId, brandId);
 
       if (!credential?.accessToken) {
         throw new Error('TikTok credential not found or invalid');
@@ -824,16 +858,12 @@ export class TiktokService {
     mediaId: string,
   ): Promise<ITikTokMediaAnalytics> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    let credential: CredentialDocument | null = null;
+    let credential: CredentialDocument | CredentialEntity | null = null;
 
     try {
-      credential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.TIKTOK,
-      });
+      credential = await this.getValidCredential(organizationId, brandId);
 
-      if (!credential?.accessToken) {
+      if (!credential.accessToken) {
         throw new Error('TikTok credential not found');
       }
 

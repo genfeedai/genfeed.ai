@@ -63,6 +63,8 @@ const InsightsOverview = memo(function InsightsOverview({
     alerts,
     isLoading,
     isRefreshing,
+    contentInsightsStatus,
+    contentInsightsUnavailableReason,
     refresh,
     markAlertRead,
     dismissAlert,
@@ -159,6 +161,20 @@ const InsightsOverview = memo(function InsightsOverview({
       className={className}
     >
       <div className="space-y-6">
+        {contentInsightsStatus === 'unavailable' ? (
+          <Card className="border-warning/30 bg-warning/5">
+            <div role="status" className="space-y-1">
+              <p className="text-sm font-medium text-warning">
+                Analytics insights unavailable
+              </p>
+              <p className="text-sm text-foreground/70">
+                {contentInsightsUnavailableReason ||
+                  'Provider data is unavailable right now.'}
+              </p>
+            </div>
+          </Card>
+        ) : null}
+
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-error/5">

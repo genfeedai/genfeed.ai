@@ -2,10 +2,12 @@ import {
   CLIP_FACTORY_JOB_NAME,
   CLIP_FACTORY_QUEUE,
   ClipFactoryJobData,
+  isSupportedAvatarVideoProviderName,
+  SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 
 @Injectable()
@@ -18,6 +20,14 @@ export class ClipFactoryQueueService {
   ) {}
 
   async enqueue(data: ClipFactoryJobData): Promise<string> {
+    if (!isSupportedAvatarVideoProviderName(data.avatarProvider)) {
+      throw new BadRequestException(
+        `Avatar video provider "${data.avatarProvider}" is not available. Supported providers: ${SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES.join(
+          ', ',
+        )}.`,
+      );
+    }
+
     const job = await this.clipFactoryQueue.add(CLIP_FACTORY_JOB_NAME, data, {
       jobId: `clip-factory-${data.projectId}`,
     });

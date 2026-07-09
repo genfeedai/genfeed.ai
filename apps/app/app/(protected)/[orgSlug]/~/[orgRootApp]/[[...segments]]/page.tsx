@@ -11,6 +11,7 @@ import WorkflowTemplatesPage from '@/features/workflows/pages/templates/Workflow
 import EditorDetailPage from '../../../[brandSlug]/editor/[id]/page';
 import EditorProjectsPage from '../../../[brandSlug]/editor/editor-projects-page';
 import EditorNewPage from '../../../[brandSlug]/editor/new/page';
+import PostsLayoutContent from '../../../[brandSlug]/posts/posts-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/posts/posts-list-page';
 import WorkflowDetailPageClient from '../../../[brandSlug]/workflows/[id]/WorkflowDetailPageClient';
 import WorkflowNewPageClient from '../../../[brandSlug]/workflows/new/WorkflowNewPageClient';
@@ -151,6 +152,10 @@ export default async function OrgRootAppPage({
 }: OrgRootAppPageProps) {
   const { orgRootApp, segments } = await params;
 
+  if (orgRootApp === 'workspace') {
+    notFound();
+  }
+
   if (orgRootApp === 'library') {
     const type = getOrgLibraryType(segments);
 
@@ -171,11 +176,13 @@ export default async function OrgRootAppPage({
     orgRootApp === 'write' ||
     orgRootApp === 'compose'
   ) {
-    return renderPostsListPage({
+    const postsListPage = await renderPostsListPage({
       searchParams: searchParams ?? Promise.resolve({}),
       scope: PageScope.ORGANIZATION,
       statusOverride: getOrgPostsStatusOverride(segments),
     });
+
+    return <PostsLayoutContent>{postsListPage}</PostsLayoutContent>;
   }
 
   if (orgRootApp === 'workflows') {

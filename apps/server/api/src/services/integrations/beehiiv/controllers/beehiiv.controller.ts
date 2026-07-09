@@ -32,20 +32,23 @@ export class BeehiivController {
   /**
    * Connect Beehiiv by verifying API key and storing credential.
    * Lists publications to verify the key, then stores the credential
-   * with the first publication's ID and name.
+   * with the selected publication's ID and name.
    */
   @Post('connect')
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() body: { apiKey: string; brandId: string },
+    @Body() body: { apiKey: string; brandId: string; publicationId?: string },
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { brandId: body.brandId });
 
     const publicMetadata = getPublicMetadata(user);
+    const apiKey = body.apiKey?.trim();
+    const brandId = body.brandId?.trim();
+    const publicationId = body.publicationId?.trim();
 
-    if (!body.apiKey || !body.brandId) {
+    if (!apiKey || !brandId) {
       return returnBadRequest({
         detail: 'API key and brand ID are required',
         title: 'Invalid payload',
@@ -53,7 +56,7 @@ export class BeehiivController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: body.brandId,
+      _id: brandId,
       isDeleted: false,
       organization: publicMetadata.organization,
     });
@@ -67,9 +70,7 @@ export class BeehiivController {
 
     try {
       // Verify API key by listing publications
-      const publications = await this.beehiivService.listPublications(
-        body.apiKey,
-      );
+      const publications = await this.beehiivService.listPublications(apiKey);
 
       if (!publications || publications.length === 0) {
         return returnBadRequest({
@@ -79,15 +80,24 @@ export class BeehiivController {
         });
       }
 
-      // Use the first publication by default
-      const publication = publications[0];
+      const publication = publicationId
+        ? publications.find((item) => item.id === publicationId)
+        : publications[0];
+
+      if (!publication) {
+        return returnBadRequest({
+          detail:
+            'The selected Beehiiv publication was not found for this API key.',
+          title: 'Invalid publication',
+        });
+      }
 
       // Store credential with API key as accessToken
       const credential = await this.credentialsService.saveCredentials(
         brand,
         CredentialPlatform.BEEHIIV,
         {
-          accessToken: body.apiKey,
+          accessToken: apiKey,
           externalHandle: publication.name,
           externalId: publication.id,
           isConnected: true,

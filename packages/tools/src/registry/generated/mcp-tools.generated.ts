@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1011 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1021 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -10305,10 +10305,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "default": "heygen",
           "description": "Avatar video provider to use",
           "enum": [
-            "heygen",
-            "did",
-            "tavus",
-            "musetalk"
+            "heygen"
           ],
           "type": "string"
         },
@@ -10489,10 +10486,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "default": "heygen",
           "description": "Avatar video provider to use",
           "enum": [
-            "heygen",
-            "did",
-            "tavus",
-            "musetalk"
+            "heygen"
           ],
           "type": "string"
         },
@@ -11592,6 +11586,25 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "content_gateway"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "getMentions (GET /content/mentions)",
+    "name": "content_mentions__get_mentions",
+    "parameters": {
+      "properties": {},
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "content_mentions"
     ]
   },
   {
@@ -29380,6 +29393,211 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
+    "description": "cancel (POST /post-groups/{id}/cancel)",
+    "name": "post_groups__cancel",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "post_groups"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "create (POST /post-groups)",
+    "name": "post_groups__create",
+    "parameters": {
+      "properties": {},
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "post_groups"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "getOne (GET /post-groups/{id})",
+    "name": "post_groups__get_one",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "post_groups"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "pause (POST /post-groups/{id}/pause)",
+    "name": "post_groups__pause",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "post_groups"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "publishNow (POST /post-groups/{id}/publish-now)",
+    "name": "post_groups__publish_now",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "post_groups"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "resume (POST /post-groups/{id}/resume)",
+    "name": "post_groups__resume",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "post_groups"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "update (PATCH /post-groups/{id})",
+    "name": "post_groups__update",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "post_groups"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "updateTarget (PATCH /post-groups/{id}/targets/{targetId})",
+    "name": "post_groups__update_target",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "targetId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "targetId"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "post_groups"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
     "description": "create (POST /posts)",
     "name": "posts__create",
     "parameters": {
@@ -36444,6 +36662,25 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "tasks"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "getMentions (GET /team/mentions)",
+    "name": "team_mentions__get_mentions",
+    "parameters": {
+      "properties": {},
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "team_mentions"
     ]
   },
   {

@@ -1,3 +1,7 @@
+import {
+  SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
+  type SupportedAvatarVideoProviderName,
+} from '@genfeedai/queue-contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -8,8 +12,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-
-const AVATAR_PROVIDERS = ['heygen', 'did', 'tavus', 'musetalk'] as const;
 
 export class GenerateClipHighlightDto {
   @IsString()
@@ -72,12 +74,12 @@ export class GenerateClipsDto {
   readonly voiceId!: string;
 
   @IsOptional()
-  @IsIn(AVATAR_PROVIDERS)
+  @IsIn(SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES)
   @ApiProperty({
     default: 'heygen',
     description: 'Avatar video provider to use',
-    enum: AVATAR_PROVIDERS,
+    enum: SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
     required: false,
   })
-  readonly avatarProvider?: (typeof AVATAR_PROVIDERS)[number];
+  readonly avatarProvider?: SupportedAvatarVideoProviderName;
 }

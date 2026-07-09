@@ -2,7 +2,10 @@ import type {
   TrendSourceClassification,
   TrendSourceItem,
 } from '@api/collections/trends/interfaces/trend.interfaces';
-import { buildPublicPlatformReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
+import {
+  buildPublicPlatformReferenceClassification,
+  normalizeTrendSourceClassification,
+} from '@api/collections/trends/utils/trend-source-classification.util';
 
 export interface PrelaunchReferenceCorpusSeed {
   growthRate: number;
@@ -118,6 +121,8 @@ const THEMES: CorpusTheme[] = [
   },
 ];
 
+const PAID_CREATIVE_THEME_KEY = 'paid-creative-breakdowns';
+
 const PLATFORMS: CorpusPlatform[] = [
   {
     accountPrefix: 'tiktok',
@@ -199,17 +204,23 @@ export function buildPrelaunchReferenceCorpusSeeds(
       const publishedAt = new Date(
         capturedAt.getTime() - (themeIndex + platformIndex + 1) * 86_400_000,
       ).toISOString();
-      const sourceClassification = buildPublicPlatformReferenceClassification({
+      const confidence = themeIndex < 4 ? 'medium' : 'low';
+      const sourceClassification = buildPrelaunchSourceClassification({
         capturedAt,
-        confidence: themeIndex < 4 ? 'medium' : 'low',
+        confidence,
         freshnessWindowDays: platform.freshnessWindowDays,
         platform: platform.key,
+        platformContentType: platform.contentType,
         sourceLabel: platform.label,
         sourceTimestamp: capturedAt,
+        theme,
         sourceTopic: theme.title,
       });
       const primaryAuthor = `${platform.accountPrefix}-${theme.key}`;
       const secondaryAuthor = `${platform.accountPrefix}-reference-${themeIndex + 1}`;
+      const launchCorpusSlice = isPaidCreativeTheme(theme)
+        ? 'paid-creative-reference'
+        : 'organic-reference';
 
       return {
         growthRate: 35 + themeIndex * 3 + platformIndex,
@@ -218,7 +229,7 @@ export function buildPrelaunchReferenceCorpusSeeds(
         metadata: {
           angle: theme.angle,
           hashtags: [`#${theme.hashtag}`, `#${theme.key.replace(/-/g, '')}`],
-          launchCorpusSlice: 'organic-reference',
+          launchCorpusSlice,
           sourceClassification,
         },
         platform: platform.key,
@@ -235,14 +246,16 @@ export function buildPrelaunchReferenceCorpusSeeds(
             },
             platform: platform.key,
             publishedAt,
-            sourceClassification: buildPublicPlatformReferenceClassification({
+            sourceClassification: buildPrelaunchSourceClassification({
               capturedAt,
-              confidence: themeIndex < 4 ? 'medium' : 'low',
+              confidence,
               freshnessWindowDays: platform.freshnessWindowDays,
               platform: platform.key,
+              platformContentType: platform.contentType,
               sourceAuthor: primaryAuthor,
               sourceLabel: platform.label,
               sourceTimestamp: publishedAt,
+              theme,
               sourceTopic: theme.title,
             }),
             sourceUrl: platform.sourcePath(theme),
@@ -261,14 +274,16 @@ export function buildPrelaunchReferenceCorpusSeeds(
             },
             platform: platform.key,
             publishedAt,
-            sourceClassification: buildPublicPlatformReferenceClassification({
+            sourceClassification: buildPrelaunchSourceClassification({
               capturedAt,
-              confidence: themeIndex < 4 ? 'medium' : 'low',
+              confidence,
               freshnessWindowDays: platform.freshnessWindowDays,
               platform: platform.key,
+              platformContentType: platform.contentType,
               sourceAuthor: secondaryAuthor,
               sourceLabel: platform.label,
               sourceTimestamp: publishedAt,
+              theme,
               sourceTopic: theme.title,
             }),
             sourceUrl: platform.sourcePathAlt(theme),
@@ -281,4 +296,66 @@ export function buildPrelaunchReferenceCorpusSeeds(
       };
     }),
   );
+}
+
+function buildPrelaunchSourceClassification(input: {
+  capturedAt: Date;
+  confidence: TrendSourceClassification['confidence'];
+  freshnessWindowDays: number;
+  platform: string;
+  platformContentType: TrendSourceItem['contentType'];
+  sourceAuthor?: string;
+  sourceLabel: string;
+  sourceTimestamp: Date | string;
+  sourceTopic: string;
+  theme: CorpusTheme;
+}): TrendSourceClassification {
+  if (!isPaidCreativeTheme(input.theme)) {
+    return buildPublicPlatformReferenceClassification({
+      capturedAt: input.capturedAt,
+      confidence: input.confidence,
+      freshnessWindowDays: input.freshnessWindowDays,
+      platform: input.platform,
+      sourceAuthor: input.sourceAuthor,
+      sourceLabel: input.sourceLabel,
+      sourceTimestamp: input.sourceTimestamp,
+      sourceTopic: input.sourceTopic,
+    });
+  }
+
+  const normalized = normalizeTrendSourceClassification({
+    capturedAt: input.capturedAt,
+    confidence: input.confidence,
+    intendedUse: 'paid_creative_analysis',
+    platform: input.platform,
+    sourceAuthor: input.sourceAuthor,
+    sourceKind: 'paid_creative_reference',
+    sourceLabel: input.sourceLabel,
+    sourceTimestamp: input.sourceTimestamp,
+    sourceTopic: input.sourceTopic,
+    value: {
+      paidCreative: {
+        collectedAt: input.capturedAt.toISOString(),
+        creativeType: toPaidCreativeType(input.platformContentType),
+        hook: input.theme.angle,
+        provider: 'manual_paid_reference',
+      },
+    },
+  });
+
+  if (!normalized) {
+    throw new Error('Failed to build paid creative source classification');
+  }
+
+  return normalized;
+}
+
+function isPaidCreativeTheme(theme: CorpusTheme): boolean {
+  return theme.key === PAID_CREATIVE_THEME_KEY;
+}
+
+function toPaidCreativeType(
+  contentType: TrendSourceItem['contentType'],
+): NonNullable<TrendSourceClassification['paidCreative']>['creativeType'] {
+  return contentType === 'tweet' ? 'text' : contentType;
 }

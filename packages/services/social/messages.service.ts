@@ -29,6 +29,23 @@ export type SocialAutomationState =
 export type SocialConversationType = 'comment' | 'dm' | 'mention' | 'reply';
 export type SocialMessageDirection = 'inbound' | 'outbound' | 'system';
 export type SocialMessageType = 'comment' | 'dm' | 'draft' | 'note' | 'reply';
+export type SocialActionActorType = 'agent' | 'system' | 'user' | 'workflow';
+
+export interface SocialActionProvenance {
+  action?: string;
+  actedAt?: string;
+  actorType?: SocialActionActorType | string;
+  agentRunId?: string | null;
+  approvedAt?: string;
+  approvedBy?: string | null;
+  approvedMessageId?: string;
+  platform?: SocialPlatform | string;
+  rejectedAt?: string;
+  rejectedBy?: string | null;
+  status?: string;
+  userId?: string | null;
+  workflowRunId?: string | null;
+}
 
 export interface SocialConversationAvailability {
   canPostReply: boolean;
@@ -112,7 +129,7 @@ export interface SocialMessage {
   idempotencyKey?: string | null;
   workflowRunId?: string | null;
   agentRunId?: string | null;
-  actionProvenance?: Record<string, unknown>;
+  actionProvenance?: SocialActionProvenance;
   failureReason?: string | null;
   metadata?: Record<string, unknown>;
   createdAt: string;
@@ -237,7 +254,7 @@ export class SocialMessageModel implements SocialMessage {
   idempotencyKey?: string | null;
   workflowRunId?: string | null;
   agentRunId?: string | null;
-  actionProvenance?: Record<string, unknown>;
+  actionProvenance?: SocialActionProvenance;
   failureReason?: string | null;
   metadata?: Record<string, unknown>;
   createdAt!: string;

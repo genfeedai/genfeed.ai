@@ -7,6 +7,7 @@ import { EnvironmentService } from '~services/environment.service';
 export default function LoginPage() {
   const logoUrl = useThemeLogo();
   const signInUrl = `${EnvironmentService.websiteDomain}/login`;
+  const signUpUrl = `${EnvironmentService.websiteDomain}/sign-up?source=browser-extension`;
 
   const handleSignIn = () => {
     chrome.tabs
@@ -43,26 +44,16 @@ export default function LoginPage() {
       </div>
 
       <div className="mt-8 text-center">
-        <div className="relative w-full border border-info/50 bg-background px-4 py-3 text-sm text-info mb-4">
-          <div>
-            <p className="text-sm font-medium mb-1">🎯 Invite Only</p>
-            <p className="text-xs">
-              Genfeed is currently in private beta. You need an invitation to
-              access the platform.
-            </p>
-          </div>
-        </div>
-
         <p className="text-sm text-muted-foreground mb-2">
-          Don't have an invitation?
+          Don't have an account?
         </p>
         <a
-          href="https://genfeed.ai/waitinglist"
+          href={signUpUrl}
           target="_blank"
           className="text-sm font-medium text-primary underline-offset-4 hover:underline"
           rel="noopener noreferrer"
         >
-          Request access
+          Create a free account
         </a>
       </div>
     </div>

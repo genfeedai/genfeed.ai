@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -16,5 +16,16 @@ import LoginPage from '~components/pages/LoginPage';
 describe('LoginPage', () => {
   it('renders without throwing', () => {
     expect(() => render(React.createElement(LoginPage))).not.toThrow();
+  });
+
+  it('links users without accounts to free signup', () => {
+    render(React.createElement(LoginPage));
+
+    expect(
+      screen.getByRole('link', { name: 'Create a free account' }),
+    ).toHaveAttribute(
+      'href',
+      'https://genfeed.ai/sign-up?source=browser-extension',
+    );
   });
 });

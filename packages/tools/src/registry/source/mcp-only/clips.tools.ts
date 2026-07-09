@@ -73,7 +73,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
         avatarProvider: {
           default: 'heygen',
           description: 'Avatar video provider to use',
-          enum: ['heygen', 'did', 'tavus', 'musetalk'],
+          enum: ['heygen'],
           type: 'string',
         },
         language: {
@@ -164,7 +164,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
         avatarProvider: {
           default: 'heygen',
           description: 'Avatar video provider to use (avatar mode)',
-          enum: ['heygen', 'did', 'tavus', 'musetalk'],
+          enum: ['heygen'],
           type: 'string',
         },
         editedHighlights: {

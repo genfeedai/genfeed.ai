@@ -90,15 +90,13 @@ describe('useOrgUrl', () => {
     );
   });
 
-  it('falls back to org-scoped href when no active brand is available', () => {
+  it('builds canonical org overview href when no active brand is available', () => {
     mockUseParams.mockReturnValue({ orgSlug: 'genfeed-ai' });
     mockBrandState.selectedBrand = null;
 
     const { result } = renderHook(() => useOrgUrl());
 
     expect(result.current.brandSlug).toBe('');
-    expect(result.current.href('/workspace/overview')).toBe(
-      '/genfeed-ai/~/workspace/overview',
-    );
+    expect(result.current.href('/overview')).toBe('/genfeed-ai/~/overview');
   });
 });

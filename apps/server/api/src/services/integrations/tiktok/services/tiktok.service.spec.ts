@@ -75,8 +75,8 @@ describe('TiktokService', () => {
     it('sends request and returns data', async () => {
       const mockPost = { label: 'Test video' };
 
-      // Mock the refreshToken call
-      vi.spyOn(service, 'refreshToken').mockResolvedValue({
+      // Mock credential selection to avoid token refresh during publish flow.
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
         accessToken: 'test-token',
       } as unknown as import('@api/collections/credentials/entities/credential.entity').CredentialEntity);
 
@@ -120,8 +120,8 @@ describe('TiktokService', () => {
     it('throws on non-200 response', async () => {
       const mockPost = { label: 'Test video' };
 
-      // Mock the refreshToken call
-      vi.spyOn(service, 'refreshToken').mockResolvedValue({
+      // Mock credential selection to avoid token refresh during publish flow.
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
         accessToken: 'test-token',
       } as unknown as import('@api/collections/credentials/entities/credential.entity').CredentialEntity);
 
@@ -170,7 +170,7 @@ describe('TiktokService', () => {
             access_token: 'nac',
             expires_in: 10,
             refresh_token: 'nref',
-            refresh_token_expires_in: 20,
+            refresh_expires_in: 20,
           },
         }),
       );
@@ -218,16 +218,93 @@ describe('TiktokService', () => {
     });
   });
 
+  describe('getValidCredential', () => {
+    it('returns stored credential when access token is not near expiry', async () => {
+      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+        accessToken: 'fresh-access',
+        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+        id: 'credential-id',
+        oauthTokenHash: '',
+        refreshToken: 'refresh-token',
+      });
+
+      const refreshSpy = vi.spyOn(service, 'refreshToken');
+
+      const result = await service.getValidCredential('org-id', 'brand-id');
+
+      expect(result).toBeInstanceOf(CredentialEntity);
+      expect(result.accessToken).toBe('fresh-access');
+      expect(refreshSpy).not.toHaveBeenCalled();
+    });
+
+    it('refreshes when access token is inside the refresh buffer', async () => {
+      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+        accessToken: 'stale-access',
+        accessTokenExpiry: new Date(Date.now() + 5 * 60 * 1000),
+        id: 'credential-id',
+        refreshToken: 'refresh-token',
+      });
+      const refreshedCredential = new CredentialEntity({
+        accessToken: 'new-access',
+        id: 'credential-id',
+        oauthTokenHash: '',
+      });
+      const refreshSpy = vi
+        .spyOn(service, 'refreshToken')
+        .mockResolvedValue(refreshedCredential);
+
+      const result = await service.getValidCredential('org-id', 'brand-id');
+
+      expect(refreshSpy).toHaveBeenCalledWith('org-id', 'brand-id', undefined);
+      expect(result.accessToken).toBe('new-access');
+    });
+  });
+
   describe('getTrends', () => {
-    it('returns trending hashtags without credentials', async () => {
-      (httpService.get as vi.Mock).mockReturnValue(of({ data: {} }));
+    it('returns empty trends without credentials', async () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue(null);
 
       const result = await service.getTrends('o', 'a');
 
-      expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0]).toHaveProperty('topic');
+      expect(result).toEqual([]);
+      expect(httpService.get).not.toHaveBeenCalled();
+    });
+
+    it('maps connected account videos without static fallback trends', async () => {
+      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+        accessToken: 'access',
+        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+        id: 'credential-id',
+        isConnected: true,
+        oauthTokenHash: '',
+      });
+      (httpService.get as vi.Mock).mockReturnValue(
+        of({
+          data: {
+            data: {
+              videos: [
+                {
+                  create_time: 1720000000,
+                  id: 'video-1',
+                  statistics: { view_count: 25 },
+                  title: 'launch tips',
+                },
+              ],
+            },
+          },
+        }),
+      );
+
+      const result = await service.getTrends('o', 'a');
+
+      expect(result).toEqual([
+        {
+          growthRate: 0,
+          mentions: 25,
+          metadata: { createdAt: 1720000000, videoId: 'video-1' },
+          topic: '#launch tips',
+        },
+      ]);
     });
   });
 
@@ -235,6 +312,9 @@ describe('TiktokService', () => {
     it('returns stats', async () => {
       (credentialsMock.findOne as vi.Mock).mockResolvedValue({
         accessToken: 'tok',
+        accessTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+        id: 'credential-id',
+        oauthTokenHash: '',
       });
 
       (httpService.get as vi.Mock).mockReturnValue(

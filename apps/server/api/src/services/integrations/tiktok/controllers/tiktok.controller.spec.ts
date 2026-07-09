@@ -127,9 +127,12 @@ describe('TiktokController', () => {
         url: string;
       };
       const url = new URL(result.url);
-      const state = JSON.parse(
-        decodeURIComponent(url.searchParams.get('state')!),
-      ) as { brandId: string; organizationId: string };
+      const stateParam = url.searchParams.get('state');
+      expect(stateParam).toBeTruthy();
+      const state = JSON.parse(decodeURIComponent(stateParam ?? '')) as {
+        brandId: string;
+        organizationId: string;
+      };
       expect(state.brandId).toBe(brandId.toString());
       expect(state.organizationId).toBe(orgId.toString());
     });
@@ -148,8 +151,8 @@ describe('TiktokController', () => {
           data: {
             access_token: 'tt_access',
             expires_in: 86400,
+            refresh_expires_in: 2592000,
             refresh_token: 'tt_refresh',
-            refresh_token_expires_in: 2592000,
           },
         }),
       );

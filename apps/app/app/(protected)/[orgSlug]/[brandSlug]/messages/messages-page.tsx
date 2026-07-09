@@ -6,6 +6,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
+  SocialActionProvenance,
   SocialAutomationState,
   SocialConversationModel,
   SocialConversationStatus,
@@ -90,6 +91,19 @@ const STATUS_STYLES: Record<string, string> = {
   resolved: 'bg-success/10 text-success',
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  draft: 'Draft',
+  post_reply: 'Reply',
+  send_dm: 'DM',
+};
+
+const ACTOR_LABELS: Record<string, string> = {
+  agent: 'Agent',
+  system: 'System',
+  user: 'User',
+  workflow: 'Workflow',
+};
+
 const MESSAGE_TIME = new Intl.DateTimeFormat('en', {
   day: 'numeric',
   hour: '2-digit',
@@ -133,6 +147,92 @@ function getParticipantLabel(conversation: SocialConversationModel): string {
     conversation.participantExternalId ||
     'Unknown sender'
   );
+}
+
+function formatActionLabel(value?: string | null): string | null {
+  if (!value) {
+    return null;
+  }
+
+  return (
+    ACTION_LABELS[value] ??
+    value
+      .split('_')
+      .filter(Boolean)
+      .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
+      .join(' ')
+  );
+}
+
+function getStringValue(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function getMessageProvenanceItems(message: SocialMessageModel): Array<{
+  label: string;
+  value: string;
+}> {
+  const provenance: SocialActionProvenance = message.actionProvenance ?? {};
+  const actionLabel = formatActionLabel(provenance.action);
+  const actorType = getStringValue(provenance.actorType);
+  const actorLabel = actorType
+    ? (ACTOR_LABELS[actorType] ?? formatActionLabel(actorType))
+    : null;
+  const status = getStringValue(provenance.status) ?? message.status;
+  const workflowRunId =
+    getStringValue(provenance.workflowRunId) ??
+    getStringValue(message.workflowRunId);
+  const agentRunId =
+    getStringValue(provenance.agentRunId) ?? getStringValue(message.agentRunId);
+  const userId =
+    getStringValue(provenance.userId) ?? getStringValue(message.userId);
+  const actedAt = getStringValue(provenance.actedAt);
+  const approvedBy = getStringValue(provenance.approvedBy);
+  const rejectedBy = getStringValue(provenance.rejectedBy);
+  const items: Array<{ label: string; value: string }> = [];
+  const hasActionProvenance = Boolean(
+    actionLabel ||
+      actorLabel ||
+      workflowRunId ||
+      agentRunId ||
+      actedAt ||
+      approvedBy ||
+      rejectedBy,
+  );
+
+  if (!hasActionProvenance) {
+    return items;
+  }
+
+  if (actorLabel) {
+    items.push({ label: 'Actor', value: actorLabel });
+  }
+  if (actionLabel) {
+    items.push({ label: 'Action', value: actionLabel });
+  }
+  if (status) {
+    items.push({ label: 'Result', value: status });
+  }
+  if (workflowRunId) {
+    items.push({ label: 'Workflow', value: workflowRunId });
+  }
+  if (agentRunId) {
+    items.push({ label: 'Agent', value: agentRunId });
+  }
+  if (userId) {
+    items.push({ label: 'User', value: userId });
+  }
+  if (actedAt) {
+    items.push({ label: 'When', value: formatTime(actedAt) });
+  }
+  if (approvedBy) {
+    items.push({ label: 'Approved by', value: approvedBy });
+  }
+  if (rejectedBy) {
+    items.push({ label: 'Rejected by', value: rejectedBy });
+  }
+
+  return items;
 }
 
 function StatusPill({ status }: { status: string }) {
@@ -211,6 +311,7 @@ function MessageBubble({
 }) {
   const isOutbound = message.direction === 'outbound';
   const isDraft = isOutbound && message.status === 'draft';
+  const provenanceItems = getMessageProvenanceItems(message);
 
   return (
     <div className={cn('flex', isOutbound ? 'justify-end' : 'justify-start')}>
@@ -230,6 +331,21 @@ function MessageBubble({
         <p className="whitespace-pre-wrap text-sm leading-relaxed">
           {message.body}
         </p>
+        {provenanceItems.length > 0 ? (
+          <dl
+            aria-label="Message provenance"
+            className="mt-3 grid gap-1 border-t border-white/[0.08] pt-2 text-[11px] text-white/46"
+          >
+            {provenanceItems.map((item) => (
+              <div className="flex min-w-0 gap-2" key={item.label}>
+                <dt className="shrink-0 font-medium text-white/36">
+                  {item.label}
+                </dt>
+                <dd className="min-w-0 truncate text-white/62">{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
         {isDraft ? (
           <div className="mt-3 flex flex-wrap justify-end gap-2">
             <Button

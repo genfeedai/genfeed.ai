@@ -1,5 +1,80 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: {
+    apiEndpoint: 'https://api.test/v1',
+  },
+}));
+
+import { ClipsApiService } from './clips-api.service';
 
 assertSourceHasExport(
   'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/services/clips-api.service.ts',
 );
+
+describe('ClipsApiService', () => {
+  const fetchMock = vi.fn();
+
+  beforeEach(() => {
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          batchJobId: 'clip-factory-job-1',
+          estimatedClips: 4,
+          projectId: 'clip-project-1',
+          status: 'processing',
+        }),
+        { status: 202 },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.clearAllMocks();
+  });
+
+  it('starts the one-click YouTube clip factory path', async () => {
+    const getToken = vi.fn().mockResolvedValue('token-1');
+    const service = new ClipsApiService(getToken);
+
+    await expect(
+      service.createFromYoutube({
+        avatarId: 'avatar-1',
+        avatarProvider: 'heygen',
+        language: 'en',
+        maxClips: 4,
+        minViralityScore: 60,
+        voiceId: 'voice-1',
+        youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      }),
+    ).resolves.toEqual({
+      batchJobId: 'clip-factory-job-1',
+      estimatedClips: 4,
+      projectId: 'clip-project-1',
+      status: 'processing',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/from-youtube',
+      expect.objectContaining({
+        body: JSON.stringify({
+          avatarId: 'avatar-1',
+          avatarProvider: 'heygen',
+          language: 'en',
+          maxClips: 4,
+          minViralityScore: 60,
+          voiceId: 'voice-1',
+          youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        }),
+        headers: {
+          Authorization: 'Bearer token-1',
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      }),
+    );
+  });
+});

@@ -3,8 +3,32 @@ import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto'
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import type { AgentTeamMentionItem } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+const DEFAULT_TEAM_MENTION_LIMIT = 50;
+const MAX_TEAM_MENTION_LIMIT = 100;
+
+type TeamMentionRecord = {
+  id: string;
+  roleKey: string | null;
+  role: {
+    key: string;
+    label: string;
+  };
+  user: {
+    avatar: string | null;
+    email: string | null;
+    firstName: string | null;
+    handle: string;
+    id: string;
+    isDeleted: boolean;
+    lastName: string | null;
+    name: string | null;
+    platformRole: string;
+  };
+};
 
 @Injectable()
 export class MembersService extends BaseService<
@@ -29,6 +53,87 @@ export class MembersService extends BaseService<
     });
 
     return members as unknown as MemberDocument[];
+  }
+
+  async listTeamMentions(
+    organizationId: string,
+    limit: number = DEFAULT_TEAM_MENTION_LIMIT,
+  ): Promise<AgentTeamMentionItem[]> {
+    if (!organizationId) {
+      return [];
+    }
+
+    const safeLimit = Math.min(Math.max(limit, 1), MAX_TEAM_MENTION_LIMIT);
+    const members = (await this.prisma.member.findMany({
+      orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
+      select: {
+        id: true,
+        role: {
+          select: {
+            key: true,
+            label: true,
+          },
+        },
+        roleKey: true,
+        user: {
+          select: {
+            avatar: true,
+            email: true,
+            firstName: true,
+            handle: true,
+            id: true,
+            isDeleted: true,
+            lastName: true,
+            name: true,
+            platformRole: true,
+          },
+        },
+      },
+      take: safeLimit,
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId,
+      },
+    })) as unknown as TeamMentionRecord[];
+
+    return members
+      .filter((member) => !member.user.isDeleted)
+      .map((member) => ({
+        avatar: member.user.avatar ?? undefined,
+        displayName: this.formatTeamMentionDisplayName(member),
+        id: member.id,
+        isAgent: this.isAgentMember(member),
+        role: member.role.label || member.roleKey || 'member',
+      }));
+  }
+
+  private formatTeamMentionDisplayName(member: TeamMentionRecord): string {
+    const fullName = [member.user.firstName, member.user.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    return (
+      member.user.name ||
+      fullName ||
+      member.user.handle ||
+      member.user.email ||
+      `Team member ${member.id.slice(0, 8)}`
+    );
+  }
+
+  private isAgentMember(member: TeamMentionRecord): boolean {
+    return [
+      member.roleKey,
+      member.role.key,
+      member.role.label,
+      member.user.platformRole,
+    ].some((value) =>
+      String(value ?? '')
+        .toLowerCase()
+        .includes('agent'),
+    );
   }
 
   async setLastUsedBrand(

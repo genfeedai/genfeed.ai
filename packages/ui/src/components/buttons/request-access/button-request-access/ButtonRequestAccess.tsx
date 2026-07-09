@@ -6,7 +6,7 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 
 export default function ButtonRequestAccess({
-  label = 'Join Mailing List',
+  label = 'Create free account',
   className,
   variant = ButtonVariant.DEFAULT,
 }: {
@@ -21,7 +21,7 @@ export default function ButtonRequestAccess({
       size={ButtonSize.PUBLIC}
       className={className}
     >
-      <Link href={`${EnvironmentService.apps.app}/request-access`}>
+      <Link href={`${EnvironmentService.apps.app}/sign-up?source=signup-cta`}>
         {label}
       </Link>
     </Button>

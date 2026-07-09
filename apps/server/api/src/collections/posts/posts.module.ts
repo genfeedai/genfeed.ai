@@ -11,6 +11,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostsAnalyticsController } from '@api/collections/posts/controllers/analytics/posts-analytics.controller';
+import { ContentMentionsController } from '@api/collections/posts/controllers/content-mentions.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
@@ -35,6 +36,7 @@ import { forwardRef, Module } from '@nestjs/common';
   // `PATCH /posts/:id` on the BaseCRUD PostsController, which otherwise
   // captures `batch` as an :id and 404s the bulk endpoint.
   controllers: [
+    ContentMentionsController,
     PostsAnalyticsController,
     PostsOperationsController,
     PostsController,

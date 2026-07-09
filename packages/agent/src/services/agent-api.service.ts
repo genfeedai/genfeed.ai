@@ -16,12 +16,14 @@ import {
   AgentApiRequestError,
 } from '@genfeedai/agent/services/agent-api-error';
 import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import type {
-  ContentMentionItem,
-  TeamMentionItem,
-} from '@genfeedai/agent/types/mention.types';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
+import type {
+  AgentContentMentionsResponse,
+  AgentTeamMentionsResponse,
+  AgentContentMentionItem as ContentMentionItem,
+  IModel,
+  AgentTeamMentionItem as TeamMentionItem,
+} from '@genfeedai/interfaces';
 import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
 import { Effect } from 'effect';
 
@@ -429,18 +431,24 @@ export class AgentApiService extends AgentBaseApiService {
     ).pipe(Effect.map((json) => json.mentions));
   }
 
-  // TODO: Create API endpoint GET /v1/team/mentions
   getTeamMentionsEffect(
-    _signal?: AbortSignal,
+    signal?: AbortSignal,
   ): Effect.Effect<TeamMentionItem[], AgentApiError> {
-    return Effect.succeed([]);
+    return this.fetchJsonEffect<AgentTeamMentionsResponse>(
+      `${this.config.baseUrl}/team/mentions`,
+      { signal },
+      'Failed to fetch team mentions',
+    ).pipe(Effect.map((json) => json.mentions));
   }
 
-  // TODO: Create API endpoint GET /v1/content/mentions
   getContentMentionsEffect(
-    _signal?: AbortSignal,
+    signal?: AbortSignal,
   ): Effect.Effect<ContentMentionItem[], AgentApiError> {
-    return Effect.succeed([]);
+    return this.fetchJsonEffect<AgentContentMentionsResponse>(
+      `${this.config.baseUrl}/content/mentions`,
+      { signal },
+      'Failed to fetch content mentions',
+    ).pipe(Effect.map((json) => json.mentions));
   }
 
   listMemoriesEffect(
