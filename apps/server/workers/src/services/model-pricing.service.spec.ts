@@ -1,5 +1,5 @@
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
+import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
@@ -67,7 +67,7 @@ describe('ModelPricingService', () => {
       pricingType: PricingType.FLAT,
       provider: ModelProvider.REPLICATE,
     },
-  ] as unknown as ModelDocument[];
+  ] as unknown as ServerModelRecord[];
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -191,7 +191,7 @@ describe('ModelPricingService', () => {
           pricingType: PricingType.FLAT,
           provider: ModelProvider.REPLICATE,
         },
-      ] as unknown as ModelDocument[];
+      ] as unknown as ServerModelRecord[];
 
       const result = service.estimateCost(
         ModelCategory.IMAGE,

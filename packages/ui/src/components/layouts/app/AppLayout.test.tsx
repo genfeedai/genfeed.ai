@@ -152,6 +152,8 @@ describe('AppLayout', () => {
     });
 
     expect(expandToggle).toBeInTheDocument();
+    expect(expandToggle.querySelector('img')).not.toBeNull();
+    expect(expandToggle.querySelectorAll('svg')).toHaveLength(1);
 
     fireEvent.click(expandToggle);
 

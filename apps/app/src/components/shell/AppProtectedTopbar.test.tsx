@@ -219,17 +219,17 @@ describe('AppProtectedTopbar', () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      breadcrumbs.compareDocumentPosition(cloudSyncIndicator) &
+      breadcrumbs.compareDocumentPosition(credits) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Credits are the first visible control in the right-side cluster.
+    expect(
+      credits.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     // Cloud-sync sits before the grouped app-switcher/settings cluster.
     expect(
       cloudSyncIndicator.compareDocumentPosition(switcher) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    // Credits are pinned to the far right, after the app-switcher cluster.
-    expect(
-      switcher.compareDocumentPosition(credits) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
@@ -360,22 +360,31 @@ describe('AppProtectedTopbar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('groups the app switcher beside the settings menu and pins credits to the far right', () => {
-    render(<AppProtectedTopbar />);
+  it('places credits first in the right-side control cluster', () => {
+    render(<AppProtectedTopbar isAgentCollapsed onAgentToggle={vi.fn()} />);
 
+    const terminalButton = screen.getByRole('button', {
+      name: 'Open terminal dock',
+    });
+    const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const switcher = screen.getByTestId('app-switcher');
     const topbarEnd = screen.getByTestId('topbar-end');
     const credits = screen.getByTestId('topbar-credits-bar');
 
-    // App switcher renders immediately before the settings/user menu so they
-    // read as one grouped cluster.
     expect(
-      switcher.compareDocumentPosition(topbarEnd) &
+      credits.compareDocumentPosition(terminalButton) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    // Credits render after the settings menu, at the far right of the bar.
     expect(
-      topbarEnd.compareDocumentPosition(credits) &
+      terminalButton.compareDocumentPosition(cloudSyncIndicator) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      cloudSyncIndicator.compareDocumentPosition(switcher) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      switcher.compareDocumentPosition(topbarEnd) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });

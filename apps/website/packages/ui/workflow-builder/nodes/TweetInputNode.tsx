@@ -14,7 +14,7 @@ import { memo, useCallback, useState } from 'react';
 export type { TweetInputNodeData, TweetInputNodeProps };
 
 function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
-  const [isFetching, _setIsFetching] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
 
   const handleModeChange = useCallback(
     (mode: 'url' | 'text') => {
@@ -40,17 +40,38 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
     [id, onUpdate],
   );
 
-  // TODO: migrate tweet fetching to NestJS backend endpoint
   const handleFetchTweet = useCallback(async () => {
     if (!data.tweetUrl) {
       return;
     }
 
-    onUpdate(id, {
-      error:
-        'Tweet fetching is not yet available. Please use text mode instead.',
-      status: WorkflowNodeStatus.ERROR,
-    });
+    setIsFetching(true);
+    try {
+      const response = await fetch('/v1/core/tweet/fetch', {
+        body: JSON.stringify({ url: data.tweetUrl }),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch tweet');
+      }
+
+      const { text, authorHandle } = await response.json();
+      onUpdate(id, {
+        authorHandle,
+        extractedTweet: text,
+        status: WorkflowNodeStatus.COMPLETE,
+      });
+    } catch (error) {
+      onUpdate(id, {
+        error: error instanceof Error ? error.message : 'Failed to fetch',
+        status: WorkflowNodeStatus.ERROR,
+      });
+    } finally {
+      setIsFetching(false);
+    }
   }, [id, data.tweetUrl, onUpdate]);
 
   return (

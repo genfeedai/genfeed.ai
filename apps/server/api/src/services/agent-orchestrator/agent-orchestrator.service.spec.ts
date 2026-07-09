@@ -11,6 +11,7 @@ import { SettingsService } from '@api/collections/settings/services/settings.ser
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
@@ -443,10 +444,15 @@ describe('AgentOrchestratorService', () => {
       { organizationId: ORG_ID, userId: USER_ID },
     );
 
+    expect(contextAssemblyService.buildSystemPrompt).toHaveBeenCalledWith(
+      expect.stringContaining(
+        AGENT_ORCHESTRATOR_SYSTEM_PROMPT.split('\n')[0] ?? '',
+      ),
+      expect.any(Object),
+      expect.any(Object),
+    );
     expect(llmDispatcher.chatCompletion).toHaveBeenCalledWith(
-      expect.objectContaining({
-        model: 'openrouter/auto',
-      }),
+      expect.objectContaining({ model: 'openrouter/auto' }),
       ORG_ID,
     );
     expect(result.message.metadata).toEqual(

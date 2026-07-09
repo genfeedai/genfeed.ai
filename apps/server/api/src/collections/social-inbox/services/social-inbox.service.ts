@@ -292,10 +292,13 @@ export class SocialInboxService {
 
     const message = await this.prisma.socialMessage.create({
       data: {
-        actionProvenance: this.buildActionProvenance(
+        actionProvenance: this.buildActionProvenance({
+          action: 'draft',
+          conversation,
           input,
-          'draft',
-        ) as Prisma.InputJsonValue,
+          scope,
+          status: 'draft',
+        }) as Prisma.InputJsonValue,
         agentRunId: input.agentRunId,
         body,
         brandId: conversation.brandId,
@@ -427,10 +430,13 @@ export class SocialInboxService {
 
     const message = await this.prisma.socialMessage.create({
       data: {
-        actionProvenance: this.buildActionProvenance(
+        actionProvenance: this.buildActionProvenance({
+          action: 'post_reply',
+          conversation,
           input,
-          'post_reply',
-        ) as Prisma.InputJsonValue,
+          scope,
+          status: 'sent',
+        }) as Prisma.InputJsonValue,
         agentRunId: input.agentRunId,
         body,
         brandId: conversation.brandId,
@@ -499,10 +505,13 @@ export class SocialInboxService {
 
     const message = await this.prisma.socialMessage.create({
       data: {
-        actionProvenance: this.buildActionProvenance(
+        actionProvenance: this.buildActionProvenance({
+          action: 'send_dm',
+          conversation,
           input,
-          'send_dm',
-        ) as Prisma.InputJsonValue,
+          scope,
+          status: 'sent',
+        }) as Prisma.InputJsonValue,
         agentRunId: input.agentRunId,
         body,
         brandId: conversation.brandId,
@@ -843,11 +852,15 @@ export class SocialInboxService {
       authorId: input.participantExternalId,
       authorUsername: input.participantHandle ?? input.participantName,
       brandId: input.brandId,
+      commentId: input.externalMessageId,
       conversationId: conversation.id,
+      contentId: input.sourceContentId,
+      contentUrl: input.sourceContentUrl,
       credentialId: input.credentialId,
       externalMessageId: input.externalMessageId,
       externalParentId: input.externalParentId,
       messageId: message.id,
+      parentId: input.externalParentId,
       platform: conversation.platform,
       postId:
         input.externalParentId ??
@@ -1089,13 +1102,35 @@ export class SocialInboxService {
     return this.toMessageDocument(draft);
   }
 
-  private buildActionProvenance(
-    input: SocialActionInput,
-    action: string,
-  ): JsonRecord {
+  private buildActionProvenance({
+    action,
+    conversation,
+    input,
+    scope,
+    status,
+  }: {
+    action: string;
+    conversation: SocialConversationDocument;
+    input: SocialActionInput;
+    scope: SocialInboxScope;
+    status: string;
+  }): JsonRecord {
+    const actorType = input.agentRunId
+      ? 'agent'
+      : input.workflowRunId
+        ? 'workflow'
+        : scope.userId
+          ? 'user'
+          : 'system';
+
     return {
       action,
       agentRunId: input.agentRunId,
+      actedAt: new Date().toISOString(),
+      actorType,
+      platform: conversation.platform,
+      status,
+      userId: scope.userId,
       workflowRunId: input.workflowRunId,
     };
   }

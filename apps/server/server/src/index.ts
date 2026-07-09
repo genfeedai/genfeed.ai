@@ -15,6 +15,10 @@ export {
   PerformanceSummaryService,
   type WeeklySummary,
 } from './collections/content-performance/services/performance-summary.service';
+export type {
+  ServerModelDimensions,
+  ServerModelRecord,
+} from './collections/models/model-record.types';
 export {
   SERVER_TOKENS,
   type ServerBrandMemorySync,

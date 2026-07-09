@@ -230,6 +230,7 @@ export function isTerminalTargetExecutionState(
  *   - any still publishing          -> PUBLISHING
  *   - all published                 -> PUBLISHED
  *   - all cancelled/skipped         -> CANCELLED
+ *   - all paused                    -> PAUSED
  *   - some published, some not      -> PARTIALLY_PUBLISHED
  *   - all failed/cancelled/skipped  -> FAILED
  *   - otherwise (still queued)      -> SCHEDULED
@@ -265,6 +266,9 @@ export function deriveReleaseStatusFromTargets(
   const skipped = targetStates.filter(
     (state) => state === TargetExecutionState.SKIPPED,
   ).length;
+  const paused = targetStates.filter(
+    (state) => state === TargetExecutionState.PAUSED,
+  ).length;
 
   // A skipped target is a terminal non-publish with no error, so it rolls up
   // the same way a cancelled target does.
@@ -275,6 +279,9 @@ export function deriveReleaseStatusFromTargets(
   }
   if (cancelledOrSkipped === targetStates.length) {
     return ReleaseStatus.CANCELLED;
+  }
+  if (paused === targetStates.length) {
+    return ReleaseStatus.PAUSED;
   }
   if (published > 0) {
     return ReleaseStatus.PARTIALLY_PUBLISHED;

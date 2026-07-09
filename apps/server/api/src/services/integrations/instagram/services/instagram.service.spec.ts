@@ -18,6 +18,7 @@ describe('InstagramService', () => {
 
   const credentialsMock = {
     findOne: vi.fn(),
+    patch: vi.fn(),
   } as CredentialsService;
 
   const httpServiceMock = {
@@ -52,7 +53,8 @@ describe('InstagramService', () => {
 
   describe('sendCommentReplyDm', () => {
     it('sends a direct message to commenter', async () => {
-      vi.spyOn(service, 'refreshToken').mockResolvedValue({
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
+        _id: 'credential-id',
         accessToken: 'tok',
         externalId: 'acc',
       });
@@ -129,6 +131,50 @@ describe('InstagramService', () => {
       const result = await service.getTrends('org', 'brand');
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('getValidCredential', () => {
+    it('returns stored credential when access token is not near expiry', async () => {
+      credentialsMock.findOne = vi.fn().mockResolvedValue({
+        accessToken: 'fresh-token',
+        accessTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        externalId: 'ig-account-id',
+        id: 'credential-id',
+        isConnected: true,
+      });
+      const refreshSpy = vi.spyOn(service, 'refreshToken');
+
+      const result = await service.getValidCredential('org-id', 'brand-id');
+
+      expect(result).toEqual({
+        _id: 'credential-id',
+        accessToken: 'fresh-token',
+        externalId: 'ig-account-id',
+        isConnected: true,
+      });
+      expect(refreshSpy).not.toHaveBeenCalled();
+    });
+
+    it('refreshes when access token is inside the refresh buffer', async () => {
+      credentialsMock.findOne = vi.fn().mockResolvedValue({
+        accessToken: 'stale-token',
+        accessTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        externalId: 'ig-account-id',
+        id: 'credential-id',
+        isConnected: true,
+      });
+      const refreshSpy = vi.spyOn(service, 'refreshToken').mockResolvedValue({
+        _id: 'credential-id',
+        accessToken: 'new-token',
+        externalId: 'ig-account-id',
+        isConnected: true,
+      });
+
+      const result = await service.getValidCredential('org-id', 'brand-id');
+
+      expect(refreshSpy).toHaveBeenCalledWith('org-id', 'brand-id');
+      expect(result.accessToken).toBe('new-token');
     });
   });
 

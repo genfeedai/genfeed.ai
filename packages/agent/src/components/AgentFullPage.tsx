@@ -4,6 +4,7 @@ import { AgentFullPageMobileDrawers } from '@genfeedai/agent/components/AgentFul
 import { AgentFullPageOnboardingChrome } from '@genfeedai/agent/components/AgentFullPageOnboardingChrome';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
+import { AgentWorkspaceRunSummary } from '@genfeedai/agent/components/AgentWorkspaceRunSummary';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { MemberRole } from '@genfeedai/enums';
@@ -18,10 +19,12 @@ interface AgentFullPageProps {
   authReady?: boolean;
   threadId?: string;
   showThreadSidebar?: boolean;
+  showRunSummary?: boolean;
   onboardingMode?: boolean;
   onOnboardingCompleted?: () => void | Promise<void>;
   onCreateFollowUpTasks?: (taskId: string) => Promise<{ createdCount: number }>;
   onOAuthConnect?: (platform: string) => void;
+  onOpenRunThread?: (threadId: string) => void;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;
@@ -36,10 +39,12 @@ export function AgentFullPage({
   authReady = true,
   threadId,
   showThreadSidebar = true,
+  showRunSummary = false,
   onboardingMode = false,
   onOnboardingCompleted,
   onCreateFollowUpTasks,
   onOAuthConnect,
+  onOpenRunThread,
   onSelectCreditPack,
   userRole,
 }: AgentFullPageProps): ReactElement {
@@ -92,6 +97,14 @@ export function AgentFullPage({
           onOpenThreads={() => setMobileThreadsOpen(true)}
           onOpenOutputs={() => setMobileOutputsOpen(true)}
         />
+
+        {showRunSummary ? (
+          <AgentWorkspaceRunSummary
+            apiService={apiService}
+            authReady={authReady}
+            onOpenThread={onOpenRunThread}
+          />
+        ) : null}
 
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

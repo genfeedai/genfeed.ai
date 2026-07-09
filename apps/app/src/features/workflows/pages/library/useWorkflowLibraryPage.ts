@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   createWorkflowApiService,
+  isCanonicalSystemWorkflow,
   type WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { useCloudSession } from '@/hooks/useCloudSession';
@@ -94,6 +95,11 @@ export function useWorkflowLibraryPage() {
 
   const handleDelete = useCallback(
     async (id: string) => {
+      const workflow = workflows.find((w) => w._id === id);
+      if (workflow && isCanonicalSystemWorkflow(workflow)) {
+        return;
+      }
+
       try {
         const service = await getService();
         await service.remove(id);
@@ -105,13 +111,13 @@ export function useWorkflowLibraryPage() {
         });
       }
     },
-    [getService],
+    [getService, workflows],
   );
 
   const handleToggleSchedule = useCallback(
     async (id: string, enabled: boolean) => {
       const previous = workflows.find((w) => w._id === id);
-      if (!previous?.schedule) return;
+      if (!previous?.schedule || isCanonicalSystemWorkflow(previous)) return;
 
       // Optimistic update
       setWorkflows((prev) =>

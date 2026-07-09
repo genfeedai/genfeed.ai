@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -138,7 +139,6 @@ describe('ClipFactoryQueueService', () => {
     it('should pass all job data fields through to queue', async () => {
       const jobData = makeJobData({
         avatarId: 'custom-avatar',
-        avatarProvider: 'heygen' as never,
         voiceId: 'custom-voice',
       });
 
@@ -152,6 +152,20 @@ describe('ClipFactoryQueueService', () => {
         }),
         expect.any(Object),
       );
+    });
+
+    it.each([
+      'did',
+      'tavus',
+      'musetalk',
+    ] as const)('should reject unsupported avatar provider %s before queueing', async (avatarProvider) => {
+      await expect(
+        service.enqueue(
+          makeJobData({ avatarProvider: avatarProvider as never }),
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(queue.add).not.toHaveBeenCalled();
     });
   });
 });

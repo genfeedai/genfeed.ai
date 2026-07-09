@@ -49,6 +49,8 @@ export interface CreateIngredientRequest {
   tags?: string[];
   groupId?: string;
   groupIndex?: number;
+  cdnUrl?: string;
+  s3Key?: string;
 }
 
 /**
@@ -76,6 +78,8 @@ export interface UpdateIngredientRequest {
   tags?: string[];
   groupId?: string;
   groupIndex?: number;
+  cdnUrl?: string;
+  s3Key?: string;
 }
 
 // ============================================================================
@@ -88,6 +92,7 @@ export interface UpdateIngredientRequest {
 export const createIngredientSchema = z.object({
   brand: objectIdSchema.optional(),
   category: z.nativeEnum(IngredientCategory).optional(),
+  cdnUrl: optionalStringSchema,
   folder: objectIdSchema.optional(),
   groupId: optionalStringSchema,
   groupIndex: z.number().int().optional(),
@@ -100,6 +105,7 @@ export const createIngredientSchema = z.object({
   references: objectIdArraySchema().optional(),
   scope: z.nativeEnum(AssetScope).optional(),
   seed: z.number().int().optional(),
+  s3Key: optionalStringSchema,
   sources: objectIdArraySchema().optional(),
   status: z.nativeEnum(IngredientStatus).optional(),
   tags: objectIdArraySchema().optional(),

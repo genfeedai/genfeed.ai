@@ -45,6 +45,8 @@ import {
 } from '@services/core/base.service';
 import { deserializeCollection } from '@services/core/json-api';
 
+const ORGANIZATION_LIST_PAGE_SIZE = 100;
+
 export class OrganizationsService extends BaseService<Organization> {
   constructor(token: string) {
     super(
@@ -422,18 +424,32 @@ export class OrganizationsService extends BaseService<Organization> {
   public async getAllOrganizations(): Promise<
     { id: string; label: string; slug: string }[]
   > {
-    return await this.instance
-      .get<JsonApiResponseDocument>('', { params: { limit: 500 } })
-      .then((res) => {
-        const organizations = this.extractCollection<Partial<Organization>>(
-          res.data,
-        );
-        return organizations.map((organization) => ({
-          id: String(organization.id),
-          label: organization.label ?? '',
-          slug: organization.slug ?? '',
-        }));
-      });
+    const organizations: { id: string; label: string; slug: string }[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const document = await this.instance
+        .get<JsonApiResponseDocument>('', {
+          params: { limit: ORGANIZATION_LIST_PAGE_SIZE, page },
+        })
+        .then((res) => res.data);
+
+      organizations.push(
+        ...this.extractCollection<Partial<Organization>>(document).map(
+          (organization) => ({
+            id: String(organization.id),
+            label: organization.label ?? '',
+            slug: organization.slug ?? '',
+          }),
+        ),
+      );
+
+      totalPages = document.links?.pagination?.pages ?? page;
+      page += 1;
+    } while (page <= totalPages);
+
+    return organizations;
   }
 
   /**

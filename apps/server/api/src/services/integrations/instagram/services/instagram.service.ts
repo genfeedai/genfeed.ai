@@ -30,6 +30,8 @@ function requireString(
   return value;
 }
 
+const INSTAGRAM_TOKEN_REFRESH_BUFFER_MS = 7 * 24 * 60 * 60 * 1000;
+
 // NOTE: `accessToken` here is the stored (encrypted-at-rest) value. Callers must
 // run it through `EncryptionUtil.decrypt()` before using it against the Graph API.
 function toInstagramCredentialResponse(
@@ -70,6 +72,49 @@ export class InstagramService {
     return `${caption}\n\n${hashtags.map((tag) => `#${tag}`).join(' ')}`;
   }
 
+  private shouldRefreshAccessToken(expiresAt?: Date | string | null): boolean {
+    if (!expiresAt) {
+      return true;
+    }
+
+    const expiresAtMs = new Date(expiresAt).getTime();
+    if (!Number.isFinite(expiresAtMs)) {
+      return true;
+    }
+
+    return expiresAtMs <= Date.now() + INSTAGRAM_TOKEN_REFRESH_BUFFER_MS;
+  }
+
+  public async getValidCredential(
+    organizationId: string,
+    brandId: string,
+  ): Promise<InstagramCredentialResponse> {
+    const credential = await this.credentialsService.findOne({
+      brand: brandId,
+      organization: organizationId,
+      platform: CredentialPlatform.INSTAGRAM,
+    });
+
+    if (!credential) {
+      throw new Error('Instagram credential not found');
+    }
+
+    if (!credential.accessToken) {
+      await this.credentialsService.patch(credential.id, {
+        isConnected: false,
+      });
+      throw new Error(
+        'Instagram access token not found. Please reconnect your account.',
+      );
+    }
+
+    if (this.shouldRefreshAccessToken(credential.accessTokenExpiry)) {
+      return this.refreshToken(organizationId, brandId);
+    }
+
+    return toInstagramCredentialResponse(credential);
+  }
+
   public async getAccountDetails(
     accessToken: string,
   ): Promise<InstagramAccountDetails> {
@@ -101,7 +146,7 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.getValidCredential(organizationId, brandId);
 
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
 
@@ -243,6 +288,10 @@ export class InstagramService {
 
       const { access_token, expires_in } = response.data || {};
 
+      if (!access_token) {
+        throw new Error('Instagram refresh response missing access token');
+      }
+
       this.loggerService.log(`${url} succeeded`, response.data);
 
       const updatedCredential = await this.credentialsService.patch(
@@ -289,13 +338,12 @@ export class InstagramService {
         );
       } else {
         try {
-          const credential = await this.credentialsService.findOne({
-            brand: brandId,
-            organization: organizationId,
-            platform: CredentialPlatform.INSTAGRAM,
-          });
+          const credential = await this.getValidCredential(
+            organizationId,
+            brandId,
+          );
 
-          if (credential?.accessToken && credential.externalId) {
+          if (credential.externalId) {
             // Decrypt access token before use
             const decryptedAccessToken = EncryptionUtil.decrypt(
               credential.accessToken,
@@ -388,7 +436,7 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.getValidCredential(organizationId, brandId);
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
       const externalId = requireString(credential.externalId, 'externalId');
 
@@ -423,7 +471,7 @@ export class InstagramService {
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.refreshToken(organizationId, brandId);
+    const credential = await this.getValidCredential(organizationId, brandId);
     const externalId = requireString(credential.externalId, 'externalId');
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
@@ -488,7 +536,7 @@ export class InstagramService {
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.refreshToken(organizationId, brandId);
+    const credential = await this.getValidCredential(organizationId, brandId);
     const externalId = requireString(credential.externalId, 'externalId');
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
@@ -555,7 +603,7 @@ export class InstagramService {
   ): Promise<{ mediaId: string; shortcode: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const credential = await this.refreshToken(organizationId, brandId);
+    const credential = await this.getValidCredential(organizationId, brandId);
     const externalId = requireString(credential.externalId, 'externalId');
     const accessToken = EncryptionUtil.decrypt(credential.accessToken);
     const fullCaption = this.formatCaption(caption, hashtags);
@@ -750,7 +798,7 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.getValidCredential(organizationId, brandId);
 
       // Decrypt access token before use
       const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -804,15 +852,7 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.INSTAGRAM,
-      });
-
-      if (!credential?.accessToken) {
-        throw new Error('Instagram credential not found');
-      }
+      const credential = await this.getValidCredential(organizationId, brandId);
 
       // Decrypt access token before use
       const decryptedAccessToken = EncryptionUtil.decrypt(
@@ -898,7 +938,7 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const credential = await this.refreshToken(organizationId, brandId);
+      const credential = await this.getValidCredential(organizationId, brandId);
       const decryptedAccessToken = EncryptionUtil.decrypt(
         credential.accessToken,
       );

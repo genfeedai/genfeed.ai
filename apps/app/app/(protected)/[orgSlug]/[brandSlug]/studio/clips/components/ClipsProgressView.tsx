@@ -21,6 +21,11 @@ export default function ClipsProgressView({
   project,
   selectedCount,
 }: ClipsProgressViewProps) {
+  const pendingDescription =
+    selectedCount > 0
+      ? `Generating ${selectedCount} clips...`
+      : 'Processing YouTube video and generating clips...';
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
       <div className="mb-8">
@@ -35,7 +40,7 @@ export default function ClipsProgressView({
             ? `Done -- ${project.clips.length} clips generated`
             : project.status === 'failed'
               ? 'Pipeline failed. Check logs for details.'
-              : `Generating ${selectedCount} clips...`}
+              : pendingDescription}
         </p>
 
         {project.status !== 'completed' && project.status !== 'failed' && (
@@ -66,7 +71,7 @@ export default function ClipsProgressView({
           <div className="flex flex-col items-center justify-center rounded-xl bg-secondary py-20 shadow-border">
             <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
             <p className="text-sm text-zinc-500">
-              Generating avatar clips for selected highlights…
+              Processing YouTube video and generating avatar clips…
             </p>
           </div>
         )

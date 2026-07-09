@@ -17,21 +17,15 @@ import type {
   PlatformBreakdownData,
 } from '@services/analytics/analytics.service';
 import { AnalyticsService } from '@services/analytics/analytics.service';
+import Card from '@ui/card/Card';
+import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
+import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
-import KPISection from '@ui/kpi/kpi-section/KPISection';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import {
-  HiArrowRight,
-  HiBuildingStorefront,
-  HiEye,
-  HiFire,
-  HiHeart,
-  HiUserGroup,
-  HiVideoCamera,
-} from 'react-icons/hi2';
+import { HiArrowRight } from 'react-icons/hi2';
 
 const BrandPerformanceChart = dynamic(
   () =>
@@ -58,6 +52,89 @@ const PlatformBreakdownChart = dynamic(
 export interface AnalyticsOrganizationOverviewProps {
   organizationId?: string;
   basePath?: string;
+}
+
+interface OrganizationMetricCard {
+  accent: string;
+  label: string;
+  value: string;
+}
+
+function formatGrowthAccent(
+  growth: number | null | undefined,
+  fallback: string,
+): string {
+  if (growth === null || growth === undefined) {
+    return fallback;
+  }
+
+  return `${growth > 0 ? '+' : ''}${growth}% from last period`;
+}
+
+function OrganizationMetricStrip({
+  analytics,
+  isLoading,
+}: {
+  analytics: ReturnType<typeof useAnalytics>['analytics'];
+  isLoading: boolean;
+}) {
+  const metrics: OrganizationMetricCard[] = [
+    {
+      accent: 'Active brands',
+      label: 'Total Brands',
+      value: formatCompactNumberIntl(analytics?.totalBrands),
+    },
+    {
+      accent: 'Published content',
+      label: 'Total Posts',
+      value: formatCompactNumberIntl(analytics?.totalPosts),
+    },
+    {
+      accent: formatGrowthAccent(analytics?.viewsGrowth, 'Total views'),
+      label: 'Total Views',
+      value: formatCompactNumberIntl(analytics?.totalViews),
+    },
+    {
+      accent: 'Organization members',
+      label: 'Total Members',
+      value: formatCompactNumberIntl(analytics?.totalUsers),
+    },
+  ];
+
+  return (
+    <section aria-labelledby="organization-metrics-heading">
+      <h2
+        id="organization-metrics-heading"
+        className="mb-4 text-xl font-semibold tracking-[-0.02em] text-foreground"
+      >
+        Organization Metrics
+      </h2>
+
+      <DashboardGrid>
+        {metrics.map((metric) => (
+          <Card key={metric.label} bodyClassName="p-4">
+            {isLoading ? (
+              <Skeleton variant="text" height={32} className="w-16" />
+            ) : (
+              <div className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                {metric.value}
+              </div>
+            )}
+            <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-foreground/55">
+              {metric.label}
+            </p>
+            {isLoading ? (
+              <Skeleton variant="text" height={12} className="mt-2 w-28" />
+            ) : (
+              <p className="mt-1.5 text-[11px] text-foreground/45">
+                {metric.accent}
+              </p>
+            )}
+          </Card>
+        ))}
+      </DashboardGrid>
+    </section>
+  );
 }
 
 export default function AnalyticsOrganizationOverview({
@@ -172,62 +249,7 @@ export default function AnalyticsOrganizationOverview({
 
   return (
     <div className="space-y-6">
-      <KPISection
-        title="Organization Metrics"
-        gridCols={{ desktop: 3, mobile: 1, tablet: 3 }}
-        className="bg-background"
-        isLoading={isLoading}
-        items={[
-          {
-            description: 'Active brands',
-            icon: HiBuildingStorefront,
-            iconClassName: 'bg-white/10 text-foreground',
-            label: 'Total Brands',
-            value: analytics?.totalBrands || 0,
-          },
-          {
-            description: 'Published content',
-            icon: HiVideoCamera,
-            iconClassName: 'bg-white/10 text-foreground',
-            label: 'Total Posts',
-            value: analytics?.totalPosts || 0,
-          },
-          {
-            description: analytics?.viewsGrowth
-              ? `${analytics.viewsGrowth > 0 ? '+' : ''}${analytics.viewsGrowth}% from last period`
-              : 'Total views',
-            icon: HiEye,
-            iconClassName: 'bg-white/10 text-foreground',
-            label: 'Total Views',
-            value: analytics?.totalViews || 0,
-          },
-          {
-            description: analytics?.engagementGrowth
-              ? `${analytics.engagementGrowth > 0 ? '+' : ''}${analytics.engagementGrowth}% from last period`
-              : 'Total engagement',
-            icon: HiHeart,
-            iconClassName: 'bg-white/10 text-foreground',
-            label: 'Total Engagement',
-            value: analytics?.totalEngagement || analytics?.totalLikes || 0,
-          },
-          {
-            description: 'Average engagement rate',
-            icon: HiFire,
-            iconClassName: 'bg-white/10 text-foreground',
-            label: 'Engagement Rate',
-            value: analytics?.avgEngagementRate
-              ? `${analytics.avgEngagementRate.toFixed(2)}%`
-              : '0%',
-          },
-          {
-            description: 'Organization members',
-            icon: HiUserGroup,
-            iconClassName: 'bg-white/10 text-foreground',
-            label: 'Total Members',
-            value: analytics?.totalUsers || 0,
-          },
-        ]}
-      />
+      <OrganizationMetricStrip analytics={analytics} isLoading={isLoading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BrandPerformanceChart

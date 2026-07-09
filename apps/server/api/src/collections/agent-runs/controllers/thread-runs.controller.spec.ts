@@ -6,6 +6,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ThreadRunsController } from '@api/collections/agent-runs/controllers/thread-runs.controller';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -18,7 +19,7 @@ describe('ThreadRunsController', () => {
   const orgId = '507f1f77bcf86cd799439012';
   const threadId = '507f191e810c19729de860ee'.toString();
 
-  const mockUser = {
+  const mockUser: User = {
     id: 'user_123',
     publicMetadata: {
       brand: '507f1f77bcf86cd799439013',
@@ -75,13 +76,17 @@ describe('ThreadRunsController', () => {
       const result = await controller.getThreadRuns(
         mockRequest,
         threadId,
-        mockUser as any,
+        mockUser,
       );
 
       expect(agentRunsService.getByThread).toHaveBeenCalledWith(
         threadId,
         orgId,
-        { cursor: undefined, limit: undefined },
+        {
+          brandId: '507f1f77bcf86cd799439013',
+          cursor: undefined,
+          limit: undefined,
+        },
       );
       expect(result).toEqual({ data: mockRuns });
     });
@@ -92,7 +97,7 @@ describe('ThreadRunsController', () => {
       const result = await controller.getThreadRuns(
         mockRequest,
         threadId,
-        mockUser as any,
+        mockUser,
       );
 
       expect(result).toEqual({ data: [] });
@@ -101,24 +106,32 @@ describe('ThreadRunsController', () => {
     it('should pass the correct organizationId from publicMetadata', async () => {
       agentRunsService.getByThread.mockResolvedValue([]);
 
-      await controller.getThreadRuns(mockRequest, threadId, mockUser as any);
+      await controller.getThreadRuns(mockRequest, threadId, mockUser);
 
       expect(agentRunsService.getByThread).toHaveBeenCalledWith(
         expect.any(String),
         orgId,
-        { cursor: undefined, limit: undefined },
+        {
+          brandId: '507f1f77bcf86cd799439013',
+          cursor: undefined,
+          limit: undefined,
+        },
       );
     });
 
     it('should pass the correct threadId parameter', async () => {
       agentRunsService.getByThread.mockResolvedValue([]);
 
-      await controller.getThreadRuns(mockRequest, threadId, mockUser as any);
+      await controller.getThreadRuns(mockRequest, threadId, mockUser);
 
       expect(agentRunsService.getByThread).toHaveBeenCalledWith(
         threadId,
         expect.any(String),
-        { cursor: undefined, limit: undefined },
+        {
+          brandId: '507f1f77bcf86cd799439013',
+          cursor: undefined,
+          limit: undefined,
+        },
       );
     });
 
@@ -128,7 +141,7 @@ describe('ThreadRunsController', () => {
       );
 
       await expect(
-        controller.getThreadRuns(mockRequest, threadId, mockUser as any),
+        controller.getThreadRuns(mockRequest, threadId, mockUser),
       ).rejects.toThrow('Database error');
     });
 
@@ -139,23 +152,23 @@ describe('ThreadRunsController', () => {
       ];
       agentRunsService.getByThread.mockResolvedValue(mockRuns);
 
-      await controller.getThreadRuns(
-        mockRequest,
-        otherThreadId,
-        mockUser as any,
-      );
+      await controller.getThreadRuns(mockRequest, otherThreadId, mockUser);
 
       expect(agentRunsService.getByThread).toHaveBeenCalledWith(
         otherThreadId,
         orgId,
-        { cursor: undefined, limit: undefined },
+        {
+          brandId: '507f1f77bcf86cd799439013',
+          cursor: undefined,
+          limit: undefined,
+        },
       );
     });
 
     it('should call getByThread exactly once per request', async () => {
       agentRunsService.getByThread.mockResolvedValue([]);
 
-      await controller.getThreadRuns(mockRequest, threadId, mockUser as any);
+      await controller.getThreadRuns(mockRequest, threadId, mockUser);
 
       expect(agentRunsService.getByThread).toHaveBeenCalledTimes(1);
     });
@@ -169,7 +182,7 @@ describe('ThreadRunsController', () => {
       const result = await controller.getThreadRuns(
         mockRequest,
         threadId,
-        mockUser as any,
+        mockUser,
       );
 
       expect(result).toEqual({ data: singleRun });

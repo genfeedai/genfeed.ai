@@ -1005,18 +1005,6 @@ export function createGenFeedDropdown(
   const menu = document.createElement('div');
   menu.className = 'genfeed-dropdown-menu';
 
-  // Create menu items
-  const rewriteItem = document.createElement('button');
-  rewriteItem.className = 'genfeed-menu-item';
-  rewriteItem.innerHTML = `
-    ${icons.edit}
-    <span>Rewrite Post</span>
-  `;
-  rewriteItem.addEventListener('click', () => {
-    menu.classList.remove('active');
-    // TODO: Implement rewrite functionality
-  });
-
   const generateImageItem = document.createElement('button');
   generateImageItem.className = 'genfeed-menu-item';
   generateImageItem.innerHTML = `
@@ -1388,7 +1376,6 @@ export function createGenFeedDropdown(
   menu.appendChild(replyWithImageItem);
   menu.appendChild(replyWithVideoItem);
   menu.appendChild(replyWithGifItem);
-  menu.appendChild(rewriteItem);
   menu.appendChild(generateImageItem);
 
   // Toggle dropdown

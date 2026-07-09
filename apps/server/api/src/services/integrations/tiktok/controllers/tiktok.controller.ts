@@ -164,9 +164,11 @@ export class TiktokController {
       const {
         access_token,
         expires_in,
+        refresh_expires_in,
         refresh_token,
         refresh_token_expires_in,
       } = tokenRes.data || {};
+      const refreshExpiresIn = refresh_expires_in ?? refresh_token_expires_in;
 
       // Find and update the existing credential
       const existingCredential = await this.credentialsService.findOne({
@@ -197,8 +199,8 @@ export class TiktokController {
           isConnected: true,
           isDeleted: false, // Reactivate if previously disconnected
           refreshToken: refresh_token,
-          refreshTokenExpiry: refresh_token_expires_in
-            ? new Date(Date.now() + refresh_token_expires_in * 1000)
+          refreshTokenExpiry: refreshExpiresIn
+            ? new Date(Date.now() + refreshExpiresIn * 1000)
             : undefined,
         },
       );
