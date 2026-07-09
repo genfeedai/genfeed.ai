@@ -398,6 +398,15 @@ describe('SocialInboxService', () => {
       messages.filter((message) => message.direction === 'outbound'),
     ).toHaveLength(1);
     expect(youtubeService.postCommentReply).toHaveBeenCalledTimes(1);
+    expect(first.actionProvenance).toMatchObject({
+      action: 'post_reply',
+      actedAt: expect.any(String),
+      actorType: 'workflow',
+      platform: 'youtube',
+      status: 'sent',
+      userId: 'user-1',
+      workflowRunId: 'workflow-run-1',
+    });
     expect(first.workflowRunId).toBe('workflow-run-1');
     expect(first.status).toBe('sent');
   });
@@ -427,9 +436,13 @@ describe('SocialInboxService', () => {
         authorId: 'author-1',
         authorUsername: '@taylor',
         brandId: 'brand-1',
+        commentId: 'comment-1',
         conversationId: message.conversationId,
+        contentId: 'video-1',
+        contentUrl: 'https://youtube.com/watch?v=video-1',
         credentialId: 'credential-1',
         messageId: message.id,
+        parentId: 'comment-1',
         platform: 'youtube',
         postId: 'comment-1',
         text: 'Need help with pricing',
@@ -505,7 +518,12 @@ describe('SocialInboxService', () => {
     expect(draft).toMatchObject({
       actionProvenance: {
         action: 'draft',
+        actedAt: expect.any(String),
+        actorType: 'agent',
         agentRunId: 'agent-run-1',
+        platform: 'youtube',
+        status: 'draft',
+        userId: 'user-1',
         workflowRunId: 'workflow-run-1',
       },
       body: 'Try this answer',
@@ -536,7 +554,12 @@ describe('SocialInboxService', () => {
     expect(sent).toMatchObject({
       actionProvenance: {
         action: 'post_reply',
+        actedAt: expect.any(String),
+        actorType: 'agent',
         agentRunId: 'agent-run-1',
+        platform: 'youtube',
+        status: 'sent',
+        userId: 'user-1',
         workflowRunId: 'workflow-run-1',
       },
       status: 'sent',

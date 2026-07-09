@@ -6,7 +6,7 @@ import type {
 
 // ─── Shared Types ─────────────────────────────────────────────────
 
-export type AvatarProvider = 'heygen' | 'did' | 'tavus' | 'musetalk';
+export type AvatarProvider = 'heygen';
 
 export type ClipStatus = ClipResultStatus;
 
@@ -59,6 +59,7 @@ export interface ProjectState {
   status: string;
   highlights: IHighlight[];
   clips: ClipResult[];
+  estimatedClips?: number;
 }
 
 // ─── Component Props ──────────────────────────────────────────────

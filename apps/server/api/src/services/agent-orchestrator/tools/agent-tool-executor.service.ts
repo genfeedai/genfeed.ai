@@ -45,6 +45,7 @@ import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
@@ -141,11 +142,6 @@ export interface ToolExecutionContext {
   streamBatchToUser?: boolean;
 }
 
-interface ToolRouteSlugs {
-  brandSlug?: string;
-  orgSlug: string;
-}
-
 interface DashboardHydrationState {
   status?: 'idle' | 'loading' | 'ready';
   staggerMs?: number;
@@ -194,7 +190,6 @@ type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
 type ToolCatalogSurface = 'agent' | 'mcp' | 'cli' | 'all';
 
 const LIVESTREAM_BOT_CATEGORY = 'livestream_chat';
-const ROUTE_HREF_KEYS = new Set(['href', 'ctaHref', 'editorUrl']);
 const TOOL_CATALOG_SURFACES = ['agent', 'mcp', 'cli'] as const;
 const TOOL_CATALOG_CATEGORIES: ToolCategory[] = [
   'ads',
@@ -213,22 +208,6 @@ const TOOL_CATALOG_CATEGORIES: ToolCategory[] = [
   'workflow',
 ];
 const TOOL_CATALOG_ROLES: ToolRequiredRole[] = ['user', 'admin', 'superadmin'];
-const ORG_LEVEL_ROUTE_PREFIXES = new Set([
-  'agent',
-  'chat',
-  'overview',
-  'settings',
-]);
-const UNSCOPED_ROUTE_PREFIXES = new Set([
-  'admin',
-  'login',
-  'logout',
-  'oauth',
-  'onboarding',
-  'playwright-ready',
-  'request-access',
-  'sign-up',
-]);
 
 interface AgentLivestreamBotRecord {
   id: unknown;
@@ -371,6 +350,7 @@ export class AgentToolExecutorService {
     private readonly postsService: PostsService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
+    private readonly routeRewriteService: AgentRouteRewriteService,
     @Optional()
     @Inject('AGENT_BOTS_SERVICE')
     private readonly botsService: AgentBotsServiceLike | undefined,
@@ -748,7 +728,10 @@ export class AgentToolExecutorService {
 
     try {
       const result = await this.dispatch(toolName, parameters, context);
-      const scopedResult = await this.scopeToolResultHrefs(result, context);
+      const scopedResult = await this.routeRewriteService.scopeToolResultHrefs(
+        result,
+        context,
+      );
       const durationMs = Date.now() - startTime;
 
       this.loggerService.log(
@@ -775,161 +758,6 @@ export class AgentToolExecutorService {
     }
   }
 
-  private async scopeToolResultHrefs(
-    result: AgentToolResult,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.hasScopeableHref(result)) {
-      return result;
-    }
-
-    const routeSlugs = await this.resolveToolRouteSlugs(ctx);
-    if (!routeSlugs) {
-      return result;
-    }
-
-    return this.scopeHrefFields(result, routeSlugs) as AgentToolResult;
-  }
-
-  private async resolveToolRouteSlugs(
-    ctx: ToolExecutionContext,
-  ): Promise<ToolRouteSlugs | null> {
-    if (!this.organizationsService) {
-      return null;
-    }
-
-    try {
-      const organization = await this.organizationsService.findOne({
-        _id: ctx.organizationId,
-        isDeleted: false,
-      });
-      const orgSlug = this.readRecordString(organization, 'slug');
-
-      if (!orgSlug) {
-        return null;
-      }
-
-      const brand = await this.resolveToolRouteBrand(ctx);
-      const brandSlug = this.readRecordString(brand, 'slug');
-
-      return {
-        ...(brandSlug ? { brandSlug } : {}),
-        orgSlug,
-      };
-    } catch (error: unknown) {
-      this.loggerService.warn('Failed to resolve tool route slugs', {
-        error: error instanceof Error ? error.message : String(error),
-        organizationId: ctx.organizationId,
-      });
-      return null;
-    }
-  }
-
-  private async resolveToolRouteBrand(
-    ctx: ToolExecutionContext,
-  ): Promise<Record<string, unknown> | null> {
-    if (ctx.brandId) {
-      return this.brandsService.findOne({
-        _id: ctx.brandId,
-        isDeleted: false,
-        organization: ctx.organizationId,
-      });
-    }
-
-    return this.brandsService.findOne({
-      isDeleted: false,
-      isSelected: true,
-      organization: ctx.organizationId,
-      user: ctx.userId,
-    });
-  }
-
-  private hasScopeableHref(value: unknown): boolean {
-    if (Array.isArray(value)) {
-      return value.some((item) => this.hasScopeableHref(item));
-    }
-
-    if (!this.isPlainRecord(value)) {
-      return false;
-    }
-
-    return Object.entries(value).some(([key, nestedValue]) => {
-      if (
-        ROUTE_HREF_KEYS.has(key) &&
-        typeof nestedValue === 'string' &&
-        this.isScopeableInternalHref(nestedValue)
-      ) {
-        return true;
-      }
-
-      return this.hasScopeableHref(nestedValue);
-    });
-  }
-
-  private scopeHrefFields(value: unknown, slugs: ToolRouteSlugs): unknown {
-    if (Array.isArray(value)) {
-      return value.map((item) => this.scopeHrefFields(item, slugs));
-    }
-
-    if (!this.isPlainRecord(value)) {
-      return value;
-    }
-
-    return Object.fromEntries(
-      Object.entries(value).map(([key, nestedValue]) => {
-        if (ROUTE_HREF_KEYS.has(key) && typeof nestedValue === 'string') {
-          return [key, this.scopeInternalHref(nestedValue, slugs)];
-        }
-
-        return [key, this.scopeHrefFields(nestedValue, slugs)];
-      }),
-    );
-  }
-
-  private scopeInternalHref(href: string, slugs: ToolRouteSlugs): string {
-    if (!this.isScopeableInternalHref(href)) {
-      return href;
-    }
-
-    const { path, suffix } = this.splitHrefSuffix(href);
-    const firstSegment = path.split('/').filter(Boolean)[0];
-
-    if (!firstSegment || UNSCOPED_ROUTE_PREFIXES.has(firstSegment)) {
-      return href;
-    }
-
-    if (path.startsWith(`/${slugs.orgSlug}/`)) {
-      return href;
-    }
-
-    if (ORG_LEVEL_ROUTE_PREFIXES.has(firstSegment)) {
-      return `/${slugs.orgSlug}/~${path}${suffix}`;
-    }
-
-    if (slugs.brandSlug) {
-      return `/${slugs.orgSlug}/${slugs.brandSlug}${path}${suffix}`;
-    }
-
-    return `/${slugs.orgSlug}/~${path}${suffix}`;
-  }
-
-  private isScopeableInternalHref(href: string): boolean {
-    return href.startsWith('/') && !href.startsWith('//');
-  }
-
-  private splitHrefSuffix(href: string): { path: string; suffix: string } {
-    const suffixStart = href.search(/[?#]/);
-
-    if (suffixStart === -1) {
-      return { path: href, suffix: '' };
-    }
-
-    return {
-      path: href.slice(0, suffixStart),
-      suffix: href.slice(suffixStart),
-    };
-  }
-
   private isPlainRecord(value: unknown): value is Record<string, unknown> {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
       return false;
@@ -939,19 +767,45 @@ export class AgentToolExecutorService {
     return prototype === Object.prototype || prototype === null;
   }
 
-  private readRecordString(
-    value: Record<string, unknown> | null | undefined,
-    key: string,
-  ): string | undefined {
-    return value ? this.readOptionalString(value[key]) : undefined;
-  }
-
   private readResponseEnvelopeString(
     response: Record<string, unknown>,
     key: string,
   ): string | undefined {
     const data = this.isPlainRecord(response.data) ? response.data : undefined;
-    return this.readOptionalString(data?.[key] ?? response[key]);
+    const attributes = this.isPlainRecord(data?.attributes)
+      ? data.attributes
+      : undefined;
+    return this.readOptionalString(
+      attributes?.[key] ?? data?.[key] ?? response[key],
+    );
+  }
+
+  private readResponseAssetUrl(
+    response: Record<string, unknown>,
+    endpoint: string,
+    id?: string,
+  ): string | undefined {
+    const explicitUrl =
+      this.readResponseEnvelopeString(response, 'cdnUrl') ??
+      this.readResponseEnvelopeString(response, 'ingredientUrl') ??
+      this.readResponseEnvelopeString(response, 'url');
+
+    if (explicitUrl) {
+      return explicitUrl;
+    }
+
+    const s3Key = this.readResponseEnvelopeString(response, 's3Key');
+    if (s3Key) {
+      const cdnBaseUrl = this.configService.ingredientsEndpoint.replace(
+        /\/ingredients\/?$/,
+        '',
+      );
+      return `${cdnBaseUrl}/${s3Key.replace(/^\/+/, '')}`;
+    }
+
+    return id
+      ? `${this.configService.ingredientsEndpoint}/${endpoint}/${id}`
+      : undefined;
   }
 
   private async dispatch(
@@ -6166,9 +6020,7 @@ export class AgentToolExecutorService {
     }
 
     const id = this.readResponseEnvelopeString(response, 'id');
-    const cdnUrl = id
-      ? `${this.configService.ingredientsEndpoint}/images/${id}`
-      : undefined;
+    const cdnUrl = this.readResponseAssetUrl(response, 'images', id);
 
     // Fire-and-forget quality check — don't block the generation response
     if (id && this.contentQualityScorerService) {
@@ -6235,9 +6087,7 @@ export class AgentToolExecutorService {
     );
 
     const id = this.readResponseEnvelopeString(response, 'id');
-    const cdnUrl = id
-      ? `${this.configService.ingredientsEndpoint}/images/${id}`
-      : undefined;
+    const cdnUrl = this.readResponseAssetUrl(response, 'images', id);
 
     return {
       creditsUsed: 0,
@@ -6281,9 +6131,7 @@ export class AgentToolExecutorService {
     );
 
     const id = this.readResponseEnvelopeString(response, 'id');
-    const cdnUrl = id
-      ? `${this.configService.ingredientsEndpoint}/images/${id}`
-      : undefined;
+    const cdnUrl = this.readResponseAssetUrl(response, 'images', id);
 
     return {
       creditsUsed: 0, // endpoint handles credits
@@ -6355,9 +6203,7 @@ export class AgentToolExecutorService {
     );
 
     const id = this.readResponseEnvelopeString(response, 'id');
-    const cdnUrl = id
-      ? `${this.configService.ingredientsEndpoint}/videos/${id}`
-      : undefined;
+    const cdnUrl = this.readResponseAssetUrl(response, 'videos', id);
 
     // Fire-and-forget quality check — don't block the generation response
     if (id && this.contentQualityScorerService) {
@@ -6420,9 +6266,7 @@ export class AgentToolExecutorService {
     );
 
     const id = this.readResponseEnvelopeString(response, 'id');
-    const cdnUrl = id
-      ? `${this.configService.ingredientsEndpoint}/musics/${id}`
-      : undefined;
+    const cdnUrl = this.readResponseAssetUrl(response, 'musics', id);
 
     return {
       creditsUsed: 0,
@@ -6463,11 +6307,8 @@ export class AgentToolExecutorService {
 
     const id = this.readResponseEnvelopeString(response, 'id');
     const audioUrl = this.readResponseEnvelopeString(response, 'audioUrl');
-    const cdnUrl = audioUrl
-      ? audioUrl
-      : id
-        ? `${this.configService.ingredientsEndpoint}/voices/${id}`
-        : undefined;
+    const cdnUrl =
+      audioUrl ?? this.readResponseAssetUrl(response, 'voices', id);
 
     return {
       creditsUsed: 0,

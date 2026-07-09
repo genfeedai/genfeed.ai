@@ -7,6 +7,7 @@ vi.mock(
 
 import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
+import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PostStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
@@ -284,6 +285,11 @@ describe('AgentToolExecutorService', () => {
       findOne: vi.fn().mockResolvedValue({ onboardingCompleted: false }),
       patch: vi.fn().mockResolvedValue({}),
     };
+    const routeRewriteService = new AgentRouteRewriteService(
+      loggerService,
+      brandsService as never,
+      organizationsService as never,
+    );
     const organizationSettingsService = {
       findOne: vi.fn().mockResolvedValue({
         id: 'settings-1',
@@ -608,6 +614,7 @@ describe('AgentToolExecutorService', () => {
       httpService as never,
       postsService as never,
       brandsService as never,
+      routeRewriteService,
       botsService as never,
       botsLivestreamService as never,
       campaignsService as never,
@@ -3084,6 +3091,11 @@ describe('AgentToolExecutorService', () => {
       {} as never,
       postsService as never,
       brandsService as never,
+      new AgentRouteRewriteService(
+        loggerService,
+        brandsService as never,
+        organizationsService as never,
+      ),
       {} as never,
       {} as never,
       {} as never,

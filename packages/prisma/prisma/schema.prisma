@@ -549,6 +549,7 @@ model User {
   apiKeys                  ApiKey[]
   ingredients              Ingredient[]
   posts                    Post[]
+  postGroups               PostGroup[]
   postAnalytics            PostAnalytics[]
   prompts                  Prompt[]
   folders                  Folder[]
@@ -646,6 +647,7 @@ model Organization {
   orgIntegrations               OrgIntegration[]
   ingredients                   Ingredient[]
   posts                         Post[]
+  postGroups                    PostGroup[]
   postAnalytics                 PostAnalytics[]
   prompts                       Prompt[]
   folders                       Folder[]
@@ -826,6 +828,7 @@ model Brand {
   credentials                Credential[]
   ingredients                Ingredient[]               @relation("ingredient_brand")
   posts                      Post[]
+  postGroups                 PostGroup[]
   postAnalytics              PostAnalytics[]
   prompts                    Prompt[]
   folders                    Folder[]
@@ -838,6 +841,7 @@ model Brand {
   agentStrategies            AgentStrategy[]
   agentCampaigns             AgentCampaign[]
   agentGoals                 AgentGoal[]
+  agentRuns                  AgentRun[]
   agentMemories              AgentMemory[]
   agentMessages              AgentMessage[]
   socialConversations        SocialConversation[]
@@ -1892,6 +1896,14 @@ model Post {
   isAnalyticsEnabled    Boolean         @default(true)
   retryCount            Int             @default(0)
   lastAttemptAt         DateTime?
+  targetSettings         Json            @default("{}")
+  targetAttachments      Json            @default("[]")
+  targetValidationState  String          @default("pending")
+  targetValidationIssues String[]        @default([])
+  targetReadiness        Json?
+  targetExecutionState   String          @default("draft")
+  targetError            Json?
+  targetIdempotencyKey   String?
   variantId             String?
   hookVersion           String?
   creativeVersion       String?
@@ -1929,6 +1941,7 @@ model Post {
   trendRemixLineages       TrendRemixLineage[]
   subscriptionAttributions SubscriptionAttribution[] @relation("attribution_content")
 
+  @@unique([organizationId, targetIdempotencyKey], map: "posts_organizationId_targetIdempotencyKey_key")
   @@index([externalId])
   @@index([originalPostId])
   @@index([groupId])
@@ -1947,7 +1960,38 @@ model Post {
   @@index([brandId, isDeleted, status, createdAt(sort: Desc)], map: "posts_brand_deleted_status_created_at_idx")
   @@index([brandId, credentialId, isDeleted, createdAt(sort: Desc)], map: "posts_brand_credential_deleted_created_at_idx")
   @@index([brandId, platform, isDeleted, createdAt(sort: Desc)], map: "posts_brand_platform_deleted_created_at_idx")
+  @@index([organizationId, groupId, targetExecutionState, isDeleted], map: "posts_group_target_execution_idx")
   @@map("posts")
+}
+
+model PostGroup {
+  id                String       @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  ownerId           String
+  owner             User         @relation(fields: [ownerId], references: [id])
+  brandId           String?
+  brand             Brand?       @relation(fields: [brandId], references: [id])
+  title             String
+  baseContent       String
+  media             Json         @default("[]")
+  timezone          String       @default("UTC")
+  status            String       @default("draft")
+  scheduledAt       DateTime?
+  publishedAt       DateTime?
+  recurrence        Json?
+  idempotencyKey    String?
+  attachments       Json         @default("[]")
+  statusTransitions Json         @default("[]")
+  isDeleted         Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, isDeleted, status, scheduledAt(sort: Asc), id], map: "post_groups_org_status_schedule_idx")
+  @@index([brandId, isDeleted, status, scheduledAt(sort: Asc), id], map: "post_groups_brand_status_schedule_idx")
+  @@index([ownerId, isDeleted, createdAt(sort: Desc)], map: "post_groups_owner_created_idx")
+  @@map("post_groups")
 }
 
 model PostAnalytics {
@@ -2656,6 +2700,8 @@ model AgentRun {
   organization   Organization   @relation(fields: [organizationId], references: [id])
   userId         String
   user           User           @relation(fields: [userId], references: [id])
+  brandId        String?
+  brand          Brand?         @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   strategyId     String?
   strategy       AgentStrategy? @relation(fields: [strategyId], references: [id])
   threadId       String?
@@ -2684,10 +2730,17 @@ model AgentRun {
   label       String?
   objective   String?
   trigger     String?
-  creditsUsed Int     @default(0)
-  durationMs  Int?
+  steps       Json    @default("[]")
+  toolCalls   Json    @default("[]")
+  summary     String?
+  progress    Int     @default(0)
+  retryCount  Int     @default(0)
+  creditBudget Int?
+  creditsUsed  Int     @default(0)
+  durationMs   Int?
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "agent_runs_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, status, createdAt(sort: Desc)])
   @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, isDeleted, status, completedAt(sort: Desc)], map: "agent_runs_org_deleted_status_completed_at_idx")

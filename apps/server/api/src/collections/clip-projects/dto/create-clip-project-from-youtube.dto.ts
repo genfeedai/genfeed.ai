@@ -1,3 +1,7 @@
+import {
+  SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
+  type SupportedAvatarVideoProviderName,
+} from '@genfeedai/queue-contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsIn,
@@ -15,8 +19,6 @@ import {
  */
 const YOUTUBE_URL_REGEX =
   /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|embed\/|shorts\/)|youtu\.be\/)/;
-
-const AVATAR_PROVIDERS = ['heygen', 'did', 'tavus', 'musetalk'] as const;
 
 export class CreateClipProjectFromYoutubeDto {
   @IsUrl()
@@ -45,14 +47,14 @@ export class CreateClipProjectFromYoutubeDto {
   readonly voiceId!: string;
 
   @IsOptional()
-  @IsIn(AVATAR_PROVIDERS)
+  @IsIn(SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES)
   @ApiProperty({
     default: 'heygen',
     description: 'Avatar video provider to use',
-    enum: AVATAR_PROVIDERS,
+    enum: SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
     required: false,
   })
-  readonly avatarProvider?: (typeof AVATAR_PROVIDERS)[number];
+  readonly avatarProvider?: SupportedAvatarVideoProviderName;
 
   @IsOptional()
   @IsNumber()

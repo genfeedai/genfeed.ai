@@ -153,4 +153,90 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
 
     expect(mocks.serviceSetSchedule).not.toHaveBeenCalled();
   });
+
+  it('does not toggle schedules on canonical system workflows', async () => {
+    mocks.serviceList.mockResolvedValueOnce([
+      makeWorkflow({
+        _id: 'system-wf',
+        isScheduleEnabled: true,
+        metadata: {
+          systemWorkflow: {
+            immutable: true,
+            kind: 'system-workflow',
+            owner: 'genfeed',
+          },
+        },
+        name: 'Daily Trends Digest',
+        schedule: '0 7 * * *',
+        timezone: 'UTC',
+      }),
+    ]);
+
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.handleToggleSchedule('system-wf', false);
+    });
+
+    expect(mocks.serviceSetSchedule).not.toHaveBeenCalled();
+    expect(result.current.workflows[0]?.isScheduleEnabled).toBe(true);
+  });
+});
+
+describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
+  beforeEach(() => {
+    mocks.serviceList.mockResolvedValue([
+      makeWorkflow({
+        _id: 'wf-1',
+        name: 'Editable Workflow',
+      }),
+    ]);
+    mocks.serviceDuplicate.mockResolvedValue({ _id: 'wf-copy' });
+    mocks.serviceRemove.mockResolvedValue(undefined);
+    mocks.getService.mockResolvedValue({
+      list: mocks.serviceList,
+      duplicate: mocks.serviceDuplicate,
+      remove: mocks.serviceRemove,
+      setSchedule: mocks.serviceSetSchedule,
+    });
+  });
+
+  it('routes to the editable duplicated workflow returned by the API', async () => {
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.handleDuplicate('wf-1');
+    });
+
+    expect(mocks.serviceDuplicate).toHaveBeenCalledWith('wf-1');
+    expect(mocks.push).toHaveBeenCalledWith('/org/brand/workflows/wf-copy');
+  });
+
+  it('does not delete canonical system workflows from the library', async () => {
+    mocks.serviceList.mockResolvedValueOnce([
+      makeWorkflow({
+        _id: 'system-wf',
+        metadata: {
+          systemWorkflow: {
+            immutable: true,
+            kind: 'system-workflow',
+            owner: 'genfeed',
+          },
+        },
+        name: 'Daily Trends Digest',
+      }),
+    ]);
+
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.handleDelete('system-wf');
+    });
+
+    expect(mocks.serviceRemove).not.toHaveBeenCalled();
+    expect(result.current.workflows).toHaveLength(1);
+  });
 });

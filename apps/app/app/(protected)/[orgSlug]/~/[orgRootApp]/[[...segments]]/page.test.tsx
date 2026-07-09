@@ -96,6 +96,12 @@ vi.mock('../../../[brandSlug]/posts/posts-list-page', () => ({
   },
 }));
 
+vi.mock('../../../[brandSlug]/posts/posts-layout-content', () => ({
+  default: ({ children }: { children: ReactNode }) => (
+    <section data-testid="posts-layout-content">{children}</section>
+  ),
+}));
+
 vi.mock('../../../[brandSlug]/workflows/[id]/WorkflowDetailPageClient', () => ({
   default: ({
     initialExecutionId,
@@ -152,6 +158,20 @@ describe('OrgRootAppPage', () => {
     );
   });
 
+  it('does not support legacy org workspace overview aliases', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'workspace',
+          orgSlug: 'acme',
+          segments: ['overview'],
+        }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+
+    expect(notFoundMock).toHaveBeenCalled();
+  });
+
   it('renders org library with type tabs at the root', async () => {
     const element = await OrgRootAppPage({
       params: Promise.resolve({
@@ -206,6 +226,7 @@ describe('OrgRootAppPage', () => {
 
     render(element);
 
+    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
     expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
     expect(renderPostsListPageMock).toHaveBeenCalledWith({
       scope: PageScope.ORGANIZATION,
@@ -224,6 +245,7 @@ describe('OrgRootAppPage', () => {
 
     render(element);
 
+    expect(screen.getByTestId('posts-layout-content')).toBeInTheDocument();
     expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
     expect(renderPostsListPageMock).toHaveBeenCalledWith({
       scope: PageScope.ORGANIZATION,

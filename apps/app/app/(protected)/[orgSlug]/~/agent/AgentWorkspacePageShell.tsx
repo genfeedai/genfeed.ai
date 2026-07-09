@@ -1,6 +1,7 @@
 'use client';
 
 import { AgentFullPage } from '@genfeedai/agent';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -52,7 +53,11 @@ export function AgentWorkspacePageShell({
         authReady={isLoaded}
         onboardingMode={isOnboarding}
         onCreateFollowUpTasks={handleCreateFollowUpTasks}
+        onOpenRunThread={(runThreadId) => {
+          push(orgHref(`${APP_ROUTES.AGENT.ROOT}/${runThreadId}`));
+        }}
         showThreadSidebar={false}
+        showRunSummary
         threadId={threadId}
         onNavigateToBilling={() => {
           push(

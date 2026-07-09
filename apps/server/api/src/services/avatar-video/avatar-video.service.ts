@@ -3,9 +3,14 @@ import { DidAvatarProvider } from '@api/services/avatar-video/providers/did-avat
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
 import { MusetalkAvatarProvider } from '@api/services/avatar-video/providers/musetalk-avatar.provider';
 import { TavusAvatarProvider } from '@api/services/avatar-video/providers/tavus-avatar.provider';
-import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
+import {
+  type AvatarVideoProviderName,
+  isSupportedAvatarVideoProviderName,
+  SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
+  type SupportedAvatarVideoProviderName,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * Factory / router for avatar video generation providers.
@@ -36,6 +41,17 @@ export class AvatarVideoService {
   }
 
   getProvider(name: AvatarVideoProviderName = 'heygen'): AvatarVideoProvider {
+    if (!isSupportedAvatarVideoProviderName(name)) {
+      this.logger.warn(
+        `AvatarVideoService unavailable provider "${name}" requested`,
+      );
+      throw new BadRequestException(
+        `Avatar video provider "${name}" is not available. Supported providers: ${SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES.join(
+          ', ',
+        )}.`,
+      );
+    }
+
     const provider = this.providers[name];
 
     if (!provider) {
@@ -48,7 +64,7 @@ export class AvatarVideoService {
     return provider;
   }
 
-  getSupportedProviders(): AvatarVideoProviderName[] {
-    return Object.keys(this.providers) as AvatarVideoProviderName[];
+  getSupportedProviders(): SupportedAvatarVideoProviderName[] {
+    return [...SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES];
   }
 }

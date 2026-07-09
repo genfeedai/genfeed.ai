@@ -64,6 +64,13 @@ describe('BeehiivController', () => {
     name: 'My Newsletter',
     url: 'https://newsletter.beehiiv.com',
   };
+  const alternatePublication = {
+    created: 1_700_000_002,
+    description: 'Second newsletter',
+    id: 'pub_selected',
+    name: 'Selected Newsletter',
+    url: 'https://selected.beehiiv.com',
+  };
 
   beforeEach(async () => {
     beehiivService = {
@@ -124,6 +131,49 @@ describe('BeehiivController', () => {
         },
       );
       expect(result).toHaveProperty('data');
+    });
+
+    it('should connect to the selected publication when publicationId is provided', async () => {
+      brandsService.findOne.mockResolvedValue(mockBrand);
+      beehiivService.listPublications.mockResolvedValue([
+        mockPublication,
+        alternatePublication,
+      ]);
+      credentialsService.saveCredentials.mockResolvedValue({
+        _id: 'test-object-id',
+        platform: CredentialPlatform.BEEHIIV,
+      });
+
+      await controller.connect(mockRequest, mockUser, {
+        apiKey: 'test-api-key',
+        brandId: '507f191e810c19729de860ea',
+        publicationId: 'pub_selected',
+      });
+
+      expect(credentialsService.saveCredentials).toHaveBeenCalledWith(
+        mockBrand,
+        CredentialPlatform.BEEHIIV,
+        {
+          accessToken: 'test-api-key',
+          externalHandle: alternatePublication.name,
+          externalId: alternatePublication.id,
+          isConnected: true,
+        },
+      );
+    });
+
+    it('should return bad request when selected publication is not available', async () => {
+      brandsService.findOne.mockResolvedValue(mockBrand);
+      beehiivService.listPublications.mockResolvedValue([mockPublication]);
+
+      const result = await controller.connect(mockRequest, mockUser, {
+        apiKey: 'test-api-key',
+        brandId: '507f191e810c19729de860ea',
+        publicationId: 'pub_missing',
+      });
+
+      expect(result).toHaveProperty('errors');
+      expect(credentialsService.saveCredentials).not.toHaveBeenCalled();
     });
 
     it('should return bad request when apiKey is missing', async () => {

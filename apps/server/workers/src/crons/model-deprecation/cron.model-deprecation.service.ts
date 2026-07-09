@@ -1,7 +1,7 @@
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
+import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -17,7 +17,7 @@ const MAX_USAGE_PERCENTAGE = 5;
 const USAGE_LOOKBACK_DAYS = 30;
 
 interface DeprecationCandidate {
-  model: ModelDocument;
+  model: ServerModelRecord;
   reason: string;
 }
 
@@ -92,7 +92,7 @@ export class CronModelDeprecationService {
       for (const candidate of candidates) {
         try {
           const deprecationCheck = await this.evaluateCandidate(
-            candidate as ModelDocument,
+            candidate as ServerModelRecord,
           );
 
           if (!deprecationCheck) {
@@ -121,7 +121,7 @@ export class CronModelDeprecationService {
         } catch (error: unknown) {
           this.logger.error(`${url} failed to evaluate candidate`, {
             error,
-            modelKey: (candidate as ModelDocument).key,
+            modelKey: (candidate as ServerModelRecord).key,
           });
         }
       }
@@ -139,7 +139,7 @@ export class CronModelDeprecationService {
    * Returns a DeprecationCandidate with a reason indicating the outcome.
    */
   private async evaluateCandidate(
-    model: ModelDocument,
+    model: ServerModelRecord,
   ): Promise<DeprecationCandidate | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     if (!model.key || !model.category) {
@@ -162,7 +162,7 @@ export class CronModelDeprecationService {
     }
 
     // 2. Check if successor has been active for 30+ days
-    const successorDoc = successor as ModelDocument;
+    const successorDoc = successor as ServerModelRecord;
     const successorAge = this.getDaysSince(
       successorDoc.createdAt ?? successorDoc.updatedAt,
     );
@@ -297,7 +297,7 @@ export class CronModelDeprecationService {
    * Deactivate a model by setting isActive and isHighlighted to false.
    * Never deletes the model -- only deactivates it.
    */
-  private async deprecateModel(model: ModelDocument): Promise<void> {
+  private async deprecateModel(model: ServerModelRecord): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     await this.modelsService.patch(model.id, {

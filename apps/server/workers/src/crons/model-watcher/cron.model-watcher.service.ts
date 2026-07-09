@@ -1,7 +1,7 @@
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -103,7 +103,7 @@ export class CronModelWatcherService {
       const allModels = await this.modelsService.find({ isDeleted: false });
       const existingKeys = new Set(
         allModels
-          .map((m: ModelDocument) => m.key)
+          .map((m: ServerModelRecord) => m.key)
           .filter((key): key is string => typeof key === 'string'),
       );
 

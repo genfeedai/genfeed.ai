@@ -6,10 +6,13 @@ import { MusetalkAvatarProvider } from '@api/services/avatar-video/providers/mus
 import { TavusAvatarProvider } from '@api/services/avatar-video/providers/tavus-avatar.provider';
 import type { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const makeProvider = (): vi.Mocked<AvatarVideoProvider> => ({
-  generate: vi.fn(),
+  generateVideo: vi.fn(),
+  getStatus: vi.fn(),
+  providerName: 'heygen',
 });
 
 describe('AvatarVideoService', () => {
@@ -59,26 +62,28 @@ describe('AvatarVideoService', () => {
       expect(service.getProvider('heygen')).toBe(heygenProvider);
     });
 
-    it('should return did provider when name is did', () => {
-      expect(service.getProvider('did')).toBe(didProvider);
-    });
-
-    it('should return tavus provider when name is tavus', () => {
-      expect(service.getProvider('tavus')).toBe(tavusProvider);
-    });
-
-    it('should return musetalk provider when name is musetalk', () => {
-      expect(service.getProvider('musetalk')).toBe(musetalkProvider);
-    });
-
     it('should default to heygen when no name supplied', () => {
       expect(service.getProvider()).toBe(heygenProvider);
     });
 
-    it('should fallback to heygen for unknown provider name and log a warning', () => {
-      const result = service.getProvider('unknown' as AvatarVideoProviderName);
+    it.each([
+      'did',
+      'tavus',
+      'musetalk',
+    ] as const)('should reject unavailable provider %s', (providerName) => {
+      expect(() => service.getProvider(providerName)).toThrow(
+        BadRequestException,
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(providerName),
+      );
+    });
 
-      expect(result).toBe(heygenProvider);
+    it('should reject unknown provider names instead of falling back silently', () => {
+      expect(() =>
+        service.getProvider('unknown' as AvatarVideoProviderName),
+      ).toThrow(BadRequestException);
+
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('unknown'),
       );
@@ -91,13 +96,9 @@ describe('AvatarVideoService', () => {
   });
 
   describe('getSupportedProviders', () => {
-    it('should return all four provider names', () => {
+    it('should return only production-ready provider names', () => {
       const providers = service.getSupportedProviders();
-      expect(providers).toHaveLength(4);
-      expect(providers).toContain('heygen');
-      expect(providers).toContain('did');
-      expect(providers).toContain('tavus');
-      expect(providers).toContain('musetalk');
+      expect(providers).toEqual(['heygen']);
     });
 
     it('should return an array of strings', () => {

@@ -3,7 +3,7 @@ import type { CreateClipResultDto } from '@api/collections/clip-results/dto/crea
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import type { ClipResultMode } from '@genfeedai/interfaces';
-import { AvatarVideoProviderName } from '@genfeedai/queue-contracts';
+import type { SupportedAvatarVideoProviderName } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { generateClipSrt, type TranscriptSegment } from './clip-srt.util';
@@ -46,7 +46,7 @@ export interface ClipGenerationInput {
   // Avatar-mode inputs (required only when mode === 'avatar').
   avatarId?: string;
   voiceId?: string;
-  provider?: AvatarVideoProviderName;
+  provider?: SupportedAvatarVideoProviderName;
   transcriptText?: string;
 
   // Raw-cut-mode inputs (required only when mode === 'raw-cut').

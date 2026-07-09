@@ -40,13 +40,7 @@ export class WorkflowExecutorDocumentService {
       }
 
       return workflow.nodes.some((node) => {
-        const nodeExecutorType = this.resolveNodeType(node.type);
-        if (nodeExecutorType !== executorNodeType) {
-          return false;
-        }
-
-        const nodePlatform = node.data?.config?.platform as string | undefined;
-        return !nodePlatform || nodePlatform === event.platform;
+        return this.doesTriggerNodeMatchEvent(node, executorNodeType, event);
       });
     });
   }
@@ -83,6 +77,138 @@ export class WorkflowExecutorDocumentService {
     return (
       VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR[visualNodeType] ?? visualNodeType
     );
+  }
+
+  private doesTriggerNodeMatchEvent(
+    node: WorkflowVisualNode,
+    executorNodeType: string,
+    event: TriggerEvent,
+  ): boolean {
+    const nodeExecutorType = this.resolveNodeType(node.type);
+    if (nodeExecutorType !== executorNodeType) {
+      return false;
+    }
+
+    const config = this.readNodeConfig(node);
+    if (config.enabled === false || config.isEnabled === false) {
+      return false;
+    }
+
+    const nodePlatform = this.optionalString(config.platform);
+    if (nodePlatform && nodePlatform !== event.platform) {
+      return false;
+    }
+
+    if (nodeExecutorType === 'commentTrigger') {
+      return this.doesCommentTriggerRuleMatch(config, event);
+    }
+
+    return true;
+  }
+
+  private doesCommentTriggerRuleMatch(
+    config: Record<string, unknown>,
+    event: TriggerEvent,
+  ): boolean {
+    const data = this.readObjectRecord(event.data) ?? {};
+
+    if (!this.matchesOptionalString(config.brandId, data.brandId)) {
+      return false;
+    }
+
+    if (
+      !this.matchesOptionalString(config.conversationId, data.conversationId)
+    ) {
+      return false;
+    }
+
+    if (!this.matchesOptionalString(config.credentialId, data.credentialId)) {
+      return false;
+    }
+
+    const contentIds = this.readStringList(
+      config.contentIds ?? config.videoIds ?? config.postIds,
+    );
+    if (
+      contentIds.length > 0 &&
+      !this.hasIntersection(
+        contentIds,
+        this.readStringList([
+          data.sourceContentId,
+          data.contentId,
+          data.videoId,
+          data.postId,
+        ]),
+      )
+    ) {
+      return false;
+    }
+
+    const text = this.optionalString(data.text)?.toLowerCase() ?? '';
+    const excludedKeywords = this.readStringList(config.excludeKeywords);
+    if (
+      excludedKeywords.length > 0 &&
+      excludedKeywords.some((keyword) => text.includes(keyword.toLowerCase()))
+    ) {
+      return false;
+    }
+
+    const keywords = this.readStringList(config.keywords);
+    if (
+      keywords.length > 0 &&
+      !keywords.some((keyword) => text.includes(keyword.toLowerCase()))
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private readNodeConfig(node: WorkflowVisualNode): Record<string, unknown> {
+    const visualConfig = this.readObjectRecord(node.data?.config);
+    if (visualConfig) {
+      return visualConfig;
+    }
+
+    const executableConfig = this.readObjectRecord(
+      (node as unknown as { config?: unknown }).config,
+    );
+    return executableConfig ?? {};
+  }
+
+  private matchesOptionalString(expected: unknown, actual: unknown): boolean {
+    const expectedValue = this.optionalString(expected);
+    if (!expectedValue) {
+      return true;
+    }
+
+    return expectedValue === this.optionalString(actual);
+  }
+
+  private hasIntersection(left: string[], right: string[]): boolean {
+    const rightValues = new Set(right);
+    return left.some((value) => rightValues.has(value));
+  }
+
+  private readStringList(value: unknown): string[] {
+    if (Array.isArray(value)) {
+      return value
+        .flatMap((item) => this.readStringList(item))
+        .filter((item, index, all) => all.indexOf(item) === index);
+    }
+
+    if (typeof value === 'string') {
+      return value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    return [];
+  }
+
+  private optionalString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
   private readArray<T>(value: unknown): T[] {
