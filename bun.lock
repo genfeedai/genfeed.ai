@@ -422,9 +422,12 @@
         "archiver": "8.0.0",
         "bcrypt": "6.0.0",
         "better-auth": "^1.6.23",
+        "class-transformer": "0.5.1",
+        "class-validator": "0.15.1",
         "compression": "1.8.1",
         "cookie-parser": "1.4.7",
         "effect": "3.21.4",
+        "express": "5.2.1",
         "google-auth-library": "10.9.0",
         "jose": "^6.2.3",
         "jsonapi-serializer": "3.6.9",
@@ -1037,6 +1040,8 @@
       "dependencies": {
         "@genfeedai/constants": "workspace:*",
         "@tanstack/react-query": "5.101.2",
+        "react": "19.2.7",
+        "react-icons": "5.7.0",
       },
       "devDependencies": {
         "@testing-library/react": "16.3.2",

@@ -60,7 +60,10 @@ type PrismaDelegate<T> = {
   upsert: (args: Record<string, unknown>) => Promise<T>;
 };
 
-type PrismaWithSourcePosts = PrismaService & {
+type PrismaWithSourcePosts = Omit<
+  PrismaService,
+  'credential' | 'post' | 'sourcePost'
+> & {
   credential: PrismaDelegate<{
     id: string;
     platform: string;

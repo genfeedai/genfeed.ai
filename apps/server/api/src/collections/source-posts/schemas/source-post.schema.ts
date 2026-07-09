@@ -25,11 +25,11 @@ export interface SourcePostDocument {
   sourceUrl?: string | null;
   mediaUrls?: string[];
   thumbnailUrl?: string | null;
-  metrics?: SourcePostMetrics;
+  metrics?: SourcePostMetrics | null;
   hashtags?: string[];
   publishedAt?: Date | string | null;
   collectedAt?: Date | string | null;
-  raw?: Record<string, unknown>;
+  raw?: Record<string, unknown> | null;
   isDeleted?: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;

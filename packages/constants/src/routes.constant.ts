@@ -171,6 +171,7 @@ export const APP_ROUTES = {
     ADS_GOOGLE: '/research/ads/google',
     ADS_META: '/research/ads/meta',
     DISCOVERY: '/research/discovery',
+    FOLLOWING: '/research/following',
     ROOT: '/research',
     SOCIALS: '/research/socials',
   },

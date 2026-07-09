@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { TrendPlatform } from '@pages/trends/shared/trends-platforms';
 import Tabs from '@ui/navigation/tabs/Tabs';
 
@@ -66,7 +67,11 @@ function buildSocialsNavItems(
 
   return [
     platformItems[0],
-    { href: '/research/following', id: 'following', label: 'Following' },
+    {
+      href: APP_ROUTES.RESEARCH.FOLLOWING,
+      id: 'following',
+      label: 'Following',
+    },
     ...platformItems.slice(1),
   ];
 }

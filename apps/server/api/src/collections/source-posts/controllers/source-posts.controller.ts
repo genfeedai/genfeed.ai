@@ -7,7 +7,10 @@ import { SourcePostsQueryDto } from '@api/collections/source-posts/dto/source-po
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import {
+  extractRequestContext,
+  getIsSuperAdmin,
+} from '@api/helpers/utils/auth/auth.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -43,7 +46,7 @@ export class SourcePostsController {
   ) {
     const context = resolveContext(user, query);
     const result = await this.sourcePostsService.listByBrand(context, query);
-    return serializeCollection(request, SourcePostSerializer, result);
+    return serializeCollection(request, SourcePostSerializer, { ...result });
   }
 
   @Get(':id')
@@ -87,15 +90,15 @@ function resolveContext(
   user: User,
   query: { brand?: string; organization?: string },
 ) {
-  const publicMetadata = getPublicMetadata(user);
-  const canOverrideScope = publicMetadata.isSuperAdmin === true;
+  const requestContext = extractRequestContext(user);
+  const canOverrideScope = getIsSuperAdmin(user);
   const organizationId =
     canOverrideScope && query.organization
       ? query.organization
-      : publicMetadata.organization;
+      : requestContext.organizationId;
   const brandId =
-    canOverrideScope && query.brand ? query.brand : publicMetadata.brand;
-  const userId = publicMetadata.user || user.id;
+    canOverrideScope && query.brand ? query.brand : requestContext.brandId;
+  const userId = requestContext.userId || user.id;
 
   if (!organizationId || !brandId || !userId) {
     throw new HttpException(
