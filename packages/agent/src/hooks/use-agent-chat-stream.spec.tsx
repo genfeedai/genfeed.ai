@@ -54,6 +54,12 @@ function createApiService(overrides: Record<string, unknown>): AgentApiService {
   return withAgentApiEffects(overrides) as unknown as AgentApiService;
 }
 
+function createCircularIcon(): unknown {
+  const icon: Record<string, unknown> = {};
+  icon.Provider = icon;
+  return icon;
+}
+
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: () => ({
     connectionState: socketConnectionState,
@@ -94,6 +100,7 @@ describe('useAgentChatStream', () => {
       isGenerating: false,
       messages: [],
       pendingInputRequest: null,
+      pageContext: null,
       runStartedAt: null,
       stream: {
         activeToolCalls: [],
@@ -240,6 +247,59 @@ describe('useAgentChatStream', () => {
       }),
       expect.any(AbortSignal),
     );
+  });
+
+  it('strips UI-only page context before streaming chat payloads', async () => {
+    useAgentChatStore.setState({
+      pageContext: {
+        placeholder: 'Ask me anything...',
+        route: '/default/~/agent',
+        selectedText: 'selected copy',
+        suggestedActions: [
+          {
+            icon: createCircularIcon() as never,
+            label: 'Generate',
+            prompt: 'Generate a post',
+          },
+        ],
+      },
+    });
+
+    const startedAt = '2026-03-09T10:00:00.000Z';
+    const chatStream = vi.fn().mockResolvedValue({
+      runId: 'run-plain-context',
+      startedAt,
+      threadId: 'thread-plain-context',
+    });
+    const apiService = createApiService({
+      chatStream,
+    });
+
+    const { result } = renderHook(() =>
+      useAgentChatStream({
+        apiService,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.sendMessage('Use current page context');
+    });
+
+    expect(chatStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pageContext: {
+          route: '/default/~/agent',
+          selectedText: 'selected copy',
+        },
+      }),
+      expect.any(AbortSignal),
+    );
+
+    const [payload] = chatStream.mock.calls[0] ?? [];
+
+    expect(payload?.pageContext).not.toHaveProperty('placeholder');
+    expect(payload?.pageContext).not.toHaveProperty('suggestedActions');
+    expect(() => JSON.stringify(payload)).not.toThrow();
   });
 
   it('preserves an explicit model override for streaming sends', async () => {

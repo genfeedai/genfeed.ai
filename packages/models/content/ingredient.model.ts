@@ -24,6 +24,8 @@ import { Brand } from '@models/organization/brand.model';
 export class Ingredient extends BaseIngredient {
   private _ingredientUrl: string = '';
 
+  public declare cdnUrl?: string | null;
+  public declare s3Key?: string | null;
   public isPlaying: boolean = false;
   public isFavorite: boolean = false;
   public isVoteAnimating: boolean = false;
@@ -204,10 +206,6 @@ export class Ingredient extends BaseIngredient {
   }
 
   public get ingredientUrl(): string {
-    if (this._ingredientUrl !== '') {
-      return this._ingredientUrl;
-    }
-
     const assetsEndpoint = EnvironmentService.assetsEndpoint;
     const isAudioCategory =
       this.category === IngredientCategory.VOICE ||
@@ -224,6 +222,16 @@ export class Ingredient extends BaseIngredient {
       return this._ingredientUrl;
     }
 
+    if (this._ingredientUrl !== '') {
+      return this._ingredientUrl;
+    }
+
+    const storageUrl = this.resolveStorageUrl(this.cdnUrl, this.s3Key);
+    if (storageUrl) {
+      this._ingredientUrl = storageUrl;
+      return this._ingredientUrl;
+    }
+
     const ingredientCategory = this.category
       .toUpperCase()
       .replace('-', '_') as keyof typeof IngredientCategory;
@@ -231,6 +239,44 @@ export class Ingredient extends BaseIngredient {
     const endpoint = IngredientEndpoints.getEndpoint(ingredientCategory);
     this._ingredientUrl = `${EnvironmentService.ingredientsEndpoint}/${endpoint}/${this.id}`;
     return this._ingredientUrl;
+  }
+
+  private resolveStorageUrl(
+    cdnUrl?: string | null,
+    s3Key?: string | null,
+  ): string | undefined {
+    const normalizedCdnUrl = this.normalizeStorageUrl(cdnUrl);
+    if (normalizedCdnUrl) {
+      return normalizedCdnUrl;
+    }
+
+    const normalizedS3Key = this.normalizeStoragePath(s3Key);
+    if (normalizedS3Key) {
+      return `${EnvironmentService.cdnUrl}/${normalizedS3Key}`;
+    }
+
+    return undefined;
+  }
+
+  private normalizeStorageUrl(value?: string | null): string | undefined {
+    const trimmed = value?.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    if (/^https?:\/\//.test(trimmed)) {
+      return trimmed;
+    }
+
+    const normalizedPath = this.normalizeStoragePath(trimmed);
+    return normalizedPath
+      ? `${EnvironmentService.cdnUrl}/${normalizedPath}`
+      : undefined;
+  }
+
+  private normalizeStoragePath(value?: string | null): string | undefined {
+    const trimmed = value?.trim().replace(/^\/+/, '');
+    return trimmed || undefined;
   }
 
   public get thumbnailUrl(): string | undefined {

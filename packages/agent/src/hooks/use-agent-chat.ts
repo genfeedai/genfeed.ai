@@ -3,6 +3,7 @@ import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model'
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { AgentThreadStatus } from '@genfeedai/enums';
@@ -70,13 +71,14 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
 
       try {
         const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
+        const requestPageContext = toAgentRequestPageContext(pageContext);
         const response = await runAgentApiEffect(
           apiService.chatEffect(
             {
               attachments: sendOptions?.attachments,
               content,
               model: resolvedModel,
-              pageContext: pageContext ?? undefined,
+              pageContext: requestPageContext,
               planModeEnabled: sendOptions?.planModeEnabled,
               source: sendOptions?.source,
               threadId: activeThreadId ?? undefined,

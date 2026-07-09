@@ -110,6 +110,7 @@ vi.mock('@models/organization/brand.model', () => ({
 vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     assetsEndpoint: 'https://assets.genfeed.ai',
+    cdnUrl: 'https://cdn.genfeed.ai',
     ingredientsEndpoint: 'https://ingredients.genfeed.ai',
   },
 }));
@@ -804,6 +805,33 @@ describe('Ingredient', () => {
 
       expect(ingredient.ingredientUrl).toContain('ingredients.genfeed.ai');
       expect(ingredient.ingredientUrl).toContain('ing_123');
+    });
+
+    it('should prefer stored cdnUrl for generated status', () => {
+      const ingredient = createIngredient({
+        category: IngredientCategory.IMAGE,
+        cdnUrl:
+          'https://cdn.genfeed.ai/ingredients/images/generated/job/generated.png',
+        id: 'ing_123',
+        status: IngredientStatus.GENERATED,
+      });
+
+      expect(ingredient.ingredientUrl).toBe(
+        'https://cdn.genfeed.ai/ingredients/images/generated/job/generated.png',
+      );
+    });
+
+    it('should build CDN URL from s3Key when cdnUrl is missing', () => {
+      const ingredient = createIngredient({
+        category: IngredientCategory.IMAGE,
+        id: 'ing_123',
+        s3Key: 'ingredients/images/generated/job/generated.png',
+        status: IngredientStatus.GENERATED,
+      });
+
+      expect(ingredient.ingredientUrl).toBe(
+        'https://cdn.genfeed.ai/ingredients/images/generated/job/generated.png',
+      );
     });
 
     it('should cache ingredient URL', () => {

@@ -1,20 +1,15 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import MenuItem from '@ui/menus/item/MenuItem';
+import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
-import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import {
-  HiBars3BottomLeft,
-  HiChevronLeft,
-  HiOutlineArrowLeft,
-} from 'react-icons/hi2';
+import { HiOutlineArrowLeft } from 'react-icons/hi2';
 import CollapsibleGroup from './CollapsibleGroup';
 import MenuSharedConversations from './MenuSharedConversations';
 import MenuSharedGroupedItems from './MenuSharedGroupedItems';
@@ -48,6 +43,7 @@ export default function MenuShared({
 
   const {
     href,
+    brandSlug,
     orgHref,
     isConversationsCollapsed,
     setIsConversationsCollapsed,
@@ -151,18 +147,12 @@ export default function MenuShared({
   );
 
   const sharedCollapseControl = onToggleCollapse ? (
-    <Button
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={onToggleCollapse}
-      className="group flex size-7 flex-shrink-0 items-center justify-center rounded-md bg-transparent text-foreground/62 cursor-pointer transition-colors hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+    <SidebarLogoToggleButton
       ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-    >
-      <span className="relative flex size-4 items-center justify-center">
-        <HiBars3BottomLeft className="size-4" />
-        <HiChevronLeft className="absolute -right-1 size-3 rounded-full bg-background text-foreground/46 transition-colors group-hover:text-foreground/82" />
-      </span>
-    </Button>
+      direction={isCollapsed ? 'expand' : 'collapse'}
+      onClick={onToggleCollapse}
+      className="bg-transparent hover:bg-foreground/[0.06]"
+    />
   ) : null;
 
   /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ── */
@@ -249,7 +239,11 @@ export default function MenuShared({
                 items={nestedGroup.items}
                 onBack={() => {
                   exitNestedGroup();
-                  push(href('/workspace/overview'));
+                  push(
+                    brandSlug
+                      ? href(APP_ROUTES.WORKSPACE.OVERVIEW)
+                      : orgHref(APP_ROUTES.OVERVIEW.ROOT),
+                  );
                 }}
                 onItemClick={handleLinkClick}
               />
