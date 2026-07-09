@@ -10,7 +10,9 @@
     "@genfeedai/queue-contracts": "workspace:*",
     "@genfeedai/server": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
-    "@nestjs/event-emitter": "3.1.0"
+    "@nestjs/bullmq": "11.0.4",
+    "@nestjs/event-emitter": "3.1.0",
+    "bullmq": "5.79.3"
   },
   "description": "Genfeed Workers Service (Cron Jobs)",
   "devDependencies": {

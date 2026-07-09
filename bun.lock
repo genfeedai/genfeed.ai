@@ -515,6 +515,9 @@
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/queue-contracts": "workspace:*",
+        "@nestjs/bullmq": "11.0.4",
+        "@nestjs/common": "11.1.28",
+        "bullmq": "5.79.3",
       },
       "devDependencies": {
         "@nestjs/testing": "11.1.28",
@@ -576,7 +579,9 @@
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/server": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
+        "@nestjs/bullmq": "11.0.4",
         "@nestjs/event-emitter": "3.1.0",
+        "bullmq": "5.79.3",
       },
       "devDependencies": {
         "@nestjs/testing": "11.1.28",

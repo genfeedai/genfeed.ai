@@ -4,7 +4,10 @@
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
-    "@genfeedai/queue-contracts": "workspace:*"
+    "@genfeedai/queue-contracts": "workspace:*",
+    "@nestjs/bullmq": "11.0.4",
+    "@nestjs/common": "11.1.28",
+    "bullmq": "5.79.3"
   },
   "description": "Server-tier services shared by Genfeed API and workers",
   "devDependencies": {

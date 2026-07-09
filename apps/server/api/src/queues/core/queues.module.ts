@@ -32,12 +32,15 @@ import {
   HEYGEN_POLL_QUEUE,
   LIFECYCLE_EMAIL_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
+  POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
   TELEGRAM_DISTRIBUTE_QUEUE,
   WORKSPACE_TASK_QUEUE,
 } from '@genfeedai/queue-contracts';
+import { PostPublishQueueService, SERVER_TOKENS } from '@genfeedai/server';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   buildBullMQConnection,
   parseRedisConnectionForWorkload,
@@ -50,6 +53,7 @@ import { Module } from '@nestjs/common';
   exports: [
     AgentRunQueueService,
     HeygenPollQueueService,
+    PostPublishQueueService,
     QueueService,
     ReplyBotQueueService,
     CampaignQueueService,
@@ -223,6 +227,14 @@ import { Module } from '@nestjs/common';
       },
       {
         defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: POST_PUBLISH_QUEUE,
+      },
+      {
+        defaultJobOptions: {
           attempts: 2,
           backoff: { delay: 5000, type: 'exponential' },
           removeOnComplete: 100,
@@ -266,6 +278,11 @@ import { Module } from '@nestjs/common';
     AgentRunQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
+    PostPublishQueueService,
+    {
+      provide: SERVER_TOKENS.logger,
+      useExisting: LoggerService,
+    },
   ],
 })
 export class QueuesModule {}
