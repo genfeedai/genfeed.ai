@@ -70,7 +70,11 @@ vi.mock('@services/social/brands.service', () => ({
   },
 }));
 
-import { createWorkflowApiService, WorkflowApiService } from './workflow-api';
+import {
+  createWorkflowApiService,
+  isCanonicalSystemWorkflow,
+  WorkflowApiService,
+} from './workflow-api';
 
 function workflow(overrides: Record<string, unknown> = {}) {
   return {
@@ -105,6 +109,13 @@ describe('WorkflowApiService', () => {
             id: 'workflow-1',
             label: 'Launch calendar',
             lifecycle: 'draft',
+            metadata: {
+              systemWorkflow: {
+                immutable: true,
+                kind: 'system-workflow',
+                owner: 'genfeed',
+              },
+            },
             nodeCount: 3,
             updatedAt: '2026-01-02T00:00:00.000Z',
           },
@@ -115,12 +126,44 @@ describe('WorkflowApiService', () => {
     await expect(service().list({ lifecycle: 'draft' })).resolves.toEqual([
       expect.objectContaining({
         _id: 'workflow-1',
+        metadata: {
+          systemWorkflow: {
+            immutable: true,
+            kind: 'system-workflow',
+            owner: 'genfeed',
+          },
+        },
         name: 'Launch calendar',
       }),
     ]);
     expect(mocks.get).toHaveBeenCalledWith('', {
       params: { lifecycle: 'draft' },
     });
+  });
+
+  it('detects canonical immutable system workflow summaries', () => {
+    expect(
+      isCanonicalSystemWorkflow({
+        metadata: {
+          systemWorkflow: {
+            immutable: true,
+            kind: 'system-workflow',
+            owner: 'genfeed',
+          },
+        },
+      }),
+    ).toBe(true);
+
+    expect(
+      isCanonicalSystemWorkflow({
+        metadata: {
+          duplicatedFromSystemWorkflow: {
+            canonicalId: 'daily-trends-digest',
+            sourceWorkflowId: 'system-workflow-1',
+          },
+        },
+      }),
+    ).toBe(false);
   });
 
   it('creates workflows with backend label payloads and normalizes defaults', async () => {

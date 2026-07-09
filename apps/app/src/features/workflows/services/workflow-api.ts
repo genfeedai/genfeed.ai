@@ -46,8 +46,14 @@ export interface CloudWorkflowData {
   isScheduleEnabled?: boolean;
   createdBy?: string;
   createdAt: string;
+  metadata?: WorkflowMetadata;
   updatedAt: string;
 }
+
+export type WorkflowMetadata = Record<string, unknown> & {
+  duplicatedFromSystemWorkflow?: Record<string, unknown>;
+  systemWorkflow?: Record<string, unknown>;
+};
 
 /** Lightweight workflow summary for list views */
 export interface WorkflowSummary {
@@ -66,9 +72,23 @@ export interface WorkflowSummary {
     remoteId: string;
     syncDirection: 'push' | 'pull';
   } | null;
+  metadata?: WorkflowMetadata;
   schedule?: string;
   timezone?: string;
   isScheduleEnabled?: boolean;
+}
+
+export function isCanonicalSystemWorkflow(
+  workflow: Pick<WorkflowSummary, 'metadata'>,
+): boolean {
+  const systemWorkflow = workflow.metadata?.systemWorkflow;
+
+  return (
+    Boolean(systemWorkflow) &&
+    systemWorkflow?.kind === 'system-workflow' &&
+    systemWorkflow?.owner === 'genfeed' &&
+    systemWorkflow?.immutable === true
+  );
 }
 
 /** Payload for PATCH /workflows/:id (schedule fields) */
