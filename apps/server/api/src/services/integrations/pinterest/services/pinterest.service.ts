@@ -213,25 +213,128 @@ export class PinterestService {
     impressions?: number;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    // For now, return mock data until we implement proper credential retrieval
-    // This matches the pattern of other services that use credentials
-    this.loggerService.warn(
-      `${url} Pinterest analytics not fully implemented yet`,
-      {
+
+    try {
+      const credential = await this.credentialsService.findOne({
+        brand: brandId,
+        organization: organizationId,
+        platform: CredentialPlatform.PINTEREST,
+      });
+
+      if (!credential?.accessToken) {
+        throw new Error('Pinterest credential not found');
+      }
+
+      const decryptedAccessToken = EncryptionUtil.decrypt(
+        credential.accessToken,
+      );
+      const analytics = await this.getPinAnalytics(
+        decryptedAccessToken,
+        externalId,
+      );
+
+      const impressions = this.readPinterestMetric(analytics, [
+        'IMPRESSION',
+        'IMPRESSIONS',
+      ]);
+      const saves = this.readPinterestMetric(analytics, ['SAVE', 'SAVES']);
+      const pinClicks = this.readPinterestMetric(analytics, [
+        'PIN_CLICK',
+        'PIN_CLICKS',
+        'CLICK',
+        'CLICKS',
+      ]);
+      const outboundClicks = this.readPinterestMetric(analytics, [
+        'OUTBOUND_CLICK',
+        'OUTBOUND_CLICKS',
+      ]);
+
+      if (
+        !impressions.found &&
+        !saves.found &&
+        !pinClicks.found &&
+        !outboundClicks.found
+      ) {
+        throw new Error('Pinterest analytics returned no metric values');
+      }
+
+      return {
+        clicks: pinClicks.value + outboundClicks.value,
+        comments: 0,
+        impressions: impressions.value,
+        likes: 0,
+        saves: saves.value,
+        views: impressions.value,
+      };
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, {
         brandId,
+        error,
         externalId,
         organizationId,
-      },
-    );
+      });
+      throw error;
+    }
+  }
 
-    return await Promise.resolve({
-      clicks: 0,
-      comments: 0,
-      impressions: 0,
-      likes: 0,
-      saves: 0,
-      views: 0,
-    });
+  private readPinterestMetric(
+    source: unknown,
+    aliases: string[],
+  ): { found: boolean; value: number } {
+    const normalizedAliases = new Set(
+      aliases.map((alias) => this.normalizeMetricName(alias)),
+    );
+    const queue: unknown[] = [source];
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (!current || typeof current !== 'object') {
+        continue;
+      }
+
+      for (const [key, value] of Object.entries(
+        current as Record<string, unknown>,
+      )) {
+        if (normalizedAliases.has(this.normalizeMetricName(key))) {
+          const metricValue = this.readMetricNumber(value);
+          if (metricValue !== null) {
+            return { found: true, value: metricValue };
+          }
+        }
+
+        if (value && typeof value === 'object') {
+          queue.push(value);
+        }
+      }
+    }
+
+    return { found: false, value: 0 };
+  }
+
+  private readMetricNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const record = value as Record<string, unknown>;
+    return (
+      this.readMetricNumber(record.value) ??
+      this.readMetricNumber(record.total) ??
+      this.readMetricNumber(record.count)
+    );
+  }
+
+  private normalizeMetricName(value: string): string {
+    return value.replace(/[^a-z0-9]/gi, '').toLowerCase();
   }
 
   public async searchPins(

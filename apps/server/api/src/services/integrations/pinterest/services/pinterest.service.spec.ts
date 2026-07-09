@@ -6,12 +6,23 @@ import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
 
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: {
+    decrypt: vi.fn((value: string) => value),
+    encrypt: vi.fn((value: string) => value),
+  },
+}));
+
 describe('PinterestService', () => {
   let service: PinterestService;
   const httpServiceMock = {
     get: vi.fn(),
     post: vi.fn(),
   } as unknown as HttpService;
+  const credentialsServiceMock = {
+    findOne: vi.fn(),
+    patch: vi.fn(),
+  } as unknown as CredentialsService;
 
   beforeEach(async () => {
     process.env.PINTEREST_CLIENT_ID = 'client';
@@ -36,10 +47,7 @@ describe('PinterestService', () => {
         },
         {
           provide: CredentialsService,
-          useValue: {
-            findOne: vi.fn(),
-            patch: vi.fn(),
-          },
+          useValue: credentialsServiceMock,
         },
         {
           provide: LoggerService,
@@ -130,5 +138,70 @@ describe('PinterestService', () => {
       }),
     );
     expect(data).toEqual({ metrics: {} });
+  });
+
+  describe('getMediaAnalytics', () => {
+    it('maps Pinterest provider metrics using the stored credential', async () => {
+      (credentialsServiceMock.findOne as vi.Mock).mockResolvedValue({
+        accessToken: 'stored-token',
+      });
+      (httpServiceMock.get as vi.Mock).mockReturnValue(
+        of({
+          data: {
+            metrics: {
+              IMPRESSION: { value: 120 },
+              OUTBOUND_CLICK: { value: 4 },
+              PIN_CLICK: { value: 6 },
+              SAVE: { value: '9' },
+            },
+          },
+        }),
+      );
+
+      const result = await service.getMediaAnalytics('org', 'brand', 'pin-1');
+
+      expect(credentialsServiceMock.findOne).toHaveBeenCalledWith({
+        brand: 'brand',
+        organization: 'org',
+        platform: 'pinterest',
+      });
+      expect(httpServiceMock.get).toHaveBeenCalledWith(
+        'https://api.pinterest.com/v5/pins/pin-1/analytics',
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer stored-token' },
+        }),
+      );
+      expect(result).toEqual({
+        clicks: 10,
+        comments: 0,
+        impressions: 120,
+        likes: 0,
+        saves: 9,
+        views: 120,
+      });
+    });
+
+    it('throws instead of returning zeroed mock metrics when credentials are missing', async () => {
+      (credentialsServiceMock.findOne as vi.Mock).mockResolvedValue(null);
+
+      await expect(
+        service.getMediaAnalytics('org', 'brand', 'pin-1'),
+      ).rejects.toThrow('Pinterest credential not found');
+
+      expect(httpServiceMock.get).not.toHaveBeenCalled();
+    });
+
+    it('throws when Pinterest returns no metric values', async () => {
+      (credentialsServiceMock.findOne as vi.Mock).mockResolvedValue({
+        accessToken: 'stored-token',
+      });
+      (httpServiceMock.get as vi.Mock).mockReturnValue(
+        of({ data: { metrics: {} } }),
+      );
+
+      await expect(
+        service.getMediaAnalytics('org', 'brand', 'pin-1'),
+      ).rejects.toThrow('Pinterest analytics returned no metric values');
+    });
   });
 });

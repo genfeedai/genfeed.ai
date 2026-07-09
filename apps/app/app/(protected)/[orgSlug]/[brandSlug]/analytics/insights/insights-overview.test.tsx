@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react';
+import { useInsights } from '@hooks/data/analytics/use-insights/use-insights';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import InsightsOverview from './insights-overview';
 import '@testing-library/jest-dom/vitest';
@@ -16,6 +17,8 @@ vi.mock('@hooks/data/analytics/use-insights/use-insights', () => ({
     alerts: [],
     anomalies: [],
     audiences: [],
+    contentInsightsStatus: 'empty',
+    contentInsightsUnavailableReason: null,
     dismissAlert: vi.fn(),
     isLoading: false,
     isRefreshing: false,
@@ -49,5 +52,33 @@ describe('InsightsOverview', () => {
   it('should render without crashing', () => {
     const { container } = render(<InsightsOverview />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('renders an unavailable state when predictive analytics fails', () => {
+    vi.mocked(useInsights).mockReturnValueOnce({
+      alerts: [],
+      anomalies: [],
+      audiences: [],
+      contentInsightsStatus: 'unavailable',
+      contentInsightsUnavailableReason: 'Provider unavailable',
+      dismissAlert: vi.fn(),
+      dismissInsight: vi.fn(),
+      error: new Error('Provider unavailable'),
+      insights: [],
+      isLoading: false,
+      isRefreshing: false,
+      markAlertRead: vi.fn(),
+      markInsightRead: vi.fn(),
+      refresh: vi.fn(),
+      suggestions: [],
+      trends: [],
+    });
+
+    render(<InsightsOverview />);
+
+    expect(
+      screen.getByText('Analytics insights unavailable'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Provider unavailable')).toBeInTheDocument();
   });
 });

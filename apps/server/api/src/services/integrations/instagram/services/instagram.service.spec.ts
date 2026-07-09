@@ -4,7 +4,14 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
+
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: {
+    decrypt: vi.fn((value: string) => value),
+    encrypt: vi.fn((value: string) => value),
+  },
+}));
 
 describe('InstagramService', () => {
   let service: InstagramService;
@@ -75,6 +82,61 @@ describe('InstagramService', () => {
       );
 
       expect(result).toBe('msg');
+    });
+  });
+
+  describe('getTrends', () => {
+    it('returns empty trends when no Instagram credential is connected', async () => {
+      (credentialsMock.findOne as vi.Mock).mockResolvedValue(null);
+
+      const result = await service.getTrends('org', 'brand');
+
+      expect(result).toEqual([]);
+      expect(httpServiceMock.get).not.toHaveBeenCalled();
+    });
+
+    it('maps connected account hashtag engagement without static fallback trends', async () => {
+      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+        accessToken: 'token',
+        accessTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        externalId: 'instagram-account',
+        id: 'credential-id',
+        isConnected: true,
+      });
+      (httpServiceMock.get as vi.Mock).mockReturnValue(
+        of({
+          data: {
+            data: [
+              { caption: '#AI #Genfeed', comments_count: 2, like_count: 10 },
+              { caption: '#AI', comments_count: 1, like_count: 4 },
+            ],
+          },
+        }),
+      );
+
+      const result = await service.getTrends('org', 'brand');
+
+      expect(result).toEqual([
+        { growthRate: 0, mentions: 17, topic: '#AI' },
+        { growthRate: 0, mentions: 12, topic: '#Genfeed' },
+      ]);
+    });
+
+    it('does not return hard-coded hashtags when provider lookup fails', async () => {
+      (credentialsMock.findOne as vi.Mock).mockResolvedValue({
+        accessToken: 'token',
+        accessTokenExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        externalId: 'instagram-account',
+        id: 'credential-id',
+        isConnected: true,
+      });
+      (httpServiceMock.get as vi.Mock).mockReturnValue(
+        throwError(() => new Error('Meta unavailable')),
+      );
+
+      const result = await service.getTrends('org', 'brand');
+
+      expect(result).toEqual([]);
     });
   });
 

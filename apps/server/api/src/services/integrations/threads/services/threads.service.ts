@@ -767,38 +767,15 @@ export class ThreadsService {
     }
   }
 
-  /**
-   * Get mock trends for Threads (no official trending API)
-   */
   public getTrends(): unknown[] {
     const url = `${this.constructorName} getTrends`;
 
     this.loggerService.log(url);
+    this.loggerService.warn(`${url} skipped - Threads trends unavailable`, {
+      reason: 'threads_trending_api_unavailable',
+    });
 
-    // Threads doesn't have an official trending API
-    // Return mock data similar to Instagram approach
-    return [
-      { growthRate: 45, mentions: 850000, platform: 'threads', topic: 'AI' },
-      { growthRate: 38, mentions: 720000, platform: 'threads', topic: 'Tech' },
-      {
-        growthRate: 32,
-        mentions: 580000,
-        platform: 'threads',
-        topic: 'Startup',
-      },
-      {
-        growthRate: 28,
-        mentions: 450000,
-        platform: 'threads',
-        topic: 'Design',
-      },
-      {
-        growthRate: 25,
-        mentions: 380000,
-        platform: 'threads',
-        topic: 'Marketing',
-      },
-    ];
+    return [];
   }
 
   private async waitForContainerReady(
