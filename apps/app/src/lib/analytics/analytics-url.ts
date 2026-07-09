@@ -29,7 +29,6 @@ const NON_TENANT_TOP_LEVEL = new Set<string>([
   'oauth',
   'onboarding',
   'playwright-ready',
-  'request-access',
   'settings',
   'sign-up',
 ]);

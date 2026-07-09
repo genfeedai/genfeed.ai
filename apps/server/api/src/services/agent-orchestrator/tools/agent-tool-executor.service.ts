@@ -226,7 +226,6 @@ const UNSCOPED_ROUTE_PREFIXES = new Set([
   'oauth',
   'onboarding',
   'playwright-ready',
-  'request-access',
   'sign-up',
 ]);
 

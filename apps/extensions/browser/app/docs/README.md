@@ -36,7 +36,7 @@ Load `build/chrome-mv3-dev` in Chrome (Developer Mode → Load unpacked) during 
 - **Development**: Extension connects to `local.genfeed.ai` for authentication
 - **Production**: Extension connects to `genfeed.ai` for authentication
 - **Dark Mode**: Enabled by default for better user experience
-- **Invite Only**: App is currently in private beta - no sign up required
+- **Authentication**: Extension opens GenFeed sign in or free signup in the browser
 
 ### Scripts
 

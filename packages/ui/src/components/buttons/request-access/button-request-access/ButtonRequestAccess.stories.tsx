@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/nextjs';
 import ButtonRequestAccess from '@ui/buttons/request-access/button-request-access/ButtonRequestAccess';
 
 /**
- * ButtonRequestAccess component displays a button that links to the request access page.
+ * ButtonRequestAccess component displays a button that links to the signup flow.
  * Supports multiple variants and custom styling.
  */
 const meta = {
@@ -27,7 +27,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Button component for requesting access to the platform. Links to the request access page.',
+          'Button component for creating a free account. Links to the signup flow.',
       },
     },
     layout: 'centered',
@@ -44,7 +44,7 @@ type Story = StoryObj<typeof meta>;
  */
 export const Primary: Story = {
   args: {
-    label: 'Request Access',
+    label: 'Create free account',
     variant: ButtonVariant.DEFAULT,
   },
 };
@@ -54,7 +54,7 @@ export const Primary: Story = {
  */
 export const Secondary: Story = {
   args: {
-    label: 'Request Access',
+    label: 'Create free account',
     variant: ButtonVariant.SECONDARY,
   },
 };
@@ -64,7 +64,7 @@ export const Secondary: Story = {
  */
 export const White: Story = {
   args: {
-    label: 'Request Access',
+    label: 'Create free account',
     variant: ButtonVariant.WHITE,
   },
   decorators: [
@@ -81,7 +81,7 @@ export const White: Story = {
  */
 export const Black: Story = {
   args: {
-    label: 'Request Access',
+    label: 'Create free account',
     variant: ButtonVariant.BLACK,
   },
   decorators: [
@@ -115,14 +115,14 @@ export const AllVariants: Story = {
       <div className="space-y-2">
         <h3 className="text-sm font-semibold">Primary</h3>
         <ButtonRequestAccess
-          label="Request Access"
+          label="Create free account"
           variant={ButtonVariant.DEFAULT}
         />
       </div>
       <div className="space-y-2">
         <h3 className="text-sm font-semibold">Secondary</h3>
         <ButtonRequestAccess
-          label="Request Access"
+          label="Create free account"
           variant={ButtonVariant.SECONDARY}
         />
       </div>
@@ -131,14 +131,14 @@ export const AllVariants: Story = {
           White (on gradient)
         </h3>
         <ButtonRequestAccess
-          label="Request Access"
+          label="Create free account"
           variant={ButtonVariant.WHITE}
         />
       </div>
       <div className="space-y-2 bg-zinc-100 p-4">
         <h3 className="text-sm font-semibold">Black (on light)</h3>
         <ButtonRequestAccess
-          label="Request Access"
+          label="Create free account"
           variant={ButtonVariant.BLACK}
         />
       </div>
