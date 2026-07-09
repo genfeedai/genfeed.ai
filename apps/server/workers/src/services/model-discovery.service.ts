@@ -1,6 +1,6 @@
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { ModelCategory } from '@genfeedai/enums';
+import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
@@ -85,7 +85,7 @@ export class ModelDiscoveryService {
    */
   async createDraftModel(
     modelInfo: IModelDiscoveryInput,
-  ): Promise<ModelDocument | null> {
+  ): Promise<ServerModelRecord | null> {
     const context = 'ModelDiscoveryService createDraftModel';
     const modelKey = `${modelInfo.owner}/${modelInfo.name}`;
 

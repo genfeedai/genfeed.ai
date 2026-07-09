@@ -1,7 +1,7 @@
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import type { ServerModelRecord } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
@@ -42,7 +42,7 @@ describe('CronModelWatcherService', () => {
       label: 'Veo 3',
       provider: ModelProvider.REPLICATE,
     },
-  ] as unknown as ModelDocument[];
+  ] as unknown as ServerModelRecord[];
 
   // Store original fetch
   const originalFetch = globalThis.fetch;
@@ -169,7 +169,7 @@ describe('CronModelWatcherService', () => {
       modelDiscoveryService.createDraftModel.mockResolvedValueOnce({
         _id: 'new-draft-id',
         key: 'google/imagen-5',
-      } as unknown as ModelDocument);
+      } as unknown as ServerModelRecord);
 
       const result = await service.discoverNewModels();
 
@@ -244,7 +244,7 @@ describe('CronModelWatcherService', () => {
         _id: 'draft-id',
         isActive: false,
         key: 'black-forest-labs/flux-3-pro',
-      } as unknown as ModelDocument);
+      } as unknown as ServerModelRecord);
 
       await service.discoverNewModels();
 
@@ -346,7 +346,7 @@ describe('CronModelWatcherService', () => {
 
       modelDiscoveryService.createDraftModel.mockResolvedValue({
         _id: 'draft',
-      } as unknown as ModelDocument);
+      } as unknown as ServerModelRecord);
 
       const result = await service.discoverNewModels();
 
@@ -384,7 +384,7 @@ describe('CronModelWatcherService', () => {
         .mockRejectedValueOnce(new Error('DB error'))
         .mockResolvedValueOnce({
           _id: 'draft',
-        } as unknown as ModelDocument);
+        } as unknown as ServerModelRecord);
 
       const result = await service.discoverNewModels();
 
@@ -421,7 +421,7 @@ describe('CronModelWatcherService', () => {
         _id: 'draft-rep',
         cost: 25,
         key: 'google/rep-model',
-      } as unknown as ModelDocument);
+      } as unknown as ServerModelRecord);
     }
 
     it('should discover new fal.ai models not in DB', async () => {
@@ -501,7 +501,7 @@ describe('CronModelWatcherService', () => {
         _id: 'draft-fal',
         cost: 80,
         key: 'fal-ai/video-gen',
-      } as unknown as ModelDocument);
+      } as unknown as ServerModelRecord);
 
       const result = await service.discoverNewModels();
 
@@ -545,7 +545,7 @@ describe('CronModelWatcherService', () => {
         _id: 'draft-notif',
         cost: 25,
         key: 'meta/notif-model',
-      } as unknown as ModelDocument);
+      } as unknown as ServerModelRecord);
 
       await service.discoverNewModels();
 
@@ -561,7 +561,7 @@ describe('CronModelWatcherService', () => {
         _id: 'draft-notif',
         cost: 25,
         key: 'meta/notif-model',
-      } as unknown as ModelDocument);
+      } as unknown as ServerModelRecord);
 
       notificationsService.sendModelDiscoveryNotification.mockRejectedValueOnce(
         new Error('Discord webhook failed'),
@@ -581,7 +581,7 @@ describe('CronModelWatcherService', () => {
         _id: 'draft-notif',
         cost: 30,
         key: 'meta/notif-model',
-      } as unknown as ModelDocument);
+      } as unknown as ServerModelRecord);
 
       await service.discoverNewModels();
 
