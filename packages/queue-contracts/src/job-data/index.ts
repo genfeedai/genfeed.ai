@@ -21,6 +21,7 @@ export * from './email-digest-job.interface';
 export * from './heygen-poll-job.interface';
 export * from './lifecycle-email-job.interface';
 export * from './pattern-extraction-job.interface';
+export * from './post-publish-job.interface';
 export * from './reply-bot-polling-job.interface';
 export * from './telegram-distribute-job.interface';
 export * from './webhook-client-job.interface';

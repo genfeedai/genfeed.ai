@@ -11,6 +11,7 @@ import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.serv
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
+import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
@@ -32,6 +33,7 @@ import {
   HEYGEN_POLL_QUEUE,
   LIFECYCLE_EMAIL_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
+  POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
   TELEGRAM_DISTRIBUTE_QUEUE,
   WORKSPACE_TASK_QUEUE,
@@ -50,6 +52,7 @@ import { Module } from '@nestjs/common';
   exports: [
     AgentRunQueueService,
     HeygenPollQueueService,
+    PostPublishQueueService,
     QueueService,
     ReplyBotQueueService,
     CampaignQueueService,
@@ -223,6 +226,14 @@ import { Module } from '@nestjs/common';
       },
       {
         defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: POST_PUBLISH_QUEUE,
+      },
+      {
+        defaultJobOptions: {
           attempts: 2,
           backoff: { delay: 5000, type: 'exponential' },
           removeOnComplete: 100,
@@ -266,6 +277,7 @@ import { Module } from '@nestjs/common';
     AgentRunQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
+    PostPublishQueueService,
   ],
 })
 export class QueuesModule {}

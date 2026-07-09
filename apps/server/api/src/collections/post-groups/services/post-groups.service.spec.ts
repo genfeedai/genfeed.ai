@@ -1,4 +1,5 @@
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -60,6 +61,7 @@ type MockPostTarget = {
 
 describe('PostGroupsService', () => {
   let service: PostGroupsService;
+  let postPublishQueueService: { enqueue: ReturnType<typeof vi.fn> };
   let prisma: {
     $transaction: ReturnType<typeof vi.fn>;
     brand: { findFirst: ReturnType<typeof vi.fn> };
@@ -125,6 +127,9 @@ describe('PostGroupsService', () => {
           ),
       },
     };
+    postPublishQueueService = {
+      enqueue: vi.fn().mockResolvedValue('target-1'),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -141,6 +146,10 @@ describe('PostGroupsService', () => {
             log: vi.fn(),
             warn: vi.fn(),
           },
+        },
+        {
+          provide: PostPublishQueueService,
+          useValue: postPublishQueueService,
         },
       ],
     }).compile();
@@ -261,6 +270,45 @@ describe('PostGroupsService', () => {
 
     expect(prisma.postGroup.create).not.toHaveBeenCalled();
     expect(prisma.post.create).not.toHaveBeenCalled();
+  });
+
+  it('queues publish-now targets after scheduler state is committed', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status ?? ReleaseStatus.SCHEDULED,
+          statusTransitions: data.statusTransitions ?? [],
+        }),
+      ),
+    );
+
+    const result = await service.publishNow('org-1', 'user-1', 'group-1');
+
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        }),
+      }),
+    );
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      postId: 'target-1',
+      source: 'publish_now',
+      userId: 'user-1',
+    });
+    expect(result.targets?.[0]?.id).toBe('target-1');
   });
 
   it('pauses eligible targets and rolls the group up to paused', async () => {

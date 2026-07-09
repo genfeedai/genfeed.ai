@@ -8,6 +8,7 @@
 
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
+import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import {
   AD_BULK_UPLOAD_QUEUE,
@@ -38,6 +39,7 @@ import {
   LIFECYCLE_EMAIL_QUEUE,
   ORCHESTRATOR_RUN_QUEUE,
   PATTERN_EXTRACTION_QUEUE,
+  POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
   TELEGRAM_DISTRIBUTE_QUEUE,
   TRIGGER_EVALUATION_QUEUE,
@@ -57,7 +59,12 @@ import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 
 @Module({
-  exports: [QueueService, WorkspaceTaskQueueService, HeygenPollQueueService],
+  exports: [
+    QueueService,
+    WorkspaceTaskQueueService,
+    HeygenPollQueueService,
+    PostPublishQueueService,
+  ],
   imports: [
     LoggerModule,
     BullModule.forRootAsync({
@@ -198,6 +205,14 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: PATTERN_EXTRACTION_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: POST_PUBLISH_QUEUE,
       },
 
       // ---------- Newly registered queues (moved from API) ----------
@@ -385,6 +400,11 @@ import { ConfigService } from '@workers/config/config.service';
       },
     ),
   ],
-  providers: [QueueService, WorkspaceTaskQueueService, HeygenPollQueueService],
+  providers: [
+    QueueService,
+    WorkspaceTaskQueueService,
+    HeygenPollQueueService,
+    PostPublishQueueService,
+  ],
 })
 export class WorkersQueuesModule {}

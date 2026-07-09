@@ -3,6 +3,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
@@ -17,6 +18,7 @@ describe('CronPostsService', () => {
   let credentialsService: { findOne: ReturnType<typeof vi.fn> };
   let postsService: vi.Mocked<PostsService>;
   let publisherFactory: { getPublisher: ReturnType<typeof vi.fn> };
+  let postPublishQueueService: { enqueue: ReturnType<typeof vi.fn> };
   let publishEventWebhookService: {
     emitLegacyPostFailed: ReturnType<typeof vi.fn>;
     emitLegacyPostPublished: ReturnType<typeof vi.fn>;
@@ -33,6 +35,9 @@ describe('CronPostsService', () => {
     };
     publisherFactory = {
       getPublisher: vi.fn(),
+    };
+    postPublishQueueService = {
+      enqueue: vi.fn().mockResolvedValue('post-1'),
     };
     publishEventWebhookService = {
       emitLegacyPostFailed: vi.fn().mockResolvedValue(undefined),
@@ -109,6 +114,10 @@ describe('CronPostsService', () => {
           provide: PublishEventWebhookService,
           useValue: publishEventWebhookService,
         },
+        {
+          provide: PostPublishQueueService,
+          useValue: postPublishQueueService,
+        },
       ],
     }).compile();
 
@@ -132,9 +141,38 @@ describe('CronPostsService', () => {
     expect(loggerService.log).toHaveBeenCalledWith(
       expect.stringContaining('no posts to process'),
     );
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
   });
 
-  it('emits publish webhooks after a scheduled post publishes', async () => {
+  it('publishScheduledPosts queues due posts instead of publishing inline', async () => {
+    const post = {
+      brand: 'brand-1',
+      children: [],
+      credential: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organization: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+
+    await service.publishScheduledPosts();
+
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+  });
+
+  it('emits publish webhooks after a queued scheduled post publishes', async () => {
     const post = {
       brand: 'brand-1',
       children: [],
@@ -172,7 +210,12 @@ describe('CronPostsService', () => {
       supportsThreads: false,
     });
 
-    await service.publishScheduledPosts();
+    await service.processQueuedPost({
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
 
     expect(
       publishEventWebhookService.emitLegacyPostPublished,
@@ -185,6 +228,23 @@ describe('CronPostsService', () => {
         url: 'https://x.com/example/status/tweet-1',
       }),
     );
+  });
+
+  it('skips queued publish jobs that are no longer eligible', async () => {
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [],
+      total: 0,
+    } as never);
+
+    const result = await service.processQueuedPost({
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(result).toEqual({ reason: 'not_eligible', skipped: true });
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
   });
 
   it('emits failure webhooks only after retries are exhausted', async () => {
@@ -226,7 +286,12 @@ describe('CronPostsService', () => {
       supportsThreads: false,
     });
 
-    await service.publishScheduledPosts();
+    await service.processQueuedPost({
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
 
     expect(
       publishEventWebhookService.emitLegacyPostFailed,

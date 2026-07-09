@@ -10,6 +10,7 @@ import {
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
+import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import type {
   PublishContext,
   PublishResult,
@@ -27,6 +28,7 @@ import {
   PostStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
+import type { PostPublishJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -46,6 +48,11 @@ type QuotaCheckResult = {
   dailyLimit: number;
 };
 
+type QueuedPostPublishSkip = {
+  reason: 'not_eligible';
+  skipped: true;
+};
+
 @Injectable()
 export class CronPostsService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -62,6 +69,7 @@ export class CronPostsService {
     private readonly publisherFactory: PublisherFactoryService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
+    private readonly postPublishQueueService: PostPublishQueueService,
   ) {}
 
   /**
@@ -72,121 +80,180 @@ export class CronPostsService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const now = new Date();
+      const posts = await this.findDueScheduledPosts();
 
-      const options = {
-        customLabels,
-        limit: 50,
-        page: 1,
-      };
-
-      // Calculate backoff threshold - posts attempted within this time are skipped
-      const backoffThreshold = new Date(
-        now.getTime() - this.RETRY_BACKOFF_SECONDS * 1000,
-      );
-
-      // Find all scheduled parent posts that are due.
-      const posts = await this.postsService.findAll(
-        {
-          include: {
-            children: {
-              include: {
-                credential: true,
-                ingredients: true,
-              },
-              where: {
-                status: PostStatus.SCHEDULED,
-              },
-            },
-            ingredients: true,
-          },
-          where: {
-            // Backoff: skip posts that were attempted recently (within RETRY_BACKOFF_SECONDS)
-            // This prevents rapid retries and double-posting from overlapping cron runs
-            OR: [
-              { scheduledDate: { lte: now } },
-              { nextScheduledDate: { lte: now } },
-            ],
-            AND: [
-              {
-                OR: [
-                  { lastAttemptAt: null },
-                  { lastAttemptAt: { lte: backoffThreshold } },
-                ],
-              },
-            ],
-            isDeleted: false,
-            parent: null, // Only parent posts (not thread children)
-            status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
-          },
-        },
-        options,
-      );
-
-      this.logger.log(`${url} found ${posts.docs?.length || 0} posts`, {
-        total: posts.total || 0,
-        totalDocs: posts.docs?.length || 0,
+      this.logger.log(`${url} found ${posts.length} posts`, {
+        total: posts.length,
+        totalDocs: posts.length,
       });
 
-      if (posts.docs.length === 0) {
+      if (posts.length === 0) {
         this.logger.log(`${url} no posts to process`);
         return;
       }
 
-      // Process posts
-      await this.processPostGroup(posts.docs as unknown as PostEntity[]);
+      await this.enqueuePostPublishJobs(posts);
     } catch (error: unknown) {
       this.logger.error(`${url} error`, { error });
     }
   }
 
-  /**
-   * Process a group of posts with parallel execution
-   * Uses concurrency limit to avoid overwhelming external APIs
-   */
-  private async processPostGroup(posts: PostEntity[]) {
+  async processQueuedPost(
+    data: PostPublishJobData,
+  ): Promise<PublishResult | QueuedPostPublishSkip> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const CONCURRENCY_LIMIT = 5;
+    const post = await this.findQueuedPostForPublish(data);
 
-    // Process in batches for controlled concurrency
-    for (let i = 0; i < posts.length; i += CONCURRENCY_LIMIT) {
-      const batch = posts.slice(i, i + CONCURRENCY_LIMIT);
+    if (!post) {
+      this.logger.log(`${url} skipped stale post publish job`, {
+        organizationId: data.organizationId,
+        postId: data.postId,
+        source: data.source,
+      });
+      return { reason: 'not_eligible', skipped: true };
+    }
 
-      const batchPromises = batch.map(async (post) => {
-        try {
-          const result = await this.publishSinglePost(post);
+    return this.publishPostWithSideEffects(post);
+  }
 
-          if (result.success) {
-            // Log successful publication
-            await this.activitiesService.create(
-              new ActivityEntity({
-                brand: post.brand,
-                entityId: post.id,
-                entityModel: ActivityEntityModel.POST,
-                key: ActivityKey.POST_PUBLISHED,
-                organization: post.organization,
-                source: ActivitySource.POST,
-                user: post.user,
-                value: `Published to ${result.platform}: ${result.url}`,
-              }),
-            );
+  private async enqueuePostPublishJobs(posts: PostEntity[]): Promise<void> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-            // Handle repeat scheduling if enabled
-            if (post.isRepeat && post.repeatFrequency) {
-              await this.scheduleNextRepeat(post, url);
-            }
-          }
-        } catch (error: unknown) {
-          this.logger.error(`${url} failed to process post`, {
-            error: (error as Error)?.message,
+    await Promise.all(
+      posts.map(async (post) => {
+        const organizationId = this.readPostString(post, [
+          'organization',
+          'organizationId',
+        ]);
+        if (!organizationId) {
+          this.logger.warn(`${url} missing organization for post publish job`, {
             postId: post.id,
           });
+          return;
         }
-      });
 
-      // Wait for batch to complete before processing next batch
-      await Promise.all(batchPromises);
+        await this.postPublishQueueService.enqueue({
+          organizationId,
+          postId: post.id.toString(),
+          source: 'scheduled_sweep',
+        });
+      }),
+    );
+  }
+
+  private async publishPostWithSideEffects(
+    post: PostEntity,
+  ): Promise<PublishResult> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const result = await this.publishSinglePost(post);
+
+    if (result.success) {
+      await this.activitiesService.create(
+        new ActivityEntity({
+          brand: post.brand,
+          entityId: post.id,
+          entityModel: ActivityEntityModel.POST,
+          key: ActivityKey.POST_PUBLISHED,
+          organization: post.organization,
+          source: ActivitySource.POST,
+          user: post.user,
+          value: `Published to ${result.platform}: ${result.url}`,
+        }),
+      );
+
+      if (post.isRepeat && post.repeatFrequency) {
+        await this.scheduleNextRepeat(post, url);
+      }
     }
+
+    return result;
+  }
+
+  private async findQueuedPostForPublish(
+    data: PostPublishJobData,
+  ): Promise<PostEntity | null> {
+    const posts = await this.findDueScheduledPosts({
+      limit: 1,
+      organizationId: data.organizationId,
+      postId: data.postId,
+    });
+
+    return posts[0] ?? null;
+  }
+
+  private async findDueScheduledPosts(
+    filter: { limit?: number; organizationId?: string; postId?: string } = {},
+  ): Promise<PostEntity[]> {
+    const now = new Date();
+    const backoffThreshold = new Date(
+      now.getTime() - this.RETRY_BACKOFF_SECONDS * 1000,
+    );
+
+    const posts = await this.postsService.findAll(
+      {
+        include: {
+          children: {
+            include: {
+              credential: true,
+              ingredients: true,
+            },
+            where: {
+              status: PostStatus.SCHEDULED,
+            },
+          },
+          ingredients: true,
+        },
+        where: {
+          ...(filter.postId ? { id: filter.postId } : {}),
+          ...(filter.organizationId
+            ? { organizationId: filter.organizationId }
+            : {}),
+          AND: [
+            {
+              OR: [
+                { lastAttemptAt: null },
+                { lastAttemptAt: { lte: backoffThreshold } },
+              ],
+            },
+          ],
+          OR: [
+            { scheduledDate: { lte: now } },
+            { nextScheduledDate: { lte: now } },
+          ],
+          isDeleted: false,
+          parentId: null,
+          status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
+        },
+      },
+      {
+        customLabels,
+        limit: filter.limit ?? 50,
+        page: 1,
+      },
+    );
+
+    return posts.docs as unknown as PostEntity[];
+  }
+
+  private readPostString(
+    post: PostEntity,
+    keys: readonly string[],
+  ): string | undefined {
+    const record = post as unknown as Record<string, unknown>;
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === 'string' && value.length > 0) {
+        return value;
+      }
+      if (value && typeof value === 'object' && 'id' in value) {
+        const id = (value as { id?: unknown }).id;
+        if (typeof id === 'string' && id.length > 0) {
+          return id;
+        }
+      }
+    }
+
+    return undefined;
   }
 
   /**

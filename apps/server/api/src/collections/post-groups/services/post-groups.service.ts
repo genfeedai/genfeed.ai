@@ -1,4 +1,5 @@
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { PostPublishQueueService } from '@api/queues/post-publish/post-publish-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type ChannelTargetValidationResult,
@@ -116,6 +117,7 @@ export class PostGroupsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly postPublishQueueService: PostPublishQueueService,
   ) {}
 
   async create(
@@ -492,13 +494,15 @@ export class PostGroupsService {
     userId: string,
     groupId: string,
   ): Promise<IReleaseGroup> {
-    return this.prisma.$transaction(async (tx) => {
+    const release = await this.prisma.$transaction(async (tx) => {
       const group = await this.getGroupOrThrow(tx, organizationId, groupId);
       const targets = await this.getTargets(tx, organizationId, group.id);
 
       for (const target of targets) {
         const validation = validateChannelTargetSettings({
+          caption: group.baseContent,
           credentialId: target.credentialId,
+          media: this.toValidationMedia(this.asMedia(group.media)),
           platform: target.platform,
           publishMode: 'publish_now',
           settings: this.asRecord(target.targetSettings),
@@ -531,6 +535,30 @@ export class PostGroupsService {
 
       return this.recalculateAndHydrate(tx, organizationId, group.id, userId);
     });
+
+    await this.enqueueReleaseTargets(release, userId);
+    return release;
+  }
+
+  private async enqueueReleaseTargets(
+    release: IReleaseGroup,
+    userId: string,
+  ): Promise<void> {
+    const targets = release.targets ?? [];
+    await Promise.all(
+      targets
+        .filter(
+          (target) => target.executionState === TargetExecutionState.SCHEDULED,
+        )
+        .map((target) =>
+          this.postPublishQueueService.enqueue({
+            organizationId: release.organizationId,
+            postId: target.id,
+            source: 'publish_now',
+            userId,
+          }),
+        ),
+    );
   }
 
   private async transitionGroupTargets(
