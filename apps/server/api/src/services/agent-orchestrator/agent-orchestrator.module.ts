@@ -34,6 +34,7 @@ import { AgentOrchestratorController } from '@api/services/agent-orchestrator/ag
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
+import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
@@ -94,6 +95,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     AgentOrchestratorService,
+    AgentRouteRewriteService,
     AgentToolExecutorService,
     {
       provide: 'AGENT_BRANDS_SERVICE',
