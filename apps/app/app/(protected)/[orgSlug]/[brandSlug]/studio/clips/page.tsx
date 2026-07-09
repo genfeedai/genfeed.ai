@@ -19,19 +19,6 @@ const PROVIDER_OPTIONS: ProviderOption[] = [
     label: 'HeyGen',
     value: 'heygen',
   },
-  { description: 'Coming Soon', disabled: true, label: 'D-ID', value: 'did' },
-  {
-    description: 'Coming Soon',
-    disabled: true,
-    label: 'Tavus',
-    value: 'tavus',
-  },
-  {
-    description: 'Self-hosted, free',
-    disabled: true,
-    label: 'MuseTalk',
-    value: 'musetalk',
-  },
 ];
 
 export default function StudioClipsPage() {
