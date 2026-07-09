@@ -1,7 +1,6 @@
 import type { ReactElement } from 'react';
 
 import { AutoFillToggle } from '~components/settings/AutoFillToggle';
-import { AutoPostToggle } from '~components/settings/AutoPostToggle';
 import { BrandSelector } from '~components/settings/BrandSelector';
 import { ConnectedAccounts } from '~components/settings/ConnectedAccounts';
 
@@ -33,7 +32,6 @@ export function SettingsPanel(): ReactElement {
           </h3>
           <div className="space-y-3">
             <AutoFillToggle />
-            <AutoPostToggle />
           </div>
         </section>
       </div>
