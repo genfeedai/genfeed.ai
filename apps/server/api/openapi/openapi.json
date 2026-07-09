@@ -1923,10 +1923,7 @@
             "default": "heygen",
             "description": "Avatar video provider to use",
             "enum": [
-              "heygen",
-              "did",
-              "tavus",
-              "musetalk"
+              "heygen"
             ],
             "type": "string"
           },
@@ -6078,10 +6075,7 @@
             "default": "heygen",
             "description": "Avatar video provider to use",
             "enum": [
-              "heygen",
-              "did",
-              "tavus",
-              "musetalk"
+              "heygen"
             ],
             "type": "string"
           },

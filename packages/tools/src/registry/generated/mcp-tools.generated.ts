@@ -10305,10 +10305,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "default": "heygen",
           "description": "Avatar video provider to use",
           "enum": [
-            "heygen",
-            "did",
-            "tavus",
-            "musetalk"
+            "heygen"
           ],
           "type": "string"
         },
@@ -10489,10 +10486,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "default": "heygen",
           "description": "Avatar video provider to use",
           "enum": [
-            "heygen",
-            "did",
-            "tavus",
-            "musetalk"
+            "heygen"
           ],
           "type": "string"
         },
