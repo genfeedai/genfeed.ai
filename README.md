@@ -33,14 +33,29 @@ Genfeed.ai is a self-hostable, AI-powered content creation platform. Generate im
 ## Quick Start
 
 ```bash
-git clone https://github.com/genfeedai/genfeed.ai.git
-cd genfeed.ai/docker
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
+sha256sum -c genfeed-selfhosted.tar.gz.sha256
+tar -xzf genfeed-selfhosted.tar.gz
+cd genfeed-selfhosted-v*
 cp .env.example .env
-docker compose -f docker-compose.selfhosted.yml up
+docker compose --env-file .env -f compose.yml up -d
 ```
 
 The web UI will be available at `http://localhost:3000`, the API at
 `http://localhost:3010`, and the local MCP surface at `http://localhost:3014`.
+The release bundle pins the exact public container image associated with its
+GitHub release. On macOS, use
+`shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256` for the checksum step.
+
+Alternatively, the create package downloads and verifies the same bundle:
+
+```bash
+npx @genfeedai/create my-genfeed
+```
+
+See the [self-hosting guide](docs/self-hosting.md) for configuration and source
+checkout instructions.
 
 ## Architecture
 

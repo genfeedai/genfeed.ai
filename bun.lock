@@ -853,7 +853,6 @@
       "dependencies": {
         "commander": "15.0.0",
         "consola": "3.4.2",
-        "giget": "3.3.0",
       },
       "devDependencies": {
         "@types/node": "26.1.1",
