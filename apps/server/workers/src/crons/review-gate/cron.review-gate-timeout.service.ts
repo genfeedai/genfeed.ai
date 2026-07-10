@@ -1,4 +1,3 @@
-import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
@@ -17,7 +16,6 @@ export class CronReviewGateTimeoutService {
 
   constructor(
     private readonly logger: LoggerService,
-    private readonly executionsService: WorkflowExecutionsService,
     private readonly executorService: WorkflowExecutorService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
   ) {}
@@ -29,7 +27,7 @@ export class CronReviewGateTimeoutService {
    */
   async resolveTimedOutReviewGates(): Promise<void> {
     const pending =
-      await this.executionsService.findPendingReviewGateExecutions();
+      await this.executorService.findPendingReviewGateExecutions();
     const now = Date.now();
 
     const totals = { approved: 0, checked: pending.length, rejected: 0 };

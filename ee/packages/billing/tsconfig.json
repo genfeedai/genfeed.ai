@@ -68,7 +68,8 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
-    "types": ["node", "vitest/globals", "multer"]
+    "types": ["node", "vitest/globals", "multer"],
+    "useDefineForClassFields": false
   },
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
   "include": ["src/**/*"]

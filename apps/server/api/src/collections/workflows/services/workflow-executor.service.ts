@@ -1,4 +1,7 @@
-import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import {
+  type PendingReviewGateExecution,
+  WorkflowExecutionsService,
+} from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
@@ -271,6 +274,16 @@ export class WorkflowExecutorService {
       organizationId,
       nodeId,
     );
+  }
+
+  /**
+   * Passthrough for the workers timeout sweep — workers must not import the
+   * @api workflow-executions service directly (#1090 import boundary).
+   */
+  async findPendingReviewGateExecutions(): Promise<
+    PendingReviewGateExecution[]
+  > {
+    return this.executionsService.findPendingReviewGateExecutions();
   }
 
   async resumeAfterDelay(

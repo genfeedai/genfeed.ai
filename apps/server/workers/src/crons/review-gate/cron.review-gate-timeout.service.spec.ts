@@ -1,4 +1,3 @@
-import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
@@ -26,10 +25,10 @@ function gate(overrides: Record<string, unknown> = {}) {
 
 describe('CronReviewGateTimeoutService', () => {
   let service: CronReviewGateTimeoutService;
-  let executionsService: {
+  let executorService: {
     findPendingReviewGateExecutions: ReturnType<typeof vi.fn>;
+    resolveTimedOutReviewGate: ReturnType<typeof vi.fn>;
   };
-  let executorService: { resolveTimedOutReviewGate: ReturnType<typeof vi.fn> };
   let provenanceService: { runAction: ReturnType<typeof vi.fn> };
   let loggerService: {
     log: ReturnType<typeof vi.fn>;
@@ -37,10 +36,8 @@ describe('CronReviewGateTimeoutService', () => {
   };
 
   beforeEach(async () => {
-    executionsService = {
-      findPendingReviewGateExecutions: vi.fn().mockResolvedValue([]),
-    };
     executorService = {
+      findPendingReviewGateExecutions: vi.fn().mockResolvedValue([]),
       resolveTimedOutReviewGate: vi.fn().mockResolvedValue({
         executionId: 'exec-1',
         nodeId: 'node-1',
@@ -64,7 +61,6 @@ describe('CronReviewGateTimeoutService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CronReviewGateTimeoutService,
-        { provide: WorkflowExecutionsService, useValue: executionsService },
         { provide: WorkflowExecutorService, useValue: executorService },
         {
           provide: SystemWorkflowProvenanceService,
@@ -78,9 +74,7 @@ describe('CronReviewGateTimeoutService', () => {
   });
 
   it('resolves gates whose timeout has elapsed inside a provenance action', async () => {
-    executionsService.findPendingReviewGateExecutions.mockResolvedValue([
-      gate(),
-    ]);
+    executorService.findPendingReviewGateExecutions.mockResolvedValue([gate()]);
 
     await service.resolveTimedOutReviewGates();
 
@@ -100,7 +94,7 @@ describe('CronReviewGateTimeoutService', () => {
   });
 
   it('skips gates whose timeout has not yet elapsed', async () => {
-    executionsService.findPendingReviewGateExecutions.mockResolvedValue([
+    executorService.findPendingReviewGateExecutions.mockResolvedValue([
       gate({ requestedAt: new Date().toISOString(), timeoutHours: 24 }),
     ]);
 
@@ -110,7 +104,7 @@ describe('CronReviewGateTimeoutService', () => {
   });
 
   it('isolates per-execution failures and keeps processing', async () => {
-    executionsService.findPendingReviewGateExecutions.mockResolvedValue([
+    executorService.findPendingReviewGateExecutions.mockResolvedValue([
       gate({ executionId: 'exec-a', nodeId: 'node-a' }),
       gate({ executionId: 'exec-b', nodeId: 'node-b' }),
     ]);
@@ -129,7 +123,7 @@ describe('CronReviewGateTimeoutService', () => {
   });
 
   it('ignores gates with an unparseable requestedAt', async () => {
-    executionsService.findPendingReviewGateExecutions.mockResolvedValue([
+    executorService.findPendingReviewGateExecutions.mockResolvedValue([
       gate({ requestedAt: 'not-a-date' }),
     ]);
 
