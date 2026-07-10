@@ -48,6 +48,7 @@ describe('QueueService', () => {
         { provide: getQueueToken('telegram-distribute'), useValue: mockQueue },
         { provide: getQueueToken('analytics-facebook'), useValue: mockQueue },
         { provide: getQueueToken('analytics-threads'), useValue: mockQueue },
+        { provide: getQueueToken('social-inbox-sync'), useValue: mockQueue },
       ],
     }).compile();
 

@@ -32697,7 +32697,7 @@
             "bearer": []
           }
         ],
-        "summary": "Sync recent YouTube comments into messages",
+        "summary": "Enqueue a background sync of recent YouTube comments",
         "tags": [
           "messages",
           "Messages"

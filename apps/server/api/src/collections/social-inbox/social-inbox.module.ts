@@ -1,6 +1,7 @@
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { QueuesModule } from '@api/queues/core/queues.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { forwardRef, Module } from '@nestjs/common';
@@ -10,6 +11,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [SocialInboxService],
   imports: [
     forwardRef(() => InstagramModule),
+    forwardRef(() => QueuesModule),
     forwardRef(() => WorkflowsModule),
     forwardRef(() => YoutubeModule),
   ],

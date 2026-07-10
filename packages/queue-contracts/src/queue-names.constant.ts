@@ -50,6 +50,7 @@ export const REPLY_BOT_POLLING_QUEUE = 'reply-bot-polling';
 export const EMAIL_DIGEST_QUEUE = 'email-digest';
 export const LIFECYCLE_EMAIL_QUEUE = 'lifecycle-email';
 export const WEBHOOK_CLIENT_QUEUE = 'webhook-client';
+export const SOCIAL_INBOX_SYNC_QUEUE = 'social-inbox-sync';
 
 // ---------- Platform ----------
 export const WORKSPACE_TASK_QUEUE = 'workspace-task';
@@ -89,6 +90,7 @@ export const ALL_QUEUE_NAMES = [
   EMAIL_DIGEST_QUEUE,
   LIFECYCLE_EMAIL_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
+  SOCIAL_INBOX_SYNC_QUEUE,
   WORKSPACE_TASK_QUEUE,
   HEYGEN_POLL_QUEUE,
   CREDIT_DEDUCTION_QUEUE,

@@ -640,9 +640,9 @@ export default function MessagesPage() {
 
     try {
       const service = await getMessagesService();
-      const result = await service.syncYoutube();
+      await service.syncYoutube();
       setNotice(
-        `YouTube sync imported ${result.messagesCreated} messages across ${result.conversationsCreated} conversations.`,
+        'YouTube sync started. New comments will appear here once the background job finishes.',
       );
       await loadConversations();
     } catch (err: unknown) {
