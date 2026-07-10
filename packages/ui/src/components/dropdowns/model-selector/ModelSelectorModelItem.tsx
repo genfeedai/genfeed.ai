@@ -43,8 +43,8 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
       value={`${model.label} ${brandLabel} ${model.description ?? ''}`}
       onSelect={handleSelect}
       className={cn(
-        'flex items-start gap-2 px-2 py-2 cursor-pointer',
-        isSelected && 'bg-primary/10',
+        'flex min-h-11 cursor-pointer items-start gap-2 px-2 py-2 lg:min-h-0',
+        isSelected && 'bg-accent',
       )}
     >
       <div className="pointer-events-none mt-0.5">
@@ -52,12 +52,12 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
           name={`model-${model.key}`}
           isChecked={isSelected}
           onChange={() => {}}
-          className="size-3.5 !border-white/20 data-[state=checked]:!bg-foreground data-[state=checked]:!border-foreground data-[state=checked]:!text-background"
+          className="size-3.5 !border-border data-[state=checked]:!border-foreground data-[state=checked]:!bg-foreground data-[state=checked]:!text-background"
         />
       </div>
 
       <div
-        className="mt-0.5 size-4 rounded-sm flex items-center justify-center text-[9px] font-bold shrink-0 border border-white/8"
+        className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-sm border border-border text-[9px] font-bold"
         style={{ backgroundColor: `${brandColor}20`, color: brandColor }}
       >
         {BrandIcon ? (
@@ -92,11 +92,12 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
       </div>
 
       <Button
+        ariaLabel={`${isFavorite ? 'Remove' : 'Add'} ${model.label} ${isFavorite ? 'from' : 'to'} favorites`}
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         onClick={handleFavoriteClick}
         className={cn(
-          'mt-0.5 p-0.5 rounded hover:bg-white/10 transition-colors shrink-0',
+          '-my-2 mt-0.5 flex size-11 shrink-0 items-center justify-center rounded transition-colors hover:bg-accent lg:my-0 lg:size-7',
           isFavorite
             ? 'text-foreground'
             : 'text-foreground/20 hover:text-foreground/40',

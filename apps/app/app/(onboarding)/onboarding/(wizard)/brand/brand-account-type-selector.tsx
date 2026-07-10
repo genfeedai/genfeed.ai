@@ -46,7 +46,7 @@ export default function BrandAccountTypeSelector({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={() => onSelect(category)}
-            className={`group rounded-none p-4 border text-center transition-all ${
+            className={`group rounded-none p-4 border text-center transition-colors ${
               accountType === category
                 ? 'border-white/30 bg-white/[0.08]'
                 : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'

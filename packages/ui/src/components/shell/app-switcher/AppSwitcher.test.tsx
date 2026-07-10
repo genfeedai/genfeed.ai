@@ -165,6 +165,38 @@ describe('AppSwitcher', () => {
     ).toBeInTheDocument();
   });
 
+  it('keeps grayscale focus indicators on the trigger and app links', () => {
+    const { rerender } = render(
+      <AppSwitcher orgSlug="acme" currentApp="workspace" />,
+    );
+
+    const iconTrigger = screen.getByRole('button', { name: 'Switch app' });
+    expect(iconTrigger).toHaveClass(
+      'focus-visible:ring-2',
+      'focus-visible:ring-ring',
+      'focus-visible:ring-offset-background',
+    );
+    expect(iconTrigger.className).not.toContain('focus-visible:!ring-0');
+
+    expect(screen.getByRole('link', { name: 'Workspace' })).toHaveClass(
+      'focus-visible:ring-2',
+      'focus-visible:ring-ring',
+      'focus-visible:ring-offset-popover',
+    );
+
+    rerender(
+      <AppSwitcher orgSlug="acme" currentApp="workspace" variant="labeled" />,
+    );
+
+    const labeledTrigger = screen.getByRole('button', { name: 'Switch app' });
+    expect(labeledTrigger).toHaveClass(
+      'focus-visible:ring-2',
+      'focus-visible:ring-ring',
+      'focus-visible:ring-offset-background',
+    );
+    expect(labeledTrigger.className).not.toContain('focus-visible:!ring-0');
+  });
+
   it('renders the compact primary app grid', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
 

@@ -165,7 +165,7 @@ export default function HighlightReviewCard({
 
   return (
     <div
-      className={`rounded-xl border p-4 shadow-border transition-all ${
+      className={`rounded-xl border p-4 shadow-border transition-[background-color,border-color,box-shadow] ${
         selected ? 'border-primary/50 bg-primary/5' : 'bg-secondary opacity-60'
       }`}
     >

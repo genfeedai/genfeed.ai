@@ -42,4 +42,18 @@ describe('KPISection', () => {
     );
     expect(heading).not.toHaveClass('font-serif-italic');
   });
+
+  it('stacks header actions on narrow screens', () => {
+    render(
+      <KPISection
+        title="Overview"
+        items={items}
+        headerActions={<button type="button">Export</button>}
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Overview' }).parentElement,
+    ).toHaveClass('flex-col', 'sm:flex-row');
+  });
 });

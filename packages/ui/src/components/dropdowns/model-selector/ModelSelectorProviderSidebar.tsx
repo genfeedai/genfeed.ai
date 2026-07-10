@@ -23,7 +23,7 @@ const ModelSelectorProviderSidebar = memo(
     );
 
     return (
-      <div className="w-12 border-r border-white/10 flex flex-col items-center py-2 gap-1 overflow-y-auto">
+      <div className="flex w-14 flex-col items-center gap-1 overflow-y-auto border-r border-border py-2 sm:w-12">
         {hasFavorites && (
           <SidebarButton
             isActive={activeBrand === 'favorites'}
@@ -39,12 +39,12 @@ const ModelSelectorProviderSidebar = memo(
           isActive={activeBrand === null}
           onClick={() => handleBrandClick(null)}
           tooltip="All"
-          color="#9CA3AF"
+          color="hsl(var(--muted-foreground))"
         >
           <HiSquares2X2 className="size-4" />
         </SidebarButton>
 
-        <div className="w-6 h-px bg-white/10 my-0.5" />
+        <div className="my-0.5 h-px w-6 bg-border" />
 
         {brands.map((brand) => {
           const config = MODEL_BRANDS[brand.slug];
@@ -94,10 +94,10 @@ function SidebarButton({
       onClick={onClick}
       tooltip={tooltip}
       className={cn(
-        'size-8 rounded flex items-center justify-center transition-all relative',
+        'relative flex size-11 items-center justify-center rounded transition-[background-color,color] lg:size-8',
         isActive
-          ? 'bg-white/10'
-          : 'hover:bg-white/5 text-foreground/50 hover:text-foreground/80',
+          ? 'bg-accent'
+          : 'text-foreground/50 hover:bg-accent hover:text-foreground/80',
       )}
       style={isActive ? { color } : undefined}
     >

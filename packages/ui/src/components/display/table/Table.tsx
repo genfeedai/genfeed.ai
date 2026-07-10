@@ -132,7 +132,7 @@ export default function AppTable<T>({
               hideHeader && 'sr-only',
             )}
           >
-            <tr className="border-b border-white/[0.08] transition-colors">
+            <tr className="border-b border-border transition-colors">
               {selectable && (
                 <th className="size-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   <Checkbox
@@ -179,8 +179,8 @@ export default function AppTable<T>({
                 <tr
                   key={getRowKey ? getRowKey(item, index) : index}
                   className={cn(
-                    'group border-b border-white/[0.06] transition-colors duration-200 odd:bg-white/[0.015] hover:bg-white/[0.04]',
-                    isSelected && 'bg-white/[0.05]',
+                    'group border-b border-border transition-colors duration-200 odd:bg-background-secondary/50 hover:bg-accent/60',
+                    isSelected && 'bg-accent',
                     onRowClick && 'cursor-pointer',
                     getRowClassName?.(item),
                   )}
@@ -211,7 +211,7 @@ export default function AppTable<T>({
 
                   {actions.length > 0 && (
                     <td className="px-4 py-2 relative align-middle">
-                      <div className="flex justify-end opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200">
+                      <div className="flex translate-x-0 justify-end opacity-100 transition-[opacity,transform] duration-200 group-focus-within:translate-x-0 group-focus-within:opacity-100 lg:translate-x-2 lg:opacity-0 lg:group-hover:translate-x-0 lg:group-hover:opacity-100">
                         <div className="flex items-center gap-1">
                           {actions.reduce<ReactNode[]>(
                             (acc, action, actionIndex) => {
@@ -247,6 +247,7 @@ export default function AppTable<T>({
                                   variant={ButtonVariant.GHOST}
                                   size={ButtonSize.SM}
                                   className={cn(
+                                    'min-h-11 min-w-11 lg:min-h-0 lg:min-w-0',
                                     action.className,
                                     action.getClassName?.(item),
                                   )}

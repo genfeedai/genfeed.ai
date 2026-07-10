@@ -73,18 +73,18 @@ export default function TrendFlowChart({
         </defs>
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="rgba(255,255,255,0.05)"
+          stroke="hsl(var(--border))"
           vertical={false}
         />
         <XAxis
           dataKey="date"
-          tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
           tickLine={false}
           axisLine={false}
           tickFormatter={(v: string) => v.slice(5)} // MM-DD
         />
         <YAxis
-          tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }}
           tickLine={false}
           axisLine={false}
           width={32}
@@ -92,11 +92,14 @@ export default function TrendFlowChart({
         <Tooltip
           contentStyle={{
             background: 'hsl(var(--card))',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid hsl(var(--border))',
             borderRadius: 0,
             fontSize: 12,
           }}
-          labelStyle={{ color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}
+          labelStyle={{
+            color: 'hsl(var(--muted-foreground))',
+            marginBottom: 4,
+          }}
         />
         <Area
           type="monotone"

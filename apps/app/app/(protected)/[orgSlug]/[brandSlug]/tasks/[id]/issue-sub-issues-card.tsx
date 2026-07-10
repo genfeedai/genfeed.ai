@@ -31,7 +31,7 @@ export default function IssueSubIssuesCard({
           <div className="flex items-center gap-2">
             <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-emerald-500/60 transition-all"
+                className="h-full rounded-full bg-success/60 transition-[width]"
                 style={{ width: `${pct}%` }}
               />
             </div>

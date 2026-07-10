@@ -16,9 +16,6 @@ type ExtendedSettingPatch = Partial<ISetting> & {
   isWorkflowNotificationsEmail?: boolean;
 };
 
-const settingsToggleClassName =
-  'border border-white/8 bg-[rgba(249,115,22,0.14)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] data-[state=checked]:border-[var(--accent-orange)] data-[state=checked]:bg-[var(--accent-orange)] data-[state=unchecked]:hover:bg-[rgba(249,115,22,0.2)]';
-
 export default function SettingsProfilePage() {
   const { user, isLoaded } = useAuthUser();
   const { currentUser, mutateUser } = useCurrentUser();
@@ -95,7 +92,6 @@ export default function SettingsProfilePage() {
           description="Show studio, workflow editor, automation tools, and individual generation pages. Recommended for power users."
           isChecked={isAdvancedMode}
           isDisabled={isSaving}
-          switchClassName={settingsToggleClassName}
           onChange={(e) => patchSettings({ isAdvancedMode: e.target.checked })}
         />
       </Card>
@@ -108,7 +104,6 @@ export default function SettingsProfilePage() {
             description="Send an email when a workflow completes or fails."
             isChecked={isWorkflowNotificationsEmail}
             isDisabled={isSaving}
-            switchClassName={settingsToggleClassName}
             onChange={(e) =>
               patchSettings({
                 isWorkflowNotificationsEmail: e.target.checked,
@@ -120,7 +115,6 @@ export default function SettingsProfilePage() {
             description="Send an email when a video generation completes or fails."
             isChecked={isVideoNotificationsEmail}
             isDisabled={isSaving}
-            switchClassName={settingsToggleClassName}
             onChange={(e) =>
               patchSettings({
                 isVideoNotificationsEmail: e.target.checked,

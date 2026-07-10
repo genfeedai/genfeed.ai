@@ -16,6 +16,7 @@ import { NodeCard, NodeHeader } from '@/features/workflows/components/ui/card';
 import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { HelpText } from '@/features/workflows/components/ui/status';
 import { coerceNodeData } from '@/features/workflows/nodes/node-data';
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 const ASSET_TYPE_OPTIONS: Array<{ value: BrandAssetType; label: string }> = [
   { label: 'Logo', value: 'logo' },
@@ -96,10 +97,11 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
       {data.resolvedUrl && data.assetType !== 'references' && (
         <div className="overflow-hidden bg-black/20">
           <Image
-            unoptimized
             src={data.resolvedUrl}
             alt={`${data.assetType} asset`}
             className="h-24 w-full object-contain"
+            sizes="320px"
+            unoptimized={!canOptimizeImageSource(data.resolvedUrl)}
             width={800}
             height={600}
           />
@@ -121,10 +123,11 @@ function BrandAssetNodeComponent(props: NodeProps): React.JSX.Element {
               className="overflow-hidden bg-black/20 aspect-square"
             >
               <Image
-                unoptimized
                 src={url}
                 alt={`Reference ${index + 1}`}
                 className="h-full w-full object-cover"
+                sizes="104px"
+                unoptimized={!canOptimizeImageSource(url)}
                 width={800}
                 height={600}
               />

@@ -61,7 +61,7 @@ export default function WorkflowLibraryPage() {
             (skeletonId) => (
               <div
                 key={skeletonId}
-                className="h-64 animate-pulse rounded-lg border border-white/[0.06] bg-card"
+                className="h-64 animate-pulse rounded-lg border border-border bg-card"
               />
             ),
           )}
@@ -100,20 +100,18 @@ export default function WorkflowLibraryPage() {
       icon={HiOutlineBolt}
       right={
         <>
-          <Link href={href('/workflows/templates')}>
-            <Button
-              label="Templates"
-              variant={ButtonVariant.SECONDARY}
-              icon={<HiOutlineDocumentDuplicate className="size-4" />}
-            />
-          </Link>
-          <Link href={href('/workflows/new')}>
-            <Button
-              label="New Workflow"
-              variant={ButtonVariant.DEFAULT}
-              icon={<HiOutlinePlus className="size-4" />}
-            />
-          </Link>
+          <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
+            <Link href={href('/workflows/templates')}>
+              <HiOutlineDocumentDuplicate className="size-4" />
+              Templates
+            </Link>
+          </Button>
+          <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
+            <Link href={href('/workflows/new')}>
+              <HiOutlinePlus className="size-4" />
+              New Workflow
+            </Link>
+          </Button>
         </>
       }
     >
@@ -126,7 +124,7 @@ export default function WorkflowLibraryPage() {
             placeholder="Search workflows..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="h-10 rounded-lg border-white/10 bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground/40 focus-visible:border-white/20 focus-visible:ring-0"
+            className="h-10 rounded-lg border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground/40 focus-visible:border-border-strong focus-visible:ring-0"
           />
         </div>
         {isLoading && workflows.length > 0 && (
@@ -135,7 +133,7 @@ export default function WorkflowLibraryPage() {
       </div>
 
       {/* Contextual info */}
-      <div className="mb-4 rounded-lg border border-white/10 bg-muted/30 p-4 text-sm text-foreground/70">
+      <div className="mb-4 rounded-lg border border-border bg-muted/30 p-4 text-sm text-foreground/70">
         <span className="font-medium text-foreground">Workflows</span> are
         explicit automation graphs. Schedule a workflow when the steps should be
         predictable and repeatable. For adaptive agent behavior, use{' '}
@@ -161,13 +159,13 @@ export default function WorkflowLibraryPage() {
           {/* New Workflow card */}
           <Button
             asChild
-            className="group flex items-center justify-center rounded-lg border-2 border-dashed border-white/10 bg-card/40 p-4 transition-all duration-200 hover:border-white/20 hover:bg-card/60"
+            className="group flex items-center justify-center rounded-lg border-2 border-dashed border-border bg-card/40 p-4 transition-[border-color,background-color] duration-200 hover:border-border-strong hover:bg-card/60"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
             <Link href={href('/workflows/new')}>
               <div className="flex flex-col items-center gap-3 py-8">
-                <div className="flex size-14 items-center justify-center rounded-full bg-foreground/5 transition-all duration-300 group-hover:scale-110 group-hover:bg-foreground/10">
+                <div className="flex size-14 items-center justify-center rounded-full bg-foreground/5 transition-[transform,background-color] duration-300 group-hover:scale-110 group-hover:bg-foreground/10">
                   <HiOutlinePlus className="size-7 text-foreground/50" />
                 </div>
                 <span className="text-sm font-medium text-foreground/70">
@@ -182,86 +180,85 @@ export default function WorkflowLibraryPage() {
             const isSystemWorkflow = isCanonicalSystemWorkflow(workflow);
 
             return (
-              <Link
+              <Card
                 key={workflow._id}
-                href={href(`/workflows/${workflow._id}`)}
-              >
-                <Card
-                  className="h-full hover:-translate-y-0.5"
-                  label={workflow.name}
-                  description={
-                    workflow.description ??
-                    'Reusable automation workflow for content operations.'
-                  }
-                  headerAction={
-                    <div className="flex items-center gap-2">
-                      {isSystemWorkflow ? (
-                        <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-xs text-sky-300">
-                          System
-                        </span>
-                      ) : null}
-                      {isCapable && isConnected && workflow.cloudSync ? (
-                        <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
-                          <Cloud className="size-3" />
-                          synced
-                        </span>
-                      ) : isCapable && isConnected && !workflow.cloudSync ? (
-                        <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                          <CloudUpload className="size-3" />
-                          local
-                        </span>
-                      ) : null}
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
-                          workflow.lifecycle,
-                        )}`}
-                      >
-                        {workflow.lifecycle}
+                className="group h-full hover:-translate-y-0.5"
+                label={workflow.name}
+                description={
+                  workflow.description ??
+                  'Reusable automation workflow for content operations.'
+                }
+                headerAction={
+                  <div className="relative z-20 flex items-center gap-2">
+                    {isSystemWorkflow ? (
+                      <span className="rounded-full bg-info/10 px-2 py-0.5 text-xs text-info">
+                        System
                       </span>
-                      {!isSystemWorkflow && workflow.schedule ? (
-                        <span role="none" onClick={(e) => e.preventDefault()}>
-                          <Switch
-                            checked={workflow.isScheduleEnabled ?? false}
-                            aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.name}`}
-                            onCheckedChange={(checked) =>
-                              handleToggleSchedule(workflow._id, checked)
-                            }
-                          />
-                        </span>
-                      ) : null}
-                      <WorkflowCardDropdown
-                        canDelete={!isSystemWorkflow}
-                        onDuplicate={() => handleDuplicate(workflow._id)}
-                        onDelete={() => handleDelete(workflow._id)}
+                    ) : null}
+                    {isCapable && isConnected && workflow.cloudSync ? (
+                      <span className="flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-xs text-success">
+                        <Cloud className="size-3" />
+                        synced
+                      </span>
+                    ) : isCapable && isConnected && !workflow.cloudSync ? (
+                      <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        <CloudUpload className="size-3" />
+                        local
+                      </span>
+                    ) : null}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
+                        workflow.lifecycle,
+                      )}`}
+                    >
+                      {workflow.lifecycle}
+                    </span>
+                    {!isSystemWorkflow && workflow.schedule ? (
+                      <Switch
+                        checked={workflow.isScheduleEnabled ?? false}
+                        aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.name}`}
+                        onCheckedChange={(checked) =>
+                          handleToggleSchedule(workflow._id, checked)
+                        }
                       />
-                    </div>
-                  }
-                  bodyClassName="h-full justify-between"
-                >
-                  <div className="space-y-3">
-                    <WorkflowCardPreview
-                      name={workflow.name}
-                      thumbnail={workflow.thumbnail}
+                    ) : null}
+                    <WorkflowCardDropdown
+                      canDelete={!isSystemWorkflow}
+                      onDuplicate={() => handleDuplicate(workflow._id)}
+                      onDelete={() => handleDelete(workflow._id)}
                     />
-                    <div className="flex items-center justify-between text-xs text-foreground/50">
-                      <span>
-                        Updated{' '}
-                        <ClientFormattedDate
-                          format="relative"
-                          value={workflow.updatedAt}
-                        />
-                      </span>
-                      <span>
-                        Created{' '}
-                        <ClientFormattedDate
-                          format="date"
-                          value={workflow.createdAt}
-                        />
-                      </span>
-                    </div>
                   </div>
-                </Card>
-              </Link>
+                }
+                bodyClassName="h-full justify-between"
+              >
+                <Link
+                  href={href(`/workflows/${workflow._id}`)}
+                  aria-label={`Open ${workflow.name}`}
+                  className="absolute inset-0 z-10 rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                />
+                <div className="space-y-3">
+                  <WorkflowCardPreview
+                    name={workflow.name}
+                    thumbnail={workflow.thumbnail}
+                  />
+                  <div className="flex items-center justify-between text-xs text-foreground/50">
+                    <span>
+                      Updated{' '}
+                      <ClientFormattedDate
+                        format="relative"
+                        value={workflow.updatedAt}
+                      />
+                    </span>
+                    <span>
+                      Created{' '}
+                      <ClientFormattedDate
+                        format="date"
+                        value={workflow.createdAt}
+                      />
+                    </span>
+                  </div>
+                </div>
+              </Card>
             );
           })}
         </div>

@@ -14,6 +14,7 @@ import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { HelpText } from '@/features/workflows/components/ui/status';
 import { coerceNodeData } from '@/features/workflows/nodes/node-data';
 import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 /**
  * Store icon for brand nodes
@@ -97,12 +98,13 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
           <div className="flex items-center gap-2">
             {data.resolvedLogoUrl && (
               <Image
-                unoptimized
                 src={data.resolvedLogoUrl}
                 alt={data.resolvedLabel || 'Brand logo'}
                 className="size-8 object-contain rounded"
-                width={800}
-                height={600}
+                sizes="32px"
+                unoptimized={!canOptimizeImageSource(data.resolvedLogoUrl)}
+                width={32}
+                height={32}
               />
             )}
             <div>

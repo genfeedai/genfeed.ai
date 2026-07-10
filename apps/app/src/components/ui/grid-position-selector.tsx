@@ -66,7 +66,7 @@ function GridPositionSelectorComponent({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             className={cn(
-              'w-5 h-5 rounded-sm border transition-all',
+              'h-11 w-11 rounded-sm border transition-colors sm:size-6',
               isSelected(pos)
                 ? 'bg-primary border-primary'
                 : 'bg-secondary border-input hover:border-primary',

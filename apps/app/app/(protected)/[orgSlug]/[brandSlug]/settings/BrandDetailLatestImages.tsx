@@ -17,7 +17,7 @@ export default function BrandDetailLatestImages({
         <h2 className="text-lg font-semibold">Latest Images</h2>
         <Button
           asChild
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-xs font-medium transition-all duration-300 bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-8 px-3"
+          className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap bg-secondary px-3 text-xs font-medium text-secondary-foreground shadow-sm transition-colors duration-300 hover:bg-secondary/80"
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >
@@ -41,7 +41,7 @@ export default function BrandDetailLatestImages({
       ) : (
         <Button
           asChild
-          className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-300 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-9 px-4 py-2"
+          className="inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors duration-300 hover:bg-primary/90 sm:h-9"
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >

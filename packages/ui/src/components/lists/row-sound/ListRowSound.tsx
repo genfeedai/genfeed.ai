@@ -26,7 +26,7 @@ function renderLegacyPlaybackControl({
       }
       variant={isActive ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT}
       size={ButtonSize.ICON}
-      className="transition-all duration-300"
+      className="size-11 transition-colors duration-200 lg:size-8"
       onClick={(event: MouseEvent) => onPlay(event, ingredient)}
     />
   );
@@ -74,16 +74,16 @@ export default function ListRowSound({
     <li>
       <div
         className={cn(
-          'group grid min-h-20 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-2xl shadow-border bg-white/[0.02] px-4 py-3 transition-colors duration-200',
-          'hover:shadow-border-strong hover:bg-white/[0.04]',
-          (isActive ?? isSelected) && 'shadow-border-strong bg-white/[0.06]',
+          'group grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-2xl bg-background-secondary px-4 py-3 shadow-border transition-colors duration-200 lg:grid-cols-[auto_minmax(0,1fr)_auto]',
+          'hover:bg-background-tertiary hover:shadow-border-strong',
+          (isActive ?? isSelected) && 'bg-accent shadow-border-strong',
           onRowClick && 'cursor-pointer',
           className,
         )}
       >
         <div className="flex min-w-0 items-center gap-3">
           {leading ?? (
-            <div className="flex size-10 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-white/70">
+            <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-tertiary text-sm font-medium text-foreground/70 lg:size-10">
               {typeof index === 'number' ? (
                 index + 1
               ) : (
@@ -97,14 +97,14 @@ export default function ListRowSound({
         </div>
 
         <Button
-          className="grid min-w-0 grid-cols-[minmax(0,2.4fr)_minmax(180px,1.4fr)_minmax(120px,0.8fr)] items-center gap-4 text-left"
+          className="grid min-w-0 grid-cols-1 items-center gap-3 rounded text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:grid-cols-[minmax(0,2.4fr)_minmax(8rem,1.4fr)] lg:grid-cols-[minmax(0,2.4fr)_minmax(11.25rem,1.4fr)_minmax(7.5rem,0.8fr)] lg:gap-4"
           onClick={activateRow}
           type="button"
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >
           <div className="min-w-0 space-y-1">
-            <div className="truncate text-sm font-semibold text-white">
+            <div className="truncate text-sm font-semibold text-foreground">
               {resolvedTitle}
             </div>
             {resolvedSubtitle ? (
@@ -119,7 +119,7 @@ export default function ListRowSound({
 
           <div className="min-w-0 space-y-1 text-sm text-muted-foreground">
             {resolvedProvider ? (
-              <div className="truncate font-medium text-white/85">
+              <div className="truncate font-medium text-foreground/85">
                 {resolvedProvider}
               </div>
             ) : null}
@@ -140,12 +140,16 @@ export default function ListRowSound({
             ) : null}
           </div>
 
-          <div className="min-w-0 text-sm text-muted-foreground">{stats}</div>
+          <div className="min-w-0 text-sm text-muted-foreground sm:col-span-2 lg:col-span-1">
+            {stats}
+          </div>
         </Button>
 
-        <div className="flex shrink-0 items-center justify-start gap-2 lg:justify-end">
-          {actions}
-        </div>
+        {actions ? (
+          <div className="col-start-2 flex min-h-11 shrink-0 items-center justify-start gap-2 lg:col-start-3 lg:min-h-0 lg:justify-end">
+            {actions}
+          </div>
+        ) : null}
       </div>
     </li>
   );

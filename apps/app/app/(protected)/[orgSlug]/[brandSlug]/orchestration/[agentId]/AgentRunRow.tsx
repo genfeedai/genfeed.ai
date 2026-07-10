@@ -47,7 +47,7 @@ export default function AgentRunRow({
   return (
     <>
       <TableRow
-        className="cursor-pointer border-b border-white/5 transition-all duration-200 hover:bg-white/[0.02]"
+        className="cursor-pointer border-b border-border transition-colors duration-200 hover:bg-accent/30"
         onClick={() => onToggle(run.id)}
       >
         <TableCell className="px-2 py-4 align-middle">
