@@ -21,6 +21,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -54,8 +55,6 @@ import type { Request } from 'express';
 @Controller('contexts')
 @UseInterceptors(CreditsInterceptor)
 export class ContextsController {
-  private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
-
   constructor(
     private readonly contextsService: ContextsService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -232,7 +231,7 @@ export class ContextsController {
         billedCredits += amount;
       },
     );
-    this.finalizeDeferredCredits(req, billedCredits);
+    finalizeDeferredTextCredits(req, billedCredits);
     return result;
   }
 
@@ -306,26 +305,5 @@ export class ContextsController {
     }
 
     return model.cost || 0;
-  }
-
-  private finalizeDeferredCredits(request: Request, amount: number): void {
-    const reqWithCredits = request as Request & {
-      creditsConfig?: {
-        amount?: number;
-        deferred?: boolean;
-        maxOverdraftCredits?: number;
-      };
-    };
-
-    if (!reqWithCredits.creditsConfig?.deferred) {
-      return;
-    }
-
-    reqWithCredits.creditsConfig = {
-      ...reqWithCredits.creditsConfig,
-      amount,
-      deferred: false,
-      maxOverdraftCredits: ContextsController.TEXT_MAX_OVERDRAFT_CREDITS,
-    };
   }
 }

@@ -18,6 +18,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -47,8 +48,6 @@ import type { Request } from 'express';
 @Controller('insights')
 @UseInterceptors(CreditsInterceptor)
 export class InsightsController {
-  private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
-
   constructor(
     private readonly insightsService: InsightsService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -101,7 +100,7 @@ export class InsightsController {
         billedCredits += amount;
       },
     );
-    this.finalizeDeferredCredits(req, billedCredits);
+    finalizeDeferredTextCredits(req, billedCredits);
     return serializeCollection(req, InsightSerializer, { docs });
   }
 
@@ -134,7 +133,7 @@ export class InsightsController {
         billedCredits += amount;
       },
     );
-    this.finalizeDeferredCredits(req, billedCredits);
+    finalizeDeferredTextCredits(req, billedCredits);
     return result;
   }
 
@@ -162,7 +161,7 @@ export class InsightsController {
         billedCredits += amount;
       },
     );
-    this.finalizeDeferredCredits(req, billedCredits);
+    finalizeDeferredTextCredits(req, billedCredits);
     return result;
   }
 
@@ -197,7 +196,7 @@ export class InsightsController {
         billedCredits += amount;
       },
     );
-    this.finalizeDeferredCredits(req, billedCredits);
+    finalizeDeferredTextCredits(req, billedCredits);
     return result;
   }
 
@@ -284,26 +283,5 @@ export class InsightsController {
     }
 
     return model.cost || 0;
-  }
-
-  private finalizeDeferredCredits(request: Request, amount: number): void {
-    const reqWithCredits = request as Request & {
-      creditsConfig?: {
-        amount?: number;
-        deferred?: boolean;
-        maxOverdraftCredits?: number;
-      };
-    };
-
-    if (!reqWithCredits.creditsConfig?.deferred) {
-      return;
-    }
-
-    reqWithCredits.creditsConfig = {
-      ...reqWithCredits.creditsConfig,
-      amount,
-      deferred: false,
-      maxOverdraftCredits: InsightsController.TEXT_MAX_OVERDRAFT_CREDITS,
-    };
   }
 }
