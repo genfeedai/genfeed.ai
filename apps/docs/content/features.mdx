@@ -1,153 +1,59 @@
-# Features
+# Capabilities
 
-Genfeed.ai is available in two editions: **Core** (free, open source) and **Cloud** (managed SaaS). Core gives you the full AI generation engine. Cloud adds team, publishing, and analytics features on top.
+Genfeed's source tree spans several clients and deployment modes. A workspace in
+the monorepo is evidence that source exists, not necessarily that a public
+installer or store listing exists.
 
-For a detailed comparison, see [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud).
+## Community distribution
 
----
+The published Community image contains:
 
-## Core Features (Free and Open Source)
+- the Next.js product UI;
+- the NestJS REST API;
+- workers, files, notifications, and MCP runtimes;
+- PostgreSQL persistence through Prisma;
+- embedded Redis and BullMQ background work;
+- visual workflow authoring and local/BYOK execution; and
+- brand and content-library surfaces used by the product UI.
 
-Everything you need to generate AI content. Self-hosted, bring your own API keys.
+Community is single-tenant. It excludes `ee/` source and can start without a
+login wall or Cloud account.
 
-### Workflow Engine
+## Generation providers
 
-The heart of Genfeed. Build automated content pipelines:
+The provider registry includes adapters for text, image, video, and voice/audio
+generation. Models vary by provider availability, account access, configuration,
+and region; see [Available Models](/models) for the current registry.
 
-- **Visual workflow builder** -- Drag-and-drop nodes
-- **Triggers** -- Schedule, webhook, or manual
-- **Actions** -- Generate, transform, export
-- **Conditions** -- Branch logic based on outputs
+Local/BYOK execution has no Genfeed-managed usage quota. Provider quotas,
+provider charges, and the self-hoster's infrastructure limits still apply.
 
-### Multi-Model AI Generation
+Application records remain on self-hosted infrastructure, but prompts and media
+sent to a configured external provider are processed under that provider's
+terms. Fully local processing requires a local provider path.
 
-Connect your API keys and access models from leading providers:
+## Cloud and commercial boundaries
 
-| Provider | Models |
-|----------|--------|
-| OpenAI | GPT-4, GPT-4o, DALL-E 3 |
-| Anthropic | Claude 3.5, Claude 3 |
-| Google | Gemini Pro, Gemini Flash |
-| Replicate | Flux, SDXL, Kling, Runway |
-| ElevenLabs | Voice synthesis |
+Cloud adds hosted operations and can provide managed inference, multi-tenant
+organization controls, team governance, managed publishing connectors, and
+managed analytics. Exact availability depends on the active deployment and
+commercial entitlement; this page does not promise a plan, quota, SLA, or
+certification.
 
-### Multi-Format Content
+The repository's current `ee/` tree contains billing and harness packages. It
+does not contain the private managed inference servers or customer Fleet/LoRA
+operations.
 
-Generate any content type:
+## Client source
 
-- **Text** -- Articles, social posts, scripts, emails
-- **Images** -- Photos, artwork, graphics, logos
-- **Video** -- Clips, animations, reels
-- **Audio** -- Voiceovers, music, sound effects
+| Client  | Repository evidence                                                                                              |
+| ------- | ---------------------------------------------------------------------------------------------------------------- |
+| Web     | Next.js application used by Cloud and Community.                                                                 |
+| Desktop | macOS-first Electron application with signed macOS release automation.                                           |
+| Mobile  | Expo/React Native source. Its EAS config is disabled/not actively developed, with no store publication workflow. |
+| Browser | Chrome extension source with build and optional store-submission automation.                                     |
+| IDE     | VS Code extension source with manual VSIX packaging CI.                                                          |
 
-### Full Control
-
-- **Self-hosted** -- Your servers, your data
-- **Open source** -- AGPL-3.0 license (enterprise features under commercial license in `ee/`)
-- **No limits** -- Only your API costs
-- **Privacy** -- Nothing leaves your infrastructure
-
-[**Get Started with Core -->**](/core)
-
----
-
-## Cloud Features
-
-Everything in Core, plus features for teams and brands.
-
-### Organizations
-
-Multi-tenant workspaces for agencies and teams:
-
-- Create multiple organizations
-- Isolated data and settings per org
-- Switch between orgs instantly
-- Invite clients to their own workspace
-
-### Brands and Brand Kits
-
-Maintain brand consistency across all content:
-
-- **Brand profiles** -- Logo, colors, fonts, guidelines
-- **Asset libraries** -- Centralized brand assets
-- **Templates** -- Brand-approved starting points
-- **Guardrails** -- Ensure on-brand output
-
-### Voices and Tones
-
-Define how your brand sounds:
-
-- **Voice profiles** -- Personality, style, vocabulary
-- **Tone settings** -- Formal, casual, playful, professional
-- **Per-brand voices** -- Different voices for different brands
-- **AI enforcement** -- Automatically applies voice to all content
-
-### Team Collaboration
-
-Work together seamlessly:
-
-- **Seats** -- Add team members
-- **Roles** -- Admin, editor, viewer permissions
-- **Approval workflows** -- Review before publish
-- **Shared assets** -- Team-wide access to content
-
-### Social Publishing
-
-One-click publish to all platforms:
-
-- Instagram, TikTok, YouTube
-- Twitter/X, Facebook, LinkedIn
-- Schedule posts in advance
-- Cross-post with platform optimization
-
-### Analytics Dashboard
-
-Track everything:
-
-- Generation history and costs
-- Publishing performance
-- Team activity
-- Content engagement metrics
-
-## V1 Core Loop
-
-The v1 OSS release is centered on a visible operating loop instead of disconnected features:
-
-`trends -> create -> publish -> analytics -> repeat`
-
-The product menu uses those same four phases as headers. **Create** contains Studio, Remix, Library, and Batch so remixing and generation remain available without splitting the loop into too many first-level surfaces.
-
-The code for that loop already exists across the server modules. The docs now expose the current wiring directly:
-
-- [**Core Loop Overview**](/core-loop) — v1 release spine and module map
-- [**Trend Ingestion**](/core-loop/trend-ingestion) — Step 1 write path into `collections/trends`
-- [**Generation Service**](/core-loop/generation-service) — Step 3 provider-backed create surface
-- [**Analytics Backbone**](/core-loop/analytics-backbone) — Step 5 analytics aggregation surface
-
-### Marketplace
-
-[marketplace.genfeed.ai](https://marketplace.genfeed.ai) is a separate cloud product where creators buy and sell:
-
-- Workflows, prompts, and presets
-- Brand kits and templates
-- Commercial license for client work
-
-[**Explore Cloud Docs -->**](/cloud)
-
----
-
-## Security and Privacy
-
-### Enterprise-Grade (Cloud)
-
-- SOC 2 compliance
-- GDPR compliant
-- End-to-end encryption
-- Regular security audits
-
-### Self-Hosted (Core)
-
-- Your infrastructure, your rules
-- No data leaves your servers
-- Full audit control
-- Air-gapped deployment option
+See [Deployment Options](/deployment) for the distribution status of each
+surface and [Security Policy](https://github.com/genfeedai/genfeed.ai/security/policy)
+for vulnerability reporting.

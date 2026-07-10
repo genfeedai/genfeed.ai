@@ -1,268 +1,161 @@
-import { Callout } from 'nextra/components';
+# Installation
 
-# Self-Hosted Installation
+Use the Docker path to run Community. Use the source-development path only when
+you are contributing to the monorepo.
 
-Deploy Genfeed Core on your own infrastructure. This guide covers everything from prerequisites to running your first workflow.
+## Community with Docker
 
-## Prerequisites
+### Requirements
 
-Before you begin, ensure you have:
+- Docker Engine with the Docker Compose v2 plugin, or Docker Desktop
+- Disk capacity for the application image, PostgreSQL, and generated media
+- At least one model-provider key when you want generation
 
-| Requirement    | Version | Notes                                               |
-| -------------- | ------- | --------------------------------------------------- |
-| **Node.js**    | 18.0+   | [Download](https://nodejs.org/)                     |
-| **Bun**        | 1.0+    | [Install](https://bun.sh/) (recommended) or use npm |
-| **PostgreSQL** | 17+     | [Install](https://www.postgresql.org/download/)     |
-| **Redis**      | 7.0+    | [Install](https://redis.io/download/)               |
-| **Git**        | Latest  | [Download](https://git-scm.com/)                    |
+Local Node.js, Bun, PostgreSQL, Redis, and a Genfeed Cloud account are not
+required for this path.
 
-### API Keys (Optional but Recommended)
+### Start Community
 
-To use AI generation features, you need API keys from at least one provider:
+```bash
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
+sha256sum -c genfeed-selfhosted.tar.gz.sha256
+tar -xzf genfeed-selfhosted.tar.gz
+cd genfeed-selfhosted-v*
+cp .env.example .env
+docker compose --env-file .env -f compose.yml up -d
+```
 
-| Provider   | For                | Get Key                                                      |
-| ---------- | ------------------ | ------------------------------------------------------------ |
-| OpenAI     | Text generation    | [platform.openai.com](https://platform.openai.com/api-keys)  |
-| Replicate  | Image/Video models | [replicate.com](https://replicate.com/account/api-tokens)    |
-| ElevenLabs | Voice synthesis    | [elevenlabs.io](https://elevenlabs.io/app/settings/api-keys) |
-| Anthropic  | Claude models      | [console.anthropic.com](https://console.anthropic.com/)      |
+On macOS, use
+`shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256` for the checksum step.
 
----
+The release manifest and Compose file pin the exact Community image associated
+with the GitHub release. The stack starts PostgreSQL, applies Prisma migrations,
+and seeds one local user, organization, and brand. The default configuration has
+no login wall.
 
-## Quick Start
+| Surface    | Address                 |
+| ---------- | ----------------------- |
+| Web UI     | `http://localhost:3000` |
+| REST API   | `http://localhost:3010` |
+| MCP server | `http://localhost:3014` |
 
-### 1. Clone the Repository
+PostgreSQL is available only inside the Compose network. Redis runs inside the
+Genfeed container. Neither is published on a host port by this stack.
+
+Confirm that the API process responds:
+
+```bash
+curl http://localhost:3010/v1/health
+```
+
+This endpoint is a process-level response; it is not a complete database,
+queue, provider, or workflow readiness test.
+
+### Configure generation
+
+Stop the stack, add the provider keys you intend to use to `.env`, and
+start it again. Keep keys server-side and never commit the file.
+
+For a local ComfyUI endpoint used by supported API flows, configure:
+
+```env
+DARKROOM_COMFYUI_URL=http://your-comfyui-host:8188
+```
+
+The Community quick start does not start the separate image/video/voice service
+workspaces or a GPU runtime for you.
+
+### Update Community
+
+```bash
+docker compose --env-file .env -f compose.yml pull
+docker compose --env-file .env -f compose.yml up -d
+```
+
+The container applies production migrations during startup. Back up PostgreSQL
+and generated media before updating.
+
+## Source development
+
+### Requirements
+
+- Node.js `>=24 <25`
+- Bun `1.3.14`
+- Git
+- Docker Engine with Docker Compose v2 for local PostgreSQL 17 and Redis 7
+
+This repository is Bun-only. npm, Yarn, and pnpm installs can produce an
+unsupported dependency tree.
+
+### Set up the workspace
 
 ```bash
 git clone https://github.com/genfeedai/genfeed.ai.git
 cd genfeed.ai
-```
-
-### 2. Install Dependencies
-
-```bash
 bun install
-```
-
-Or with npm:
-
-```bash
-npm install
-```
-
-### 3. Configure Environment
-
-Create a `.env.local` file in the project root:
-
-```bash
 cp .env.example .env.local
-bun run env:sync local
 ```
 
-Edit the root `.env.local` with your settings. See [Configuration](/core/configuration) for the full reference.
+Before syncing the environment, edit `.env.local` and set at least the local
+database credentials used by `docker/local/docker-compose.yml`:
 
 ```env
-# Database
 DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed
 REDIS_URL=redis://localhost:6379
-
-# API Keys (add the ones you need)
-OPENAI_API_KEY=sk-...
-REPLICATE_KEY=r8_...
-ELEVENLABS_API_KEY=...
-ANTHROPIC_API_KEY=sk-ant-...
-
-# Application
-NODE_ENV=development
-PORT=3010
-JWT_SECRET=your-secure-random-string
-
-# Optional: External storage
-# AWS_ACCESS_KEY_ID=...
-# AWS_SECRET_ACCESS_KEY=...
-# S3_BUCKET=your-bucket
 ```
 
-<Callout type="warning">
-  **Never commit API keys.** Add `.env.local` to your `.gitignore`. Never commit API keys or secrets to version control.
-</Callout>
-
-### 4. Start Services
-
-Make sure PostgreSQL and Redis are running:
+Then generate workspace environment files and start the dependencies:
 
 ```bash
-# Start PostgreSQL (if not running)
+bun run env:sync local --prune-legacy
 docker compose -f docker/local/docker-compose.yml up -d postgres redis
-
-# Or start only Redis if Postgres is already running elsewhere
-redis-server
 ```
 
-### 5. Run Genfeed Core
+Run the API/notifications and web app in separate terminals:
 
 ```bash
-bun dev
+bun run dev:app:be
 ```
-
-Or with npm:
 
 ```bash
-npm run dev
+bun run dev:app:fe
 ```
 
-You should see:
-
-```
-[Nest] Starting...
-[API] Listening on http://localhost:3010
-[Queue] BullMQ connected to Redis
-[DB] PostgreSQL connected
-```
-
-### 6. Verify Installation
-
-Open your browser and visit:
-
-```
-http://localhost:3010/v1/health
-```
-
-You should see a JSON response confirming the API, database, and Redis are connected and ready.
-
----
-
-## Running the Frontend (Optional)
-
-Genfeed Core includes the API only. To run the full web interface from the workspace monorepo:
+Use the scripts in the root and workspace `package.json` files rather than
+inventing service commands. For example, source-development Prisma migrations
+run through:
 
 ```bash
-# In a separate terminal, from the monorepo root
-cd apps/app
-bun install
-bun run dev
+bun run --cwd packages/prisma db:migrate
 ```
 
-The app UI will be available at `http://localhost:3000`.
-
----
-
-## Docker Deployment
-
-For Community self-hosting, use the published Docker image and the
-self-hosted compose file:
-
-### Using Docker Compose
-
-```bash
-git clone https://github.com/genfeedai/genfeed.ai.git
-cd genfeed.ai/docker
-cp .env.example .env
-docker compose -f docker-compose.selfhosted.yml up
-```
-
-This pulls `ghcr.io/genfeedai/genfeed.ai:latest`, starts Postgres, applies
-Prisma migrations, seeds one local workspace, and exposes:
-
-| Service | URL                     |
-| ------- | ----------------------- |
-| Web UI  | `http://localhost:3000` |
-| API     | `http://localhost:3010` |
-| MCP     | `http://localhost:3014` |
-
-The default `docker/.env` starts without a login wall:
-
-```env
-BETTER_AUTH_ENABLED=false
-NEXT_PUBLIC_BETTER_AUTH_ENABLED=false
-```
-
-To require local email/password sign-in, set both values to `true`. If
-`BETTER_AUTH_SECRET` is empty, the entrypoint generates and persists one under
-`/data/.better-auth-secret`.
-
----
-
-## Resource Requirements
-
-| Component | Minimum | Recommended                    |
-| --------- | ------- | ------------------------------ |
-| CPU       | 2 cores | 4+ cores                       |
-| RAM       | 4 GB    | 8+ GB                          |
-| Storage   | 20 GB   | 100+ GB (for generated assets) |
-
----
+See the
+[canonical contribution guide](https://github.com/genfeedai/genfeed.ai/blob/master/CONTRIBUTING.md)
+for focused checks and pull-request requirements.
 
 ## Troubleshooting
 
-### PostgreSQL Connection Failed
+Inspect the running containers and logs:
 
 ```bash
-# Check if PostgreSQL is running
+docker compose --env-file .env -f compose.yml ps
+docker compose --env-file .env -f compose.yml logs genfeed
+```
+
+For source development, confirm local dependencies separately:
+
+```bash
 pg_isready -h localhost -p 5432
-
-# If not, start the local stack
-docker compose -f docker/local/docker-compose.yml up -d postgres
-```
-
-### Redis Connection Failed
-
-```bash
-# Check if Redis is running
 redis-cli ping
-
-# Should return: PONG
 ```
 
-### Port Already in Use
+Use the [bug report form](https://github.com/genfeedai/genfeed.ai/issues/new/choose)
+for reproducible defects. The public tracker does not provide a support SLA.
 
-```bash
-# Find what's using the port
-lsof -i :3010
+## Next steps
 
-# Use a different port
-PORT=3050 bun run dev:api
-```
-
-### API Keys Not Working
-
-- Verify keys are correctly copied (no extra spaces)
-- Check provider dashboard for rate limits
-- Ensure billing is active on the provider account
-
----
-
-## Upgrading
-
-To upgrade to a new version:
-
-```bash
-# Pull latest changes
-git pull origin master
-
-# Install new dependencies
-bun install
-
-# Run migrations (if any)
-bun run migrate
-
-# Restart the server
-bun dev
-```
-
----
-
-## Next Steps
-
-- [Configuration](/core/configuration) -- Full environment variable reference
-- [API Reference](/api-reference) -- Explore the REST API
-- [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud) -- Compare editions
-
----
-
-## Need Help?
-
-- **GitHub Issues:** [github.com/genfeedai/genfeed.ai/issues](https://github.com/genfeedai/genfeed.ai/issues)
-- **Discord:** [discord.gg/TmfHg42xVb](https://discord.gg/TmfHg42xVb)
-
-For production support, consider [Deployment Options](/deployment) or an [Enterprise License](mailto:enterprise@genfeed.ai).
+- [Configuration](/core/configuration)
+- [Execution boundaries](/core/execution-boundaries)
+- [Self-hosted vs Cloud](/core/self-hosted-vs-cloud)
+- [REST API reference](/api-reference)

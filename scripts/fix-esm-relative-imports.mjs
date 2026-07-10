@@ -1,11 +1,28 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import ts from 'typescript';
 
 const OUTPUT_FILE = /(?:\.[cm]?js|\.d\.[cm]?ts)$/;
 const OUTPUT_EXTENSIONS = ['.js', '.mjs', '.cjs'];
+
+function loadTypeScript(projectPath) {
+  const resolutionBases = projectPath
+    ? [path.join(path.dirname(projectPath), 'package.json'), import.meta.url]
+    : [import.meta.url];
+  let resolutionError;
+
+  for (const base of resolutionBases) {
+    try {
+      return createRequire(base)('typescript');
+    } catch (error) {
+      resolutionError = error;
+    }
+  }
+
+  throw resolutionError;
+}
 
 function isPathInside(parentPath, childPath) {
   const relativePath = path.relative(parentPath, childPath);
@@ -113,7 +130,7 @@ function resolveInternalAlias(filePath, specifier, aliases) {
   return specifier;
 }
 
-function moduleSpecifiers(source, filePath) {
+function moduleSpecifiers(source, filePath, ts) {
   const sourceFile = ts.createSourceFile(
     filePath,
     source,
@@ -165,9 +182,10 @@ export function rewriteRelativeModuleSpecifiers(
   source,
   filePath,
   aliases = [],
+  ts = loadTypeScript(),
 ) {
   let rewritten = source;
-  for (const moduleImport of moduleSpecifiers(source, filePath).reverse()) {
+  for (const moduleImport of moduleSpecifiers(source, filePath, ts).reverse()) {
     const { specifier } = moduleImport;
     const resolved = specifier.startsWith('.')
       ? resolveRelativeSpecifier(filePath, specifier)
@@ -181,6 +199,7 @@ export function rewriteRelativeModuleSpecifiers(
 export function fixEsmRelativeImports(outputDirs, { projectPath } = {}) {
   let changedFiles = 0;
   let checkedFiles = 0;
+  const ts = loadTypeScript(projectPath);
 
   for (const outputDir of outputDirs) {
     if (!fs.existsSync(outputDir) || !fs.statSync(outputDir).isDirectory()) {
@@ -205,6 +224,7 @@ export function fixEsmRelativeImports(outputDirs, { projectPath } = {}) {
           source,
           entryPath,
           aliases,
+          ts,
         );
         if (rewritten === source) continue;
         fs.writeFileSync(entryPath, rewritten);

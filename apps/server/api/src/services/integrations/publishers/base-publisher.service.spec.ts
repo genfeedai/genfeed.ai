@@ -10,10 +10,19 @@ import type {
   MediaInfo,
   PublishContext,
   PublishResult,
+  ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+
+type TestCommentResult = { commentId?: string | null } | null | undefined;
+
+type TestThreadChildUpdate = {
+  externalId?: string;
+  publicationDate?: Date;
+  status: PostStatus;
+};
 
 // ─── Concrete subclass for testing abstract base ──────────────────────────────
 
@@ -60,6 +69,25 @@ class TestPublisher extends BasePublisherService {
 
   public testSanitizeDescription(desc: string | null | undefined): string {
     return this.sanitizeDescription(desc);
+  }
+
+  public testPublishTextChildrenAsComments(
+    context: PublishContext,
+    children: ThreadChild[],
+    publishComment: (text: string) => Promise<TestCommentResult>,
+    updateChild: (
+      childId: string,
+      update: TestThreadChildUpdate,
+    ) => Promise<unknown>,
+  ): Promise<void> {
+    return this.publishTextChildrenAsComments({
+      children,
+      context,
+      logPrefix: 'TestPublisher publishThreadChildren',
+      parentExternalId: 'parent-1',
+      publishComment,
+      updateChild,
+    });
   }
 }
 
@@ -342,6 +370,103 @@ describe('BasePublisherService', () => {
 
     it('should handle empty string', () => {
       expect(publisher.testSanitizeDescription('')).toBe('');
+    });
+  });
+
+  describe('publishTextChildrenAsComments()', () => {
+    it('filters, orders, sanitizes, and persists successful text comments', async () => {
+      const publishComment = vi
+        .fn<(text: string) => Promise<TestCommentResult>>()
+        .mockResolvedValueOnce({ commentId: 'comment-1' })
+        .mockResolvedValueOnce({ commentId: 'comment-2' });
+      const updateChild = vi
+        .fn<
+          (childId: string, update: TestThreadChildUpdate) => Promise<unknown>
+        >()
+        .mockResolvedValue(undefined);
+      const children: ThreadChild[] = [
+        {
+          category: PostCategory.TEXT,
+          description: '<p>Second</p>',
+          id: 'child-2',
+          order: 2,
+        },
+        {
+          category: PostCategory.IMAGE,
+          description: 'Ignored',
+          id: 'child-image',
+          order: 0,
+        },
+        {
+          category: PostCategory.TEXT,
+          description: '<strong>First</strong>',
+          id: 'child-1',
+          order: 1,
+        },
+      ];
+
+      await publisher.testPublishTextChildrenAsComments(
+        makeContext(makePost()),
+        children,
+        publishComment,
+        updateChild,
+      );
+
+      expect(publishComment.mock.calls.map(([text]) => text)).toEqual([
+        'First',
+        'Second',
+      ]);
+      expect(updateChild).toHaveBeenNthCalledWith(1, 'child-1', {
+        externalId: 'comment-1',
+        publicationDate: expect.any(Date),
+        status: PostStatus.PUBLIC,
+      });
+      expect(updateChild).toHaveBeenNthCalledWith(2, 'child-2', {
+        externalId: 'comment-2',
+        publicationDate: expect.any(Date),
+        status: PostStatus.PUBLIC,
+      });
+    });
+
+    it('marks failed comments and continues after provider errors', async () => {
+      const publishComment = vi
+        .fn<(text: string) => Promise<TestCommentResult>>()
+        .mockRejectedValueOnce(new Error('provider failed'))
+        .mockResolvedValueOnce({ commentId: null })
+        .mockResolvedValueOnce({ commentId: 'comment-3' });
+      const updateChild = vi
+        .fn<
+          (childId: string, update: TestThreadChildUpdate) => Promise<unknown>
+        >()
+        .mockResolvedValue(undefined);
+      const children: ThreadChild[] = ['child-1', 'child-2', 'child-3'].map(
+        (id, index) => ({
+          category: PostCategory.TEXT,
+          description: id,
+          id,
+          order: index,
+        }),
+      );
+
+      await publisher.testPublishTextChildrenAsComments(
+        makeContext(makePost()),
+        children,
+        publishComment,
+        updateChild,
+      );
+
+      expect(publishComment).toHaveBeenCalledTimes(3);
+      expect(updateChild).toHaveBeenNthCalledWith(1, 'child-1', {
+        status: PostStatus.FAILED,
+      });
+      expect(updateChild).toHaveBeenNthCalledWith(2, 'child-2', {
+        status: PostStatus.FAILED,
+      });
+      expect(updateChild).toHaveBeenNthCalledWith(3, 'child-3', {
+        externalId: 'comment-3',
+        publicationDate: expect.any(Date),
+        status: PostStatus.PUBLIC,
+      });
     });
   });
 });

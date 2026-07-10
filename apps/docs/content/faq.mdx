@@ -1,88 +1,53 @@
-# Frequently Asked Questions (FAQ)
+# Frequently Asked Questions
 
-Welcome to the Genfeed.ai FAQ! Here you'll find answers to the most common questions about our platform, features, and usage.
+## What is Genfeed?
 
----
+Genfeed is a content workflow platform with a self-hosted Community
+distribution, a hosted Cloud product, and source clients for desktop, mobile,
+browser, and VS Code.
 
-## General
+## Which distribution should I use?
 
-### What is Genfeed.ai?
+Use Community when you want to operate the single-tenant Docker stack and bring
+your own providers. Use Cloud when you want the hosted service and managed
+capabilities. The desktop client is macOS-first and local-first; mobile and
+extension source does not imply a public store listing.
 
-Genfeed.ai is an AI-powered content generation platform designed for businesses. It helps you create high-quality marketing copy, blog posts, social media content, product descriptions, and more—quickly and at scale.
+See [Deployment Options](/deployment).
 
-### Who can use Genfeed.ai?
+## Which content types and models are supported?
 
-Anyone who needs to generate content for business purposes can use Genfeed.ai, including marketers, content creators, agencies, and teams of all sizes.
+The provider registry includes text, image, video, and voice/audio adapters.
+Specific models vary with provider availability, configuration, account access,
+and region. See [Available Models](/models).
 
----
+## Can I collaborate with a team?
 
-## Features & Usage
+Multi-tenant organization and team-governance surfaces belong to Cloud or
+commercial deployments. Community is one organization per deployment and may
+enable a local Better Auth login wall.
 
-### What types of content can I generate?
+## Is Community free to run?
 
-You can generate:
+Genfeed does not meter local/BYOK execution. You still pay for your own
+infrastructure and any external model providers you configure. Review the
+repository and package-specific licenses before redistribution.
 
-- Blog posts
-- Social media content
-- Product descriptions
-- Marketing copy
-- Emails
-- And more!
+## What does Cloud cost?
 
-### What AI models are available?
+Use the [current pricing page](https://genfeed.ai/pricing). These docs do not
+hard-code trial, plan, credit, seat, support, or SLA terms.
 
-Genfeed.ai offers access to multiple state-of-the-art language models. See our [Available Models](/models) page for details.
+## Does self-hosting keep all data local?
 
-### Can I use voice input to create content?
+Application records and local assets remain on infrastructure you operate.
+Prompts and media sent to an external model or publishing provider leave the
+deployment under that provider's terms. Fully local processing requires local
+provider infrastructure.
 
-Yes! Genfeed.ai supports voice recognition for hands-free content creation. See our [Voice Recognition Guide](/guides/voice-recognition) for setup instructions.
+## Where do I report a problem?
 
-### Can I collaborate with my team?
-
-Absolutely. Genfeed.ai supports team collaboration, seat management, and role-based permissions. Learn more in our [Team Members Guide](/advanced/members-guide).
-
-### How do I maintain my brand voice?
-
-You can set up and save your brand voice preferences to ensure consistency across all generated content.
-
----
-
-## Plans & Billing
-
-### Is there a free trial?
-
-Yes, we offer a free trial so you can explore Genfeed.ai before committing to a paid plan.
-
-### What plans are available?
-
-We offer several plans to fit different needs. See our [Pricing & Plans](https://genfeed.ai/pricing) page for details.
-
-### How do I upgrade or downgrade my plan?
-
-You can manage your subscription from your account dashboard at any time.
-
-### Can I purchase additional seats?
-
-Yes, you can add more seats to your team. See the [Team Members Guide](/advanced/members-guide) for instructions.
-
----
-
-## Technical & Support
-
-### Is my data secure?
-
-Yes, we take data security seriously. All your data is encrypted and handled according to industry best practices.
-
-### How do I contact support?
-
-You can reach our support team at [support@genfeed.ai](mailto:support@genfeed.ai).
-
-### Where can I find more help?
-
-- Visit our [Documentation Home](/)
-- Check out our [Prompting Guide](/guides/prompting-guide)
-- Contact support if you need further assistance
-
----
-
-Didn't find your question? [Contact us](mailto:support@genfeed.ai) and we'll be happy to help!
+Use the [GitHub issue forms](https://github.com/genfeedai/genfeed.ai/issues/new/choose)
+for reproducible public bugs and feature requests. No response time is
+guaranteed. Do not report suspected vulnerabilities publicly; follow the
+[Security Policy](https://github.com/genfeedai/genfeed.ai/security/policy).

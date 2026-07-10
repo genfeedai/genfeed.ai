@@ -1,206 +1,75 @@
-import { Callout } from 'nextra/components';
-
 # Configuration
 
-Environment variables and settings for Genfeed Core. Create a canonical root `.env.local` file in your project root:
+Genfeed has separate configuration entry points for source development and the
+Community container. Do not copy keys blindly between them.
+
+## Source development
+
+The repository root [`.env.example`](https://github.com/genfeedai/genfeed.ai/blob/master/.env.example)
+is the canonical source-development template. Copy it, edit the root file, and
+then generate app/service environment files:
 
 ```bash
 cp .env.example .env.local
-bun run env:sync local
 ```
 
-<Callout type="warning">
-  **Never commit secrets.** Add `.env.local` to your `.gitignore`. Never commit API keys, tokens, or credentials to
-  version control.
-</Callout>
+At minimum, align the database and Redis values with the local Compose stack:
 
-<Callout type="info">
-  The root env files are the source of truth. `bun run env:sync local|staging|production` generates the app and service
-  `.env*` files used by local frontend and backend runtimes.
-</Callout>
-
-<Callout type="info">
-  For EC2 deploys, prefer AWS Systems Manager Parameter Store over a persistent `.env.production` on disk. The deploy
-  scripts can hydrate `.env.staging` or `.env.production` from SSM at deploy time, then render the service env files
-  automatically.
-</Callout>
-
----
-
-## Database
-
-| Variable       | Required | Default | Description                                                                                     |
-| -------------- | -------- | ------- | ----------------------------------------------------------------------------------------------- |
-| `DATABASE_URL` | Yes      | --      | PostgreSQL connection string (e.g. `postgresql://genfeed:genfeed_local@localhost:5432/genfeed`) |
-| `REDIS_URL`    | Yes      | --      | Redis connection string for BullMQ job queues and caching (e.g. `redis://localhost:6379`)       |
-
----
-
-## Authentication
-
-| Variable                | Required   | Default | Description                                                  |
-| ----------------------- | ---------- | ------- | ------------------------------------------------------------ |
-| `JWT_SECRET`            | Yes        | --      | Secret key for signing JWT tokens. Use a long random string. |
-| `BETTER_AUTH_SECRET`      | Auth       | --      | Better Auth signing secret for sessions and JWTs     |
-| `BETTER_AUTH_URL`      | Auth       | API URL      | Public origin where the API serves Better Auth routes     |
-| `BETTER_AUTH_TRUSTED_ORIGINS`      | Auth       | --      | Comma-separated frontend origins allowed to initiate Better Auth flows     |
-| `NEXT_PUBLIC_BETTER_AUTH_ENABLED` | Auth | `true`   | Frontend runtime switch for Better Auth UI and route behavior        |
-
----
-
-## AI Providers
-
-Add keys for the providers you want to use. At least one is required for content generation.
-
-| Variable              | Required | Description                                                                          |
-| --------------------- | -------- | ------------------------------------------------------------------------------------ |
-| `OPENAI_API_KEY`      | No       | OpenAI API key for GPT models and DALL-E image generation                            |
-| `ANTHROPIC_API_KEY`   | No       | Anthropic API key for Claude models                                                  |
-| `GOOGLE_API_KEY`      | No       | Google API key for Gemini models                                                     |
-| `REPLICATE_KEY`       | No       | Replicate API token for server-side image and video models (Flux, SDXL, Kling, etc.) |
-| `FAL_API_KEY`         | No       | fal.ai API key for server-side image and video inference                             |
-| `ELEVENLABS_API_KEY`  | No       | ElevenLabs API key for voice synthesis and text-to-speech                            |
-
-For the model registry and discovery contract, see [Provider Registry](/core/provider-registry).
-
----
-
-## Managed Cloud Execution
-
-Self-hosted Core can use local/server provider keys or organization BYOK keys without a Genfeed Cloud account. Managed Cloud execution is separate: it requires an explicit Genfeed Cloud API key and only supported generation calls should cross that boundary.
-
-| Variable                        | Required               | Description                                                                                                               |
-| ------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `GENFEED_API_KEY`               | Managed execution only | Genfeed Cloud API key used by the self-hosted backend to call managed Cloud services. Do not expose this to browser code. |
-| `GENFEED_MANAGED_INFERENCE_URL` | No                     | Override for the managed inference API base URL. Defaults to the Genfeed Cloud endpoint when omitted.                     |
-
-For the full runtime contract, see [Execution Boundaries](/core/execution-boundaries).
-
----
-
-## Storage
-
-By default, generated assets are stored locally. For production, configure S3-compatible storage.
-
-| Variable                | Required | Default     | Description                                 |
-| ----------------------- | -------- | ----------- | ------------------------------------------- |
-| `AWS_ACCESS_KEY_ID`     | No       | --          | AWS access key for S3 storage               |
-| `AWS_SECRET_ACCESS_KEY` | No       | --          | AWS secret key for S3 storage               |
-| `S3_BUCKET`             | No       | --          | S3 bucket name for storing generated assets |
-| `S3_REGION`             | No       | `us-east-1` | AWS region for your S3 bucket               |
-
----
-
-## Discord Notifications
-
-Discord is optional in Core. Configure it only when the notifications service should publish to your own Discord server.
-
-| Variable                      | Required | Default | Description                                                                    |
-| ----------------------------- | -------- | ------- | ------------------------------------------------------------------------------ |
-| `DISCORD_BOT_TOKEN`           | Yes      | --      | Bot token for the Discord application installed in your server                 |
-| `DISCORD_CLIENT_ID`           | Yes      | --      | Discord application client ID                                                  |
-| `DISCORD_GUILD_ID`            | Yes      | --      | Discord server ID where the bot manages notification webhooks                  |
-| `DISCORD_CHANNEL_ID_DEPLOYMENTS` | No    | --      | Channel ID for Vercel deployment/release notifications                         |
-| `DISCORD_CHANNEL_ID_POSTS`    | No       | --      | Channel ID for published post/article notifications                            |
-| `DISCORD_CHANNEL_ID_STUDIO`   | No       | --      | Channel ID for studio/ingredient notifications                                 |
-| `DISCORD_CHANNEL_ID_USERS`    | No       | --      | Channel ID for user/account notifications                                      |
-| `DISCORD_CHANNEL_ID_MODELS`   | No       | --      | Channel ID for model discovery notifications; falls back to the studio channel |
-| `DISCORD_BOT_AVATAR_URL`      | No       | --      | Optional avatar URL for Discord webhook messages                               |
-| `DISCORD_WEBHOOK_NAME_PREFIX` | No       | --      | Optional prefix for bot-managed webhook names, such as a workspace name        |
-| `DISCORD_WEBHOOK_REASON`      | No       | --      | Optional audit-log reason used when the bot creates Discord webhooks           |
-
-The integration does not require a Genfeed-managed Discord server. Channel IDs, webhook naming, avatar branding, and webhook audit reasons are self-hosted configuration. Vercel deployment notifications are handled by the notifications service, not the standalone Discord service: configure a Vercel account webhook for `https://api.example.com/v1/webhooks/vercel/callback`, store the webhook signing secret as `VERCEL_WEBHOOK_SECRET`, and provide the Discord bot/guild/channel settings when deployment messages should be posted.
-
----
-
-## Payments (Cloud only)
-
-| Variable                | Required   | Default | Description                                                  |
-| ----------------------- | ---------- | ------- | ------------------------------------------------------------ |
-| `STRIPE_SECRET_KEY`     | Cloud only | --      | Stripe secret key for subscription billing                   |
-| `STRIPE_WEBHOOK_SECRET` | Cloud only | --      | Stripe webhook signing secret for payment event verification |
-
----
-
-## URLs
-
-| Variable              | Required | Default                 | Description                                                                   |
-| --------------------- | -------- | ----------------------- | ----------------------------------------------------------------------------- |
-| `APP_URL`             | No       | `http://localhost:3000` | Frontend application URL                                                      |
-| `API_URL`             | No       | `http://localhost:3010` | Backend API URL                                                               |
-| `MARKETPLACE_API_URL` | No       | --                      | Marketplace API endpoint (cloud only, for marketplace.genfeed.ai integration) |
-
----
-
-## Application
-
-| Variable   | Required | Default       | Description                                            |
-| ---------- | -------- | ------------- | ------------------------------------------------------ |
-| `NODE_ENV` | No       | `development` | Environment mode (`development`, `production`, `test`) |
-| `PORT`     | No       | `3010`        | API server port                                        |
-
----
-
-## EC2 With AWS SSM Parameter Store
-
-For staging and production on EC2, store secrets as individual parameters under a flat path:
-
-```text
-/genfeed/staging/OPENAI_API_KEY
-/genfeed/staging/API_SENTRY_DSN
-/genfeed/production/OPENAI_API_KEY
-/genfeed/production/API_SENTRY_DSN
+```env
+DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed
+REDIS_URL=redis://localhost:6379
 ```
 
-Recommended setup:
-
-- Attach an IAM role to the EC2 instance with `ssm:GetParametersByPath`, `ssm:GetParameters`, and `kms:Decrypt` if you use a customer-managed KMS key.
-- Keep the path prefix flat so the parameter leaf name matches the canonical env key.
-- Optionally set `SSM_PARAMETER_PATH_PREFIX` in GitHub Actions repo variables if you want a prefix other than `/genfeed`.
-
-At deploy time, the EC2 host runs:
+Add only the provider credentials needed for your work, then sync:
 
 ```bash
-./docker/render-ssm-env.sh staging
-./docker/render-ssm-env.sh production
+bun run env:sync local --prune-legacy
 ```
 
-That script fetches SSM values into the root env file for the target environment and then renders service env files used by Docker Compose.
+Root `.env.local` is the source of truth. Generated app/service `.env` files
+must not be edited by hand or committed.
 
----
+The root template documents the current canonical key names, including
+service-specific ports, URL fields, storage settings, authentication, provider
+credentials, and optional integrations. It intentionally contains placeholders;
+replace only the values needed for your environment.
 
-## Database Setup
+## Community container
 
-### PostgreSQL
+The checksummed release bundle reads `.env` next to its `compose.yml`; create it
+from the bundled `.env.example`:
 
 ```bash
-# macOS
-brew install postgresql@17
-brew services start postgresql@17
-
-# Docker
-docker run -d -p 5432:5432 \
-  -e POSTGRES_DB=genfeed \
-  -e POSTGRES_USER=genfeed \
-  -e POSTGRES_PASSWORD=genfeed_local \
-  postgres:17-alpine
+cp .env.example .env
 ```
 
-### Redis
+A repository source checkout uses the same template at `docker/.env.example`
+and reads `docker/.env` next to `docker-compose.selfhosted.yml`. The source
+Compose file still runs a published image; it does not build checked-out code.
 
-```bash
-# macOS
-brew install redis
-brew services start redis
+The default boots one local workspace without a login wall. Provider keys are
+optional until you execute a generation path. Host port overrides use:
 
-# Docker
-docker run -d -p 6379:6379 redis:7
+```env
+SELFHOSTED_APP_PORT=3000
+SELFHOSTED_API_PORT=3010
+SELFHOSTED_MCP_PORT=3014
 ```
 
----
+The Community image excludes `ee/`; setting a license-key environment variable
+does not add commercial packages to that image.
 
-## Next Steps
+## Secret handling
 
-- [Installation Guide](/core/installation) -- Full setup walkthrough
-- [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud) -- Compare editions
-- [Contributing](/core/contributing) -- How to contribute
+- Never commit `.env`, `.env.local`, provider keys, auth secrets, webhook
+  secrets, or customer data.
+- Keep backend credentials out of `NEXT_PUBLIC_*` variables.
+- Use environment-specific secret management in hosted deployments.
+- Rotate a credential immediately if it appears in a commit, log, screenshot,
+  issue, or pull request.
+
+## See also
+
+- [Installation](/core/installation)
+- [Execution boundaries](/core/execution-boundaries)
+- [Security Policy](https://github.com/genfeedai/genfeed.ai/security/policy)

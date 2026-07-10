@@ -19,6 +19,20 @@ const DEFAULT_SCHEMA_ROOTS = [
 const PRISMA_SCHEMA_PATH = 'packages/prisma/prisma/schema.prisma';
 const SERIALIZER_ROOT = 'packages/serializers/src';
 
+/**
+ * Ratchet floor for schema/serializer pairs the guard successfully matches on a
+ * full-coverage run. The per-pair `SERIALIZER_PROJECTIONS` staleness checks stop
+ * an *individual* contracted pair from silently going unmatched, but nothing
+ * guarded the *aggregate* match rate — a serializer whose triplet failed to
+ * resolve just fell into `unmatchedSchemas` and coverage eroded while CI stayed
+ * green. This floor makes that regression fail closed.
+ *
+ * Raise it (never lower it without an explicit, reviewed reason) whenever
+ * coverage grows — running `bun run check:serializer-drift` prints the current
+ * "Matched schema/serializer pairs" count.
+ */
+const SERIALIZER_MATCH_FLOOR = 98;
+
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
   'credit-transactions': 'credit-transaction',
   'organization-setting': 'organization-settings',
@@ -788,6 +802,12 @@ export type UnresolvedSchemaCandidate = {
 
 export type SerializerDriftCheckOptions = {
   files?: string[];
+  /**
+   * Minimum matched schema/serializer pairs required on a full-coverage run.
+   * Defaults to {@link SERIALIZER_MATCH_FLOOR}; tests override it to match their
+   * fixture size.
+   */
+  matchFloor?: number;
   projections?: Record<string, readonly string[]>;
   rootDir?: string;
   schemaRoots?: string[];
@@ -1754,6 +1774,9 @@ export function runCheckSerializerDrift(
   const rootDir = path.resolve(options.rootDir ?? DEFAULT_ROOT_DIR);
   const schemaRoots = options.schemaRoots ?? DEFAULT_SCHEMA_ROOTS;
   const projectionContract = options.projections ?? SERIALIZER_PROJECTIONS;
+  // Default OFF (0) so unit tests running against small fixtures aren't tripped;
+  // the CLI entry point passes the real SERIALIZER_MATCH_FLOOR for repo runs.
+  const matchFloor = options.matchFloor ?? 0;
   const errors: string[] = [];
   const prismaSchemaPath = path.join(rootDir, PRISMA_SCHEMA_PATH);
   const serializerRoot = path.join(rootDir, SERIALIZER_ROOT);
@@ -1923,6 +1946,15 @@ export function runCheckSerializerDrift(
         );
       }
     }
+
+    if (matchedCount < matchFloor) {
+      errors.push(
+        `Serializer coverage regressed: matched ${matchedCount} schema/serializer pairs, ` +
+          `below the floor of ${matchFloor}. A serializer triplet likely stopped ` +
+          `resolving (fix it), or coverage was intentionally reduced (lower SERIALIZER_MATCH_FLOOR ` +
+          `with a reviewed reason).`,
+      );
+    }
   }
 
   if (selectedFiles.size === 0 && matchedCount === 0) {
@@ -2016,6 +2048,7 @@ function main(): void {
   const rootDir = DEFAULT_ROOT_DIR;
   const result = runCheckSerializerDrift({
     files: parseCliFiles(process.argv.slice(2)),
+    matchFloor: SERIALIZER_MATCH_FLOOR,
     rootDir,
   });
   printResults(rootDir, result);

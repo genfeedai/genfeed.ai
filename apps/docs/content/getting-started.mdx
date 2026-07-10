@@ -1,66 +1,46 @@
 # Getting Started
 
-Choose the path that fits your needs, then follow the steps to generate your first content.
+Choose the distribution that matches the work you want to do.
 
----
+## Genfeed Cloud
 
-## Cloud (Recommended for most users)
+The hosted product is available at [app.genfeed.ai](https://app.genfeed.ai).
+Cloud account setup, plan availability, and managed-service entitlements can
+change independently of this repository. Use the hosted product UI and current
+pricing pages as the source of truth for those details.
 
-The fastest way to start. No installation required.
+## Community self-hosting
 
-1. **Sign up** at [app.genfeed.ai](https://app.genfeed.ai)
-2. **Create an organization** -- this is your workspace for brands and team members
-3. **Create a brand** -- define your brand's voice, colors, and guidelines
-4. **Generate content** -- use the Studio to create images, videos, text, or audio
-5. **Publish** -- schedule and post directly to X, LinkedIn, Instagram, YouTube, and more
+Community is the public, single-tenant Docker distribution. It runs the web app,
+REST API, MCP server, PostgreSQL, and embedded Redis without requiring local
+Node.js, Bun, or a Genfeed Cloud account.
 
-Cloud includes all Core features plus organizations, multi-brand management, social publishing, analytics, team collaboration, and [Marketplace](https://marketplace.genfeed.ai) access.
+Follow the [self-host quick start](/guides/self-host-quickstart). Add a provider
+key only when you want generation; the application can boot without one.
 
----
+## Source development
 
-## Core (Self-Hosted)
-
-Run the full generation engine on your own infrastructure. You bring your own API keys and control your data. You can optionally connect selected managed Cloud services later, but Core does not sync local records to Cloud automatically.
-
-For the complete walkthrough, see the [Self-Host Quickstart Guide](/guides/self-host-quickstart).
-
-Quick version:
-
-```bash
-git clone https://github.com/genfeedai/genfeed.ai.git
-cd genfeed.ai
-cp .env.example .env.local
-bun run env:sync local
-bun install
-bun dev
-```
-
-Prerequisites: Node.js 18+, Bun (or npm), PostgreSQL 17+, Redis 7+. Full details in the [Installation Guide](/core/installation).
-
----
+Contributors need Node.js 24, Bun 1.3.14, Git, and Docker Compose for local
+PostgreSQL/Redis. Use the repository's canonical
+[contribution guide](https://github.com/genfeedai/genfeed.ai/blob/master/CONTRIBUTING.md)
+instead of the distribution quick start.
 
 ## CLI
 
-Install the Genfeed CLI for terminal-based workflows:
+The published CLI can be installed with Bun:
 
 ```bash
-npm install -g @genfeedai/cli
+bun add --global @genfeedai/cli
+genfeed --help
 ```
 
-Basic usage:
+See the
+[`@genfeedai/cli` README](https://github.com/genfeedai/genfeed.ai/tree/master/packages/cli)
+for implemented commands and authentication requirements.
 
-```bash
-genfeed generate image "A sunset over mountains" --model flux
-genfeed workflow list
-genfeed workflow run <workflow-id>
-```
+## Next steps
 
----
-
-## What to Explore Next
-
-- [Features](/features) -- Full feature list for Core and Cloud
-- [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud) -- Detailed comparison to help you decide
-- [Execution Boundaries](/core/execution-boundaries) -- Local, BYOK, managed, and Cloud runtime contract
-- [Configuration](/core/configuration) -- Environment variables and settings
-- [API Reference](/api-reference) -- REST API documentation
+- [Deployment modes](/deployment)
+- [Self-hosted vs Cloud](/core/self-hosted-vs-cloud)
+- [Configuration](/core/configuration)
+- [REST API reference](/api-reference)

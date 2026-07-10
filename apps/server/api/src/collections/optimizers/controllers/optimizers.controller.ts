@@ -20,6 +20,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ActivitySource } from '@genfeedai/enums';
@@ -44,8 +45,6 @@ import type { Request } from 'express';
 @Controller('optimizers')
 @UseInterceptors(CreditsInterceptor)
 export class OptimizersController {
-  private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
-
   constructor(
     private readonly optimizersService: OptimizersService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -85,7 +84,7 @@ export class OptimizersController {
       },
     );
 
-    this.finalizeDeferredCredits(request, billedCredits);
+    finalizeDeferredTextCredits(request, billedCredits);
 
     return result;
   }
@@ -123,7 +122,7 @@ export class OptimizersController {
       },
     );
 
-    this.finalizeDeferredCredits(request, billedCredits);
+    finalizeDeferredTextCredits(request, billedCredits);
 
     return result;
   }
@@ -160,7 +159,7 @@ export class OptimizersController {
       },
     );
 
-    this.finalizeDeferredCredits(request, billedCredits);
+    finalizeDeferredTextCredits(request, billedCredits);
 
     return result;
   }
@@ -197,7 +196,7 @@ export class OptimizersController {
       },
     );
 
-    this.finalizeDeferredCredits(request, billedCredits);
+    finalizeDeferredTextCredits(request, billedCredits);
 
     return result;
   }
@@ -234,7 +233,7 @@ export class OptimizersController {
       },
     );
 
-    this.finalizeDeferredCredits(request, billedCredits);
+    finalizeDeferredTextCredits(request, billedCredits);
 
     return result;
   }
@@ -273,7 +272,7 @@ export class OptimizersController {
       },
     );
 
-    this.finalizeDeferredCredits(request, billedCredits);
+    finalizeDeferredTextCredits(request, billedCredits);
 
     return result;
   }
@@ -344,26 +343,5 @@ export class OptimizersController {
     }
 
     return model.cost || 0;
-  }
-
-  private finalizeDeferredCredits(request: Request, amount: number): void {
-    const reqWithCredits = request as Request & {
-      creditsConfig?: {
-        amount?: number;
-        deferred?: boolean;
-        maxOverdraftCredits?: number;
-      };
-    };
-
-    if (!reqWithCredits.creditsConfig?.deferred) {
-      return;
-    }
-
-    reqWithCredits.creditsConfig = {
-      ...reqWithCredits.creditsConfig,
-      amount,
-      deferred: false,
-      maxOverdraftCredits: OptimizersController.TEXT_MAX_OVERDRAFT_CREDITS,
-    };
   }
 }

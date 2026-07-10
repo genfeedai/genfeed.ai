@@ -20,9 +20,9 @@ function isPathInside(parentPath, childPath) {
 }
 
 function isSrcPath(value) {
-  return (
-    typeof value === 'string' && value.replace(/^\.\//, '').startsWith('src/')
-  );
+  const normalized =
+    typeof value === 'string' ? value.replace(/^\.\//, '') : '';
+  return normalized === 'src' || normalized.startsWith('src/');
 }
 
 function isAllowedSourceAsset(value) {

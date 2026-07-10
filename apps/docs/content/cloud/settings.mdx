@@ -1,101 +1,16 @@
-# Account Settings
+# Settings
 
-Manage your profile, security, and preferences.
+The hosted product exposes personal, organization, brand, integration, and
+commercial settings according to the signed-in user's role and the deployed
+release.
 
-## Profile
+Do not rely on a settings page documented here unless it is visible in the
+current product. In particular, these docs do not promise two-factor
+authentication, account-wide export, session revocation, or a specific account
+deletion workflow without a corresponding shipped UI.
 
-### Personal Information
+Provider and social credentials are backend secrets. Never place them in
+`NEXT_PUBLIC_*` variables, screenshots, issues, or client-side code.
 
-- Display name
-- Email address
-- Avatar
-
-### Notifications
-
-Control which notifications you receive:
-
-- Email notifications
-- In-app notifications
-- Weekly digest
-
-## Security
-
-### Password
-
-Change your password:
-
-1. Go to **Settings → Security**
-2. Enter current password
-3. Enter new password
-4. Confirm
-
-### Two-Factor Authentication
-
-Enable 2FA for extra security:
-
-1. Go to **Settings → Security**
-2. Click **Enable 2FA**
-3. Scan QR code with authenticator app
-4. Enter verification code
-
-### Sessions
-
-View and manage active sessions:
-
-- See all logged-in devices
-- Revoke access to specific sessions
-- Log out everywhere
-
-## Connected Accounts
-
-### Social Platforms
-
-Connect accounts for publishing:
-
-- YouTube
-- Instagram
-- TikTok
-- Twitter/X
-- LinkedIn
-- Facebook
-
-### API Keys
-
-For Core features within Cloud:
-
-- Add your own API keys
-- Override default models
-- Use custom endpoints
-
-## Preferences
-
-### Theme
-
-- Light mode
-- Dark mode
-- System default
-
-### Language
-
-- English (default)
-- More coming soon
-
-## Data & Privacy
-
-### Export Data
-
-Download all your data:
-
-1. Go to **Settings → Data**
-2. Click **Export**
-3. Receive download link via email
-
-### Delete Account
-
-To delete your account and all data:
-
-1. Go to **Settings → Data**
-2. Click **Delete Account**
-3. Confirm by typing "DELETE"
-
-⚠️ This action is irreversible.
+Suspected security problems must follow the
+[Security Policy](https://github.com/genfeedai/genfeed.ai/security/policy).

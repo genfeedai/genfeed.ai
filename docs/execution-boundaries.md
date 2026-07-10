@@ -2,7 +2,7 @@
 
 This is the repository-level V1 boundary reference. The public docs version lives at `apps/docs/content/core/execution-boundaries.mdx`.
 
-Boundary spec version: v1.3.0.
+Boundary spec version: v1.3.1.
 
 ## Runtime Modes
 
@@ -16,7 +16,9 @@ Boundary spec version: v1.3.0.
 ## Source of Truth
 
 - Core is single-tenant by default. Its local database and storage are authoritative for local users, organizations, brands, workflows, generated assets, and run records.
-- Enterprise multi-tenancy belongs under `ee/`.
+- Multi-tenant organization management is a SaaS/Enterprise product boundary.
+  Deployment-mode-agnostic request context and organization query guards remain
+  in the public API.
 - Genfeed Cloud is authoritative for Cloud workspaces, team roles, billing, quotas, publishing connections, and managed analytics.
 - Cloud signup handoff parameters are onboarding hints. They are not data replication.
 - A Cloud API key authorizes explicit Cloud service calls only. It must not be exposed to the browser.

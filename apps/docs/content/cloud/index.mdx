@@ -1,39 +1,34 @@
 # Genfeed Cloud
 
-Managed SaaS platform for teams who want one control plane for generation, publishing, analytics, and automation.
+Genfeed Cloud is the hosted deployment of the web product and server stack. The
+repository contains its application source and deployment automation; live
+availability, plan terms, quotas, and support channels are operational concerns
+outside the source distribution.
 
-## Last Verified
+## Cloud boundary
 
-- **Date:** 2026-04-07
-- **Implemented state source:** `apps/` codebase
-- **Delivery state source:** GitHub issues + Mission Control project (#11)
+Cloud can add:
 
-## What Cloud Adds
+- managed infrastructure and managed inference;
+- multiple isolated organizations;
+- hosted publishing and scheduling operations;
+- managed analytics; and
+- team and commercial governance.
 
-| Area | Cloud Capability |
-|---|---|
-| Organization model | Multi-tenant workspaces |
-| Brand operations | Brand profiles and content context |
-| Team operations | Member and access workflows |
-| Publishing | Multi-platform workflows |
-| Management UI | Admin panel, studio app, marketing website |
+Exact capabilities depend on the deployed release and active entitlement. Use
+the live product for current account behavior, and see
+[Execution Boundaries](/core/execution-boundaries) for what remains local in
+Community.
 
-## Quick Start
+## Start
 
-1. Create account and organization
-2. Configure brand context
-3. Land in Overview inside the app
-4. Move through the loop: trends -> create -> review -> publish -> analytics -> automations
+Open [app.genfeed.ai](https://app.genfeed.ai). Account creation, plan selection,
+and onboarding can change independently of these docs.
 
 ## Documentation
 
-- [Studio](/cloud/studio)
-- [Organizations](/cloud/organizations)
 - [Brands](/cloud/brands)
-- [Team](/cloud/team)
-- [Billing](/cloud/billing)
-
-## Dual-State Note
-
-- Implemented behavior is what exists in `cloud/apps/*` and active runtime.
-- Delivery status and prioritization come from GitHub project/issues.
+- [Organizations](/cloud/organizations)
+- [Team boundary](/cloud/team)
+- [Billing boundary](/cloud/billing)
+- [Studio](/cloud/studio)

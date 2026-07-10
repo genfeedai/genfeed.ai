@@ -8,7 +8,9 @@ Genfeed.ai is a single TypeScript monorepo at [`genfeedai/genfeed.ai`](https://g
 
 - **Shared packages** live under `packages/*` (for example `packages/types`, `packages/serializers`, `packages/cli`).
 - **Backend services** live under `apps/server/*` and **frontends** under `apps/*`. These are applications, not published packages.
-- **Enterprise packages** live under `ee/packages/*` and are licensed under the commercial `ee/` license, separate from the AGPL-3.0 core.
+- **Enterprise packages** live under `ee/packages/*` and use the commercial
+  `ee/` license. The repository default outside `ee/` is AGPL-3.0-or-later, but
+  package-specific license notices can apply instead.
 
 ## Public package source of truth
 
@@ -26,7 +28,9 @@ Each package name maps to exactly one directory under `packages/`. There is no s
 
 ## Enterprise boundary
 
-Enterprise modules under `ee/packages/*` (for example multi-tenancy, billing, analytics, and teams) may consume public packages from `packages/*`, but the reverse is not allowed: AGPL-3.0 core packages must never import from `ee/`.
+The current `ee/packages/*` tree contains billing and harness packages. Those
+packages may consume public packages from `packages/*`, but the Community build
+must not import commercial runtime code from `ee/`.
 
 Enterprise packages extend public contracts (for example workflow extension layers built on `@genfeedai/workflows`) rather than forking them.
 
@@ -44,4 +48,4 @@ Because everything ships from one repo, releases are coordinated as a single wor
 - Avoid `file:` dependencies for shared packages; use `workspace:*` within the monorepo.
 - Treat `workspace:*` as internal only and rewrite to published versions before any external publish.
 - Keep package metadata (`exports`, `files`, `repository`, `license`) publish-safe.
-- Core (AGPL-3.0) packages must not depend on enterprise (`ee/`) packages.
+- Community packages must not depend on enterprise (`ee/`) runtime packages.

@@ -26,7 +26,7 @@ collaboration, and governance layer.
 | Skill promotion from feedback                 | No                                 | Yes                           |
 | Social publishing connectors                  | Manual export/upload               | Managed integrations          |
 | Cross-workflow analytics and optimization     | Limited local insight              | Full managed analytics        |
-| Multi-tenant org controls, billing, quotas    | Enterprise only under `ee/`        | Yes                           |
+| Multi-tenant org controls, billing, quotas    | Not a Community product surface    | SaaS/Enterprise deployment    |
 
 ## Core Rules
 
@@ -37,7 +37,15 @@ collaboration, and governance layer.
 - Collaborative memory, shared review, approval workflows, and team governance are
   Cloud or Enterprise surfaces.
 
+## Current `ee/` contents
+
+The current commercial tree contains billing and harness packages. Generic
+request context and organization-scoped query enforcement live in the public API
+because they are deployment-mode infrastructure; this does not make
+multi-tenant organization management a Community product surface.
+
 ## License
 
-The repository root is AGPL-3.0. Enterprise code under `ee/` uses the commercial
-license in `ee/LICENSE`.
+The repository default is AGPL-3.0-or-later. Package-specific notices can apply
+instead. Enterprise code under `ee/` uses the commercial license in
+`ee/LICENSE`.

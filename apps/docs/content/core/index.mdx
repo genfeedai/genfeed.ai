@@ -1,69 +1,49 @@
-# Genfeed Core (Free & Open Source)
+# Genfeed Community
 
-The workflow engine for AI content generation. Self-hosted, bring your own API keys.
+Community is the open-source, single-tenant Genfeed distribution. It combines
+the web product, REST API, MCP server, PostgreSQL, and embedded Redis in a Docker
+stack that excludes `ee/` source.
 
-## How It Works
+## What it is for
 
-```
-Your API Keys → Workflow Engine → AI Content
-(Replicate, OpenAI, etc.)
-```
+- visual workflow authoring;
+- local or bring-your-own-key provider execution;
+- text, image, video, and voice/audio provider adapters;
+- brand and content-library workflows;
+- REST, MCP, webhooks, and shared client packages; and
+- a local workspace that does not require a Cloud account.
 
-1. **Connect your API keys** — Replicate, OpenAI, Anthropic, ElevenLabs
-2. **Build workflows** — Visual drag-and-drop pipeline builder
-3. **Generate content** — Text, images, video, audio
-4. **Export anywhere** — Local files, S3, webhooks
+Model and integration availability depends on provider configuration and
+provider approval. Community does not automatically replicate local records to
+Cloud.
 
-## Why Core?
+## Quick start
 
-|              | Core (Free)           | Cloud                 |
-| ------------ | --------------------- | --------------------- |
-| **Cost**     | Free + API costs      | $299/mo               |
-| **Data**     | Your servers          | Our servers           |
-| **Limits**   | None                  | Plan-based            |
-| **Features** | Workflows, generation | + Orgs, brands, teams |
+Use the [Community quick start](/guides/self-host-quickstart). It requires
+Docker Compose, not a local Node.js/Bun toolchain.
 
-Core can also call selected managed Cloud services when you explicitly configure a Cloud API key. For the exact local, BYOK, managed, and Cloud split, see [Execution Boundaries](/core/execution-boundaries).
+Contributors should use [Source Installation](/core/installation) and the
+[canonical contribution guide](https://github.com/genfeedai/genfeed.ai/blob/master/CONTRIBUTING.md).
 
-## Quick Start
+## Limits and costs
 
-```bash
-git clone https://github.com/genfeedai/genfeed.ai.git
-cd genfeed.ai
-bun install
-cp .env.example .env.local
-bun run env:sync local
-# Add your API keys to the root .env.local
-bun dev
-```
+Genfeed does not meter local/BYOK execution. External provider quotas and costs,
+plus your own compute and storage, still apply. Prompts and media sent to an
+external provider are processed under that provider's terms.
 
-Open `http://localhost:3000` and start building workflows.
+Community is one organization per deployment. Multi-tenant organizations,
+managed publishing governance, managed analytics, and commercial billing are
+Cloud/Enterprise product boundaries.
 
-## What You Get
+## License
 
-- **Workflow Engine** — Visual builder for content pipelines
-- **40+ AI Models** — Via Replicate, OpenAI, Anthropic, Google
-- **Multi-Format** — Text, images, video, audio generation
-- **Scheduling** — Cron-based workflow triggers
-- **Webhooks** — Integrate with any system
-- **Full Source** — AGPL-3.0 license, with enterprise features under commercial license in `ee/`
-
-## Requirements
-
-| Requirement | Version | Notes            |
-| ----------- | ------- | ---------------- |
-| Node.js     | 18.0+   | Runtime          |
-| Bun         | 1.0+    | Package manager  |
-| PostgreSQL  | 17+     | Primary database |
-| Redis       | 7.0+    | Queue & cache    |
+The repository default is AGPL-3.0-or-later. Package-specific license notices
+can apply instead, and `ee/` uses its separate commercial license.
 
 ## Documentation
 
-- [**Installation**](/core/installation) — Full setup with PostgreSQL, Redis, API keys
-- [**Configuration**](/core/configuration) — Environment variables
-- [**Execution Boundaries**](/core/execution-boundaries) — Local, BYOK, managed, and Cloud runtime contract
-- [**Contributing**](/core/contributing) — How to contribute
-
----
-
-**Want orgs, brands, voices & team features?** [Upgrade to Cloud →](/cloud)
+- [Installation](/core/installation)
+- [Configuration](/core/configuration)
+- [Execution Boundaries](/core/execution-boundaries)
+- [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud)
+- [Contributing](/core/contributing)

@@ -18,6 +18,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import type { ValidateChannelTargetSettingsInput } from '@api-types/contracts/channel-capabilities.contract';
@@ -44,8 +45,6 @@ import type { Request } from 'express';
 @Controller('schedules')
 @UseInterceptors(CreditsInterceptor)
 export class SchedulesController {
-  private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
-
   constructor(
     private readonly schedulesService: SchedulesService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -107,7 +106,7 @@ export class SchedulesController {
         billedCredits += amount;
       },
     );
-    this.finalizeDeferredCredits(req, billedCredits);
+    finalizeDeferredTextCredits(req, billedCredits);
     return result;
   }
 
@@ -224,27 +223,6 @@ export class SchedulesController {
     }
 
     return model.cost || 0;
-  }
-
-  private finalizeDeferredCredits(request: Request, amount: number): void {
-    const reqWithCredits = request as Request & {
-      creditsConfig?: {
-        amount?: number;
-        deferred?: boolean;
-        maxOverdraftCredits?: number;
-      };
-    };
-
-    if (!reqWithCredits.creditsConfig?.deferred) {
-      return;
-    }
-
-    reqWithCredits.creditsConfig = {
-      ...reqWithCredits.creditsConfig,
-      amount,
-      deferred: false,
-      maxOverdraftCredits: SchedulesController.TEXT_MAX_OVERDRAFT_CREDITS,
-    };
   }
 
   private parseBooleanQuery(value?: string): boolean | undefined {

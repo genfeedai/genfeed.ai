@@ -1,41 +1,21 @@
-# Billing & Pricing
+# Billing and Credits
 
-This page describes current pricing documentation with explicit implementation/delivery context.
+Cloud billing, subscriptions, credit packs, and managed-inference usage are
+commercial surfaces. Fixed prices and included credits are intentionally not
+copied into these docs because they can change independently of a repository
+release.
 
-## Last Verified
+Use the [current pricing page](https://genfeed.ai/pricing) and the checkout UI as
+the source of truth before purchasing.
 
-- **Date:** 2026-03-24
-- **Implemented state source:** `cloud/packages/helpers/src/business/pricing/pricing.helper.ts`
-- **Delivery state source:** product/project planning in GitHub
+## Repository boundary
 
-## Subscription Plans (Current Documented Model)
+- The public API contains generic credit and subscription contracts plus OSS
+  stubs used by Community.
+- The current `ee/` tree contains the commercial billing-provider package.
+- The Community image excludes `ee/` and does not sell managed credits locally.
+- A Community or desktop client can use managed inference only through an
+  explicit Cloud API key and Cloud-credit authorization.
 
-| Plan | Monthly Price | Notes |
-|---|---:|---|
-| BYOK | $0 | Bring your own provider keys |
-| Pro | $499 | Team/content subscription tier |
-| Scale | $1,499 | Higher-volume subscription tier |
-| Enterprise | $4,999 (reference) | Sales/enterprise engagement path |
-
-## Public Credit Packs (Website subset)
-
-| Pack | Base Credits | Bonus |
-|---|---:|---:|
-| Starter | 9,900 | 0 |
-| Pro | 99,900 | 10,000 |
-| Scale | 499,900 | 100,000 |
-
-> Public pricing copy and checkout behavior can evolve. Always reconcile this page with the current pricing helper and website pricing UI.
-
-## Canonical Implementation Reference
-
-- `cloud/packages/helpers/src/business/pricing/pricing.helper.ts`
-
-## Dual-State Note
-
-- **Implemented state:** values in pricing helper and active checkout flows.
-- **Delivery state:** pricing experiments/migrations tracked in GitHub issues/project items.
-
-## Support
-
-For billing support and enterprise terms, use official support/sales channels listed on Genfeed sites.
+This page does not promise a trial, fixed price, included quota, seat count,
+support tier, or SLA.
