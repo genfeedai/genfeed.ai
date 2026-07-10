@@ -95,8 +95,6 @@
       ],
       "@genfeedai/enums": ["../../packages/enums/src/index.ts"],
       "@genfeedai/enums/*": ["../../packages/enums/src/*"],
-      "@genfeedai/core": ["../../packages/core/src/index.ts"],
-      "@genfeedai/core/*": ["../../packages/core/src/*"],
       "@genfeedai/constants": ["../../packages/constants/src/index.ts"],
       "@genfeedai/constants/*": ["../../packages/constants/src/*"],
       "@genfeedai/fonts": ["../../packages/fonts/index.ts"],

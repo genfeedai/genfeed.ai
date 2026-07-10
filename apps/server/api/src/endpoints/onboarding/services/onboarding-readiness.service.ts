@@ -9,7 +9,7 @@ import type {
   InstallReadinessResponse,
   OnboardingWorkspaceContext,
 } from '@api/endpoints/onboarding/onboarding.interfaces';
-import { IS_CLOUD, isEEEnabled } from '@genfeedai/config';
+import { isCloudDeployment, isEEEnabled } from '@genfeedai/config';
 import type {
   IOnboardingAccessPreference,
   IOrganizationSetting,
@@ -74,7 +74,7 @@ export class OnboardingReadinessService {
   }
 
   getLocalToolReadiness() {
-    if (IS_CLOUD) {
+    if (isCloudDeployment()) {
       return { anyDetected: false, claude: false, codex: false, detected: [] };
     }
 
@@ -236,7 +236,7 @@ export class OnboardingReadinessService {
         showBilling: showBillingUi,
         showCloudUpgradeCta: !showBillingUi,
         showCredits: showBillingUi,
-        showLocalTools: !IS_CLOUD,
+        showLocalTools: !isCloudDeployment(),
         showPricing: showBillingUi,
       },
       workspace: {

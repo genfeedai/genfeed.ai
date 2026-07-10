@@ -3,9 +3,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
   return {
     ...actual,
-    get IS_CLOUD_MODE() {
-      return mockCloudMode;
-    },
+    isCloudDeployment: () => mockCloudMode,
   };
 });
 

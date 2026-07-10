@@ -28,6 +28,10 @@ summary; the canonical, decision-of-record version is the ADR at
   a Better Auth cloud account.
 - **Desktop** — the Electron shell sets `NEXT_PUBLIC_DESKTOP_SHELL=1`.
 
+Code must read these axes through `@genfeedai/config/deployment`; direct mode
+checks against the environment are rejected by the architecture guard. Boolean
+mode flags accept trimmed, case-insensitive `1` or `true` values.
+
 ## Key rules
 
 - **Brand is the content context.** You always pick a brand to create content, so

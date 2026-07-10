@@ -1,6 +1,7 @@
 'use client';
 
 import { AgentFullPage } from '@genfeedai/agent';
+import { isEEEnabled } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -8,7 +9,6 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { TasksService } from '@services/management/tasks.service';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
-import { isEEEnabled } from '@/lib/config/edition';
 import { useAgentWorkspace } from './agent-workspace-context';
 
 interface AgentWorkspacePageShellProps {

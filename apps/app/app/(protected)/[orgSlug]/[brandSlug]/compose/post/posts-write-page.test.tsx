@@ -18,7 +18,7 @@ const copyToClipboardMock = vi.fn();
 const workingTitlePlaceholder = 'Optional internal title for the draft';
 const desktopRuntimeMocks = vi.hoisted(() => ({
   getDesktopBridge: vi.fn(),
-  isDesktopShell: vi.fn(),
+  isDesktopClient: vi.fn(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -60,7 +60,10 @@ vi.mock('@/lib/analytics', async (importOriginal) => ({
 
 vi.mock('@/lib/desktop/runtime', () => ({
   getDesktopBridge: desktopRuntimeMocks.getDesktopBridge,
-  isDesktopShell: desktopRuntimeMocks.isDesktopShell,
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  isDesktopClient: desktopRuntimeMocks.isDesktopClient,
 }));
 
 beforeAll(() => {
@@ -90,7 +93,7 @@ describe('PostsWritePage', () => {
       credentials: [],
     });
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue(null);
-    desktopRuntimeMocks.isDesktopShell.mockReturnValue(false);
+    desktopRuntimeMocks.isDesktopClient.mockReturnValue(false);
   });
 
   it('captures content_write_opened on mount', () => {
@@ -378,7 +381,7 @@ describe('PostsWritePage', () => {
       type: 'caption',
     });
     const queueJob = vi.fn().mockResolvedValue({ id: 'job-1' });
-    desktopRuntimeMocks.isDesktopShell.mockReturnValue(true);
+    desktopRuntimeMocks.isDesktopClient.mockReturnValue(true);
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
       cloud: { generateContent },
       sync: { queueJob },
@@ -429,7 +432,7 @@ describe('PostsWritePage', () => {
       platform: 'twitter',
       type: 'caption',
     });
-    desktopRuntimeMocks.isDesktopShell.mockReturnValue(true);
+    desktopRuntimeMocks.isDesktopClient.mockReturnValue(true);
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
       cloud: { generateContent },
       sync: { queueJob: vi.fn().mockResolvedValue({ id: 'job-1' }) },

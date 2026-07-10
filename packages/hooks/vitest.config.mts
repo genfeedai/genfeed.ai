@@ -61,6 +61,14 @@ export default defineConfig({
         replacement: path.join(SERIALIZERS_SRC, '$1'),
       },
       {
+        find: /^@genfeedai\/config$/,
+        replacement: path.resolve(__dirname, '../config/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/config\/(.*)$/,
+        replacement: path.resolve(__dirname, '../config/src/$1'),
+      },
+      {
         find: /^@genfeedai\/constants$/,
         replacement: path.join(CONSTANTS_SRC, 'index.ts'),
       },

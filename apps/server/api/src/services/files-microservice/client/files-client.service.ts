@@ -1,6 +1,6 @@
 import path from 'node:path';
 import process from 'node:process';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import type {
   IApiUploadSource,
@@ -254,7 +254,7 @@ export class FilesClientService {
   }> {
     // In self-hosted mode (LOCAL + HYBRID), skip S3 presigned URL.
     // Return direct upload URL to the Files service, which uses LocalStorageProvider.
-    if (IS_SELF_HOSTED) {
+    if (isSelfHostedDeployment()) {
       const localKey = `ingredients/${type}/${key}`;
       return {
         publicUrl: `/local/${localKey}`,

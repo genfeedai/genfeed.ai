@@ -183,7 +183,6 @@
         "@genfeedai/client": "*",
         "@genfeedai/config": "*",
         "@genfeedai/constants": "*",
-        "@genfeedai/core": "*",
         "@genfeedai/desktop-contracts": "*",
         "@genfeedai/enums": "*",
         "@genfeedai/helpers": "*",
@@ -399,6 +398,7 @@
         "@aws-sdk/client-cloudfront": "3.1081.0",
         "@aws-sdk/client-ec2": "3.1081.0",
         "@better-auth/infra": "0.3.5",
+        "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
@@ -666,6 +666,7 @@
       "name": "@genfeedai/agent",
       "version": "1.0.0",
       "dependencies": {
+        "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
         "@genfeedai/models": "workspace:*",
@@ -811,6 +812,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/auth-client": "workspace:*",
+        "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
@@ -827,20 +829,6 @@
         "jsdom": "29.1.1",
         "react": "19.2.7",
         "react-dom": "19.2.7",
-        "vitest": "4.1.10",
-      },
-    },
-    "packages/core": {
-      "name": "@genfeedai/core",
-      "version": "0.2.1",
-      "dependencies": {
-        "@genfeedai/pricing": "workspace:*",
-        "@genfeedai/types": "workspace:*",
-      },
-      "devDependencies": {
-        "@vitest/coverage-v8": "4.1.10",
-        "tsup": "8.5.1",
-        "typescript": "6.0.2",
         "vitest": "4.1.10",
       },
     },
@@ -952,6 +940,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/auth-client": "workspace:*",
+        "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
@@ -1046,6 +1035,7 @@
       "name": "@genfeedai/pages",
       "version": "0.1.0",
       "dependencies": {
+        "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@tanstack/react-query": "5.101.2",
         "react": "19.2.7",
@@ -1134,6 +1124,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/client": "workspace:*",
+        "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
@@ -1184,6 +1175,7 @@
         "@fullcalendar/core": "6.1.21",
         "@fullcalendar/interaction": "6.1.21",
         "@fullcalendar/timegrid": "6.1.21",
+        "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
         "@genfeedai/enums": "workspace:*",
@@ -1290,6 +1282,7 @@
       "dependencies": {
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/workflows": "workspace:*",
         "recheck": "4.5.0",
       },
       "devDependencies": {
@@ -1314,7 +1307,7 @@
       "version": "0.2.8",
       "dependencies": {
         "@dagrejs/dagre": "3.0.0",
-        "@genfeedai/core": "workspace:*",
+        "@genfeedai/pricing": "workspace:*",
         "@genfeedai/types": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@radix-ui/react-checkbox": "1.3.7",
@@ -1958,8 +1951,6 @@
     "@genfeedai/constants": ["@genfeedai/constants@workspace:packages/constants"],
 
     "@genfeedai/contexts": ["@genfeedai/contexts@workspace:packages/contexts"],
-
-    "@genfeedai/core": ["@genfeedai/core@workspace:packages/core"],
 
     "@genfeedai/create": ["@genfeedai/create@workspace:packages/create"],
 
@@ -6289,7 +6280,7 @@
 
     "pkg-dir": ["pkg-dir@4.2.0", "", { "dependencies": { "find-up": "^4.0.0" } }, "sha512-HRDzbaKjC+AOWVXxAU/x54COGeIv9eb+6CkDSQoNTt4XyWoIJvuPsXizxu/Fr23EiekbtZwmh1IcIG/l/a10GQ=="],
 
-    "pkg-types": ["pkg-types@1.3.1", "", { "dependencies": { "confbox": "^0.1.8", "mlly": "^1.7.4", "pathe": "^2.0.1" } }, "sha512-/Jm5M4RvtBFVkKWRu2BLUTNP8/M2a+UwuAX+ae4770q1qVGtfjG+WTCupoZixokjmHiry8uI+dlY8KXYV5HVVQ=="],
+    "pkg-types": ["pkg-types@2.3.1", "", { "dependencies": { "confbox": "^0.2.4", "exsolve": "^1.0.8", "pathe": "^2.0.3" } }, "sha512-y+ichcgc2LrADuhLNAx8DFjVfgz91pRxfZdI3UDhxHvcVEZsenLO+7XaU5vOp0u/7V/wZ+plyuQxtrDlZJ+yeg=="],
 
     "pkijs": ["pkijs@3.4.0", "", { "dependencies": { "@noble/hashes": "1.4.0", "asn1js": "^3.0.6", "bytestreamjs": "^2.0.1", "pvtsutils": "^1.3.6", "pvutils": "^1.1.3", "tslib": "^2.8.1" } }, "sha512-emEcLuomt2j03vxD54giVB4SxTjnsqkU692xZOZXHDVoYyypEm+b3jpiTcc+Cf+myooc+/Ly0z01jqeNHVgJGw=="],
 
@@ -8575,8 +8566,6 @@
 
     "c12/chokidar": ["chokidar@5.0.0", "", { "dependencies": { "readdirp": "^5.0.0" } }, "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw=="],
 
-    "c12/pkg-types": ["pkg-types@2.3.1", "", { "dependencies": { "confbox": "^0.2.4", "exsolve": "^1.0.8", "pathe": "^2.0.3" } }, "sha512-y+ichcgc2LrADuhLNAx8DFjVfgz91pRxfZdI3UDhxHvcVEZsenLO+7XaU5vOp0u/7V/wZ+plyuQxtrDlZJ+yeg=="],
-
     "cache-content-type/mime-types": ["mime-types@2.1.35", "", { "dependencies": { "mime-db": "1.52.0" } }, "sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw=="],
 
     "cacheable-request/get-stream": ["get-stream@9.0.1", "", { "dependencies": { "@sec-ant/readable-stream": "^0.4.1", "is-stream": "^4.0.1" } }, "sha512-kVCxPF3vQM/N0B1PmoqVUqgHP+EeVjmZSQn+1oCRPxd2P21P2F19lIgbR3HBosbB1PUhOAoctJnfEn2GbN2eZA=="],
@@ -8989,6 +8978,8 @@
 
     "micromatch/picomatch": ["picomatch@2.3.2", "", {}, "sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA=="],
 
+    "mlly/pkg-types": ["pkg-types@1.3.1", "", { "dependencies": { "confbox": "^0.1.8", "mlly": "^1.7.4", "pathe": "^2.0.1" } }, "sha512-/Jm5M4RvtBFVkKWRu2BLUTNP8/M2a+UwuAX+ae4770q1qVGtfjG+WTCupoZixokjmHiry8uI+dlY8KXYV5HVVQ=="],
+
     "monocart-coverage-reports/commander": ["commander@14.0.3", "", {}, "sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw=="],
 
     "multer/type-is": ["type-is@1.6.18", "", { "dependencies": { "media-typer": "0.3.0", "mime-types": "~2.1.24" } }, "sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g=="],
@@ -9060,8 +9051,6 @@
     "pg-types/postgres-array": ["postgres-array@2.0.0", "", {}, "sha512-VpZrUqU5A69eQyW2c5CA1jtLecCsN2U/bD6VilrFDWq5+5UIEVO7nazS3TEcHf1zuPYO/sqGvUvW62g86RXZuA=="],
 
     "pkg-dir/find-up": ["find-up@4.1.0", "", { "dependencies": { "locate-path": "^5.0.0", "path-exists": "^4.0.0" } }, "sha512-PpOwAdQ/YlXQ2vj8a3h8IipDuYRi3wceVQQGYWxNINccq40Anw7BlsEXCMbt1Zt+OLA6Fq9suIpIWD0OsnISlw=="],
-
-    "pkg-types/confbox": ["confbox@0.1.8", "", {}, "sha512-RMtmw0iFkeR4YV+fUOSucriAQNb9g8zFR52MWCtl+cCZOFRNL6zeB395vPzFhEjjn4fMxXudmELnl/KF/WrK6w=="],
 
     "pkijs/@noble/hashes": ["@noble/hashes@1.4.0", "", {}, "sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg=="],
 
@@ -11354,6 +11343,8 @@
     "metro/jest-worker/@types/node": ["@types/node@26.0.1", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-fc3KiUoBt6kie0N9bIW3E47vZsuaMf0PM2AaUpLCLT0s/LvX1nxAim6Fc049cNxODPpGm6qRAuUOB86SkRuPQw=="],
 
     "metro/jest-worker/supports-color": ["supports-color@8.1.1", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-MpUEN2OodtUzxvKQl72cUF7RQ5EiHsGvSsVG0ia9c5RbWGL2CI4C7EpPS8UTBIplnlzZiNuV56w+FuNxy3ty2Q=="],
+
+    "mlly/pkg-types/confbox": ["confbox@0.1.8", "", {}, "sha512-RMtmw0iFkeR4YV+fUOSucriAQNb9g8zFR52MWCtl+cCZOFRNL6zeB395vPzFhEjjn4fMxXudmELnl/KF/WrK6w=="],
 
     "multer/type-is/media-typer": ["media-typer@0.3.0", "", {}, "sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ=="],
 

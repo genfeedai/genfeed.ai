@@ -7,6 +7,8 @@ import {
   parseSelectedCredits,
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { isEEEnabled } from '@genfeedai/config/license';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -19,7 +21,6 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
-import { isEEEnabled, isSelfHosted } from '@/lib/config/edition';
 import {
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
@@ -74,7 +75,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       storedBrandDomain,
     );
 
-    if (!isEEEnabled() || isSelfHosted()) {
+    if (!isEEEnabled() || isSelfHostedDeployment()) {
       return onboardingHref;
     }
 
@@ -251,7 +252,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       if (credits) {
         localStorage.removeItem(ONBOARDING_STORAGE_KEYS.selectedCredits);
 
-        if (isSelfHosted()) {
+        if (isSelfHostedDeployment()) {
           if (!checkoutEmail) {
             await redirectToOnboarding();
             return;

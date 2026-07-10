@@ -10,7 +10,7 @@
  *   - pricing-config.ts    — PricingConfig re-export + getPricingConfig env reader
  *
  * Propagation is verified by:
- *   packages/core/src/pricing.spec.ts
+ *   packages/pricing/src/provider-pricing.spec.ts
  *   packages/helpers/src/business/pricing/pricing.helper.test.ts
  *
  * Downstream Joi env defaults in packages/config/src/schemas/stripe.schema.ts

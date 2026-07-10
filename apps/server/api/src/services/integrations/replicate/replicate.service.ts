@@ -1,4 +1,4 @@
-import { IS_CLOUD } from '@genfeedai/config';
+import { isCloudDeployment } from '@genfeedai/config';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -69,7 +69,7 @@ export class ReplicateService {
       this.loggerService.log(`${url} started`, { input, version });
 
       const client = this.getClientForRequest(apiKeyOverride);
-      const webhookUrl = IS_CLOUD
+      const webhookUrl = isCloudDeployment()
         ? `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/replicate/callback`
         : undefined;
 
@@ -124,7 +124,7 @@ export class ReplicateService {
       });
 
       const client = this.getClientForRequest(apiKeyOverride);
-      const webhookUrl = IS_CLOUD
+      const webhookUrl = isCloudDeployment()
         ? `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/replicate/callback`
         : undefined;
 

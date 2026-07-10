@@ -29,6 +29,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '.'),
       },
       {
+        find: /^@genfeedai\/config$/,
+        replacement: path.resolve(__dirname, '../config/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/config\/(.*)$/,
+        replacement: path.resolve(__dirname, '../config/src/$1'),
+      },
+      {
         find: '@genfeedai/constants',
         replacement: path.resolve(__dirname, '../constants/src'),
       },

@@ -2,7 +2,7 @@ import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.st
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -41,7 +41,7 @@ export class StripeWebhookController {
   @HttpCode(200)
   @Post('callback')
   async handleStripe(@Req() request: Request) {
-    if (IS_SELF_HOSTED) throw new NotFoundException('Route');
+    if (isSelfHostedDeployment()) throw new NotFoundException('Route');
 
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     let idempotencyKey: string | null = null;

@@ -3,7 +3,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 
   return {
     ...actual,
-    IS_CLOUD: false,
+    isCloudDeployment: () => false,
   };
 });
 

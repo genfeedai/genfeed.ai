@@ -1,5 +1,6 @@
 'use client';
 
+import { isSaaS } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -32,7 +33,6 @@ import {
   HiXMark,
 } from 'react-icons/hi2';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
-import { isHostedCloudApp } from '@/lib/config/edition';
 import {
   appendSearchParamsToHref,
   getBrandSwitchHref,
@@ -206,9 +206,7 @@ function AppProtectedTopbarContent({
   const taskTitle = searchParams.get('taskTitle');
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
   const isAdminChrome = chrome === 'admin';
-  const shouldRenderAgentToggle =
-    Boolean(onAgentToggle) &&
-    (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' || !isHostedCloudApp());
+  const shouldRenderAgentToggle = Boolean(onAgentToggle) && !isSaaS();
   const effectiveCurrentApp = isAdminChrome
     ? 'admin'
     : (currentApp ?? 'workspace');

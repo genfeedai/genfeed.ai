@@ -2,7 +2,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
   return {
     ...actual,
-    IS_SELF_HOSTED: false,
+    isSelfHostedDeployment: () => false,
   };
 });
 

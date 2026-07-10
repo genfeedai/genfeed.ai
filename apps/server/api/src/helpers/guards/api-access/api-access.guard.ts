@@ -3,7 +3,7 @@ import {
   getIsSuperAdmin,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
-import { IS_CLOUD_MODE } from '@genfeedai/config';
+import { isCloudDeployment } from '@genfeedai/config';
 import { SubscriptionTier } from '@genfeedai/enums';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -41,7 +41,7 @@ export class ApiAccessGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     // Non-cloud deployments have no tiers/billing — never gate API access.
-    if (!IS_CLOUD_MODE) {
+    if (!isCloudDeployment()) {
       return true;
     }
 

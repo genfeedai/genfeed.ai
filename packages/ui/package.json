@@ -4,6 +4,7 @@
     "@fullcalendar/interaction": "6.1.21",
     "@fullcalendar/timegrid": "6.1.21",
     "@genfeedai/constants": "workspace:*",
+    "@genfeedai/config": "workspace:*",
     "@genfeedai/contexts": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",

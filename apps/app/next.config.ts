@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { envFlag, getDeployment } from '@genfeedai/config/deployment';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import bundleAnalyzer from '@next/bundle-analyzer';
 import type { NextConfig } from 'next';
@@ -72,14 +73,23 @@ const workflowUiAliases = {
   '@genfeedai/workflow-ui/ui': path.join(workflowUiRoot, 'src/ui/index.ts'),
 };
 
-const NEXT_PUBLIC_GENFEED_CLOUD =
-  process.env.NEXT_PUBLIC_GENFEED_CLOUD?.trim() ||
-  process.env.GENFEED_CLOUD?.trim() ||
-  '';
-const IS_CLOUD_APP_SHELL = ['1', 'true'].includes(
-  NEXT_PUBLIC_GENFEED_CLOUD.toLowerCase(),
-);
+const NEXT_PUBLIC_GENFEED_CLOUD = envFlag(
+  process.env.GENFEED_CLOUD ?? process.env.NEXT_PUBLIC_GENFEED_CLOUD,
+)
+  ? '1'
+  : '';
+const IS_CLOUD_APP_SHELL = getDeployment() === 'cloud';
 const IS_LOCAL_APP_SHELL = !IS_CLOUD_APP_SHELL;
+
+if (
+  process.env.GENFEED_DESKTOP_BUNDLE === '1' &&
+  !envFlag(process.env.NEXT_PUBLIC_DESKTOP_SHELL)
+) {
+  throw new Error(
+    'GENFEED_DESKTOP_BUNDLE requires NEXT_PUBLIC_DESKTOP_SHELL=1.',
+  );
+}
+
 const DEFAULT_ORG = 'default';
 const DEFAULT_BRAND = 'default';
 const resolvedApiBaseUrl = (

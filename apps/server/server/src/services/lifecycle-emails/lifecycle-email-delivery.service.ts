@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   buildLifecycleSystemEmailAction,
   getLifecycleSystemEmailDefinition,
@@ -126,7 +126,7 @@ export class LifecycleEmailDeliveryService {
       return;
     }
 
-    if (IS_SELF_HOSTED) {
+    if (isSelfHostedDeployment()) {
       await this.markDeliverySkipped(delivery.id, 'self-hosted deployment');
       return;
     }

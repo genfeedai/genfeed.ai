@@ -6,8 +6,8 @@ const { isSelfHostedMock } = vi.hoisted(() => ({
   isSelfHostedMock: vi.fn(),
 }));
 
-vi.mock('@/lib/config/edition', () => ({
-  isSelfHosted: () => isSelfHostedMock(),
+vi.mock('@genfeedai/config/deployment', () => ({
+  isSelfHostedDeployment: () => isSelfHostedMock(),
 }));
 
 vi.mock('../billing/add-credits-card', () => ({

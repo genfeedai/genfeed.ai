@@ -8,7 +8,7 @@ import { CacheModule } from '@api/services/cache/cache.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IS_BETTER_AUTH_ENABLED } from '@genfeedai/config';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { ConfigService } from '@libs/config/config.service';
 import { forwardRef, Module } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -86,7 +86,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
       ): BetterAuthInstance | null => {
         // Enabled by default; explicit offline/local runs can set
         // BETTER_AUTH_ENABLED=false to skip the auth handler.
-        if (!IS_BETTER_AUTH_ENABLED) {
+        if (!isBetterAuthEnabled()) {
           return null;
         }
 

@@ -148,7 +148,7 @@ vi.mock('../SchemaInputs', () => ({
 }));
 
 // Mock core constants
-vi.mock('@genfeedai/core', () => ({
+vi.mock('@genfeedai/pricing', () => ({
   ASPECT_RATIOS: ['1:1', '16:9', '9:16', '4:3', '3:4'],
   OUTPUT_FORMATS: ['jpg', 'png', 'webp'],
   RESOLUTIONS: ['1K', '2K', '4K'],

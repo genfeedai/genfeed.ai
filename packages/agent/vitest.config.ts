@@ -14,6 +14,14 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@genfeedai\/config$/,
+        replacement: path.resolve(__dirname, '../config/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/config\/(.*)$/,
+        replacement: path.resolve(__dirname, '../config/src/$1'),
+      },
+      {
         find: /^@genfeedai\/client\/models$/,
         replacement: CLIENT_MODELS_MOCK,
       },

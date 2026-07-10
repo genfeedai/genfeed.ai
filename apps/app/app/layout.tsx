@@ -1,5 +1,7 @@
 import '@styles/globals.css';
 
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import { fontVariables } from '@genfeedai/fonts';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
@@ -29,7 +31,7 @@ export const viewport: Viewport = pwaConfig.viewport;
 function createRuntimeConfigScript(): string {
   const config = {
     apiEndpoint: process.env.NEXT_PUBLIC_API_ENDPOINT,
-    betterAuthEnabled: process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false',
+    betterAuthEnabled: isBetterAuthEnabled(),
   };
 
   return `globalThis.__GENFEED_RUNTIME_CONFIG__=${JSON.stringify(
@@ -39,7 +41,7 @@ function createRuntimeConfigScript(): string {
 
 export default async function RootLayout({ children }: LayoutProps) {
   const initialTheme = await resolveRequestTheme();
-  const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
+  const isDesktopShell = isDesktopClient();
   const bodyClassName = isDesktopShell
     ? 'gf-app gf-desktop-shell gf-studio-app'
     : 'gf-app gf-studio-app';

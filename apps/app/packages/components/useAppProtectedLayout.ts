@@ -21,6 +21,8 @@ import {
   useAgentChatStore,
   useAgentPageContext,
 } from '@genfeedai/agent';
+import { isDesktopClient, isSaaS } from '@genfeedai/config/deployment';
+import { isEEEnabled } from '@genfeedai/config/license';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
@@ -61,9 +63,7 @@ import {
   useRef,
   useState,
 } from 'react';
-
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
-import { isEEEnabled, isHostedCloudApp } from '@/lib/config/edition';
 import {
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
@@ -98,7 +98,7 @@ export function isProtectedWorkspaceRoute(pathname: string): boolean {
 }
 
 function isTerminalDockAvailable(): boolean {
-  return process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' || !isHostedCloudApp();
+  return !isSaaS();
 }
 
 export function useAppProtectedLayout(
@@ -543,7 +543,7 @@ export function useAppProtectedLayout(
   const isWorkspaceRoute = isProtectedWorkspaceRoute(pathname);
 
   const isLowCreditsBannerEnabled = useFeatureFlag('low_credits_banner');
-  const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
+  const isDesktopShell = isDesktopClient();
 
   return {
     // route flags

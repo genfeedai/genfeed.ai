@@ -1,6 +1,7 @@
 import Joi from 'joi';
 
-import { conditionalRequired, IS_SELF_HOSTED } from '../helpers';
+import { isSelfHostedDeployment } from '../deployment';
+import { conditionalRequired } from '../helpers';
 
 /**
  * Genfeed internal URLs and services
@@ -16,13 +17,13 @@ export const genfeedaiUrlsSchema = {
  * Microservices URLs (optional in cloud, localhost defaults in self-hosted)
  */
 export const microservicesSchema = {
-  GENFEEDAI_MICROSERVICES_FILES_URL: IS_SELF_HOSTED
+  GENFEEDAI_MICROSERVICES_FILES_URL: isSelfHostedDeployment()
     ? Joi.string().default('http://localhost:3012')
     : Joi.string().uri().optional(),
-  GENFEEDAI_MICROSERVICES_MCP_URL: IS_SELF_HOSTED
+  GENFEEDAI_MICROSERVICES_MCP_URL: isSelfHostedDeployment()
     ? Joi.string().default('http://localhost:3014')
     : Joi.string().uri().optional(),
-  GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL: IS_SELF_HOSTED
+  GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL: isSelfHostedDeployment()
     ? Joi.string().default('http://localhost:3011')
     : Joi.string().uri().optional(),
 };

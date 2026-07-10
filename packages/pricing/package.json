@@ -39,6 +39,7 @@
     "build": "bun run clean && tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
+    "test": "bun test src",
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,

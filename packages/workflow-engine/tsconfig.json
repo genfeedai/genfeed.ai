@@ -12,8 +12,9 @@
       "@genfeedai/enums/*": ["../enums/src/*"],
       "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@genfeedai/workflows": ["../workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["../workflows/src/*"],
       "@genfeedai/workflow-engine/*": ["./src/*"],
-      "@genfeedai/workflows/contracts": ["./src/workflows-contracts-shim.ts"],
       "@workflow-engine/*": ["./src/*"]
     },
     "skipLibCheck": true,

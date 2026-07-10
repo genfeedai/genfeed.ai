@@ -1,4 +1,4 @@
-vi.mock('@genfeedai/workflows/comfyui', () => ({
+vi.mock('@genfeedai/workflows/generation/comfyui', () => ({
   buildFlux2DevPrompt: vi.fn(() => ({ nodes: 'flux2-dev' })),
   buildFlux2DevPulidLoraPrompt: vi.fn(() => ({
     nodes: 'flux2-dev-pulid-lora',
@@ -27,7 +27,7 @@ import {
   buildPulidFluxPrompt,
   buildZImageTurboLoraPrompt,
   buildZImageTurboPrompt,
-} from '@genfeedai/workflows/comfyui';
+} from '@genfeedai/workflows/generation/comfyui';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';

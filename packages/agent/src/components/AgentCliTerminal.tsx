@@ -38,6 +38,7 @@ import {
   useState,
 } from 'react';
 import { io, type Socket } from 'socket.io-client';
+import { isAgentCliTerminalAvailable } from './agent-terminal-availability';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -113,10 +114,6 @@ export interface AgentCliTerminalController {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function isHostedCloud(): boolean {
-  return process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
-}
 
 function resolveTerminalEndpoint(): string {
   return EnvironmentService.wsEndpoint.replace(/\/$/, '');
@@ -268,7 +265,7 @@ export function useAgentCliTerminal(
   apiService: AgentApiService,
   authReady = true,
 ): AgentCliTerminalController {
-  const hostedCloud = isHostedCloud();
+  const hostedCloud = !isAgentCliTerminalAvailable();
   const [activeKind, setActiveKind] = useState<TerminalSessionKind>('shell');
   const [cwdInput, setCwdInputState] = useState(readPersistedTerminalCwd);
   const [status, setStatus] = useState(() =>

@@ -8,8 +8,8 @@ import { of } from 'rxjs';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockedMode = vi.hoisted(() => ({
-  IS_HYBRID_MODE: false,
-  IS_LOCAL_MODE: false,
+  betterAuthEnabled: true,
+  selfHosted: false,
 }));
 
 vi.mock('@genfeedai/config', async (importOriginal) => {
@@ -17,14 +17,13 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 
   return {
     ...actual,
-    get IS_HYBRID_MODE() {
-      return mockedMode.IS_HYBRID_MODE;
-    },
-    get IS_LOCAL_MODE() {
-      return mockedMode.IS_LOCAL_MODE;
-    },
+    isSelfHostedDeployment: () => mockedMode.selfHosted,
   };
 });
+
+vi.mock('@genfeedai/auth-client/server', () => ({
+  isBetterAuthEnabled: () => mockedMode.betterAuthEnabled,
+}));
 
 describe('CombinedAuthGuard', () => {
   let guard: {
@@ -56,8 +55,8 @@ describe('CombinedAuthGuard', () => {
   const instantiateGuard = async (
     mode: 'cloud' | 'hybrid' | 'local' = 'cloud',
   ) => {
-    mockedMode.IS_LOCAL_MODE = mode === 'local';
-    mockedMode.IS_HYBRID_MODE = mode === 'hybrid';
+    mockedMode.selfHosted = mode !== 'cloud';
+    mockedMode.betterAuthEnabled = mode !== 'local';
     vi.resetModules();
 
     const { CombinedAuthGuard } = await import('./combined-auth.guard');
@@ -101,8 +100,8 @@ describe('CombinedAuthGuard', () => {
   });
 
   afterAll(() => {
-    mockedMode.IS_LOCAL_MODE = false;
-    mockedMode.IS_HYBRID_MODE = false;
+    mockedMode.selfHosted = false;
+    mockedMode.betterAuthEnabled = true;
   });
 
   it('is defined', () => {

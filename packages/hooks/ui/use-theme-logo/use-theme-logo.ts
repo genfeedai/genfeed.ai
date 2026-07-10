@@ -1,5 +1,6 @@
 'use client';
 
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { useMounted } from '@hooks/utils/use-mounted/use-mounted';
 
@@ -16,7 +17,7 @@ export function useThemeLogo(): string {
     return '';
   }
 
-  if (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1') {
+  if (isDesktopClient()) {
     return DESKTOP_LOGO_URL;
   }
 

@@ -82,5 +82,9 @@ export function isBetterAuthEnabled(): boolean {
   if (runtimeEnabled !== undefined) {
     return runtimeEnabled;
   }
-  return process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
+
+  const configuredValue =
+    process.env.BETTER_AUTH_ENABLED ??
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+  return configuredValue?.trim().toLowerCase() !== 'false';
 }

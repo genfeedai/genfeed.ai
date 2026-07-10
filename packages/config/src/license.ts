@@ -5,15 +5,8 @@
  * EE features (multi-tenancy, teams, billing, etc.) require a valid key.
  */
 export function isEEEnabled(): boolean {
-  return !!process.env.GENFEED_LICENSE_KEY;
-}
-
-/**
- * Cloud bridge detection.
- *
- * Returns true when the local app has an active Better Auth session
- * connected to Genfeed Cloud (hybrid local + cloud mode).
- */
-export function isCloudConnected(): boolean {
-  return process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
+  return Boolean(
+    process.env.GENFEED_LICENSE_KEY ??
+      process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY,
+  );
 }

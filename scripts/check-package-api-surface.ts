@@ -123,11 +123,16 @@ export function runCheckPackageApiSurface(
 ): RunReport {
   const rootDir = options.rootDir ?? process.cwd();
   const currentPackageDirs = discoverCurrentPackageDirs(rootDir);
+  const baseRef = options.baseRef ?? null;
+  const basePackageDirs = baseRef
+    ? discoverPackageDirsAtRef(rootDir, baseRef)
+    : [];
   const packageDirs =
     options.packageDirs !== undefined
       ? [...options.packageDirs]
-      : currentPackageDirs;
-  const baseRef = options.baseRef ?? null;
+      : [...new Set([...currentPackageDirs, ...basePackageDirs])].sort(
+          (left, right) => left.localeCompare(right),
+        );
   const currentAccessor = createDiskAccessor(rootDir);
   const currentSnapshots = buildSnapshotsForAccessor(
     packageDirs,
@@ -151,7 +156,7 @@ export function runCheckPackageApiSurface(
   const migrationNotePackages = collectMigrationNotePackageDirs(
     rootDir,
     changedFiles,
-    new Set(currentPackageDirs),
+    new Set(packageDirs),
   );
   const diffs = comparePackageSnapshots(
     baseSnapshots,
@@ -522,6 +527,26 @@ function discoverCurrentPackageDirs(rootDir: string): string[] {
   return readdirSync(packagesRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => path.posix.join(PACKAGES_ROOT, entry.name))
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function discoverPackageDirsAtRef(rootDir: string, ref: string): string[] {
+  const result = runGit(rootDir, [
+    'ls-tree',
+    '-d',
+    '--name-only',
+    `${ref}:${PACKAGES_ROOT}`,
+  ]);
+
+  if (result.status !== 0) {
+    return [];
+  }
+
+  return result.stdout
+    .split('\n')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => path.posix.join(PACKAGES_ROOT, entry))
     .sort((left, right) => left.localeCompare(right));
 }
 

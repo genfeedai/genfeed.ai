@@ -1,9 +1,5 @@
 import Joi from 'joi';
-
-/**
- * True when running in self-hosted mode (no GENFEED_CLOUD env var).
- */
-export const IS_SELF_HOSTED_FLAG = !process.env.GENFEED_CLOUD;
+import { isSelfHostedDeployment } from './deployment';
 
 /**
  * Joi schema: required when running in cloud mode, optional in self-hosted.
@@ -11,7 +7,7 @@ export const IS_SELF_HOSTED_FLAG = !process.env.GENFEED_CLOUD;
  */
 export function conditionalRequired(base?: Joi.StringSchema): Joi.StringSchema {
   const schema = base ?? Joi.string();
-  if (IS_SELF_HOSTED_FLAG) {
+  if (isSelfHostedDeployment()) {
     return schema.optional().allow('');
   }
   return schema.required();
@@ -24,7 +20,7 @@ export function conditionalRequiredNumber(
   base?: Joi.NumberSchema,
 ): Joi.NumberSchema {
   const schema = base ?? Joi.number();
-  if (IS_SELF_HOSTED_FLAG) {
+  if (isSelfHostedDeployment()) {
     return schema.optional();
   }
   return schema.required();
@@ -32,27 +28,9 @@ export function conditionalRequiredNumber(
 
 /**
  * Joi schema for env vars that are required only in self-hosted mode.
- * Use in Joi validation schemas only — for boolean checks, use IS_SELF_HOSTED.
+ * Use in Joi validation schemas only — runtime checks should call
+ * `isSelfHostedDeployment()`.
  */
-export const SELF_HOSTED_REQUIRED: Joi.StringSchema = IS_SELF_HOSTED_FLAG
+export const SELF_HOSTED_REQUIRED: Joi.StringSchema = isSelfHostedDeployment()
   ? Joi.string().required()
   : Joi.string().optional().allow('');
-
-/**
- * Boolean: true when running in self-hosted mode (LOCAL or HYBRID).
- * Use this in guards, middleware, and runtime checks.
- */
-export const IS_SELF_HOSTED: boolean = IS_SELF_HOSTED_FLAG;
-
-/**
- * Better Auth runtime switch (epic #735). Enabled by default; set
- * `BETTER_AUTH_ENABLED=false` only for explicit offline/local runs that should
- * not mount the auth handler.
- *
- * Sourced from the environment here (mirroring IS_SELF_HOSTED) so guards and the
- * bootstrap can branch on it without a ConfigService injection. The matching
- * `betterAuthSchema` keeps the var declared for the env-coverage gate, and
- * `BetterAuthModule` fail-fast validates the dependent secrets when it is on.
- */
-export const IS_BETTER_AUTH_ENABLED: boolean =
-  process.env.BETTER_AUTH_ENABLED !== 'false';

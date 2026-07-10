@@ -151,9 +151,12 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@/lib/config/edition', () => ({
+vi.mock('@genfeedai/config/license', () => ({
   isEEEnabled: () => isEEEnabledMock(),
-  isSelfHosted: () => isSelfHostedMock(),
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  isSelfHostedDeployment: () => isSelfHostedMock(),
 }));
 
 const localStorageMock = (() => {

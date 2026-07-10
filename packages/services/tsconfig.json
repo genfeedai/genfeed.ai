@@ -3,6 +3,8 @@
     "paths": {
       "@genfeedai/client": ["../client/src/index.ts"],
       "@genfeedai/client/*": ["../client/src/*"],
+      "@genfeedai/config": ["../config/src/index.ts"],
+      "@genfeedai/config/*": ["../config/src/*"],
       "@genfeedai/constants": ["../constants/src/index.ts"],
       "@genfeedai/constants/*": ["../constants/src/*"],
       "@genfeedai/enums": ["../enums/src/index.ts"],

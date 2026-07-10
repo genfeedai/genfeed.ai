@@ -24,7 +24,7 @@ export default defineConfig({
     'zundo',
     'next',
     'next/image',
-    '@genfeedai/core',
+    '@genfeedai/pricing',
     '@genfeedai/types',
   ],
   format: ['esm'],

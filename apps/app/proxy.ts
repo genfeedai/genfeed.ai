@@ -1,3 +1,8 @@
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
+import {
+  isCloudDeployment,
+  isDesktopClient,
+} from '@genfeedai/config/deployment';
 import { type NextRequest, NextResponse } from 'next/server';
 
 type BootstrapBrandSummary = {
@@ -26,12 +31,10 @@ type OrganizationMineResponseItem = {
   slug?: string;
 };
 
-const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
-const isBetterAuthEnabled =
-  process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
 const ONBOARDING_PATH = '/onboarding';
 const SEEDED_WORKSPACE_PATH = '/default/default/workspace/overview';
 const ONBOARDING_STEPS = ['brand', 'providers', 'summary'] as const;
+let hasWarnedAboutHostedModeMisconfiguration = false;
 
 const BRAND_SCOPED_PREFIXES = [
   'analytics',
@@ -639,6 +642,17 @@ function isPlaywrightBypassRequest(req: NextRequest): boolean {
 }
 
 export async function proxy(req: NextRequest) {
+  if (
+    !hasWarnedAboutHostedModeMisconfiguration &&
+    req.nextUrl.hostname === 'app.genfeed.ai' &&
+    !isCloudDeployment()
+  ) {
+    hasWarnedAboutHostedModeMisconfiguration = true;
+    console.warn(
+      'app.genfeed.ai is running without GENFEED_CLOUD; deployment mode remains self-hosted.',
+    );
+  }
+
   if (req.nextUrl.pathname === '/playwright-ready') {
     return NextResponse.next();
   }
@@ -647,7 +661,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (isDesktopShell) {
+  if (isDesktopClient()) {
     const { pathname } = req.nextUrl;
     const desktopToken = req.headers.get('x-genfeed-desktop-token')?.trim();
     const hasDesktopToken = Boolean(desktopToken);
@@ -734,7 +748,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!isBetterAuthEnabled) {
+  if (!isBetterAuthEnabled()) {
     const { pathname } = req.nextUrl;
 
     if (isSeededWorkspaceEntrypoint(pathname)) {
@@ -744,7 +758,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (isBetterAuthEnabled) {
+  if (isBetterAuthEnabled()) {
     const { pathname } = req.nextUrl;
     const sessionCookie = getBetterAuthSessionCookie(req);
     const hasSession = Boolean(sessionCookie);

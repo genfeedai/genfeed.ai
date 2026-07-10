@@ -221,6 +221,20 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@genfeedai\/auth-client\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/auth-client/src/$1',
+        ),
+      },
+      {
+        find: '@genfeedai/auth-client',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/auth-client/src',
+        ),
+      },
+      {
         find: '@genfeedai/config',
         replacement: path.resolve(serviceDir, '../../../packages/config/src'),
       },

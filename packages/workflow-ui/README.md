@@ -20,7 +20,7 @@ import '@genfeedai/workflow-ui/styles';
 ## Related Packages
 
 - `@genfeedai/types`
-- `@genfeedai/core`
+- `@genfeedai/pricing`
 
 ## Build Faster with Genfeed
 

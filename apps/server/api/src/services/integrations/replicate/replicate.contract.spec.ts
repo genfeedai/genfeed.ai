@@ -1,11 +1,11 @@
-// Pin IS_CLOUD=true so the cloud request contract (webhook + events filter)
+// Pin cloud deployment so the request contract (webhook + events filter)
 // is exercised deterministically regardless of the test host's env.
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
 
   return {
     ...actual,
-    IS_CLOUD: true,
+    isCloudDeployment: () => true,
   };
 });
 

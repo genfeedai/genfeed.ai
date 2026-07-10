@@ -3,7 +3,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 
   return {
     ...actual,
-    IS_CLOUD: false,
+    isCloudDeployment: () => false,
   };
 });
 
@@ -1126,14 +1126,16 @@ describe('ReplicateService (coverage)', () => {
 
     beforeEach(async () => {
       // Override the module-level IS_CLOUD mock for these tests
-      const { IS_CLOUD: _unused, ...rest } =
+      const { isCloudDeployment: _unused, ...rest } =
         await vi.importActual<typeof import('@genfeedai/config')>(
           '@genfeedai/config',
         );
       void _unused;
       void rest;
 
-      vi.doMock('@genfeedai/config', () => ({ IS_CLOUD: true }));
+      vi.doMock('@genfeedai/config', () => ({
+        isCloudDeployment: () => true,
+      }));
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [

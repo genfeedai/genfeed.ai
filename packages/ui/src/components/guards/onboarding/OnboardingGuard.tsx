@@ -1,5 +1,7 @@
 'use client';
 
+import { isDesktopClient } from '@genfeedai/config/deployment';
+import { isEEEnabled } from '@genfeedai/config/license';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
@@ -34,7 +36,7 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
   const { replace } = useRouter();
   const pathname = usePathname();
   const isOnboardingRoute = pathname.startsWith('/onboarding');
-  const isBillingEnabled = Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY);
+  const isBillingEnabled = isEEEnabled();
 
   const redirectTarget = useMemo(() => {
     if (!effectiveIsAuthLoaded) {
@@ -134,7 +136,7 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
  */
 export default function OnboardingGuard({ children }: OnboardingGuardProps) {
   // Desktop shell without a cloud session → offline mode, skip onboarding gate.
-  if (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1') {
+  if (isDesktopClient()) {
     return <>{children}</>;
   }
 

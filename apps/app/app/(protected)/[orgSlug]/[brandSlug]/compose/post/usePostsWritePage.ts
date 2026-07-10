@@ -3,6 +3,7 @@ import {
   type AgentDraftSuggestionPayload,
   useAgentDraftContext,
 } from '@genfeedai/agent';
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import type { DesktopContentPlatform } from '@genfeedai/desktop-contracts';
 import { GenerationType, PostStatus } from '@genfeedai/enums';
 import type { ICredential } from '@genfeedai/interfaces';
@@ -13,7 +14,7 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
-import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
+import { getDesktopBridge } from '@/lib/desktop/runtime';
 import {
   applyDraftSuggestionToText,
   DESKTOP_PLATFORM_OPTIONS,
@@ -58,7 +59,7 @@ export function usePostsWritePage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
-  const desktop = isDesktopShell();
+  const desktop = isDesktopClient();
 
   const getPostsService = useAuthedService((token: string) =>
     PostsService.getInstance(token),

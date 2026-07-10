@@ -7,7 +7,7 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import {
   buildWorkflowGenerationMessages,
   parseWorkflowGenerationResponse,
-} from '@genfeedai/workflows';
+} from '@genfeedai/workflows/generation';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 interface GenerateWorkflowParams {

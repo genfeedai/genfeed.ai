@@ -4,7 +4,7 @@ import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import { AssetCategory, AssetParent } from '@genfeedai/prisma';
 import {
@@ -688,7 +688,7 @@ export class DesktopSyncService {
         expiresIn: 3600,
         publicUrl,
         s3Key,
-        uploadMode: IS_SELF_HOSTED ? 'api-proxy' : 'presigned-put',
+        uploadMode: isSelfHostedDeployment() ? 'api-proxy' : 'presigned-put',
         uploadUrl,
       },
     };

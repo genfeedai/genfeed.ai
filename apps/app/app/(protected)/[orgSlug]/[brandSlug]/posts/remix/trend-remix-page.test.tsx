@@ -14,7 +14,7 @@ const hoistedMocks = vi.hoisted(() => ({
 }));
 const desktopRuntimeMocks = vi.hoisted(() => ({
   getDesktopBridge: vi.fn(),
-  isDesktopShell: vi.fn(),
+  isDesktopClient: vi.fn(),
 }));
 const {
   generateTweetsMock,
@@ -65,7 +65,10 @@ vi.mock('@services/core/logger.service', () => ({
 
 vi.mock('@/lib/desktop/runtime', () => ({
   getDesktopBridge: desktopRuntimeMocks.getDesktopBridge,
-  isDesktopShell: desktopRuntimeMocks.isDesktopShell,
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  isDesktopClient: desktopRuntimeMocks.isDesktopClient,
 }));
 
 import TrendRemixPage from './trend-remix-page';
@@ -85,7 +88,7 @@ describe('TrendRemixPage', () => {
       generateTweets: generateTweetsMock,
     });
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue(null);
-    desktopRuntimeMocks.isDesktopShell.mockReturnValue(false);
+    desktopRuntimeMocks.isDesktopClient.mockReturnValue(false);
   });
 
   it('generates a local desktop remix when no cloud credential is available', async () => {
@@ -100,7 +103,7 @@ describe('TrendRemixPage', () => {
       credentials: [],
       isReady: false,
     });
-    desktopRuntimeMocks.isDesktopShell.mockReturnValue(true);
+    desktopRuntimeMocks.isDesktopClient.mockReturnValue(true);
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
       cloud: { generateContent },
       sync: { queueJob },

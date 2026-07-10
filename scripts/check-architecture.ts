@@ -18,6 +18,14 @@ const checks = [
     name: 'Workers @api import boundary',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-deployment-mode-boundary.ts',
+    ],
+    name: 'Deployment mode boundary',
+  },
+  {
     command: ['bun', 'run', 'scripts/check-decorator-boundaries.ts'],
     name: 'Nest decorator boundaries',
   },

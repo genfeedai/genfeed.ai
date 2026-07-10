@@ -25,6 +25,8 @@
       "@genfeedai-types/*": ["../../packages/types/src/*"],
       "@genfeedai/agent": ["../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../packages/agent/src/*"],
+      "@genfeedai/auth-client": ["../../packages/auth-client/src/index.ts"],
+      "@genfeedai/auth-client/*": ["../../packages/auth-client/src/*"],
       "@genfeedai/config": ["../../packages/config/src/index.ts"],
       "@genfeedai/config/*": ["../../packages/config/src/*"],
       "@genfeedai/constants": ["../../packages/constants/dist/index"],

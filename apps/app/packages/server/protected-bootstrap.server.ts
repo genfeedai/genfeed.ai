@@ -1,6 +1,10 @@
 import 'server-only';
 
 import { getBetterAuthServerToken } from '@genfeedai/auth-client/server';
+import {
+  isDesktopClient,
+  isSelfHostedDeployment,
+} from '@genfeedai/config/deployment';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
@@ -39,13 +43,11 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
 });
 
 export function hasUsableServerAuthToken(token: string): boolean {
-  const isSelfHostedApp = !process.env.NEXT_PUBLIC_GENFEED_CLOUD;
-
-  return Boolean(token) || isSelfHostedApp;
+  return Boolean(token) || isSelfHostedDeployment();
 }
 
 export function shouldSkipCloudBootstrap(token: string): boolean {
-  return process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1' && !token;
+  return isDesktopClient() && !token;
 }
 
 export const loadProtectedBootstrap = cache(

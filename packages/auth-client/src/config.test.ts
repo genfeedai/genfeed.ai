@@ -9,12 +9,14 @@ import {
 
 describe('auth-client config', () => {
   const originalEnabled = process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+  const originalServerEnabled = process.env.BETTER_AUTH_ENABLED;
   const originalEndpoint = process.env.NEXT_PUBLIC_API_ENDPOINT;
 
   beforeEach(() => {
     // Note: `process.env.X = undefined` coerces to the string "undefined" (a
     // truthy value) — delete the keys so the defaults are actually exercised.
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    delete process.env.BETTER_AUTH_ENABLED;
     delete process.env.NEXT_PUBLIC_API_ENDPOINT;
     delete globalThis.__GENFEED_RUNTIME_CONFIG__;
   });
@@ -25,6 +27,11 @@ describe('auth-client config', () => {
       delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     } else {
       process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = originalEnabled;
+    }
+    if (originalServerEnabled === undefined) {
+      delete process.env.BETTER_AUTH_ENABLED;
+    } else {
+      process.env.BETTER_AUTH_ENABLED = originalServerEnabled;
     }
     if (originalEndpoint === undefined) {
       delete process.env.NEXT_PUBLIC_API_ENDPOINT;
@@ -94,6 +101,13 @@ describe('auth-client config', () => {
     it('is true for non-"false" values', () => {
       process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = '1';
       expect(isBetterAuthEnabled()).toBe(true);
+    });
+
+    it('uses the server flag as the authority when both flags are present', () => {
+      process.env.BETTER_AUTH_ENABLED = ' FALSE ';
+      process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'true';
+
+      expect(isBetterAuthEnabled()).toBe(false);
     });
   });
 

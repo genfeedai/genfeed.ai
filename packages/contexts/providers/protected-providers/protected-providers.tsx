@@ -1,6 +1,7 @@
 'use client';
 
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import { AssetSelectionProvider } from '@genfeedai/contexts/ui/asset-selection-context';
 import { BackgroundTaskProvider } from '@genfeedai/contexts/ui/background-task-context';
 import { BrandProvider } from '@genfeedai/contexts/user/brand-context/brand-context';
@@ -190,7 +191,7 @@ export default function ProtectedProviders({
 
   // DESKTOP mode: bypass token gate — auth is handled by the desktop session bridge.
   // In offline mode getToken() returns '' which never satisfies hasJwtToken, causing a black screen.
-  if (process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1') {
+  if (isDesktopClient()) {
     return content;
   }
 

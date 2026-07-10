@@ -1,8 +1,7 @@
 'use client';
 
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import { useSyncExternalStore } from 'react';
-
-const IS_DESKTOP_SHELL = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
 
 type UserAgentDataCapable = Navigator & {
   userAgentData?: { platform?: string };
@@ -28,7 +27,7 @@ function subscribe(): () => void {
 export default function DesktopDragStrip() {
   const isMac = useSyncExternalStore(subscribe, detectMac, () => false);
 
-  return IS_DESKTOP_SHELL && isMac ? (
+  return isDesktopClient() && isMac ? (
     <div
       aria-hidden="true"
       data-desktop-drag="true"
