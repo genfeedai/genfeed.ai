@@ -90,19 +90,23 @@ export class ClipProjectsService extends BaseService<
   async reconcileTerminalState(
     projectId: string,
     organizationId?: string,
+    preloadedProject?: ClipProjectDocument,
   ): Promise<ClipProjectDocument | null> {
-    const project = await this.findOne({
-      _id: projectId,
-      isDeleted: false,
-      ...(organizationId ? { organization: organizationId } : {}),
-    });
+    // Callers that already resolved+authorized the project (e.g. the handoff
+    // endpoints) pass it through to avoid a second identical fetch.
+    const project =
+      preloadedProject ??
+      (await this.findOne({
+        _id: projectId,
+        isDeleted: false,
+        ...(organizationId ? { organization: organizationId } : {}),
+      }));
 
     if (!project) {
       return null;
     }
 
-    const canonicalProjectId =
-      this.readString(project.id) ?? this.readString(project.id) ?? projectId;
+    const canonicalProjectId = this.readString(project.id) ?? projectId;
     const results = await this.clipResultsService.findByProject(
       canonicalProjectId,
       organizationId,

@@ -1,5 +1,9 @@
 import { Public } from '@libs/decorators/public.decorator';
-import { Controller, Get } from '@nestjs/common';
+import {
+  HEALTH_CONTRIBUTOR,
+  type HealthContributor,
+} from '@libs/health/health-contributor.interface';
+import { Controller, Get, Inject, Optional } from '@nestjs/common';
 
 interface HealthResponse {
   service: string;
@@ -8,10 +12,17 @@ interface HealthResponse {
   version: string;
   memory?: NodeJS.MemoryUsage;
   uptime?: number;
+  [key: string]: unknown;
 }
 
 @Controller('health')
 export class HealthController {
+  constructor(
+    @Optional()
+    @Inject(HEALTH_CONTRIBUTOR)
+    private readonly contributor?: HealthContributor,
+  ) {}
+
   private getVersion(): string {
     return process.env.npm_package_version ?? process.env.VERSION ?? '1.0.0';
   }
@@ -36,11 +47,14 @@ export class HealthController {
   }
 
   @Get('detailed')
-  detailed(): HealthResponse {
+  async detailed(): Promise<HealthResponse> {
+    const details = (await this.contributor?.getHealthDetails()) ?? {};
+
     return {
       ...this.buildResponse('ok'),
       memory: process.memoryUsage(),
       uptime: process.uptime(),
+      ...details,
     };
   }
 

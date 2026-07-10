@@ -12,7 +12,7 @@ describe('HealthController (library)', () => {
     vi.useRealTimers();
   });
 
-  it('returns consistent health payload with mocked metrics', () => {
+  it('returns consistent health payload with mocked metrics', async () => {
     const fixedDate = new Date('2024-01-01T00:00:00.000Z');
     vi.useFakeTimers().setSystemTime(fixedDate);
 
@@ -28,7 +28,7 @@ describe('HealthController (library)', () => {
       .spyOn(process, 'memoryUsage')
       .mockReturnValue(memoryUsage);
 
-    const result = controller.detailed();
+    const result = await controller.detailed();
 
     expect(uptimeSpy).toHaveBeenCalledTimes(1);
     expect(memorySpy).toHaveBeenCalledTimes(1);
@@ -74,7 +74,7 @@ describe('HealthController (library)', () => {
     expect(result.status).toBe('alive');
   });
 
-  it('detailed() includes memory and uptime fields', () => {
+  it('detailed() includes memory and uptime fields', async () => {
     vi.spyOn(process, 'memoryUsage').mockReturnValue({
       arrayBuffers: 0,
       external: 0,
@@ -84,7 +84,7 @@ describe('HealthController (library)', () => {
     } as NodeJS.MemoryUsage);
     vi.spyOn(process, 'uptime').mockReturnValue(99);
 
-    const result = controller.detailed();
+    const result = await controller.detailed();
     expect(result.memory).toBeDefined();
     expect(result.uptime).toBe(99);
     expect(result.memory?.heapUsed).toBe(50);

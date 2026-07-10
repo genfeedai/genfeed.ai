@@ -387,6 +387,17 @@ describe('SecurityUtil', () => {
       ).toThrow(ValidationException);
     });
 
+    it('should build a path for a real extension without mocking validateFileExtension', () => {
+      // Regression: the previous api copy passed a bare `.mp4` to
+      // path.extname (=== '') so createSecureTempPath threw for EVERY valid
+      // extension. The shared implementation validates `file<ext>`, so a real
+      // allowed extension now round-trips through the live api SecurityUtil.
+      const result = SecurityUtil.createSecureTempPath('/tmp', 'clip', '.mp4');
+
+      expect(result).toContain('clip');
+      expect(result).toMatch(/_\d+_[a-z0-9]+\.mp4$/);
+    });
+
     it('should validate filename length', () => {
       const longFilename = 'a'.repeat(200);
 
