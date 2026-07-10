@@ -5,7 +5,7 @@ import { FacebookService } from '@api/services/integrations/facebook/services/fa
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   ANALYTICS_FACEBOOK_QUEUE,
-  FacebookAnalyticsJobData,
+  SocialAnalyticsJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -36,7 +36,7 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
     );
   }
 
-  async process(job: Job<FacebookAnalyticsJobData>): Promise<void> {
+  async process(job: Job<SocialAnalyticsJobData>): Promise<void> {
     try {
       return await this.circuitBreaker.execute(() => this.processInternal(job));
     } catch (error: unknown) {
@@ -49,7 +49,7 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
   }
 
   private async processInternal(
-    job: Job<FacebookAnalyticsJobData>,
+    job: Job<SocialAnalyticsJobData>,
   ): Promise<void> {
     const { posts } = job.data;
 
