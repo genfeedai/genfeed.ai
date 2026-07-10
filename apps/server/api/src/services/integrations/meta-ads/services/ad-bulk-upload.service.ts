@@ -1,10 +1,10 @@
-import type { CreativeSource } from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
-import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import type { AdBulkUploadJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import type { CreativeSource } from '@server/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
+import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 
 export interface CreateBulkUploadInput {
   organizationId: string;

@@ -189,10 +189,16 @@ export class RedditController {
         }),
       );
 
-      credential = await this.credentialsService.patch(credential.id, {
-        externalHandle: profileRes.data?.name,
-        externalId: profileRes.data?.id,
-      });
+      credential = await this.credentialsService.updateExternalProfile(
+        credential.id,
+        organizationId,
+        {
+          avatarUrl: profileRes.data?.icon_img,
+          handle: profileRes.data?.name,
+          id: profileRes.data?.id,
+          name: profileRes.data?.name,
+        },
+      );
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {

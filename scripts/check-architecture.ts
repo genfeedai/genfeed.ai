@@ -26,6 +26,14 @@ const checks = [
     name: 'Deployment mode boundary',
   },
   {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-server-package-boundary.ts',
+    ],
+    name: 'Shared server package API boundary',
+  },
+  {
     command: ['bun', 'run', 'scripts/check-decorator-boundaries.ts'],
     name: 'Nest decorator boundaries',
   },

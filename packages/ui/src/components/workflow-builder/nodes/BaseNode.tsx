@@ -33,7 +33,7 @@ function BaseNode({
   return (
     <div
       className={cn(
-        'min-w-node border-2 transition-all',
+        'min-w-node border-2 transition-[background-color,border-color,box-shadow]',
         bgColor,
         borderColor,
         selected && 'ring-2 ring-primary ring-offset-2',
@@ -48,7 +48,7 @@ function BaseNode({
           id={key}
           isConnectable={isConnectable}
           style={{
-            background: '#6b7280',
+            background: 'hsl(var(--muted-foreground))',
             height: 10,
             top: `${((index + 1) / (inputKeys.length + 1)) * 100}%`,
             width: 10,
@@ -58,7 +58,7 @@ function BaseNode({
       ))}
 
       {/* Node Header */}
-      <div className="flex items-center gap-2 border-b border-white/[0.08] px-3 py-2">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <div className="text-lg">{icon}</div>
         <span className="font-medium text-sm">{label}</span>
       </div>
@@ -85,7 +85,7 @@ function BaseNode({
           id={key}
           isConnectable={isConnectable}
           style={{
-            background: '#6b7280',
+            background: 'hsl(var(--muted-foreground))',
             height: 10,
             top: `${((index + 1) / (outputKeys.length + 1)) * 100}%`,
             width: 10,

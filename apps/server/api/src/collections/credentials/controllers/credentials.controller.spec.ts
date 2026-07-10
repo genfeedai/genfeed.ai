@@ -92,6 +92,7 @@ describe('CredentialsController', () => {
       findOne: vi.fn(),
       patch: vi.fn(),
       remove: vi.fn(),
+      updateExternalProfile: vi.fn(),
     };
     accountPublishingContextService = {
       resolve: vi.fn().mockResolvedValue({
@@ -424,6 +425,38 @@ describe('CredentialsController', () => {
           mockUser,
         ),
       ).rejects.toThrow(HttpException);
+    });
+
+    it('imports submitted provider avatars instead of persisting hotlinks', async () => {
+      credentialsService.findOne.mockResolvedValue({ id: credId });
+      credentialsService.updateExternalProfile.mockResolvedValue({
+        externalAvatar:
+          'https://cdn.genfeed.ai/ingredients/social-avatars/credential-1',
+        id: credId,
+      });
+
+      await controller.update(
+        mockRequest,
+        credId,
+        {
+          externalAvatar: 'https://instagram.example/avatar.jpg',
+          externalHandle: 'genfeed',
+          externalName: 'Genfeed',
+        } as never,
+        mockUser,
+      );
+
+      expect(credentialsService.patch).not.toHaveBeenCalled();
+      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        credId,
+        orgId,
+        {
+          avatarUrl: 'https://instagram.example/avatar.jpg',
+          handle: 'genfeed',
+          id: undefined,
+          name: 'Genfeed',
+        },
+      );
     });
   });
 

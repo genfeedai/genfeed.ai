@@ -29,12 +29,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "queue-contracts",
+    "directory": "packages/queue-contracts",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "test": "vitest run --config vitest.config.ts",

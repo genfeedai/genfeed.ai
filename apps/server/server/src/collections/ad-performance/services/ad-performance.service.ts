@@ -1,14 +1,14 @@
+import type { Prisma } from '@genfeedai/prisma';
+import { Inject, Injectable } from '@nestjs/common';
 import type {
   AdPerformance,
   AdPerformanceDocument,
-} from '@api/collections/ad-performance/schemas/ad-performance.schema';
+} from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import {
   type AdPerformanceBenchmarkFields,
   buildAdPerformanceBenchmarkFields,
-} from '@api/collections/ad-performance/utils/ad-performance-benchmark.util';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { Prisma } from '@genfeedai/prisma';
-import { Injectable } from '@nestjs/common';
+} from '@server/collections/ad-performance/utils/ad-performance-benchmark.util';
+import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
 
 const DEFAULT_TOP_PERFORMER_LIMIT = 10;
 const JSON_METRIC_CANDIDATE_LIMIT = 500;
@@ -36,7 +36,10 @@ type TopPerformerParams = {
 
 @Injectable()
 export class AdPerformanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: Pick<ServerPrisma, 'adPerformance'>,
+  ) {}
 
   private readObjectRecord(value: unknown): Record<string, unknown> {
     return typeof value === 'object' && value !== null

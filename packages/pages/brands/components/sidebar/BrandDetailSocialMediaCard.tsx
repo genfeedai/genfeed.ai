@@ -14,7 +14,8 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
-import SocialMediaLink from '@ui/media/social-media-link/SocialMediaLink';
+import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -23,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FaFacebook,
@@ -41,23 +42,6 @@ import {
   FaXTwitter,
   FaYoutube,
 } from 'react-icons/fa6';
-
-const platformIconMap: Partial<Record<CredentialPlatform, ReactNode>> = {
-  [CredentialPlatform.YOUTUBE]: <FaYoutube />,
-  [CredentialPlatform.TIKTOK]: <FaTiktok />,
-  [CredentialPlatform.INSTAGRAM]: <FaInstagram />,
-  [CredentialPlatform.TWITTER]: <FaXTwitter />,
-  [CredentialPlatform.FANVUE]: <FaStar />,
-  [CredentialPlatform.FACEBOOK]: <FaFacebook />,
-  [CredentialPlatform.LINKEDIN]: <FaLinkedin />,
-  [CredentialPlatform.PINTEREST]: <FaPinterest />,
-  [CredentialPlatform.REDDIT]: <FaReddit />,
-  [CredentialPlatform.THREADS]: <FaThreads />,
-  [CredentialPlatform.WORDPRESS]: <FaWordpress />,
-  [CredentialPlatform.SNAPCHAT]: <FaSnapchat />,
-  [CredentialPlatform.MASTODON]: <FaMastodon />,
-  [CredentialPlatform.SHOPIFY]: <FaShopify />,
-};
 
 const OAUTH_PLATFORMS = [
   {
@@ -139,6 +123,84 @@ const STATE_LABELS: Record<AccountHealthSummary['state'], string> = {
   warming: 'Warming',
 };
 
+type SocialConnection = BrandDetailSocialMediaCardProps['connections'][number];
+
+function getConnectionLabel(connection: SocialConnection): string {
+  return (
+    connection.name ||
+    connection.label ||
+    connection.handle ||
+    connection.platform
+  );
+}
+
+function getConnectionInitials(connection: SocialConnection): string {
+  const label = getConnectionLabel(connection).trim();
+  const initials = label
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+
+  return initials || connection.platform.slice(0, 2).toUpperCase();
+}
+
+function ConnectedAccount({ connection }: { connection: SocialConnection }) {
+  const label = getConnectionLabel(connection);
+  const content = (
+    <>
+      <span className="relative shrink-0">
+        <Avatar className="size-10 bg-background shadow-border">
+          {connection.avatarUrl ? (
+            <AvatarImage
+              src={connection.avatarUrl}
+              alt={`${label} profile picture`}
+              className="object-cover"
+            />
+          ) : null}
+          <AvatarFallback className="text-xs font-semibold text-foreground/70">
+            {getConnectionInitials(connection)}
+          </AvatarFallback>
+        </Avatar>
+        <span className="absolute -bottom-1 -right-1 rounded-full bg-background p-0.5 shadow-border-strong">
+          <PlatformBadge
+            platform={connection.platform}
+            showLabel={false}
+            className="size-4 justify-center rounded-full p-0"
+          />
+        </span>
+      </span>
+
+      <span className="min-w-0 text-left">
+        <span className="block truncate text-sm font-medium">{label}</span>
+        {connection.handle ? (
+          <span className="block truncate text-xs text-muted-foreground">
+            @{connection.handle.replace(/^@/, '')}
+          </span>
+        ) : null}
+      </span>
+    </>
+  );
+  const className =
+    'flex min-w-0 items-center gap-3 rounded-md bg-background-secondary px-3 py-2 shadow-border transition-colors hover:bg-background';
+
+  if (!connection.url) {
+    return <div className={className}>{content}</div>;
+  }
+
+  return (
+    <Link
+      href={connection.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Open ${label} on ${connection.platform}`}
+      className={className}
+    >
+      {content}
+    </Link>
+  );
+}
+
 function getHealthToneClass(summary: AccountHealthSummary): string {
   if (summary.override.isActive) {
     return 'border-info/30 bg-info/10 text-info';
@@ -182,15 +244,7 @@ export default function BrandDetailSocialMediaCard({
   >(null);
   const [isOverrideSubmitting, setIsOverrideSubmitting] = useState(false);
 
-  const connectedConnections = useMemo(
-    () =>
-      connections.filter(
-        (connection) =>
-          Boolean(connection.url) &&
-          Boolean(platformIconMap[connection.platform]),
-      ),
-    [connections],
-  );
+  const connectedConnections = connections;
   const connectedPlatforms = useMemo(
     () =>
       new Set(connectedConnections.map((connection) => connection.platform)),
@@ -332,7 +386,7 @@ export default function BrandDetailSocialMediaCard({
               <h2 className="text-lg font-semibold">Social Media</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {connectedPlatformsCount > 0
-                  ? `${connectedPlatformsCount} connected platform${connectedPlatformsCount === 1 ? '' : 's'} with ${unconnectedPlatforms.length} available to add.`
+                  ? `${connectedPlatformsCount} connected account${connectedPlatformsCount === 1 ? '' : 's'} with ${unconnectedPlatforms.length} platform${unconnectedPlatforms.length === 1 ? '' : 's'} available to add.`
                   : 'Connect your social media accounts to display them here.'}
               </p>
             </div>
@@ -347,16 +401,11 @@ export default function BrandDetailSocialMediaCard({
           </div>
 
           {connectedConnections.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               {connectedConnections.map((connection) => (
-                <SocialMediaLink
-                  key={connection.platform}
-                  url={connection.url ?? ''}
-                  handle={connection.handle || undefined}
-                  icon={platformIconMap[connection.platform] ?? null}
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  enableUTM={false}
+                <ConnectedAccount
+                  key={connection.credentialId}
+                  connection={connection}
                 />
               ))}
             </div>
@@ -431,16 +480,11 @@ export default function BrandDetailSocialMediaCard({
 
           {connectedPlatformsCount > 0 ? (
             <div className="space-y-4">
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                 {connectedConnections.map((connection) => (
-                  <SocialMediaLink
-                    key={connection.platform}
-                    url={connection.url ?? ''}
-                    handle={connection.handle || undefined}
-                    icon={platformIconMap[connection.platform] ?? null}
-                    variant={ButtonVariant.SECONDARY}
-                    size={ButtonSize.SM}
-                    enableUTM={false}
+                  <ConnectedAccount
+                    key={connection.credentialId}
+                    connection={connection}
                   />
                 ))}
               </div>

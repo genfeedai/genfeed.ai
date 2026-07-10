@@ -290,12 +290,13 @@ jobs:
 
           if [ "${#missing[@]}" -gt 0 ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::error::Authed E2E is enabled but missing required GitHub Actions secret(s): ${missing[*]}"
             {
-              echo "## Authed E2E Skipped"
+              echo "## Authed E2E Blocked"
               echo ""
               echo "Missing GitHub Actions secret(s): ${missing[*]}."
             } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+            exit 1
           fi
 
           echo "ready=true" >> "$GITHUB_OUTPUT"

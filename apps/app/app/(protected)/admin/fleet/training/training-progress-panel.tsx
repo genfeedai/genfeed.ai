@@ -48,7 +48,7 @@ export default function TrainingProgressPanel({ training }: Props) {
             {/* Progress bar */}
             <div className="h-2 rounded-full bg-foreground/10 overflow-hidden">
               <div
-                className="h-full rounded-full bg-primary transition-all duration-300"
+                className="h-full rounded-full bg-primary transition-[width] duration-300"
                 style={{
                   width: `${training.progress ?? 0}%`,
                 }}

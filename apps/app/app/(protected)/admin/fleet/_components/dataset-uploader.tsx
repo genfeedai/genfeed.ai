@@ -203,7 +203,7 @@ export default function DatasetUploader({
           </div>
           <div className="w-full bg-foreground/10 rounded-full h-2 overflow-hidden">
             <div
-              className="bg-primary h-full rounded-full transition-all duration-300 ease-out"
+              className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>

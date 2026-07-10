@@ -25,9 +25,9 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "prompts",
+    "directory": "packages/prompts",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
@@ -38,5 +38,5 @@
   "sideEffects": false,
   "type": "module",
   "types": "./dist/index.d.ts",
-  "version": "0.2.2"
+  "version": "0.2.3"
 }

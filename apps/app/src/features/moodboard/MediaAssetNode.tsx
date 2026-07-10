@@ -8,6 +8,7 @@ import {
 import Image from 'next/image';
 import { memo } from 'react';
 import type { MediaAssetNodeProps } from '@/features/moodboard/moodboard.types';
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 const DEFAULT_ASPECT_RATIO = MOOD_BOARD_DEFAULT_ASPECT_RATIO;
 
@@ -61,10 +62,10 @@ function MediaAssetNodeComponent({
     >
       {src ? (
         <Image
-          unoptimized
           src={src}
           alt={ingredient.metadataLabel || ingredient.promptText || 'asset'}
           fill
+          unoptimized={!canOptimizeImageSource(src)}
           sizes={`${MOOD_BOARD_TILE_WIDTH}px`}
           className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
           draggable={false}

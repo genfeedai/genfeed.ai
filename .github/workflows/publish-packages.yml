@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       packages_json:
-        description: 'JSON array of package publish requests, e.g. [{"path":"packages/ui","bump":"patch"}]'
+        description: 'Exact versions already merged to master, e.g. [{"path":"packages/ui","version":"2.0.2"}]'
         required: true
         type: string
       dry_run:
-        description: 'Validate, build, and simulate publish without pushing releases or git changes'
+        description: 'Build, pack, inspect, and simulate every publish without registry changes'
         required: false
         default: true
         type: boolean
@@ -18,28 +18,28 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Publish selected npm packages
+  preflight:
+    name: Preflight immutable package tarballs
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
-      contents: write
-      id-token: write
+      contents: read
     env:
-      PACKAGE_RELEASE_OUTPUT: .package-release-output.json
+      RELEASE_DIR: ${{ github.workspace }}/.package-release
     steps:
-      - name: Checkout master
-        uses: actions/checkout@v5
-        with:
-          ref: master
-          fetch-depth: 0
-
-      - name: Verify workflow is running on master
+      - name: Require a master dispatch
         run: |
-          if [ "${GITHUB_REF_NAME}" != "master" ]; then
-            echo "Package publishing is only allowed from master. Current ref: ${GITHUB_REF_NAME}"
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Package releases must be dispatched from master. Current ref: ${GITHUB_REF}"
             exit 1
           fi
+
+      - name: Checkout the dispatched master commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -47,47 +47,120 @@ jobs:
           node-version: '24.x'
           bun-version: '1.3.14'
 
-      - name: Configure git author
+      - name: Require npm trusted-publishing support
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # shellcheck disable=SC2016
+          node -e '
+            const [major, minor] = process.argv[1].split(".").map(Number);
+            if (major < 11 || (major === 11 && minor < 5)) {
+              throw new Error(`npm >=11.5.1 is required for OIDC trusted publishing; found ${process.argv[1]}`);
+            }
+          ' "$(npm --version)"
 
-      - name: Publish packages
+      - name: Build, pack, and dry-run the complete release
         env:
           PACKAGES_JSON: ${{ inputs.packages_json }}
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            node scripts/publish-packages-from-json.mjs --packages-json "${PACKAGES_JSON}" --dry-run
-          else
-            node scripts/publish-packages-from-json.mjs --packages-json "${PACKAGES_JSON}"
-          fi
+          node scripts/publish-packages-from-json.mjs \
+            --packages-json "${PACKAGES_JSON}" \
+            --output-dir "${RELEASE_DIR}"
 
-      - name: Commit version bumps
-        if: ${{ inputs.dry_run == false }}
-        run: |
-          if git diff --quiet -- packages ee/packages; then
-            echo "No package version changes to commit"
-            exit 0
-          fi
+      - name: Upload immutable release plan and tarballs
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-release-${{ github.run_id }}
+          path: ${{ env.RELEASE_DIR }}
+          if-no-files-found: error
+          include-hidden-files: true
+          overwrite: true
+          retention-days: 1
 
-          git diff --name-only -- packages ee/packages | grep '/package.json$' > /tmp/package-version-files
-          if [ ! -s /tmp/package-version-files ]; then
-            echo "No package version files changed"
-            exit 0
-          fi
-
-          xargs -a /tmp/package-version-files git add --
-          if git diff --cached --quiet; then
-            echo "No staged package version changes to commit"
-            exit 0
-          fi
-          git commit -m "chore(release): publish npm packages"
-          git push origin HEAD:master
-
-      - name: Release summary
+      - name: Preflight summary
         if: always()
         run: |
-          if [ -f "${PACKAGE_RELEASE_OUTPUT}" ]; then
-            echo "## Package release summary" >> "$GITHUB_STEP_SUMMARY"
-            cat "${PACKAGE_RELEASE_OUTPUT}" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f "${RELEASE_DIR}/release-status.json" ]; then
+            {
+              echo '## Package release preflight'
+              echo '```json'
+              cat "${RELEASE_DIR}/release-status.json"
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
           fi
+
+  publish:
+    name: Publish preflighted package tarballs
+    if: ${{ inputs.dry_run == false }}
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_DIR: ${{ github.workspace }}/.package-release
+    steps:
+      - name: Checkout the preflighted commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node for npm trusted publishing
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24.x'
+
+      - name: Require npm trusted-publishing support
+        run: |
+          # shellcheck disable=SC2016
+          node -e '
+            const [major, minor] = process.argv[1].split(".").map(Number);
+            if (major < 11 || (major === 11 && minor < 5)) {
+              throw new Error(`npm >=11.5.1 is required for OIDC trusted publishing; found ${process.argv[1]}`);
+            }
+          ' "$(npm --version)"
+
+      - name: Require unchanged master
+        run: |
+          if [ "${GITHUB_REF}" != "refs/heads/master" ]; then
+            echo "::error::Package releases are only allowed from master. Current ref: ${GITHUB_REF}"
+            exit 1
+          fi
+          git fetch origin master
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/master)" ]; then
+            echo "::error::Master advanced after this release was dispatched. Run a new dry-run from current master."
+            exit 1
+          fi
+
+      - name: Download immutable release plan and tarballs
+        uses: actions/download-artifact@v4
+        with:
+          name: package-release-${{ github.run_id }}
+          path: ${{ env.RELEASE_DIR }}
+
+      - name: Publish dependency-first with resumable collision checks
+        run: |
+          node scripts/publish-packages-from-json.mjs \
+            --publish-plan "${RELEASE_DIR}/release-plan.json"
+
+      - name: Publication summary
+        if: always()
+        run: |
+          if [ -f "${RELEASE_DIR}/release-status.json" ]; then
+            {
+              echo '## Package publication status'
+              echo '```json'
+              cat "${RELEASE_DIR}/release-status.json"
+              echo '```'
+            } >> "${GITHUB_STEP_SUMMARY}"
+          fi
+
+      - name: Upload publication journal
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-publication-status-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.RELEASE_DIR }}/release-status.json
+          if-no-files-found: warn
+          retention-days: 7

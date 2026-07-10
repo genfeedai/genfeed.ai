@@ -43,7 +43,7 @@ export function AdGridCard({
       variant={ButtonVariant.UNSTYLED}
       onClick={() => onSelect(item)}
       className={cn(
-        'group rounded-card border border-white/[0.06] bg-card p-4 text-left transition-all duration-200 hover:border-white/[0.10]',
+        'group rounded-card border border-border bg-card p-4 text-left transition-[border-color,box-shadow] duration-200 hover:border-border-strong',
         isSelected && 'border-primary/45 shadow-lg shadow-primary/10',
       )}
     >

@@ -322,6 +322,38 @@ describe('BrandsService', () => {
       });
       expect(result).toEqual(applyResult);
     });
+
+    it('posts selected asset candidates and unwraps the import result', async () => {
+      const importResult = {
+        brandId: mockBrandId,
+        diagnostics: [],
+        failedCandidateIds: [],
+        importedAssetIds: ['asset-1'],
+        results: [],
+        skippedCandidateIds: [],
+        status: 'accepted',
+      };
+      mockPost.mockResolvedValue({ data: { data: importResult } });
+
+      const payload = {
+        assets: [
+          {
+            candidateId: 'banner-1',
+            replaceExisting: false,
+            role: 'banner' as const,
+            sourceType: 'website' as const,
+            sourceUrl: 'https://acme.test/og.jpg',
+          },
+        ],
+      };
+      const result = await service.importBrandKitAssets(mockBrandId, payload);
+
+      expect(mockPost).toHaveBeenCalledWith(
+        `/${mockBrandId}/brand-kit/assets/import`,
+        payload,
+      );
+      expect(result).toEqual(importResult);
+    });
   });
 
   describe('generateFastlaneIdeas', () => {

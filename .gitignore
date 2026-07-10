@@ -54,6 +54,7 @@ apps/desktop/app/release/
 .agents/memory/local/
 .clawpatch/
 .genfeed/
+.package-release/
 
 # Playwright generated artifacts: reports, traces, videos, screenshots, and legacy auth provider storageState
 playwright/artifacts/

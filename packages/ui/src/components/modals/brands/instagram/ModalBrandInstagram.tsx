@@ -142,8 +142,10 @@ export default function ModalBrandInstagram({
       const service = await getCredentialsService();
 
       const data = await service.patch(credential.id, {
+        externalAvatar: selectedHandle.image,
         externalHandle: selectedHandle.username,
         externalId: selectedHandle.id,
+        externalName: selectedHandle.label,
       });
 
       logger.info(`${url} success`, data);

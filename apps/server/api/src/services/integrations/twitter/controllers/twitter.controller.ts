@@ -199,23 +199,34 @@ export class TwitterController {
       });
 
       // Get authenticated user profile
-      const { data: me } = await loggedClient.v2.me();
+      const { data: me } = await loggedClient.v2.me({
+        'user.fields': ['profile_image_url'],
+      });
 
       // Update credential with OAuth 2.0 tokens
-      const updatedCredential = await this.credentialsService.patch(
+      let updatedCredential = await this.credentialsService.patch(
         credential.id,
         {
           accessToken,
           accessTokenExpiry: expiresIn
             ? new Date(Date.now() + expiresIn * 1000)
             : undefined,
-          externalHandle: me.username,
-          externalId: me.id,
           isConnected: true,
           isDeleted: false,
           oauthToken: undefined,
           oauthTokenSecret: undefined,
           refreshToken,
+        },
+      );
+
+      updatedCredential = await this.credentialsService.updateExternalProfile(
+        updatedCredential.id,
+        organizationId,
+        {
+          avatarUrl: me.profile_image_url,
+          handle: me.username,
+          id: me.id,
+          name: me.name,
         },
       );
 

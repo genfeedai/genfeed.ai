@@ -4,6 +4,7 @@ import type { IFleetGenerationJob } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import Image from 'next/image';
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 type GeneratedImage = {
   id: string;
@@ -42,10 +43,11 @@ export default function GeneratedImagesGrid({
             <div className="p-4">
               {img.cdnUrl ? (
                 <Image
-                  unoptimized
                   alt={img.prompt}
                   className="w-full rounded mb-3 aspect-square object-cover"
+                  sizes="(min-width: 1024px) 30vw, (min-width: 768px) 45vw, 100vw"
                   src={img.cdnUrl}
+                  unoptimized={!canOptimizeImageSource(img.cdnUrl)}
                   width={800}
                   height={600}
                 />
@@ -68,7 +70,7 @@ export default function GeneratedImagesGrid({
                   </div>
                   <div className="h-1.5 rounded-full bg-foreground/10 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-primary transition-all duration-300"
+                      className="h-full rounded-full bg-primary transition-[width] duration-300"
                       style={{ width: `${img.progress ?? 0}%` }}
                     />
                   </div>

@@ -392,17 +392,17 @@ function RunActivityChart({ trends }: { trends: AgentRunTrendPoint[] }) {
       <BarChart data={data} margin={{ bottom: 0, left: -20, right: 0, top: 0 }}>
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="rgba(255,255,255,0.04)"
+          stroke="hsl(var(--border))"
           vertical={false}
         />
         <XAxis
           dataKey="date"
-          tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
           allowDecimals={false}
@@ -441,17 +441,17 @@ function RunsByStatusChart({ runs }: { runs: IAgentRun[] }) {
       <BarChart data={data} margin={{ bottom: 0, left: -20, right: 0, top: 0 }}>
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="rgba(255,255,255,0.04)"
+          stroke="hsl(var(--border))"
           vertical={false}
         />
         <XAxis
           dataKey="name"
-          tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
           allowDecimals={false}
@@ -493,17 +493,17 @@ function SuccessRateChart({ trends }: { trends: AgentRunTrendPoint[] }) {
       <BarChart data={data} margin={{ bottom: 0, left: -20, right: 0, top: 0 }}>
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="rgba(255,255,255,0.04)"
+          stroke="hsl(var(--border))"
           vertical={false}
         />
         <XAxis
           dataKey="date"
-          tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
           domain={[0, 100]}
@@ -543,17 +543,17 @@ function CreditsByDayChart({ trends }: { trends: AgentRunTrendPoint[] }) {
       <BarChart data={data} margin={{ bottom: 0, left: -20, right: 0, top: 0 }}>
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="rgba(255,255,255,0.04)"
+          stroke="hsl(var(--border))"
           vertical={false}
         />
         <XAxis
           dataKey="date"
-          tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
         />
         <YAxis
-          tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 10 }}
+          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
         />

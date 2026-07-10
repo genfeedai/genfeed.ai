@@ -3,11 +3,25 @@
 ## Quick Start
 
 ```bash
-git clone https://github.com/genfeedai/genfeed.ai.git
-cd genfeed.ai
-cd docker
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
+sha256sum -c genfeed-selfhosted.tar.gz.sha256
+tar -xzf genfeed-selfhosted.tar.gz
+cd genfeed-selfhosted-v*
 cp .env.example .env
-docker compose -f docker-compose.selfhosted.yml up
+docker compose --env-file .env -f compose.yml up -d
+```
+
+On macOS, verify with
+`shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256`. The bundle includes a
+release manifest and pins `GENFEED_IMAGE_TAG` to the immutable image version
+associated with the GitHub release.
+
+The create package performs the same download, checksum, manifest, and Compose
+validation automatically:
+
+```bash
+npx @genfeedai/create my-genfeed
 ```
 
 This starts:
@@ -20,6 +34,30 @@ This starts:
 
 On first boot the container runs Prisma migrations and seeds one local
 workspace: one user, one organization, and one brand.
+
+## Source Checkout
+
+Use a source checkout when contributing or when you want the repository's
+editable self-hosting configuration:
+
+```bash
+git clone https://github.com/genfeedai/genfeed.ai.git
+cd genfeed.ai/docker
+cp .env.example .env
+docker compose --env-file .env -f docker-compose.selfhosted.yml up -d
+```
+
+This Compose file still runs a published GHCR image; it does not build the
+checked-out source. Unlike a release bundle, the source `.env.example` defaults
+to the mutable `latest` image unless you set `GENFEED_IMAGE_TAG` to a published
+version explicitly.
+
+## Requirements
+
+- Docker Engine with the Docker Compose plugin, or Docker Desktop
+- A runtime capable of running the published `linux/amd64` Community image
+  (Docker Desktop can use emulation on Apple Silicon)
+- Enough disk space for the application image, PostgreSQL, and generated media
 
 ## Community Auth Modes
 

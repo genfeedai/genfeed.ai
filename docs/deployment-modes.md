@@ -9,7 +9,7 @@ summary; the canonical, decision-of-record version is the ADR at
 |                       | **SaaS**                                         | **Community**                                                     | **Desktop**                          |
 | --------------------- | ------------------------------------------------ | ----------------------------------------------------------------- | ------------------------------------ |
 | **For**               | Customers using the hosted product               | Self-hosters running the whole stack                              | Solo creators on their own machine   |
-| **Get it**            | app.genfeed.ai                                   | `cd docker && docker compose -f docker-compose.selfhosted.yml up` | Download the installer               |
+| **Get it**            | app.genfeed.ai                                   | Download the checksummed GitHub release bundle                   | Download the installer               |
 | **Orgs**              | many (isolated tenants)                          | **one**                                                           | one                                  |
 | **Brands**            | many per org                                     | **many**                                                          | many                                 |
 | **Auth**              | Better Auth (email/password, magic link, Google) | Better Auth, self-hostable — none for solo, optional login wall   | local-first sign-in                  |

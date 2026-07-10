@@ -19,7 +19,44 @@ Use this when shipping the hosted product and self-hosted image.
 
 That release triggers:
 
-- `.github/workflows/docker-publish.yml` for the self-hosted image
+- `.github/workflows/docker-publish.yml` for the self-hosted image and public
+  install assets
+
+The self-hosted release contract is version-bound:
+
+- GitHub tag `v1.2.3`
+- GHCR image `ghcr.io/genfeedai/genfeed.ai:1.2.3`
+- release assets `genfeed-selfhosted.tar.gz` and
+  `genfeed-selfhosted.tar.gz.sha256`
+- bundle manifest `releaseTag=v1.2.3` and the exact GHCR image above
+
+The publish workflow advances `latest`, builds the checksummed bundle, exercises
+the built `@genfeedai/create` CLI against it, anonymously pulls the exact image,
+validates OCI version/revision labels, and only then attaches the assets. The
+nightly self-hosted E2E downloads that exact public bundle and does not log in to
+GHCR.
+
+If a published release is missing assets after a transient failure, dispatch
+`Docker Publish (Self-Hosted)` from `master` with `release_tag=v1.2.3`. Recovery
+is fail-closed: the tag must exist and point exactly at current `master`; the
+workflow rebuilds the exact image and reruns the public smoke before attaching
+assets. Never use recovery to overwrite a version that users already consumed.
+
+For an unconsumed failed release whose tag is behind `master` (including the
+assetless v0.5.0 incident), first reverify that it has no image/assets/deployment,
+then delete and re-cut the same release tag at the fixed `master` commit. Do not
+burn a new version for a release that never shipped.
+
+The Community container package `genfeed.ai` must be public before the anonymous
+artifact smoke can pass. For the initial private-to-public migration, let the
+workflow push the corrected exact image first, change that package to public,
+then rerun only the failed artifact job; this avoids exposing the stale image.
+Do not change the visibility of the internal `genfeed.ai/server` package.
+
+After the release is green, publish `packages/create` through the package
+publishing workflow so npm users receive the installer tested by this contract.
+Use `[{"path":"packages/create","bump":"patch"}]` for `packages_json` and
+set `dry_run=false` only for the approved publish run.
 
 Production backend deploys are handled separately through
 `.github/workflows/deploy-ecs.yml`, dispatched from `master` and gated by the
@@ -97,3 +134,45 @@ If a release needs to cover the hosted product, desktop app, and browser extensi
 4. Push `extension-browser-v1.2.3`.
 
 The version numbers should match, but the workflows are intentionally separate so each surface can be shipped independently when needed.
+
+## Public npm Packages
+
+npm versions are release state and follow the same trunk gate as code:
+
+1. Update every package version in a normal PR to `master`. Include all
+   unpublished workspace dependencies needed by the release.
+2. From the `master` Actions page, run `Publish Packages` with `dry_run=true`
+   and exact merged versions, for example:
+
+   ```json
+   [{"path":"packages/enums","version":"2.3.3"},{"path":"packages/constants","version":"2.2.10"}]
+   ```
+
+3. Inspect the preflight artifact and summary. The workflow builds from clean
+   outputs, orders workspace dependencies, packs with Bun, validates the
+   resolved tarball, injects the matching complete license text, and runs
+   `npm publish --dry-run` before registry access is granted. An abbreviated
+   root AGPL notice fails preflight instead of producing an incomplete package.
+4. Rerun the same input with `dry_run=false`. The publish job uploads only the
+   preflighted tarballs and never commits or pushes to `master`. If npm fails
+   partway through, rerun the exact release: matching registry tarballs are
+   verified and skipped before pending packages continue.
+
+Do not pass `bump` requests to the workflow and do not publish a workspace
+directory with npm. Bun resolves `workspace:*` while creating the immutable
+tarball; npm 11.5.1 or newer uploads that tarball with trusted-publisher OIDC
+and provenance.
+
+An npm owner must configure each existing `@genfeedai/*` package with this
+trusted publisher before its first workflow release:
+
+- organization: `genfeedai`
+- repository: `genfeed.ai`
+- workflow: `publish-packages.yml`
+- environment: unset unless the workflow is updated to use one
+
+Package names that do not yet exist on npm (`api-types`, `auth-client`,
+`harness`, `pricing`, and `queue-contracts` as of July 2026) require one
+owner-authenticated bootstrap publication before npm allows trusted-publisher
+configuration. Bootstrap from a preflight tarball; never bypass the version PR
+or publish directly from a workspace directory.

@@ -1,8 +1,8 @@
-import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { AdOptimizationConfigsService } from '@server/collections/ad-optimization-configs/services/ad-optimization-configs.service';
 import { CronAdOptimizationService } from '@workers/crons/ad-optimization/cron.ad-optimization.service';
 
 describe('CronAdOptimizationService', () => {
@@ -22,8 +22,8 @@ describe('CronAdOptimizationService', () => {
   };
 
   const mockConfigs = [
-    { _id: 'cfg-1', organization: { toString: () => 'org-1' } },
-    { _id: 'cfg-2', organization: { toString: () => 'org-2' } },
+    { id: 'cfg-1', organization: { toString: () => 'org-1' } },
+    { id: 'cfg-2', organization: { toString: () => 'org-2' } },
   ];
 
   beforeEach(async () => {

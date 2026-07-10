@@ -1,12 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
-import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { TikTokAdsService } from '@api/services/integrations/tiktok-ads/services/tiktok-ads.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
@@ -18,6 +15,9 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
+import { AdOptimizationConfigsService } from '@server/collections/ad-optimization-configs/services/ad-optimization-configs.service';
+import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
 type AdAutomationAction =
   | 'adOptimization'

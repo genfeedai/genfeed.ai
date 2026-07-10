@@ -1,13 +1,16 @@
+import { Prisma } from '@genfeedai/prisma';
+import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { Inject, Injectable } from '@nestjs/common';
 import type {
   AdBulkUploadJobDocument,
   BulkUploadError,
   BulkUploadStatus,
-} from '@api/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Prisma } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+} from '@server/collections/ad-bulk-upload-jobs/schemas/ad-bulk-upload-job.schema';
+import {
+  SERVER_TOKENS,
+  type ServerLogger,
+  type ServerPrisma,
+} from '@server/server.dependencies';
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -32,8 +35,10 @@ export class AdBulkUploadJobsService {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: Pick<ServerPrisma, 'adBulkUploadJob'>,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   private toJsonValue(value: unknown): Prisma.InputJsonValue {

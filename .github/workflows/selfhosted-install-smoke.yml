@@ -1,0 +1,80 @@
+name: Self-Hosted Install Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/docker-publish.yml"
+      - ".github/workflows/e2e-selfhosted-release.yml"
+      - ".github/workflows/selfhosted-install-smoke.yml"
+      - "docker/.env.example"
+      - "docker/README.selfhosted-release.md"
+      - "docker/docker-compose.selfhosted.yml"
+      - "packages/create/**"
+      - "scripts/sh/create-selfhosted-release-bundle.sh"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: selfhosted-install-contract-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Bundle + Create Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup create package
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: "24.x"
+          bun-version: "1.3.14"
+          cache-turbo: "false"
+          install-command: "bun install --filter @genfeedai/create --frozen-lockfile --ignore-scripts"
+
+      - name: Test and build create package
+        run: |
+          bun run --cwd packages/create test
+          bun run --cwd packages/create check
+          bun run --cwd packages/create build
+
+      - name: Build synthetic release bundle
+        run: scripts/sh/create-selfhosted-release-bundle.sh v9.8.7 "${RUNNER_TEMP}/releases/v9.8.7"
+
+      - name: Install synthetic release through packed CLI path
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/create-package" "${RUNNER_TEMP}/create-runner"
+          (
+            cd packages/create
+            bun pm pack --destination "${RUNNER_TEMP}/create-package" --ignore-scripts
+          )
+          create_archive="$(find "${RUNNER_TEMP}/create-package" -maxdepth 1 -name '*.tgz' -print -quit)"
+          (
+            cd "${RUNNER_TEMP}/create-runner"
+            bun add "${create_archive}" --ignore-scripts
+          )
+          create_bin="${RUNNER_TEMP}/create-runner/node_modules/.bin/genfeedai"
+          test "$("${create_bin}" --version)" = "$(jq -r '.version' packages/create/package.json)"
+
+          python3 -m http.server 8765 --directory "${RUNNER_TEMP}/releases" >/tmp/genfeed-release-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "${server_pid}"' EXIT
+
+          GENFEED_RELEASE_DOWNLOAD_BASE_URL=http://127.0.0.1:8765 \
+            "${create_bin}" "${RUNNER_TEMP}/genfeed-install" \
+              --release v9.8.7 --no-start
+
+          test "$(jq -r '.releaseTag' "${RUNNER_TEMP}/genfeed-install/release.json")" = v9.8.7
+          test "$(jq -r '.image' "${RUNNER_TEMP}/genfeed-install/release.json")" = \
+            ghcr.io/genfeedai/genfeed.ai:9.8.7
+          grep -Fx 'GENFEED_IMAGE_TAG=9.8.7' "${RUNNER_TEMP}/genfeed-install/.env"
+          docker compose \
+            --env-file "${RUNNER_TEMP}/genfeed-install/.env" \
+            -f "${RUNNER_TEMP}/genfeed-install/compose.yml" \
+            config --images | grep -Fx ghcr.io/genfeedai/genfeed.ai:9.8.7

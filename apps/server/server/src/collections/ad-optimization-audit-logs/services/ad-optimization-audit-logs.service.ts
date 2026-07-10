@@ -1,16 +1,21 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  SERVER_TOKENS,
+  type ServerLogger,
+  type ServerPrisma,
+} from '@server/server.dependencies';
 
 @Injectable()
 export class AdOptimizationAuditLogsService {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: Pick<ServerPrisma, 'adOptimizationAuditLog'>,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   async create(payload: {

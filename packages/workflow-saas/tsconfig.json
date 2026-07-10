@@ -3,6 +3,7 @@
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,
+    "ignoreDeprecations": "6.0",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",

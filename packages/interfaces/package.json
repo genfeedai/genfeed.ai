@@ -38,12 +38,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "interfaces",
+    "directory": "packages/interfaces",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "deps:update": "bunx npm-check-updates -u && bun install",
     "dev": "tsc --watch",
@@ -51,5 +51,5 @@
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",
-  "version": "2.3.20"
+  "version": "2.3.21"
 }

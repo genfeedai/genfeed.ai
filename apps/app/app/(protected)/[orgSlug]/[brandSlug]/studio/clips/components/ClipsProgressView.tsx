@@ -46,7 +46,7 @@ export default function ClipsProgressView({
         {project.status !== 'completed' && project.status !== 'failed' && (
           <div className="mt-4 flex items-center gap-3">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
-              <div className="h-full w-2/3 animate-pulse rounded-full bg-primary transition-all duration-500" />
+              <div className="h-full w-2/3 animate-pulse rounded-full bg-primary transition-[width] duration-500" />
             </div>
             <span className="text-xs capitalize text-zinc-500">
               {project.status}

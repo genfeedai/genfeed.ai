@@ -30,13 +30,13 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "pricing",
+    "directory": "packages/pricing",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "type": "module",
   "scripts": {
-    "build": "bun run clean && tsc --build",
+    "build": "bun run clean && tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "test": "bun test src",

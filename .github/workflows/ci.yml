@@ -263,12 +263,20 @@ jobs:
         run: bun run check:di-value-imports
       - name: Desktop Schema Drift
         run: bun run check:desktop-schema-drift
+      - name: Serializer Drift Regression Tests
+        run: bunx vitest run --config scripts/serializer-drift/vitest.config.ts
+      - name: Serializer Drift
+        run: bun run check:serializer-drift
       - name: SQL Risk Audit
         run: bun run audit:api:sql:ci
       - name: UI Guards
         run: bun run check:ui-guards
       - name: Design System
         run: bun run design:check
+      - name: Public Package Manifests
+        run: bun run check:public-packages
+      - name: Package Release Scripts
+        run: bunx vitest run --config scripts/package-release/vitest.config.ts
       # Fail the build if the committed Prisma model metadata (enum-field-map)
       # has drifted from schema.prisma — soft-delete filtering + enum
       # normalization under the Prisma 7 driver adapter depend on it, and it

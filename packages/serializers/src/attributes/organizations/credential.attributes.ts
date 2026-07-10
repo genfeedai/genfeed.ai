@@ -8,6 +8,8 @@ const publicFields = [
   'platform',
   'externalId',
   'externalHandle',
+  'externalName',
+  'externalAvatar',
   'accessTokenExpiry',
   'label',
   'description',
