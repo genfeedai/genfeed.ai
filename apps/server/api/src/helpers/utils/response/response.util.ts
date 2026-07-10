@@ -73,12 +73,11 @@ export const setTopLinks = (
   data: Record<string, unknown>,
 ) => {
   // Check if this is a paginated response (findAll) or single resource (findOne)
-  // Paginated results have 'total' (from customLabels mapping totalDocs) and 'page'
-  // Also check for 'docs' array to distinguish from single resource
+  // BaseService.findAll returns AggregatePaginateResult: docs + totalDocs/totalPages
   const isPaginated =
     data &&
     typeof data === 'object' &&
-    'total' in data &&
+    'totalDocs' in data &&
     'page' in data &&
     Array.isArray(data.docs);
 
@@ -87,8 +86,8 @@ export const setTopLinks = (
         pagination: {
           limit: data.limit,
           page: data.page,
-          pages: data.pages,
-          total: data.total,
+          pages: data.totalPages,
+          total: data.totalDocs,
         },
         self: req.originalUrl,
       }

@@ -1,11 +1,17 @@
 import type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces/core/api-key.interface';
 import { del, get, post } from './client';
 import {
+  extractPagination,
   flattenCollection,
   flattenSingle,
   type JsonApiCollectionResponse,
   type JsonApiSingleResponse,
 } from './json-api';
+
+// Backend caps `limit` at 100 (BaseQueryDto @Max(100)); request full pages.
+const API_KEYS_PAGE_SIZE = 100;
+// Hard stop so a misbehaving pagination contract can never loop forever.
+const API_KEYS_MAX_PAGES = 1000;
 
 export type ApiKey = IApiKey;
 
@@ -20,8 +26,23 @@ export type CreateApiKeyInput = Omit<CreateApiKeyFields, 'label'> & {
 };
 
 export async function listApiKeys(): Promise<ApiKey[]> {
-  const response = await get<JsonApiCollectionResponse>('/api-keys?limit=100');
-  return flattenCollection<ApiKey>(response);
+  const keys: ApiKey[] = [];
+
+  for (let page = 1; page <= API_KEYS_MAX_PAGES; page += 1) {
+    const response = await get<JsonApiCollectionResponse>(
+      `/api-keys?limit=${API_KEYS_PAGE_SIZE}&page=${page}`
+    );
+    keys.push(...flattenCollection<ApiKey>(response));
+
+    const pagination = extractPagination(response);
+    // No pagination block (non-paginated response) or we've reached the last
+    // page — stop. Guards against page counts of 0 for empty result sets.
+    if (!pagination || page >= pagination.pages) {
+      break;
+    }
+  }
+
+  return keys;
 }
 
 export async function createApiKey(input: CreateApiKeyInput): Promise<ApiKey> {
