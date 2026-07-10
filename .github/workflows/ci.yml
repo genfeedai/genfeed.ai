@@ -273,6 +273,10 @@ jobs:
         run: bun run check:ui-guards
       - name: Design System
         run: bun run design:check
+      - name: Public Package Manifests
+        run: bun run check:public-packages
+      - name: Package Release Scripts
+        run: bunx vitest run --config scripts/package-release/vitest.config.ts
       # Fail the build if the committed Prisma model metadata (enum-field-map)
       # has drifted from schema.prisma — soft-delete filtering + enum
       # normalization under the Prisma 7 driver adapter depend on it, and it

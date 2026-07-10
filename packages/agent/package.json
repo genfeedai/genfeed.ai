@@ -100,6 +100,7 @@
   },
   "main": "src/index.ts",
   "name": "@genfeedai/agent",
+  "private": true,
   "type": "module",
   "peerDependencies": {
     "react": ">=18"

@@ -1,9 +1,9 @@
 {
   "dependencies": {
-    "@genfeedai/enums": "workspace:*"
+    "@genfeedai/enums": "workspace:*",
+    "react-icons": "5.7.0"
   },
   "devDependencies": {
-    "react-icons": "5.7.0",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -30,12 +30,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "constants",
+    "directory": "packages/constants",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "prepack": "npm run build",
@@ -45,5 +45,5 @@
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",
-  "version": "2.2.9"
+  "version": "2.2.10"
 }

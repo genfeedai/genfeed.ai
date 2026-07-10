@@ -49,7 +49,8 @@
   "main": "dist/index.js",
   "name": "@genfeedai/cli",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "repository": {
     "directory": "packages/cli",
@@ -71,5 +72,5 @@
     "type-check": "tsc --noEmit"
   },
   "type": "module",
-  "version": "0.4.0"
+  "version": "0.4.1"
 }

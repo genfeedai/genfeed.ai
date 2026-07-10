@@ -25,9 +25,9 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "errors",
+    "directory": "packages/errors",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
     "build": "tsup",
@@ -37,5 +37,5 @@
   "sideEffects": false,
   "type": "module",
   "types": "./dist/index.d.ts",
-  "version": "0.1.1"
+  "version": "0.1.2"
 }
