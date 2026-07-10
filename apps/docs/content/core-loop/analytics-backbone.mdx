@@ -67,7 +67,7 @@ For v1, analytics is owned by Core when it is required to complete the self-host
 | Content-performance weekly summaries          | Core (OSS)                | Keep `PerformanceSummaryService` in Core for top/worst content, platform summaries, posting-time analysis, top hooks, and week-over-week feedback.                  |
 | Closed-loop performance sync                  | Core (OSS), EE-extendable | Keep `AnalyticsSyncService` in Core so analytics can feed optimization and brand memory. EE may add tenant-aware scheduling, retention policy, or governance hooks. |
 | Business/operator revenue analytics           | Core for current v1       | Keep the existing business analytics response stable for v1. Revisit extraction only after Cloud/EE billing ownership is clearer.                                   |
-| Multi-tenant analytics governance             | Enterprise (`ee/`)        | Tenant isolation, cross-client agency reporting, audit controls, SSO/team-scoped permissions, and commercial reporting belong under `ee/`.                          |
+| Multi-tenant analytics governance             | SaaS/Enterprise boundary  | Cross-client reporting, audit controls, and commercial governance are not Community product surfaces; generic request/query guards remain in the public API.        |
 | Billing, quota, and contract reporting        | Enterprise / Cloud        | Commercial billing analytics can consume Core events, but the reporting and entitlement logic should not move into the OSS content loop.                            |
 
 ## Extraction Decisions

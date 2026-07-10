@@ -1,100 +1,52 @@
 # Deployment Options
 
-Genfeed.ai is available in two deployment modes: **Genfeed Cloud** (hosted SaaS) and **Genfeed Core** (self-hosted open source). Choose the option that best fits your needs.
+Genfeed models deployment and client separately:
 
-For a detailed comparison of self-hosted vs cloud, see [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud).
+- **SaaS** is the hosted Cloud deployment with the web client.
+- **Community** is the single-tenant self-hosted deployment with the web client.
+- **Desktop** is a local-first Electron client that can work locally or connect
+  to Cloud explicitly.
 
----
+See [Deployment Modes](/core/self-hosted-vs-cloud) and the public
+[deployment-mode summary](https://github.com/genfeedai/genfeed.ai/blob/master/docs/deployment-modes.md)
+for the boundary rules.
 
-## Genfeed Cloud (Recommended)
+## Cloud
 
-**Best for:** Teams, agencies, and creators who want to start generating content immediately without managing infrastructure.
+Cloud is operated by Genfeed and is available at
+[app.genfeed.ai](https://app.genfeed.ai). It can provide managed inference,
+hosted publishing and analytics, multi-tenant organizations, and team
+governance. Availability, limits, prices, and support terms are account- and
+plan-specific; this repository does not define them.
 
-### Why Choose Cloud?
+## Community
 
-- **Zero DevOps** -- No servers to manage, no databases to configure
-- **Always Updated** -- Get new features and models automatically
-- **Built-in Scaling** -- Handle any workload without configuration
-- **Priority Support** -- Direct access to our team
-- **Compliance Ready** -- SOC2, GDPR compliant infrastructure
+Community is the public Docker distribution for self-hosters. It includes the
+web UI, REST API, MCP server, PostgreSQL, and embedded Redis in a single-tenant
+configuration. The image excludes `ee/` source.
 
-### Getting Started with Cloud
+You operate backups, updates, networking, TLS, provider accounts, and data
+handling. Application records stay on your infrastructure; requests sent to
+configured external providers follow those providers' data practices.
 
-1. Visit [app.genfeed.ai](https://app.genfeed.ai)
-2. Create your account
-3. Choose your plan
-4. Start creating content
+[Start with the Community quick start](/guides/self-host-quickstart).
 
-**That's it.** No installation, no configuration.
+## Desktop
 
-[**Start with Genfeed Cloud -->**](https://app.genfeed.ai)
+The desktop workspace is a macOS-first Electron client with PGlite-backed local
+state and optional Cloud connection. The repository has signed macOS artifact
+automation for `desktop-v*` tags. It does not claim Windows or Linux installers,
+and no installer URL is published in these docs unless a tagged release exists.
 
----
+## Mobile and extensions
 
-## Genfeed Core (Self-Hosted)
+Mobile, browser-extension, and IDE-extension workspaces are client source
+surfaces, not additional backend deployment modes. Their current distribution
+status is listed on [Capabilities](/features).
 
-**Best for:** Developers, enterprises with data residency requirements, and teams wanting full control over their infrastructure.
+## Help and security
 
-### Why Choose Self-Hosted?
-
-- **Full Control** -- Your data stays on your servers
-- **Customizable** -- Modify and extend as needed
-- **No Vendor Lock-in** -- AGPL-3.0 licensed core
-- **Cost Efficient at Scale** -- Pay only for your infrastructure
-- **Air-gapped Deployments** -- Works in isolated environments
-
-### What's Included in Core?
-
-The open-source core includes:
-
-- AI content generation pipeline (images, video, text, audio)
-- Workflow engine
-- REST API
-- Brand kits
-- Queue management (BullMQ)
-- Single-user mode
-
-### What's Cloud-Only?
-
-Some features require Genfeed Cloud:
-
-- Multi-tenancy and organization management
-- Role-based access control (RBAC)
-- Social publishing (X, LinkedIn, Instagram, YouTube)
-- Analytics dashboard
-- Team collaboration
-- Marketplace access ([marketplace.genfeed.ai](https://marketplace.genfeed.ai))
-- Managed AI model access
-
-### Getting Started Self-Hosted
-
-[**Self-Hosted Installation Guide -->**](/core/installation)
-
-Quick start: [Self-Host Genfeed in 5 Minutes](/guides/self-host-quickstart)
-
-Production gates: [V1 Production Readiness](/deployment/production-readiness)
-
----
-
-## Hybrid Approach
-
-Many teams use both:
-
-- **Development/Testing:** Self-hosted Core for local development
-- **Production:** Genfeed Cloud for reliability and scale
-
-The API is compatible between both deployments, making migration straightforward.
-
----
-
-## Need Help Deciding?
-
-| Your Situation                    | Our Recommendation               |
-| --------------------------------- | -------------------------------- |
-| Small team, quick start           | Genfeed Cloud                    |
-| Enterprise with data requirements | Self-Hosted + Enterprise License |
-| Developer exploring the platform  | Self-Hosted (free)               |
-| Agency managing multiple clients  | Genfeed Cloud (Team/Enterprise)  |
-| Hobby project                     | Self-Hosted (free)               |
-
-**Still unsure?** [Contact us](mailto:support@genfeed.ai) -- we're happy to help you choose.
+Use the [public issue tracker](https://github.com/genfeedai/genfeed.ai/issues)
+for reproducible Community bugs. This does not imply a response-time commitment.
+Report suspected vulnerabilities through the
+[Security Policy](https://github.com/genfeedai/genfeed.ai/security/policy).

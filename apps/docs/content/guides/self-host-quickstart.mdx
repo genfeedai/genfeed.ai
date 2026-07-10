@@ -2,8 +2,8 @@ import { Callout, Steps, Tabs } from 'nextra/components';
 
 # Self-Host Genfeed in 5 Minutes
 
-Run Genfeed Community with the published Docker image, a local Postgres
-database, and a single seeded workspace.
+Run Genfeed Community from the checksummed release bundle with a pinned image,
+Postgres, and a single seeded workspace.
 
 <Callout type="info">
   **Just want to use Genfeed?** [Genfeed Cloud](https://genfeed.ai) is the fastest way to start without running
@@ -23,12 +23,18 @@ the Community quick start.
 
 <Steps>
 
-### Clone the repository
+### Download the latest release bundle
 
 ```bash
-git clone https://github.com/genfeedai/genfeed.ai.git
-cd genfeed.ai/docker
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz
+curl -fLO https://github.com/genfeedai/genfeed.ai/releases/latest/download/genfeed-selfhosted.tar.gz.sha256
+sha256sum -c genfeed-selfhosted.tar.gz.sha256
+tar -xzf genfeed-selfhosted.tar.gz
+cd genfeed-selfhosted-v*
 ```
+
+On macOS, use
+`shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256` for the checksum step.
 
 ### Create the Community environment file
 
@@ -43,11 +49,12 @@ you want generation enabled.
 ### Start Genfeed Community
 
 ```bash
-docker compose -f docker-compose.selfhosted.yml up
+docker compose --env-file .env -f compose.yml up -d
 ```
 
-This pulls `ghcr.io/genfeedai/genfeed.ai:latest`, starts Postgres, applies
-Prisma migrations, and seeds one local user, organization, and brand.
+The bundle pins the exact GHCR image associated with its GitHub release, starts
+Postgres, applies Prisma migrations, and seeds one local user, organization, and
+brand.
 
 ### Open the app
 
@@ -70,12 +77,13 @@ curl http://localhost:3010/v1/health
 - Web UI on port 3000
 - API on port 3010
 - MCP on port 3014
-- Postgres on port 5432
+- Postgres inside the Compose network (container port 5432; no host port)
 - Redis embedded in the Genfeed container and persisted under `/data`
 
-The compose file uses `docker/docker-compose.selfhosted.yml`. It is the
-Community path for self-hosters; the build-from-source compose files are for
-local development and CI.
+The release bundle contains `compose.yml`, `.env.example`, and a manifest. The
+source checkout's `docker/docker-compose.selfhosted.yml` is configuration for
+contributors and still runs a published image; it does not build checked-out
+source.
 
 ## Auth Modes
 
@@ -131,19 +139,18 @@ http://localhost:3010/v1/auth/callback/google
 
 ## Optional GPU
 
-Point `GENFEED_GPU_URL` at your ComfyUI instance when you want local GPU-backed
-generation:
+The Community image does not start the separate GPU service workspaces. For
+supported API flows that call a local ComfyUI instance, configure:
 
 ```env
-GENFEED_GPU_URL=http://your-comfyui-host:8188
+DARKROOM_COMFYUI_URL=http://your-comfyui-host:8188
 ```
 
 ## Updating
 
 ```bash
-cd genfeed.ai/docker
-docker compose -f docker-compose.selfhosted.yml pull
-docker compose -f docker-compose.selfhosted.yml up
+docker compose --env-file .env -f compose.yml pull
+docker compose --env-file .env -f compose.yml up -d
 ```
 
 ## Next Steps

@@ -1,95 +1,48 @@
-import { Callout } from 'nextra/components';
-
 # Self-Hosted vs. Cloud
 
-Genfeed is available as an open-source core (self-hosted) and a fully managed cloud platform. This page compares product capabilities. For the runtime and account-sync contract, see [Execution Boundaries](/core/execution-boundaries).
+Community and Cloud share source and core REST contracts, but they are different
+distributions with different operational boundaries.
 
 ## Comparison
 
-|                                      | Self-Hosted (Core)                                               | Genfeed Cloud                                       |
-| ------------------------------------ | ---------------------------------------------------------------- | --------------------------------------------------- |
-| **Setup**                            | You manage infrastructure                                        | Instant -- sign up and start                        |
-| **Cost**                             | Your compute + API costs                                         | Subscription (free tier available)                  |
-| **Managed inference credits**        | Optional, through explicit Cloud API key                         | Yes                                                 |
-| **Image generation**                 | Yes                                                              | Yes                                                 |
-| **Video generation**                 | Yes                                                              | Yes                                                 |
-| **Text generation**                  | Yes                                                              | Yes                                                 |
-| **Audio / voice generation**         | Yes                                                              | Yes                                                 |
-| **Brand kits**                       | Yes                                                              | Yes                                                 |
-| **Model selection**                  | Full control (any model)                                         | Curated best models                                 |
-| **Multi-tenancy**                    | No                                                               | Yes -- manage multiple brands                       |
-| **Publisher**                        | No                                                               | Yes -- auto-post to X, LinkedIn, Instagram, YouTube |
-| **Analytics**                        | No                                                               | Yes -- engagement, revenue per post                 |
-| **Team collaboration**               | No                                                               | Yes -- roles, approvals, workspaces                 |
-| **Manager (templates, ingredients)** | No                                                               | Yes                                                 |
-| **Studio (full editor)**             | No                                                               | Yes                                                 |
-| **Marketplace**                      | No                                                               | Yes -- workflows, prompts, presets, brand kits      |
-| **API**                              | Yes (REST)                                                       | Yes (REST + SDK)                                    |
-| **Webhooks**                         | Yes                                                              | Yes                                                 |
-| **NSFW content**                     | Yes (your models)                                                | SFW only                                            |
-| **Support**                          | Community (GitHub)                                               | Priority support + SLA                              |
-| **Updates**                          | Manual (git pull)                                                | Automatic                                           |
-| **License**                          | AGPL-3.0 (enterprise features under commercial license in `ee/`) | Commercial                                          |
+| Capability                | Community self-hosted                                               | Genfeed Cloud                                           |
+| ------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------- |
+| Operations                | You operate Docker, storage, backups, and updates                   | Genfeed operates the hosted service                     |
+| Tenancy                   | One organization per deployment                                     | Multiple isolated organizations                         |
+| Web product UI            | Included                                                            | Included                                                |
+| Workflow authoring        | Included                                                            | Included                                                |
+| Generation                | Local or your configured provider accounts                          | Managed and configured provider paths                   |
+| Managed inference credits | Optional explicit call to the Cloud API                             | Available according to current account/plan             |
+| Storage                   | Local filesystem and self-hosted PostgreSQL                         | Genfeed-managed storage                                 |
+| Publishing                | Manual export and locally configured paths                          | Managed connectors where supported                      |
+| Analytics                 | Local insight needed for the self-hosted loop                       | Managed cross-workflow analytics                        |
+| Team governance           | Single-tenant/local account controls                                | Cloud/Enterprise team and organization controls         |
+| API                       | REST and MCP                                                        | REST, MCP, and managed endpoints where available        |
+| License                   | Repository default is AGPL-3.0-or-later; package notices can differ | Managed service; source retains its repository licenses |
 
-<Callout type="info">
-  **Marketplace** -- [marketplace.genfeed.ai](https://marketplace.genfeed.ai) is a separate cloud product where creators
-  buy and sell workflows, prompts, presets, and brand kits. It is not available in the self-hosted edition.
-</Callout>
+## Costs and support
 
-## When to Self-Host
+Community costs depend on your infrastructure and model providers. Cloud prices,
+included credits, and support channels can change; use the
+[current pricing page](https://genfeed.ai/pricing) instead of fixed amounts in
+documentation.
 
-Self-hosting is right for you if:
+This repository does not promise a response time or SLA for Community issues.
+Commercial support terms, when offered, are plan-specific.
 
-- You need **NSFW content support** (bring your own models)
-- You want **full control** over models, data, and infrastructure
-- You're a developer who prefers to run their own stack
-- You have existing infrastructure (Kubernetes, Docker, etc.)
-- You need to keep data on-premises for compliance
+## Data and migration boundary
 
-## When to Use Cloud
+Community does not automatically replicate local records to Cloud. A Cloud API
+key authorizes explicit Cloud calls only. Evaluate export/import support for
+each resource before planning a migration; do not assume workflows, brands,
+templates, or assets have a complete bidirectional migration path.
 
-Genfeed Cloud is right for you if:
+When Community uses an external model provider, the submitted prompts and media
+leave the local deployment according to that provider's contract. Fully local
+processing requires local provider infrastructure.
 
-- You want to **start generating content immediately**
-- You need **multi-brand management** (agencies, teams)
-- You want **auto-publishing** to social platforms
-- You need **analytics and performance tracking**
-- You want a **collaborative workspace** for your team
-- You prefer **managed infrastructure** with zero DevOps
+## Get started
 
-## Cost Comparison
-
-### Self-Hosted
-
-- **Infrastructure:** $20-100/month (VPS or cloud server)
-- **AI API costs:** Variable (Replicate ~$0.003-0.05/image, fal.ai similar)
-- **Your time:** Setup, maintenance, updates, monitoring
-
-### Cloud
-
-- **Subscription:** Free tier available, paid plans from $29/month
-- **Per-use pricing:** Images and video billed per asset
-- **Your time:** Zero infrastructure management
-
-<Callout type="info">
-  **The math:** If you generate fewer than 500 images/month, Cloud is more cost-effective when you factor in
-  infrastructure and maintenance time. Above 500/month, self-hosting saves money, but Publisher, Analytics,
-  and multi-tenancy are not available in the self-hosted edition.
-</Callout>
-
-## Migration Path
-
-Start with either option -- migration is straightforward:
-
-**Core to Cloud:** Export your workflows, brand kits, templates, and assets, then import them into a Cloud workspace. Until a dedicated sync feature exists, this is an explicit migration step rather than automatic replication.
-
-**Cloud to Core:** Export your configuration. Self-host with the same brand kits and generation settings.
-
-Cloud signup handoff from Core may preserve onboarding intent, such as brand name and domain, but it does not sync local records into Cloud automatically.
-
-## Get Started
-
-- **Self-Hosted:** [Self-Host Genfeed in 5 Minutes](/guides/self-host-quickstart)
-- **Cloud:** [Sign up for Genfeed Cloud](https://app.genfeed.ai)
-
-For detailed deployment options, see [Deployment Options](/deployment).
+- [Community quick start](/guides/self-host-quickstart)
+- [Hosted app](https://app.genfeed.ai)
+- [Execution boundaries](/core/execution-boundaries)
