@@ -13,6 +13,7 @@ const RUNTIME_DEPENDENCY_FIELDS = [
   'peerDependencies',
 ];
 const LOCAL_PROTOCOL = /^(?:file|link|workspace):/;
+const RELEASE_COMMAND_TIMEOUT_MS = 15 * 60 * 1000;
 const BUILTIN_MODULES = new Set([
   ...builtinModules,
   ...builtinModules.map((name) => `node:${name}`),
@@ -36,10 +37,16 @@ function run(command, args, options = {}) {
     encoding: capture ? 'utf8' : undefined,
     env: { ...process.env, ...(env ?? {}) },
     stdio: capture ? 'pipe' : 'inherit',
+    timeout: RELEASE_COMMAND_TIMEOUT_MS,
     ...spawnOptions,
   });
 
   if (result.status !== 0) {
+    if (result.error?.code === 'ETIMEDOUT') {
+      fail(
+        `${command} ${args.join(' ')} timed out after ${RELEASE_COMMAND_TIMEOUT_MS}ms`,
+      );
+    }
     const detail = capture
       ? `\n${[result.stdout, result.stderr].filter(Boolean).join('\n').trim()}`
       : '';
@@ -218,8 +225,14 @@ function npmView(packageSpec) {
   const result = spawnSync('npm', ['view', packageSpec, '--json'], {
     encoding: 'utf8',
     stdio: 'pipe',
+    timeout: RELEASE_COMMAND_TIMEOUT_MS,
   });
   if (result.status === 0) return JSON.parse(result.stdout || 'null');
+  if (result.error?.code === 'ETIMEDOUT') {
+    fail(
+      `npm view ${packageSpec} timed out after ${RELEASE_COMMAND_TIMEOUT_MS}ms`,
+    );
+  }
 
   const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
   if (/E404|No match found|Not Found/i.test(output)) return null;
@@ -474,9 +487,18 @@ function packRegistryVersion(packageSpec) {
         tempDir,
         '--silent',
       ],
-      { encoding: 'utf8', stdio: 'pipe' },
+      {
+        encoding: 'utf8',
+        stdio: 'pipe',
+        timeout: RELEASE_COMMAND_TIMEOUT_MS,
+      },
     );
     if (result.status !== 0) {
+      if (result.error?.code === 'ETIMEDOUT') {
+        fail(
+          `npm pack ${packageSpec} timed out after ${RELEASE_COMMAND_TIMEOUT_MS}ms`,
+        );
+      }
       const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`;
       if (/E404|No match found|Not Found/i.test(output)) return null;
       fail(`npm pack ${packageSpec} failed\n${output.trim()}`);

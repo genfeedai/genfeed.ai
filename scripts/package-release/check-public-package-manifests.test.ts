@@ -102,6 +102,18 @@ describe('check-public-package-manifests', () => {
     );
   });
 
+  it('rejects a bare source directory in files', () => {
+    writeFixture('packages/client/src/index.ts', 'export const client = true;');
+    writePackage('client', {
+      ...publicManifest('client'),
+      files: ['src', 'dist'],
+    });
+
+    expect(checkPublicPackageManifests({ root }).violations).toContain(
+      'packages/client/package.json: "files" includes source code instead of build output (src)',
+    );
+  });
+
   function publicManifest(directory: string) {
     return {
       exports: {

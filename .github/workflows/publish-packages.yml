@@ -51,8 +51,11 @@ jobs:
         run: |
           # shellcheck disable=SC2016
           node -e '
-            const [major, minor] = process.argv[1].split(".").map(Number);
-            if (major < 11 || (major === 11 && minor < 5)) {
+            const [major, minor, patch] = process.argv[1].split(".").map(Number);
+            if (
+              major < 11 ||
+              (major === 11 && (minor < 5 || (minor === 5 && patch < 1)))
+            ) {
               throw new Error(`npm >=11.5.1 is required for OIDC trusted publishing; found ${process.argv[1]}`);
             }
           ' "$(npm --version)"
