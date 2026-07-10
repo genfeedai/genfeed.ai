@@ -439,13 +439,7 @@ export class BrandsService extends BaseService<Brand> {
     id: string,
     body: IBrandRelocationPatchBody,
   ): Promise<IBrandRelocationResult> {
-    const cleanedBody: Record<string, unknown> = {};
-    for (const key in body) {
-      const value = body[key as keyof IBrandRelocationPatchBody];
-      if (value !== undefined && value !== null && value !== 'undefined') {
-        cleanedBody[key] = value;
-      }
-    }
+    const cleanedBody = BaseService.cleanBody(body);
 
     return await this.instance
       .patch<JsonApiResponseDocument>(`/${id}`, cleanedBody)

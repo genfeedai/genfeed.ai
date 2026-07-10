@@ -37,7 +37,7 @@ describe('dashboard OpenUI validation', () => {
       version: 'genfeed.dashboard.openui.v1',
     });
 
-    expect(result.ok).toBe(true);
+    expect(result.isValid).toBe(true);
     expect(result.blocks).toHaveLength(1);
     expect(result.blocks[0]).toMatchObject({
       id: 'summary',
@@ -67,7 +67,7 @@ describe('dashboard OpenUI validation', () => {
       version: 'genfeed.dashboard.openui.v1',
     });
 
-    expect(result.ok).toBe(false);
+    expect(result.isValid).toBe(false);
     expect(result.issues[0]?.code).toBe('unsupported_component');
     expect(result.blocks).toEqual([
       expect.objectContaining({
@@ -87,7 +87,7 @@ describe('dashboard OpenUI validation', () => {
       },
     ]);
 
-    expect(result.ok).toBe(false);
+    expect(result.isValid).toBe(false);
     expect(result.issues[0]?.path).toBe('blocks[0].rows');
     expect(result.blocks[0]).toMatchObject({
       type: 'empty_state',
@@ -104,7 +104,7 @@ describe('dashboard OpenUI validation', () => {
       },
     ]);
 
-    expect(result.ok).toBe(false);
+    expect(result.isValid).toBe(false);
     expect(result.issues[0]?.path).toBe('blocks[0].chartType');
   });
 
@@ -117,7 +117,32 @@ describe('dashboard OpenUI validation', () => {
       },
     ]);
 
-    expect(result.ok).toBe(false);
+    expect(result.isValid).toBe(false);
     expect(result.issues[0]?.path).toBe('blocks[0].images[0].url');
+  });
+
+  it('rejects protocol-relative image URLs', () => {
+    const result = parseAgentDashboardBlocks([
+      {
+        id: 'assets',
+        images: [{ url: '//evil.example.com/x.png' }],
+        type: 'image_grid',
+      },
+    ]);
+
+    expect(result.isValid).toBe(false);
+    expect(result.issues[0]?.path).toBe('blocks[0].images[0].url');
+  });
+
+  it('accepts same-origin relative image URLs', () => {
+    const result = parseAgentDashboardBlocks([
+      {
+        id: 'assets',
+        images: [{ url: '/media/thumb.png' }],
+        type: 'image_grid',
+      },
+    ]);
+
+    expect(result.isValid).toBe(true);
   });
 });

@@ -299,6 +299,18 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'socialSource',
+    table: 'social_sources',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'sourcePost',
+    table: 'source_posts',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'contentPerformance',
     table: 'content_performance',
     brandField: 'brandId',
