@@ -39,6 +39,7 @@
     "build": "bun run clean && tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
+    "test": "bun test src",
     "type-check": "tsc --noEmit"
   },
   "sideEffects": false,

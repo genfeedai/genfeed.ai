@@ -22,7 +22,7 @@ Workflow JSON templates are exported from `@genfeedai/workflows/workflows/*`.
 Generic ComfyUI helpers are available from the explicit subpath:
 
 ```ts
-import { ComfyUITemplateRunner } from '@genfeedai/workflows/comfyui';
+import { ComfyUITemplateRunner } from '@genfeedai/workflows/generation/comfyui';
 ```
 
 ## Package Boundary

@@ -16,7 +16,7 @@ import {
   buildWorkflowGenerationMessages,
   DEFAULT_WORKFLOW_GENERATION_NODE_TYPES,
   parseWorkflowGenerationResponse,
-} from '@genfeedai/workflows';
+} from '@genfeedai/workflows/generation';
 import { toIso } from './time.util';
 
 export interface GenerationSyncJobRow {

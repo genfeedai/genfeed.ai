@@ -39,7 +39,7 @@ vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: vi.fn(),
 }));
 
-vi.mock('@/lib/config/edition', () => ({
+vi.mock('@genfeedai/config/license', () => ({
   isEEEnabled: vi.fn(() => false),
 }));
 

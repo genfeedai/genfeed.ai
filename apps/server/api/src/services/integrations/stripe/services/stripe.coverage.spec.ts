@@ -3,7 +3,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 
   return {
     ...actual,
-    IS_SELF_HOSTED: false,
+    isSelfHostedDeployment: () => false,
   };
 });
 
@@ -1065,7 +1065,7 @@ describe('StripeService — coverage spec', () => {
       vi.doMock('@genfeedai/config', async (importOriginal) => {
         const actual =
           await importOriginal<typeof import('@genfeedai/config')>();
-        return { ...actual, IS_SELF_HOSTED: true };
+        return { ...actual, isSelfHostedDeployment: () => true };
       });
 
       // Dynamically re-import the service to get the IS_SELF_HOSTED=true variant

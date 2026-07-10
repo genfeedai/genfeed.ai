@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   buildWorkflowGenerationMessages,
   parseWorkflowGenerationResponse,
-} from './generation';
+} from '.';
 
 describe('workflow generation shared helpers', () => {
   it('builds provider-agnostic workflow generation messages', () => {

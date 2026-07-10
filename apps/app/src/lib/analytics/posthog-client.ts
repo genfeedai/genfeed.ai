@@ -1,8 +1,7 @@
 'use client';
 
+import { isSaaS } from '@genfeedai/config/deployment';
 import type { CaptureResult, PostHog } from 'posthog-js';
-import { isCloudConnected } from '@/lib/config/edition';
-import { isDesktopShell } from '@/lib/desktop/runtime';
 import type {
   AnalyticsEvent,
   AnalyticsEventProperties,
@@ -37,7 +36,7 @@ let hasInitStarted = false;
  * in production the inputs are fixed for the lifetime of the session.
  */
 export function isAnalyticsEnabled(): boolean {
-  return Boolean(POSTHOG_KEY) && isCloudConnected() && !isDesktopShell();
+  return Boolean(POSTHOG_KEY) && isSaaS();
 }
 
 /**

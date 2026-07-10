@@ -52,7 +52,7 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { IS_CLOUD_MODE } from '@genfeedai/config';
+import { isCloudDeployment } from '@genfeedai/config';
 import type {
   JsonApiCollectionResponse,
   SortObject,
@@ -768,7 +768,7 @@ export class OrganizationsController extends BaseCRUDController<
     user: User,
     userId: string,
   ): Promise<void> {
-    if (!IS_CLOUD_MODE || getIsSuperAdmin(user)) {
+    if (!isCloudDeployment() || getIsSuperAdmin(user)) {
       return;
     }
 

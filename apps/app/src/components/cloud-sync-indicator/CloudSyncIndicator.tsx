@@ -1,5 +1,10 @@
 'use client';
 
+import { isBetterAuthEnabled } from '@genfeedai/auth-client';
+import {
+  isDesktopClient,
+  isSelfHostedDeployment,
+} from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
@@ -13,17 +18,17 @@ import { Cloud, CloudOff } from 'lucide-react';
 import { useState } from 'react';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
 import { useCloudSession } from '@/hooks/useCloudSession';
-import { isHybridMode, isLocalOnly } from '@/lib/config/edition';
-import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
+import { getDesktopBridge } from '@/lib/desktop/runtime';
 
 export default function CloudSyncIndicator() {
   const { isConnected } = useCloudSession();
   const [isLaunching, setIsLaunching] = useState(false);
-  const hybrid = isHybridMode();
-  const local = isLocalOnly();
-  const desktop = isDesktopShell();
+  const selfHosted = isSelfHostedDeployment();
+  const hybrid = selfHosted && isBetterAuthEnabled();
+  const local = selfHosted && !isBetterAuthEnabled();
+  const desktop = isDesktopClient();
 
-  if (!hybrid && !local) {
+  if (!selfHosted) {
     return null;
   }
 

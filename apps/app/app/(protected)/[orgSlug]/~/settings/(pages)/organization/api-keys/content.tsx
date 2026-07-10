@@ -1,6 +1,10 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  isDesktopClient,
+  isSelfHostedDeployment,
+} from '@genfeedai/config/deployment';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants/api-key-presets.constant';
 import type { ButtonVariant } from '@genfeedai/enums';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
@@ -23,8 +27,6 @@ import {
   HiTrash,
 } from 'react-icons/hi2';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
-import { isSelfHosted } from '@/lib/config/edition';
-import { isDesktopShell } from '@/lib/desktop/runtime';
 import ApiKeysHeader from './api-keys-header';
 import ByokProviderCard from './byok-provider-card';
 
@@ -214,10 +216,10 @@ function getVisibleKey(apiKey: ApiKey): string | undefined {
 
 export default function SettingsApiKeysPage() {
   const { organizationId, isReady, settings } = useBrand();
-  const desktop = isDesktopShell();
-  const isSelfHostedDeployment = isSelfHosted();
+  const desktop = isDesktopClient();
+  const selfHostedDeployment = isSelfHostedDeployment();
   const hasProductApiAccess =
-    isSelfHostedDeployment || hasApiAccess(settings?.subscriptionTier);
+    selfHostedDeployment || hasApiAccess(settings?.subscriptionTier);
 
   const [state, dispatch] = useReducer(apiKeysReducer, initialApiKeysState);
   const [productApiKeys, setProductApiKeys] = useState<ApiKey[]>([]);

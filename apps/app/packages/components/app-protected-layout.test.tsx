@@ -425,15 +425,18 @@ vi.mock('@providers/protected-providers/protected-providers', () => ({
   },
 }));
 
-vi.mock('@/lib/config/edition', () => ({
+vi.mock('@genfeedai/config/license', () => ({
   isEEEnabled: () => true,
-  isHostedCloudApp: () => {
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  isDesktopClient: () => process.env.NEXT_PUBLIC_DESKTOP_SHELL?.trim() === '1',
+  isSaaS: () => {
     const cloudFlag = process.env.NEXT_PUBLIC_GENFEED_CLOUD?.trim();
 
     return (
-      cloudFlag === '1' ||
-      cloudFlag?.toLowerCase() === 'true' ||
-      window.location.hostname === 'app.genfeed.ai'
+      (cloudFlag === '1' || cloudFlag?.toLowerCase() === 'true') &&
+      process.env.NEXT_PUBLIC_DESKTOP_SHELL?.trim() !== '1'
     );
   },
 }));
@@ -791,7 +794,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('hides the terminal dock on the hosted app hostname without the cloud env', () => {
+  it('does not infer cloud deployment from the hosted app hostname', () => {
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { ...originalLocation, hostname: 'app.genfeed.ai' },
@@ -805,13 +808,7 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
-    expect(appLayoutSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        agentPanel: undefined,
-        onAgentToggle: undefined,
-      }),
-    );
+    expect(screen.getByTestId('agent-panel-rail')).toBeInTheDocument();
   });
 
   it('disables prompt bar and elements providers on workspace home routes', () => {

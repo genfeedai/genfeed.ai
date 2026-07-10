@@ -30,6 +30,10 @@ summary; the canonical, decision-of-record version is the ADR at
   current release workflow packages macOS only; this repository does not claim
   Windows or Linux installers.
 
+Code must read these axes through `@genfeedai/config/deployment`; direct mode
+checks against the environment are rejected by the architecture guard. Boolean
+mode flags accept trimmed, case-insensitive `1` or `true` values.
+
 ## Key rules
 
 - **Brand is the content context.** You always pick a brand to create content, so

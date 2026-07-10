@@ -16,7 +16,8 @@
       "@genfeedai/types": ["../types/src/index.ts"],
       "@genfeedai/types/*": ["../types/src/*"],
       "@genfeedai/workflow-saas/*": ["./src/*"],
-      "@genfeedai/workflows/contracts": ["./src/workflows-contracts-shim.ts"],
+      "@genfeedai/workflows": ["../workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["../workflows/src/*"],
       "@workflow-saas/*": ["./src/*"]
     },
     "skipLibCheck": true,

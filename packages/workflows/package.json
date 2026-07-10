@@ -12,13 +12,17 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./comfyui": {
-      "types": "./dist/comfyui/index.d.ts",
-      "default": "./dist/comfyui/index.js"
-    },
     "./contracts": {
       "types": "./dist/contracts/index.d.ts",
       "default": "./dist/contracts/index.js"
+    },
+    "./generation": {
+      "types": "./dist/generation/index.d.ts",
+      "default": "./dist/generation/index.js"
+    },
+    "./generation/comfyui": {
+      "types": "./dist/generation/comfyui/index.d.ts",
+      "default": "./dist/generation/comfyui/index.js"
     },
     "./workflows/*": "./workflows/*"
   },
@@ -40,9 +44,10 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/contracts/index.ts src/comfyui/index.ts --format esm --dts --clean --sourcemap",
-    "dev": "tsup src/index.ts src/contracts/index.ts src/comfyui/index.ts --format esm --dts --watch --sourcemap",
-    "prepublishOnly": "bun run build"
+    "build": "tsup src/index.ts src/contracts/index.ts src/generation/index.ts src/generation/comfyui/index.ts --format esm --dts --clean --sourcemap",
+    "dev": "tsup src/index.ts src/contracts/index.ts src/generation/index.ts src/generation/comfyui/index.ts --format esm --dts --watch --sourcemap",
+    "prepublishOnly": "bun run build",
+    "test": "bun test src"
   },
   "sideEffects": false,
   "type": "module",

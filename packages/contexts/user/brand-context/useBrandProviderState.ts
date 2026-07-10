@@ -1,3 +1,5 @@
+import { isBetterAuthEnabled } from '@genfeedai/auth-client';
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import type { IBrand, ICredential } from '@genfeedai/interfaces';
@@ -34,21 +36,8 @@ import {
   getBrandOrganizationSlug,
 } from './brand-context.helpers';
 
-interface GenfeedRuntimeConfig {
-  betterAuthEnabled?: boolean;
-}
-
 function isLocalBootstrapEnabled(): boolean {
-  const runtimeConfig = (
-    globalThis as typeof globalThis & {
-      __GENFEED_RUNTIME_CONFIG__?: GenfeedRuntimeConfig;
-    }
-  ).__GENFEED_RUNTIME_CONFIG__;
-  const betterAuthEnabled =
-    runtimeConfig?.betterAuthEnabled ??
-    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED !== 'false';
-
-  return !process.env.NEXT_PUBLIC_GENFEED_CLOUD && !betterAuthEnabled;
+  return isSelfHostedDeployment() && !isBetterAuthEnabled();
 }
 
 interface UseBrandProviderStateParams {

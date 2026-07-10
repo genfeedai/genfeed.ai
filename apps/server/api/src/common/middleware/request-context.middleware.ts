@@ -12,7 +12,7 @@ import {
 } from '@api/common/constants/request-context-cache.constants';
 import { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -47,7 +47,7 @@ export class RequestContextMiddleware implements NestMiddleware {
     _res: Response,
     next: NextFunction,
   ): Promise<void> {
-    if (IS_SELF_HOSTED) {
+    if (isSelfHostedDeployment()) {
       await this.hydrateSelfHostedContext(req);
       return next();
     }

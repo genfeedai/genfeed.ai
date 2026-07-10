@@ -1,3 +1,4 @@
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import {
@@ -24,7 +25,6 @@ const AGENT_PANEL_HEIGHT = 380;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
 const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
-const IS_DESKTOP_SHELL = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
 
 type UseAppLayoutParams = Pick<
   AppLayoutProps,
@@ -241,7 +241,7 @@ export function useAppLayout({
   const layoutStyle = {
     '--desktop-agent-height': `${desktopAgentHeight}px`,
     '--desktop-sidebar-width': `${desktopSidebarWidth}px`,
-    '--desktop-titlebar-height': IS_DESKTOP_SHELL
+    '--desktop-titlebar-height': isDesktopClient()
       ? `${DESKTOP_TITLEBAR_HEIGHT}px`
       : '0px',
   } as CSSProperties;

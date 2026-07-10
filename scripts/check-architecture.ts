@@ -21,6 +21,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-deployment-mode-boundary.ts',
+    ],
+    name: 'Deployment mode boundary',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-server-package-boundary.ts',
     ],
     name: 'Shared server package API boundary',

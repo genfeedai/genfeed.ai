@@ -5,6 +5,13 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: '@genfeedai/workflows/contracts',
+        replacement: path.resolve(
+          __dirname,
+          '../workflows/src/contracts/index.ts',
+        ),
+      },
+      {
         find: /^@genfeedai\/enums$/,
         replacement: path.resolve(__dirname, '../enums/src/index.ts'),
       },

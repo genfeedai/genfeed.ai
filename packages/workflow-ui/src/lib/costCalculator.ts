@@ -5,7 +5,7 @@ import {
   PRICING,
   TOPAZ_NODE_TYPES,
   VIDEO_NODE_TYPES,
-} from '@genfeedai/core';
+} from '@genfeedai/pricing';
 import type {
   CostBreakdown,
   NodeCostEstimate,

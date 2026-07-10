@@ -3,20 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ANALYTICS_EVENTS } from './analytics-events';
 
 const mocks = vi.hoisted(() => ({
-  isCloudConnected: vi.fn(),
-  isDesktopShell: vi.fn(),
+  isSaaS: vi.fn(),
   posthogCapture: vi.fn(),
   posthogGroup: vi.fn(),
   posthogInit: vi.fn(),
   posthogReset: vi.fn(),
 }));
 
-vi.mock('@/lib/config/edition', () => ({
-  isCloudConnected: mocks.isCloudConnected,
-}));
-
-vi.mock('@/lib/desktop/runtime', () => ({
-  isDesktopShell: mocks.isDesktopShell,
+vi.mock('@genfeedai/config/deployment', () => ({
+  isSaaS: mocks.isSaaS,
 }));
 
 vi.mock('posthog-js', () => ({
@@ -45,8 +40,7 @@ async function flushInit(): Promise<void> {
 }
 
 beforeEach(() => {
-  mocks.isCloudConnected.mockReturnValue(true);
-  mocks.isDesktopShell.mockReturnValue(false);
+  mocks.isSaaS.mockReturnValue(true);
   vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_test_key');
 });
 
@@ -57,13 +51,13 @@ describe('isAnalyticsEnabled', () => {
   });
 
   it('is disabled in self-hosted (non-cloud) builds', async () => {
-    mocks.isCloudConnected.mockReturnValue(false);
+    mocks.isSaaS.mockReturnValue(false);
     const client = await loadClient();
     expect(client.isAnalyticsEnabled()).toBe(false);
   });
 
   it('is disabled in desktop builds even when cloud-connected', async () => {
-    mocks.isDesktopShell.mockReturnValue(true);
+    mocks.isSaaS.mockReturnValue(false);
     const client = await loadClient();
     expect(client.isAnalyticsEnabled()).toBe(false);
   });
@@ -153,7 +147,7 @@ describe('initAnalytics', () => {
   });
 
   it('never constructs the client in self-hosted mode', async () => {
-    mocks.isCloudConnected.mockReturnValue(false);
+    mocks.isSaaS.mockReturnValue(false);
     const client = await loadClient();
     client.initAnalytics();
     await flushInit();
@@ -161,7 +155,7 @@ describe('initAnalytics', () => {
   });
 
   it('never constructs the client in desktop mode', async () => {
-    mocks.isDesktopShell.mockReturnValue(true);
+    mocks.isSaaS.mockReturnValue(false);
     const client = await loadClient();
     client.initAnalytics();
     await flushInit();

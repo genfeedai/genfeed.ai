@@ -14,7 +14,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { AppModule } from '@files/app.module';
 import { ConfigService } from '@files/config/config.service';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   GENFEED_CORS_ALLOWED_METHODS,
   GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS,
@@ -62,7 +62,7 @@ async function main() {
     app.use(express.json({ limit: '100mb' }));
 
     // Serve local files in self-hosted mode (LOCAL + HYBRID)
-    if (IS_SELF_HOSTED) {
+    if (isSelfHostedDeployment()) {
       const localStorageDir =
         configService.get('GENFEED_STORAGE_PATH') ??
         path.join(os.homedir(), '.genfeed', 'data', 'files');

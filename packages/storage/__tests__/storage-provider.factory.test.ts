@@ -19,7 +19,9 @@ describe('createStorageProvider', () => {
   });
 
   it('returns LocalStorageProvider when self-hosted', async () => {
-    vi.doMock('@genfeedai/config', () => ({ IS_SELF_HOSTED: true }));
+    vi.doMock('@genfeedai/config', () => ({
+      isSelfHostedDeployment: () => true,
+    }));
     const { createStorageProvider } = await import(
       '../src/storage-provider.factory'
     );
@@ -38,7 +40,9 @@ describe('createStorageProvider', () => {
   });
 
   it('returns S3StorageProvider with options when cloud', async () => {
-    vi.doMock('@genfeedai/config', () => ({ IS_SELF_HOSTED: false }));
+    vi.doMock('@genfeedai/config', () => ({
+      isSelfHostedDeployment: () => false,
+    }));
     const { createStorageProvider } = await import(
       '../src/storage-provider.factory'
     );

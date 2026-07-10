@@ -1,4 +1,4 @@
-import { IS_BETTER_AUTH_ENABLED } from '@genfeedai/config';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { toNodeHandler } from 'better-auth/node';
 import type { RequestHandler } from 'express';
@@ -47,7 +47,7 @@ export class BetterAuthService {
 
   /** True only when the flag is on AND the instance was constructed. */
   get isEnabled(): boolean {
-    return IS_BETTER_AUTH_ENABLED && this.instance !== null;
+    return isBetterAuthEnabled() && this.instance !== null;
   }
 
   /** Express handler serving `${basePath}/*` (sign-in, magic-link, jwks, …). */

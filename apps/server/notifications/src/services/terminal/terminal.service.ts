@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
+import { isCloudDeployment } from '@genfeedai/config';
 import type { IBetterAuthJwksVerifierOptions } from '@genfeedai/interfaces';
 import {
   createBetterAuthJwksVerifierOptions,
@@ -178,15 +179,14 @@ export class TerminalService {
   }
 
   isAvailable(): boolean {
-    const isCloud =
-      process.env.GENFEED_CLOUD === 'true' ||
-      process.env.NEXT_PUBLIC_GENFEED_CLOUD === 'true';
     const explicitlyEnabled = this.configService.get('GENFEED_LOCAL_TERMINAL');
     const isDevelopment =
       this.configService.get('NODE_ENV') === 'development' ||
       process.env.NODE_ENV === 'development';
 
-    return !isCloud && (isDevelopment || explicitlyEnabled === 'true');
+    return (
+      !isCloudDeployment() && (isDevelopment || explicitlyEnabled === 'true')
+    );
   }
 
   /**

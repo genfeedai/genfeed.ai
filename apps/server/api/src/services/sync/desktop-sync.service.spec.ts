@@ -22,7 +22,7 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
 }));
 
 vi.mock('@genfeedai/config', () => ({
-  IS_SELF_HOSTED: false,
+  isSelfHostedDeployment: () => false,
 }));
 
 vi.mock('@genfeedai/enums', () => ({

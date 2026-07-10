@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 import {
   ASPECT_RATIOS,
   DEFAULT_VIDEO_DURATION,
@@ -13,7 +13,7 @@ import {
   VIDEO_DURATIONS,
   VIDEO_NODE_TYPES,
   VIDEO_RESOLUTIONS,
-} from './pricing';
+} from './provider-pricing';
 
 describe('PRICING constants', () => {
   it('should have nano-banana pricing', () => {

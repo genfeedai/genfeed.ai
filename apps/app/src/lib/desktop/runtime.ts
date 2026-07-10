@@ -7,10 +7,6 @@ type DesktopWindow = Window &
     genfeedDesktop?: IGenfeedDesktopBridge;
   };
 
-export function isDesktopShell(): boolean {
-  return process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
-}
-
 export function getDesktopBridge(): IGenfeedDesktopBridge | null {
   if (typeof window === 'undefined') {
     return null;

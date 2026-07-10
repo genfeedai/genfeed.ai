@@ -3,16 +3,14 @@ import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.serv
 import { SubscriptionTier } from '@genfeedai/enums';
 import { vi } from 'vitest';
 
-// Togglable IS_CLOUD_MODE so we can drive both the per-tier (cloud) and
-// per-key (self-hosted) rate-limit paths.
+// Togglable deployment mode drives both the per-tier (cloud) and per-key
+// (self-hosted) rate-limit paths.
 let mockCloudMode = true;
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
   return {
     ...actual,
-    get IS_CLOUD_MODE() {
-      return mockCloudMode;
-    },
+    isCloudDeployment: () => mockCloudMode,
   };
 });
 

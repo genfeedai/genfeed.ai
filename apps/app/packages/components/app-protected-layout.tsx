@@ -3,6 +3,7 @@
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import type { AgentApiService } from '@genfeedai/agent';
+import { isEEEnabled } from '@genfeedai/config/license';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
@@ -17,9 +18,7 @@ import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, Suspense, useCallback, useMemo } from 'react';
-
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
-import { isEEEnabled } from '@/lib/config/edition';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';

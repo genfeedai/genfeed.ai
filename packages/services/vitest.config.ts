@@ -2,6 +2,7 @@ import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
+const CONFIG_SRC = path.resolve(__dirname, '../config/src');
 const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
 const API_TYPES_SRC = path.resolve(__dirname, '../api-types/src');
 
@@ -25,6 +26,14 @@ export default defineConfig({
       {
         find: /^@genfeedai\/services\/(.*)$/,
         replacement: path.resolve(__dirname, '$1'),
+      },
+      {
+        find: /^@genfeedai\/config$/,
+        replacement: path.resolve(CONFIG_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/config\/(.*)$/,
+        replacement: path.resolve(CONFIG_SRC, '$1'),
       },
       {
         find: '@genfeedai/constants',

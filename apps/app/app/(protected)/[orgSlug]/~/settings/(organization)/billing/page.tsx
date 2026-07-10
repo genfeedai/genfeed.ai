@@ -1,7 +1,7 @@
+import { isEEEnabled } from '@genfeedai/config/license';
 import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { redirect } from 'next/navigation';
-import { isEEEnabled } from '@/lib/config/edition';
 import SettingsBillingPage from '../../(pages)/organization/billing/content';
 import { SettingsOrganizationRouteShell } from '../SettingsOrganizationRouteShell';
 

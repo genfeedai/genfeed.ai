@@ -1,6 +1,7 @@
 'use client';
 
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { isEEEnabled } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ReactElement } from 'react';
@@ -15,9 +16,7 @@ export function CreditsBalanceCard({
 }: CreditsBalanceCardProps): ReactElement {
   const { orgHref } = useOrgUrl();
   const billingHref = orgHref(
-    process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY
-      ? APP_ROUTES.SETTINGS.BILLING
-      : APP_ROUTES.SETTINGS.CREDITS,
+    isEEEnabled() ? APP_ROUTES.SETTINGS.BILLING : APP_ROUTES.SETTINGS.CREDITS,
   );
   const balance = action.balance ?? 0;
   const usagePercent = action.usagePercent ?? 0;

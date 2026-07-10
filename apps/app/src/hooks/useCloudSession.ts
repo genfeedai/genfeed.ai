@@ -1,6 +1,7 @@
 'use client';
 
-import { isCloudConnected, isHybridMode } from '@/lib/config/edition';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client';
+import { isCloudDeployment } from '@genfeedai/config/deployment';
 
 import { useOptionalAuth } from './useOptionalAuth';
 
@@ -18,7 +19,7 @@ export function useCloudSession() {
      * In desktop offline mode isSignedIn is true to bypass guards, but userId is null — not cloud-connected. */
     isConnected: auth.isSignedIn === true && auth.userId !== null,
     /** True if cloud auth is configured (hybrid or full cloud mode) */
-    isCapable: isHybridMode() || isCloudConnected(),
+    isCapable: isCloudDeployment() || isBetterAuthEnabled(),
     /** Current auth user ID, or null when not signed in */
     userId: auth.userId ?? null,
   };

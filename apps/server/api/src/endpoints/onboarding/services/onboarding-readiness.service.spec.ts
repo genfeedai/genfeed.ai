@@ -4,16 +4,14 @@ import type { OrganizationsService } from '@api/collections/organizations/servic
 import type { UsersService } from '@api/collections/users/services/users.service';
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockedConfig = vi.hoisted(() => ({ IS_CLOUD: false }));
+const mockedConfig = vi.hoisted(() => ({ isCloud: false }));
 
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
 
   return {
     ...actual,
-    get IS_CLOUD() {
-      return mockedConfig.IS_CLOUD;
-    },
+    isCloudDeployment: () => mockedConfig.isCloud,
   };
 });
 
@@ -32,7 +30,7 @@ type LocalToolReadiness = {
 
 describe('OnboardingReadinessService local tool readiness', () => {
   const instantiateService = async (isCloud: boolean) => {
-    mockedConfig.IS_CLOUD = isCloud;
+    mockedConfig.isCloud = isCloud;
     vi.resetModules();
 
     const { OnboardingReadinessService } = await import(
@@ -54,7 +52,7 @@ describe('OnboardingReadinessService local tool readiness', () => {
   });
 
   afterAll(() => {
-    mockedConfig.IS_CLOUD = false;
+    mockedConfig.isCloud = false;
   });
 
   it('short-circuits to no detected tools on cloud deployments without shelling out', async () => {

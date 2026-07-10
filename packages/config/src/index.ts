@@ -1,26 +1,26 @@
 // Helpers
 
-// Edition
-export { IS_CLOUD, IS_EE } from './edition';
+// Deployment
+export type { ClientSurface, Deployment } from './deployment';
+export {
+  envFlag,
+  getClientSurface,
+  getDeployment,
+  isCloudDeployment,
+  isCommunity,
+  isDesktopClient,
+  isSaaS,
+  isSelfHostedDeployment,
+} from './deployment';
 export {
   conditionalRequired,
   conditionalRequiredNumber,
-  IS_BETTER_AUTH_ENABLED,
-  IS_SELF_HOSTED,
   SELF_HOSTED_REQUIRED,
 } from './helpers';
 // Interfaces
 export type { IEnvConfig } from './interfaces/env-config.interface';
 // License & Edition
-export { isCloudConnected, isEEEnabled } from './license';
-// Mode
-export {
-  GENFEED_MODE,
-  GenfeedMode,
-  IS_CLOUD_MODE,
-  IS_HYBRID_MODE,
-  IS_LOCAL_MODE,
-} from './mode';
+export { isEEEnabled } from './license';
 export type { PricingConfig } from './pricing';
 // Pricing
 export { getPricingConfig } from './pricing';

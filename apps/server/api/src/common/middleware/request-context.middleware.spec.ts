@@ -9,9 +9,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 
   return {
     ...actual,
-    get IS_SELF_HOSTED() {
-      return configState.isSelfHosted;
-    },
+    isSelfHostedDeployment: () => configState.isSelfHosted,
   };
 });
 

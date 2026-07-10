@@ -10,7 +10,7 @@ describe('ProtectedRootPage', () => {
     );
 
     expect(source).toContain("import { redirect } from 'next/navigation'");
-    expect(source).toContain('NEXT_PUBLIC_BETTER_AUTH_ENABLED');
+    expect(source).toContain('isBetterAuthEnabled');
     expect(source).toContain('ProtectedRootResolver');
     expect(source).toContain('return <ProtectedRootResolver />');
   });

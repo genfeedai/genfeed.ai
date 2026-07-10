@@ -112,14 +112,6 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/constants/src/$1'),
       },
       {
-        find: /^@genfeedai\/core$/,
-        replacement: path.resolve(repoRoot, './packages/core/src/index.ts'),
-      },
-      {
-        find: /^@genfeedai\/core\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/core/src/$1'),
-      },
-      {
         find: /^@genfeedai\/contexts$/,
         replacement: path.resolve(repoRoot, './packages/contexts/index.ts'),
       },

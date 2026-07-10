@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import type { IGenfeedDesktopBridge } from '@genfeedai/desktop-contracts';
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -11,7 +12,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
+import { getDesktopBridge } from '@/lib/desktop/runtime';
 
 function buildTwitterRemixTopic(params: {
   sourceAuthor?: string;
@@ -79,7 +80,7 @@ function TrendRemixPageContent() {
   );
 
   useEffect(() => {
-    const desktop = isDesktopShell();
+    const desktop = isDesktopClient();
 
     if ((!isReady && !desktop) || hasStartedRef.current) {
       return;

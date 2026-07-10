@@ -3,7 +3,8 @@ import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.
 import { REQUIRES_CLOUD_AUTH_KEY } from '@api/helpers/decorators/requires-cloud-auth.decorator';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IS_HYBRID_MODE, IS_LOCAL_MODE } from '@genfeedai/config';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import type {
   Brand,
   Organization,
@@ -171,7 +172,7 @@ export class CombinedAuthGuard implements CanActivate {
     }>();
 
     // 2. LOCAL mode: skip all auth and inject a default local identity
-    if (IS_LOCAL_MODE) {
+    if (isSelfHostedDeployment() && !isBetterAuthEnabled()) {
       if (this.requiresCloudAuth(context)) {
         throw new UnauthorizedException(
           'This endpoint requires a cloud connection',
@@ -185,7 +186,7 @@ export class CombinedAuthGuard implements CanActivate {
     const token = this.resolveBearerToken(authHeader);
 
     // 3. HYBRID mode: opportunistic auth
-    if (IS_HYBRID_MODE) {
+    if (isSelfHostedDeployment() && isBetterAuthEnabled()) {
       // @RequiresCloudAuth() routes must have a valid token
       if (this.requiresCloudAuth(context) && !token) {
         throw new UnauthorizedException(

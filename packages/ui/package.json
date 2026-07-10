@@ -38,6 +38,7 @@
   },
   "description": "Shared design tokens and UI primitives for Genfeed web, mobile, and extension surfaces",
   "devDependencies": {
+    "@genfeedai/config": "workspace:*",
     "@genfeedai/contexts": "workspace:*",
     "@genfeedai/hooks": "workspace:*",
     "@genfeedai/models": "workspace:*",

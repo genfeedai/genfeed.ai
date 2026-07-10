@@ -70,7 +70,7 @@ describe('TerminalService', () => {
   });
 
   it('is disabled when the server cloud flag is enabled', () => {
-    process.env.GENFEED_CLOUD = 'true';
+    process.env.GENFEED_CLOUD = '1';
     const service = createService(
       { GENFEED_LOCAL_TERMINAL: 'true', NODE_ENV: 'development' },
       mockAdapter,

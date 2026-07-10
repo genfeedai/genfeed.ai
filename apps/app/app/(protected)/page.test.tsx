@@ -21,9 +21,11 @@ runPageModuleTests('app/(protected)/page', PageModule);
 
 describe('ProtectedRootPage', () => {
   const originalBetterAuthEnabled = process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+  const originalServerBetterAuthEnabled = process.env.BETTER_AUTH_ENABLED;
 
   beforeEach(() => {
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    delete process.env.BETTER_AUTH_ENABLED;
     mocks.redirect.mockClear();
   });
 
@@ -32,6 +34,11 @@ describe('ProtectedRootPage', () => {
       delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     } else {
       process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = originalBetterAuthEnabled;
+    }
+    if (originalServerBetterAuthEnabled === undefined) {
+      delete process.env.BETTER_AUTH_ENABLED;
+    } else {
+      process.env.BETTER_AUTH_ENABLED = originalServerBetterAuthEnabled;
     }
   });
 
@@ -42,7 +49,7 @@ describe('ProtectedRootPage', () => {
   });
 
   it('redirects keyless self-hosted root to the seeded workspace', () => {
-    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'false';
+    process.env.BETTER_AUTH_ENABLED = 'false';
 
     expect(() => ProtectedRootPage()).toThrow(
       'NEXT_REDIRECT:/default/default/workspace/overview',

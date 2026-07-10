@@ -22,8 +22,11 @@ const XYFLOW_REACT_MOCK = path.resolve(
 );
 const EMPTY_STYLE_MOCK = path.resolve(__dirname, './tests/__mocks__/style.ts');
 const API_TYPES_SRC = path.resolve(__dirname, '../api-types/src');
+const AUTH_CLIENT_SRC = path.resolve(__dirname, '../auth-client/src');
 const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
+const CONFIG_SRC = path.resolve(__dirname, '../config/src');
 const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
+const INTERFACES_SRC = path.resolve(__dirname, '../interfaces/src');
 const PRICING_SRC = path.resolve(__dirname, '../pricing/src');
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
 const AGENT_SRC = path.resolve(__dirname, '../agent/src');
@@ -32,6 +35,30 @@ const PAGES_SRC = path.resolve(__dirname, '../pages');
 export default defineConfig({
   resolve: {
     alias: [
+      {
+        find: /^@genfeedai\/auth-client$/,
+        replacement: path.resolve(AUTH_CLIENT_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/auth-client\/(.*)$/,
+        replacement: path.resolve(AUTH_CLIENT_SRC, '$1'),
+      },
+      {
+        find: /^@genfeedai\/interfaces$/,
+        replacement: path.resolve(INTERFACES_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(INTERFACES_SRC, '$1'),
+      },
+      {
+        find: /^@genfeedai\/config$/,
+        replacement: path.resolve(CONFIG_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/config\/(.*)$/,
+        replacement: path.resolve(CONFIG_SRC, '$1'),
+      },
       {
         find: /^@api-types\/(.*)$/,
         replacement: path.resolve(API_TYPES_SRC, '$1'),

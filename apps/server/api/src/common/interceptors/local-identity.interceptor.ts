@@ -1,6 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IS_HYBRID_MODE, IS_LOCAL_MODE } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import type {
   Brand,
   Organization,
@@ -36,7 +36,7 @@ export class LocalIdentityInterceptor implements NestInterceptor {
     executionContext: ExecutionContext,
     next: CallHandler,
   ): Promise<Observable<unknown>> {
-    if (!IS_LOCAL_MODE && !IS_HYBRID_MODE) {
+    if (!isSelfHostedDeployment()) {
       return next.handle();
     }
 

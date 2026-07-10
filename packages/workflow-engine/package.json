@@ -2,6 +2,7 @@
   "dependencies": {
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/workflows": "workspace:*",
     "recheck": "4.5.0"
   },
   "devDependencies": {

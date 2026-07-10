@@ -23,6 +23,10 @@ export default defineConfig({
         serviceDir,
         '../../../packages/config/src/index.ts',
       ),
+      '@genfeedai/enums': path.resolve(
+        serviceDir,
+        '../../../packages/enums/src/index.ts',
+      ),
       '@genfeedai/pricing': path.resolve(
         serviceDir,
         '../../../packages/pricing/src/index.ts',
@@ -35,9 +39,9 @@ export default defineConfig({
         serviceDir,
         '../../../packages/types/src/index.ts',
       ),
-      '@genfeedai/workflows/comfyui': path.resolve(
+      '@genfeedai/workflows/generation/comfyui': path.resolve(
         serviceDir,
-        '../../../packages/workflows/src/comfyui/index.ts',
+        '../../../packages/workflows/src/generation/comfyui/index.ts',
       ),
       '@genfeedai/workflows': path.resolve(
         serviceDir,

@@ -11,7 +11,7 @@ import {
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
 import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
-import { IS_CLOUD_MODE } from '@genfeedai/config';
+import { isCloudDeployment } from '@genfeedai/config';
 import { getUpgradeTierForLimit } from '@genfeedai/pricing';
 import {
   type CanActivate,
@@ -30,7 +30,7 @@ export class MemberCreditsGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // Self-hosted/community deployments have no billing or seat concept.
-    if (!IS_CLOUD_MODE) {
+    if (!isCloudDeployment()) {
       return true;
     }
 

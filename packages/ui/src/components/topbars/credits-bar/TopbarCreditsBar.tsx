@@ -1,5 +1,6 @@
 'use client';
 
+import { isEEEnabled } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -177,9 +178,7 @@ export default function TopbarCreditsBar() {
   // Remaining percentage for the fill bar (how much is left)
   const remainingPercent = planLimit > 0 ? (planBalance / planLimit) * 100 : 0;
   const billingHref = orgHref(
-    process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY
-      ? APP_ROUTES.SETTINGS.BILLING
-      : APP_ROUTES.SETTINGS.CREDITS,
+    isEEEnabled() ? APP_ROUTES.SETTINGS.BILLING : APP_ROUTES.SETTINGS.CREDITS,
   );
 
   return (

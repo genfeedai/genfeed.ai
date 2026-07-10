@@ -10,7 +10,7 @@ describe('app/(protected)/admin/layout.tsx', () => {
     );
 
     expect(source).toContain('loadProtectedBootstrap');
-    expect(source).toContain('isCloudConnected');
+    expect(source).toContain('isSaaS');
     expect(source).toContain('bootstrap?.accessState?.isSuperAdmin');
     expect(source).toContain('notFound()');
   });

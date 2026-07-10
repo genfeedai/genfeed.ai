@@ -1,5 +1,5 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import type {
   LifecycleEmailSequence,
   LifecycleEmailStep,
@@ -220,7 +220,7 @@ export class LifecycleEmailService {
     operation: string,
     fn: () => Promise<void>,
   ): Promise<void> {
-    if (IS_SELF_HOSTED) {
+    if (isSelfHostedDeployment()) {
       return;
     }
 

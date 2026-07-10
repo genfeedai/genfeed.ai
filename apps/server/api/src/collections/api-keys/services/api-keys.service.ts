@@ -9,7 +9,7 @@ import {
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { IS_CLOUD_MODE } from '@genfeedai/config';
+import { isCloudDeployment } from '@genfeedai/config';
 import { ApiKeyScope } from '@genfeedai/enums';
 import { getApiRateLimitForTier } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
@@ -310,7 +310,7 @@ export class ApiKeysService extends BaseService<
   async resolveEffectiveRateLimit(
     apiKey: ApiKeyDocument,
   ): Promise<number | null> {
-    if (!IS_CLOUD_MODE) {
+    if (!isCloudDeployment()) {
       return apiKey.rateLimit || null;
     }
 

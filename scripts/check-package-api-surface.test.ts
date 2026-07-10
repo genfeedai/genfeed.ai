@@ -141,6 +141,21 @@ describe('check-package-api-surface', () => {
     expect(packageDirs.has('packages/ui')).toBe(true);
   });
 
+  it('accepts migration notes for packages deleted from the current tree', () => {
+    writeFixture(
+      '.changes/legacy-removal.md',
+      ['# Package removal', '', 'packages: @genfeedai/legacy'].join('\n'),
+    );
+
+    const packageDirs = collectMigrationNotePackageDirs(
+      testDir,
+      ['.changes/legacy-removal.md'],
+      new Set(['packages/legacy', 'packages/ui']),
+    );
+
+    expect(packageDirs).toEqual(new Set(['packages/legacy']));
+  });
+
   it('accepts version bumps for changed package surfaces', () => {
     const baseSnapshots = [
       {

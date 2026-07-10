@@ -12,16 +12,14 @@ import {
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 
-// IS_CLOUD_MODE is a module-load const; expose it as a togglable getter so we
-// can exercise both cloud (enforced) and non-cloud (bypassed) paths.
+// Keep the deployment function togglable so both cloud (enforced) and
+// non-cloud (bypassed) paths are exercised.
 let mockCloudMode = true;
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
   return {
     ...actual,
-    get IS_CLOUD_MODE() {
-      return mockCloudMode;
-    },
+    isCloudDeployment: () => mockCloudMode,
   };
 });
 

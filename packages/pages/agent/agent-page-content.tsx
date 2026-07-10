@@ -1,12 +1,12 @@
 'use client';
 
 import { AgentApiService, AgentFullPage } from '@genfeedai/agent';
+import { isEEEnabled } from '@genfeedai/config/license';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCallback, useMemo } from 'react';
-import { isEEEnabled } from '@/lib/config/edition';
 
 export interface AgentPageContentProps {
   authReady?: boolean;

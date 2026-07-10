@@ -7,7 +7,7 @@ import {
   buildFluxDevPrompt,
   buildPulidFluxPrompt,
   buildZImageTurboPrompt,
-} from '@genfeedai/workflows/comfyui';
+} from '@genfeedai/workflows/generation/comfyui';
 import { ConfigService } from '@images/config/config.service';
 import type {
   GenerateImageRequest,

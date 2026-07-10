@@ -11,7 +11,7 @@ import { S3Service } from '@libs/s3/s3.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { GenerationService } from './generation.service';
 
-vi.mock('@genfeedai/workflows/comfyui', () => ({
+vi.mock('@genfeedai/workflows/generation/comfyui', () => ({
   buildFlux2DevPrompt: vi.fn((request: Record<string, unknown>) => ({
     request,
     workflow: 'flux2-dev',

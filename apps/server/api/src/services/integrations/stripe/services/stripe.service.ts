@@ -1,4 +1,4 @@
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   creditPackTotalCredits,
   PAYG_CREDIT_PACKS,
@@ -57,7 +57,7 @@ export class StripeService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {
-    if (IS_SELF_HOSTED) {
+    if (isSelfHostedDeployment()) {
       // Noop — Stripe is not available in self-hosted mode
       this.stripe = null as unknown as StripeClient;
       return;

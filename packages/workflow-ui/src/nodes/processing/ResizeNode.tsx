@@ -1,6 +1,6 @@
 'use client';
 
-import { LUMA_ASPECT_RATIOS } from '@genfeedai/core';
+import { LUMA_ASPECT_RATIOS } from '@genfeedai/pricing';
 import type {
   GridPosition,
   LumaAspectRatio,

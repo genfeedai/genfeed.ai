@@ -11,7 +11,7 @@ export interface IEnvConfig {
   SERVICE_NAME?: string;
   API_METRICS_LOGGING?: 'true' | 'false';
   API_SENTRY_PERFORMANCE_METRICS?: 'true' | 'false';
-  GENFEED_CLOUD?: 'true' | 'false';
+  GENFEED_CLOUD?: string;
 
   // === Genfeed Internal URLs ===
   GENFEEDAI_API_URL?: string;

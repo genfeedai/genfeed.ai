@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@genfeedai/client": "workspace:*",
+    "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",

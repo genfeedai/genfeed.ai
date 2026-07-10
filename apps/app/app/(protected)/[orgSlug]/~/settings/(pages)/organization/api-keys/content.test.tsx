@@ -184,12 +184,9 @@ vi.mock('@/components/desktop/DesktopLocalProviderSettings', () => ({
   ),
 }));
 
-vi.mock('@/lib/desktop/runtime', () => ({
-  isDesktopShell: () => mocks.desktop,
-}));
-
-vi.mock('@/lib/config/edition', () => ({
-  isSelfHosted: () => mocks.isSelfHosted,
+vi.mock('@genfeedai/config/deployment', () => ({
+  isDesktopClient: () => mocks.desktop,
+  isSelfHostedDeployment: () => mocks.isSelfHosted,
 }));
 
 function providerStatuses() {

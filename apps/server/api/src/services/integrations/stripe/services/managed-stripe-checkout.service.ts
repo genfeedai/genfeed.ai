@@ -2,7 +2,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { CreateManagedCheckoutDto } from '@api/services/integrations/stripe/dto/create-managed-checkout.dto';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -42,7 +42,7 @@ export class ManagedStripeCheckoutService {
   async createCheckoutSession(
     dto: CreateManagedCheckoutDto,
   ): Promise<{ url: string }> {
-    if (IS_SELF_HOSTED) {
+    if (isSelfHostedDeployment()) {
       throw new ServiceUnavailableException(
         'Managed credit checkout is available from Genfeed Cloud, not the local self-hosted API.',
       );

@@ -7,7 +7,7 @@
  */
 
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -23,7 +23,7 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    if (!IS_SELF_HOSTED) {
+    if (!isSelfHostedDeployment()) {
       return;
     }
 
