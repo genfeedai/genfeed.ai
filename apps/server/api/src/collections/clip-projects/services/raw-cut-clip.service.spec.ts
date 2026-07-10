@@ -142,4 +142,12 @@ describe('RawCutClipService', () => {
 
     expect(fileQueueService.processVideo).not.toHaveBeenCalled();
   });
+
+  it('rejects a negative startTime before dispatching a trim job', async () => {
+    await expect(
+      service.dispatchClip(makeInput({ endTime: 10, startTime: -5 })),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(fileQueueService.processVideo).not.toHaveBeenCalled();
+  });
 });
