@@ -172,20 +172,4 @@ export class PostReplyExecutor extends BaseExecutor {
   estimateCost(_node: ExecutableNode): number {
     return 1;
   }
-
-  private getConfigOrInputString(
-    node: ExecutableNode,
-    inputs: Map<string, unknown>,
-    key: string,
-  ): string | undefined {
-    const configValue = node.config[key];
-    if (typeof configValue === 'string' && configValue.trim().length > 0) {
-      return configValue;
-    }
-
-    const inputValue = inputs.get(key);
-    return typeof inputValue === 'string' && inputValue.trim().length > 0
-      ? inputValue
-      : undefined;
-  }
 }
