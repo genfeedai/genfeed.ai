@@ -170,6 +170,11 @@ describe('IngredientCompletionService', () => {
         IngredientStatus.GENERATED,
       ]);
       expect(attempts).toBeGreaterThanOrEqual(3);
+      expect(
+        ingredientsService.findOne.mock.calls.filter(
+          ([query]) => query._id === 'a',
+        ),
+      ).toHaveLength(1);
     });
 
     it('throws PollTimeoutException if any ingredient never completes', async () => {

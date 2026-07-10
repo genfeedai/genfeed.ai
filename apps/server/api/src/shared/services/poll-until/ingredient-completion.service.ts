@@ -68,15 +68,35 @@ export class IngredientCompletionService {
     pollIntervalMs: number,
     populate: PopulateOption[] = [],
   ): Promise<IngredientDocument[]> {
+    const uniqueIds = [...new Set(ingredientIds)];
+    const completed = new Map<string, IngredientDocument>();
+
     const { value } = await this.pollUntilService.poll(
-      () =>
-        Promise.all(
-          ingredientIds.map((id) => this.readIngredientOrThrow(id, populate)),
-        ),
-      (ingredients) => ingredients.every((i) => isTerminalStatus(i.status)),
+      async () => {
+        const incompleteIds = uniqueIds.filter((id) => !completed.has(id));
+        const ingredients = await Promise.all(
+          incompleteIds.map((id) => this.readIngredientOrThrow(id, populate)),
+        );
+
+        for (let index = 0; index < incompleteIds.length; index++) {
+          const ingredient = ingredients[index];
+          if (ingredient && isTerminalStatus(ingredient.status)) {
+            completed.set(incompleteIds[index], ingredient);
+          }
+        }
+
+        return completed;
+      },
+      (terminalIngredients) => terminalIngredients.size === uniqueIds.length,
       { intervalMs: pollIntervalMs, timeoutMs },
     );
-    return value;
+
+    return ingredientIds
+      .map((id) => value.get(id))
+      .filter(
+        (ingredient): ingredient is IngredientDocument =>
+          ingredient !== undefined,
+      );
   }
 
   private async readIngredientOrThrow(

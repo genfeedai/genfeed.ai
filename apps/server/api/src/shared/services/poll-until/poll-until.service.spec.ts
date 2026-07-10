@@ -276,6 +276,32 @@ describe('PollUntilService', () => {
       await expectation;
       expect(fn).toHaveBeenCalledTimes(1);
     });
+
+    it('rejects when aborted during an in-flight attempt', async () => {
+      const controller = new AbortController();
+      let resolveAttempt: ((value: string) => void) | undefined;
+      const fn = vi.fn(
+        () =>
+          new Promise<string>((resolve) => {
+            resolveAttempt = resolve;
+          }),
+      );
+
+      const promise = service.poll(fn, () => true, {
+        intervalMs: 100,
+        timeoutMs: 5_000,
+        signal: controller.signal,
+      });
+      const expectation =
+        expect(promise).rejects.toBeInstanceOf(PollAbortException);
+
+      await vi.advanceTimersByTimeAsync(1);
+      controller.abort();
+      resolveAttempt?.('completed');
+
+      await expectation;
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('PollTimeoutException', () => {

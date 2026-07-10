@@ -77,6 +77,7 @@ export class PollUntilService {
       this.throwIfAborted(signal);
       attempts++;
       const value = await fn();
+      this.throwIfAborted(signal);
 
       if (isDone(value)) {
         const elapsedMs = Date.now() - startTime;
