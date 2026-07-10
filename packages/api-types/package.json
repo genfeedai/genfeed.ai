@@ -6,7 +6,6 @@
   "description": "Auto-generated TypeScript types from OpenAPI spec with Zod validation schemas",
   "devDependencies": {
     "openapi-typescript": "7.13.0",
-    "tsc-alias": "1.9.0",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -38,7 +37,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build && mkdir -p dist/generated && cp src/generated/api.d.ts dist/generated/api.d.ts && bunx tsc-alias -p tsconfig.json -f -fe .js",
+    "build": "tsc --build && mkdir -p dist/generated && cp src/generated/api.d.ts dist/generated/api.d.ts && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "generate": "bun run scripts/generate.ts --skip-on-error",

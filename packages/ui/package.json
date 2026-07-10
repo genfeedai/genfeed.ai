@@ -55,7 +55,6 @@
     "jsdom": "29.1.1",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "tsc-alias": "1.9.0",
     "typescript": "6.0.2",
     "vitest": "4.1.10"
   },
@@ -124,7 +123,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build && bunx tsc-alias -p tsconfig.json -f -fe .js",
+    "build": "tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "../../scripts/sh/sanitize-node-color-env.sh vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts"

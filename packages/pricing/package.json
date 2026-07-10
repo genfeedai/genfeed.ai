@@ -5,7 +5,6 @@
   },
   "devDependencies": {
     "@types/node": "26.1.1",
-    "tsc-alias": "1.9.0",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -37,7 +36,7 @@
   },
   "type": "module",
   "scripts": {
-    "build": "bun run clean && tsc --build && bunx tsc-alias -p tsconfig.json -f -fe .js",
+    "build": "bun run clean && tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit"

@@ -13,7 +13,6 @@
   "description": "Genfeed.ai — AI OS for content creation. Self-host for free.",
   "devDependencies": {
     "@types/node": "26.1.1",
-    "tsc-alias": "1.9.0",
     "typescript": "6.0.2",
     "vitest": "4.1.10"
   },
@@ -41,7 +40,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && bunx tsc-alias -p tsconfig.json -f -fe .js",
+    "build": "tsc -p tsconfig.json && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },

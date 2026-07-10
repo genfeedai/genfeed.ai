@@ -7,7 +7,6 @@
   },
   "description": "Genfeed.ai shared client models and schemas",
   "devDependencies": {
-    "tsc-alias": "1.9.0",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -53,7 +52,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build && bunx tsc-alias -p tsconfig.json -f -fe .js && test -f dist/index.js",
+    "build": "tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist && test -f dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "deps:update": "bunx npm-check-updates -u && bun install",
     "test": "vitest run --config vitest.config.ts",
