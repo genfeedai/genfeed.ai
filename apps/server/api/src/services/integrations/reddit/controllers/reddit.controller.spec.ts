@@ -33,6 +33,7 @@ describe('RedditController', () => {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     saveCredentials: ReturnType<typeof vi.fn>;
+    updateExternalProfile: ReturnType<typeof vi.fn>;
   };
   let redditService: { generateAuthUrl: ReturnType<typeof vi.fn> };
   let httpService: {
@@ -61,6 +62,17 @@ describe('RedditController', () => {
           Promise.resolve({ id: credentialId, ...data }),
         ),
       saveCredentials: vi.fn().mockResolvedValue({ id: credentialId }),
+      updateExternalProfile: vi
+        .fn()
+        .mockImplementation((_id, _organizationId, data) =>
+          Promise.resolve({
+            externalAvatar: data.avatarUrl,
+            externalHandle: data.handle,
+            externalId: data.id,
+            externalName: data.name,
+            id: credentialId,
+          }),
+        ),
     };
     redditService = {
       generateAuthUrl: vi
@@ -152,7 +164,11 @@ describe('RedditController', () => {
       );
       httpService.get.mockReturnValue(
         of({
-          data: { id: 'reddit_user_id', name: 'reddit_username' },
+          data: {
+            icon_img: 'https://reddit.example/avatar.png',
+            id: 'reddit_user_id',
+            name: 'reddit_username',
+          },
         }),
       );
     });
@@ -171,6 +187,15 @@ describe('RedditController', () => {
         expect.objectContaining({
           externalHandle: 'reddit_username',
           externalId: 'reddit_user_id',
+        }),
+      );
+      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        credentialId,
+        orgId,
+        expect.objectContaining({
+          avatarUrl: 'https://reddit.example/avatar.png',
+          handle: 'reddit_username',
+          id: 'reddit_user_id',
         }),
       );
     });

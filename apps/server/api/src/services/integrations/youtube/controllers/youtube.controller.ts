@@ -240,16 +240,32 @@ export class YoutubeController {
           brandId,
           oauth2Client,
         )) as {
+          customUrl?: string;
           id?: string;
+          thumbnails?: {
+            default?: { url?: string | null };
+            high?: { url?: string | null };
+            medium?: { url?: string | null };
+          };
           title?: string;
         };
-        const externalId = channelDetails.id;
-        const externalHandle = channelDetails.title;
+        const externalHandle =
+          channelDetails.customUrl?.replace(/^@/, '') ?? channelDetails.title;
+        const avatarUrl =
+          channelDetails.thumbnails?.high?.url ??
+          channelDetails.thumbnails?.medium?.url ??
+          channelDetails.thumbnails?.default?.url;
 
-        credential = await this.credentialsService.patch(credential.id, {
-          externalHandle,
-          externalId,
-        });
+        credential = await this.credentialsService.updateExternalProfile(
+          credential.id,
+          organizationId,
+          {
+            avatarUrl,
+            handle: externalHandle,
+            id: channelDetails.id,
+            name: channelDetails.title,
+          },
+        );
       } catch (verifyError: unknown) {
         this.loggerService.error(
           'Failed to verify YouTube connection',

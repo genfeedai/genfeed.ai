@@ -113,10 +113,13 @@ vi.mock('@ui/card/Card', () => ({
   ),
 }));
 
-vi.mock('@ui/media/social-media-link/SocialMediaLink', () => ({
-  __esModule: true,
-  default: ({ handle, url }: { handle?: string; url: string }) => (
-    <a href={url}>{handle ?? url}</a>
+vi.mock('@ui/primitives/avatar', () => ({
+  Avatar: ({ children }: { children: ReactNode }) => <span>{children}</span>,
+  AvatarFallback: ({ children }: { children: ReactNode }) => (
+    <span>{children}</span>
+  ),
+  AvatarImage: ({ alt, src }: { alt: string; src: string }) => (
+    <img alt={alt} src={src} />
   ),
 }));
 
@@ -153,8 +156,10 @@ describe('BrandDetailSocialMediaCard', () => {
         brandId="brand-1"
         connections={[
           {
+            avatarUrl: 'https://cdn.example.com/genfeed.jpg',
             credentialId: 'credential-1',
             handle: 'genfeed',
+            name: 'Genfeed',
             platform: CredentialPlatform.TWITTER,
             url: 'https://x.com/genfeed',
           },
@@ -163,7 +168,62 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'genfeed' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open Genfeed on twitter' }),
+    ).toHaveAttribute('href', 'https://x.com/genfeed');
+    expect(screen.getByAltText('Genfeed profile picture')).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/genfeed.jpg',
+    );
+    expect(screen.getByText('@genfeed')).toBeInTheDocument();
+  });
+
+  it('renders an initials fallback when an account has no avatar or profile url', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            name: 'Acme Studio',
+            platform: CredentialPlatform.THREADS,
+          },
+        ]}
+        connectedPlatformsCount={1}
+      />,
+    );
+
+    expect(screen.getByText('Acme Studio')).toBeInTheDocument();
+    expect(screen.getByText('AS')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('renders multiple accounts from the same platform independently', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            handle: 'genfeed',
+            name: 'Genfeed',
+            platform: CredentialPlatform.TWITTER,
+            url: 'https://x.com/genfeed',
+          },
+          {
+            credentialId: 'credential-2',
+            handle: 'genfeedlabs',
+            name: 'Genfeed Labs',
+            platform: CredentialPlatform.TWITTER,
+            url: 'https://x.com/genfeedlabs',
+          },
+        ]}
+        connectedPlatformsCount={2}
+      />,
+    );
+
+    expect(screen.getByText('Genfeed')).toBeInTheDocument();
+    expect(screen.getByText('Genfeed Labs')).toBeInTheDocument();
   });
 
   it('starts oauth directly from the social card', async () => {
@@ -204,7 +264,9 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'genfeed' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Open genfeed on twitter' }),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /manage/i }));
 

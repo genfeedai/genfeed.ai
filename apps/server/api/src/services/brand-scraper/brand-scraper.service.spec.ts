@@ -332,6 +332,24 @@ describe('BrandScraperService', () => {
       );
     });
 
+    it('uses a Twitter card image when no Open Graph image exists', async () => {
+      fetchMock.mockResolvedValue(
+        makeResponse(`<!DOCTYPE html>
+          <html>
+            <head>
+              <title>Acme</title>
+              <meta name="twitter:image" content="/twitter-card.jpg" />
+            </head>
+            <body></body>
+          </html>`),
+      );
+
+      const result = await service.scrapeWebsite('https://acme.com');
+
+      expect(result.ogImage).toBe('/twitter-card.jpg');
+      expect(result.bannerUrl).toBe('https://acme.com/twitter-card.jpg');
+    });
+
     it('extracts value propositions from bullet characters', async () => {
       const body = [
         '<p>&#8226; Ship faster than competitors</p>',
@@ -367,6 +385,26 @@ describe('BrandScraperService', () => {
       const result = await service.scrapeWebsite('https://acme.com');
       expect(result).toBeDefined();
       expect(result.description).toBeDefined();
+    });
+
+    it('uses a Twitter card image in the meta-tag fallback', async () => {
+      fetchMock
+        .mockResolvedValueOnce(makeResponse('', 500))
+        .mockResolvedValueOnce(
+          makeResponse(`<!DOCTYPE html>
+            <html>
+              <head>
+                <title>FallbackCo</title>
+                <meta name="twitter:image:src" content="https://cdn.acme.com/card.jpg" />
+              </head>
+              <body></body>
+            </html>`),
+        );
+
+      const result = await service.scrapeWebsite('https://acme.com');
+
+      expect(result.ogImage).toBe('https://cdn.acme.com/card.jpg');
+      expect(result.bannerUrl).toBe('https://cdn.acme.com/card.jpg');
     });
 
     it('falls back to meta tags when scrape fails (503)', async () => {

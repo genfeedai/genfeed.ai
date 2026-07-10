@@ -283,6 +283,12 @@ export class BrandSetupService {
           targetBrandId,
           dto.brandUrl,
         );
+        await this.brandPersistenceService.importScrapedBrandBanner(
+          targetBrandId,
+          organizationId,
+          userId,
+          scrapedData,
+        );
         await this.brandPersistenceService.updateBrandGuidance(
           targetBrandId,
           extractedData,

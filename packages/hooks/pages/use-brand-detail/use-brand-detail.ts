@@ -10,11 +10,11 @@ import {
   ArticleStatus,
   AssetCategory,
   AssetParent,
-  CredentialPlatform,
   IngredientCategory,
   IngredientStatus,
   ModalEnum,
 } from '@genfeedai/enums';
+import { SocialUrlHelper } from '@genfeedai/helpers';
 import type {
   IArticle,
   IBrand,
@@ -506,71 +506,28 @@ export function useBrandDetail(): UseBrandDetailReturn {
   }, [brandId, findOneBrand, notificationsService, pendingAssetId, subscribe]);
 
   const socialConnections = useMemo(() => {
-    const connections: UseBrandDetailReturn['socialConnections'] = [];
-
     const connectedCredentials =
       state.brand?.credentials?.filter(
         (cred: ICredential) => cred.isConnected === true,
       ) ?? [];
 
-    const findCredential = (platform: CredentialPlatform) =>
-      connectedCredentials.find(
-        (credential: ICredential) => credential.platform === platform,
-      );
-
-    const pushConnection = (
-      platform: CredentialPlatform,
-      url?: string | null,
-      handle?: string | null,
-    ) => {
-      const credential = findCredential(platform);
-      if (!credential || !url) {
-        return;
-      }
-
-      connections.push({
+    return connectedCredentials.map((credential) => {
+      return {
         accountHealth: credential.accountHealth,
+        avatarUrl: credential.externalAvatar,
         credentialId: credential.id,
-        handle: handle ?? credential.externalHandle,
+        handle: credential.externalHandle,
         label: credential.label,
-        platform,
-        url,
-      });
-    };
-
-    pushConnection(
-      CredentialPlatform.YOUTUBE,
-      state.brand?.youtubeUrl,
-      state.brand?.youtubeHandle,
-    );
-    pushConnection(
-      CredentialPlatform.TIKTOK,
-      state.brand?.tiktokUrl,
-      state.brand?.tiktokHandle,
-    );
-    pushConnection(
-      CredentialPlatform.INSTAGRAM,
-      state.brand?.instagramUrl,
-      state.brand?.instagramHandle,
-    );
-    pushConnection(
-      CredentialPlatform.TWITTER,
-      state.brand?.twitterUrl,
-      state.brand?.twitterHandle,
-    );
-
-    return connections;
-  }, [
-    state.brand?.credentials,
-    state.brand?.instagramHandle,
-    state.brand?.instagramUrl,
-    state.brand?.tiktokHandle,
-    state.brand?.tiktokUrl,
-    state.brand?.twitterHandle,
-    state.brand?.twitterUrl,
-    state.brand?.youtubeHandle,
-    state.brand?.youtubeUrl,
-  ]);
+        name: credential.externalName,
+        platform: credential.platform,
+        url: SocialUrlHelper.buildProfileUrl(
+          credential.platform,
+          credential.externalHandle,
+          credential.externalId,
+        ),
+      };
+    });
+  }, [state.brand?.credentials]);
 
   const connectedPlatformsCount = useMemo(
     () =>

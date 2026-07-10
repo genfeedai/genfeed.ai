@@ -571,7 +571,14 @@ export class BrandScraperService {
       ogDescription: $('meta[property="og:description"]')
         .attr('content')
         ?.trim(),
-      ogImage: $('meta[property="og:image"]').attr('content')?.trim(),
+      ogImage:
+        $('meta[property="og:image"]').attr('content')?.trim() ||
+        $(
+          'meta[name="twitter:image"], meta[property="twitter:image"], meta[name="twitter:image:src"]',
+        )
+          .first()
+          .attr('content')
+          ?.trim(),
       ogTitle: $('meta[property="og:title"]').attr('content')?.trim(),
       scrapedAt: new Date(),
       siteName: $('meta[property="og:site_name"]').attr('content')?.trim(),
@@ -595,7 +602,14 @@ export class BrandScraperService {
     const ogDescription =
       $('meta[property="og:description"]').attr('content')?.trim() || undefined;
     const ogImage =
-      $('meta[property="og:image"]').attr('content')?.trim() || undefined;
+      $('meta[property="og:image"]').attr('content')?.trim() ||
+      $(
+        'meta[name="twitter:image"], meta[property="twitter:image"], meta[name="twitter:image:src"]',
+      )
+        .first()
+        .attr('content')
+        ?.trim() ||
+      undefined;
     const favicon =
       $('link[rel="icon"]').attr('href')?.trim() ||
       $('link[rel="shortcut icon"]').attr('href')?.trim() ||

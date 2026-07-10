@@ -140,18 +140,26 @@ export class FacebookController {
         await this.facebookService.exchangeAuthCodeForAccessToken(body.code);
       const profile = await this.facebookService.getUserProfile(accessToken);
 
-      const updatedCredential = await this.credentialsService.patch(
+      let updatedCredential = await this.credentialsService.patch(
         credential.id,
         {
           accessToken,
           accessTokenExpiry: expiresIn
             ? new Date(Date.now() + expiresIn * 1000)
             : undefined,
-          externalHandle: profile.email || profile.name,
-          externalId: credential.externalId || profile.id,
-          externalName: profile.name,
           isConnected: true,
           isDeleted: false,
+        },
+      );
+
+      updatedCredential = await this.credentialsService.updateExternalProfile(
+        updatedCredential.id,
+        stateData.organizationId,
+        {
+          avatarUrl: profile.picture?.data?.url,
+          handle: profile.email || profile.name,
+          id: credential.externalId || profile.id,
+          name: profile.name,
         },
       );
 

@@ -182,6 +182,17 @@ export default function BrandOverlay({
                   isDisabled={isSubmitting}
                 />
               </FormControl>
+
+              <FormControl label="Website">
+                <Input
+                  type="url"
+                  name="websiteUrl"
+                  control={form.control}
+                  onChange={handleCreateFieldChange}
+                  placeholder="https://example.com"
+                  isDisabled={isSubmitting}
+                />
+              </FormControl>
             </Modal.Body>
 
             <Modal.Footer>
