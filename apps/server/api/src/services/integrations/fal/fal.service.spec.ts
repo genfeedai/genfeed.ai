@@ -6,6 +6,7 @@ vi.mock('@fal-ai/client', () => ({
 }));
 
 import { FalService } from '@api/services/integrations/fal/fal.service';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { fal } from '@fal-ai/client';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -40,6 +41,7 @@ describe('FalService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FalService,
+        PollUntilService,
         { provide: ConfigService, useValue: configService },
         { provide: LoggerService, useValue: logger },
         { provide: HttpService, useValue: httpService },

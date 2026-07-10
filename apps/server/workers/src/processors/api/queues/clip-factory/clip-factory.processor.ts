@@ -21,45 +21,10 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/clip-highlight-detector.service';
 
 import type { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
-
-/** System prompt for highlight detection — identical to clips microservice. */
-const HIGHLIGHT_SYSTEM_PROMPT = `You are a viral content analyst. Given a video transcript with timestamps, identify the best short-form clips for TikTok, Reels, and YouTube Shorts.
-
-For each clip return a JSON array of objects with these fields:
-- start_time: number (seconds from start)
-- end_time: number (seconds from start)
-- title: string (catchy hook, under 60 characters)
-- summary: string (why this clip is compelling, 1-2 sentences)
-- virality_score: number (1-100, how likely to go viral)
-- tags: string[] (relevant hashtag topics)
-- clip_type: string (one of: hook, story, tutorial, reaction, quote, controversial, educational)
-
-Prioritize:
-- Strong opening hooks that grab attention in the first 3 seconds
-- Complete narrative arcs with beginning, middle, and end
-- Emotional peaks (laughter, surprise, anger, inspiration)
-- Controversial or surprising statements that provoke engagement
-- Educational "aha" moments with clear takeaways
-- Quotable one-liners or memorable phrases
-
-Rules:
-- Each clip must be a self-contained segment that makes sense without context
-- Clips should not overlap
-- Prefer clips with strong opening hooks
-- Return ONLY valid JSON array, no markdown or explanation`;
-
-interface HighlightResult {
-  start_time: number;
-  end_time: number;
-  title: string;
-  summary: string;
-  virality_score: number;
-  tags: string[];
-  clip_type: string;
-}
 
 @Processor(CLIP_FACTORY_QUEUE, {
   concurrency: CLIP_FACTORY_CONCURRENCY,
@@ -67,8 +32,6 @@ interface HighlightResult {
 })
 export class ClipFactoryProcessor extends WorkerHost {
   private readonly logContext = 'ClipFactoryProcessor';
-  private readonly openRouterUrl =
-    'https://openrouter.ai/api/v1/chat/completions';
 
   constructor(
     private readonly logger: LoggerService,
@@ -77,6 +40,7 @@ export class ClipFactoryProcessor extends WorkerHost {
     private readonly whisperService: WhisperService,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly highlightDetector: ClipHighlightDetector,
   ) {
     super();
   }
@@ -131,7 +95,7 @@ export class ClipFactoryProcessor extends WorkerHost {
       });
 
       // Stage 3: Detect highlights via LLM
-      const highlights = await this.detectHighlights(
+      const highlights = await this.highlightDetector.detectHighlights(
         transcription.text,
         transcription.segments,
         data.maxClips,
@@ -295,101 +259,6 @@ export class ClipFactoryProcessor extends WorkerHost {
     throw new Error(
       `Audio extraction job ${jobId} timed out after ${timeoutMs}ms`,
     );
-  }
-
-  /**
-   * Detect viral highlights from transcript text using OpenRouter LLM.
-   */
-  private async detectHighlights(
-    transcriptText: string,
-    segments: Array<{ start: number; end: number; text: string }>,
-    maxClips: number,
-  ): Promise<HighlightResult[]> {
-    const formattedTranscript = segments
-      .map((seg) => {
-        const mins = Math.floor(seg.start / 60);
-        const secs = Math.floor(seg.start % 60);
-        const endMins = Math.floor(seg.end / 60);
-        const endSecs = Math.floor(seg.end % 60);
-        return `[${mins}:${String(secs).padStart(2, '0')} - ${endMins}:${String(endSecs).padStart(2, '0')}] ${seg.text}`;
-      })
-      .join('\n');
-
-    const userPrompt = `Analyze this transcript and find the ${maxClips} best clips between 15-90 seconds long.
-
-Transcript with timestamps:
-${formattedTranscript}
-
-Return a JSON array of clip objects sorted by virality_score descending.`;
-
-    const openRouterApiKey = this.configService.get('OPENROUTER_API_KEY') || '';
-
-    const response = await firstValueFrom(
-      this.httpService.post(
-        this.openRouterUrl,
-        {
-          max_tokens: 4096,
-          messages: [
-            { content: HIGHLIGHT_SYSTEM_PROMPT, role: 'system' },
-            { content: userPrompt, role: 'user' },
-          ],
-          model: 'openai/gpt-4o',
-          stream: false,
-          temperature: 0.3,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${openRouterApiKey}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://genfeed.ai',
-            'X-Title': 'GenFeed AI Clip Factory',
-          },
-          timeout: 60_000,
-        },
-      ),
-    );
-
-    const content = response.data?.choices?.[0]?.message?.content || '';
-
-    return this.parseHighlights(content, maxClips);
-  }
-
-  /**
-   * Parse LLM JSON response into validated highlights.
-   */
-  private parseHighlights(
-    content: string,
-    maxClips: number,
-  ): HighlightResult[] {
-    try {
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (!jsonMatch) {
-        this.logger.error(
-          `${this.logContext} no JSON array found in LLM response`,
-        );
-        return [];
-      }
-
-      const parsed: HighlightResult[] = JSON.parse(jsonMatch[0]);
-
-      return parsed
-        .filter((h) => {
-          const duration = h.end_time - h.start_time;
-          return (
-            duration >= 15 &&
-            duration <= 90 &&
-            h.start_time >= 0 &&
-            h.end_time > h.start_time &&
-            h.virality_score >= 1 &&
-            h.virality_score <= 100
-          );
-        })
-        .sort((a, b) => b.virality_score - a.virality_score)
-        .slice(0, maxClips);
-    } catch (error: unknown) {
-      this.logger.error(`${this.logContext} failed to parse highlights`, error);
-      return [];
-    }
   }
 
   /**

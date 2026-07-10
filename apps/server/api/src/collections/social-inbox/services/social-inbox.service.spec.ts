@@ -76,6 +76,25 @@ type StoreMessage = {
   updatedAt: Date;
 };
 
+type PrismaMock = {
+  credential: { findMany: ReturnType<typeof vi.fn> };
+  post: { findMany: ReturnType<typeof vi.fn> };
+  socialConversation: {
+    count: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    findFirst: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
+  socialMessage: {
+    count: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    findFirst: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
+};
+
 type TestContext = {
   conversations: StoreConversation[];
   messages: StoreMessage[];
@@ -83,6 +102,7 @@ type TestContext = {
     replyToComment: ReturnType<typeof vi.fn>;
     sendCommentReplyDm: ReturnType<typeof vi.fn>;
   };
+  prisma: PrismaMock;
   queueService: {
     queueTriggerEvent: ReturnType<typeof vi.fn>;
   };
@@ -319,6 +339,7 @@ function createContext(): TestContext {
     conversations,
     instagramService,
     messages,
+    prisma: prisma as unknown as PrismaMock,
     queueService,
     service: new SocialInboxService(
       prisma as never,
@@ -671,5 +692,117 @@ describe('SocialInboxService', () => {
         { text: 'Follow up' },
       ),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  describe('ingestYoutubeComments', () => {
+    function seedSweep(context: TestContext): void {
+      context.prisma.credential.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          externalHandle: '@channel',
+          externalId: 'channel-1',
+          externalName: 'Channel',
+          id: 'credential-1',
+          label: 'Channel',
+          userId: 'user-1',
+          username: 'channel',
+        },
+      ]);
+      context.prisma.post.findMany.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          description: 'Launch recap',
+          externalId: 'video-1',
+          id: 'post-1',
+          label: 'Launch',
+          url: 'https://youtube.com/watch?v=video-1',
+        },
+      ]);
+      // Two comments share thread-1 (a comment + its reply); one is on thread-2.
+      context.youtubeService.listVideoComments.mockResolvedValue([
+        {
+          authorChannelId: 'author-1',
+          authorDisplayName: 'Taylor',
+          commentId: 'comment-1',
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          text: 'First comment',
+          threadId: 'thread-1',
+        },
+        {
+          authorChannelId: 'author-2',
+          authorDisplayName: 'Jordan',
+          commentId: 'comment-2',
+          createdAt: new Date('2026-01-01T00:01:00.000Z'),
+          text: 'Reply in same thread',
+          threadId: 'thread-1',
+        },
+        {
+          authorChannelId: 'author-3',
+          authorDisplayName: 'Sam',
+          commentId: 'comment-3',
+          createdAt: new Date('2026-01-01T00:02:00.000Z'),
+          text: 'Another thread',
+          threadId: 'thread-2',
+        },
+      ]);
+    }
+
+    it('dedups via batched findMany keyed by external ids, scoped to the org', async () => {
+      const context = createContext();
+      seedSweep(context);
+
+      const result = await context.service.ingestYoutubeComments(
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+        { limit: 50 },
+      );
+
+      // thread-1 counted once despite two comments; thread-2 once.
+      expect(result).toEqual({ conversationsCreated: 2, messagesCreated: 3 });
+      expect(context.conversations).toHaveLength(2);
+      expect(context.messages).toHaveLength(3);
+
+      // One batched lookup per entity for the post, not a findFirst pair each.
+      expect(context.prisma.socialConversation.findMany).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(context.prisma.socialMessage.findMany).toHaveBeenCalledTimes(1);
+
+      const conversationWhere =
+        context.prisma.socialConversation.findMany.mock.calls[0][0].where;
+      expect(conversationWhere).toMatchObject({
+        externalConversationId: { in: ['thread-1', 'thread-2'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+        platform: 'youtube',
+      });
+
+      const messageWhere =
+        context.prisma.socialMessage.findMany.mock.calls[0][0].where;
+      expect(messageWhere).toMatchObject({
+        externalMessageId: { in: ['comment-1', 'comment-2', 'comment-3'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+        platform: 'youtube',
+      });
+    });
+
+    it('is idempotent — a second sweep of the same comments creates nothing new', async () => {
+      const context = createContext();
+      seedSweep(context);
+      const scope = {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      await context.service.ingestYoutubeComments(scope, { limit: 50 });
+      const second = await context.service.ingestYoutubeComments(scope, {
+        limit: 50,
+      });
+
+      expect(second).toEqual({ conversationsCreated: 0, messagesCreated: 0 });
+      expect(context.conversations).toHaveLength(2);
+      expect(context.messages).toHaveLength(3);
+    });
   });
 });

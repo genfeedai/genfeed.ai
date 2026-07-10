@@ -25,7 +25,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -148,7 +148,10 @@ describe('MusicsOperationsController', () => {
           provide: PromptBuilderService,
           useValue: mockServices.promptBuilderService,
         },
-        { provide: PollingService, useValue: mockServices.pollingService },
+        {
+          provide: IngredientCompletionService,
+          useValue: mockServices.pollingService,
+        },
         { provide: ReplicateService, useValue: mockServices.replicateService },
         { provide: RouterService, useValue: mockServices.routerService },
         { provide: SharedService, useValue: mockServices.sharedService },

@@ -20,6 +20,7 @@ vi.mock('../../src/api/client', () => ({
 }));
 
 vi.mock('../../src/api/json-api', () => ({
+  extractPagination: (response: { links?: { pagination?: unknown } }) => response.links?.pagination,
   flattenCollection: <T>(response: { data: T[] }) => response.data,
   flattenSingle: <T>(response: { data: T }) => response.data,
 }));
@@ -36,8 +37,54 @@ describe('api/api-keys', () => {
 
     const result = await listApiKeys();
 
-    expect(mockGet).toHaveBeenCalledWith('/api-keys?limit=100');
+    expect(mockGet).toHaveBeenCalledWith('/api-keys?limit=100&page=1');
+    expect(mockGet).toHaveBeenCalledTimes(1);
     expect(result).toEqual([{ id: 'key-1', label: 'MCP' }]);
+  });
+
+  it('paginates through every page until exhausted', async () => {
+    mockGet
+      .mockResolvedValueOnce({
+        data: [{ id: 'key-1', label: 'One' }],
+        links: { pagination: { limit: 100, page: 1, pages: 3, total: 201 } },
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: 'key-2', label: 'Two' }],
+        links: { pagination: { limit: 100, page: 2, pages: 3, total: 201 } },
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: 'key-3', label: 'Three' }],
+        links: { pagination: { limit: 100, page: 3, pages: 3, total: 201 } },
+      });
+
+    const result = await listApiKeys();
+
+    expect(mockGet).toHaveBeenNthCalledWith(1, '/api-keys?limit=100&page=1');
+    expect(mockGet).toHaveBeenNthCalledWith(2, '/api-keys?limit=100&page=2');
+    expect(mockGet).toHaveBeenNthCalledWith(3, '/api-keys?limit=100&page=3');
+    expect(mockGet).toHaveBeenCalledTimes(3);
+    expect(result).toEqual([
+      { id: 'key-1', label: 'One' },
+      { id: 'key-2', label: 'Two' },
+      { id: 'key-3', label: 'Three' },
+    ]);
+  });
+
+  it('stops after the last page when more keys remain than one page', async () => {
+    mockGet
+      .mockResolvedValueOnce({
+        data: [{ id: 'key-1' }],
+        links: { pagination: { limit: 100, page: 1, pages: 2, total: 101 } },
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: 'key-2' }],
+        links: { pagination: { limit: 100, page: 2, pages: 2, total: 101 } },
+      });
+
+    await listApiKeys();
+
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(mockGet).toHaveBeenLastCalledWith('/api-keys?limit=100&page=2');
   });
 
   it('creates Genfeed API keys', async () => {

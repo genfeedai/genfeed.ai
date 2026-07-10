@@ -24,11 +24,16 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { QueueService } from '@api/queues/core/queue.service';
 import { MemberRole } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
+import {
+  SOCIAL_INBOX_SYNC_QUEUE,
+  type SocialInboxSyncJobData,
+} from '@genfeedai/queue-contracts';
 import {
   SocialConversationSerializer,
   SocialMessageSerializer,
@@ -54,7 +59,10 @@ import type { Request } from 'express';
 @Controller('messages')
 @UseGuards(RolesGuard)
 export class SocialInboxController {
-  constructor(private readonly socialInboxService: SocialInboxService) {}
+  constructor(
+    private readonly socialInboxService: SocialInboxService,
+    private readonly queueService: QueueService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List social inbox conversations' })
@@ -70,16 +78,29 @@ export class SocialInboxController {
 
   @Post('youtube/sync')
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
-  @ApiOperation({ summary: 'Sync recent YouTube comments into messages' })
+  @ApiOperation({
+    summary: 'Enqueue a background sync of recent YouTube comments',
+  })
   async syncYoutubeComments(
     @CurrentUser() user: User,
     @Body() body: SocialInboxYoutubeIngestDto,
-  ): Promise<{
-    conversationsCreated: number;
-    messagesCreated: number;
-  }> {
+  ): Promise<{ jobId: string | undefined; status: string }> {
+    // Ingestion is a triple-nested sweep (credentials x posts x comments) that
+    // can blow past the request timeout, so hand it to the background worker
+    // instead of running it on the request thread.
     const scope = this.buildScope(user);
-    return this.socialInboxService.ingestYoutubeComments(scope, body);
+    const job = await this.queueService.add<SocialInboxSyncJobData>(
+      SOCIAL_INBOX_SYNC_QUEUE,
+      {
+        brandId: scope.brandId,
+        credentialId: body.credentialId,
+        limit: body.limit,
+        organizationId: scope.organizationId,
+        userId: scope.userId,
+      },
+    );
+
+    return { jobId: job.id, status: 'queued' };
   }
 
   @Get(':conversationId')

@@ -4,9 +4,9 @@ import type {
   ProviderModel,
   ProviderType,
 } from '@genfeedai/types';
+import { useSettingsStore } from '@genfeedai/workflow-ui/stores';
 import { logger } from '@services/core/logger.service';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSettingsStore } from '@/store/settingsStore';
 
 interface UseModelBrowserModalParams {
   isOpen: boolean;

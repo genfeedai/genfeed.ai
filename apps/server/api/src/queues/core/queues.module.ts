@@ -34,6 +34,7 @@ import {
   PATTERN_EXTRACTION_QUEUE,
   POST_PUBLISH_QUEUE,
   REPLY_BOT_POLLING_QUEUE,
+  SOCIAL_INBOX_SYNC_QUEUE,
   TELEGRAM_DISTRIBUTE_QUEUE,
   WORKSPACE_TASK_QUEUE,
 } from '@genfeedai/queue-contracts';
@@ -268,6 +269,15 @@ import { Module } from '@nestjs/common';
           removeOnFail: 50,
         },
         name: ANALYTICS_THREADS_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: SOCIAL_INBOX_SYNC_QUEUE,
       },
     ),
   ],

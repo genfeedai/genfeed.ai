@@ -7,8 +7,9 @@ import { Input } from '@ui/primitives/input';
 import { Check, Code as CodeIcon, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { InfoBox } from '@/components/ui/settings-section';
-import type { LLMProviderType } from '@/store/settingsStore';
-import { LLM_PROVIDERS, useSettingsStore } from '@/store/settingsStore';
+import type { LLMProviderType } from '@/lib/ai/llm-providers';
+import { LLM_PROVIDERS } from '@/lib/ai/llm-providers';
+import { useLLMSettingsStore } from '@/store/llmSettingsStore';
 
 const TTS_ENABLED = process.env.NEXT_PUBLIC_TTS_ENABLED === 'true';
 
@@ -76,10 +77,12 @@ function StatusDot({ status }: { status: boolean | null }) {
 
 function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
   const info = LLM_PROVIDERS[provider];
-  const llm = useSettingsStore((s) => s.llm);
-  const setLLMProviderKey = useSettingsStore((s) => s.setLLMProviderKey);
-  const setLLMActiveProvider = useSettingsStore((s) => s.setLLMActiveProvider);
-  const clearLLMProviderKey = useSettingsStore((s) => s.clearLLMProviderKey);
+  const llm = useLLMSettingsStore((s) => s.llm);
+  const setLLMProviderKey = useLLMSettingsStore((s) => s.setLLMProviderKey);
+  const setLLMActiveProvider = useLLMSettingsStore(
+    (s) => s.setLLMActiveProvider,
+  );
+  const clearLLMProviderKey = useLLMSettingsStore((s) => s.clearLLMProviderKey);
 
   const config = llm.providers[provider];
   const isActive = llm.activeProvider === provider;

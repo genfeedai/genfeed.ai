@@ -6,9 +6,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import type {
   AnalyticsSyncJobData,
-  FacebookAnalyticsJobData,
   SocialAnalyticsJobData,
-  ThreadsAnalyticsJobData,
   TwitterAnalyticsJobData,
   YouTubeAnalyticsJobData,
 } from '@genfeedai/queue-contracts';
@@ -99,7 +97,7 @@ export class AnalyticsSyncWorkflowService {
 
     let enqueued = 0;
     for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
-      const jobData: FacebookAnalyticsJobData = {
+      const jobData: SocialAnalyticsJobData = {
         posts: chunk.map((post) => ({
           id: this.requiredId(post),
           brand: this.requiredBrandId(post),
@@ -204,7 +202,7 @@ export class AnalyticsSyncWorkflowService {
 
     let enqueued = 0;
     for (const chunk of this.chunk(posts, CHUNK_SIZE)) {
-      const jobData: ThreadsAnalyticsJobData = {
+      const jobData: SocialAnalyticsJobData = {
         posts: chunk.map((post) => ({
           id: this.requiredId(post),
           brand: this.requiredBrandId(post),

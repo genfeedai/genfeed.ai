@@ -85,6 +85,32 @@ describe('trend inspiration executors', () => {
       expect(data.contentType).toBe('thread');
       expect(data.prompt).toContain('#CreatorTips');
       expect(data.hashtags).toContain('#CreatorTips');
+      expect(result.metadata?.resolvedFromSource).toBe(false);
+    });
+
+    it('reports resolvedFromSource=false and uses the fallback when the resolver returns null', async () => {
+      const resolver = vi.fn().mockResolvedValue(null);
+
+      const result = await createTrendHashtagInspirationExecutor(
+        resolver,
+      ).execute({
+        context: ctx,
+        inputs: new Map<string, unknown>([['hashtag', '#CreatorTips']]),
+        node: {
+          config: { platform: 'tiktok' },
+          id: 'n1',
+          inputs: [],
+          label: 'Trend Hashtag Inspiration',
+          type: 'trendHashtagInspiration',
+        },
+      });
+
+      const data = result.data as TrendHashtagInspirationOutput;
+      expect(resolver).toHaveBeenCalledTimes(1);
+      // Wired resolver returned null -> synthesized fallback, not a real source.
+      expect(result.metadata?.resolvedFromSource).toBe(false);
+      expect(data.sourceHashtag).toBe('#CreatorTips');
+      expect(data.hashtagPostCount).toBeNull();
     });
 
     it('uses resolver data when available', async () => {
@@ -116,6 +142,7 @@ describe('trend inspiration executors', () => {
       expect(data.sourceHashtag).toBe('#AIWorkflow');
       expect(data.hashtagPostCount).toBe(100000);
       expect(data.hashtags).toContain('#automation');
+      expect(result.metadata?.resolvedFromSource).toBe(true);
     });
   });
 

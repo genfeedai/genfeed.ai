@@ -366,6 +366,80 @@ describe('TrainingsController', () => {
     });
   });
 
+  describe('findOne', () => {
+    it('accepts a cuid id (not just a Mongo ObjectId) and returns the training', async () => {
+      const cuid = 'clz1a2b3c4d5e6f7g8h9i0j1k';
+      trainingsService.findOne.mockResolvedValueOnce({ id: cuid } as never);
+
+      const result = await controller.findOne(mockRequest, mockUser, cuid);
+
+      expect(trainingsService.findOne).toHaveBeenCalledWith({
+        _id: cuid,
+        isDeleted: false,
+        organization: mockUser.publicMetadata.organization,
+      });
+      expect(result).toBeDefined();
+    });
+
+    it('returns 404 for a genuinely malformed id without hitting the service', async () => {
+      await expect(
+        controller.findOne(mockRequest, mockUser, 'not a valid id!!'),
+      ).rejects.toThrow(HttpException);
+      expect(trainingsService.findOne).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('processAndLaunchTrainingAsync (failure handling)', () => {
+    const training = {
+      id: '507f191e810c19729de860ee',
+      user: '507f191e810c19729de860ee',
+    } as never;
+    const sourceImages = [
+      { id: 'img-1', metadata: { extension: 'jpg' } },
+    ] as never;
+
+    const invokeFailurePath = (controllerRef: TrainingsController) =>
+      (
+        controllerRef as unknown as {
+          processAndLaunchTrainingAsync: (
+            t: unknown,
+            s: unknown,
+          ) => Promise<void>;
+        }
+      ).processAndLaunchTrainingAsync(training, sourceImages);
+
+    it('marks the training FAILED via the `stage` column when zip creation fails', async () => {
+      trainingsService.createTrainingZip.mockRejectedValueOnce(
+        new Error('zip boom'),
+      );
+
+      await invokeFailurePath(controller);
+
+      expect(trainingsService.patch).toHaveBeenCalledWith(training.id, {
+        stage: 'FAILED',
+      });
+      const patchPayload = trainingsService.patch.mock.calls[0]?.[1];
+      expect(patchPayload).not.toHaveProperty('status');
+    });
+
+    it('marks the training FAILED via the `stage` column when launch fails', async () => {
+      trainingsService.createTrainingZip.mockResolvedValueOnce(
+        'https://test.com/training.zip',
+      );
+      trainingsService.launchTraining.mockRejectedValueOnce(
+        new Error('launch boom'),
+      );
+
+      await invokeFailurePath(controller);
+
+      expect(trainingsService.patch).toHaveBeenCalledWith(training.id, {
+        stage: 'FAILED',
+      });
+      const patchPayload = trainingsService.patch.mock.calls.at(-1)?.[1];
+      expect(patchPayload).not.toHaveProperty('status');
+    });
+  });
+
   describe('canUserModifyEntity', () => {
     it('should return true when user owns the entity', () => {
       const entity = {

@@ -1,10 +1,11 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import type { EdgeStyle } from '@genfeedai/types';
+import { useSettingsStore } from '@genfeedai/workflow-ui/stores';
 import { Button } from '@ui/primitives/button';
 import { InfoBox, SettingsField } from '@/components/ui/settings-section';
 import { ToggleSwitch } from '@/components/ui/toggle-switch';
-import { type EdgeStyle, useSettingsStore } from '@/store/settingsStore';
 
 const EDGE_STYLES: { value: EdgeStyle; label: string; description: string }[] =
   [
@@ -76,7 +77,10 @@ export function AppearanceTab() {
             className="absolute left-16 top-0 text-primary"
             width="104"
             height="80"
+            role="img"
+            aria-label="Edge style preview"
           >
+            <title>Edge style preview</title>
             {edgeStyle === 'default' && (
               <path
                 d="M 0 56 C 35 56, 69 24, 104 24"

@@ -1,11 +1,11 @@
 import type {
+  NodeGroup,
   WorkflowEdge,
   WorkflowFile,
   WorkflowInterface,
   WorkflowNode,
 } from '@genfeedai/types';
 import type { WorkflowListItem } from '@/features/workflows/types/workflow-list-item';
-import type { NodeGroup } from '@/types/groups';
 import { apiClient } from './client';
 
 /**

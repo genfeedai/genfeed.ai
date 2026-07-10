@@ -30,6 +30,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
+import { TrainingStage } from '@genfeedai/prisma';
 import {
   IngredientSerializer,
   TrainingSerializer,
@@ -55,6 +56,17 @@ interface TrainingSourceImage {
     extension?: string;
   };
 }
+
+/**
+ * Training stages that represent active/in-flight work. Relaunch is blocked
+ * while a training sits in any of these. The Prisma `Training.stage` column
+ * uses the `TrainingStage` enum — there is NO `status` column.
+ */
+const IN_PROGRESS_TRAINING_STAGES: readonly TrainingStage[] = [
+  TrainingStage.PENDING,
+  TrainingStage.UPLOADING,
+  TrainingStage.TRAINING,
+];
 
 @AutoSwagger()
 @Controller('trainings')
@@ -96,7 +108,10 @@ export class TrainingsOperationsController {
         );
       }
 
-      if (existingTraining.status === 'processing') {
+      if (
+        existingTraining.stage &&
+        IN_PROGRESS_TRAINING_STAGES.includes(existingTraining.stage)
+      ) {
         throw new HttpException(
           {
             detail: 'Cannot relaunch a training that is already in progress',
@@ -151,26 +166,32 @@ export class TrainingsOperationsController {
         );
       }
 
+      // Training config (category/model/provider/seed/steps/trigger) lives in
+      // the nested `config` JSON column on the Prisma model, not as top-level
+      // fields. Read from there so the relaunch preserves the original setup.
+      const existingConfig = (existingTraining.config ?? {}) as Record<
+        string,
+        unknown
+      >;
+
       const newTraining = await this.trainingsService.create({
-        brandId: existingTraining.brand ?? publicMetadata.brand ?? null,
+        brandId: existingTraining.brandId ?? publicMetadata.brand ?? null,
         config: {
           category:
-            (existingTraining.category as string | undefined) || 'subject',
+            (existingConfig.category as string | undefined) || 'subject',
           model:
-            (existingTraining.model as string | undefined) ||
+            (existingConfig.model as string | undefined) ||
             this.configService.get('REPLICATE_MODELS_TRAINER'),
           provider:
-            (existingTraining.provider as string | undefined) || 'replicate',
+            (existingConfig.provider as string | undefined) || 'replicate',
           seed:
-            typeof existingTraining.seed === 'number'
-              ? existingTraining.seed
-              : -1,
+            typeof existingConfig.seed === 'number' ? existingConfig.seed : -1,
           status: IngredientStatus.PROCESSING,
           steps:
-            typeof existingTraining.steps === 'number'
-              ? existingTraining.steps
+            typeof existingConfig.steps === 'number'
+              ? existingConfig.steps
               : 1000,
-          trigger: (existingTraining.trigger as string | undefined) || 'TOK',
+          trigger: (existingConfig.trigger as string | undefined) || 'TOK',
         },
         description: existingTraining.description || '',
         label: existingTraining.label || 'Custom Model',
@@ -387,7 +408,9 @@ export class TrainingsOperationsController {
         minimal,
       );
     } catch (error: unknown) {
-      await this.trainingsService.patch(training.id, { status: 'failed' });
+      await this.trainingsService.patch(training.id, {
+        stage: TrainingStage.FAILED,
+      });
       this.loggerService.error('Failed to create training zip', error);
       throw new HttpException(
         {

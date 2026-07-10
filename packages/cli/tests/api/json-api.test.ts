@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { flattenCollection, flattenSingle } from '../../src/api/json-api';
+import { extractPagination, flattenCollection, flattenSingle } from '../../src/api/json-api';
 
 describe('json-api', () => {
   describe('flattenCollection', () => {
@@ -40,6 +40,30 @@ describe('json-api', () => {
       });
 
       expect(result).toEqual({ id: 'brand-1', label: 'My Brand', status: 'active' });
+    });
+  });
+
+  describe('extractPagination', () => {
+    it('reads the top-level pagination block', () => {
+      const pagination = extractPagination({
+        data: [],
+        links: { pagination: { limit: 100, page: 2, pages: 5, total: 420 } },
+      } as never);
+
+      expect(pagination).toEqual({ limit: 100, page: 2, pages: 5, total: 420 });
+    });
+
+    it('returns undefined when no links are present', () => {
+      expect(extractPagination({ data: [] })).toBeUndefined();
+    });
+
+    it('returns undefined when the pagination block is malformed', () => {
+      expect(
+        extractPagination({
+          data: [],
+          links: { pagination: { limit: 100 } },
+        } as never)
+      ).toBeUndefined();
     });
   });
 });

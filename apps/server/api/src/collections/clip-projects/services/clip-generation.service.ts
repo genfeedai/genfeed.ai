@@ -63,6 +63,36 @@ export interface ClipGenerationResult {
   queuedClipCount: number;
 }
 
+/**
+ * Outcome of dispatching a single highlight. `jobId` is recorded on the batch
+ * result; `patch` is applied to the clip-result after a successful dispatch
+ * (mode-specific provider metadata, plus caption SRT for raw-cut).
+ */
+interface ClipDispatchOutcome {
+  jobId: string;
+  patch: Record<string, unknown>;
+}
+
+/**
+ * Configuration for the shared per-highlight generation loop. The only
+ * per-mode variation is the {@link ClipDispatchOutcome} produced by `dispatch`
+ * and the provider name recorded when a dispatch fails.
+ */
+interface GenerationLoopConfig {
+  highlights: ClipHighlight[];
+  mode: ClipGenerationMode;
+  orgId: string;
+  projectId: string;
+  userId: string;
+  /** Provider name persisted on a clip-result when its dispatch throws. */
+  failureProviderName: string;
+  dispatch: (context: {
+    highlight: ClipHighlight;
+    clipResultId: string;
+    index: number;
+  }) => Promise<ClipDispatchOutcome>;
+}
+
 @Injectable()
 export class ClipGenerationService {
   private readonly logContext = 'ClipGenerationService';
@@ -120,29 +150,8 @@ export class ClipGenerationService {
 
     const avatarProvider = this.avatarVideoService.getProvider(provider);
 
-    const clipResultIds: string[] = [];
-    const providerJobIds: string[] = [];
-    let queuedClipCount = 0;
-
-    for (let i = 0; i < highlights.length; i++) {
-      const highlight = highlights[i];
-
-      // 1. Persist the ClipResult in pending state
-      const clipResultId = await this.createPendingClipResult(
-        highlight,
-        i,
-        orgId,
-        projectId,
-        userId,
-      );
-      clipResultIds.push(clipResultId);
-
-      // 2. Fire avatar video generation via the selected provider
-      try {
-        await this.clipResultsService.patch(clipResultId, {
-          status: 'extracting',
-        });
-
+    return this.runGenerationLoop({
+      dispatch: async ({ clipResultId, highlight }) => {
         const scriptText = this.buildAvatarScript(highlight);
 
         const result = await avatarProvider.generateVideo({
@@ -158,41 +167,21 @@ export class ClipGenerationService {
           throw new Error(result.error || 'Provider returned failed status');
         }
 
-        await this.clipResultsService.patch(clipResultId, {
-          providerJobId: result.jobId,
-          providerName: result.providerName,
-        });
-
-        providerJobIds.push(result.jobId);
-        queuedClipCount += 1;
-
-        this.logger.log(
-          `${this.logContext} provider job fired for clip ${i + 1}/${highlights.length}`,
-          { clipResultId, jobId: result.jobId, provider },
-        );
-      } catch (error: unknown) {
-        this.logger.error(
-          `${this.logContext} generation failed for clip ${i + 1}`,
-          error,
-        );
-
-        await this.clipResultsService.patch(clipResultId, {
-          providerName: provider,
-          status: 'failed',
-        });
-
-        providerJobIds.push('');
-      }
-    }
-
-    this.logger.log(`${this.logContext} generation batch complete`, {
-      clipResultIds,
+        return {
+          jobId: result.jobId,
+          patch: {
+            providerJobId: result.jobId,
+            providerName: result.providerName,
+          },
+        };
+      },
+      failureProviderName: provider,
+      highlights,
+      mode: 'avatar',
+      orgId,
       projectId,
-      queuedClipCount,
-      successfulJobs: providerJobIds.filter(Boolean).length,
+      userId,
     });
-
-    return { clipResultIds, providerJobIds, queuedClipCount };
   }
 
   /**
@@ -222,29 +211,8 @@ export class ClipGenerationService {
       { orgId, projectId },
     );
 
-    const clipResultIds: string[] = [];
-    const providerJobIds: string[] = [];
-    let queuedClipCount = 0;
-
-    for (let i = 0; i < highlights.length; i++) {
-      const highlight = highlights[i];
-
-      // 1. Persist the ClipResult in pending state
-      const clipResultId = await this.createPendingClipResult(
-        highlight,
-        i,
-        orgId,
-        projectId,
-        userId,
-      );
-      clipResultIds.push(clipResultId);
-
-      // 2. Dispatch the deterministic cut + caption for this highlight
-      try {
-        await this.clipResultsService.patch(clipResultId, {
-          status: 'extracting',
-        });
-
+    return this.runGenerationLoop({
+      dispatch: async ({ clipResultId, highlight }) => {
         const captionSrt = generateClipSrt(
           transcriptSegments,
           highlight.start_time,
@@ -264,27 +232,91 @@ export class ClipGenerationService {
           userId,
         });
 
+        return {
+          jobId: dispatch.jobId,
+          patch: {
+            captionSrt,
+            providerJobId: dispatch.jobId,
+            providerName: dispatch.providerName,
+          },
+        };
+      },
+      failureProviderName: RAW_CUT_PROVIDER_NAME,
+      highlights,
+      mode: 'raw-cut',
+      orgId,
+      projectId,
+      userId,
+    });
+  }
+
+  /**
+   * Shared per-highlight generation loop. Owns the invariant skeleton both
+   * modes share — persist a pending clip-result, mark it extracting, dispatch,
+   * persist the success metadata, and isolate a per-highlight failure so the
+   * batch continues. The only per-mode variation is {@link GenerationLoopConfig.dispatch}
+   * and the provider name recorded on a failed dispatch.
+   */
+  private async runGenerationLoop(
+    config: GenerationLoopConfig,
+  ): Promise<ClipGenerationResult> {
+    const {
+      dispatch,
+      failureProviderName,
+      highlights,
+      mode,
+      orgId,
+      projectId,
+      userId,
+    } = config;
+
+    const clipResultIds: string[] = [];
+    const providerJobIds: string[] = [];
+    let queuedClipCount = 0;
+
+    for (let i = 0; i < highlights.length; i++) {
+      const highlight = highlights[i];
+
+      // 1. Persist the ClipResult in pending state
+      const clipResultId = await this.createPendingClipResult(
+        highlight,
+        i,
+        orgId,
+        projectId,
+        userId,
+        mode,
+      );
+      clipResultIds.push(clipResultId);
+
+      // 2. Dispatch generation for this highlight via the mode-specific path
+      try {
         await this.clipResultsService.patch(clipResultId, {
-          captionSrt,
-          providerJobId: dispatch.jobId,
-          providerName: dispatch.providerName,
+          status: 'extracting',
         });
 
-        providerJobIds.push(dispatch.jobId);
+        const { jobId, patch } = await dispatch({
+          clipResultId,
+          highlight,
+          index: i,
+        });
+
+        await this.clipResultsService.patch(clipResultId, patch);
+
+        providerJobIds.push(jobId);
         queuedClipCount += 1;
 
         this.logger.log(
-          `${this.logContext} raw-cut job dispatched for clip ${i + 1}/${highlights.length}`,
-          { clipResultId, jobId: dispatch.jobId },
+          `${this.logContext} ${mode} job dispatched for clip ${i + 1}/${highlights.length}`,
+          { clipResultId, jobId },
         );
       } catch (error: unknown) {
         this.logger.error(
-          `${this.logContext} raw-cut generation failed for clip ${i + 1}`,
+          `${this.logContext} ${mode} generation failed for clip ${i + 1}`,
           error,
         );
 
         await this.clipResultsService.patch(clipResultId, {
-          providerName: RAW_CUT_PROVIDER_NAME,
+          providerName: failureProviderName,
           status: 'failed',
         });
 
@@ -292,7 +324,7 @@ export class ClipGenerationService {
       }
     }
 
-    this.logger.log(`${this.logContext} raw-cut generation batch complete`, {
+    this.logger.log(`${this.logContext} ${mode} generation batch complete`, {
       clipResultIds,
       projectId,
       queuedClipCount,
@@ -304,7 +336,9 @@ export class ClipGenerationService {
 
   /**
    * Persist a ClipResult for a highlight in `pending` state and return its id.
-   * Shared by both generation modes so the created record shape stays identical.
+   * Shared by both generation modes so the created record shape stays identical;
+   * `mode` is threaded through so the durable clip-result column reflects the
+   * generation path instead of always persisting the `avatar` default.
    */
   private async createPendingClipResult(
     highlight: ClipHighlight,
@@ -312,6 +346,7 @@ export class ClipGenerationService {
     orgId: string,
     projectId: string,
     userId: string,
+    mode: ClipGenerationMode,
   ): Promise<string> {
     const clipResult: ClipResultDocument = await this.clipResultsService.create(
       {
@@ -319,6 +354,7 @@ export class ClipGenerationService {
         duration: highlight.end_time - highlight.start_time,
         endTime: highlight.end_time,
         index,
+        mode,
         organization: orgId,
         project: projectId,
         startTime: highlight.start_time,
