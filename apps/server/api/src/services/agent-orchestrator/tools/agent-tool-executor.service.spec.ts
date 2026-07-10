@@ -3458,6 +3458,44 @@ describe('AgentToolExecutorService', () => {
     userId: '67a123456789012345678902',
   };
 
+  it('render_dashboard preserves an explicit replace operation', async () => {
+    const { service } = createService();
+    const blocks = [
+      {
+        id: 'views',
+        title: 'Views',
+        type: 'metric_card',
+        value: 42,
+      },
+    ];
+
+    const result = await service.executeTool(
+      AgentToolName.RENDER_DASHBOARD,
+      { blocks, operation: 'replace' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({ blocks, operation: 'replace' });
+  });
+
+  it('render_dashboard rejects unknown operations instead of replacing the dashboard', async () => {
+    const { service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.RENDER_DASHBOARD,
+      {
+        blocks: [{ id: 'views', type: 'metric_card', value: 42 }],
+        operation: 'merge',
+      },
+      CTX,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Unsupported dashboard operation: merge');
+    expect(result.data).toBeUndefined();
+  });
+
   it('list_workflows returns workflows from the org', async () => {
     const { service, workflowsService } = createService();
 
