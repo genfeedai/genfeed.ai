@@ -2,28 +2,29 @@
 
 **Open-source AI OS for content creation.**
 
-Genfeed is a full-stack platform for generating images, videos, music, text, and more using AI models. Build automated content pipelines, manage brands, publish to social platforms, and track performance -- all from one system.
+Genfeed combines a visual workflow system, provider-backed generation, content
+management, and programmatic interfaces in one monorepo.
 
-## Two Ways to Run Genfeed
+## Ways to use Genfeed
 
-| | Core (Self-Hosted) | Cloud (Managed SaaS) |
-|---|---|---|
-| **What it is** | Open-source engine you deploy on your own infrastructure | Fully managed platform at [app.genfeed.ai](https://app.genfeed.ai) |
-| **License** | AGPL-3.0 (enterprise features under commercial license in `ee/`) | Commercial |
-| **Best for** | Developers wanting full control, privacy, or custom models | Teams, agencies, and creators who want to start immediately |
-| **Includes** | AI generation pipeline, workflow engine, REST API | Everything in Core + organizations, brands, publishing, analytics, team collaboration |
-| | [Self-Host Guide](/core/installation) | [Get Started with Cloud](/getting-started) |
+| Surface        | Distribution status                                                                                                 |
+| -------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Community**  | Single-tenant self-hosted web/API/MCP stack distributed through Docker.                                             |
+| **Cloud**      | Hosted SaaS operated by Genfeed; availability, plans, and managed services are outside the repository distribution. |
+| **Desktop**    | macOS-first Electron source and release workflow. Tagged installers appear in GitHub Releases when published.       |
+| **Mobile**     | Expo/React Native source; its EAS config is disabled/not actively developed, and no app-store listing is linked.    |
+| **Extensions** | Chrome and VS Code extension source. Build/package workflows exist, but no public store listing is claimed here.    |
 
-For a detailed breakdown, see [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud).
+Community uses the repository's default
+[AGPL-3.0-or-later license](https://github.com/genfeedai/genfeed.ai/blob/master/LICENSE),
+except where a package carries its own license notice. Code under `ee/` uses its
+separate commercial license.
 
-## Marketplace
+## Quick links
 
-[marketplace.genfeed.ai](https://marketplace.genfeed.ai) is a separate cloud product where creators buy and sell workflows, prompts, presets, and brand kits. Marketplace access is available exclusively on Genfeed Cloud.
-
-## Quick Links
-
-- [Getting Started](/getting-started) -- Choose your path and generate your first content
-- [Self-Hosting Guide](/guides/self-host-quickstart) -- Deploy Genfeed Core in minutes
-- [API Reference](/api-reference) -- REST API documentation
-- [Features](/features) -- Full feature breakdown
-- [GitHub](https://github.com/genfeedai/genfeed.ai) -- Source code and issue tracker
+- [Choose a deployment](/deployment)
+- [Self-host quick start](/guides/self-host-quickstart)
+- [Execution boundaries](/core/execution-boundaries)
+- [REST API and MCP](/api-reference)
+- [Current capabilities](/features)
+- [Source and issue tracker](https://github.com/genfeedai/genfeed.ai)

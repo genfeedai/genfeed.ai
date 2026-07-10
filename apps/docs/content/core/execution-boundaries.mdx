@@ -6,7 +6,7 @@ Genfeed Core is a self-hosted, single-tenant runtime. Genfeed Cloud is the manag
 
 <Callout type="info">
   This page is the V1 boundary contract for self-hosted Core, BYOK execution, managed Cloud execution, and account
-  handoff. Boundary spec version: v1.3.0.
+  handoff. Boundary spec version: v1.3.1.
 </Callout>
 
 ## Execution Modes
@@ -42,7 +42,9 @@ Genfeed Cloud owns managed services:
 - Cross-workflow analytics, optimization loops, and managed scheduling.
 - Marketplace and hosted distribution surfaces.
 
-Cloud-only services do not run inside Core unless they are present under `ee/` or exposed through an explicit Cloud API integration.
+Cloud-only services do not run inside Community unless they are delivered in a
+separate commercial artifact or called through an explicit Cloud API
+integration. The published Community image excludes `ee/`.
 
 ## Workflow and Runtime Package Boundary
 
@@ -82,12 +84,12 @@ Provider calls must record the execution source so users can understand whether 
 
 ## Migration Contract
 
-V1 migration between Core and Cloud is explicit, not automatic:
-
-- Core to Cloud: export workflows, brand kits, templates, and assets, then import them into a Cloud workspace.
-- Cloud to Core: export Cloud configuration and import it into the self-hosted deployment.
-- Managed execution: keep local records local and store enough metadata to identify Cloud-credit-backed runs.
-- Future sync work must define conflict handling before writing records across both systems.
+V1 does not provide automatic Core/Cloud record synchronization. Evaluate
+export/import support separately for each resource before planning a migration;
+do not assume workflows, brands, templates, assets, or configuration have a
+complete bidirectional path. Managed execution keeps local records local and
+stores enough metadata to identify Cloud-credit-backed runs. Future sync work
+must define conflict handling before writing records across both systems.
 
 ## Follow-On Implementation Targets
 

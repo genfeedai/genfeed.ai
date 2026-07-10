@@ -1,79 +1,126 @@
 # Contributing to Genfeed.ai
 
-Thank you for your interest in contributing to Genfeed.ai!
+Contributions to the open-source tree are welcome through pull requests to
+`master`, the repository's single trunk.
 
-## Branch Strategy
+## Before you start
 
-| Branch | Purpose | Who can push |
-|--------|---------|-------------|
-| `master` | Single trunk; production releases are cut from here | Maintainers only via PR |
+- Read [SECURITY.md](SECURITY.md) before reporting a vulnerability.
+- Search existing issues and pull requests to avoid duplicate work.
+- Open an issue before a large or cross-cutting change so maintainers can confirm
+  the scope.
+- Do not include credentials, `.env` files, customer data, or generated build
+  artifacts.
 
-**Contributors:** Fork the repo and open PRs against `master`.
+## Toolchain
 
-**Maintainers:** Review and merge short-lived branches into `master` via PR. Do not use promotion branches.
+- Node.js `>=24 <25`
+- Bun `1.3.14`
+- Docker Engine with Docker Compose v2, or Docker Desktop, when running
+  PostgreSQL/Redis or the Community distribution
 
-### CI for External Contributors
+This is a Bun workspace. Do not use npm, Yarn, or pnpm to install repository
+dependencies or update `bun.lock`.
 
-To prevent abuse, CI does not run automatically on PRs from forks. A maintainer must review the code and add the `run-ci` label before CI will execute.
+## Development setup
 
-## Getting Started
+```bash
+git clone https://github.com/<your-account>/genfeed.ai.git
+cd genfeed.ai
+bun install
+cp .env.example .env.local
+```
 
-1. Fork the repository
-2. Create a feature branch from `master`
-3. Make your changes
-4. Run the narrowest relevant checks for the packages you changed:
-   - `npx biome check --write .`
-   - `bunx turbo run lint --filter=<changed-package>`
-   - `bunx turbo run type-check --filter=<changed-package>`
-   - `bunx turbo run test --filter=<changed-package>`
-   - Use the full repo baseline only when the change touches shared infrastructure or multiple packages.
-5. Submit a pull request against `master`
+Edit `.env.local` before generating workspace env files. At minimum, align the
+database credentials with `docker/local/docker-compose.yml`:
 
-## Repository Structure
+```env
+DATABASE_URL=postgresql://genfeed:genfeed_local@localhost:5432/genfeed
+REDIS_URL=redis://localhost:6379
+```
 
-- `apps/` — Applications (API, web, admin, desktop, mobile, extensions)
-- `packages/` — Shared packages (AGPL-3.0)
-- `ee/` — Enterprise features (Commercial License — see `ee/LICENSE`)
+Then sync and start the local dependencies:
 
-## Code Standards
+```bash
+bun run env:sync local --prune-legacy
+docker compose -f docker/local/docker-compose.yml up -d postgres redis
+```
 
-- TypeScript strict mode — no `any` types
-- Use path aliases (`@genfeedai/*`) over relative imports
-- Conventional commits: `feat:`, `fix:`, `refactor:`, `chore:`
-- No secrets in code (`.env`, API keys, tokens)
+Run only the workspaces needed for your change. Common entry points are:
 
-## Pull Request Expectations
+```bash
+bun run dev:app
+bun run dev:essentials
+bun run dev:desktop
+bun run dev:docs
+```
 
-- Keep PRs small and single-purpose. Prefer under 500 changed lines and under 10 code files when the change can be split cleanly.
-- Put a short summary at the top of the PR description, even when the diff is small.
-- Link the related issue with `Fixes #123` or `Refs #123`.
-- State what you tested. A short list of commands or flows is enough.
-- Keep GitHub as the source of truth. If work started in chat or another private channel, copy the needed context into the issue or PR.
+The self-hosted distribution has a separate container-image path that does not
+require local Node.js or Bun. See [docs/self-hosting.md](docs/self-hosting.md).
 
-## Contributing to Core (AGPL-3.0)
+## Branch and pull-request workflow
 
-All code outside of `ee/` is licensed under AGPL-3.0. Contributions are welcome via pull request.
+1. Fork the repository.
+2. Create a short-lived branch from the latest `master`.
+3. Make one focused change.
+4. Run focused checks for the files and workspaces you changed.
+5. Open a pull request against `genfeedai/genfeed.ai:master`.
 
-## Contributing to Enterprise (`ee/`)
+External-fork CI is held until a maintainer reviews the patch and applies the
+`run-ci` label. The pull-request template records the evidence maintainers need
+for that review.
 
-Code in the `ee/` directory is under a commercial license. Contributing to `ee/` requires a Contributor License Agreement (CLA).
+## Focused verification
 
-Before submitting PRs to `ee/`:
+Use package names from each workspace's `package.json`:
 
-1. Contact [cla@genfeed.ai](mailto:cla@genfeed.ai) to request the CLA
-2. Sign and return the agreement
-3. Wait for confirmation before opening your PR
+```bash
+bunx biome check --write <changed-paths>
+bunx turbo run lint --filter=@genfeedai/<workspace>
+bunx turbo run type-check --filter=@genfeedai/<workspace>
+bunx turbo run test --filter=@genfeedai/<workspace>
+```
 
-Core contributions (outside `ee/`) do not require a CLA — your contribution is accepted under the AGPL-3.0 license.
+For a documentation-only change, use targeted Markdown checks when the affected
+workspace provides them and always run:
 
-## Adding Integrations
+```bash
+git diff --check
+```
 
-See `packages/integrations/README.md` for how to add shared platform integration utilities.
+Broad workspace builds and test suites run in GitHub Actions. In the pull
+request, list exactly what you ran and any checks left to CI.
 
-## Adding AI Models
+## Code standards
 
-See `docs/adding-models.md` for the model integration pipeline.
+- Keep TypeScript strict; do not introduce `any` or inline shortcut interfaces.
+- Use `@genfeedai/*` aliases instead of deep relative imports across packages.
+- Keep response serializers in `packages/serializers`.
+- Preserve single-tenant Community behavior and organization guards in shared
+  API code.
+- Use conventional commit subjects such as `feat:`, `fix:`, `docs:`, and
+  `refactor:`.
+- Match at least three existing examples before introducing a new code pattern.
 
-## Releasing
+## Repository boundaries
 
-See [RELEASING.md](RELEASING.md) for the production, desktop, and browser-extension release flow.
+- `apps/` contains product, server, and client applications.
+- `packages/` contains shared packages. Check each package's own metadata for
+  its license and public API.
+- `ee/` contains commercially licensed packages and is not part of the normal
+  public contribution path. Do not include `ee/` changes unless a maintainer has
+  explicitly requested them.
+- Managed inference infrastructure, customer model assignments, and Fleet/LoRA
+  operations are outside this public repository.
+
+## Pull-request expectations
+
+- Keep the patch single-purpose and split unrelated work.
+- Link the issue with `Fixes #123` or `Refs #123`.
+- Explain user-visible behavior and repository-boundary effects.
+- Include focused verification commands and results.
+- Call out generated files, migrations, configuration changes, and external
+  settings that still need a maintainer action.
+
+Integration utilities live in [packages/integrations](packages/integrations/README.md).
+Release flows are documented in [RELEASING.md](RELEASING.md).

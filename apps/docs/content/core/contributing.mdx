@@ -1,58 +1,10 @@
 # Contributing
 
-Help make Genfeed Core better for everyone.
+The canonical contribution guide is
+[`CONTRIBUTING.md`](https://github.com/genfeedai/genfeed.ai/blob/master/CONTRIBUTING.md).
+It documents the supported Bun toolchain, local setup, focused verification,
+repository boundaries, and pull-request process.
 
-## Getting Started
-
-1. Fork the repository
-2. Clone your fork
-3. Create a branch for your feature
-
-```bash
-git clone https://github.com/YOUR_USERNAME/genfeed.ai.git
-cd genfeed.ai
-git checkout -b feature/my-feature
-```
-
-## Development Setup
-
-```bash
-bun install
-cp .env.example .env.local
-bun run env:sync local
-# Add your API keys to the root .env.local
-bun dev
-```
-
-## Code Style
-
-- TypeScript strict mode
-- Biome for linting and formatting
-- Run before committing:
-
-```bash
-bun run lint
-bun run format
-```
-
-## Pull Requests
-
-1. Keep PRs focused on a single feature/fix
-2. Write clear commit messages
-3. Add tests for new features
-4. Update docs if needed
-
-## Reporting Issues
-
-- Use GitHub Issues
-- Include reproduction steps
-- Share relevant logs
-
-## Community
-
-- [Discord](https://discord.gg/TmfHg42xVb)
-- [GitHub Discussions](https://github.com/genfeedai/genfeed.ai/discussions)
-
-## License
-
-Genfeed Core is AGPL-3.0 licensed. By contributing, you agree to license your contributions under AGPL-3.0.
+Report suspected vulnerabilities through
+[`SECURITY.md`](https://github.com/genfeedai/genfeed.ai/security/policy), not a
+public issue.

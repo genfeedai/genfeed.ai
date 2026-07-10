@@ -2,7 +2,7 @@
   "name": "genfeed.ai",
   "description": "The open source AI OS for content creation",
   "private": true,
-  "license": "AGPL-3.0",
+  "license": "AGPL-3.0-or-later",
   "homepage": "https://genfeed.ai",
   "repository": {
     "type": "git",

@@ -35,16 +35,16 @@ After that gate closes:
 
 Every row needs public evidence before the Show HN date is final.
 
-| Area                  | Required outcome                                                                               | Evidence to attach to #1433                                                               |
-| --------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| README                | README explains the product, quick start, architecture, links, license, and contribution path. | Link to reviewed README diff or latest commit.                                            |
-| Demo GIFs             | README or docs show the core workflow: generate, schedule, publish, and inspect output.        | Public GIF or screenshot paths with redactions complete.                                  |
-| Architecture overview | Public docs show the OSS Core, Cloud, Community, Desktop, and `ee/` boundaries.                | Link to [Architecture](/core/self-hosted-vs-cloud) and [Deployment Options](/deployment). |
-| Docker quick start    | A fresh clone can run the one-command Community path from `docker/.env.example`.               | Clean-clone terminal transcript for `docker compose -f docker-compose.selfhosted.yml up`. |
-| Screenshots           | Product Hunt gallery and README screenshots show current UI, not mockups.                      | Final image paths, dimensions, and captions.                                              |
-| CONTRIBUTING          | Contribution path, branch policy, checks, and PR expectations are public.                      | Link to `CONTRIBUTING.md`.                                                                |
-| Issue templates       | Bug and feature reports guide public contributors without exposing private process.            | Link to `.github/ISSUE_TEMPLATE/` once present.                                           |
-| Analytics             | Launch cohort attribution is wired before traffic arrives.                                     | UTM links, PostHog dashboard, or tracked-link IDs.                                        |
+| Area                  | Required outcome                                                                               | Evidence to attach to #1433                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| README                | README explains the product, quick start, architecture, links, license, and contribution path. | Link to reviewed README diff or latest commit.                                                               |
+| Demo GIFs             | README or docs show the core workflow: generate, schedule, publish, and inspect output.        | Public GIF or screenshot paths with redactions complete.                                                     |
+| Architecture overview | Public docs show the OSS Core, Cloud, Community, Desktop, and `ee/` boundaries.                | Link to [Architecture](/core/self-hosted-vs-cloud) and [Deployment Options](/deployment).                    |
+| Docker quick start    | The checksummed release bundle installs Community with an image pinned to the same release.    | Public download, checksum, extraction, and `docker compose --env-file .env -f compose.yml up -d` transcript. |
+| Screenshots           | Product Hunt gallery and README screenshots show current UI, not mockups.                      | Final image paths, dimensions, and captions.                                                                 |
+| CONTRIBUTING          | Contribution path, branch policy, checks, and PR expectations are public.                      | Link to `CONTRIBUTING.md`.                                                                                   |
+| Issue templates       | Bug and feature reports guide public contributors without exposing private process.            | Link to `.github/ISSUE_TEMPLATE/` once present.                                                              |
+| Analytics             | Launch cohort attribution is wired before traffic arrives.                                     | UTM links, PostHog dashboard, or tracked-link IDs.                                                           |
 
 ## Attribution
 
@@ -118,13 +118,13 @@ and whether the architecture is easy to understand from the README and docs.
 Use these answers only when the thread asks for them. Keep replies short and
 specific.
 
-| Question                                   | Answer                                                                                           |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| Can I self-host it?                        | Yes. Community runs from the Docker quick start with Postgres and the published image.           |
-| Do I need a cloud account?                 | No for Community self-hosting. Cloud is optional for managed execution and hosted collaboration. |
-| Does it post to Hacker News automatically? | No. The launch kit drafts copy and checklists only; HN posting and replies stay human.           |
-| What license is it?                        | Core is AGPL-3.0. Enterprise code under `ee/` uses the commercial license in that folder.        |
-| How do I contribute?                       | Open a PR against `master` and follow `CONTRIBUTING.md`.                                         |
+| Question                                   | Answer                                                                                                          |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Can I self-host it?                        | Yes. Community runs from the Docker quick start with Postgres and the published image.                          |
+| Do I need a cloud account?                 | No for Community self-hosting. Cloud is optional for managed execution and hosted collaboration.                |
+| Does it post to Hacker News automatically? | No. The launch kit drafts copy and checklists only; HN posting and replies stay human.                          |
+| What license is it?                        | The repository default is AGPL-3.0-or-later, package notices can differ, and `ee/` uses its commercial license. |
+| How do I contribute?                       | Open a PR against `master` and follow `CONTRIBUTING.md`.                                                        |
 
 ## Product Hunt Plan
 
