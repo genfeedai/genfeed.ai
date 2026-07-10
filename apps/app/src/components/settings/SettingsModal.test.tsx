@@ -29,7 +29,9 @@ vi.mock('@ui/primitives/select', () => ({
     value: string;
   }) => <div data-testid={`select-item-${value}`}>{children}</div>,
   SelectTrigger: ({ children }: { children: React.ReactNode }) => (
-    <button data-testid="select-trigger">{children}</button>
+    <button type="button" data-testid="select-trigger">
+      {children}
+    </button>
   ),
   SelectValue: () => <span data-testid="select-value" />,
 }));
@@ -44,60 +46,18 @@ vi.mock('@/components/ui/button', () => ({
     onClick?: () => void;
     [key: string]: unknown;
   }) => (
-    <button onClick={onClick} {...props}>
+    <button type="button" onClick={onClick} {...props}>
       {children}
     </button>
   ),
 }));
 
-vi.mock('@/store/settingsStore', () => ({
-  LLM_PROVIDERS: {
-    anthropic: {
-      description: 'Claude models',
-      docsUrl: 'https://console.anthropic.com/settings/keys',
-      keyPlaceholder: 'sk-ant-...',
-      keyPrefix: 'sk-ant-',
-      models: [],
-      name: 'Anthropic',
-    },
-    openai: {
-      description: 'GPT models',
-      docsUrl: 'https://platform.openai.com/api-keys',
-      keyPlaceholder: 'sk-...',
-      keyPrefix: 'sk-',
-      models: [],
-      name: 'OpenAI',
-    },
-    replicate: {
-      description: 'Open-source models via Replicate',
-      docsUrl: 'https://replicate.com/account/api-tokens',
-      keyPlaceholder: 'r8_...',
-      keyPrefix: 'r8_',
-      models: [],
-      name: 'Replicate',
-    },
-  },
-  PROVIDER_INFO: {
-    fal: {
-      description: 'Fast inference for image and video generation',
-      docsUrl: 'https://fal.ai/docs',
-      name: 'fal.ai',
-    },
-    huggingface: {
-      description: 'The AI community platform with 500k+ models',
-      docsUrl: 'https://huggingface.co/docs/api-inference',
-      name: 'Hugging Face',
-    },
-    replicate: {
-      description: 'Access thousands of open-source AI models',
-      docsUrl: 'https://replicate.com/docs',
-      name: 'Replicate',
-    },
-  },
+// Shared workflow settings now live in the package store; the app injects
+// promptApi + settings sync through the provider and no longer shadows it.
+vi.mock('@genfeedai/workflow-ui/stores', () => ({
   useSettingsStore: vi.fn(
     (selector?: (state: Record<string, unknown>) => unknown) => {
       const state = {
-        clearLLMProviderKey: vi.fn(),
         debugMode: false,
         defaults: {
           imageModel: 'nano-banana-pro',
@@ -106,7 +66,35 @@ vi.mock('@/store/settingsStore', () => ({
           videoProvider: 'replicate',
         },
         edgeStyle: 'default',
+        providers: {
+          fal: { apiKey: null, enabled: true },
+          huggingface: { apiKey: null, enabled: true },
+          replicate: { apiKey: null, enabled: true },
+        },
+        setDebugMode: mockSetDebugMode,
+        setDefaultModel: mockSetDefaultModel,
+        setEdgeStyle: mockSetEdgeStyle,
+        setShowMinimap: mockSetShowMinimap,
+        showMinimap: true,
+      };
+      return selector ? selector(state) : state;
+    },
+  ),
+  useUIStore: vi.fn(() => ({
+    activeModal: 'settings',
+    closeModal: mockCloseModal,
+    openModal: mockOpenModal,
+  })),
+}));
+
+// LLM BYOK is app-owned (not a package concern).
+vi.mock('@/store/llmSettingsStore', () => ({
+  useLLMSettingsStore: vi.fn(
+    (selector?: (state: Record<string, unknown>) => unknown) => {
+      const state = {
+        clearLLMProviderKey: vi.fn(),
         llm: {
+          activeModel: 'claude-sonnet-4-6',
           activeProvider: 'anthropic',
           providers: {
             anthropic: {
@@ -126,31 +114,12 @@ vi.mock('@/store/settingsStore', () => ({
             },
           },
         },
-        providers: {
-          fal: { apiKey: null, enabled: true },
-          huggingface: { apiKey: null, enabled: true },
-          replicate: { apiKey: null, enabled: true },
-        },
-        setDebugMode: mockSetDebugMode,
-        setDefaultModel: mockSetDefaultModel,
-        setEdgeStyle: mockSetEdgeStyle,
         setLLMActiveProvider: vi.fn(),
-        setLLMProviderEnabled: vi.fn(),
         setLLMProviderKey: vi.fn(),
-        setShowMinimap: mockSetShowMinimap,
-        showMinimap: true,
       };
       return selector ? selector(state) : state;
     },
   ),
-}));
-
-vi.mock('@genfeedai/workflow-ui/stores', () => ({
-  useUIStore: vi.fn(() => ({
-    activeModal: 'settings',
-    closeModal: mockCloseModal,
-    openModal: mockOpenModal,
-  })),
 }));
 
 describe('SettingsModal', () => {
