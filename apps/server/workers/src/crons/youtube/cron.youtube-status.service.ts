@@ -105,7 +105,7 @@ export class CronYoutubeStatusService {
 
     try {
       if (!post.credential) {
-        this.logger.warn(`${url} post ${post._id} has no credential`);
+        this.logger.warn(`${url} post ${post.id} has no credential`);
         return;
       }
 
@@ -116,7 +116,7 @@ export class CronYoutubeStatusService {
         post.externalId,
       );
 
-      this.logger.log(`${url} post ${post._id} video ${post.externalId}`, {
+      this.logger.log(`${url} post ${post.id} video ${post.externalId}`, {
         privacyStatus: videoStatus.privacyStatus,
         publishAt: videoStatus.publishAt,
       });
@@ -162,7 +162,7 @@ export class CronYoutubeStatusService {
           `${url} YouTube video ${post.externalId} status synced`,
           {
             newStatus: targetStatus,
-            postId: post._id,
+            postId: post.id,
             previousStatus: post.status,
             youtubePrivacyStatus: videoStatus.privacyStatus,
           },
@@ -187,7 +187,7 @@ export class CronYoutubeStatusService {
               hoursSinceScheduled: Math.round(
                 timeSinceScheduled / (60 * 60 * 1000),
               ),
-              postId: post._id,
+              postId: post.id,
               publishAt: videoStatus.publishAt,
               scheduledDate: scheduledDate.toISOString(),
             },
@@ -204,7 +204,7 @@ export class CronYoutubeStatusService {
       ) {
         this.logger.warn(
           `${url} video ${post.externalId} not found on YouTube, marking post as deleted`,
-          { postId: post._id },
+          { postId: post.id },
         );
 
         await this.recordStatusTransition(
@@ -222,7 +222,7 @@ export class CronYoutubeStatusService {
       }
 
       this.logger.error(
-        `${url} failed to check status for post ${post._id}`,
+        `${url} failed to check status for post ${post.id}`,
         error,
       );
     }
@@ -250,7 +250,7 @@ export class CronYoutubeStatusService {
           inputValues: {
             detail,
             outcome,
-            postId: String(post._id),
+            postId: String(post.id),
             videoId: post.externalId,
           },
           label: 'YouTube Status Reconciliation',
@@ -268,7 +268,7 @@ export class CronYoutubeStatusService {
       this.logger.error('Failed to record YouTube status transition', {
         error: (error as Error)?.message,
         outcome,
-        postId: String(post._id),
+        postId: String(post.id),
       });
       return false;
     }

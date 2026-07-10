@@ -44,7 +44,7 @@ import { RouterModule } from '@api/services/router/router.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
-import { PollingModule } from '@api/shared/services/polling/polling.module';
+import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingredient-completion.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
@@ -82,7 +82,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => MusicsModule),
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => OrganizationSettingsModule),
-    forwardRef(() => PollingModule),
+    forwardRef(() => IngredientCompletionModule),
     forwardRef(() => PostsModule),
     forwardRef(() => PromptBuilderModule),
     forwardRef(() => PromptsModule),

@@ -221,27 +221,24 @@ export const createPersistenceSlice: StateCreator<
 
     try {
       const workflow = await getWorkflowPersistence().getById(id, signal);
-      const nodes = hydrateWorkflowNodes(workflow.nodes);
 
-      set({
+      // Reuse loadWorkflow's hydrate → normalize → cost → propagate pipeline,
+      // then override only the id/dirty/loading state it can't know about.
+      get().loadWorkflow({
+        description: '',
         edgeStyle: workflow.edgeStyle as EdgeStyle,
-        edges: normalizeEdgeTypes(workflow.edges),
+        edges: workflow.edges,
         groups: workflow.groups ?? [],
-        isDirty: false,
-        isLoading: false,
-        nodes,
-        workflowId: workflow._id,
-        workflowName: workflow.name,
+        name: workflow.name,
+        nodes: workflow.nodes,
+        version: 1,
       });
 
-      const estimatedCost = calculateWorkflowCost(nodes);
-      useExecutionStore.getState().setEstimatedCost(estimatedCost.total);
-
-      // Propagate existing outputs to downstream nodes after load
-      propagateExistingOutputs(nodes, get().propagateOutputsDownstream);
-
-      // Propagation after load is idempotent; don't trigger save cycle
-      set({ isDirty: false });
+      set({
+        isDirty: false,
+        isLoading: false,
+        workflowId: workflow._id,
+      });
     } catch (error) {
       set({ isLoading: false });
       throw error;

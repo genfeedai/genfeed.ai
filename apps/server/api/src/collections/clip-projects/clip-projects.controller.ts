@@ -463,10 +463,14 @@ export class ClipProjectsController {
     @Param('clipResultId') clipResultId: string,
   ): Promise<ClipEditorHandoffResponse> {
     const publicMetadata = getPublicMetadata(user);
-    await this.resolveOwnedProject(projectId, publicMetadata.organization);
+    const ownedProject = await this.resolveOwnedProject(
+      projectId,
+      publicMetadata.organization,
+    );
     await this.clipProjectsService.reconcileTerminalState(
       projectId,
       publicMetadata.organization,
+      ownedProject,
     );
 
     const clipResult = await this.resolveReadyClipResult({
@@ -548,10 +552,14 @@ export class ClipProjectsController {
     @Param('clipResultId') clipResultId: string,
   ): Promise<ClipPublishHandoffResponse> {
     const publicMetadata = getPublicMetadata(user);
-    await this.resolveOwnedProject(projectId, publicMetadata.organization);
+    const ownedProject = await this.resolveOwnedProject(
+      projectId,
+      publicMetadata.organization,
+    );
     await this.clipProjectsService.reconcileTerminalState(
       projectId,
       publicMetadata.organization,
+      ownedProject,
     );
 
     const clipResult = await this.resolveReadyClipResult({

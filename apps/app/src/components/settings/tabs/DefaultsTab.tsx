@@ -1,5 +1,7 @@
 'use client';
 
+import type { ProviderType } from '@genfeedai/types';
+import { useSettingsStore } from '@genfeedai/workflow-ui/stores';
 import {
   Select,
   SelectContent,
@@ -8,7 +10,6 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { SettingsField } from '@/components/ui/settings-section';
-import { type ProviderType, useSettingsStore } from '@/store/settingsStore';
 
 const IMAGE_MODELS = [
   {

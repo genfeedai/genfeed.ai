@@ -9,10 +9,13 @@
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/queue-contracts": "workspace:*",
     "@genfeedai/server": "workspace:*",
+    "@genfeedai/tools": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
+    "@nestjs/axios": "4.0.1",
     "@nestjs/bullmq": "11.0.4",
     "@nestjs/event-emitter": "3.1.0",
-    "bullmq": "5.79.3"
+    "bullmq": "5.79.3",
+    "rxjs": "7.8.2"
   },
   "description": "Genfeed Workers Service (Cron Jobs)",
   "devDependencies": {

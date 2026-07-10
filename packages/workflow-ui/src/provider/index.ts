@@ -15,6 +15,8 @@ export type {
   ModelSchemaService,
   PromptLibraryService,
   PromptPickerProps,
+  SettingsSyncService,
+  SyncableSettings,
   WorkflowsApiService,
   WorkflowUIConfig,
   WorkflowUIHttpClient,

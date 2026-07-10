@@ -171,6 +171,32 @@ describe('PerformanceSummaryController', () => {
     });
   });
 
+  describe('validateBrandId', () => {
+    it('accepts a cuid brandId (not just a Mongo ObjectId)', async () => {
+      const cuidBrand = 'clz1a2b3c4d5e6f7g8h9i0j1k';
+
+      const result = await controller.getGenerationContext(
+        cuidBrand,
+        mockUser as any,
+      );
+
+      expect(result).toEqual({
+        context: 'No performance data available yet.',
+      });
+      expect(mockService.generatePerformanceContext).toHaveBeenCalledWith(
+        mockOrgId,
+        cuidBrand,
+      );
+    });
+
+    it('rejects an empty brandId', async () => {
+      await expect(
+        controller.getGenerationContext('', mockUser as any),
+      ).rejects.toThrow();
+      expect(mockService.generatePerformanceContext).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getGenerationContext', () => {
     it('should return context object', async () => {
       const result = await controller.getGenerationContext(

@@ -28,6 +28,7 @@ import { FalService } from '@api/services/integrations/fal/fal.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ActivitySource } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -59,6 +60,8 @@ describe('ManagedInferenceService', () => {
 
   const loggerService = {
     error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
   } as unknown as LoggerService;
 
   const request = {
@@ -82,6 +85,7 @@ describe('ManagedInferenceService', () => {
       leonardoAIService,
       replicateService,
       loggerService,
+      new PollUntilService(loggerService),
     );
   });
 

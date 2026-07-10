@@ -2,6 +2,7 @@ import type {
   AuthenticatedUser,
   IAuthPublicMetadata,
 } from '@api/auth/interfaces/authenticated-user.interface';
+import { BadRequestException } from '@nestjs/common';
 import type { Request } from 'express';
 
 const EMPTY_PUBLIC_METADATA: IAuthPublicMetadata = {
@@ -120,6 +121,29 @@ export function extractRequestContext(
     userId,
     userObjectId: userId ? userId : undefined,
   };
+}
+
+export function resolveRequiredBrandRequestContext(
+  user: AuthenticatedUser,
+  query: Pick<ContextQueryDto, 'brand' | 'organization'> = {},
+): Pick<RequestContext, 'brandId' | 'organizationId' | 'userId'> {
+  const requestContext = extractRequestContext(user);
+  const canOverrideScope = getIsSuperAdmin(user);
+  const organizationId =
+    canOverrideScope && query.organization
+      ? query.organization
+      : requestContext.organizationId;
+  const brandId =
+    canOverrideScope && query.brand ? query.brand : requestContext.brandId;
+  const userId = requestContext.userId || user.id;
+
+  if (!organizationId || !brandId || !userId) {
+    throw new BadRequestException(
+      'Organization, brand, and user context are required',
+    );
+  }
+
+  return { brandId, organizationId, userId };
 }
 
 /**

@@ -49,7 +49,11 @@ export type {
   ProviderSettings,
   RecentModel,
 } from './settingsStore';
-export { PROVIDER_INFO, useSettingsStore } from './settingsStore';
+export {
+  configureSettingsSync,
+  PROVIDER_INFO,
+  useSettingsStore,
+} from './settingsStore';
 // UI types
 export type { ModalType, NodeDetailTab } from './uiStore';
 export { useUIStore } from './uiStore';

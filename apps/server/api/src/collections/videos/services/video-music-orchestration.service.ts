@@ -28,7 +28,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { JOB_TYPES } from '@files/queues/queue.constants';
 import {
@@ -73,7 +73,7 @@ export class VideoMusicOrchestrationService {
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly musicsService: MusicsService,
-    private readonly pollingService: PollingService,
+    private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly promptsService: PromptsService,
     private readonly replicateService: ReplicateService,
@@ -263,7 +263,7 @@ export class VideoMusicOrchestrationService {
     musicIngredientId: string,
     timeoutMs: number = 120000, // 2 minutes default for music
   ): Promise<void> {
-    await this.pollingService.waitForIngredientCompletion(
+    await this.ingredientCompletionService.waitForIngredientCompletion(
       musicIngredientId,
       timeoutMs,
       3000, // Poll every 3 seconds
@@ -490,7 +490,7 @@ export class VideoMusicOrchestrationService {
       videoIngredientId,
     });
 
-    await this.pollingService.waitForIngredientCompletion(
+    await this.ingredientCompletionService.waitForIngredientCompletion(
       videoIngredientId,
       600000, // 10 minutes for video
       5000, // Poll every 5 seconds

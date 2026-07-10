@@ -92,4 +92,60 @@ describe('applyDashboardOperation', () => {
       }),
     ]);
   });
+
+  it('no-ops on unrecognized operations instead of replacing the dashboard', () => {
+    applyDashboardOperation('replace', [
+      {
+        id: 'keep',
+        title: 'Keep',
+        type: 'metric_card',
+        value: 1,
+      },
+    ]);
+
+    applyDashboardOperation('merge', [
+      {
+        id: 'intruder',
+        title: 'Intruder',
+        type: 'metric_card',
+        value: 2,
+      },
+    ]);
+
+    expect(useAgentDashboardStore.getState().blocks).toEqual([
+      expect.objectContaining({
+        id: 'keep',
+      }),
+    ]);
+  });
+
+  it('fails closed on circular payloads without overflowing the stack', () => {
+    const circular: Record<string, unknown> = {};
+    circular.blocks = circular;
+
+    applyDashboardOperation('replace', circular);
+
+    expect(useAgentDashboardStore.getState().blocks).toEqual([
+      expect.objectContaining({
+        id: 'dashboard-renderer-unsupported-tree',
+        type: 'empty_state',
+      }),
+    ]);
+  });
+
+  it('fails closed on deeply nested payloads without overflowing the stack', () => {
+    let nested: unknown = 'not-blocks';
+    for (let i = 0; i < 10_000; i += 1) {
+      nested = { blocks: nested };
+    }
+
+    applyDashboardOperation('replace', nested);
+
+    expect(useAgentDashboardStore.getState().blocks).toEqual([
+      expect.objectContaining({
+        id: 'dashboard-renderer-unsupported-tree',
+        type: 'empty_state',
+      }),
+    ]);
+  });
 });

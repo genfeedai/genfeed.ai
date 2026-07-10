@@ -104,6 +104,7 @@ import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycl
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
 import { PostPublishProcessor } from '@workers/processors/api/queues/post-publish/post-publish.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
+import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/clip-highlight-detector.service';
 import { SocialInboxSyncProcessor } from '@workers/processors/api/queues/social-inbox-sync/social-inbox-sync.processor';
 import { TelegramDistributeProcessor } from '@workers/processors/api/queues/telegram-distribute/telegram-distribute.processor';
 // --- services/ processors ---
@@ -245,6 +246,8 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     CampaignProcessor,
     ClipAnalyzeProcessor,
     ClipFactoryProcessor,
+    // Shared highlight-detection step for the two clip processors above.
+    ClipHighlightDetector,
     CreditDeductionProcessor,
     EmailDigestProcessor,
     HeygenPollProcessor,

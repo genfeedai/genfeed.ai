@@ -12,7 +12,7 @@
 #
 # Canonical component: packages/ui/src/components/card/Card.tsx
 #
-# Modeled on scripts/lint-no-raw-html.sh. Two run modes:
+# Two run modes:
 #   • lint-staged (pre-commit): file paths are passed as arguments; only those
 #     files are checked.
 #   • CI (no arguments): the whole in-scope tree is scanned.

@@ -7567,6 +7567,13 @@ export class AgentToolExecutorService {
     };
 
     const normalizedOperation = this.normalizeDashboardOperation(operation);
+    if (normalizedOperation === undefined) {
+      return {
+        creditsUsed: 0,
+        error: `Unsupported dashboard operation: ${operation ?? 'missing'}`,
+        success: false,
+      };
+    }
     const normalizedBlocks = Array.isArray(blocks)
       ? (blocks as AgentUIBlock[])
       : undefined;
@@ -7604,8 +7611,9 @@ export class AgentToolExecutorService {
 
   private normalizeDashboardOperation(
     operation: string | undefined,
-  ): AgentDashboardOperation {
+  ): AgentDashboardOperation | undefined {
     if (
+      operation === 'replace' ||
       operation === 'add' ||
       operation === 'update' ||
       operation === 'remove' ||
@@ -7614,7 +7622,7 @@ export class AgentToolExecutorService {
       return operation;
     }
 
-    return 'replace';
+    return undefined;
   }
 
   private buildLoadingDashboardBlocks(blocks: AgentUIBlock[]): AgentUIBlock[] {

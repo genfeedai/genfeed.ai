@@ -5,6 +5,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { PerformanceSummarySerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
@@ -19,9 +20,11 @@ import { PerformanceSummaryService } from '@server/collections/content-performan
 import type { Request } from 'express';
 
 function validateBrandId(brandId: string): void {
-  if (!brandId || !/^[a-fA-F0-9]{24}$/.test(brandId)) {
+  // Brand ids are Prisma cuids, not Mongo ObjectIds. `isEntityId` accepts the
+  // full set of id shapes the platform issues (cuid/cuid2/uuid/ulid/legacy).
+  if (!isEntityId(brandId)) {
     throw new BadRequestException(
-      'brandId is required and must be a valid 24-character ObjectId',
+      'brandId is required and must be a valid entity id',
     );
   }
 }

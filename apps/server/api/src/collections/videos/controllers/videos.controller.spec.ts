@@ -41,7 +41,8 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -69,7 +70,7 @@ describe('VideosController', () => {
   let replicateService: vi.Mocked<ReplicateService>;
   let klingAIService: vi.Mocked<KlingAIService>;
   let routerService: vi.Mocked<RouterService>;
-  let pollingService: vi.Mocked<PollingService>;
+  let pollingService: vi.Mocked<IngredientCompletionService>;
   let activitiesService: vi.Mocked<ActivitiesService>;
   let websocketService: vi.Mocked<NotificationsPublisherService>;
   let metadataService: vi.Mocked<MetadataService>;
@@ -248,7 +249,7 @@ describe('VideosController', () => {
           },
         },
         {
-          provide: PollingService,
+          provide: IngredientCompletionService,
           useValue: {
             waitForMultipleIngredientsCompletion: vi.fn(),
           },
@@ -416,7 +417,7 @@ describe('VideosController', () => {
     replicateService = testingModule.get(ReplicateService);
     klingAIService = testingModule.get(KlingAIService);
     routerService = testingModule.get(RouterService);
-    pollingService = testingModule.get(PollingService);
+    pollingService = testingModule.get(IngredientCompletionService);
     activitiesService = testingModule.get(ActivitiesService);
     websocketService = testingModule.get(NotificationsPublisherService);
     metadataService = testingModule.get(MetadataService);
@@ -1170,9 +1171,7 @@ describe('VideosController', () => {
         waitForCompletion: true,
       };
 
-      const timeoutError = new Error('Polling timeout');
-      (timeoutError as unknown as Record<string, unknown>).name =
-        'PollingTimeoutError';
+      const timeoutError = new PollTimeoutException('Polling timeout', 600_000);
       pollingService.waitForMultipleIngredientsCompletion.mockRejectedValue(
         timeoutError,
       );
@@ -1335,7 +1334,7 @@ beforeAll(async () => {
       },
       { provide: IngredientsService, useValue: { findOne: vi.fn() } },
       {
-        provide: PollingService,
+        provide: IngredientCompletionService,
         useValue: { waitForMultipleIngredientsCompletion: vi.fn() },
       },
       {

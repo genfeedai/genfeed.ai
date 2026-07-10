@@ -17,7 +17,7 @@ const { mockAddRecentModel } = vi.hoisted(() => ({
 // useSettingsStore((s) => s.recentModels)
 // useSettingsStore((s) => s.addRecentModel)
 // useSettingsStore((s) => s.providers.replicate.apiKey) etc.
-vi.mock('@/store/settingsStore', () => {
+vi.mock('@genfeedai/workflow-ui/stores', () => {
   const state = {
     addRecentModel: mockAddRecentModel,
     providers: {
@@ -55,7 +55,12 @@ vi.mock('@/components/ui/button', () => ({
     disabled?: boolean;
     className?: string;
   }) => (
-    <button onClick={onClick} disabled={disabled} className={className}>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={className}
+    >
       {children}
     </button>
   ),

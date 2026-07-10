@@ -13,6 +13,8 @@ import { FalService } from '@api/services/integrations/fal/fal.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ActivitySource } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -40,6 +42,7 @@ export class ManagedInferenceService {
     private readonly leonardoAIService: LeonardoAIService,
     private readonly replicateService: ReplicateService,
     private readonly loggerService: LoggerService,
+    private readonly pollUntilService: PollUntilService,
   ) {}
 
   async execute(
@@ -208,41 +211,47 @@ export class ManagedInferenceService {
     organizationId: string,
     jobId: string,
   ): Promise<{ jobId: string; url: string }> {
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < MANAGED_VIDEO_TIMEOUT_MS) {
-      const status = await this.fleetService.pollManagedJobForOrg(
-        organizationId,
-        'videos',
-        jobId,
+    // Poll the fleet job until it reaches a terminal state. Failure is raised
+    // from the predicate so it surfaces as a BadRequest rather than a timeout.
+    try {
+      const { value: status } = await this.pollUntilService.poll(
+        () =>
+          this.fleetService.pollManagedJobForOrg(
+            organizationId,
+            'videos',
+            jobId,
+          ),
+        (jobStatus) => {
+          const state = this.getString(jobStatus?.status);
+          if (state === 'failed' || state === 'error') {
+            throw new BadRequestException(
+              `GenfeedAI managed video job ${jobId} failed`,
+            );
+          }
+          return state === 'completed' || state === 'succeeded';
+        },
+        {
+          intervalMs: MANAGED_VIDEO_POLL_INTERVAL_MS,
+          timeoutMs: MANAGED_VIDEO_TIMEOUT_MS,
+        },
       );
 
-      const state = this.getString(status?.status);
-      if (state === 'completed' || state === 'succeeded') {
-        const url = this.extractVideoUrl(status);
-        if (!url) {
-          throw new BadRequestException(
-            `GenfeedAI managed video job ${jobId} completed without a video URL`,
-          );
-        }
-
-        return { jobId, url };
-      }
-
-      if (state === 'failed' || state === 'error') {
+      const url = this.extractVideoUrl(status);
+      if (!url) {
         throw new BadRequestException(
-          `GenfeedAI managed video job ${jobId} failed`,
+          `GenfeedAI managed video job ${jobId} completed without a video URL`,
         );
       }
 
-      await new Promise((resolve) =>
-        setTimeout(resolve, MANAGED_VIDEO_POLL_INTERVAL_MS),
-      );
+      return { jobId, url };
+    } catch (error: unknown) {
+      if (error instanceof PollTimeoutException) {
+        throw new BadRequestException(
+          `GenfeedAI managed video job ${jobId} timed out`,
+        );
+      }
+      throw error;
     }
-
-    throw new BadRequestException(
-      `GenfeedAI managed video job ${jobId} timed out`,
-    );
   }
 
   private extractVideoUrl(

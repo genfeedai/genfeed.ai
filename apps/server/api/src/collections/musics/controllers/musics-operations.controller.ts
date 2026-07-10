@@ -30,7 +30,8 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
@@ -71,7 +72,7 @@ export class MusicsOperationsController {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly loggerService: LoggerService,
-    private readonly pollingService: PollingService,
+    private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly metadataService: MetadataService,
     private readonly modelsService: ModelsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
@@ -442,7 +443,7 @@ export class MusicsOperationsController {
     if (createMusicDto.waitForCompletion === true) {
       try {
         const completedIngredients =
-          await this.pollingService.waitForMultipleIngredientsCompletion(
+          await this.ingredientCompletionService.waitForMultipleIngredientsCompletion(
             pendingIngredientIds,
             180_000, // 3 minutes timeout for music
             3_000, // 3 seconds poll interval
@@ -460,7 +461,7 @@ export class MusicsOperationsController {
           completedIngredients[0],
         );
       } catch (error: unknown) {
-        if ((error as Error).name === 'PollingTimeoutError') {
+        if (error instanceof PollTimeoutException) {
           throw new HttpException(
             {
               detail: `Music generation did not complete within 3 minutes. Current status: ${ingredientData.status}`,

@@ -10,10 +10,10 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -257,17 +257,17 @@ export class ContextsService {
   }
 
   async findOne(id: string, organizationId: string): Promise<ContextBase> {
-    const contextBase = await this.prisma.contextBase.findFirst({
-      where: {
-        id,
-        isDeleted: false,
-        organizationId,
+    const contextBase = await findOrThrow(
+      this.prisma.contextBase,
+      {
+        where: {
+          id,
+          isDeleted: false,
+          organizationId,
+        },
       },
-    });
-
-    if (!contextBase) {
-      throw new NotFoundException('Context base');
-    }
+      'Context base',
+    );
 
     return this.normalizeContextBase(contextBase);
   }
@@ -277,13 +277,11 @@ export class ContextsService {
     dto: UpdateContextDto,
     organizationId: string,
   ): Promise<ContextBase> {
-    const existing = await this.prisma.contextBase.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Context base');
-    }
+    const existing = await findOrThrow(
+      this.prisma.contextBase,
+      { where: { id, isDeleted: false, organizationId } },
+      'Context base',
+    );
 
     // Validate that the supplied sourceBrand belongs to the caller's org to
     // prevent cross-tenant brand linking on update.
@@ -309,13 +307,11 @@ export class ContextsService {
   }
 
   async remove(id: string, organizationId: string): Promise<void> {
-    const existing = await this.prisma.contextBase.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Context base');
-    }
+    await findOrThrow(
+      this.prisma.contextBase,
+      { where: { id, isDeleted: false, organizationId } },
+      'Context base',
+    );
 
     await this.prisma.contextBase.update({
       data: { isDeleted: true },
@@ -372,18 +368,18 @@ export class ContextsService {
     entryId: string,
     organizationId: string,
   ): Promise<void> {
-    const existing = await this.prisma.contextEntry.findFirst({
-      where: {
-        contextBaseId,
-        id: entryId,
-        isDeleted: false,
-        organizationId,
+    await findOrThrow(
+      this.prisma.contextEntry,
+      {
+        where: {
+          contextBaseId,
+          id: entryId,
+          isDeleted: false,
+          organizationId,
+        },
       },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('Entry');
-    }
+      'Entry',
+    );
 
     await this.prisma.contextEntry.update({
       data: { isDeleted: true },
