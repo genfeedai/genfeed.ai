@@ -430,13 +430,29 @@ export class AgentRunsController extends BaseCRUDController<
       throw new NotFoundException('Agent run');
     }
 
-    const { jobData, previousStatus, run } = preparation;
+    const { jobData, rollback, run } = preparation;
 
     try {
       await this.agentRunQueueService.queueRun(jobData);
     } catch (error) {
-      // The run was already reset to PENDING; revert so it stays retryable.
-      await this.agentRunsService.patch(id, { status: previousStatus });
+      try {
+        const restored = await this.agentRunsService.rollbackRetry(
+          id,
+          publicMetadata.organization,
+          rollback,
+          publicMetadata.brand,
+        );
+        if (!restored) {
+          this.loggerService.warn('Agent run retry rollback was not applied', {
+            runId: id,
+          });
+        }
+      } catch (rollbackError) {
+        this.loggerService.warn('Failed to roll back agent run retry', {
+          error: (rollbackError as Error)?.message,
+          runId: id,
+        });
+      }
       throw error;
     }
 

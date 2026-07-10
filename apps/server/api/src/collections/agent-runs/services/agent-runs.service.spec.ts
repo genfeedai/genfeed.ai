@@ -204,7 +204,10 @@ describe('AgentRunsService', () => {
 
   describe('prepareRetry', () => {
     const failedRun = {
+      completedAt: new Date('2026-07-09T11:00:00.000Z'),
       creditBudget: 40,
+      durationMs: 60000,
+      error: 'original failure',
       id: 'run-1',
       metadata: {
         campaignId: 'campaign-1',
@@ -212,13 +215,16 @@ describe('AgentRunsService', () => {
         source: 'test',
       },
       objective: 'Do the thing',
+      progress: 70,
       retryCount: 1,
+      startedAt: new Date('2026-07-09T10:59:00.000Z'),
       status: 'FAILED',
       strategy: {
         agentType: 'content',
         config: { autonomyMode: 'supervised', model: 'model-from-config' },
       },
       strategyId: 'strategy-1',
+      summary: 'partial output',
       threadId: 'thread-1',
       userId: 'user-1',
     };
@@ -231,7 +237,7 @@ describe('AgentRunsService', () => {
       });
 
       expect(preparation).toBeNull();
-      expect(agentRun.update).not.toHaveBeenCalled();
+      expect(agentRun.updateMany).not.toHaveBeenCalled();
     });
 
     it('scopes the lookup by organization and brand', async () => {
@@ -262,19 +268,18 @@ describe('AgentRunsService', () => {
       await expect(
         service.prepareRetry('run-1', 'org-1', { retriedBy: 'user-2' }),
       ).rejects.toThrow('Only failed or cancelled agent runs can be retried');
-      expect(agentRun.update).not.toHaveBeenCalled();
+      expect(agentRun.updateMany).not.toHaveBeenCalled();
     });
 
     it('resets terminal state and stamps retry provenance metadata', async () => {
       agentRun.findFirst.mockResolvedValue(failedRun);
-      agentRun.update.mockResolvedValue({ ...failedRun, status: 'PENDING' });
 
       const preparation = await service.prepareRetry('run-1', 'org-1', {
         retriedBy: 'user-2',
       });
 
       expect(preparation?.previousStatus).toBe('FAILED');
-      expect(agentRun.update).toHaveBeenCalledWith({
+      expect(agentRun.updateMany).toHaveBeenCalledWith({
         data: {
           completedAt: null,
           durationMs: null,
@@ -289,17 +294,42 @@ describe('AgentRunsService', () => {
           startedAt: null,
           status: 'PENDING',
           summary: null,
+          updatedAt: expect.any(Date),
         },
-        where: { id: 'run-1' },
+        where: {
+          id: 'run-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: 'FAILED',
+        },
       });
 
-      const writtenMetadata = agentRun.update.mock.calls[0]?.[0].data.metadata;
+      const writtenMetadata =
+        agentRun.updateMany.mock.calls[0]?.[0].data.metadata;
       expect(Number.isNaN(Date.parse(writtenMetadata.lastRetryAt))).toBe(false);
+      expect(preparation?.rollback.state).toEqual({
+        completedAt: failedRun.completedAt,
+        durationMs: 60000,
+        error: 'original failure',
+        metadata: failedRun.metadata,
+        progress: 70,
+        startedAt: failedRun.startedAt,
+        status: 'FAILED',
+        summary: 'partial output',
+      });
+    });
+
+    it('rejects a concurrent retry after another request claims the run', async () => {
+      agentRun.findFirst.mockResolvedValue(failedRun);
+      agentRun.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.prepareRetry('run-1', 'org-1', { retriedBy: 'user-2' }),
+      ).rejects.toThrow('Agent run retry is already in progress');
     });
 
     it('rebuilds queue job data from the durable run and strategy records', async () => {
       agentRun.findFirst.mockResolvedValue(failedRun);
-      agentRun.update.mockResolvedValue({ ...failedRun, status: 'PENDING' });
 
       const preparation = await service.prepareRetry('run-1', 'org-1', {
         retriedBy: 'user-2',
@@ -327,7 +357,6 @@ describe('AgentRunsService', () => {
         strategy: { agentType: null, config: { model: 'model-from-config' } },
         userId: 'user-1',
       });
-      agentRun.update.mockResolvedValue({ id: 'run-1', status: 'PENDING' });
 
       const preparation = await service.prepareRetry('run-1', 'org-1', {
         retriedBy: 'user-2',
@@ -345,6 +374,37 @@ describe('AgentRunsService', () => {
         runId: 'run-1',
         strategyId: undefined,
         userId: 'user-1',
+      });
+    });
+  });
+
+  describe('rollbackRetry', () => {
+    it('restores the prior state only for the claimed tenant-scoped retry', async () => {
+      const claimedAt = new Date('2026-07-10T00:00:00.000Z');
+      const state = {
+        error: 'original failure',
+        status: 'FAILED',
+      };
+
+      await expect(
+        service.rollbackRetry(
+          'run-1',
+          'org-1',
+          { claimedAt, state },
+          'brand-1',
+        ),
+      ).resolves.toBe(true);
+
+      expect(agentRun.updateMany).toHaveBeenCalledWith({
+        data: state,
+        where: {
+          brandId: 'brand-1',
+          id: 'run-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          status: 'PENDING',
+          updatedAt: claimedAt,
+        },
       });
     });
   });

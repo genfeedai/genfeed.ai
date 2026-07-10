@@ -50,6 +50,7 @@ describe('AgentRunsController', () => {
     patch: vi.fn(),
     prepareRetry: vi.fn(),
     remove: vi.fn(),
+    rollbackRetry: vi.fn(),
   };
 
   const mockQueueService = {
@@ -438,6 +439,10 @@ describe('AgentRunsController', () => {
         userId: 'user_run_owner',
       },
       previousStatus: 'FAILED',
+      rollback: {
+        claimedAt: new Date('2026-07-10T00:00:00.000Z'),
+        state: { error: 'original failure', status: 'FAILED' },
+      },
       run: { id: 'run1', retryCount: 1, status: 'PENDING' },
     };
 
@@ -470,16 +475,32 @@ describe('AgentRunsController', () => {
       expect(mockQueueService.queueRun).not.toHaveBeenCalled();
     });
 
-    it('should revert the run status when enqueueing fails', async () => {
+    it('should restore the prior run state when enqueueing fails', async () => {
       mockServiceMethods.prepareRetry.mockResolvedValue(preparation);
       mockQueueService.queueRun.mockRejectedValue(new Error('redis down'));
+      mockServiceMethods.rollbackRetry.mockResolvedValue(true);
 
       await expect(
         controller.retryRun(mockRequest, 'run1', mockUser),
       ).rejects.toThrow('redis down');
-      expect(mockServiceMethods.patch).toHaveBeenCalledWith('run1', {
-        status: 'FAILED',
-      });
+      expect(mockServiceMethods.rollbackRetry).toHaveBeenCalledWith(
+        'run1',
+        '507f1f77bcf86cd799439012',
+        preparation.rollback,
+        '507f1f77bcf86cd799439013',
+      );
+    });
+
+    it('should preserve the enqueue error when rollback also fails', async () => {
+      mockServiceMethods.prepareRetry.mockResolvedValue(preparation);
+      mockQueueService.queueRun.mockRejectedValue(new Error('redis down'));
+      mockServiceMethods.rollbackRetry.mockRejectedValue(
+        new Error('database unavailable'),
+      );
+
+      await expect(
+        controller.retryRun(mockRequest, 'run1', mockUser),
+      ).rejects.toThrow('redis down');
     });
 
     it('should append a run.retried thread event when the run has a thread', async () => {
