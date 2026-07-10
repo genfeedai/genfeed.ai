@@ -387,6 +387,27 @@ describe('AgentRunsController', () => {
       });
     });
 
+    it('should fall back to the populated thread id when threadId is absent', async () => {
+      const mockRun = {
+        _id: 'run1',
+        status: 'cancelled',
+        thread: { id: 'legacy-thread1' },
+        threadId: null,
+      };
+      mockServiceMethods.cancel.mockResolvedValue(mockRun);
+      mockThreadEngineService.appendEvent.mockResolvedValue({});
+
+      await controller.cancelRun(mockRequest, 'run1', mockUser);
+
+      expect(mockThreadEngineService.appendEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          runId: 'run1',
+          threadId: 'legacy-thread1',
+          type: 'run.cancelled',
+        }),
+      );
+    });
+
     it('should throw NotFoundException when run not found', async () => {
       mockServiceMethods.cancel.mockResolvedValue(null);
 
