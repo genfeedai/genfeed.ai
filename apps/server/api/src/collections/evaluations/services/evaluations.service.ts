@@ -15,7 +15,6 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { findUniqueOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
   ActivitySource,
   EvaluationType,
@@ -402,11 +401,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     if (!this.videosService) throw new Error('VideosService not available');
 
-    const video = await this.videosService.findOne({ _id: videoId }, [
-      { path: 'metadata' },
-      { path: 'prompt' },
-      { path: 'brand' },
-    ]);
+    const video = await this.videosService.findOne(
+      { _id: videoId, organizationId, isDeleted: false },
+      [{ path: 'metadata' }, { path: 'prompt' }, { path: 'brand' }],
+    );
 
     if (!video) throw new NotFoundException('Video', videoId);
 
@@ -473,11 +471,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     if (!this.imagesService) throw new Error('ImagesService not available');
 
-    const image = await this.imagesService.findOne({ _id: imageId }, [
-      { path: 'metadata' },
-      { path: 'prompt' },
-      { path: 'brand' },
-    ]);
+    const image = await this.imagesService.findOne(
+      { _id: imageId, organizationId, isDeleted: false },
+      [{ path: 'metadata' }, { path: 'prompt' }, { path: 'brand' }],
+    );
 
     if (!image) throw new NotFoundException('Image', imageId);
 
@@ -544,9 +541,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     if (!this.articlesService) throw new Error('ArticlesService not available');
 
-    const article = await this.articlesService.findOne({ _id: articleId }, [
-      { path: 'brand' },
-    ]);
+    const article = await this.articlesService.findOne(
+      { _id: articleId, organizationId, isDeleted: false },
+      [{ path: 'brand' }],
+    );
 
     if (!article) throw new NotFoundException('Article', articleId);
     if (!article.content)
@@ -611,9 +609,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     if (!this.postsService) throw new Error('PostsService not available');
 
-    const post = await this.postsService.findOne({ _id: postId }, [
-      { path: 'brand' },
-    ]);
+    const post = await this.postsService.findOne(
+      { _id: postId, organizationId, isDeleted: false },
+      [{ path: 'brand' }],
+    );
     if (!post) throw new NotFoundException('Post', postId);
     if (!post.description)
       throw new NotFoundException(`Post ${postId} has no content`);
@@ -658,6 +657,8 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     userId: string,
   ): Promise<void> {
     const postId = String(post.id);
+    let billedCredits = 0;
+    let creditsSettled = false;
 
     try {
       const children = (await this.postsService?.getChildren(postId)) as
@@ -716,7 +717,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         threadLength: isThread ? threadChildren.length + 1 : 1,
       };
 
-      let billedCredits = 0;
       const aiResult = (await this.evaluationsOperationsService.evaluatePost(
         threadContent,
         context,
@@ -732,6 +732,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         billedCredits,
         'Content evaluation: post',
       );
+      creditsSettled = true;
 
       const existing = await this.prisma.evaluation.findUnique({
         where: { id: evaluationId },
@@ -778,6 +779,17 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           }) as never,
         },
       });
+
+      // Credits were settled before the evaluation ultimately failed (e.g. the
+      // completion write threw after the AI charge). Return them so a failed
+      // evaluation is never billed.
+      if (creditsSettled) {
+        await this.refundEvaluationCredits(
+          organizationId,
+          billedCredits,
+          'Content evaluation failed: post',
+        );
+      }
 
       await this.websocketService.emit(
         WebSocketPaths.evaluation(evaluationId),
@@ -978,6 +990,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
   async syncPostPublicationPerformance(
     evaluationId: string,
+    organizationId: string,
     publicationData: Record<string, unknown>,
   ): Promise<EvaluationDocument> {
     this.logger.log(
@@ -985,16 +998,17 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       this.constructorName,
     );
 
-    const evaluation = await findUniqueOrThrow(
-      this.prisma.evaluation,
-      { where: { id: evaluationId } },
-      'Evaluation',
-      evaluationId,
-    );
+    const evaluation = await this.prisma.evaluation.findFirst({
+      where: { id: evaluationId, isDeleted: false, organizationId },
+    });
+
+    if (!evaluation) {
+      throw new NotFoundException('Evaluation', evaluationId);
+    }
 
     const data = evaluation.data as EvaluationData | null;
 
-    if (data?.status !== Status.COMPLETED) {
+    if (!data || data.status !== Status.COMPLETED) {
       throw new NotFoundException(
         `Evaluation ${evaluationId} is not completed (status: ${data?.status}). Cannot sync performance metrics for incomplete evaluations.`,
       );
@@ -1191,5 +1205,33 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           EvaluationsService.EVALUATION_MAX_OVERDRAFT_CREDITS,
       },
     );
+  }
+
+  private async refundEvaluationCredits(
+    organizationId: string,
+    amount: number,
+    description: string,
+  ): Promise<void> {
+    if (amount <= 0) return;
+
+    try {
+      const refundExpiresAt = new Date();
+      refundExpiresAt.setFullYear(refundExpiresAt.getFullYear() + 1);
+
+      await this.creditsUtilsService.refundOrganizationCredits(
+        organizationId,
+        amount,
+        'content-evaluation-refund',
+        description,
+        refundExpiresAt,
+      );
+    } catch (error: unknown) {
+      // A failed refund must not mask the original evaluation failure — log and
+      // move on so the caller still surfaces the FAILED status.
+      this.logger.error(
+        `Failed to refund evaluation credits for organization ${organizationId}`,
+        error,
+      );
+    }
   }
 }

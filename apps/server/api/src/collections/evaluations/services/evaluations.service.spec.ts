@@ -18,6 +18,7 @@ function createMocks() {
       checkOrganizationCreditsAvailable: vi.fn(),
       deductCreditsFromOrganization: vi.fn(),
       getOrganizationCreditsBalance: vi.fn(),
+      refundOrganizationCredits: vi.fn(),
     },
     evaluationsOperationsService: {},
     logger: {
@@ -26,6 +27,9 @@ function createMocks() {
       warn: vi.fn(),
     },
     prisma,
+    videosService: {
+      findOne: vi.fn(),
+    },
     websocketService: {
       emit: vi.fn(),
     },
@@ -47,7 +51,46 @@ describe('EvaluationsService review and comparison workflow', () => {
       mocks.evaluationsOperationsService as never,
       mocks.creditsUtilsService as never,
       mocks.websocketService as never,
+      undefined,
+      mocks.videosService as never,
     );
+  });
+
+  describe('evaluateVideo organization scoping', () => {
+    it('should scope the video lookup to the caller organization and 404 on a foreign video', async () => {
+      mocks.videosService.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.evaluateVideo(
+          'video-1',
+          'pre_publication' as never,
+          organizationId,
+          reviewerId,
+          'brand-1',
+        ),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(mocks.videosService.findOne).toHaveBeenCalledWith(
+        { _id: 'video-1', isDeleted: false, organizationId },
+        expect.any(Array),
+      );
+    });
+  });
+
+  describe('syncPostPublicationPerformance organization scoping', () => {
+    it('should throw not found when the evaluation is outside the organization', async () => {
+      mocks.prisma.evaluation.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.syncPostPublicationPerformance('eval-1', organizationId, {
+          engagement: 42,
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(mocks.prisma.evaluation.findFirst).toHaveBeenCalledWith({
+        where: { id: 'eval-1', isDeleted: false, organizationId },
+      });
+    });
   });
 
   describe('recordReviewerFeedback', () => {

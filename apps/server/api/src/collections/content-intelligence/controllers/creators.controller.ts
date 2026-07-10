@@ -300,8 +300,11 @@ export class CreatorsController {
       ErrorResponse.notFound('CreatorAnalysis', id);
     }
 
-    // Delete associated patterns
-    await this.patternStoreService.deleteByCreator(id);
+    // Delete associated patterns (scoped to the caller's organization)
+    await this.patternStoreService.deleteByCreator(
+      id,
+      publicMetadata.organization,
+    );
 
     // Soft delete creator
     const deleted = await this.contentIntelligenceService.remove(id);

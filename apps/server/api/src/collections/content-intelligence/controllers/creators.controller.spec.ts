@@ -283,6 +283,7 @@ describe('CreatorsController', () => {
 
       expect(mockPatternStoreService.deleteByCreator).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439015',
+        '507f1f77bcf86cd799439012',
       );
       expect(mockContentIntelligenceService.remove).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439015',
