@@ -49,33 +49,36 @@ export class TrendPreferencesService {
   ): Promise<TrendPreferencesDocument> {
     try {
       const brandId = preferences.brandId ?? null;
-      const normalizedPreferences: Record<string, unknown> = {
-        categories: preferences.categories ?? [],
-        hashtags: preferences.hashtags ?? [],
-        keywords: preferences.keywords ?? [],
-        platforms: preferences.platforms ?? [],
-      };
-
       const existing = await this.prisma.trendPreferences.findFirst({
         where: { brandId, isDeleted: false, organizationId },
       });
+      const storedConfig = this.readObjectRecord(existing?.config);
+      const normalizedPreferences: Record<string, unknown> = {
+        ...(storedConfig ?? {}),
+        categories:
+          preferences.categories ??
+          this.readStringArray(storedConfig?.categories),
+        hashtags:
+          preferences.hashtags ?? this.readStringArray(storedConfig?.hashtags),
+        keywords:
+          preferences.keywords ?? this.readStringArray(storedConfig?.keywords),
+        platforms:
+          preferences.platforms ??
+          this.readStringArray(storedConfig?.platforms),
+      };
 
       if (preferences.autoRequeueWinners !== undefined) {
         normalizedPreferences.autoRequeueWinners =
           preferences.autoRequeueWinners;
-      } else if (existing) {
+      } else if (storedConfig?.autoRequeueWinners !== undefined) {
         // `config` is a Json column and Prisma REPLACES Json values on update
-        // (it does not merge), so a partial update that omits the opt-in flag
-        // would silently wipe a previously saved `autoRequeueWinners: true`.
-        // Carry the stored value forward when one exists; leave it absent for a
-        // never-configured record so the config shape stays clean (#1112).
-        const storedConfig = this.readObjectRecord(existing.config);
-        if (storedConfig?.autoRequeueWinners !== undefined) {
-          normalizedPreferences.autoRequeueWinners = this.readBoolean(
-            storedConfig.autoRequeueWinners,
-            false,
-          );
-        }
+        // (it does not merge), so preserve omitted fields from the stored
+        // document. Leave the opt-in flag absent for a never-configured record
+        // so the config shape stays clean (#1112).
+        normalizedPreferences.autoRequeueWinners = this.readBoolean(
+          storedConfig.autoRequeueWinners,
+          false,
+        );
       }
 
       const updateData = {
