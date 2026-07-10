@@ -176,15 +176,6 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'pending-system-workflow-migration',
-      file: 'apps/server/workers/src/crons/content-pipeline/cron.content-pipeline.service.ts',
-      id: 'content-pipeline-cron',
-      issue: 1011,
-      reason:
-        'Content pipeline autopilot remains a product automation path pending system workflow migration.',
-      systemWorkflowIds: ['content-pipeline-automation'],
-    },
-    {
-      classification: 'pending-system-workflow-migration',
       file: 'apps/server/workers/src/crons/agent/cron.proactive-agent.service.ts',
       id: 'proactive-agent-cron',
       issue: 1011,
