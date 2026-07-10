@@ -28,13 +28,22 @@ describe('TrainingsOperationsController', () => {
   } as unknown as User;
 
   const mockTraining = {
+    brandId: '507f1f77bcf86cd799439013',
+    config: {
+      category: 'style',
+      model: 'replicate/custom-model',
+      provider: 'replicate',
+      seed: 42,
+      steps: 1200,
+      trigger: 'MYTOK',
+    },
     id: '507f1f77bcf86cd799439014',
     organization: '507f1f77bcf86cd799439012',
     sources: Array.from(
       { length: 10 },
       (_, i) => `507f1f77bcf86cd79943${String(i).padStart(4, '0')}`,
     ),
-    status: 'completed',
+    stage: 'READY',
     user: '507f1f77bcf86cd799439011',
   };
 
@@ -128,10 +137,10 @@ describe('TrainingsOperationsController', () => {
       ).rejects.toThrow();
     });
 
-    it('should throw 400 when training is already processing', async () => {
+    it('should throw 400 when training stage is already in progress', async () => {
       mockServices.trainingsService.findOne.mockResolvedValueOnce({
         ...mockTraining,
-        status: 'processing',
+        stage: 'TRAINING',
       });
 
       await expect(
@@ -141,6 +150,51 @@ describe('TrainingsOperationsController', () => {
           '507f1f77bcf86cd799439014',
         ),
       ).rejects.toThrow();
+      expect(mockServices.trainingsService.create).not.toHaveBeenCalled();
+    });
+
+    it('builds the relaunch config from the training nested config, not top-level fields', async () => {
+      await controller.relaunchTraining(
+        {} as unknown as Request,
+        mockUser,
+        '507f1f77bcf86cd799439014',
+      );
+
+      expect(mockServices.trainingsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: '507f1f77bcf86cd799439013',
+          config: expect.objectContaining({
+            category: 'style',
+            model: 'replicate/custom-model',
+            provider: 'replicate',
+            seed: 42,
+            steps: 1200,
+            trigger: 'MYTOK',
+          }),
+        }),
+      );
+    });
+
+    it('marks the training FAILED via the `stage` column when zip creation fails', async () => {
+      mockServices.trainingsService.createTrainingZip.mockRejectedValueOnce(
+        new Error('zip boom'),
+      );
+
+      await expect(
+        controller.relaunchTraining(
+          {} as unknown as Request,
+          mockUser,
+          '507f1f77bcf86cd799439014',
+        ),
+      ).rejects.toThrow();
+
+      expect(mockServices.trainingsService.patch).toHaveBeenCalledWith(
+        mockTraining.id,
+        { stage: 'FAILED' },
+      );
+      const patchPayload =
+        mockServices.trainingsService.patch.mock.calls.at(-1)?.[1];
+      expect(patchPayload).not.toHaveProperty('status');
     });
 
     it('should throw when fewer than 10 source images found', async () => {
