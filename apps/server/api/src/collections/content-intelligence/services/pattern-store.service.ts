@@ -57,15 +57,10 @@ export class PatternStoreService extends BaseService<
     } as CreatePatternDto);
   }
 
-  async storeBulkPatterns(
+  storeBulkPatterns(
     patterns: CreatePatternDto[],
   ): Promise<ContentPatternDocument[]> {
-    const results: ContentPatternDocument[] = [];
-    for (const pattern of patterns) {
-      const result = await this.storePattern(pattern);
-      results.push(result);
-    }
-    return results;
+    return Promise.all(patterns.map((pattern) => this.storePattern(pattern)));
   }
 
   async findByOrganization(
@@ -116,9 +111,12 @@ export class PatternStoreService extends BaseService<
     }) as Promise<ContentPatternDocument[]>;
   }
 
-  findByCreator(creatorId: string): Promise<ContentPatternDocument[]> {
+  findByCreator(
+    creatorId: string,
+    organizationId: string,
+  ): Promise<ContentPatternDocument[]> {
     return this.delegate.findMany({
-      where: { isDeleted: false, sourceCreatorId: creatorId },
+      where: { isDeleted: false, organizationId, sourceCreatorId: creatorId },
     }) as Promise<ContentPatternDocument[]>;
   }
 
@@ -138,9 +136,12 @@ export class PatternStoreService extends BaseService<
     });
   }
 
-  async deleteByCreator(creatorId: string): Promise<{ count: number }> {
+  async deleteByCreator(
+    creatorId: string,
+    organizationId: string,
+  ): Promise<{ count: number }> {
     const result = (await this.delegate.updateMany({
-      where: { isDeleted: false, sourceCreatorId: creatorId },
+      where: { isDeleted: false, organizationId, sourceCreatorId: creatorId },
       data: { isDeleted: true },
     })) as { count: number };
     return { count: result.count };
