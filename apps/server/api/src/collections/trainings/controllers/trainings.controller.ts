@@ -170,7 +170,7 @@ export class TrainingsController extends BaseCRUDController<
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
     @Req() request: Request,
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @Param('trainingId') trainingId: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isEntityId(trainingId)) {
@@ -183,7 +183,12 @@ export class TrainingsController extends BaseCRUDController<
       );
     }
 
-    const data = await this.trainingsService.findOne({ _id: trainingId });
+    const publicMetadata = getPublicMetadata(user);
+    const data = await this.trainingsService.findOne({
+      _id: trainingId,
+      isDeleted: false,
+      organization: publicMetadata.organization,
+    });
 
     if (!data) {
       throw new HttpException(

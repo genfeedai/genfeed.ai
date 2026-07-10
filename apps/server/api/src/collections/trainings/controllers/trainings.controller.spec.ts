@@ -373,7 +373,11 @@ describe('TrainingsController', () => {
 
       const result = await controller.findOne(mockRequest, mockUser, cuid);
 
-      expect(trainingsService.findOne).toHaveBeenCalledWith({ _id: cuid });
+      expect(trainingsService.findOne).toHaveBeenCalledWith({
+        _id: cuid,
+        isDeleted: false,
+        organization: mockUser.publicMetadata.organization,
+      });
       expect(result).toBeDefined();
     });
 
