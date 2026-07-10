@@ -17,8 +17,8 @@ services:
       start_period: 30s
 
   genfeed:
-    # Default :latest for real self-host users. The release E2E workflow overrides
-    # GENFEED_IMAGE_TAG to pin the exact published tag under test.
+    # Source checkouts default to :latest. Downloaded release bundles pin this
+    # through GENFEED_IMAGE_TAG in their versioned .env file.
     image: ghcr.io/genfeedai/genfeed.ai:${GENFEED_IMAGE_TAG:-latest}
     depends_on:
       postgres:

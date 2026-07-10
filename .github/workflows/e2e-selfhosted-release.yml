@@ -1,8 +1,8 @@
 name: Self-Hosted Release E2E
 
-# Tests the latest RELEASED self-hosted image on a nightly schedule. This is
-# intentionally decoupled from Docker Publish so community image flakiness never
-# blocks a SaaS release or deploy.
+# Tests the latest public self-hosted RELEASE, not the mutable :latest tag. The
+# job downloads the release bundle without credentials and pulls its exact image
+# without a GHCR login, matching the public installation path.
 #
 # This is the only suite that proves real API ↔ frontend ↔ Postgres integration.
 # The weekly e2e.yml runs the frontend against a MOCKED backend; this runs the
@@ -12,13 +12,13 @@ on:
   # Nightly, 05:23 UTC (off-:00 hygiene).
   schedule:
     - cron: "23 5 * * *"
-  # Manual non-blocking dry-run against an explicit tag.
+  # Manual non-blocking run against an explicit GitHub release tag.
   workflow_dispatch:
     inputs:
-      image_tag:
-        description: "Published image tag to test (e.g. latest, v0.1.2)"
+      release_tag:
+        description: "GitHub release tag to test (for example, v0.5.0)"
         required: false
-        default: "latest"
+        default: ""
 
 concurrency:
   group: e2e-selfhosted-release
@@ -26,14 +26,9 @@ concurrency:
 
 permissions:
   contents: read
-  packages: read
   issues: write
 
 env:
-  COMPOSE_FILE: docker/docker-compose.selfhosted.yml
-  COMPOSE_ENV_FILE: docker/.env
-  # workflow_dispatch supplies image_tag; schedule falls back to latest.
-  IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
   APP_BASE_URL: http://localhost:3000
   API_BASE_URL: http://localhost:3010
 
@@ -42,25 +37,86 @@ jobs:
     name: Release E2E (LOCAL mode)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      image_tag: ${{ steps.release.outputs.image_tag }}
+      release_tag: ${{ steps.release.outputs.release_tag }}
     steps:
-      - uses: actions/checkout@v5
+      - name: Resolve exact public release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          release_tag="${REQUESTED_RELEASE_TAG}"
+          if [ -z "${release_tag}" ]; then
+            release_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name')"
+          fi
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
+          if [[ ! "${release_tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Expected a GitHub release tag like v0.5.0, received: ${release_tag}"
+            exit 1
+          fi
+
+          {
+            echo "release_tag=${release_tag}"
+            echo "image_tag=${release_tag#v}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout released source and matching tests
+        uses: actions/checkout@v5
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ steps.release.outputs.release_tag }}
 
-      - name: Prepare self-hosted env file
+      - name: Download and verify public install bundle
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+          IMAGE_TAG: ${{ steps.release.outputs.image_tag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          cp docker/.env.example "${COMPOSE_ENV_FILE}"
-          docker compose --env-file "${COMPOSE_ENV_FILE}" -f "${COMPOSE_FILE}" config >/dev/null
+          set -euo pipefail
+          install_root="${RUNNER_TEMP}/genfeed-release"
+          mkdir -p "${install_root}"
 
-      - name: Boot released image + Postgres
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${RELEASE_TAG}" > "${install_root}/release.json"
+          for asset_name in genfeed-selfhosted.tar.gz genfeed-selfhosted.tar.gz.sha256; do
+            asset_url="$(jq -r --arg name "${asset_name}" \
+              '.assets[] | select(.name == $name) | .browser_download_url' \
+              "${install_root}/release.json")"
+            if [ -z "${asset_url}" ] || [ "${asset_url}" = "null" ]; then
+              echo "::error::Release ${RELEASE_TAG} is missing ${asset_name}"
+              exit 1
+            fi
+            # No Authorization header: this must work exactly as it does for a
+            # public user following the README.
+            curl -fsSL "${asset_url}" -o "${install_root}/${asset_name}"
+          done
+
+          (
+            cd "${install_root}"
+            sha256sum -c genfeed-selfhosted.tar.gz.sha256
+            tar -xzf genfeed-selfhosted.tar.gz
+          )
+
+          bundle_dir="${install_root}/genfeed-selfhosted-${RELEASE_TAG}"
+          test "$(jq -r '.releaseTag' "${bundle_dir}/release.json")" = "${RELEASE_TAG}"
+          test "$(jq -r '.image' "${bundle_dir}/release.json")" = \
+            "ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
+          cp "${bundle_dir}/.env.example" "${bundle_dir}/.env"
+
+          {
+            echo "COMPOSE_FILE=${bundle_dir}/compose.yml"
+            echo "COMPOSE_ENV_FILE=${bundle_dir}/.env"
+            echo "IMAGE_TAG=${IMAGE_TAG}"
+          } >> "${GITHUB_ENV}"
+
+          docker compose --env-file "${bundle_dir}/.env" -f "${bundle_dir}/compose.yml" \
+            config --images | grep -Fx "ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
+
+      - name: Boot public exact image + Postgres
         run: |
-          echo "Testing image tag: ${IMAGE_TAG}"
-          GENFEED_IMAGE_TAG="${IMAGE_TAG}" docker compose --env-file "${COMPOSE_ENV_FILE}" -f "${COMPOSE_FILE}" up -d --quiet-pull
+          echo "Testing public image tag: ${IMAGE_TAG}"
+          docker compose --env-file "${COMPOSE_ENV_FILE}" -f "${COMPOSE_FILE}" up -d --quiet-pull
 
       # Readiness gate — the #1 false-green risk. Migrate + seed run async on
       # boot, so liveness can be green before the DB is usable. Fail loud on
@@ -144,21 +200,24 @@ jobs:
       - name: Open or update tracking issue
         uses: actions/github-script@v8
         env:
-          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          IMAGE_TAG: ${{ needs.release-e2e.outputs.image_tag }}
+          RELEASE_TAG: ${{ needs.release-e2e.outputs.release_tag }}
         with:
           script: |
             const label = 'release-e2e';
-            const imageTag = process.env.IMAGE_TAG || 'latest';
+            const imageTag = process.env.IMAGE_TAG || 'unresolved';
+            const releaseTag = process.env.RELEASE_TAG || 'unresolved';
             const date = new Date().toISOString().slice(0, 10);
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = [
               `**Self-hosted release E2E failed** on \`${date}\`.`,
               ``,
+              `- GitHub release: \`${releaseTag}\``,
               `- Image tag under test: \`ghcr.io/genfeedai/genfeed.ai:${imageTag}\``,
               `- Failed run: ${runUrl}`,
-              `- Artifacts: \`release-e2e-playwright-report\`, \`release-e2e-compose-logs\``,
+              `- Diagnostic artifacts (when produced): \`release-e2e-playwright-report\`, \`release-e2e-compose-logs\``,
               ``,
-              `This means the shipped container does not boot + serve cleanly in LOCAL mode.`,
+              `The public release bundle, anonymous image pull, boot path, or LOCAL-mode E2E failed.`,
               `Triage to **P0 status** on the project board (P0 is a status, not a label).`,
             ].join('\n');
 

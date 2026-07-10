@@ -19,7 +19,44 @@ Use this when shipping the hosted product and self-hosted image.
 
 That release triggers:
 
-- `.github/workflows/docker-publish.yml` for the self-hosted image
+- `.github/workflows/docker-publish.yml` for the self-hosted image and public
+  install assets
+
+The self-hosted release contract is version-bound:
+
+- GitHub tag `v1.2.3`
+- GHCR image `ghcr.io/genfeedai/genfeed.ai:1.2.3`
+- release assets `genfeed-selfhosted.tar.gz` and
+  `genfeed-selfhosted.tar.gz.sha256`
+- bundle manifest `releaseTag=v1.2.3` and the exact GHCR image above
+
+The publish workflow advances `latest`, builds the checksummed bundle, exercises
+the built `@genfeedai/create` CLI against it, anonymously pulls the exact image,
+validates OCI version/revision labels, and only then attaches the assets. The
+nightly self-hosted E2E downloads that exact public bundle and does not log in to
+GHCR.
+
+If a published release is missing assets after a transient failure, dispatch
+`Docker Publish (Self-Hosted)` from `master` with `release_tag=v1.2.3`. Recovery
+is fail-closed: the tag must exist and point exactly at current `master`; the
+workflow rebuilds the exact image and reruns the public smoke before attaching
+assets. Never use recovery to overwrite a version that users already consumed.
+
+For an unconsumed failed release whose tag is behind `master` (including the
+assetless v0.5.0 incident), first reverify that it has no image/assets/deployment,
+then delete and re-cut the same release tag at the fixed `master` commit. Do not
+burn a new version for a release that never shipped.
+
+The Community container package `genfeed.ai` must be public before the anonymous
+artifact smoke can pass. For the initial private-to-public migration, let the
+workflow push the corrected exact image first, change that package to public,
+then rerun only the failed artifact job; this avoids exposing the stale image.
+Do not change the visibility of the internal `genfeed.ai/server` package.
+
+After the release is green, publish `packages/create` through the package
+publishing workflow so npm users receive the installer tested by this contract.
+Use `[{"path":"packages/create","bump":"patch"}]` for `packages_json` and
+set `dry_run=false` only for the approved publish run.
 
 Production backend deploys are handled separately through
 `.github/workflows/deploy-ecs.yml`, dispatched from `master` and gated by the
