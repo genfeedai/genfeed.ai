@@ -1178,7 +1178,6 @@
         "@fullcalendar/interaction": "6.1.21",
         "@fullcalendar/timegrid": "6.1.21",
         "@genfeedai/client": "workspace:*",
-        "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
@@ -1212,6 +1211,7 @@
         "vaul": "1.1.2",
       },
       "devDependencies": {
+        "@genfeedai/config": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
         "@genfeedai/hooks": "workspace:*",
         "@genfeedai/models": "workspace:*",

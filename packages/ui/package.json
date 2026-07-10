@@ -4,7 +4,6 @@
     "@fullcalendar/interaction": "6.1.21",
     "@fullcalendar/timegrid": "6.1.21",
     "@genfeedai/client": "workspace:*",
-    "@genfeedai/config": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
@@ -39,6 +38,7 @@
   },
   "description": "Shared design tokens and UI primitives for Genfeed web, mobile, and extension surfaces",
   "devDependencies": {
+    "@genfeedai/config": "workspace:*",
     "@genfeedai/contexts": "workspace:*",
     "@genfeedai/hooks": "workspace:*",
     "@genfeedai/models": "workspace:*",
