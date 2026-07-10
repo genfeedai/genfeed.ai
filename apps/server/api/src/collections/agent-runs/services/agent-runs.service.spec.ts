@@ -201,4 +201,50 @@ describe('AgentRunsService', () => {
       },
     });
   });
+
+  // The DRY/slop audit (§2.J) lists these org-scoped `findFirst` sites as
+  // candidates, but each degrades gracefully on a miss (returns null/void)
+  // rather than throwing. They were intentionally NOT converted to
+  // `findOrThrow`; these lock that decision in so a future sweep does not
+  // silently turn a soft miss into a 404. `agentRun.findFirst` defaults to
+  // resolving `null` (missing / foreign / soft-deleted row).
+  describe('optional lookups stay optional (findOrThrow intentionally not adopted)', () => {
+    it('getById returns null instead of throwing when no row matches', async () => {
+      await expect(service.getById('run-x', 'org-1')).resolves.toBeNull();
+    });
+
+    it('recordToolCall returns silently and does not write when the run is missing', async () => {
+      await expect(
+        service.recordToolCall('run-x', 'org-1', {
+          creditsUsed: 1,
+          durationMs: 10,
+          status: 'completed',
+          toolName: 'noop',
+        }),
+      ).resolves.toBeUndefined();
+      expect(agentRun.update).not.toHaveBeenCalled();
+    });
+
+    it('mergeMetadata returns silently and does not write when the run is missing', async () => {
+      await expect(
+        service.mergeMetadata('run-x', 'org-1', { k: 'v' }),
+      ).resolves.toBeUndefined();
+      expect(agentRun.update).not.toHaveBeenCalled();
+    });
+
+    it('complete returns null and does not write when the run is missing', async () => {
+      await expect(service.complete('run-x', 'org-1')).resolves.toBeNull();
+      expect(agentRun.update).not.toHaveBeenCalled();
+    });
+
+    it('fail returns null and does not write when the run is missing', async () => {
+      await expect(service.fail('run-x', 'org-1', 'boom')).resolves.toBeNull();
+      expect(agentRun.update).not.toHaveBeenCalled();
+    });
+
+    it('cancel returns null and does not write when the run is missing', async () => {
+      await expect(service.cancel('run-x', 'org-1')).resolves.toBeNull();
+      expect(agentRun.update).not.toHaveBeenCalled();
+    });
+  });
 });
