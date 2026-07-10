@@ -55,20 +55,33 @@ export class TrendPreferencesService {
         keywords: preferences.keywords ?? [],
         platforms: preferences.platforms ?? [],
       };
-      // Only persist the opt-in flag when the caller supplied it, so callers that
-      // never touch it (the common case) leave the stored config shape untouched.
-      if (preferences.autoRequeueWinners !== undefined) {
-        normalizedPreferences.autoRequeueWinners =
-          preferences.autoRequeueWinners;
-      }
-      const updateData = {
-        config: normalizedPreferences,
-        updatedAt: new Date(),
-      };
 
       const existing = await this.prisma.trendPreferences.findFirst({
         where: { brandId, isDeleted: false, organizationId },
       });
+
+      if (preferences.autoRequeueWinners !== undefined) {
+        normalizedPreferences.autoRequeueWinners =
+          preferences.autoRequeueWinners;
+      } else if (existing) {
+        // `config` is a Json column and Prisma REPLACES Json values on update
+        // (it does not merge), so a partial update that omits the opt-in flag
+        // would silently wipe a previously saved `autoRequeueWinners: true`.
+        // Carry the stored value forward when one exists; leave it absent for a
+        // never-configured record so the config shape stays clean (#1112).
+        const storedConfig = this.readObjectRecord(existing.config);
+        if (storedConfig?.autoRequeueWinners !== undefined) {
+          normalizedPreferences.autoRequeueWinners = this.readBoolean(
+            storedConfig.autoRequeueWinners,
+            false,
+          );
+        }
+      }
+
+      const updateData = {
+        config: normalizedPreferences,
+        updatedAt: new Date(),
+      };
 
       if (existing) {
         const updated = await this.prisma.trendPreferences.update({

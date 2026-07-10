@@ -287,6 +287,21 @@ describe('TrendPreferencesService', () => {
       const createArg = prisma.trendPreferences.create.mock.calls[0][0];
       expect(createArg.data.config).not.toHaveProperty('autoRequeueWinners');
     });
+
+    it('should preserve an existing autoRequeueWinners when a partial update omits it', async () => {
+      prisma.trendPreferences.findFirst.mockResolvedValue({
+        config: { autoRequeueWinners: true, keywords: ['old'] },
+        id: 'pref-1',
+      });
+      prisma.trendPreferences.update.mockResolvedValue({});
+
+      // Common edit flow: keywords/categories/platforms change, opt-in flag untouched.
+      await service.savePreferences(organizationId, { keywords: ['ai'] });
+
+      const updateArg = prisma.trendPreferences.update.mock.calls[0][0];
+      expect(updateArg.data.config.autoRequeueWinners).toBe(true);
+      expect(updateArg.data.config.keywords).toEqual(['ai']);
+    });
   });
 
   describe('mergeWinnerSignals', () => {
