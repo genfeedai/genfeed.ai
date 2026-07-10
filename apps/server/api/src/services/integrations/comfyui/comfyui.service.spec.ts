@@ -15,6 +15,7 @@ vi.mock('@genfeedai/workflows/comfyui', () => ({
 }));
 
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   buildFlux2DevPrompt,
@@ -61,6 +62,7 @@ describe('ComfyUIService', () => {
       configMock,
       loggerMock as unknown as LoggerService,
       { get: httpGetMock, post: httpPostMock } as unknown as HttpService,
+      new PollUntilService(loggerMock as unknown as LoggerService),
     );
   });
 

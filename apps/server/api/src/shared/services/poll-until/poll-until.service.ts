@@ -1,4 +1,7 @@
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import {
+  PollAbortException,
+  PollTimeoutException,
+} from '@api/shared/services/poll-until/poll-until.exception';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -11,6 +14,12 @@ export interface PollOptions {
   backoff?: number;
   /** Maximum interval when backoff is applied, in milliseconds. Default: 30_000 */
   maxIntervalMs?: number;
+  /**
+   * Optional signal to cancel the poll. When it fires — before the next attempt
+   * or while waiting between attempts — {@link PollUntilService.poll} rejects
+   * with `PollAbortException`.
+   */
+  signal?: AbortSignal;
 }
 
 export interface PollResult<T> {
@@ -34,8 +43,6 @@ export interface PollResult<T> {
  */
 @Injectable()
 export class PollUntilService {
-  private readonly logContext = 'PollUntilService';
-
   constructor(private readonly logger: LoggerService) {}
 
   /**
@@ -58,6 +65,7 @@ export class PollUntilService {
       timeoutMs = 120_000,
       backoff = 1,
       maxIntervalMs = 30_000,
+      signal,
     } = options ?? {};
 
     const startTime = Date.now();
@@ -66,6 +74,7 @@ export class PollUntilService {
     let currentInterval = intervalMs;
 
     while (Date.now() < deadline) {
+      this.throwIfAborted(signal);
       attempts++;
       const value = await fn();
 
@@ -87,7 +96,7 @@ export class PollUntilService {
       }
 
       const waitMs = Math.min(currentInterval, remainingMs);
-      await this.sleep(waitMs);
+      await this.sleep(waitMs, signal);
 
       if (backoff > 1) {
         currentInterval = Math.min(currentInterval * backoff, maxIntervalMs);
@@ -109,7 +118,30 @@ export class PollUntilService {
     );
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise<void>((resolve) => setTimeout(resolve, ms));
+  private throwIfAborted(signal?: AbortSignal): void {
+    if (signal?.aborted) {
+      throw new PollAbortException();
+    }
+  }
+
+  private sleep(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new PollAbortException());
+        return;
+      }
+
+      const onAbort = () => {
+        clearTimeout(timer);
+        reject(new PollAbortException());
+      };
+
+      const timer = setTimeout(() => {
+        signal?.removeEventListener('abort', onAbort);
+        resolve();
+      }, ms);
+
+      signal?.addEventListener('abort', onAbort, { once: true });
+    });
   }
 }
