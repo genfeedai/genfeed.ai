@@ -7,8 +7,6 @@ export const apiKeyFullAttributes = createEntityAttributes([
   'key',
   'label',
   'description',
-  'token',
-
   'scopes',
   'lastUsedAt',
   'lastUsedIp',
