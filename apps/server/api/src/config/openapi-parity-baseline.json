@@ -4093,6 +4093,71 @@
     },
     {
       "method": "post",
+      "operationId": "SocialSourcesController.create",
+      "path": "/social-sources"
+    },
+    {
+      "method": "get",
+      "operationId": "SocialSourcesController.findAll",
+      "path": "/social-sources"
+    },
+    {
+      "method": "get",
+      "operationId": "SocialSourcesController.findOne",
+      "path": "/social-sources/{id}"
+    },
+    {
+      "method": "get",
+      "operationId": "SocialSourcesController.getFeed",
+      "path": "/social-sources/feed"
+    },
+    {
+      "method": "delete",
+      "operationId": "SocialSourcesController.remove",
+      "path": "/social-sources/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "SocialSourcesController.syncBrand",
+      "path": "/social-sources/sync"
+    },
+    {
+      "method": "post",
+      "operationId": "SocialSourcesController.syncOne",
+      "path": "/social-sources/{id}/sync"
+    },
+    {
+      "method": "patch",
+      "operationId": "SocialSourcesController.update",
+      "path": "/social-sources/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "SocialSourcesController.validate",
+      "path": "/social-sources/validate"
+    },
+    {
+      "method": "post",
+      "operationId": "SourcePostsController.createDraft",
+      "path": "/source-posts/{id}/actions/draft"
+    },
+    {
+      "method": "get",
+      "operationId": "SourcePostsController.findAll",
+      "path": "/source-posts"
+    },
+    {
+      "method": "get",
+      "operationId": "SourcePostsController.findOne",
+      "path": "/source-posts/{id}"
+    },
+    {
+      "method": "post",
+      "operationId": "SourcePostsController.publishTwitterAction",
+      "path": "/source-posts/{id}/actions/twitter"
+    },
+    {
+      "method": "post",
       "operationId": "SpeechController.transcribeAudio",
       "path": "/speech/transcribe/audio"
     },

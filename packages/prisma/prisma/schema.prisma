@@ -580,6 +580,8 @@ model User {
   botActivities            BotActivity[]
   replyBotConfigs          ReplyBotConfig[]
   monitoredAccounts        MonitoredAccount[]
+  socialSources            SocialSource[]
+  sourcePosts              SourcePost[]
   votes                    Vote[]
   watchlists               Watchlist[]
   streaks                  Streak[]
@@ -685,6 +687,8 @@ model Organization {
   botActivities                 BotActivity[]
   replyBotConfigs               ReplyBotConfig[]
   monitoredAccounts             MonitoredAccount[]
+  socialSources                 SocialSource[]
+  sourcePosts                   SourcePost[]
   processedTweets               ProcessedTweet[]
   trackedLinks                  TrackedLink[]
   schedules                     Schedule[]
@@ -868,6 +872,8 @@ model Brand {
   adPerformances             AdPerformance[]
   botActivities              BotActivity[]
   monitoredAccounts          MonitoredAccount[]
+  socialSources              SocialSource[]
+  sourcePosts                SourcePost[]
   brandMemories              BrandMemory[]
   links                      Link[]
   trackedLinks               TrackedLink[]
@@ -1303,6 +1309,7 @@ model Credential {
   adBulkUploadJobs  AdBulkUploadJob[]
   adPerformances    AdPerformance[]
   monitoredAccounts MonitoredAccount[]
+  socialSources     SocialSource[]
   socialConversations SocialConversation[]
   socialMessages      SocialMessage[]
   personas          Persona[]          @relation("persona_credentials")
@@ -3334,6 +3341,83 @@ model MonitoredAccount {
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("monitored_accounts")
+}
+
+model SocialSource {
+  id                 String       @id @default(cuid())
+  mongoId            String?      @unique
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  brandId            String
+  brand              Brand        @relation(fields: [brandId], references: [id])
+  userId             String
+  user               User         @relation(fields: [userId], references: [id])
+  credentialId       String?
+  credential         Credential?  @relation(fields: [credentialId], references: [id])
+  platform           String
+  sourceType         String       @default("account")
+  externalId         String?
+  handle             String
+  displayName        String?
+  avatarUrl          String?
+  profileUrl         String?
+  bio                String?
+  followersCount     Int?
+  isActive           Boolean      @default(true)
+  lastSyncedAt       DateTime?
+  lastSyncStatus     String?
+  lastSyncError      String?
+  lastPostExternalId String?
+  metadata           Json         @default("{}")
+  isDeleted          Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  posts SourcePost[]
+
+  // Active-source uniqueness is enforced by the partial index in the model's migration.
+  @@index([organizationId, brandId, isDeleted, isActive, platform], map: "social_sources_brand_active_idx")
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "social_sources_org_created_idx")
+  @@map("social_sources")
+}
+
+model SourcePost {
+  id                   String       @id @default(cuid())
+  mongoId              String?      @unique
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id])
+  brandId              String
+  brand                Brand        @relation(fields: [brandId], references: [id])
+  userId               String?
+  user                 User?        @relation(fields: [userId], references: [id])
+  sourceId             String
+  source               SocialSource @relation(fields: [sourceId], references: [id])
+  platform             String
+  externalId           String
+  contentType          String
+  text                 String?
+  authorId             String?
+  authorHandle         String?
+  authorDisplayName    String?
+  authorAvatarUrl      String?
+  authorFollowersCount Int?
+  sourceUrl            String?
+  mediaUrls            String[]     @default([])
+  thumbnailUrl         String?
+  metrics              Json         @default("{}")
+  hashtags             String[]     @default([])
+  publishedAt          DateTime?
+  collectedAt          DateTime     @default(now())
+  raw                  Json         @default("{}")
+  isDeleted            Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  @@unique([sourceId, externalId], map: "source_posts_source_external_key")
+  @@index([organizationId, brandId, platform, isDeleted, publishedAt(sort: Desc)], map: "source_posts_brand_feed_idx")
+  @@index([organizationId, brandId, isDeleted, collectedAt(sort: Desc)], map: "source_posts_brand_collected_idx")
+  @@index([sourceId, isDeleted, publishedAt(sort: Desc)], map: "source_posts_source_published_idx")
+  @@map("source_posts")
 }
 
 model ProcessedTweet {

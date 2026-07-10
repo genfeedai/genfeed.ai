@@ -12,6 +12,7 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
@@ -138,6 +139,7 @@ export class WorkflowEngineAdapterService {
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
     @Optional() private readonly youtubeSocialAdapter?: YoutubeSocialAdapter,
     @Optional() private readonly socialInboxService?: SocialInboxService,
+    @Optional() private readonly sourcePostsService?: SourcePostsService,
   ) {
     this.engine = new WorkflowEngine({ maxConcurrency: 3 });
     this.converter = new WorkflowEngineConverterService();
@@ -194,6 +196,7 @@ export class WorkflowEngineAdapterService {
       this.credentialsService,
       this.newslettersService,
       this.openRouterService,
+      this.sourcePostsService,
     );
     const automationRegistrar = new WorkflowAutomationExecutorRegistrarService(
       helper,

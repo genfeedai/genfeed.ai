@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1022 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1035 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -35576,6 +35576,708 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "social_inbox"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SocialSourcesController.create (POST /social-sources)",
+    "name": "social_sources__create",
+    "parameters": {
+      "properties": {
+        "avatarUrl": {
+          "type": "string"
+        },
+        "bio": {
+          "type": "string"
+        },
+        "credential": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "externalId": {
+          "type": "string"
+        },
+        "followersCount": {
+          "type": "number"
+        },
+        "handle": {
+          "description": "Platform handle, with or without @",
+          "type": "string"
+        },
+        "isActive": {
+          "default": true,
+          "type": "boolean"
+        },
+        "platform": {
+          "allOf": [
+            {
+              "enum": [
+                "twitter",
+                "instagram",
+                "tiktok"
+              ],
+              "type": "string"
+            }
+          ]
+        },
+        "profileUrl": {
+          "type": "string"
+        },
+        "sourceType": {
+          "allOf": [
+            {
+              "enum": [
+                "account"
+              ],
+              "type": "string"
+            }
+          ],
+          "default": "account"
+        }
+      },
+      "required": [
+        "handle",
+        "platform"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "social_sources"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SocialSourcesController.findAll (GET /social-sources)",
+    "name": "social_sources__find_all",
+    "parameters": {
+      "properties": {
+        "brand": {
+          "description": "Filter by brand ID (superadmin only)",
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "isDeleted": {
+          "default": false,
+          "description": "Filter by deleted status",
+          "type": "boolean"
+        },
+        "isFavorite": {
+          "description": "Filter by favorite status",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 10,
+          "description": "Number of items per page",
+          "maximum": 100,
+          "minimum": 1,
+          "type": "number"
+        },
+        "organization": {
+          "description": "Filter by organization ID (superadmin only)",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "description": "Page number for pagination",
+          "minimum": 1,
+          "type": "number"
+        },
+        "pagination": {
+          "default": true,
+          "description": "Enable or disable pagination",
+          "type": "boolean"
+        },
+        "platform": {
+          "enum": [
+            "twitter",
+            "instagram",
+            "tiktok"
+          ],
+          "type": "string"
+        },
+        "postsLimit": {
+          "default": 25,
+          "type": "number"
+        },
+        "search": {
+          "type": "string"
+        },
+        "sort": {
+          "default": "createdAt: -1",
+          "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "social_sources"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SocialSourcesController.findOne (GET /social-sources/{id})",
+    "name": "social_sources__find_one",
+    "parameters": {
+      "properties": {
+        "brand": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "social_sources"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SocialSourcesController.getFeed (GET /social-sources/feed)",
+    "name": "social_sources__get_feed",
+    "parameters": {
+      "properties": {
+        "brand": {
+          "description": "Filter by brand ID (superadmin only)",
+          "type": "string"
+        },
+        "isActive": {
+          "type": "boolean"
+        },
+        "isDeleted": {
+          "default": false,
+          "description": "Filter by deleted status",
+          "type": "boolean"
+        },
+        "isFavorite": {
+          "description": "Filter by favorite status",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 10,
+          "description": "Number of items per page",
+          "maximum": 100,
+          "minimum": 1,
+          "type": "number"
+        },
+        "organization": {
+          "description": "Filter by organization ID (superadmin only)",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "description": "Page number for pagination",
+          "minimum": 1,
+          "type": "number"
+        },
+        "pagination": {
+          "default": true,
+          "description": "Enable or disable pagination",
+          "type": "boolean"
+        },
+        "platform": {
+          "enum": [
+            "twitter",
+            "instagram",
+            "tiktok"
+          ],
+          "type": "string"
+        },
+        "postsLimit": {
+          "default": 25,
+          "type": "number"
+        },
+        "search": {
+          "type": "string"
+        },
+        "sort": {
+          "default": "createdAt: -1",
+          "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "social_sources"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SocialSourcesController.remove (DELETE /social-sources/{id})",
+    "name": "social_sources__remove",
+    "parameters": {
+      "properties": {
+        "brand": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "social_sources"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SocialSourcesController.syncBrand (POST /social-sources/sync)",
+    "name": "social_sources__sync_brand",
+    "parameters": {
+      "properties": {
+        "brand": {
+          "type": "string"
+        },
+        "limit": {
+          "default": 25,
+          "maximum": 100,
+          "minimum": 1,
+          "type": "number"
+        },
+        "organization": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "social_sources"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SocialSourcesController.syncOne (POST /social-sources/{id}/sync)",
+    "name": "social_sources__sync_one",
+    "parameters": {
+      "properties": {
+        "brand": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "limit": {
+          "default": 25,
+          "maximum": 100,
+          "minimum": 1,
+          "type": "number"
+        },
+        "organization": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "social_sources"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SocialSourcesController.update (PATCH /social-sources/{id})",
+    "name": "social_sources__update",
+    "parameters": {
+      "properties": {
+        "avatarUrl": {
+          "type": "string"
+        },
+        "bio": {
+          "type": "string"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "credential": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "externalId": {
+          "type": "string"
+        },
+        "followersCount": {
+          "type": "number"
+        },
+        "handle": {
+          "description": "Platform handle, with or without @",
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "isActive": {
+          "default": true,
+          "type": "boolean"
+        },
+        "organization": {
+          "type": "string"
+        },
+        "platform": {
+          "allOf": [
+            {
+              "enum": [
+                "twitter",
+                "instagram",
+                "tiktok"
+              ],
+              "type": "string"
+            }
+          ]
+        },
+        "profileUrl": {
+          "type": "string"
+        },
+        "sourceType": {
+          "allOf": [
+            {
+              "enum": [
+                "account"
+              ],
+              "type": "string"
+            }
+          ],
+          "default": "account"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "social_sources"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SocialSourcesController.validate (POST /social-sources/validate)",
+    "name": "social_sources__validate",
+    "parameters": {
+      "properties": {
+        "handle": {
+          "description": "Platform handle or profile URL",
+          "maxLength": 512,
+          "type": "string"
+        },
+        "platform": {
+          "allOf": [
+            {
+              "enum": [
+                "twitter",
+                "instagram",
+                "tiktok"
+              ],
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "required": [
+        "handle",
+        "platform"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "social_sources"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SourcePostsController.createDraft (POST /source-posts/{id}/actions/draft)",
+    "name": "source_posts__create_draft",
+    "parameters": {
+      "properties": {
+        "actionType": {
+          "allOf": [
+            {
+              "enum": [
+                "draft",
+                "reply",
+                "quote",
+                "remix",
+                "send_to_agent"
+              ],
+              "type": "string"
+            }
+          ],
+          "default": "draft"
+        },
+        "brand": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "source_posts"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SourcePostsController.findAll (GET /source-posts)",
+    "name": "source_posts__find_all",
+    "parameters": {
+      "properties": {
+        "brand": {
+          "description": "Filter by brand ID (superadmin only)",
+          "type": "string"
+        },
+        "isDeleted": {
+          "default": false,
+          "description": "Filter by deleted status",
+          "type": "boolean"
+        },
+        "isFavorite": {
+          "description": "Filter by favorite status",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 10,
+          "description": "Number of items per page",
+          "maximum": 100,
+          "minimum": 1,
+          "type": "number"
+        },
+        "organization": {
+          "description": "Filter by organization ID (superadmin only)",
+          "type": "string"
+        },
+        "page": {
+          "default": 1,
+          "description": "Page number for pagination",
+          "minimum": 1,
+          "type": "number"
+        },
+        "pagination": {
+          "default": true,
+          "description": "Enable or disable pagination",
+          "type": "boolean"
+        },
+        "platform": {
+          "enum": [
+            "twitter",
+            "instagram",
+            "tiktok"
+          ],
+          "type": "string"
+        },
+        "search": {
+          "type": "string"
+        },
+        "sort": {
+          "default": "createdAt: -1",
+          "description": "Sort field(s) and order (e.g., \"createdAt: -1\" or \"category: 1, createdAt: -1\")",
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "source_posts"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SourcePostsController.findOne (GET /source-posts/{id})",
+    "name": "source_posts__find_one",
+    "parameters": {
+      "properties": {
+        "brand": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "source_posts"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "SourcePostsController.publishTwitterAction (POST /source-posts/{id}/actions/twitter)",
+    "name": "source_posts__publish_twitter_action",
+    "parameters": {
+      "properties": {
+        "actionType": {
+          "allOf": [
+            {
+              "enum": [
+                "reply",
+                "quote"
+              ],
+              "type": "string"
+            }
+          ]
+        },
+        "brand": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 280,
+          "type": "string"
+        }
+      },
+      "required": [
+        "actionType",
+        "id",
+        "text"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "source_posts"
     ]
   },
   {
