@@ -1,4 +1,4 @@
-import { useSettingsStore } from '@/store/settingsStore';
+import { useSettingsStore } from '@genfeedai/workflow-ui/stores';
 
 /**
  * Resolve the provider auth headers (Replicate / Fal / HuggingFace BYOK keys)

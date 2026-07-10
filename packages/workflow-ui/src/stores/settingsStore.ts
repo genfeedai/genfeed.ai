@@ -1,12 +1,35 @@
 import type { EdgeStyle, ProviderType } from '@genfeedai/types';
 import { ProviderTypeEnum } from '@genfeedai/types';
 import { create } from 'zustand';
+import type { SettingsSyncService } from '../provider/types';
+import { getWorkflowLogger } from './executionLogger';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
 export type { EdgeStyle, ProviderType };
+
+// =============================================================================
+// Module-level settings-sync configuration
+// =============================================================================
+
+let _settingsSync: SettingsSyncService | null = null;
+
+/**
+ * Configure the settings store with a server-sync adapter.
+ * Called by WorkflowUIProvider when a `settingsSync` service is provided.
+ *
+ * The store lives outside the React tree (plain Zustand) and cannot read the
+ * provider context directly, so the adapter is registered at module scope —
+ * the same pattern the prompt library and execution logger use. When unset,
+ * `syncFromServer`/`syncToServer` are no-ops and settings stay device-local.
+ */
+export function configureSettingsSync(
+  service: SettingsSyncService | undefined,
+): void {
+  _settingsSync = service ?? null;
+}
 
 export interface ProviderConfig {
   apiKey: string | null;
@@ -76,9 +99,9 @@ interface SettingsStore {
   isProviderConfigured: (provider: ProviderType) => boolean;
   getProviderHeader: (provider: ProviderType) => Record<string, string>;
 
-  // API Sync (no-ops in shared package - consuming app overrides these)
+  // API Sync — delegate to the injected settingsSync adapter (no-op if unset)
   isSyncing: boolean;
-  syncFromServer: () => Promise<void>;
+  syncFromServer: (signal?: AbortSignal) => Promise<void>;
   syncToServer: () => Promise<void>;
 }
 
@@ -330,12 +353,65 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
     },
     showMinimap: initialState.showMinimap,
 
-    syncFromServer: async () => {
-      // No-op: consuming app should override with real API sync
+    // Delegates to the injected settingsSync adapter (module-scope). No-op when
+    // unset so the package stays device-local standalone. The merge lives here
+    // because the store owns the current state; the adapter only maps DTOs.
+    syncFromServer: async (signal) => {
+      if (!_settingsSync) return;
+      if (get().isSyncing) return;
+
+      set({ isSyncing: true });
+
+      try {
+        const server = await _settingsSync.pull(signal);
+
+        // Server wins for provided fields; omitted (undefined) fields keep the
+        // local value so a never-synced preference never clobbers a local one.
+        set((state) => {
+          const merged = {
+            defaults: { ...state.defaults, ...server.defaults },
+            edgeStyle: server.edgeStyle ?? state.edgeStyle,
+            hasSeenWelcome: server.hasSeenWelcome ?? state.hasSeenWelcome,
+            recentModels: server.recentModels ?? state.recentModels,
+            showMinimap: server.showMinimap ?? state.showMinimap,
+          };
+          saveToStorage({ ...state, ...merged });
+          return { ...merged, isSyncing: false };
+        });
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          getWorkflowLogger().error('Failed to sync settings from server', {
+            context: 'settingsStore',
+            error,
+          });
+        }
+        set({ isSyncing: false });
+      }
     },
 
     syncToServer: async () => {
-      // No-op: consuming app should override with real API sync
+      if (!_settingsSync) return;
+      const state = get();
+      if (state.isSyncing) return;
+
+      set({ isSyncing: true });
+
+      try {
+        await _settingsSync.push({
+          defaults: state.defaults,
+          edgeStyle: state.edgeStyle,
+          hasSeenWelcome: state.hasSeenWelcome,
+          recentModels: state.recentModels,
+          showMinimap: state.showMinimap,
+        });
+        set({ isSyncing: false });
+      } catch (error) {
+        getWorkflowLogger().error('Failed to sync settings to server', {
+          context: 'settingsStore',
+          error,
+        });
+        set({ isSyncing: false });
+      }
     },
 
     toggleAutoSave: () => {

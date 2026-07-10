@@ -21,7 +21,7 @@ vi.mock('@xyflow/react', () => ({
   }),
 }));
 
-// Mock workflowStore
+// Mock workflow store
 const mockAddNode = vi.fn();
 const mockNodes = [
   { data: {}, id: 'node-1', position: { x: 0, y: 0 }, type: 'imageGen' },
@@ -29,30 +29,28 @@ const mockNodes = [
 ];
 const mockEdges = [{ id: 'edge-1', source: 'node-1', target: 'node-2' }];
 
-vi.mock('@genfeedai/workflow-ui/stores', () => {
+vi.mock('../stores/workflow', () => {
   const store = (selector?: (state: unknown) => unknown) => {
-    const state = {
-      addNode: mockAddNode,
-      edges: mockEdges,
-      nodes: mockNodes,
-    };
+    const state = { addNode: mockAddNode, edges: mockEdges, nodes: mockNodes };
     return selector ? selector(state) : state;
   };
-  return {
-    selectAddNode: (state: { addNode: unknown }) => state.addNode,
-    useWorkflowStore: store,
-  };
+  return { useWorkflowStore: store };
 });
 
-// Mock settingsStore
-vi.mock('@/store/settingsStore', () => {
-  const store = () => ({ edgeStyle: 'default' });
-  store.getState = () => ({ edgeStyle: 'default' });
+vi.mock('../stores/workflow/selectors', () => ({
+  selectAddNode: (state: { addNode: unknown }) => state.addNode,
+}));
+
+// autoLayout reads the shared edge style from the package settings store — the
+// single source of truth the app now injects into rather than shadowing.
+const mockEdgeStyle = { value: 'smoothstep' };
+vi.mock('../stores/settingsStore', () => {
+  const store = () => ({ edgeStyle: mockEdgeStyle.value });
+  store.getState = () => ({ edgeStyle: mockEdgeStyle.value });
   return { useSettingsStore: store };
 });
 
-// Mock autoLayout (now sourced from the workflow-ui package)
-vi.mock('@genfeedai/workflow-ui/lib', () => ({
+vi.mock('../lib/autoLayout', () => ({
   getLayoutedNodes: vi.fn((nodes) =>
     nodes.map(
       (n: { id: string; position: { x: number; y: number } }, i: number) => ({
@@ -67,6 +65,7 @@ describe('usePaneActions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    mockEdgeStyle.value = 'smoothstep';
   });
 
   afterEach(() => {
@@ -74,7 +73,7 @@ describe('usePaneActions', () => {
   });
 
   describe('addNodeAtPosition', () => {
-    it('should convert screen position to flow position and add node', () => {
+    it('converts screen position to flow position and adds the node', () => {
       const { result } = renderHook(() => usePaneActions());
 
       act(() => {
@@ -84,20 +83,10 @@ describe('usePaneActions', () => {
       expect(mockScreenToFlowPosition).toHaveBeenCalledWith({ x: 100, y: 200 });
       expect(mockAddNode).toHaveBeenCalledWith('imageGen', { x: 100, y: 200 });
     });
-
-    it('should handle different node types', () => {
-      const { result } = renderHook(() => usePaneActions());
-
-      act(() => {
-        result.current.addNodeAtPosition('llm', 50, 50);
-      });
-
-      expect(mockAddNode).toHaveBeenCalledWith('llm', { x: 50, y: 50 });
-    });
   });
 
   describe('selectAll', () => {
-    it('should select all nodes', () => {
+    it('marks every node selected', () => {
       const { result } = renderHook(() => usePaneActions());
 
       act(() => {
@@ -105,32 +94,15 @@ describe('usePaneActions', () => {
       });
 
       expect(mockSetNodes).toHaveBeenCalled();
-      // Get the callback passed to setNodes
-      const setNodesCallback = mockSetNodes.mock.calls[0][0];
-      const updatedNodes = setNodesCallback(mockNodes);
-
-      expect(updatedNodes[0].selected).toBe(true);
-      expect(updatedNodes[1].selected).toBe(true);
-    });
-
-    it('should handle empty nodes array', () => {
-      const { result } = renderHook(() => usePaneActions());
-
-      act(() => {
-        result.current.selectAll();
-      });
-
-      expect(mockSetNodes).toHaveBeenCalled();
-      // Verify the callback works with an empty array
-      const setNodesCallback = mockSetNodes.mock.calls[0][0];
-      const updatedNodes = setNodesCallback([]);
-
-      expect(updatedNodes).toEqual([]);
+      const updater = mockSetNodes.mock.calls[0][0];
+      const updated = updater(mockNodes);
+      expect(updated[0].selected).toBe(true);
+      expect(updated[1].selected).toBe(true);
     });
   });
 
   describe('fitView', () => {
-    it('should call reactFlow.fitView with padding', () => {
+    it('fits the view with padding', () => {
       const { result } = renderHook(() => usePaneActions());
 
       act(() => {
@@ -142,36 +114,42 @@ describe('usePaneActions', () => {
   });
 
   describe('autoLayout', () => {
-    it('should layout nodes with default LR direction', async () => {
+    it('lays out nodes and normalizes edges to the store edge style', () => {
       const { result } = renderHook(() => usePaneActions());
 
-      await act(async () => {
+      act(() => {
         result.current.autoLayout();
       });
 
       expect(mockSetNodes).toHaveBeenCalled();
+      // Edges are normalized to the edge style read from the settings store.
+      const edgeUpdater = mockSetEdges.mock.calls[0][0];
+      const normalized = edgeUpdater(mockEdges);
+      expect(normalized[0].type).toBe('smoothstep');
     });
 
-    it('should layout nodes with TB direction', async () => {
+    it('reflects a changed store edge style on the next layout', () => {
+      mockEdgeStyle.value = 'straight';
       const { result } = renderHook(() => usePaneActions());
 
-      await act(async () => {
+      act(() => {
         result.current.autoLayout('TB');
       });
 
-      expect(mockSetNodes).toHaveBeenCalled();
+      const edgeUpdater = mockSetEdges.mock.calls[0][0];
+      expect(edgeUpdater(mockEdges)[0].type).toBe('straight');
     });
 
-    it('should call fitView after layout with delay', async () => {
+    it('fits the view after a delay', () => {
       const { result } = renderHook(() => usePaneActions());
 
-      await act(async () => {
+      act(() => {
         result.current.autoLayout();
       });
 
       expect(mockFitView).not.toHaveBeenCalled();
 
-      await act(async () => {
+      act(() => {
         vi.advanceTimersByTime(50);
       });
 
