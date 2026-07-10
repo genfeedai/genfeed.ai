@@ -14,6 +14,7 @@ import { NewslettersModule } from '@api/collections/newsletters/newsletters.modu
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
+import { TasksModule } from '@api/collections/tasks/tasks.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
@@ -33,6 +34,7 @@ import { BatchWorkflowService } from '@api/collections/workflows/services/batch-
 import { BatchWorkflowQueueService } from '@api/collections/workflows/services/batch-workflow-queue.service';
 import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
+import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
@@ -60,6 +62,7 @@ import {
   BATCH_WORKFLOW_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/queue-contracts';
+import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -113,7 +116,9 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ReplyBotModule),
     forwardRef(() => SocialInboxModule),
     forwardRef(() => SharedModule),
+    forwardRef(() => TasksModule),
     forwardRef(() => TrendsModule),
+    HttpModule,
     forwardRef(() => TwitterModule),
     forwardRef(() => YoutubeModule),
     forwardRef(() => VideoGenerationModule),
@@ -156,6 +161,7 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowFormatConverterService,
     WorkflowGenerationService,
     ReplyPollingWorkflowService,
+    ReviewGateNotificationService,
     WorkflowRunControlService,
     WorkflowSchedulerService,
     WorkflowTemplateSeederService,

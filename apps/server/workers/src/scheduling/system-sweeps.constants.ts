@@ -12,6 +12,7 @@ export const SYSTEM_SWEEPS_QUEUE = 'system-sweeps';
 
 export const SYSTEM_SWEEP_JOBS = {
   POSTS_PUBLISH: 'posts-publish-sweep',
+  REVIEW_GATE_TIMEOUT: 'review-gate-timeout-sweep',
   STREAK_MAINTENANCE: 'streak-maintenance-sweep',
   TIKTOK_STATUS: 'tiktok-status-sweep',
   YOUTUBE_STATUS: 'youtube-status-sweep',
@@ -45,6 +46,11 @@ export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
   {
     jobName: SYSTEM_SWEEP_JOBS.STREAK_MAINTENANCE,
     pattern: '30 0 * * *',
+    timezone: 'UTC',
+  },
+  {
+    jobName: SYSTEM_SWEEP_JOBS.REVIEW_GATE_TIMEOUT,
+    pattern: '*/15 * * * *',
     timezone: 'UTC',
   },
 ];

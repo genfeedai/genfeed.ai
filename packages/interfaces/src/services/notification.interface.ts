@@ -6,7 +6,7 @@
 export type NotificationType = 'telegram' | 'discord' | 'email' | 'bot';
 
 export interface INotificationEvent {
-  type: NotificationType;
+  type: NotificationType | 'slack';
   action: string;
   payload: INotificationPayloadTypes;
   userId?: string;
@@ -29,6 +29,8 @@ export type INotificationPayloadTypes =
   | IUserCreatedPayload
   | IIngredientNotificationPayload
   | IModelDiscoveryNotificationPayload
+  | IReviewGatePendingEmailPayload
+  | IReviewGatePendingSlackPayload
   | ILowCreditsAlertPayload;
 
 export interface ITelegramMessagePayload {
@@ -79,6 +81,23 @@ export interface IVideoStatusEmailPayload {
   organizationId?: string;
   url?: string;
   userId?: string;
+}
+
+export interface IReviewGatePendingEmailPayload {
+  to: string;
+  workflowId: string;
+  workflowLabel: string;
+  executionId: string;
+  nodeId: string;
+  reviewUrl?: string;
+  captionPreview?: string;
+  organizationId?: string;
+  userId?: string;
+}
+
+export interface IReviewGatePendingSlackPayload {
+  chatId: string;
+  message: string;
 }
 
 export interface IDiscordCardPayload {

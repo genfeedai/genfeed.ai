@@ -97,6 +97,10 @@ const CHANNEL_CONFIG: Record<
     icon: <WebhookIcon className="size-4" />,
     label: 'Webhook',
   },
+  [NotificationChannel.TASK_INBOX]: {
+    icon: <ShieldCheckIcon className="size-4" />,
+    label: 'Task Inbox',
+  },
 };
 
 function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {

@@ -18,6 +18,7 @@ export const SYSTEM_WORKFLOW_ACTION_IDS = {
   CAMPAIGN_DM_AUTOMATION: 'campaign-dm-automation',
   CAMPAIGN_REPLY_AUTOMATION: 'campaign-reply-automation',
   REPLY_DM_AUTOMATION: 'reply-dm-automation',
+  REVIEW_GATE_TIMEOUT: 'review-gate-timeout',
   SCHEDULED_POST_PUBLISHING: 'scheduled-post-publishing',
   STREAK_MAINTENANCE: 'streak-maintenance',
   TIKTOK_STATUS_RECONCILIATION: 'tiktok-status-reconciliation',
@@ -104,6 +105,15 @@ export const SYSTEM_WORKFLOW_ACTION_DEFINITIONS: readonly SystemWorkflowActionDe
         'Processes daily streak state: at-risk reminders, streak freezes, and broken streaks.',
       label: 'Streak Maintenance',
       schedule: '30 0 * * *',
+    },
+    {
+      canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.REVIEW_GATE_TIMEOUT,
+      changeSummary:
+        'Initial review-gate timeout resolution system workflow action wrapper.',
+      description:
+        'Auto-resolves review gates whose reviewer timeout elapsed: approves when the node opted into auto-approve, otherwise rejects.',
+      label: 'Review Gate Timeout Resolution',
+      schedule: '*/15 * * * *',
     },
   ];
 

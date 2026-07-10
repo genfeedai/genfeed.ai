@@ -689,17 +689,33 @@ export const NODE_REGISTRY: Record<string, NodeDefinition> = {
         label: 'Notify Channels',
         type: 'string',
       },
+      notifyEmail: {
+        description: 'Reviewer email address for the email notify channel',
+        label: 'Notify Email',
+        type: 'string',
+      },
       requireApproval: {
         default: true,
         description: 'Pause execution until a reviewer approves or rejects',
         label: 'Require Approval',
         type: 'boolean',
       },
+      slackChannel: {
+        description:
+          'Slack channel for the slack notify channel (e.g. #content-review)',
+        label: 'Slack Channel',
+        type: 'string',
+      },
       timeoutHours: {
         default: 24,
         description: 'Hours to wait for reviewer response before timeout',
         label: 'Timeout (hours)',
         type: 'number',
+      },
+      webhookUrl: {
+        description: 'Webhook URL to POST pending-review notifications to',
+        label: 'Webhook URL',
+        type: 'string',
       },
     },
     description:

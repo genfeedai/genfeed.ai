@@ -54,6 +54,17 @@ export interface WorkflowExecutionRuntimeState {
   startedAt: Date | null;
 }
 
+/** A workflow execution currently paused at a review gate. */
+export interface PendingReviewGateExecution {
+  executionId: string;
+  workflowId: string;
+  organizationId: string;
+  nodeId: string;
+  requestedAt: string;
+  timeoutHours: number;
+  autoApproveIfNoResponse: boolean;
+}
+
 @Injectable()
 export class WorkflowExecutionsService extends BaseService<
   WorkflowExecutionDocument,
@@ -100,6 +111,77 @@ export class WorkflowExecutionsService extends BaseService<
       progress: typeof result.progress === 'number' ? result.progress : 0,
       startedAt: execution.startedAt,
     };
+  }
+
+  /**
+   * List executions currently paused at a review gate (a `pendingApproval`
+   * lives in the result metadata and the run is still RUNNING). Ordered oldest
+   * first so the timeout sweep sees the longest-waiting gates first. The
+   * RUNNING set is dominated by paused reviews (active runs are short-lived),
+   * so a bounded scan + in-memory metadata parse is both correct and cheap and
+   * avoids brittle nested-JSON path operators.
+   */
+  @HandleErrors('list pending review-gate executions', 'workflow-executions')
+  async findPendingReviewGateExecutions(
+    limit = 500,
+  ): Promise<PendingReviewGateExecution[]> {
+    const rows = (await this.prisma.workflowExecution.findMany({
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        organizationId: true,
+        result: true,
+        workflowId: true,
+      },
+      take: limit,
+      where: {
+        isDeleted: false,
+        status: PrismaWorkflowExecutionStatus.RUNNING,
+      },
+    })) as Array<{
+      id: string;
+      organizationId: string;
+      workflowId: string;
+      result: unknown;
+    }>;
+
+    const pending: PendingReviewGateExecution[] = [];
+    for (const row of rows) {
+      const result = parseResult(row.result);
+      const metadata =
+        result.metadata && typeof result.metadata === 'object'
+          ? (result.metadata as Record<string, unknown>)
+          : undefined;
+      const pendingApproval =
+        metadata?.pendingApproval &&
+        typeof metadata.pendingApproval === 'object'
+          ? (metadata.pendingApproval as Record<string, unknown>)
+          : undefined;
+
+      const nodeId = pendingApproval?.nodeId;
+      const requestedAt = pendingApproval?.requestedAt;
+      if (typeof nodeId !== 'string' || typeof requestedAt !== 'string') {
+        continue;
+      }
+
+      pending.push({
+        autoApproveIfNoResponse:
+          typeof pendingApproval?.autoApproveIfNoResponse === 'boolean'
+            ? pendingApproval.autoApproveIfNoResponse
+            : false,
+        executionId: row.id,
+        nodeId,
+        organizationId: row.organizationId,
+        requestedAt,
+        timeoutHours:
+          typeof pendingApproval?.timeoutHours === 'number'
+            ? pendingApproval.timeoutHours
+            : 24,
+        workflowId: row.workflowId,
+      });
+    }
+
+    return pending;
   }
 
   @HandleErrors('create execution', 'workflow-executions')

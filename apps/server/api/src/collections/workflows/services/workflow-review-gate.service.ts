@@ -1,4 +1,5 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import type { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionFinalizerService } from '@api/collections/workflows/services/workflow-execution-finalizer.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
@@ -7,6 +8,7 @@ import { EXECUTABLE_WORKFLOW_SELECT } from '@api/collections/workflows/services/
 import {
   PendingReviewGateState,
   ReviewGateApprovalResult,
+  ReviewGateTimeoutResolution,
 } from '@api/collections/workflows/services/workflow-executor.types';
 import { WorkflowExecutorDocumentService } from '@api/collections/workflows/services/workflow-executor-document.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -20,6 +22,12 @@ import type {
 } from '@genfeedai/workflow-engine';
 import { BadRequestException } from '@nestjs/common';
 
+/** Actor recorded on automatic (timeout sweep) approvals/rejections. */
+const REVIEW_GATE_SYSTEM_ACTOR = 'system';
+
+/** Registry defaults mirrored from the reviewGate node configSchema. */
+const REVIEW_GATE_DEFAULT_TIMEOUT_HOURS = 24;
+
 export class WorkflowReviewGateService {
   constructor(
     private readonly prisma: PrismaService,
@@ -29,6 +37,7 @@ export class WorkflowReviewGateService {
     private readonly graphService: WorkflowExecutionGraphService,
     private readonly progressService: WorkflowExecutionProgressService,
     private readonly finalizer: WorkflowExecutionFinalizerService,
+    private readonly notifier?: ReviewGateNotificationService,
   ) {}
 
   async submitReviewGateApproval(
@@ -120,10 +129,65 @@ export class WorkflowReviewGateService {
     });
   }
 
+  /**
+   * Auto-resolve a review gate whose reviewer timeout has elapsed. Delegates to
+   * the same approve/reject path as a human reviewer, recorded against a
+   * `system` actor: auto-approves when the node opted into
+   * `autoApproveIfNoResponse`, otherwise auto-rejects. Returns `null` when the
+   * gate was already resolved (raced by a human) so the sweep can skip it.
+   */
+  async resolveTimedOutReviewGate(
+    workflowId: string,
+    executionId: string,
+    organizationId: string,
+    nodeId: string,
+  ): Promise<ReviewGateTimeoutResolution | null> {
+    const execution = await this.executionsService.findOne({
+      _id: executionId,
+      isDeleted: false,
+      organization: organizationId,
+    });
+
+    if (
+      !execution ||
+      execution.completedAt ||
+      String(execution.status) !== WorkflowExecutionStatus.RUNNING
+    ) {
+      return null;
+    }
+
+    const pending = this.getPendingReviewGateState(execution.metadata, nodeId);
+    if (!pending) {
+      return null;
+    }
+
+    const approved = pending.autoApproveIfNoResponse;
+    const result = await this.submitReviewGateApproval(
+      workflowId,
+      executionId,
+      REVIEW_GATE_SYSTEM_ACTOR,
+      organizationId,
+      nodeId,
+      approved,
+      approved ? undefined : 'Review timed out with no reviewer response',
+    );
+
+    return {
+      executionId,
+      nodeId,
+      resolution: result.status,
+    };
+  }
+
   async pauseForReviewGate(input: {
     executionId: string;
     workflow: ExecutableWorkflow;
-    node: { id: string; type: string; label: string };
+    node: {
+      id: string;
+      type: string;
+      label: string;
+      config?: Record<string, unknown>;
+    };
     inputs: Map<string, unknown>;
     completedNodes: Set<string>;
     skippedNodes: Set<string>;
@@ -139,13 +203,26 @@ export class WorkflowReviewGateService {
     const rawMedia = this.extractReviewGateInput(input.inputs, 'media');
     const rawCaption = this.extractReviewGateInput(input.inputs, 'caption');
     const requestedAt = new Date().toISOString();
+    const config = input.node.config ?? {};
     const pendingApproval: PendingReviewGateState = {
+      autoApproveIfNoResponse: this.readBooleanConfig(
+        config.autoApproveIfNoResponse,
+        false,
+      ),
       inputCaption: this.extractCaptionPreview(rawCaption),
       inputMedia: this.extractMediaPreview(rawMedia),
       nodeId: input.node.id,
+      notifyChannels: this.readChannelsConfig(config.notifyChannels),
+      notifyEmail: this.readStringConfig(config.notifyEmail),
       rawCaption,
       rawMedia,
       requestedAt,
+      slackChannel: this.readStringConfig(config.slackChannel),
+      timeoutHours: this.readNumberConfig(
+        config.timeoutHours,
+        REVIEW_GATE_DEFAULT_TIMEOUT_HOURS,
+      ),
+      webhookUrl: this.readStringConfig(config.webhookUrl),
     };
     const output = this.buildReviewGateNodeOutput(
       pendingApproval,
@@ -176,6 +253,28 @@ export class WorkflowReviewGateService {
     await this.executionsService.updateExecutionMetadata(input.executionId, {
       pendingApproval,
     });
+
+    // Fan out reviewer notifications for the configured channels. Failures are
+    // swallowed inside the notifier so a flaky channel never blocks the pause.
+    if (this.notifier && pendingApproval.notifyChannels.length > 0) {
+      const { taskId } = await this.notifier.dispatchPendingNotifications(
+        pendingApproval,
+        {
+          executionId: input.executionId,
+          organizationId: input.workflow.organizationId,
+          ownerUserId: input.userId,
+          workflowId: input.workflow.id,
+          workflowLabel: input.options.workflowLabel,
+        },
+      );
+      if (taskId) {
+        pendingApproval.taskId = taskId;
+        await this.executionsService.updateExecutionMetadata(
+          input.executionId,
+          { pendingApproval },
+        );
+      }
+    }
 
     await this.progressService.emitEvent(
       input.workflow.id,
@@ -258,6 +357,10 @@ export class WorkflowReviewGateService {
       },
       pendingApproval: null,
     });
+    await this.notifier?.resolvePendingTask(
+      input.pendingApproval.taskId,
+      'rejected',
+    );
     await this.executionsService.completeExecution(
       input.executionId,
       rejectionMessage,
@@ -322,6 +425,10 @@ export class WorkflowReviewGateService {
       },
       pendingApproval: null,
     });
+    await this.notifier?.resolvePendingTask(
+      input.pendingApproval.taskId,
+      'approved',
+    );
 
     let executableWorkflow = this.engineAdapter.convertToExecutableWorkflow(
       input.normalizedWorkflowDoc,
@@ -459,18 +566,62 @@ export class WorkflowReviewGateService {
     }
 
     return {
+      autoApproveIfNoResponse: this.readBooleanConfig(
+        state.autoApproveIfNoResponse,
+        false,
+      ),
       inputCaption:
         typeof state.inputCaption === 'string' ? state.inputCaption : null,
       inputMedia:
         typeof state.inputMedia === 'string' ? state.inputMedia : null,
       nodeId,
+      notifyChannels: this.readChannelsConfig(state.notifyChannels),
+      notifyEmail: this.readStringConfig(state.notifyEmail),
       rawCaption: state.rawCaption,
       rawMedia: state.rawMedia,
       requestedAt:
         typeof state.requestedAt === 'string'
           ? state.requestedAt
           : new Date().toISOString(),
+      slackChannel: this.readStringConfig(state.slackChannel),
+      taskId: this.readStringConfig(state.taskId),
+      timeoutHours: this.readNumberConfig(
+        state.timeoutHours,
+        REVIEW_GATE_DEFAULT_TIMEOUT_HOURS,
+      ),
+      webhookUrl: this.readStringConfig(state.webhookUrl),
     };
+  }
+
+  private readStringConfig(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim() ? value : undefined;
+  }
+
+  private readBooleanConfig(value: unknown, fallback: boolean): boolean {
+    return typeof value === 'boolean' ? value : fallback;
+  }
+
+  private readNumberConfig(value: unknown, fallback: number): number {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        return parsed;
+      }
+    }
+    return fallback;
+  }
+
+  private readChannelsConfig(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value.filter(
+      (channel): channel is string =>
+        typeof channel === 'string' && channel.length > 0,
+    );
   }
 
   private buildReviewGateNodeOutput(
