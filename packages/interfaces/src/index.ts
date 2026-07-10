@@ -204,6 +204,7 @@ export * from './settings/dashboard-settings.interface';
 export * from './settings/platform-setting.interface';
 export * from './settings/settings.interface';
 export * from './social/link.interface';
+export * from './social/social-inbox.interface';
 export * from './studio/camera-movement.interface';
 export * from './studio/conversation-canvas.interface';
 export * from './studio/conversation-sidebar.interface';

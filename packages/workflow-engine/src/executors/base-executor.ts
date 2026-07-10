@@ -77,6 +77,26 @@ export abstract class BaseExecutor implements INodeExecutor {
     const value = config[key];
     return (value as T) ?? defaultValue;
   }
+
+  /**
+   * Resolve a string value from node config, falling back to a connected input.
+   * Returns undefined when neither source has a non-empty string.
+   */
+  protected getConfigOrInputString(
+    node: ExecutableNode,
+    inputs: Map<string, unknown>,
+    key: string,
+  ): string | undefined {
+    const configValue = node.config[key];
+    if (typeof configValue === 'string' && configValue.trim().length > 0) {
+      return configValue;
+    }
+
+    const inputValue = inputs.get(key);
+    return typeof inputValue === 'string' && inputValue.trim().length > 0
+      ? inputValue
+      : undefined;
+  }
 }
 
 export class NoopExecutor extends BaseExecutor {

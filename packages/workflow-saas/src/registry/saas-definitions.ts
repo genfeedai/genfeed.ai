@@ -51,7 +51,6 @@ export type SaaSNodeType =
   | 'brandAsset'
   | 'brandContext'
   | 'patternContext'
-  | 'commentTrigger'
   // control flow
   | 'condition'
   | 'delay'

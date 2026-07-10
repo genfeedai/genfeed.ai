@@ -2,17 +2,17 @@
 
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   SocialActionProvenance,
   SocialAutomationState,
-  SocialConversationModel,
   SocialConversationStatus,
-  SocialMessageModel,
   SocialPlatform,
-} from '@services/social/messages.service';
+} from '@genfeedai/interfaces';
+import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
+import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { SocialMessagesService } from '@services/social/messages.service';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
