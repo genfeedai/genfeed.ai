@@ -1,89 +1,16 @@
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
-import { createPathSecurity } from '@libs/security';
+import { createPathSecurityClass } from '@libs/security';
 
 /**
+ * Security utilities for input validation and sanitization.
  * Path-traversal / command-injection sanitization is shared with the `files`
  * service via `@libs/security`; the shared guards throw this app's NestJS
  * `ValidationException` (422) via the injected error factory. Prompt-injection
  * sanitization below stays API-local — only the API builds LLM prompts.
  */
-const pathSecurity = createPathSecurity({
+export class SecurityUtil extends createPathSecurityClass({
   createError: (message) => new ValidationException(message),
-});
-
-/**
- * Security utilities for input validation and sanitization
- */
-export class SecurityUtil {
-  /**
-   * Validate and sanitize file path to prevent directory traversal
-   */
-  static validateFilePath(filePath: string): string {
-    return pathSecurity.validateFilePath(filePath);
-  }
-
-  /**
-   * Validate file extension against allowed list
-   */
-  static validateFileExtension(filePath: string): void {
-    pathSecurity.validateFileExtension(filePath);
-  }
-
-  /**
-   * Check if file exists and is readable
-   */
-  static validateFileExists(filePath: string): Promise<void> {
-    return pathSecurity.validateFileExists(filePath);
-  }
-
-  /**
-   * Validate file size is within reasonable limits
-   */
-  static validateFileSize(filePath: string, maxSizeMB = 1000): Promise<void> {
-    return pathSecurity.validateFileSize(filePath, maxSizeMB);
-  }
-
-  /**
-   * Sanitize command arguments to prevent injection
-   */
-  static sanitizeCommandArgs(args: string[]): string[] {
-    return pathSecurity.sanitizeCommandArgs(args);
-  }
-
-  /**
-   * Validate numeric parameters are within safe ranges
-   */
-  static validateNumericParam(
-    value: number,
-    name: string,
-    min = 0,
-    max = 10000,
-  ): number {
-    return pathSecurity.validateNumericParam(value, name, min, max);
-  }
-
-  /**
-   * Validate string parameters
-   */
-  static validateStringParam(
-    value: string,
-    name: string,
-    maxLength = 255,
-  ): string {
-    return pathSecurity.validateStringParam(value, name, maxLength);
-  }
-
-  /**
-   * Create secure temporary file path
-   */
-  static createSecureTempPath(
-    baseDir: string,
-    filename: string,
-    extension: string,
-  ): string {
-    return pathSecurity.createSecureTempPath(baseDir, filename, extension);
-  }
-
+}) {
   /**
    * Common prompt injection patterns to detect and sanitize.
    * Role markers (system:, user:, etc.) only match at line start to avoid false positives.

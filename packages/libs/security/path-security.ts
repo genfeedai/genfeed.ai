@@ -125,6 +125,9 @@ export interface PathSecurity {
   ): string;
 }
 
+/** Constructable class whose static surface matches {@link PathSecurity}. */
+export type PathSecurityClass = (new () => object) & PathSecurity;
+
 /**
  * Build a {@link PathSecurity} bound to a consumer's error type and pattern sets.
  */
@@ -170,6 +173,23 @@ export function createPathSecurity(options: PathSecurityOptions): PathSecurity {
     }
 
     return value.trim();
+  }
+
+  function validatePathComponent(
+    value: string,
+    name: string,
+    maxLength: number,
+  ): string {
+    const component = validateStringParam(value, name, maxLength);
+    if (
+      !component ||
+      component === '.' ||
+      component === '..' ||
+      /[\\/]/.test(component)
+    ) {
+      throw createError(`${name} must be a single path component`);
+    }
+    return component;
   }
 
   return {
@@ -263,11 +283,15 @@ export function createPathSecurity(options: PathSecurityOptions): PathSecurity {
       filename: string,
       extension: string,
     ): string {
-      // Validate inputs
-      const safeFilename = validateStringParam(filename, 'filename', 100);
-      const safeExtension = extension.startsWith('.')
-        ? extension
-        : `.${extension}`;
+      const safeFilename = validatePathComponent(filename, 'filename', 100);
+      const extensionValue = validateStringParam(extension, 'extension', 16);
+      const safeExtension = extensionValue.startsWith('.')
+        ? extensionValue
+        : `.${extensionValue}`;
+
+      if (!/^\.[a-z0-9]+$/i.test(safeExtension)) {
+        throw createError('extension must be a single file extension');
+      }
 
       // Prefix with a stub filename so path.extname sees a real extension —
       // extname('.mp4') === '' (dotfile), which would otherwise reject every
@@ -282,4 +306,18 @@ export function createPathSecurity(options: PathSecurityOptions): PathSecurity {
       return path.join(baseDir, secureFilename);
     },
   };
+}
+
+/**
+ * Bind path-security options to a constructable class with the guards exposed
+ * as static methods. App-local `SecurityUtil` classes extend this result when
+ * they need additional methods without re-declaring the shared delegation
+ * surface.
+ */
+export function createPathSecurityClass(
+  options: PathSecurityOptions,
+): PathSecurityClass {
+  class BoundPathSecurity {}
+
+  return Object.assign(BoundPathSecurity, createPathSecurity(options));
 }

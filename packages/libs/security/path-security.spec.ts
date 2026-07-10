@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createPathSecurity,
+  createPathSecurityClass,
   DEFAULT_ALLOWED_EXTENSIONS,
   DEFAULT_BLOCKED_PATTERNS,
   DEFAULT_INJECTION_PATTERNS,
@@ -54,6 +55,19 @@ describe('createPathSecurity', () => {
 
       expect(() => other.validateFilePath('')).toThrow(OtherError);
       expect(() => other.validateFilePath('')).not.toThrow(TestSecurityError);
+    });
+  });
+
+  describe('bound class factory', () => {
+    it('exposes the configured guards as inherited static methods', () => {
+      class SecurityUtil extends createPathSecurityClass({ createError }) {}
+
+      expect(SecurityUtil.validateStringParam('  safe  ', 'value')).toBe(
+        'safe',
+      );
+      expect(() => SecurityUtil.validateFilePath('')).toThrow(
+        TestSecurityError,
+      );
     });
   });
 
@@ -380,6 +394,27 @@ describe('createPathSecurity', () => {
       expect(() =>
         security.createSecureTempPath('/tmp', 'a'.repeat(200), '.mp4'),
       ).toThrow('100 characters or less');
+    });
+
+    it.each([
+      '../clip',
+      '..\\clip',
+      'nested/clip',
+      'nested\\clip',
+    ])('rejects filename path components: %s', (filename) => {
+      expect(() =>
+        security.createSecureTempPath('/tmp', filename, '.mp4'),
+      ).toThrow('filename must be a single path component');
+    });
+
+    it.each([
+      '../../mp4',
+      '/../../evil.mp4',
+      '.mp4/../../evil',
+    ])('rejects extension path components: %s', (extension) => {
+      expect(() =>
+        security.createSecureTempPath('/tmp', 'clip', extension),
+      ).toThrow('extension must be a single file extension');
     });
 
     it('generates a fresh path on every call', () => {
