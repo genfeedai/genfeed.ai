@@ -51,6 +51,9 @@ describe('fix-esm-relative-imports', () => {
         "import { client } from './client';",
         "export { folder } from './folder';",
         "const lazy = import('./client?worker');",
+        `const message = "load from './client' now";`,
+        "const template = `import './client'`;",
+        "// export { client } from './client';",
         '',
       ].join('\n'),
     );
@@ -71,6 +74,9 @@ describe('fix-esm-relative-imports', () => {
         "import { client } from './client.js';",
         "export { folder } from './folder/index.js';",
         "const lazy = import('./client.js?worker');",
+        `const message = "load from './client' now";`,
+        "const template = `import './client'`;",
+        "// export { client } from './client';",
         '',
       ].join('\n'),
     );

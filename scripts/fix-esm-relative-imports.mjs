@@ -2,11 +2,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { initSync, parse } from 'es-module-lexer';
 
 const OUTPUT_FILE = /(?:\.[cm]?js|\.d\.[cm]?ts)$/;
-const MODULE_SPECIFIER =
-  /(\b(?:from\s*|import\s*(?:\(\s*)?|require\s*\()\s*)(['"])([^'"]+)\2/g;
 const OUTPUT_EXTENSIONS = ['.js', '.mjs', '.cjs'];
+
+initSync();
 
 function isPathInside(parentPath, childPath) {
   const relativePath = path.relative(parentPath, childPath);
@@ -119,14 +120,22 @@ export function rewriteRelativeModuleSpecifiers(
   filePath,
   aliases = [],
 ) {
-  return source.replace(MODULE_SPECIFIER, (match, prefix, quote, specifier) => {
+  const [imports] = parse(source, filePath);
+  let rewritten = source;
+  for (const moduleImport of [...imports].reverse()) {
+    const specifier = moduleImport.n;
+    if (!specifier) continue;
     const resolved = specifier.startsWith('.')
       ? resolveRelativeSpecifier(filePath, specifier)
       : resolveInternalAlias(filePath, specifier, aliases);
-    return resolved === specifier
-      ? match
-      : `${prefix}${quote}${resolved}${quote}`;
-  });
+    if (resolved === specifier) continue;
+    const replacement =
+      moduleImport.d >= 0
+        ? `${source[moduleImport.s]}${resolved}${source[moduleImport.e - 1]}`
+        : resolved;
+    rewritten = `${rewritten.slice(0, moduleImport.s)}${replacement}${rewritten.slice(moduleImport.e)}`;
+  }
+  return rewritten;
 }
 
 export function fixEsmRelativeImports(outputDirs, { projectPath } = {}) {
