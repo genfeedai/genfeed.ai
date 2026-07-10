@@ -540,16 +540,19 @@ export class CredentialsController {
       );
     }
 
-    if (externalAvatar || externalHandle || externalId || externalName) {
+    const externalProfile = {
+      avatarUrl:
+        typeof externalAvatar === 'string' ? externalAvatar : undefined,
+      handle: typeof externalHandle === 'string' ? externalHandle : undefined,
+      id: typeof externalId === 'string' ? externalId : undefined,
+      name: typeof externalName === 'string' ? externalName : undefined,
+    };
+
+    if (Object.values(externalProfile).some(Boolean)) {
       data = await this.credentialsService.updateExternalProfile(
         credential.id,
         publicMetadata.organization,
-        {
-          avatarUrl: externalAvatar,
-          handle: externalHandle,
-          id: externalId,
-          name: externalName,
-        },
+        externalProfile,
       );
     }
 
