@@ -5,6 +5,7 @@ import type { ClipFactoryJobData } from '@genfeedai/queue-contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
+import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/clip-highlight-detector.service';
 import type { Job } from 'bullmq';
 import { of } from 'rxjs';
 import { ClipFactoryProcessor } from './clip-factory.processor';
@@ -136,6 +137,11 @@ describe('ClipFactoryProcessor', () => {
       whisperService as unknown as WhisperService,
       httpService as unknown as HttpService,
       configService as unknown as ConfigService,
+      new ClipHighlightDetector(
+        logger,
+        httpService as unknown as HttpService,
+        configService as unknown as ConfigService,
+      ),
     );
   });
 
