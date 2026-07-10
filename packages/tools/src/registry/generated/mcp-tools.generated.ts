@@ -35467,7 +35467,7 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
-    "description": "Sync recent YouTube comments into messages (POST /messages/youtube/sync)",
+    "description": "Enqueue a background sync of recent YouTube comments (POST /messages/youtube/sync)",
     "name": "social_inbox__sync_youtube_comments",
     "parameters": {
       "properties": {
