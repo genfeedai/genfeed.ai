@@ -5,6 +5,8 @@ import type {
   NodeStatus,
   NodeType,
   SelectedModel,
+  VisualHandleDefinition,
+  VisualNodeDefinition,
   WorkflowNodeData,
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS, NodeStatusEnum } from '@genfeedai/types';
@@ -145,13 +147,7 @@ function StatusIndicator({ status }: { status: NodeStatus }) {
 
 interface BaseNodeProps extends NodeProps {
   children?: ReactNode;
-  nodeDefinition?: {
-    category: string;
-    icon: string;
-    inputs: VisualHandleDefinition[];
-    label?: string;
-    outputs: VisualHandleDefinition[];
-  };
+  nodeDefinition?: VisualNodeDefinition;
   headerActions?: ReactNode;
   title?: string;
   titleElement?: ReactNode;
@@ -159,11 +155,6 @@ interface BaseNodeProps extends NodeProps {
   hideStatusIndicator?: boolean;
   /** Input handle IDs that should appear disabled (reduced opacity) when model doesn't support them */
   disabledInputs?: string[];
-}
-
-interface VisualHandleDefinition extends Omit<HandleDefinition, 'type'> {
-  type: string;
-  optional?: boolean;
 }
 
 // Hover delay for showing preview tooltip (ms)

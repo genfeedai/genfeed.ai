@@ -36,7 +36,7 @@
   },
   "type": "module",
   "scripts": {
-    "build": "tsc --build",
+    "build": "bun run clean && tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit"

@@ -62,6 +62,8 @@ export const API_ENDPOINTS = {
   SCENES: '/elements/scenes',
   SCHEDULES: '/schedules',
   SERVICES: '/services',
+  SOCIAL_SOURCES: '/social-sources',
+  SOURCE_POSTS: '/source-posts',
   SOUNDS: '/elements/sounds',
   STYLES: '/elements/styles',
   SUBSCRIPTIONS: '/subscriptions',

@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "@genfeedai/constants": "workspace:*",
+    "react": "19.2.7",
+    "react-icons": "5.7.0",
     "@tanstack/react-query": "5.101.2"
   },
   "description": "Shared page-level compositions for Genfeed applications",

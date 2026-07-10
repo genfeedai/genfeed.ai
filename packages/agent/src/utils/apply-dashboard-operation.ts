@@ -8,8 +8,9 @@ import type { AgentDashboardOperation } from '@genfeedai/interfaces';
 
 function normalizeDashboardOperation(
   operation: AgentDashboardOperation | string,
-): AgentDashboardOperation {
+): AgentDashboardOperation | undefined {
   if (
+    operation === 'replace' ||
     operation === 'add' ||
     operation === 'update' ||
     operation === 'remove' ||
@@ -18,7 +19,9 @@ function normalizeDashboardOperation(
     return operation;
   }
 
-  return 'replace';
+  // Unrecognized operations (typos, future server-side operation names) must
+  // no-op rather than fall through to the destructive 'replace'.
+  return undefined;
 }
 
 function normalizeBlockIds(blockIds?: unknown): string[] {
@@ -41,9 +44,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function parseDashboardPayload(blocks?: unknown): DashboardBlocksParseResult {
-  if (isRecord(blocks) && 'blocks' in blocks) {
-    return parseDashboardPayload(blocks.blocks);
+// Bounds the `{ blocks }` unwrap so circular or deeply nested payloads fail
+// validation instead of overflowing the stack.
+const MAX_PAYLOAD_UNWRAP_DEPTH = 8;
+
+function parseDashboardPayload(
+  blocks?: unknown,
+  depth = 0,
+): DashboardBlocksParseResult {
+  if (
+    depth < MAX_PAYLOAD_UNWRAP_DEPTH &&
+    isRecord(blocks) &&
+    'blocks' in blocks
+  ) {
+    return parseDashboardPayload(blocks.blocks, depth + 1);
   }
 
   return isOpenUIDocumentPayload(blocks)
@@ -58,10 +72,13 @@ export function applyDashboardOperation(
 ): void {
   const store = useAgentDashboardStore.getState();
   const normalizedOperation = normalizeDashboardOperation(operation);
+  if (normalizedOperation === undefined) {
+    return;
+  }
   const parsed = parseDashboardPayload(blocks);
 
   if (
-    !parsed.ok &&
+    !parsed.isValid &&
     normalizedOperation !== 'remove' &&
     normalizedOperation !== 'clear'
   ) {

@@ -71,14 +71,26 @@ export default function Login() {
     try {
       setIsGoogleLoading(true);
       const result = await promptGoogleAsync();
-      const auth = result.type === 'success' ? result.authentication : null;
+
+      // Anything other than a completed flow is not a failure: 'cancel' and
+      // 'dismiss' mean the user closed the OAuth popup, and 'opened'/'locked'
+      // are non-terminal states. Only a genuine 'error' warrants an alert.
+      if (result.type !== 'success') {
+        if (result.type === 'error') {
+          Alert.alert(
+            'Google sign in failed',
+            result.error?.message || 'An error occurred',
+          );
+        }
+        return;
+      }
+
+      const auth = result.authentication;
       // Prefer the canonical OIDC field; fall back to the raw params entry.
       const idToken =
-        result.type === 'success'
-          ? (auth?.idToken ??
-            (result.params?.id_token as string | undefined) ??
-            null)
-          : null;
+        auth?.idToken ??
+        (result.params?.id_token as string | undefined) ??
+        null;
 
       if (!idToken) {
         Alert.alert(
@@ -89,8 +101,7 @@ export default function Login() {
       }
 
       // Forward the nonce so the server can verify it against the token claim.
-      const nonce =
-        result.type === 'success' ? (googleRequest?.nonce ?? null) : null;
+      const nonce = googleRequest?.nonce ?? null;
 
       await signInWithGoogleIdToken({
         accessToken: auth?.accessToken ?? null,

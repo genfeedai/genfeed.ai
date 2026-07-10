@@ -1,10 +1,9 @@
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
-import { CredentialPlatform } from '@genfeedai/enums';
 import {
   ANALYTICS_THREADS_QUEUE,
-  ThreadsAnalyticsJobData,
+  SocialAnalyticsJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -33,7 +32,7 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
     );
   }
 
-  async process(job: Job<ThreadsAnalyticsJobData>): Promise<void> {
+  async process(job: Job<SocialAnalyticsJobData>): Promise<void> {
     try {
       return await this.circuitBreaker.execute(() => this.processInternal(job));
     } catch (error: unknown) {
@@ -46,7 +45,7 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
   }
 
   private async processInternal(
-    job: Job<ThreadsAnalyticsJobData>,
+    job: Job<SocialAnalyticsJobData>,
   ): Promise<void> {
     const { posts } = job.data;
 

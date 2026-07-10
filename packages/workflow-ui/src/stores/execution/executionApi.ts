@@ -21,7 +21,11 @@ import type {
  * credentialed client and its provider auth headers through `WorkflowUIConfig`.
  */
 
-const API_BASE_URL =
+/**
+ * Base URL every execution HTTP/SSE request is built on. Canonical definition
+ * for the execution store; SSE helpers import this rather than redefining it.
+ */
+export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'http://local.genfeed.ai:3010/api';
 
 /**
