@@ -15,6 +15,7 @@ export const AGENT_THREAD_EVENT_TYPES = [
   'run.cancelled',
   'run.completed',
   'run.failed',
+  'run.retried',
   'memory.flushed',
   'work.started',
   'work.updated',

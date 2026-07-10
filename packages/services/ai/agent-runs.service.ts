@@ -1,6 +1,6 @@
 /**
  * Agent Runs Service
- * Manages agent execution runs — list, create, cancel, get stats.
+ * Manages agent execution runs — list, create, cancel, retry, get stats.
  * Backend: /runs API
  */
 
@@ -136,6 +136,16 @@ class AgentRunsServiceClass {
       'POST',
       undefined,
       'Failed to cancel agent run',
+    );
+    return deserializeResource<IAgentRun>(json);
+  }
+
+  async retry(id: string): Promise<IAgentRun> {
+    const json = await this.request<JsonApiResponseDocument>(
+      `/runs/${id}/retries`,
+      'POST',
+      undefined,
+      'Failed to retry agent run',
     );
     return deserializeResource<IAgentRun>(json);
   }

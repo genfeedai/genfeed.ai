@@ -228,6 +228,11 @@
     },
     {
       "method": "post",
+      "operationId": "AgentRunsController.retryRun",
+      "path": "/runs/{id}/retries"
+    },
+    {
+      "method": "post",
       "operationId": "AgentStrategiesController.create",
       "path": "/agent-strategies"
     },
