@@ -1,4 +1,5 @@
 import { HealthController } from '@libs/health/health.controller';
+import { HEALTH_CONTRIBUTOR } from '@libs/health/health-contributor.interface';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('HealthController', () => {
@@ -40,8 +41,8 @@ describe('HealthController', () => {
   });
 
   describe('detailed', () => {
-    it('should return health status with memory and uptime', () => {
-      const result = controller.detailed();
+    it('should return health status with memory and uptime', async () => {
+      const result = await controller.detailed();
 
       expect(result).toHaveProperty('status', 'ok');
       expect(result).toHaveProperty('timestamp');
@@ -60,27 +61,79 @@ describe('HealthController', () => {
       expect(result.memory).toHaveProperty('arrayBuffers');
     });
 
-    it('should return increasing uptime values', () => {
-      const result1 = controller.detailed();
+    it('should return increasing uptime values', async () => {
+      const result1 = await controller.detailed();
 
       const start = Date.now();
       while (Date.now() - start < 10) {
         // Busy wait
       }
 
-      const result2 = controller.detailed();
+      const result2 = await controller.detailed();
 
-      expect(result2.uptime).toBeGreaterThanOrEqual(result1.uptime);
+      expect(result2.uptime).toBeGreaterThanOrEqual(result1.uptime as number);
     });
 
-    it('should return memory usage information', () => {
-      const result = controller.detailed();
+    it('should return memory usage information', async () => {
+      const result = await controller.detailed();
 
       expect(result.memory).toBeDefined();
       expect(typeof result.memory).toBe('object');
-      expect(typeof result.memory.rss).toBe('number');
-      expect(typeof result.memory.heapTotal).toBe('number');
-      expect(typeof result.memory.heapUsed).toBe('number');
+      expect(typeof result.memory?.rss).toBe('number');
+      expect(typeof result.memory?.heapTotal).toBe('number');
+      expect(typeof result.memory?.heapUsed).toBe('number');
+    });
+  });
+
+  describe('contributor', () => {
+    it('merges contributor details into detailed() only', async () => {
+      const moduleWithContributor: TestingModule =
+        await Test.createTestingModule({
+          controllers: [HealthController],
+          providers: [
+            {
+              provide: HEALTH_CONTRIBUTOR,
+              useValue: {
+                getHealthDetails: () => ({ activeBots: 3 }),
+              },
+            },
+          ],
+        }).compile();
+
+      const withContributor =
+        moduleWithContributor.get<HealthController>(HealthController);
+
+      const detailed = await withContributor.detailed();
+      expect(detailed).toHaveProperty('activeBots', 3);
+
+      expect(withContributor.check()).not.toHaveProperty('activeBots');
+    });
+
+    it('awaits async contributor details', async () => {
+      const moduleWithAsync: TestingModule = await Test.createTestingModule({
+        controllers: [HealthController],
+        providers: [
+          {
+            provide: HEALTH_CONTRIBUTOR,
+            useValue: {
+              getHealthDetails: async () => ({
+                jobs: { active: 1, queued: 2 },
+              }),
+            },
+          },
+        ],
+      }).compile();
+
+      const withAsync = moduleWithAsync.get<HealthController>(HealthController);
+
+      const detailed = await withAsync.detailed();
+      expect(detailed.jobs).toEqual({ active: 1, queued: 2 });
+    });
+
+    it('does not throw when no contributor is bound', async () => {
+      const detailed = await controller.detailed();
+      expect(detailed).toHaveProperty('status', 'ok');
+      expect(detailed).not.toHaveProperty('activeBots');
     });
   });
 
