@@ -37,6 +37,8 @@
       "@genfeedai/auth-client/*": ["../../packages/auth-client/src/*"],
       "@genfeedai/constants": ["../../packages/constants/src/index.ts"],
       "@genfeedai/constants/*": ["../../packages/constants/src/*"],
+      "@genfeedai/config": ["../../packages/config/src/index.ts"],
+      "@genfeedai/config/*": ["../../packages/config/src/*"],
       "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../packages/helpers/src/*"],
       "@genfeedai/pricing": ["../../packages/pricing/src/index.ts"],

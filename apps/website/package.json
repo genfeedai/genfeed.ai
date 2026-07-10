@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@genfeedai/constants": "*",
+    "@genfeedai/config": "*",
     "@genfeedai/enums": "*",
     "@genfeedai/helpers": "*",
     "@genfeedai/auth-client": "*",

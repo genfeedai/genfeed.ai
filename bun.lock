@@ -600,6 +600,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/auth-client": "*",
+        "@genfeedai/config": "*",
         "@genfeedai/constants": "*",
         "@genfeedai/enums": "*",
         "@genfeedai/helpers": "*",
