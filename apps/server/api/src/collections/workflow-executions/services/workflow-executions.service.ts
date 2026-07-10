@@ -423,6 +423,28 @@ export class WorkflowExecutionsService extends BaseService<
     });
   }
 
+  /**
+   * Atomically claim the pending review gate for `nodeId`. Both the human
+   * approval endpoint and the timeout sweep resolve gates through this claim:
+   * the jsonb predicate stops matching once `pendingApproval` is cleared, so
+   * exactly one caller wins and the loser sees `false`.
+   */
+  @HandleErrors('claim pending review gate', 'workflow-executions')
+  async claimPendingReviewGate(
+    executionId: string,
+    nodeId: string,
+  ): Promise<boolean> {
+    const claimed = await this.prisma.$executeRaw`
+      UPDATE workflow_executions
+      SET result = jsonb_set(result, '{metadata,pendingApproval}', 'null'::jsonb)
+      WHERE id = ${executionId}
+        AND status = 'RUNNING'::"WorkflowExecutionStatus"
+        AND "completedAt" IS NULL
+        AND result -> 'metadata' -> 'pendingApproval' ->> 'nodeId' = ${nodeId}
+    `;
+    return claimed === 1;
+  }
+
   @HandleErrors('update execution metadata', 'workflow-executions')
   async updateExecutionMetadata(
     executionId: string,

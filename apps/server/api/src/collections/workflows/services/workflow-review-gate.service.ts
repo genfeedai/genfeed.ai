@@ -99,6 +99,19 @@ export class WorkflowReviewGateService {
       );
     }
 
+    // Atomically claim the gate so a human approval and the timeout sweep can
+    // never both resolve it — the claim clears pendingApproval in a single
+    // guarded statement; the loser of the race sees false.
+    const claimed = await this.executionsService.claimPendingReviewGate(
+      executionId,
+      nodeId,
+    );
+    if (!claimed) {
+      throw new BadRequestException(
+        `Review gate for node ${nodeId} was already resolved`,
+      );
+    }
+
     const approvedAt = new Date();
     const approvedAtIso = approvedAt.toISOString();
 
@@ -162,21 +175,29 @@ export class WorkflowReviewGateService {
     }
 
     const approved = pending.autoApproveIfNoResponse;
-    const result = await this.submitReviewGateApproval(
-      workflowId,
-      executionId,
-      REVIEW_GATE_SYSTEM_ACTOR,
-      organizationId,
-      nodeId,
-      approved,
-      approved ? undefined : 'Review timed out with no reviewer response',
-    );
+    try {
+      const result = await this.submitReviewGateApproval(
+        workflowId,
+        executionId,
+        REVIEW_GATE_SYSTEM_ACTOR,
+        organizationId,
+        nodeId,
+        approved,
+        approved ? undefined : 'Review timed out with no reviewer response',
+      );
 
-    return {
-      executionId,
-      nodeId,
-      resolution: result.status,
-    };
+      return {
+        executionId,
+        nodeId,
+        resolution: result.status,
+      };
+    } catch (error: unknown) {
+      // A human resolved the gate between our pre-check and the atomic claim.
+      if (error instanceof BadRequestException) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async pauseForReviewGate(input: {
