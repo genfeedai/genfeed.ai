@@ -103,7 +103,7 @@ jobs:
               test -f apps/server/dist/apps/voices/main.js && echo "✅ Voices bundle" || (echo "❌ Voices bundle missing" && exit 1)
               test -f apps/server/dist/apps/videos/main.js && echo "✅ Videos bundle" || (echo "❌ Videos bundle missing" && exit 1)
               echo ""
-              echo "All 12 service bundles verified ✅"
+              echo "All 11 service bundles verified ✅"
 
               # Check bundle sizes (catch empty/broken bundles)
               for svc in api workers files mcp notifications telegram discord slack images voices videos; do
@@ -151,5 +151,5 @@ jobs:
           {
             echo "## ✅ Build Verification Passed"
             echo ""
-            echo "Docker image built + all 12 bundles verified; EE api bundle booted past module init (#574 guard)."
+            echo "Docker image built + all 11 bundles verified; EE api bundle booted past module init (#574 guard)."
           } >> "$GITHUB_STEP_SUMMARY"
