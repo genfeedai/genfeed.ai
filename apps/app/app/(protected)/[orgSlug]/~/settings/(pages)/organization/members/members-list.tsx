@@ -13,6 +13,7 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Member } from '@models/organization/member.model';
 import type { TableColumn } from '@props/ui/display/table.props';
+import { PagesService } from '@services/content/pages.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { MembersService } from '@services/organization/members.service';
@@ -48,6 +49,7 @@ function MembersListContent() {
   );
 
   const [members, setMembers] = useState<Member[] | null>(null);
+  const [totalMembers, setTotalMembers] = useState<number>(0);
 
   const columns: TableColumn<Member>[] = [
     {
@@ -90,11 +92,17 @@ function MembersListContent() {
 
       const data = await service.findAll(query);
       setMembers(data);
+      // Seat-limit checks must use the org-wide total, not just this page of
+      // results. BaseService.findAll writes the paginated total into
+      // PagesService (same value AutoPagination shows). Fall back to the
+      // current page length if the total isn't populated for any reason.
+      setTotalMembers(Math.max(PagesService.getTotalDocs(), data.length));
       logger.info('GET /members success', data);
     } catch (error) {
       logger.error('GET /members failed', error);
       notificationsService.error('Failed to load members');
       setMembers([]);
+      setTotalMembers(0);
     }
   }, [currentPage, getMembersService, notificationsService, organizationId]);
 
@@ -104,7 +112,7 @@ function MembersListContent() {
 
   const seatLimit = getSeatLimitForTier(settings?.subscriptionTier);
   const isAtSeatLimit =
-    seatLimit !== null && members !== null && members.length >= seatLimit;
+    seatLimit !== null && members !== null && totalMembers >= seatLimit;
   const memberLimitDescription = isAtSeatLimit
     ? `Current plan includes ${seatLimit} ${formatSeatLabel(seatLimit)}. Upgrade to ${formatTierLabel(
         getUpgradeTierForLimit('seats', settings?.subscriptionTier),
