@@ -5,6 +5,7 @@ import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
 import { ClipAnalyzeProcessor } from '@workers/processors/api/queues/clip-analyze/clip-analyze.processor';
+import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/clip-highlight-detector.service';
 import type { Job } from 'bullmq';
 import { of } from 'rxjs';
 
@@ -106,6 +107,7 @@ describe('ClipAnalyzeProcessor', () => {
       whisperService,
       httpService,
       configService,
+      new ClipHighlightDetector(logger, httpService, configService),
     );
   });
 
