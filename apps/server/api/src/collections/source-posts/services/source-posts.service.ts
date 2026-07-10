@@ -83,11 +83,14 @@ type PrismaDelegate<T> = {
 
 type PrismaWithSourcePosts = Omit<
   PrismaService,
-  'credential' | 'post' | 'sourcePost'
+  'credential' | 'ingredient' | 'post' | 'sourcePost'
 > & {
   credential: PrismaDelegate<{
     id: string;
     platform: string;
+  }>;
+  ingredient: PrismaDelegate<{
+    id: string;
   }>;
   post: PrismaDelegate<{
     id: string;
@@ -361,19 +364,36 @@ export class SourcePostsService {
     ingredientId: string,
     context: { organizationId: string; brandId: string },
   ) {
-    const post = await this.db.post.findFirst({
-      include: { ingredients: { select: { id: true } } },
-      where: {
-        brandId: context.brandId,
-        id: postId,
-        isDeleted: false,
-        organizationId: context.organizationId,
-      },
-    });
+    const [post, ingredient] = await Promise.all([
+      this.db.post.findFirst({
+        include: { ingredients: { select: { id: true } } },
+        where: {
+          brandId: context.brandId,
+          id: postId,
+          isDeleted: false,
+          organizationId: context.organizationId,
+        },
+      }),
+      this.db.ingredient.findFirst({
+        select: { id: true },
+        where: {
+          brandId: context.brandId,
+          id: ingredientId,
+          isDeleted: false,
+          organizationId: context.organizationId,
+        },
+      }),
+    ]);
 
     if (!post) {
       throw new NotFoundException({
         message: 'Post draft not found for image attachment',
+      });
+    }
+
+    if (!ingredient) {
+      throw new NotFoundException({
+        message: 'Image ingredient not found for post attachment',
       });
     }
 

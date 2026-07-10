@@ -30,6 +30,9 @@ describe('SourcePostsService', () => {
     findMany: vi.fn(),
     upsert: vi.fn(),
   };
+  const ingredient = {
+    findFirst: vi.fn(),
+  };
   const post = {
     create: vi.fn(),
     findFirst: vi.fn(),
@@ -41,7 +44,7 @@ describe('SourcePostsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new SourcePostsService(
-      { post, sourcePost } as unknown as PrismaService,
+      { ingredient, post, sourcePost } as unknown as PrismaService,
       logger,
       credentialsService as never,
       twitterPipelineService as never,
@@ -126,6 +129,7 @@ describe('SourcePostsService', () => {
       id: 'post-1',
       ingredients: [{ id: 'existing-ingredient' }],
     });
+    ingredient.findFirst.mockResolvedValue({ id: 'new-ingredient' });
     post.update.mockResolvedValue({ id: 'post-1' });
 
     await service.attachIngredientToPost('post-1', 'new-ingredient', {
@@ -142,6 +146,15 @@ describe('SourcePostsService', () => {
         }),
       }),
     );
+    expect(ingredient.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        brandId: 'brand-1',
+        id: 'new-ingredient',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
     expect(post.update).toHaveBeenCalledWith({
       data: expect.objectContaining({
         ingredients: {
@@ -155,5 +168,19 @@ describe('SourcePostsService', () => {
         organizationId: 'org-1',
       },
     });
+  });
+
+  it('rejects an image ingredient outside the scoped brand', async () => {
+    post.findFirst.mockResolvedValue({ id: 'post-1', ingredients: [] });
+    ingredient.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.attachIngredientToPost('post-1', 'other-brand-ingredient', {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      }),
+    ).rejects.toThrow('Image ingredient not found for post attachment');
+
+    expect(post.update).not.toHaveBeenCalled();
   });
 });

@@ -13,6 +13,7 @@ import type { SocialContentData } from '@api/services/reply-bot/social-monitor.s
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  CredentialPlatform,
   ReplyBotPlatform,
   SocialSourcePlatform,
   SocialSourceType,
@@ -49,6 +50,7 @@ export class SocialSourcesService {
 
     const platform = normalizePlatform(dto.platform);
     const handle = normalizeHandle(platform, dto.handle);
+    await this.ensureCredentialAccess(dto.credential, context, platform);
     const source = await this.prisma.socialSource.create({
       data: {
         avatarUrl: dto.avatarUrl ?? null,
@@ -170,6 +172,13 @@ export class SocialSourcesService {
       : undefined;
 
     const effectiveHandle = handle ?? existing.handle;
+    if (dto.credential !== undefined || dto.platform !== undefined) {
+      await this.ensureCredentialAccess(
+        dto.credential ?? existing.credentialId ?? undefined,
+        context,
+        platform,
+      );
+    }
     const shouldRefreshProfileUrl =
       dto.profileUrl === undefined &&
       (dto.platform !== undefined || dto.handle !== undefined);
@@ -376,6 +385,31 @@ export class SocialSourcesService {
     }
   }
 
+  private async ensureCredentialAccess(
+    credentialId: string | undefined,
+    context: { organizationId: string; brandId: string },
+    platform: SocialSourcePlatform,
+  ): Promise<void> {
+    if (!credentialId) {
+      return;
+    }
+
+    const credential = await this.prisma.credential.findFirst({
+      where: {
+        brandId: context.brandId,
+        id: credentialId,
+        isDeleted: false,
+        organizationId: context.organizationId,
+        platform: toCredentialPlatform(platform),
+      },
+    });
+    if (!credential) {
+      throw new BadRequestException(
+        'Credential is not available for this brand and platform',
+      );
+    }
+  }
+
   private buildScopedWhere(
     context: { organizationId: string; brandId: string },
     query: Pick<SocialSourcesQueryDto, 'isActive' | 'platform' | 'search'>,
@@ -488,6 +522,19 @@ function toReplyBotPlatform(platform: string): ReplyBotPlatform {
       return ReplyBotPlatform.TWITTER;
     default:
       throw new BadRequestException(`Unsupported source platform: ${platform}`);
+  }
+}
+
+function toCredentialPlatform(
+  platform: SocialSourcePlatform,
+): CredentialPlatform {
+  switch (platform) {
+    case SocialSourcePlatform.INSTAGRAM:
+      return CredentialPlatform.INSTAGRAM;
+    case SocialSourcePlatform.TIKTOK:
+      return CredentialPlatform.TIKTOK;
+    case SocialSourcePlatform.TWITTER:
+      return CredentialPlatform.TWITTER;
   }
 }
 

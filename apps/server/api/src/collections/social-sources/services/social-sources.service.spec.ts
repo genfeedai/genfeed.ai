@@ -32,6 +32,9 @@ describe('SocialSourcesService', () => {
   const brand = {
     findFirst: vi.fn(),
   };
+  const credential = {
+    findFirst: vi.fn(),
+  };
   const socialSource = {
     count: vi.fn(),
     create: vi.fn(),
@@ -45,7 +48,7 @@ describe('SocialSourcesService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new SocialSourcesService(
-      { brand, socialSource } as unknown as PrismaService,
+      { brand, credential, socialSource } as unknown as PrismaService,
       logger,
       sourcePostsService as never,
       socialMonitorService as never,
@@ -94,6 +97,35 @@ describe('SocialSourcesService', () => {
       ),
     ).rejects.toThrow('Profile URL must use x.com or twitter.com');
 
+    expect(socialSource.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a credential outside the scoped brand and platform', async () => {
+    brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+    credential.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.createScoped(
+        {
+          credential: 'credential-2',
+          handle: '@OpenAI',
+          platform: SocialSourcePlatform.TWITTER,
+        },
+        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
+      ),
+    ).rejects.toThrow(
+      'Credential is not available for this brand and platform',
+    );
+
+    expect(credential.findFirst).toHaveBeenCalledWith({
+      where: {
+        brandId: 'brand-1',
+        id: 'credential-2',
+        isDeleted: false,
+        organizationId: 'org-1',
+        platform: 'twitter',
+      },
+    });
     expect(socialSource.create).not.toHaveBeenCalled();
   });
 
