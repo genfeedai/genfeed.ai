@@ -90,6 +90,7 @@ export * from './severity.enum';
 export * from './social-media.enum';
 export * from './sort.enum';
 export * from './sound-category.enum';
+export * from './source-collector.enum';
 export * from './status.enum';
 export * from './stripe.enum';
 export * from './subscription.enum';

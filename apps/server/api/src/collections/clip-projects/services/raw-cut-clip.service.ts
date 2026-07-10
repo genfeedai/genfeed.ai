@@ -71,6 +71,12 @@ export class RawCutClipService {
       );
     }
 
+    if (startTime < 0) {
+      throw new BadRequestException(
+        'Raw-cut clip requires startTime to be zero or greater.',
+      );
+    }
+
     if (endTime <= startTime) {
       throw new BadRequestException(
         'Raw-cut clip requires endTime to be greater than startTime.',

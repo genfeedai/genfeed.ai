@@ -25,7 +25,7 @@ describe('LoginPage', () => {
       screen.getByRole('link', { name: 'Create a free account' }),
     ).toHaveAttribute(
       'href',
-      'https://genfeed.ai/sign-up?source=browser-extension',
+      'https://app.genfeed.ai/sign-up?source=browser-extension',
     );
   });
 });

@@ -82,6 +82,12 @@ export function bootstrap(options: BootstrapOptions): void {
     }
   }
 
+  // Default the health-response service label to the app name. Runs AFTER the
+  // dotenv loop so an explicit SERVICE_NAME (OS env, .env, Docker, Terraform)
+  // still wins via `??=`. The shared HealthController reads process.env at
+  // response time (packages/libs/health/health.controller.ts).
+  process.env.SERVICE_NAME ??= app;
+
   // Increase EventEmitter max listeners to prevent memory leak warnings
   EventEmitter.defaultMaxListeners = maxListeners;
   process.setMaxListeners(maxListeners);

@@ -7,14 +7,8 @@ import type {
 } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
-import {
-  buildInstanceKey,
-  ServiceInstanceManager,
-} from '@services/core/service-instance-manager';
 
 export type { IActiveBrandInterview };
-
-const serviceInstances = new ServiceInstanceManager<BrandInterviewService>();
 
 export interface StartInterviewOptions {
   signal?: AbortSignal;
@@ -26,23 +20,10 @@ export class BrandInterviewService extends HTTPBaseService {
   }
 
   public static getInstance(token: string): BrandInterviewService {
-    const instanceKey = buildInstanceKey([token]);
-    const cached = serviceInstances.get<BrandInterviewService>(
+    return HTTPBaseService.getBaseServiceInstance(
       BrandInterviewService,
-      instanceKey,
-    );
-
-    if (
-      cached &&
-      Object.getPrototypeOf(cached) === BrandInterviewService.prototype
-    ) {
-      return cached;
-    }
-
-    const instance = new BrandInterviewService(token);
-    serviceInstances.set(BrandInterviewService, instanceKey, instance);
-
-    return instance;
+      token,
+    ) as BrandInterviewService;
   }
 
   public async startInterview(

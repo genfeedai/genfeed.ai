@@ -129,6 +129,34 @@ export abstract class BaseService<
   }
 
   /**
+   * Strip a request payload of empty values before sending it to the API.
+   *
+   * Drops keys whose value is `undefined`, `null`, or the literal string
+   * `'undefined'` (the last leaks in from query-string coercion). Pass
+   * `{ excludeId: true }` for POST requests, which must never carry an `id`
+   * — the serializer would otherwise echo it back into the create payload.
+   */
+  protected static cleanBody<TBody>(
+    body: TBody,
+    options: { excludeId?: boolean } = {},
+  ): Record<string, unknown> {
+    const cleanedBody: Record<string, unknown> = {};
+
+    for (const key in body) {
+      if (options.excludeId && key === 'id') {
+        continue;
+      }
+
+      const value = body[key];
+      if (value !== undefined && value !== null && value !== 'undefined') {
+        cleanedBody[key] = value;
+      }
+    }
+
+    return cleanedBody;
+  }
+
+  /**
    * Clear all singleton instances (useful for testing)
    */
   static clearAllInstances(): void {
@@ -295,28 +323,9 @@ export abstract class BaseService<
   public post(...args: unknown[]): Promise<T> {
     const body = args[args.length - 1] as TCreate;
 
-    // Remove id field completely (shouldn't be in POST requests)
-    // The serializer automatically includes id if present, so we must remove it entirely
-    // Use hasOwnProperty to check for id even if it's undefined
-    const cleanedBody: Record<string, unknown> = {};
-
-    for (const key in body) {
-      // Skip id field entirely for POST requests
-      if (key === 'id') {
-        continue;
-      }
-
-      const value = body[key];
-      // Only include defined values (exclude undefined, null, and string "undefined")
-      if (value !== undefined && value !== null && value !== 'undefined') {
-        cleanedBody[key] = value;
-      }
-    }
-
-    // Explicitly ensure id is not present (defensive check)
-    if ('id' in cleanedBody) {
-      delete cleanedBody.id;
-    }
+    // Remove id field completely (shouldn't be in POST requests) — the
+    // serializer automatically includes id if present, so it must not be here.
+    const cleanedBody = BaseService.cleanBody(body, { excludeId: true });
 
     const url =
       args.length > 1 && typeof args[0] === 'string' ? `/${args[0]}` : '';
@@ -347,16 +356,8 @@ export abstract class BaseService<
    * ```
    */
   public patch(id: string, body: TUpdate): Promise<T> {
-    // Clean body similar to POST - remove undefined/null values
-    const cleanedBody: Record<string, unknown> = {};
-
-    for (const key in body) {
-      const value = body[key];
-      // Only include defined values (exclude undefined, null, and string "undefined")
-      if (value !== undefined && value !== null && value !== 'undefined') {
-        cleanedBody[key] = value;
-      }
-    }
+    // Clean body similar to POST, but keep id (it's the patch target).
+    const cleanedBody = BaseService.cleanBody(body);
 
     return this.executeWithErrorHandling(
       `PATCH ${this.baseURL}/${id}`,

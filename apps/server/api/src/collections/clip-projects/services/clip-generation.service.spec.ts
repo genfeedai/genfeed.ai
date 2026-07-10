@@ -130,6 +130,19 @@ describe('ClipGenerationService', () => {
     expect(result.clipResultIds).toEqual(['cr-1', 'cr-2']);
   });
 
+  it('persists mode "avatar" on every clip-result it creates', async () => {
+    await service.generateClips(
+      makeInput({
+        highlights: [makeHighlight(), makeHighlight({ title: 'Second' })],
+      }),
+    );
+
+    expect(clipResultsService.create).toHaveBeenCalledTimes(2);
+    for (const call of clipResultsService.create.mock.calls) {
+      expect(call[0]).toEqual(expect.objectContaining({ mode: 'avatar' }));
+    }
+  });
+
   it('should dispatch avatar generation via the correct provider', async () => {
     const input = makeInput({ provider: 'heygen' });
 
@@ -273,6 +286,35 @@ describe('ClipGenerationService', () => {
       status: 'failed',
     });
   });
+
+  // Guards the shared runGenerationLoop skeleton: the extracting-status patch is
+  // issued per highlight before dispatch, regardless of the dispatch outcome.
+  it('marks every clip extracting even when a dispatch fails', async () => {
+    provider.generateVideo
+      .mockRejectedValueOnce(new Error('fail'))
+      .mockResolvedValueOnce({
+        jobId: 'job-ok',
+        providerName: 'heygen',
+        status: 'processing',
+      });
+
+    clipResultsService.create
+      .mockResolvedValueOnce({ id: 'cr-1' })
+      .mockResolvedValueOnce({ id: 'cr-2' });
+
+    await service.generateClips(
+      makeInput({
+        highlights: [makeHighlight(), makeHighlight({ title: 'Two' })],
+      }),
+    );
+
+    expect(clipResultsService.patch).toHaveBeenCalledWith('cr-1', {
+      status: 'extracting',
+    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith('cr-2', {
+      status: 'extracting',
+    });
+  });
 });
 
 describe('ClipGenerationService (raw-cut mode)', () => {
@@ -316,6 +358,19 @@ describe('ClipGenerationService (raw-cut mode)', () => {
 
   // Highlight [15, 45] with a segment [20, 25] → offset to [5, 10] of the cut.
   const EXPECTED_SRT = '1\n00:00:05,000 --> 00:00:10,000\nInside window';
+
+  it('persists mode "raw-cut" on every clip-result it creates', async () => {
+    await service.generateClips(
+      makeRawCutInput({
+        highlights: [makeHighlight(), makeHighlight({ title: 'Second' })],
+      }),
+    );
+
+    expect(clipResultsService.create).toHaveBeenCalledTimes(2);
+    for (const call of clipResultsService.create.mock.calls) {
+      expect(call[0]).toEqual(expect.objectContaining({ mode: 'raw-cut' }));
+    }
+  });
 
   it('creates one clip-result and dispatches one cut per selected highlight', async () => {
     clipResultsService.create

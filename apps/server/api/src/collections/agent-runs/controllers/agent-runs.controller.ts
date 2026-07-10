@@ -18,6 +18,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { AgentExecutionStatus } from '@genfeedai/enums';
@@ -35,6 +36,7 @@ import {
   Post,
   Query,
   Req,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -53,6 +55,8 @@ export class AgentRunsController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     @Optional()
     private readonly agentThreadEngineService?: AgentThreadEngineService,
+    @Optional()
+    private readonly agentRunQueueService?: AgentRunQueueService,
   ) {
     super(loggerService, agentRunsService, AgentRunSerializer, 'AgentRun', [
       'organization',
@@ -394,6 +398,92 @@ export class AgentRunsController extends BaseCRUDController<
         type: 'run.cancelled',
         userId: publicMetadata.user,
       });
+    }
+
+    return serializeSingle(request, AgentRunSerializer, run);
+  }
+
+  @Post(':id/retries')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Retry a failed or cancelled agent run' })
+  @ApiResponse({ description: 'Run requeued', status: 200 })
+  async retryRun(
+    @Req() request: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ) {
+    if (!this.agentRunQueueService) {
+      throw new ServiceUnavailableException('Agent run queue is unavailable');
+    }
+
+    const publicMetadata = getPublicMetadata(user);
+    const preparation = await this.agentRunsService.prepareRetry(
+      id,
+      publicMetadata.organization,
+      {
+        brandId: publicMetadata.brand,
+        retriedBy: publicMetadata.user,
+      },
+    );
+
+    if (!preparation) {
+      throw new NotFoundException('Agent run');
+    }
+
+    const { jobData, rollback, run } = preparation;
+
+    try {
+      await this.agentRunQueueService.queueRun(jobData);
+    } catch (error) {
+      try {
+        const restored = await this.agentRunsService.rollbackRetry(
+          id,
+          publicMetadata.organization,
+          rollback,
+          publicMetadata.brand,
+        );
+        if (!restored) {
+          this.loggerService.warn('Agent run retry rollback was not applied', {
+            runId: id,
+          });
+        }
+      } catch (rollbackError) {
+        this.loggerService.warn('Failed to roll back agent run retry', {
+          error: (rollbackError as Error)?.message,
+          runId: id,
+        });
+      }
+      throw error;
+    }
+
+    const threadId =
+      run.threadId?.toString() ??
+      (run.thread as unknown as { id?: string })?.id?.toString() ??
+      run.thread?.toString();
+
+    if (threadId) {
+      try {
+        await this.agentThreadEngineService?.appendEvent({
+          commandId: `run-retried:${id}:${run.retryCount ?? 0}`,
+          organizationId: publicMetadata.organization,
+          payload: {
+            detail: 'The run was requeued for retry by the user.',
+            label: 'Run retried',
+            status: 'pending',
+          },
+          runId: id,
+          threadId,
+          type: 'run.retried',
+          userId: publicMetadata.user,
+        });
+      } catch (error) {
+        // The retry already succeeded; thread provenance is best-effort.
+        this.loggerService.warn('Failed to append run.retried thread event', {
+          error: (error as Error)?.message,
+          runId: id,
+          threadId,
+        });
+      }
     }
 
     return serializeSingle(request, AgentRunSerializer, run);
