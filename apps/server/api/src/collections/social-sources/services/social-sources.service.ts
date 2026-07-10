@@ -13,12 +13,12 @@ import type { SocialContentData } from '@api/services/reply-bot/social-monitor.s
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  CredentialPlatform,
   ReplyBotPlatform,
   SocialSourcePlatform,
   SocialSourceType,
 } from '@genfeedai/enums';
 import type { SocialSourceValidationResult } from '@genfeedai/interfaces';
+import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -166,7 +166,7 @@ export class SocialSourcesService {
     const existing = await this.findOneScoped(id, context);
     const platform = dto.platform
       ? normalizePlatform(dto.platform)
-      : existing.platform;
+      : normalizePlatform(existing.platform);
     const handle = dto.handle
       ? normalizeHandle(platform, dto.handle)
       : undefined;
@@ -527,14 +527,14 @@ function toReplyBotPlatform(platform: string): ReplyBotPlatform {
 
 function toCredentialPlatform(
   platform: SocialSourcePlatform,
-): CredentialPlatform {
+): PrismaCredentialPlatform {
   switch (platform) {
     case SocialSourcePlatform.INSTAGRAM:
-      return CredentialPlatform.INSTAGRAM;
+      return PrismaCredentialPlatform.INSTAGRAM;
     case SocialSourcePlatform.TIKTOK:
-      return CredentialPlatform.TIKTOK;
+      return PrismaCredentialPlatform.TIKTOK;
     case SocialSourcePlatform.TWITTER:
-      return CredentialPlatform.TWITTER;
+      return PrismaCredentialPlatform.TWITTER;
   }
 }
 

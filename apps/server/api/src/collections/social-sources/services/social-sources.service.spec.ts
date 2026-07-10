@@ -123,7 +123,7 @@ describe('SocialSourcesService', () => {
         id: 'credential-2',
         isDeleted: false,
         organizationId: 'org-1',
-        platform: 'twitter',
+        platform: 'TWITTER',
       },
     });
     expect(socialSource.create).not.toHaveBeenCalled();
