@@ -6,8 +6,8 @@ import { EnvironmentService } from '~services/environment.service';
 
 export default function LoginPage() {
   const logoUrl = useThemeLogo();
-  const signInUrl = `${EnvironmentService.websiteDomain}/login`;
-  const signUpUrl = `${EnvironmentService.websiteDomain}/sign-up?source=browser-extension`;
+  const signInUrl = `${EnvironmentService.appDomain}/login`;
+  const signUpUrl = `${EnvironmentService.appDomain}/sign-up?source=browser-extension`;
 
   const handleSignIn = () => {
     chrome.tabs

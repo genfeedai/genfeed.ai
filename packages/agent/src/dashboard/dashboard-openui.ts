@@ -108,12 +108,12 @@ export type DashboardBlocksParseResult =
   | {
       blocks: AgentUIBlock[];
       issues: [];
-      ok: true;
+      isValid: true;
     }
   | {
       blocks: AgentUIBlock[];
       issues: DashboardValidationIssue[];
-      ok: false;
+      isValid: false;
     };
 
 type DashboardPrimitive = boolean | number | string | null;
@@ -775,7 +775,9 @@ function isSafeUrl(value: string): boolean {
   return (
     normalized.startsWith('https://') ||
     normalized.startsWith('http://') ||
-    normalized.startsWith('/')
+    // Protocol-relative `//host/...` resolves to an external origin, so only
+    // single-slash same-origin paths count as relative.
+    (normalized.startsWith('/') && !normalized.startsWith('//'))
   );
 }
 
@@ -974,7 +976,7 @@ function rejectedResult(
   return {
     blocks: [createUnsupportedDashboardTreeBlock(issue)],
     issues: [issue],
-    ok: false,
+    isValid: false,
   };
 }
 
@@ -983,7 +985,7 @@ export function parseAgentDashboardBlocks(
 ): DashboardBlocksParseResult {
   try {
     if (input === undefined || input === null) {
-      return { blocks: [], issues: [], ok: true };
+      return { blocks: [], issues: [], isValid: true };
     }
     if (!Array.isArray(input)) {
       fail('invalid_document', 'blocks', 'dashboard blocks must be an array');
@@ -1000,7 +1002,7 @@ export function parseAgentDashboardBlocks(
         parseAgentDashboardBlock(block, `blocks[${index}]`, 0),
       ),
       issues: [],
-      ok: true,
+      isValid: true,
     };
   } catch (error) {
     if (error instanceof DashboardValidationError) {
@@ -1188,7 +1190,7 @@ export function parseDashboardOpenUIDocument(
         parseOpenUINode(component, `components[${index}]`, 0),
       ),
       issues: [],
-      ok: true,
+      isValid: true,
     };
   } catch (error) {
     if (error instanceof DashboardValidationError) {

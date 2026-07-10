@@ -87,6 +87,8 @@ import { SchedulesModule } from '@api/collections/schedules/schedules.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SkillsModule } from '@api/collections/skills/skills.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
+import { SocialSourcesModule } from '@api/collections/social-sources/social-sources.module';
+import { SourcePostsModule } from '@api/collections/source-posts/source-posts.module';
 import { SpeechModule } from '@api/collections/speech/speech.module';
 import { StreaksModule } from '@api/collections/streaks/streaks.module';
 import { SubscriptionAttributionsModule } from '@api/collections/subscription-attributions/subscription-attributions.module';
@@ -326,6 +328,8 @@ import { SentryModule } from '@sentry/nestjs/setup';
     SettingsModule,
     SpeechModule,
     SocialInboxModule,
+    SocialSourcesModule,
+    SourcePostsModule,
     StreaksModule,
     // Billing collection modules — OSS-native (compose from `@billing-providers`,
     // which the webpack alias swaps to the EE fragment at build time). Registered

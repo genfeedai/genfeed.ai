@@ -213,6 +213,7 @@ export class WorkflowEngineExecutorHelperService {
     configuredBrandId: string | undefined,
     source: unknown,
     nodeType: string,
+    organizationId: string,
   ): Promise<string> {
     if (configuredBrandId) {
       return configuredBrandId;
@@ -223,16 +224,13 @@ export class WorkflowEngineExecutorHelperService {
       const sourceIngredient = await this.ingredientsService.findOne({
         _id: sourceIngredientId,
         isDeleted: false,
+        organizationId,
       });
-      const sourceBrandId =
-        this.getDocumentId(
-          (sourceIngredient as unknown as { brand?: unknown })?.brand,
-        ) ??
-        (
-          sourceIngredient as unknown as { brand?: { toString(): string } }
-        )?.brand?.toString();
 
-      if (sourceBrandId) {
+      // Read the scalar FK (`brandId`) — the Mongo-era `brand` alias is
+      // undefined on Prisma rows. See .agents/memory/rules/prisma_legacy_alias_fields.md.
+      const sourceBrandId = sourceIngredient?.brandId;
+      if (typeof sourceBrandId === 'string' && sourceBrandId.length > 0) {
         return sourceBrandId;
       }
     }

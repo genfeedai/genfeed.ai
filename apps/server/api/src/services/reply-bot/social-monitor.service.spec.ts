@@ -185,6 +185,30 @@ describe('SocialMonitorService', () => {
     expect(result[0].text).toBe('Original tweet');
   });
 
+  it('preserves Instagram media in normalized timeline posts', async () => {
+    mockApifyService.getInstagramUserPosts.mockResolvedValueOnce([
+      {
+        caption: 'Generated media workflow',
+        id: 'instagram-1',
+        imageUrl: 'https://cdn.example.com/preview.jpg',
+        ownerUsername: 'creator',
+        shortCode: 'abc123',
+        videoUrl: 'https://cdn.example.com/video.mp4',
+      },
+    ]);
+
+    const [post] = await service.getUserTimeline(
+      ReplyBotPlatform.INSTAGRAM,
+      'creator',
+    );
+
+    expect(post).toMatchObject({
+      contentType: SocialContentType.REEL,
+      mediaUrls: ['https://cdn.example.com/video.mp4'],
+      thumbnailUrl: 'https://cdn.example.com/preview.jpg',
+    });
+  });
+
   it('should search twitter with query and limit', async () => {
     mockApifyService.searchTwitterTweets.mockResolvedValueOnce([]);
     await service.searchContent(ReplyBotPlatform.TWITTER, 'AI news', {
