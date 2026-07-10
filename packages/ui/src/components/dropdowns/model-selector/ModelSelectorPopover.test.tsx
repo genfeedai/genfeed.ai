@@ -393,4 +393,32 @@ describe('ModelSelectorPopover', () => {
     expect(screen.getByText('Veo')).toBeInTheDocument();
     expect(screen.getByText('3.1 Fast')).toBeInTheDocument();
   });
+
+  it('gives favorite toggles an accessible model-specific label', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/nano-banana-pro',
+            label: 'Nano Banana Pro',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /select models/i }));
+    await user.click(screen.getByRole('button', { name: /nano banana/i }));
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Add Nano Banana Pro to favorites',
+      }),
+    ).toBeInTheDocument();
+  });
 });

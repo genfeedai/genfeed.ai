@@ -195,7 +195,7 @@ export function ExecutionPanel({
               </div>
               <div className="h-2 rounded-full bg-muted">
                 <div
-                  className="h-full rounded-full bg-primary transition-all"
+                  className="h-full rounded-full bg-primary transition-[width]"
                   style={{ width: `${execution.progress}%` }}
                 />
               </div>
@@ -267,7 +267,7 @@ export function ExecutionPanel({
                       {result.progress != null && result.progress < 100 && (
                         <div className="mt-1 h-1.5 rounded-full bg-muted">
                           <div
-                            className="h-full rounded-full bg-primary transition-all"
+                            className="h-full rounded-full bg-primary transition-[width]"
                             style={{ width: `${result.progress}%` }}
                           />
                         </div>

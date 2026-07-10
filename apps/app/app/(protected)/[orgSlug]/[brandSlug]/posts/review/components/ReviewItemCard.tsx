@@ -61,10 +61,10 @@ export default function ReviewItemCard({
   return (
     <div
       className={cn(
-        'group rounded-xl border bg-neutral-950/70 p-3 transition-all',
+        'group rounded-xl border bg-card p-3 transition-[background-color,border-color,box-shadow]',
         isActive
-          ? 'border-primary/50 bg-primary/[0.06] shadow-[0_0_0_1px_rgba(255,255,255,0.04)]'
-          : 'border-white/10 hover:border-white/20',
+          ? 'border-primary/50 bg-primary/[0.06] shadow-border-strong'
+          : 'border-border hover:border-border-strong',
         isSelected ? 'ring-1 ring-primary/30' : '',
       )}
     >
@@ -73,7 +73,7 @@ export default function ReviewItemCard({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={onSelect}
-          className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-neutral-900"
+          className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-background-secondary"
         >
           {item.mediaUrl ? (
             <Image
@@ -84,7 +84,7 @@ export default function ReviewItemCard({
               sizes="80px"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-neutral-600">
+            <div className="flex h-full items-center justify-center text-muted-foreground">
               <HiPhoto className="size-6" />
             </div>
           )}
@@ -129,10 +129,10 @@ export default function ReviewItemCard({
                 onClick={() => onToggleSelect(item.id)}
                 ariaLabel={isSelected ? 'Deselect item' : 'Select item'}
                 className={cn(
-                  'flex size-6 items-center justify-center rounded border transition-all',
+                  'flex size-11 items-center justify-center rounded border transition-colors sm:size-7',
                   isSelected
-                    ? 'border-primary bg-primary text-white'
-                    : 'border-white/15 bg-card text-foreground/50 hover:border-white/25 hover:text-foreground/75',
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-card text-foreground/50 hover:border-border-strong hover:text-foreground/75',
                 )}
               >
                 {isSelected && <HiCheck className="size-3" />}

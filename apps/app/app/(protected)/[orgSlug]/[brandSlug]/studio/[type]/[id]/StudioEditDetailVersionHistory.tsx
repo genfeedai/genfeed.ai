@@ -76,7 +76,7 @@ export default function StudioEditDetailVersionHistory({
             onClick={() => onResultClick(result.id)}
             className="cursor-pointer w-full text-left bg-transparent border-0 p-0"
           >
-            <Card className="p-3 bg-card transition-all">
+            <Card className="bg-card p-3 transition-colors">
               <div className="aspect-video bg-background overflow-hidden mb-2">
                 {result.thumbnailUrl ? (
                   <Image

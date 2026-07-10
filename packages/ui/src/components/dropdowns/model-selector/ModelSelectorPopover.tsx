@@ -407,11 +407,16 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         align="start"
         sideOffset={8}
         className={cn(
-          'p-0 bg-popover border border-white/10 rounded-lg overflow-hidden',
-          shouldShowManualCatalog ? 'w-[440px]' : 'w-[320px]',
+          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg bg-popover p-0 shadow-dropdown',
+          shouldShowManualCatalog ? 'sm:w-[440px]' : 'sm:w-[320px]',
         )}
       >
-        <div className={cn('flex', shouldShowManualCatalog && 'h-[500px]')}>
+        <div
+          className={cn(
+            'flex',
+            shouldShowManualCatalog && 'h-[min(500px,calc(100vh-4rem))]',
+          )}
+        >
           {shouldShowManualCatalog && (
             <ModelSelectorProviderSidebar
               brands={brands}
@@ -423,8 +428,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
           <div className="flex min-w-0 flex-1 flex-col">
             {shouldShowManualCatalog && shouldShowSourceTabs && (
-              <div className="border-b border-white/8 px-3 py-2">
-                <div className="inline-flex rounded border border-white/8 bg-white/[0.03] p-1">
+              <div className="overflow-x-auto border-b border-border px-3 py-2">
+                <div className="inline-flex min-w-max rounded border border-border bg-background-secondary p-1">
                   <SourceTabButton
                     isActive={activeSourceGroup === 'all'}
                     label="All"
@@ -459,18 +464,18 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
               >
                 {shouldShowAutoCard && (
                   <CommandGroup heading="Auto">
-                    <div className="mb-1 rounded-lg border border-white/[0.04] bg-white/[0.02]">
+                    <div className="mb-1 rounded-lg bg-background-secondary shadow-border">
                       <div
                         className={cn(
                           'transition-colors',
-                          isAutoSelected && 'bg-primary/10',
+                          isAutoSelected && 'bg-accent',
                         )}
                       >
                         <Button
                           onClick={() => handleToggle(AUTO_MODEL_OPTION_VALUE)}
                           className={cn(
-                            'flex w-full items-center gap-2.5 rounded px-3 py-3 text-left transition-colors',
-                            'hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20',
+                            'flex min-h-11 w-full items-center gap-2.5 rounded px-3 py-3 text-left transition-colors lg:min-h-0',
+                            'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                           )}
                           type="button"
                           variant={ButtonVariant.UNSTYLED}
@@ -481,7 +486,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                               'flex size-4 items-center justify-center rounded-sm border transition-colors',
                               isAutoSelected
                                 ? 'border-foreground bg-foreground text-background'
-                                : 'border-white/20 bg-transparent text-transparent',
+                                : 'border-border bg-transparent text-transparent',
                             )}
                           >
                             <HiCheck className="size-3" />
@@ -501,7 +506,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                       </div>
 
                       {isAutoSelected && onPrioritizeChange && (
-                        <div className="space-y-2 border-t border-white/[0.04] px-3 pb-3 pt-2">
+                        <div className="space-y-2 border-t border-border px-3 pb-3 pt-2">
                           <div className="text-[11px] font-medium uppercase tracking-wide text-foreground/50">
                             Priority
                           </div>
@@ -513,7 +518,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                           >
                             <SelectTrigger
                               aria-label="Auto routing priority"
-                              className="h-9 border-white/10 bg-white/[0.03] text-sm"
+                              className="min-h-11 border-border bg-background-tertiary text-sm lg:min-h-9"
                             >
                               <SelectValue placeholder="Select priority" />
                             </SelectTrigger>
@@ -567,7 +572,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                               return (
                                 <div
                                   key={family.familyKey}
-                                  className="mb-1 rounded-lg border border-white/[0.04] bg-white/[0.02]"
+                                  className="mb-1 rounded-lg bg-background-secondary shadow-border"
                                 >
                                   <ModelSelectorFamilyItem
                                     brandColor={brandConfig.color}
@@ -636,10 +641,10 @@ function SourceTabButton({
       withWrapper={false}
       onClick={onClick}
       className={cn(
-        'rounded px-2.5 py-1.5 text-xs font-medium transition-colors',
+        'min-h-11 rounded px-2.5 py-1.5 text-xs font-medium transition-colors lg:min-h-0',
         isActive
-          ? 'bg-white/[0.09] text-foreground'
-          : 'text-foreground/55 hover:text-foreground hover:bg-white/[0.05]',
+          ? 'bg-accent text-foreground'
+          : 'text-foreground/55 hover:bg-accent hover:text-foreground',
       )}
     >
       {label}

@@ -120,8 +120,14 @@ describe('ClipResultCard', () => {
       />,
     );
 
-    expect(screen.getByText('Edit')).toBeInTheDocument();
-    expect(screen.getByText('Publish')).toBeInTheDocument();
+    expect(screen.getByText('Edit').closest('button')).toHaveClass(
+      'min-h-11',
+      'sm:min-h-8',
+    );
+    expect(screen.getByText('Publish').closest('button')).toHaveClass(
+      'min-h-11',
+      'sm:min-h-8',
+    );
   });
 
   it('should create publish handoff before navigating to compose', async () => {
@@ -209,7 +215,12 @@ describe('ClipResultCard', () => {
 
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
     expect(screen.queryByText('Publish')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Download video')).toBeInTheDocument();
+    expect(screen.getByLabelText('Download video')).toHaveClass(
+      'min-h-11',
+      'min-w-11',
+      'sm:min-h-8',
+      'sm:min-w-8',
+    );
   });
 
   it('should display virality score', () => {

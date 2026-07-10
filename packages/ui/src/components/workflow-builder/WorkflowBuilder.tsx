@@ -155,7 +155,7 @@ export default function WorkflowBuilder({
         <div className="flex flex-1 overflow-hidden">
           {/* Left Panel - Node Palette */}
           <div
-            className={`border-r border-white/[0.08] bg-background transition-all duration-300 ${
+            className={`border-r border-border bg-background transition-[width] duration-300 ${
               isPaletteCollapsed ? 'w-12' : 'w-64'
             }`}
           >
@@ -184,7 +184,7 @@ export default function WorkflowBuilder({
           </div>
 
           {/* Right Panel - Config + Variables + Schedule + History */}
-          <div className="flex w-80 flex-col border-l border-white/[0.08] bg-card">
+          <div className="flex w-80 flex-col border-l border-border bg-card">
             {selectedNode && (
               <NodeConfigPanel
                 selectedNode={selectedNode}

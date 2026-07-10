@@ -34,7 +34,7 @@ export default function OnboardingProgress({
             <div key={label} className="flex items-center gap-2">
               {/* Step indicator */}
               <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all duration-300 ${
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors duration-300 ${
                   isCompleted
                     ? 'bg-white text-black'
                     : isCurrent

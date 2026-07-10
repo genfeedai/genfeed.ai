@@ -50,7 +50,7 @@ export default function ProactiveHeroCard({
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-white transition-all duration-500"
+              className="h-full rounded-full bg-primary transition-[width] duration-500"
               style={{ width: `${Math.max(workspace.prepPercent, 8)}%` }}
             />
           </div>

@@ -9,6 +9,7 @@ import type {
   ClipStatus,
   ViralityBadgeProps,
 } from '@props/studio/clips.props';
+import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -148,7 +149,10 @@ export default function ClipResultCard({
   }, [videoUrl, clip.title]);
 
   return (
-    <div className="group relative flex flex-col rounded-card border border-zinc-800 bg-zinc-900/50 p-4 transition-all hover:border-zinc-700 hover:bg-zinc-900">
+    <Card
+      className="group h-full transition-colors hover:bg-background-secondary"
+      bodyClassName="h-full gap-0 p-4"
+    >
       {/* Header */}
       <div className="mb-3 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -161,7 +165,7 @@ export default function ClipResultCard({
           {clip.clipType && (
             <Badge
               variant="secondary"
-              className="rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-zinc-500"
+              className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
             >
               {clip.clipType}
             </Badge>
@@ -171,13 +175,15 @@ export default function ClipResultCard({
       </div>
 
       {/* Title & Summary */}
-      <h3 className="mb-1 line-clamp-2 text-sm font-medium text-zinc-100">
+      <h3 className="mb-1 line-clamp-2 text-sm font-medium text-foreground">
         {clip.title}
       </h3>
-      <p className="mb-3 line-clamp-2 text-xs text-zinc-500">{clip.summary}</p>
+      <p className="mb-3 line-clamp-2 text-xs text-muted-foreground">
+        {clip.summary}
+      </p>
 
       {/* Metadata */}
-      <div className="mb-3 flex items-center gap-3 text-[10px] text-zinc-600">
+      <div className="mb-3 flex items-center gap-3 text-[10px] text-muted-foreground/80">
         <span>{formatDuration(clip.duration)}</span>
         <span>
           {formatDuration(clip.startTime)} → {formatDuration(clip.endTime)}
@@ -191,13 +197,13 @@ export default function ClipResultCard({
             <Badge
               key={tag}
               variant="secondary"
-              className="rounded bg-zinc-800/50 px-1.5 py-0.5 text-[10px] text-zinc-500"
+              className="rounded bg-secondary/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
             >
               #{tag}
             </Badge>
           ))}
           {clip.tags.length > 3 && (
-            <span className="text-[10px] text-zinc-600">
+            <span className="text-[10px] text-muted-foreground/80">
               +{clip.tags.length - 3}
             </span>
           )}
@@ -210,7 +216,7 @@ export default function ClipResultCard({
           {canEdit && (
             <Button
               variant={ButtonVariant.UNSTYLED}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700"
+              className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-secondary-foreground transition-colors hover:bg-accent sm:min-h-8"
               onClick={handleEdit}
               title="Edit in video editor"
             >
@@ -221,7 +227,7 @@ export default function ClipResultCard({
           {canPublish && (
             <Button
               variant={ButtonVariant.UNSTYLED}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-white hover:bg-primary"
+              className="flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 sm:min-h-8"
               onClick={handlePublish}
               title="Publish to social platforms"
             >
@@ -232,7 +238,7 @@ export default function ClipResultCard({
           {canDownload && (
             <Button
               variant={ButtonVariant.UNSTYLED}
-              className="flex items-center justify-center rounded-lg bg-zinc-800 px-2.5 py-2 text-zinc-300 hover:bg-zinc-700"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-secondary px-2.5 py-2 text-secondary-foreground transition-colors hover:bg-accent sm:min-h-8 sm:min-w-8"
               onClick={handleDownload}
               aria-label="Download video"
               title="Download video"
@@ -258,6 +264,6 @@ export default function ClipResultCard({
           </p>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

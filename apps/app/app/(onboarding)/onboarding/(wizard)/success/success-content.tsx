@@ -205,7 +205,7 @@ export default function SuccessContent() {
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={() => toggleType(id)}
-                className={`inline-flex items-center gap-2 px-4 py-2 border text-sm transition-all ${
+                className={`inline-flex items-center gap-2 px-4 py-2 border text-sm transition-colors ${
                   isSelected
                     ? 'ring-1 ring-border-strong bg-hover text-white border-transparent'
                     : 'border-white/[0.08] bg-white/[0.02] text-white/50 hover:border-white/20'

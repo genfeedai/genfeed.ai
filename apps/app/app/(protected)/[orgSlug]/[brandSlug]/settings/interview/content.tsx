@@ -174,7 +174,7 @@ export default function BrandSettingsInterviewPage() {
             <div className="flex items-center gap-3">
               <div className="h-2 flex-1 rounded-full bg-white/[0.06] overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-primary transition-all duration-500"
+                  className="h-full rounded-full bg-primary transition-[width] duration-500"
                   style={{ width: `${idleScore}%` }}
                 />
               </div>
@@ -259,7 +259,7 @@ export default function BrandSettingsInterviewPage() {
             </div>
             <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
               <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
+                className="h-full rounded-full bg-primary transition-[width] duration-500"
                 style={{ width: `${progress.percentComplete}%` }}
               />
             </div>

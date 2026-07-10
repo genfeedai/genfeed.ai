@@ -53,9 +53,30 @@ describe('ListRowSound', () => {
       .getByText('Rachel')
       .closest('li')?.firstElementChild;
     expect(rootElement).toBeInTheDocument();
-    expect(rootElement?.className).toContain('bg-white/[0.06]');
+    expect(rootElement).toHaveClass(
+      'grid-cols-[auto_minmax(0,1fr)]',
+      'lg:grid-cols-[auto_minmax(0,1fr)_auto]',
+      'bg-accent',
+    );
     expect(screen.getByText('Rachel')).toBeInTheDocument();
     expect(screen.getByText('Narration')).toBeInTheDocument();
     expect(screen.getByText('Action')).toBeInTheDocument();
+  });
+
+  it('stacks metadata before restoring dense desktop columns', () => {
+    render(
+      <ListRowSound
+        metaPrimary="English"
+        stats="12K"
+        subtitle="Narration"
+        title="Rachel"
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /Rachel/i })).toHaveClass(
+      'grid-cols-1',
+      'sm:grid-cols-[minmax(0,2.4fr)_minmax(8rem,1.4fr)]',
+      'lg:grid-cols-[minmax(0,2.4fr)_minmax(11.25rem,1.4fr)_minmax(7.5rem,0.8fr)]',
+    );
   });
 });

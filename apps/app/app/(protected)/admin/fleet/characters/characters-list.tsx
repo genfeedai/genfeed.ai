@@ -15,6 +15,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { HiOutlineUserCircle } from 'react-icons/hi2';
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 const LORA_STATUS_COLORS = {
   completed: 'bg-success/10 text-success',
@@ -99,12 +100,15 @@ export default function CharactersList() {
                   <div className="flex items-center gap-3 mb-4">
                     {character.profileImageUrl ? (
                       <Image
-                        unoptimized
                         alt={character.label}
                         className="size-12 rounded-full object-cover border border-foreground/10"
+                        height={48}
+                        sizes="48px"
                         src={character.profileImageUrl}
-                        width={800}
-                        height={600}
+                        unoptimized={
+                          !canOptimizeImageSource(character.profileImageUrl)
+                        }
+                        width={48}
                       />
                     ) : (
                       <div className="size-12 rounded-full bg-foreground/5 flex items-center justify-center text-2xl">
