@@ -1631,6 +1631,10 @@ model Prompt {
   ingredients Ingredient[] @relation("ingredient_prompt")
   metadata    Metadata[]
 
+  // Prompt list is scoped by owning user, not organization: the controller
+  // filters `{ userId, scope, isDeleted }` and orders by `createdAt desc`
+  // (prompts.controller findAll). No org-leading read path exists.
+  @@index([userId, isDeleted, createdAt(sort: Desc)], map: "prompts_user_deleted_created_at_idx")
   @@map("prompts")
 }
 
@@ -4408,6 +4412,11 @@ model ContextEntry {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
+  // Entries are read per context base, not per organization: the hot paths
+  // filter `{ contextBaseId, isDeleted }` (contexts.service getStats /
+  // findSimilarEntries / removeEntry). organizationId is only an ownership
+  // guard on point mutations.
+  @@index([contextBaseId, isDeleted], map: "context_entries_context_base_deleted_idx")
   @@map("context_entries")
 }
 
@@ -4518,6 +4527,11 @@ model Vote {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
+  // Votes are read/toggled by `{ entityId, userId, isDeleted }` (votes toggle
+  // in agent-tool-executor + votes.controller remove). entityId leads so the
+  // same index also serves per-entity vote counts on cache miss. Never queried
+  // by organizationId.
+  @@index([entityId, userId, isDeleted], map: "votes_entity_user_deleted_idx")
   @@map("votes")
 }
 
