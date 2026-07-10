@@ -1,9 +1,9 @@
-import { AdOptimizationAuditLogsService } from '@api/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
-import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
-import { AdOptimizationRecommendationsService } from '@api/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
-import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
+import { AdOptimizationAuditLogsService } from '@server/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
+import { AdOptimizationConfigsService } from '@server/collections/ad-optimization-configs/services/ad-optimization-configs.service';
+import { AdOptimizationRecommendationsService } from '@server/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
+import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 import { AdOptimizationProcessor } from '@workers/processors/api/queues/ad-optimization/ad-optimization.processor';
 import type { Job } from 'bullmq';
 import { vi } from 'vitest';

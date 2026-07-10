@@ -7,15 +7,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import type {
-  CreateAdParams,
-  CreateAdSetParams,
-  CreateCampaignParams,
-  MetaInsightsParams,
-  UpdateAdSetParams,
-  UpdateCampaignParams,
-} from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { CredentialPlatform, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -31,6 +22,15 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import type {
+  CreateAdParams,
+  CreateAdSetParams,
+  CreateCampaignParams,
+  MetaInsightsParams,
+  UpdateAdSetParams,
+  UpdateCampaignParams,
+} from '@server/services/integrations/meta-ads/interfaces/meta-ads.interface';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
 @AutoSwagger()
 @Controller('services/meta-ads')

@@ -1,13 +1,3 @@
-import { AdOptimizationAuditLogsService } from '@api/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
-import { type AdOptimizationConfigDocument } from '@api/collections/ad-optimization-configs/schemas/ad-optimization-config.schema';
-import { AdOptimizationConfigsService } from '@api/collections/ad-optimization-configs/services/ad-optimization-configs.service';
-import type {
-  AdOptimizationRecommendation,
-  RecommendationType,
-} from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
-import { AdOptimizationRecommendationsService } from '@api/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
-import { type AdPerformanceDocument } from '@api/collections/ad-performance/schemas/ad-performance.schema';
-import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import {
   AD_OPTIMIZATION_QUEUE,
   AdOptimizationJobData,
@@ -15,6 +5,16 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
+import { AdOptimizationAuditLogsService } from '@server/collections/ad-optimization-audit-logs/services/ad-optimization-audit-logs.service';
+import { type AdOptimizationConfigDocument } from '@server/collections/ad-optimization-configs/schemas/ad-optimization-config.schema';
+import { AdOptimizationConfigsService } from '@server/collections/ad-optimization-configs/services/ad-optimization-configs.service';
+import type {
+  AdOptimizationRecommendation,
+  RecommendationType,
+} from '@server/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
+import { AdOptimizationRecommendationsService } from '@server/collections/ad-optimization-recommendations/services/ad-optimization-recommendations.service';
+import { type AdPerformanceDocument } from '@server/collections/ad-performance/schemas/ad-performance.schema';
+import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 import { Job } from 'bullmq';
 
 interface AggregatedAdMetrics {

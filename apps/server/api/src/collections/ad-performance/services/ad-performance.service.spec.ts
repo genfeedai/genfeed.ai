@@ -1,6 +1,6 @@
-import type { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
-import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { AdPerformance } from '@server/collections/ad-performance/schemas/ad-performance.schema';
+import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type MockAdPerformanceDelegate = {

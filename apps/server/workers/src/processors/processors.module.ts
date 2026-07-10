@@ -9,12 +9,6 @@
  */
 
 // --- Dependency modules (services/collections these processors inject from) ---
-import { AdBulkUploadJobsModule } from '@api/collections/ad-bulk-upload-jobs/ad-bulk-upload-jobs.module';
-import { AdCreativeMappingsModule } from '@api/collections/ad-creative-mappings/ad-creative-mappings.module';
-import { AdOptimizationAuditLogsModule } from '@api/collections/ad-optimization-audit-logs/ad-optimization-audit-logs.module';
-import { AdOptimizationConfigsModule } from '@api/collections/ad-optimization-configs/ad-optimization-configs.module';
-import { AdOptimizationRecommendationsModule } from '@api/collections/ad-optimization-recommendations/ad-optimization-recommendations.module';
-import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
 import { AgentCampaignsModule } from '@api/collections/agent-campaigns/agent-campaigns.module';
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
@@ -51,7 +45,6 @@ import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.mod
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { MastodonModule } from '@api/services/integrations/mastodon/mastodon.module';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
-import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { ThreadsModule } from '@api/services/integrations/threads/threads.module';
@@ -117,6 +110,7 @@ import { ContentPipelineProcessor } from '@workers/processors/api/services/conte
 import { WorkspaceTaskProcessor } from '@workers/processors/api/services/task-orchestration/workspace-task.processor';
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
+import { AdsServicesModule } from '@workers/services/ads-services.module';
 
 @Module({
   imports: [
@@ -130,12 +124,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => ConfigModule),
 
     // Collection modules (provide services injected by processors)
-    forwardRef(() => AdBulkUploadJobsModule),
-    forwardRef(() => AdCreativeMappingsModule),
-    forwardRef(() => AdOptimizationAuditLogsModule),
-    forwardRef(() => AdOptimizationConfigsModule),
-    forwardRef(() => AdOptimizationRecommendationsModule),
-    forwardRef(() => AdPerformanceModule),
+    AdsServicesModule,
     forwardRef(() => AgentCampaignsModule),
     forwardRef(() => AgentRunsModule),
     forwardRef(() => AgentStrategiesModule),
@@ -165,7 +154,6 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => InstagramModule),
     forwardRef(() => LinkedInModule),
     forwardRef(() => MastodonModule),
-    forwardRef(() => MetaAdsModule),
     forwardRef(() => NotificationsModule),
     forwardRef(() => PinterestModule),
     forwardRef(() => ReplyBotModule),

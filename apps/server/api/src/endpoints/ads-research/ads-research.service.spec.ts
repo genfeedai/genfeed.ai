@@ -1,5 +1,5 @@
-import type { AdPerformanceDocument } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import type { AdPerformanceDocument } from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const buildPublicAd = (

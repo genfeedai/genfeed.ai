@@ -11,14 +11,12 @@ import { MetaAdsController } from '@api/services/integrations/meta-ads/controlle
 import { MetaAdsBulkController } from '@api/services/integrations/meta-ads/controllers/meta-ads-bulk.controller';
 import { MetaAdsOptimizationController } from '@api/services/integrations/meta-ads/controllers/meta-ads-optimization.controller';
 import { AdBulkUploadService } from '@api/services/integrations/meta-ads/services/ad-bulk-upload.service';
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
-import { createServiceModule } from '@api/shared/service-module.factory';
+import { LoggerModule } from '@libs/logger/logger.module';
+import { LoggerService } from '@libs/logger/logger.service';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
-
-const BaseModule = createServiceModule(MetaAdsService, {
-  additionalImports: [HttpModule],
-});
+import { SERVER_TOKENS } from '@server/server.dependencies';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
 @Module({
   controllers: [
@@ -26,9 +24,10 @@ const BaseModule = createServiceModule(MetaAdsService, {
     MetaAdsBulkController,
     MetaAdsOptimizationController,
   ],
-  exports: BaseModule.exports ?? [],
+  exports: [MetaAdsService],
   imports: [
-    ...(BaseModule.imports ?? []),
+    HttpModule,
+    LoggerModule,
     forwardRef(() => AdBulkUploadJobsModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CredentialsCoreModule),
@@ -39,6 +38,10 @@ const BaseModule = createServiceModule(MetaAdsService, {
     forwardRef(() => AdOptimizationAuditLogsModule),
     forwardRef(() => AdPerformanceModule),
   ],
-  providers: [...(BaseModule.providers ?? []), AdBulkUploadService],
+  providers: [
+    AdBulkUploadService,
+    MetaAdsService,
+    { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
+  ],
 })
 export class MetaAdsModule {}
