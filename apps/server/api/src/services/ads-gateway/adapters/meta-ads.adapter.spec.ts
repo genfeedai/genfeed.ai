@@ -1,6 +1,6 @@
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { MetaAdsAdapter } from './meta-ads.adapter';
 
 const mockCtx = {

@@ -1,4 +1,4 @@
-import type { Prisma } from '@genfeedai/prisma';
+import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
 export const SERVER_TOKENS = {
   config: 'SERVER_CONFIG',
@@ -142,6 +142,12 @@ export interface ServerPostRecord {
 
 export interface ServerPrisma {
   $queryRaw<T = unknown>(query: Prisma.Sql): Promise<T>;
+  adBulkUploadJob: PrismaClient['adBulkUploadJob'];
+  adCreativeMapping: PrismaClient['adCreativeMapping'];
+  adOptimizationAuditLog: PrismaClient['adOptimizationAuditLog'];
+  adOptimizationConfig: PrismaClient['adOptimizationConfig'];
+  adOptimizationRecommendation: PrismaClient['adOptimizationRecommendation'];
+  adPerformance: PrismaClient['adPerformance'];
   contentPerformance: {
     create(args: unknown): Promise<unknown>;
     findFirst(

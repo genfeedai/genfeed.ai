@@ -1,5 +1,3 @@
-import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import {
   type NormalizedAdPerformanceRecord,
   normalizeMetaCampaignInsightRecord,
@@ -11,6 +9,8 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
+import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { Job } from 'bullmq';
 
 @Injectable()

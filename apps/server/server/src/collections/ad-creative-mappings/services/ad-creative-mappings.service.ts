@@ -1,8 +1,11 @@
-import type { AdCreativeMappingStatus } from '@api/collections/ad-creative-mappings/schemas/ad-creative-mapping.schema';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import type { AdCreativeMappingStatus } from '@server/collections/ad-creative-mappings/schemas/ad-creative-mapping.schema';
+import {
+  SERVER_TOKENS,
+  type ServerLogger,
+  type ServerPrisma,
+} from '@server/server.dependencies';
 
 export interface CreateAdCreativeMappingInput {
   organization: string;
@@ -28,8 +31,10 @@ export class AdCreativeMappingsService {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: Pick<ServerPrisma, 'adCreativeMapping'>,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   async create(

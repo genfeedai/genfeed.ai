@@ -1,4 +1,3 @@
-import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import {
   AdBulkUploadService,
@@ -7,6 +6,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
 
 describe('AdBulkUploadService', () => {
   let service: AdBulkUploadService;

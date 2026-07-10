@@ -1,9 +1,3 @@
-import { AdBulkUploadJobsService } from '@api/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
-import {
-  AdCreativeMappingsService,
-  type CreateAdCreativeMappingInput,
-} from '@api/collections/ad-creative-mappings/services/ad-creative-mappings.service';
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import {
   AD_BULK_UPLOAD_QUEUE,
   AdBulkUploadJobData,
@@ -11,6 +5,12 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
+import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';
+import {
+  AdCreativeMappingsService,
+  type CreateAdCreativeMappingInput,
+} from '@server/collections/ad-creative-mappings/services/ad-creative-mappings.service';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { Job } from 'bullmq';
 
 interface BulkPermutation {

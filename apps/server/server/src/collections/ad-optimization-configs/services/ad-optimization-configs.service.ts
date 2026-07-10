@@ -1,23 +1,28 @@
+import type { AdOptimizationConfig as PrismaAdOptimizationConfig } from '@genfeedai/prisma';
+import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { Inject, Injectable } from '@nestjs/common';
 import {
   AD_OPTIMIZATION_CONFIG_KEYS,
   type AdOptimizationConfigDocument,
   type AdOptimizationConfigKey,
   type AdOptimizationConfigValues,
   DEFAULT_AD_OPTIMIZATION_CONFIG,
-} from '@api/collections/ad-optimization-configs/schemas/ad-optimization-config.schema';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { AdOptimizationConfig as PrismaAdOptimizationConfig } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+} from '@server/collections/ad-optimization-configs/schemas/ad-optimization-config.schema';
+import {
+  SERVER_TOKENS,
+  type ServerLogger,
+  type ServerPrisma,
+} from '@server/server.dependencies';
 
 @Injectable()
 export class AdOptimizationConfigsService {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: Pick<ServerPrisma, 'adOptimizationConfig'>,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   async findByOrganization(

@@ -1,4 +1,3 @@
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import type {
   AdsAdapterContext,
   CreateAdInput,
@@ -14,6 +13,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
 @Injectable()
 export class MetaAdsAdapter implements IAdsAdapter {

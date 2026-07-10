@@ -1,8 +1,6 @@
-import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { QueueService } from '@api/queues/core/queue.service';
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
   AD_SYNC_META_QUEUE,
@@ -12,6 +10,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
+import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
 @Injectable()
 export class CronAdSyncMetaService {
