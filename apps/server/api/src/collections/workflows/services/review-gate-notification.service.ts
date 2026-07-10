@@ -1,5 +1,6 @@
-import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
-import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import type { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
+import type { TasksService } from '@api/collections/tasks/services/tasks.service';
+import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import type { PendingReviewGateState } from '@api/collections/workflows/services/workflow-executor.types';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { assertSafeWebhookEndpoint } from '@api/services/webhook-client/webhook-endpoint.validator';
@@ -7,7 +8,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { NotificationChannel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 import { firstValueFrom } from 'rxjs';
 
 /**
@@ -41,9 +43,17 @@ export class ReviewGateNotificationService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly httpService: HttpService,
-    @Inject(forwardRef(() => TasksService))
-    private readonly tasksService: TasksService,
+    private readonly moduleRef: ModuleRef,
   ) {}
+
+  /**
+   * TasksService is resolved lazily via the TASKS_SERVICE token so
+   * WorkflowsModule never imports TasksModule — that module edge closes 13
+   * dependency cycles (module-graph baseline). Same pattern as SharedService.
+   */
+  private get tasksService(): TasksService {
+    return this.moduleRef.get<TasksService>(TASKS_SERVICE, { strict: false });
+  }
 
   /**
    * Dispatch pending-review notifications for the configured channels.

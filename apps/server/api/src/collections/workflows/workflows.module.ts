@@ -15,7 +15,6 @@ import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { SourcePostsModule } from '@api/collections/source-posts/source-posts.module';
-import { TasksModule } from '@api/collections/tasks/tasks.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
@@ -118,7 +117,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => SocialInboxModule),
     forwardRef(() => SourcePostsModule),
     forwardRef(() => SharedModule),
-    forwardRef(() => TasksModule),
     forwardRef(() => TrendsModule),
     HttpModule,
     forwardRef(() => TwitterModule),

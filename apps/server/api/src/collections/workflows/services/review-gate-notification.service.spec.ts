@@ -1,4 +1,4 @@
-import { TasksService } from '@api/collections/tasks/services/tasks.service';
+import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import type { PendingReviewGateState } from '@api/collections/workflows/services/workflow-executor.types';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
@@ -6,6 +6,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { NotificationChannel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -77,7 +78,11 @@ describe('ReviewGateNotificationService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: NotificationsService, useValue: notificationsService },
         { provide: HttpService, useValue: httpService },
-        { provide: TasksService, useValue: tasksService },
+        {
+          provide: ModuleRef,
+          useValue: { get: vi.fn().mockImplementation(() => tasksService) },
+        },
+        { provide: TASKS_SERVICE, useValue: tasksService },
       ],
     }).compile();
 
