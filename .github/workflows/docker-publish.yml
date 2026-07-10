@@ -169,6 +169,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ needs.validate-master-ref.outputs.checkout_ref }}
+          persist-credentials: false
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
@@ -224,6 +225,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ env.RELEASE_TAG }}
+          persist-credentials: false
 
       - name: Setup create package
         uses: ./.github/actions/setup-bun-env
@@ -244,6 +246,8 @@ jobs:
         run: scripts/sh/create-selfhosted-release-bundle.sh "${RELEASE_TAG}" "release/${RELEASE_TAG}"
 
       - name: Smoke create against the release bundle
+        env:
+          IMAGE_TAG: ${{ steps.bundle.outputs.image_tag }}
         run: |
           set -euo pipefail
           mkdir -p "${RUNNER_TEMP}/create-package" "${RUNNER_TEMP}/create-runner"
@@ -269,12 +273,12 @@ jobs:
 
           test "$(jq -r '.releaseTag' "${RUNNER_TEMP}/genfeed-install/release.json")" = "${RELEASE_TAG}"
           test "$(jq -r '.image' "${RUNNER_TEMP}/genfeed-install/release.json")" = \
-            "ghcr.io/${GITHUB_REPOSITORY}:${{ steps.bundle.outputs.image_tag }}"
+            "ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
           docker compose \
             --env-file "${RUNNER_TEMP}/genfeed-install/.env" \
             -f "${RUNNER_TEMP}/genfeed-install/compose.yml" \
             config --images | grep -Fx \
-              "ghcr.io/${GITHUB_REPOSITORY}:${{ steps.bundle.outputs.image_tag }}"
+              "ghcr.io/${GITHUB_REPOSITORY}:${IMAGE_TAG}"
 
       - name: Anonymous exact-image pull and metadata check
         env:

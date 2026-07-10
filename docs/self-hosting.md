@@ -37,7 +37,8 @@ workspace: one user, one organization, and one brand.
 
 ## Source Checkout
 
-Use a source checkout for contributing or testing unreleased `master` changes:
+Use a source checkout when contributing or when you want the repository's
+editable self-hosting configuration:
 
 ```bash
 git clone https://github.com/genfeedai/genfeed.ai.git
@@ -46,8 +47,10 @@ cp .env.example .env
 docker compose --env-file .env -f docker-compose.selfhosted.yml up -d
 ```
 
-Unlike a release bundle, the source `.env.example` defaults to the mutable
-`latest` image unless you set `GENFEED_IMAGE_TAG` explicitly.
+This Compose file still runs a published GHCR image; it does not build the
+checked-out source. Unlike a release bundle, the source `.env.example` defaults
+to the mutable `latest` image unless you set `GENFEED_IMAGE_TAG` to a published
+version explicitly.
 
 ## Requirements
 

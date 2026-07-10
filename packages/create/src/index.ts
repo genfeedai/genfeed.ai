@@ -361,7 +361,6 @@ export async function installRelease(
       constants.COPYFILE_EXCL,
     );
 
-    startAttempted = true;
     await runCommand(
       'docker',
       [
@@ -387,6 +386,7 @@ export async function installRelease(
       return;
     }
 
+    startAttempted = true;
     await runCommand(
       'docker',
       ['compose', '--env-file', '.env', '-f', 'compose.yml', 'up', '-d'],
