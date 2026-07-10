@@ -1,4 +1,7 @@
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import {
+  PollAbortException,
+  PollTimeoutException,
+} from '@api/shared/services/poll-until/poll-until.exception';
 import {
   type PollOptions,
   PollUntilService,
@@ -208,6 +211,96 @@ describe('PollUntilService', () => {
         status: 'completed',
       });
       expect(result.attempts).toBe(3);
+    });
+  });
+
+  describe('poll() — provider failure via predicate', () => {
+    it('propagates an error thrown by isDone (terminal failure status)', async () => {
+      // The pattern every migrated loop (Comfy/FAL/managed) uses: a terminal
+      // failure surfaces as a thrown error, not a timeout.
+      const fn = vi.fn().mockResolvedValue({ status: 'FAILED' });
+      const isDone = (v: { status: string }) => {
+        if (v.status === 'FAILED') {
+          throw new Error('provider reported failure');
+        }
+        return v.status === 'COMPLETED';
+      };
+
+      const promise = service.poll(fn, isDone, {
+        intervalMs: 100,
+        timeoutMs: 5_000,
+      });
+      const expectation = expect(promise).rejects.toThrow(
+        'provider reported failure',
+      );
+      await vi.runAllTimersAsync();
+      await expectation;
+      // Failure is raised on the first attempt, before any wait.
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('poll() — cancellation', () => {
+    it('rejects with PollAbortException without calling fn when already aborted', async () => {
+      const controller = new AbortController();
+      controller.abort();
+      const fn = vi.fn().mockResolvedValue('pending');
+
+      const promise = service.poll(fn, () => false, {
+        intervalMs: 100,
+        timeoutMs: 5_000,
+        signal: controller.signal,
+      });
+
+      await expect(promise).rejects.toBeInstanceOf(PollAbortException);
+      expect(fn).not.toHaveBeenCalled();
+    });
+
+    it('rejects with PollAbortException when aborted while waiting between attempts', async () => {
+      const controller = new AbortController();
+      const fn = vi.fn().mockResolvedValue('pending');
+
+      const promise = service.poll(fn, () => false, {
+        intervalMs: 1_000,
+        timeoutMs: 60_000,
+        signal: controller.signal,
+      });
+      const expectation =
+        expect(promise).rejects.toBeInstanceOf(PollAbortException);
+
+      // Run the first attempt and enter the wait, then abort mid-wait.
+      await vi.advanceTimersByTimeAsync(1);
+      controller.abort();
+      await vi.runAllTimersAsync();
+
+      await expectation;
+      expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects when aborted during an in-flight attempt', async () => {
+      const controller = new AbortController();
+      let resolveAttempt: ((value: string) => void) | undefined;
+      const fn = vi.fn(
+        () =>
+          new Promise<string>((resolve) => {
+            resolveAttempt = resolve;
+          }),
+      );
+
+      const promise = service.poll(fn, () => true, {
+        intervalMs: 100,
+        timeoutMs: 5_000,
+        signal: controller.signal,
+      });
+      const expectation =
+        expect(promise).rejects.toBeInstanceOf(PollAbortException);
+
+      await vi.advanceTimersByTimeAsync(1);
+      controller.abort();
+      resolveAttempt?.('completed');
+
+      await expectation;
+      expect(fn).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -12,14 +12,15 @@ const checks = [
     required: true,
   },
   {
-    command: ['bun', 'run', 'scripts/check-raw-ui-controls.ts'],
-    name: 'Raw input/select controls',
+    // Single canonical raw-control scanner. Covers what three overlapping
+    // scanners used to (raw HTML primitives, dead wrapper imports, raw
+    // input/select + legacy form imports, raw buttons + button-styled anchors)
+    // under one allowlist. Repo-wide when invoked without file args. Reports
+    // categories separately and exits non-zero only on required violations,
+    // so the former advisory button/anchor rules stay advisory here.
+    command: ['bun', 'run', 'scripts/ui/control-guard.ts'],
+    name: 'Raw UI controls (buttons, inputs, selects, primitives, wrapper imports)',
     required: true,
-  },
-  {
-    command: ['bun', 'run', 'scripts/check-raw-button-usage.ts'],
-    name: 'Raw button usage',
-    required: false,
   },
   {
     command: ['bun', 'run', 'scripts/check-no-nested-cards.ts'],
@@ -33,14 +34,6 @@ const checks = [
     // lint-staged.
     command: ['bash', 'scripts/lint-no-bespoke-card.sh'],
     name: 'Bespoke card surfaces',
-    required: true,
-  },
-  {
-    // Repo-wide scan (no file args) — blocks raw HTML elements that bypass
-    // @ui/primitives. Previously only gated staged files via lint-staged
-    // (skippable with --no-verify / non-hook commits); this enforces it in CI.
-    command: ['bash', 'scripts/lint-no-raw-html.sh'],
-    name: 'Raw HTML elements',
     required: true,
   },
   {

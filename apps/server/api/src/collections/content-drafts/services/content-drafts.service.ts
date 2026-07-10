@@ -2,10 +2,10 @@ import { CreateContentDraftDto } from '@api/collections/content-drafts/dto/creat
 import { UpdateContentDraftDto } from '@api/collections/content-drafts/dto/update-content-draft.dto';
 import type { ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ContentDraftInput } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { ContentDraftStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -129,13 +129,12 @@ export class ContentDraftsService extends BaseService<
     organizationId: string,
     userId: string,
   ): Promise<ContentDraftDocument> {
-    const existing = await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('ContentDraft', id);
-    }
+    await findOrThrow(
+      this.delegate,
+      { where: { id, isDeleted: false, organizationId } },
+      'ContentDraft',
+      id,
+    );
 
     const updated = await this.delegate.update({
       where: { id },
@@ -153,13 +152,12 @@ export class ContentDraftsService extends BaseService<
     organizationId: string,
     reason?: string,
   ): Promise<ContentDraftDocument> {
-    const existing = await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('ContentDraft', id);
-    }
+    const existing = await findOrThrow(
+      this.delegate,
+      { where: { id, isDeleted: false, organizationId } },
+      'ContentDraft',
+      id,
+    );
 
     const updateData: Record<string, unknown> = {
       status: ContentDraftStatus.REJECTED,
@@ -234,12 +232,12 @@ export class ContentDraftsService extends BaseService<
     }
 
     if (!doc) {
-      const existing = await this.delegate.findFirst({
-        where: { id, isDeleted: false, organizationId },
-      });
-      if (!existing) {
-        throw new NotFoundException('ContentDraft', id);
-      }
+      const existing = await findOrThrow(
+        this.delegate,
+        { where: { id, isDeleted: false, organizationId } },
+        'ContentDraft',
+        id,
+      );
       doc = existing as ContentDraftDocument;
     }
 
@@ -251,13 +249,12 @@ export class ContentDraftsService extends BaseService<
     organizationId: string,
     content: string,
   ): Promise<ContentDraftDocument> {
-    const existing = await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('ContentDraft', id);
-    }
+    await findOrThrow(
+      this.delegate,
+      { where: { id, isDeleted: false, organizationId } },
+      'ContentDraft',
+      id,
+    );
 
     const updated = await this.delegate.update({
       where: { id },

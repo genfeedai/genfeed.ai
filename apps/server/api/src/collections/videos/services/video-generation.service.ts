@@ -39,7 +39,8 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
@@ -91,7 +92,7 @@ export class VideoGenerationService {
     private readonly falService: FalService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly ingredientsService: IngredientsService,
-    private readonly pollingService: PollingService,
+    private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly klingAIService: KlingAIService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
@@ -687,7 +688,7 @@ export class VideoGenerationService {
       try {
         // Wait for all outputs to complete
         const completedIngredients =
-          await this.pollingService.waitForMultipleIngredientsCompletion(
+          await this.ingredientCompletionService.waitForMultipleIngredientsCompletion(
             pendingIngredientIds,
             600000, // 10 minutes timeout for videos
             5000, // 5 seconds poll interval
@@ -706,7 +707,7 @@ export class VideoGenerationService {
           completedIngredients[0],
         );
       } catch (error: unknown) {
-        if ((error as Error).name === 'PollingTimeoutError') {
+        if (error instanceof PollTimeoutException) {
           // Return what we have even if timeout
           const ingredient = await this.videosService.findOne(
             { _id: ingredientData.id },

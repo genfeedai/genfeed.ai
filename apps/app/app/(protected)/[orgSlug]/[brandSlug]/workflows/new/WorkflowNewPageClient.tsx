@@ -46,9 +46,10 @@ import {
   type WorkflowGraphEdgeLike,
   type WorkflowGraphNodeLike,
 } from '@/features/workflows/utils/workflow-graph';
-import { workflowsApi } from '@/lib/api';
+import { promptsApi, workflowsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { getExecutionProviderHeaders } from '@/lib/api/execution-headers';
+import { createSettingsSyncService } from '@/lib/api/settings-sync';
 import { applyEditOperations } from '@/lib/chat/editOperations';
 import WorkflowEditorToolbarNavigation from '../components/WorkflowEditorToolbarNavigation';
 
@@ -209,6 +210,8 @@ export default function WorkflowNewPageClient() {
         ): Promise<T> => apiClient.post<T>(path, body, options),
       },
       logger,
+      promptLibrary: promptsApi,
+      settingsSync: createSettingsSyncService(),
       workflowPersistence: {
         create: workflowsApi.create,
         delete: workflowsApi.delete,

@@ -11,7 +11,7 @@
 #
 # Whole-file (not file:line) entries are used on purpose: line numbers drift as
 # files change and would make CI red on unrelated edits. This mirrors the
-# existing baseline convention in scripts/check-raw-button-usage.ts. The cost is
+# baseline-file convention in scripts/ui/control-guard.ts. The cost is
 # that a *new* bespoke card added to an already-listed file won't be caught —
 # acceptable for these few permanent non-card surfaces; every other file in the
 # tree is guarded.

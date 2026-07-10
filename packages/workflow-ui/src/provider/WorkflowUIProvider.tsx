@@ -7,6 +7,7 @@ import {
 } from '../stores/execution/executionApi';
 import { configureWorkflowLogger } from '../stores/executionLogger';
 import { configurePromptLibrary } from '../stores/promptLibraryStore';
+import { configureSettingsSync } from '../stores/settingsStore';
 import { configureApplyEditOperations } from '../stores/workflow/applyEditOperations';
 import { configureWorkflowPersistence } from '../stores/workflow/workflowPersistence';
 import type { WorkflowUIConfig } from './types';
@@ -66,6 +67,12 @@ export function WorkflowUIProvider({
   useEffect(() => {
     configureApplyEditOperations(config.applyEditOperations);
   }, [config.applyEditOperations]);
+
+  // Register the settings server-sync adapter. Resets to a no-op when unset so
+  // settings stay device-local (the package's standalone default).
+  useEffect(() => {
+    configureSettingsSync(config.settingsSync);
+  }, [config.settingsSync]);
 
   return (
     <WorkflowUIContext.Provider value={config}>

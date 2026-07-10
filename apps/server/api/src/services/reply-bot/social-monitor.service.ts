@@ -48,6 +48,8 @@ export interface SocialContentData {
   authorFollowersCount?: number;
   createdAt: Date;
   contentUrl?: string;
+  mediaUrls?: string[];
+  thumbnailUrl?: string;
   parentContentId?: string;
   inReplyToId?: string;
   metrics?: {
@@ -456,25 +458,30 @@ export class SocialMonitorService {
     defaultUsername = 'unknown',
     determineContentType = false,
   ): SocialContentData[] {
-    return posts.map((post) => ({
-      authorId: post.ownerUsername || defaultUsername,
-      authorUsername: post.ownerUsername || defaultUsername,
-      contentType:
-        determineContentType && post.videoUrl
-          ? SocialContentType.REEL
-          : SocialContentType.POST,
-      contentUrl: `https://www.instagram.com/p/${post.shortCode}/`,
-      createdAt: post.timestamp ? new Date(post.timestamp) : new Date(),
-      hashtags: post.hashtags,
-      id: post.id,
-      metrics: {
-        comments: post.commentsCount || 0,
-        likes: post.likesCount || 0,
-        views: post.videoViewCount,
-      },
-      platform: ReplyBotPlatform.INSTAGRAM,
-      text: post.caption || '',
-    }));
+    return posts.map((post) => {
+      const mediaUrl = post.videoUrl ?? post.imageUrl;
+      return {
+        authorId: post.ownerUsername || defaultUsername,
+        authorUsername: post.ownerUsername || defaultUsername,
+        contentType:
+          determineContentType && post.videoUrl
+            ? SocialContentType.REEL
+            : SocialContentType.POST,
+        contentUrl: `https://www.instagram.com/p/${post.shortCode}/`,
+        createdAt: post.timestamp ? new Date(post.timestamp) : new Date(),
+        hashtags: post.hashtags,
+        id: post.id,
+        mediaUrls: mediaUrl ? [mediaUrl] : [],
+        metrics: {
+          comments: post.commentsCount || 0,
+          likes: post.likesCount || 0,
+          views: post.videoViewCount,
+        },
+        platform: ReplyBotPlatform.INSTAGRAM,
+        text: post.caption || '',
+        thumbnailUrl: post.imageUrl,
+      };
+    });
   }
 
   private async getInstagramMentions(
@@ -558,6 +565,9 @@ export class SocialMonitorService {
       createdAt: video.createTime
         ? new Date(video.createTime * 1000)
         : new Date(),
+      hashtags: video.hashtags
+        ?.map((hashtag) => hashtag.name)
+        .filter((name): name is string => Boolean(name)),
       id: video.id,
       metrics: {
         comments: video.commentCount || 0,

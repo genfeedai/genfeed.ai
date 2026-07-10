@@ -4,6 +4,7 @@ import type { ContentScheduleDocument } from '@api/collections/content-schedules
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -111,13 +112,14 @@ export class ContentSchedulesService extends BaseService<
       );
     }
 
-    const updated = await this.delegate.findFirst({
-      where: { id: scheduleId, brandId, isDeleted: false, organizationId },
-    });
-
-    if (!updated) {
-      throw new NotFoundException('ContentSchedule', scheduleId);
-    }
+    await findOrThrow(
+      this.delegate,
+      {
+        where: { id: scheduleId, brandId, isDeleted: false, organizationId },
+      },
+      'ContentSchedule',
+      scheduleId,
+    );
 
     const updatedSchedule = (await this.delegate.update({
       where: { id: scheduleId },
@@ -134,13 +136,14 @@ export class ContentSchedulesService extends BaseService<
     brandId: string,
     scheduleId: string,
   ): Promise<ContentScheduleDocument> {
-    const existing = await this.delegate.findFirst({
-      where: { id: scheduleId, brandId, isDeleted: false, organizationId },
-    });
-
-    if (!existing) {
-      throw new NotFoundException('ContentSchedule', scheduleId);
-    }
+    await findOrThrow(
+      this.delegate,
+      {
+        where: { id: scheduleId, brandId, isDeleted: false, organizationId },
+      },
+      'ContentSchedule',
+      scheduleId,
+    );
 
     const removed = (await this.delegate.update({
       where: { id: scheduleId },

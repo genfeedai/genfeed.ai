@@ -1,3 +1,5 @@
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { fal } from '@fal-ai/client';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -49,6 +51,7 @@ export class FalService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
+    private readonly pollUntilService: PollUntilService,
   ) {
     const apiKey = this.configService.get('FAL_API_KEY') as string | undefined;
     if (apiKey) {
@@ -226,40 +229,44 @@ export class FalService {
       return submitRes.data;
     }
 
-    // Poll for result
-    const maxAttempts = 120;
-    for (let i = 0; i < maxAttempts; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      const statusRes = await firstValueFrom(
-        this.httpService.get(
-          `https://queue.fal.run/${modelId}/requests/${requestId}/status`,
-          {
-            headers: { Authorization: `Key ${apiKey}` },
-          },
-        ),
+    // Poll queue status until the request completes. The FAILED status is raised
+    // from the predicate so it surfaces as a failure rather than a timeout.
+    // 120 attempts × 2s ≈ the previous count-based bound.
+    try {
+      await this.pollUntilService.poll(
+        () =>
+          firstValueFrom(
+            this.httpService.get(
+              `https://queue.fal.run/${modelId}/requests/${requestId}/status`,
+              { headers: { Authorization: `Key ${apiKey}` } },
+            ),
+          ).then((res) => res.data as { status?: string; error?: string }),
+        (data) => {
+          if (data?.status === 'FAILED') {
+            throw new Error(
+              `fal.ai request failed: ${data?.error || 'Unknown error'}`,
+            );
+          }
+          return data?.status === 'COMPLETED';
+        },
+        { intervalMs: 2000, timeoutMs: 240_000 },
       );
-
-      if (statusRes.data?.status === 'COMPLETED') {
-        const resultRes = await firstValueFrom(
-          this.httpService.get(
-            `https://queue.fal.run/${modelId}/requests/${requestId}`,
-            {
-              headers: { Authorization: `Key ${apiKey}` },
-            },
-          ),
-        );
-        return resultRes.data;
+    } catch (error: unknown) {
+      if (error instanceof PollTimeoutException) {
+        throw new Error('fal.ai request timed out');
       }
-
-      if (statusRes.data?.status === 'FAILED') {
-        throw new Error(
-          `fal.ai request failed: ${statusRes.data?.error || 'Unknown error'}`,
-        );
-      }
+      throw error;
     }
 
-    throw new Error('fal.ai request timed out');
+    const resultRes = await firstValueFrom(
+      this.httpService.get(
+        `https://queue.fal.run/${modelId}/requests/${requestId}`,
+        {
+          headers: { Authorization: `Key ${apiKey}` },
+        },
+      ),
+    );
+    return resultRes.data;
   }
 
   private ensureConfigured(): void {

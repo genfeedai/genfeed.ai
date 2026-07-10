@@ -41,7 +41,7 @@ import { RouterModule } from '@api/services/router/router.module';
 import { UploadsModule } from '@api/services/uploads/uploads.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
-import { PollingModule } from '@api/shared/services/polling/polling.module';
+import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingredient-completion.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
@@ -76,7 +76,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => LeonardoAIModule),
     forwardRef(() => ModelsModule),
     forwardRef(() => NotificationsModule),
-    forwardRef(() => PollingModule),
+    forwardRef(() => IngredientCompletionModule),
     forwardRef(() => PromptBuilderModule),
     forwardRef(() => PromptsModule),
     forwardRef(() => ReplicateModule),

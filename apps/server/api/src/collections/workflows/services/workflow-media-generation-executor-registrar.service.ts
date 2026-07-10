@@ -121,6 +121,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             this.helper.readConfigString(node?.config, 'brandId'),
             mediaUrl,
             'lipSync',
+            context.organizationId,
           );
           const pendingOutput = await this.helper.createAndLinkProcessingOutput(
             {
@@ -340,6 +341,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       this.helper.readConfigString(params.node.config, 'brandId'),
       params.mediaUrl,
       params.nodeType,
+      params.context.organizationId,
     );
     const pendingOutput = await this.helper.createAndLinkProcessingOutput({
       output: {

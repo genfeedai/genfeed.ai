@@ -3,6 +3,7 @@ import {
   type ExecutorInput,
   type ExecutorOutput,
 } from '@workflow-engine/executors/base-executor';
+import { toNonEmptyString } from '@workflow-engine/executors/saas/trend-inspiration-shared';
 import type { ExecutableNode } from '@workflow-engine/types';
 
 export type HookFormula =
@@ -69,15 +70,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function toNonEmptyString(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
 function stringifyContext(value: unknown): string | null {
   const text = toNonEmptyString(value);
   if (text) {
@@ -109,6 +101,9 @@ function stringifyContext(value: unknown): string | null {
   return null;
 }
 
+// Intentionally distinct from the trend-inspiration builder: hook hashtags are
+// lowercased and stripped of underscores (e.g. `Build_In_Public` -> `#buildinpublic`),
+// so this stays local rather than importing `buildOptionalHashtag`.
 function buildHashtag(value: string): string | null {
   const normalized = value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
   return normalized.length > 0 ? `#${normalized}` : null;

@@ -1,0 +1,27 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const socialSourceAttributes = createEntityAttributes([
+  'organization',
+  'organizationId',
+  'brand',
+  'brandId',
+  'user',
+  'userId',
+  'credential',
+  'credentialId',
+  'platform',
+  'sourceType',
+  'externalId',
+  'handle',
+  'displayName',
+  'avatarUrl',
+  'profileUrl',
+  'bio',
+  'followersCount',
+  'isActive',
+  'lastSyncedAt',
+  'lastSyncStatus',
+  'lastSyncError',
+  'lastPostExternalId',
+  'metadata',
+]);

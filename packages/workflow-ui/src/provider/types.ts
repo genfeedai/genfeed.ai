@@ -1,4 +1,5 @@
 import type {
+  EdgeStyle,
   ICreatePrompt,
   IPrompt,
   IQueryPrompts,
@@ -6,6 +7,10 @@ import type {
   ProviderModel,
 } from '@genfeedai/types';
 import type { ComponentType } from 'react';
+import type {
+  DefaultModelSettings,
+  RecentModel,
+} from '../stores/settingsStore';
 import type { ApplyEditOperations } from '../stores/workflow/slices/types';
 import type { WorkflowPersistenceService } from '../stores/workflow/types';
 
@@ -121,6 +126,37 @@ export interface WorkflowUIHttpClient {
 export type ExecutionHeaderProvider = () => Record<string, string>;
 
 // =============================================================================
+// Settings Sync
+// =============================================================================
+
+/**
+ * The subset of settings-store fields that round-trips to a server. BYOK
+ * provider keys are intentionally excluded — they stay local to the device.
+ */
+export interface SyncableSettings {
+  defaults: DefaultModelSettings;
+  edgeStyle: EdgeStyle;
+  showMinimap: boolean;
+  hasSeenWelcome: boolean;
+  recentModels: RecentModel[];
+}
+
+/**
+ * Persists the settings store's syncable fields to the consuming app's backend.
+ * The package store owns the merge (it holds the current state); the app-owned
+ * adapter only maps between {@link SyncableSettings} and its server DTOs.
+ *
+ * `pull` returns a partial — omitted fields fall back to the local value, so a
+ * server that has never stored a preference never clobbers a local one. When no
+ * service is injected the store's `syncFromServer`/`syncToServer` are no-ops
+ * (the package's standalone default), so settings stay device-local.
+ */
+export interface SettingsSyncService {
+  pull: (signal?: AbortSignal) => Promise<Partial<SyncableSettings>>;
+  push: (settings: SyncableSettings) => Promise<void>;
+}
+
+// =============================================================================
 // Config
 // =============================================================================
 
@@ -161,4 +197,11 @@ export interface WorkflowUIConfig {
    * to a no-op when omitted (matching the package's standalone behavior).
    */
   applyEditOperations?: ApplyEditOperations;
+  /**
+   * Server persistence for the settings store's syncable fields (node defaults,
+   * edge style, minimap, welcome flag, recent models). The app injects an
+   * adapter over its settings API; `syncFromServer`/`syncToServer` no-op when
+   * omitted so the package stays device-local standalone.
+   */
+  settingsSync?: SettingsSyncService;
 }
