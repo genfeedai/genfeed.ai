@@ -52,7 +52,7 @@ function FoldersSidebar({
         }
         onClick={() => onSelectFolder?.(null)}
         className={cn(
-          'mb-2 border-white/[0.08] bg-white/[0.02] text-white/74 hover:border-white/[0.14] hover:bg-white/[0.04]',
+          'mb-2 flex h-10 w-full items-center px-3 py-0 border-white/[0.08] bg-white/[0.02] text-white/74 hover:border-white/[0.14] hover:bg-white/[0.04]',
           !selectedFolderId && 'border-white/[0.16] bg-white/[0.06]',
         )}
         isSelected={!selectedFolderId}
@@ -72,7 +72,7 @@ function FoldersSidebar({
             }
             onClick={() => onSelectFolder?.(folder)}
             className={cn(
-              'border-white/[0.08] bg-transparent text-white/72 hover:border-white/[0.14] hover:bg-white/[0.04]',
+              'flex h-10 w-full items-center px-3 py-0 border-white/[0.08] bg-transparent text-white/72 hover:border-white/[0.14] hover:bg-white/[0.04]',
               selectedFolderId === folder.id &&
                 'border-white/[0.16] bg-white/[0.06]',
             )}
