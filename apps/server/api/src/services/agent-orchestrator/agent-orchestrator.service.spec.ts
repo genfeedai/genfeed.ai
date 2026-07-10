@@ -9,6 +9,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
@@ -276,6 +277,7 @@ describe('AgentOrchestratorService', () => {
             AgentContextAssemblyService,
             CreditsUtilsService,
             AgentToolExecutorService,
+            AgentCompletionCardBuilderService,
             OrganizationsService,
             OrganizationSettingsService,
             SettingsService,
@@ -296,6 +298,7 @@ describe('AgentOrchestratorService', () => {
             contextAssemblySvc: AgentContextAssemblyService,
             creditsUtilsSvc: CreditsUtilsService,
             toolExecutorSvc: AgentToolExecutorService,
+            completionCardBuilderSvc: AgentCompletionCardBuilderService,
             organizationsSvc: OrganizationsService,
             organizationSettingsSvc: OrganizationSettingsService,
             settingsSvc: SettingsService,
@@ -315,6 +318,7 @@ describe('AgentOrchestratorService', () => {
               contextAssemblySvc,
               creditsUtilsSvc,
               toolExecutorSvc,
+              completionCardBuilderSvc,
               organizationsSvc,
               organizationSettingsSvc,
               settingsSvc,
@@ -368,6 +372,7 @@ describe('AgentOrchestratorService', () => {
           provide: AgentToolExecutorService,
           useValue: toolExecutorServiceMock,
         },
+        AgentCompletionCardBuilderService,
         {
           provide: OrganizationsService,
           useValue: organizationsServiceMock,
