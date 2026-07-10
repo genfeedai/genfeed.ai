@@ -34,7 +34,7 @@ type JsonApiPaginatedResponse = JsonApiDocument & {
  */
 export function extractPagination(response: JsonApiDocument): JsonApiPagination | undefined {
   const pagination = (response as JsonApiPaginatedResponse).links?.pagination;
-  if (!pagination || typeof pagination.pages !== 'number' || typeof pagination.page !== 'number') {
+  if (!pagination || !Number.isFinite(pagination.pages) || !Number.isFinite(pagination.page)) {
     return undefined;
   }
   return pagination;
