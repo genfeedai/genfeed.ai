@@ -287,6 +287,40 @@ describe('check-serializer-drift', () => {
     expect(result.matchedCount).toBe(1);
   });
 
+  it('fails closed when matched coverage drops below the ratchet floor', () => {
+    writeBaseFixture();
+    writeFixture(
+      'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
+      "export type { Widget as WidgetDocument } from '@genfeedai/prisma';",
+    );
+    writeSerializerTriplet({ fields: ['label'] });
+
+    // One pair matches, but the floor demands two — a coverage regression.
+    const regressed = runCheckSerializerDrift({
+      matchFloor: 2,
+      projections: {},
+      rootDir: fixtureRoot,
+    });
+    expect(regressed.matchedCount).toBe(1);
+    expect(
+      regressed.errors.some((error) =>
+        error.startsWith('Serializer coverage regressed'),
+      ),
+    ).toBe(true);
+
+    // At/above the matched count the floor is satisfied — no regression error.
+    const atFloor = runCheckSerializerDrift({
+      matchFloor: 1,
+      projections: {},
+      rootDir: fixtureRoot,
+    });
+    expect(
+      atFloor.errors.some((error) =>
+        error.startsWith('Serializer coverage regressed'),
+      ),
+    ).toBe(false);
+  });
+
   it('rejects projection exceptions that become structurally backed', () => {
     writeBaseFixture();
     writeFixture(
