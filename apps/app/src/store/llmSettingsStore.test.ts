@@ -150,5 +150,9 @@ describe('useLLMSettingsStore — persistence & migration', () => {
     const { useLLMSettingsStore: fresh } = await import('./llmSettingsStore');
 
     expect(fresh.getState().llm.providers.anthropic.apiKey).toBe('sk-legacy');
+    // Eagerly persisted to the new key so a later package write to the legacy
+    // `genfeed-settings` blob cannot strand the migrated keys.
+    const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(persisted.providers.anthropic.apiKey).toBe('sk-legacy');
   });
 });

@@ -86,12 +86,18 @@ function loadFromStorage(): LLMSettings {
       return mergeLLM(JSON.parse(stored) as Partial<LLMSettings>);
     }
 
-    // One-time migration from the legacy combined settings blob.
+    // First load under the new key: migrate BYOK keys from the legacy combined
+    // settings blob if present, then persist immediately. The package settings
+    // store rewrites `genfeed-settings` without the `llm` field, so eager
+    // persistence prevents a later package write from stranding migrated keys.
     const legacy = localStorage.getItem(LEGACY_SETTINGS_KEY);
+    let resolved = DEFAULT_LLM_SETTINGS;
     if (legacy) {
       const parsed = JSON.parse(legacy) as { llm?: Partial<LLMSettings> };
-      if (parsed.llm) return mergeLLM(parsed.llm);
+      if (parsed.llm) resolved = mergeLLM(parsed.llm);
     }
+    saveToStorage(resolved);
+    return resolved;
   } catch {
     // Invalid JSON or storage error — fall back to defaults.
   }
