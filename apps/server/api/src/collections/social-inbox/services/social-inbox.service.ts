@@ -622,27 +622,25 @@ export class SocialInboxService {
           limit,
         );
 
+        if (comments.length === 0) {
+          continue;
+        }
+
+        // Resolve which external ids already exist in one findMany pair for the
+        // whole post instead of a findFirst pair per comment. The sets are
+        // seeded from the DB snapshot and grown as we ingest so duplicates
+        // sharing a thread within the same batch are only counted once.
+        const existing = await this.findExistingYoutubeExternalIds(
+          scope.organizationId,
+          comments.map((comment) => comment.threadId),
+          comments.map((comment) => comment.commentId),
+        );
+
         for (const comment of comments) {
-          const [beforeConversation, beforeMessage] = await Promise.all([
-            this.prisma.socialConversation.findFirst({
-              select: { id: true },
-              where: {
-                externalConversationId: comment.threadId,
-                isDeleted: false,
-                organizationId: scope.organizationId,
-                platform: 'youtube',
-              },
-            }),
-            this.prisma.socialMessage.findFirst({
-              select: { id: true },
-              where: {
-                externalMessageId: comment.commentId,
-                isDeleted: false,
-                organizationId: scope.organizationId,
-                platform: 'youtube',
-              },
-            }),
-          ]);
+          const isNewConversation = !existing.conversationIds.has(
+            comment.threadId,
+          );
+          const isNewMessage = !existing.messageIds.has(comment.commentId);
 
           await this.ingestInboundMessage({
             accountExternalId: credential.externalId ?? undefined,
@@ -674,17 +672,73 @@ export class SocialInboxService {
             userId: credential.userId ?? scope.userId,
           });
 
-          if (!beforeMessage) {
+          if (isNewMessage) {
             messagesCreated++;
+            existing.messageIds.add(comment.commentId);
           }
-          if (!beforeConversation) {
+          if (isNewConversation) {
             conversationsCreated++;
+            existing.conversationIds.add(comment.threadId);
           }
         }
       }
     }
 
     return { conversationsCreated, messagesCreated };
+  }
+
+  /**
+   * Batched dedup lookup for a single post's comments: one findMany per entity
+   * keyed by the external ids, replacing the per-comment findFirst pair. Org
+   * scoping ({ organizationId, isDeleted: false }) is preserved. Returns the
+   * sets of external ids that already exist so the caller can decide which
+   * ingests are net-new without re-querying.
+   */
+  private async findExistingYoutubeExternalIds(
+    organizationId: string,
+    threadIds: string[],
+    commentIds: string[],
+  ): Promise<{ conversationIds: Set<string>; messageIds: Set<string> }> {
+    const uniqueThreadIds = [...new Set(threadIds)];
+    const uniqueCommentIds = [...new Set(commentIds)];
+
+    const [conversations, messages] = await Promise.all([
+      uniqueThreadIds.length
+        ? this.prisma.socialConversation.findMany({
+            select: { externalConversationId: true },
+            where: {
+              externalConversationId: { in: uniqueThreadIds },
+              isDeleted: false,
+              organizationId,
+              platform: 'youtube',
+            },
+          })
+        : Promise.resolve([]),
+      uniqueCommentIds.length
+        ? this.prisma.socialMessage.findMany({
+            select: { externalMessageId: true },
+            where: {
+              externalMessageId: { in: uniqueCommentIds },
+              isDeleted: false,
+              organizationId,
+              platform: 'youtube',
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    return {
+      conversationIds: new Set(
+        conversations
+          .map((row) => row.externalConversationId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+      messageIds: new Set(
+        messages
+          .map((row) => row.externalMessageId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    };
   }
 
   private async findYoutubeCredentials(

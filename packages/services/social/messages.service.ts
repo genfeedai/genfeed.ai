@@ -167,8 +167,8 @@ export interface SocialActionInput {
 }
 
 export interface YoutubeSyncResult {
-  conversationsCreated: number;
-  messagesCreated: number;
+  jobId?: string;
+  status: string;
 }
 
 const socialConversationSerializer: IServiceSerializer<SocialConversation> = {

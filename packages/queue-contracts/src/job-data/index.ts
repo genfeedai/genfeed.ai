@@ -23,6 +23,7 @@ export * from './lifecycle-email-job.interface';
 export * from './pattern-extraction-job.interface';
 export * from './post-publish-job.interface';
 export * from './reply-bot-polling-job.interface';
+export * from './social-inbox-sync-job.interface';
 export * from './telegram-distribute-job.interface';
 export * from './webhook-client-job.interface';
 export * from './workspace-task-job.interface';

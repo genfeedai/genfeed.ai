@@ -32,6 +32,7 @@ import { PostsModule } from '@api/collections/posts/posts.module';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
+import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
@@ -103,6 +104,7 @@ import { LifecycleEmailProcessor } from '@workers/processors/api/queues/lifecycl
 import { PatternExtractionProcessor } from '@workers/processors/api/queues/pattern-extraction/pattern-extraction.processor';
 import { PostPublishProcessor } from '@workers/processors/api/queues/post-publish/post-publish.processor';
 import { ReplyBotPollingProcessor } from '@workers/processors/api/queues/reply-bot/reply-bot-polling.processor';
+import { SocialInboxSyncProcessor } from '@workers/processors/api/queues/social-inbox-sync/social-inbox-sync.processor';
 import { TelegramDistributeProcessor } from '@workers/processors/api/queues/telegram-distribute/telegram-distribute.processor';
 // --- services/ processors ---
 import { CampaignMemoryProcessor } from '@workers/processors/api/services/agent-campaign/campaign-memory.processor';
@@ -147,6 +149,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => OutreachCampaignsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => ReplyBotConfigsModule),
+    forwardRef(() => SocialInboxModule),
     forwardRef(() => WorkflowExecutionsModule),
     forwardRef(() => WorkflowsModule),
     // Service modules (provide services injected by processors)
@@ -249,6 +252,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     PatternExtractionProcessor,
     PostPublishProcessor,
     ReplyBotPollingProcessor,
+    SocialInboxSyncProcessor,
     TelegramDistributeProcessor,
 
     // --- services/ processors (8) ---
