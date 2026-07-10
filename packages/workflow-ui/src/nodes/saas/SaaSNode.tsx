@@ -1,25 +1,9 @@
 'use client';
 
+import type { VisualNodeDefinition } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import { BaseNode } from '../BaseNode';
-
-interface WorkflowSaaSHandleDefinition {
-  id: string;
-  label: string;
-  multiple?: boolean;
-  optional?: boolean;
-  required?: boolean;
-  type: string;
-}
-
-interface WorkflowSaaSNodeDefinition {
-  category: string;
-  icon: string;
-  inputs: WorkflowSaaSHandleDefinition[];
-  label: string;
-  outputs: WorkflowSaaSHandleDefinition[];
-}
 
 export const workflowSaaSNodeDefinitions = {
   trendHashtagInspiration: {
@@ -63,7 +47,7 @@ export const workflowSaaSNodeDefinitions = {
       { id: 'style', label: 'Style', type: 'text' },
     ],
   },
-} as const satisfies Record<string, WorkflowSaaSNodeDefinition>;
+} as const satisfies Record<string, VisualNodeDefinition>;
 
 export type WorkflowSaaSNodeType = keyof typeof workflowSaaSNodeDefinitions;
 

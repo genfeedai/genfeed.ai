@@ -3,7 +3,7 @@
 // =============================================================================
 
 import type { NodeCategory, NodeType } from './base';
-import type { HandleDefinition } from './handles';
+import type { HandleDefinition, VisualHandleDefinition } from './handles';
 import type { WorkflowNodeData } from './union';
 
 export interface NodeDefinition {
@@ -15,6 +15,20 @@ export interface NodeDefinition {
   inputs: HandleDefinition[];
   outputs: HandleDefinition[];
   defaultData: Partial<WorkflowNodeData>;
+}
+
+/**
+ * Node definition loosened for presentation. The identity fields BaseNode reads
+ * to render a node, with `category` widened to a plain string and handles as
+ * {@link VisualHandleDefinition}. Used for BaseNode's `nodeDefinition` override
+ * and for SaaS node definitions that live outside the canonical registry.
+ */
+export interface VisualNodeDefinition {
+  category: string;
+  icon: string;
+  label?: string;
+  inputs: VisualHandleDefinition[];
+  outputs: VisualHandleDefinition[];
 }
 
 // =============================================================================
