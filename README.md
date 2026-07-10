@@ -60,6 +60,12 @@ Prisma migrations, and seeds one local user, organization, and brand. The
 default configuration has no login wall and does not require a Genfeed Cloud or
 Better Auth account.
 
+Alternatively, the create package downloads and verifies the same bundle:
+
+```bash
+npx @genfeedai/create my-genfeed
+```
+
 | Surface    | Local URL               |
 | ---------- | ----------------------- |
 | Web UI     | `http://localhost:3000` |

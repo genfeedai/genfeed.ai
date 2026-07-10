@@ -385,8 +385,8 @@ function AppSwitcherGridItem({
         aria-current={isActive ? 'page' : undefined}
         onClick={onNavigateStart}
         className={cn(
-          'group grid min-h-[5.75rem] min-w-0 grid-rows-[2.75rem_1.25rem] place-items-center gap-1.5 rounded-lg border border-transparent px-1.5 py-2 text-center outline-none transition-colors',
-          'hover:border-border hover:bg-foreground/[0.04] focus:border-border focus:bg-foreground/[0.06]',
+          'group grid min-h-[5.75rem] min-w-0 grid-rows-[2.75rem_1.25rem] place-items-center gap-1.5 rounded-lg border border-transparent px-1.5 py-2 text-center outline-none transition-[border-color,background-color,box-shadow]',
+          'hover:border-border hover:bg-foreground/[0.04] focus-visible:border-border focus-visible:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-popover',
           isActive &&
             'border-border-strong bg-foreground/[0.08] shadow-border-strong',
         )}
@@ -510,7 +510,7 @@ export function AppSwitcher({
           <Button
             type="button"
             variant={ButtonVariant.GHOST}
-            className="flex h-7 items-center gap-2 rounded-md px-2 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
+            className="flex h-7 items-center gap-2 rounded-md px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             ariaLabel="Switch app"
           >
             <ActiveIcon className="size-4 shrink-0 text-foreground/70" />
@@ -524,7 +524,7 @@ export function AppSwitcher({
             type="button"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
-            className="size-7 focus-visible:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
+            className="size-7 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             ariaLabel="Switch app"
           >
             <TbGridDots className="size-4" />

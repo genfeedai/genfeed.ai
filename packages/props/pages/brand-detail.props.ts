@@ -43,8 +43,10 @@ export interface BrandDetailLatestArticlesProps {
 
 export interface BrandDetailSocialConnection {
   accountHealth?: AccountHealthSummary;
+  avatarUrl?: string | null;
   credentialId: string;
   label?: string | null;
+  name?: string | null;
   platform: CredentialPlatform;
   url?: string | null;
   handle?: string | null;

@@ -1,21 +1,33 @@
 # @genfeedai/create
 
-Create a self-hosted Genfeed Core project — AI workflow engine you can run locally.
+Install a checksummed Genfeed.ai Community release with Docker Compose.
 
 ## Quick Start
 
 ```bash
-npx @genfeedai/create my-app
+npx @genfeedai/create my-genfeed
 ```
 
-That's it. Dependencies install automatically and the app starts on `http://localhost:4000/onboarding`.
+The installer resolves the latest GitHub release, downloads its public
+self-hosted bundle, verifies the SHA-256 checksum and release manifest, then
+starts the exact GHCR image associated with that release. The app is available
+at `http://localhost:3000`.
 
-## What it does
+Install a specific release reproducibly:
 
-1. Downloads the latest `genfeedai/genfeed.ai` template
-2. Copies `.env.example` to `.env`
-3. Installs dependencies (`bun install` if available, otherwise `npm install`)
-4. Starts the dev server — opens to `/onboarding` on first run
+```bash
+npx @genfeedai/create my-genfeed --release v0.5.0
+```
+
+Prepare and validate the installation without starting containers:
+
+```bash
+npx @genfeedai/create my-genfeed --release v0.5.0 --no-start
+```
+
+Node.js 24, Docker Compose, and `tar` must be installed. The generated directory
+contains the release manifest, pinned environment, Compose file, and
+installation guide.
 
 ## License
 

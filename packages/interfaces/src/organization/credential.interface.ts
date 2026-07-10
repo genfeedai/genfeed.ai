@@ -9,6 +9,8 @@ export interface ICredential extends IBaseEntity {
 
   externalId: string;
   externalHandle: string;
+  externalName?: string;
+  externalAvatar?: string;
   externalUrl?: string;
 
   platform: CredentialPlatform;

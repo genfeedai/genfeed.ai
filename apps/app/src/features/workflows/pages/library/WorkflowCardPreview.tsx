@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 const DEFAULT_WORKFLOW_CARD_CDN =
   process.env.NEXT_PUBLIC_CDN_URL || 'https://cdn.genfeed.ai';
@@ -51,7 +52,7 @@ export default function WorkflowCardPreview({
         />
       ) : (
         <Image
-          unoptimized
+          unoptimized={!canOptimizeImageSource(previewUrl)}
           src={previewUrl}
           alt={
             previewUrl === DEFAULT_WORKFLOW_CARD_IMAGE
@@ -60,6 +61,7 @@ export default function WorkflowCardPreview({
           }
           className="h-full w-full object-cover object-center"
           onError={() => setHasAssetError(true)}
+          sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
           width={800}
           height={600}
         />

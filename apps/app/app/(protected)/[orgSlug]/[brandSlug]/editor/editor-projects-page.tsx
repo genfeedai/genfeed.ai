@@ -199,7 +199,7 @@ export default function EditorProjectsPage() {
               <Link key={project.id} href={href(`/editor/${project.id}`)}>
                 <Card
                   variant={CardVariant.DEFAULT}
-                  className="group cursor-pointer p-6 transition-all hover:ring-1 hover:ring-primary/30"
+                  className="group cursor-pointer p-6 transition-shadow hover:ring-1 hover:ring-primary/30"
                 >
                   <div className="mb-3 flex items-start justify-between">
                     <div className="min-w-0 flex-1">

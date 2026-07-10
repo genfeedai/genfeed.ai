@@ -1,9 +1,9 @@
-import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { QueueService } from '@api/queues/core/queue.service';
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { CronAdSyncMetaService } from '@workers/crons/ad-sync/cron.ad-sync-meta.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,7 +37,7 @@ describe('CronAdSyncMetaService', () => {
       findAll: vi.fn().mockResolvedValue({
         docs: [
           {
-            _id: '507f1f77bcf86cd799439013',
+            id: '507f1f77bcf86cd799439013',
             accessToken: 'encrypted-token',
             brand: { toString: () => '507f1f77bcf86cd799439012' },
             organization: { toString: () => '507f1f77bcf86cd799439011' },

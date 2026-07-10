@@ -5,7 +5,6 @@
  * Types are derived from OpenAPI spec, with Zod schemas for runtime validation.
  */
 
-import type { components } from '@api-types/generated/api';
 import {
   dateStringSchema,
   daysOfWeekSchema,
@@ -17,6 +16,7 @@ import {
 } from '@api-types/helpers/common-schemas';
 import { PostCategory, PostFrequency, PostStatus } from '@genfeedai/enums';
 import { z } from 'zod';
+import type { components } from '../generated/api.js';
 
 // ============================================================================
 // Type Aliases from OpenAPI

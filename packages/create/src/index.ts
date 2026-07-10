@@ -1,382 +1,432 @@
 #!/usr/bin/env node
 
-import type { ChildProcess } from 'node:child_process';
-import { execFile, spawn, spawnSync } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import { spawn, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { constants, readFileSync, realpathSync } from 'node:fs';
 import {
   access,
-  appendFile,
+  copyFile,
   mkdir,
+  mkdtemp,
   readFile,
+  rm,
   writeFile,
 } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
 import { consola } from 'consola';
-import { downloadTemplate } from 'giget';
 
-interface InstallCommand {
-  command: string;
-  args: string[];
-  label: string;
+const REPOSITORY = 'genfeedai/genfeed.ai';
+const RELEASE_API_URL = `https://api.github.com/repos/${REPOSITORY}/releases/latest`;
+const DEFAULT_DOWNLOAD_BASE_URL = `https://github.com/${REPOSITORY}/releases/download`;
+const RELEASE_ARCHIVE_NAME = 'genfeed-selfhosted.tar.gz';
+const RELEASE_CHECKSUM_NAME = `${RELEASE_ARCHIVE_NAME}.sha256`;
+const RELEASE_MANIFEST_NAME = 'release.json';
+const EXPECTED_IMAGE_REPOSITORY = 'ghcr.io/genfeedai/genfeed.ai';
+const APP_URL = 'http://localhost:3000';
+
+interface CliOptions {
+  release?: string;
+  start: boolean;
 }
 
-const TEMPLATE_REPOSITORY = 'github:genfeedai/genfeed.ai#develop';
-const DEFAULT_DATABASE_URL =
-  'postgresql://genfeed:genfeed_local@localhost:5432/genfeed';
-const ONBOARDING_URL = 'http://localhost:3000/onboarding';
-const GENFEED_DATA_DIR = join(homedir(), '.genfeed', 'data');
-
-export function commandExists(command: string): boolean {
-  const result = spawnSync(command, ['--version'], { stdio: 'ignore' });
-  return result.status === 0;
+interface ReleaseManifest {
+  schemaVersion: number;
+  releaseTag: string;
+  image: string;
 }
 
-export function getInstallCommand(
-  hasCommand: (command: string) => boolean = commandExists,
-): InstallCommand {
-  if (hasCommand('bun')) {
-    return { args: ['install'], command: 'bun', label: 'bun install' };
-  }
-  return { args: ['install'], command: 'npm', label: 'npm install' };
+interface ReleaseAssetUrls {
+  archive: string;
+  checksum: string;
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
+interface RunCommandOptions {
+  cwd?: string;
+  stdio?: 'ignore' | 'inherit';
 }
 
-function generateEncryptionKey(): string {
-  return randomBytes(32).toString('base64url').slice(0, 32);
+type FetchImplementation = typeof fetch;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
-const DEFAULT_ENV = `# ─── Required ───────────────────────────────────────────────────────
-DATABASE_URL=${DEFAULT_DATABASE_URL}
-REDIS_URL=redis://localhost:6379
-PORT=3010
-TOKEN_ENCRYPTION_KEY=${generateEncryptionKey()}
+export function normalizeReleaseTag(value: string): string {
+  const trimmed = value.trim();
+  const releaseTag = trimmed.startsWith('v') ? trimmed : `v${trimmed}`;
 
-# ─── Internal Services ──────────────────────────────────────────────
-GENFEEDAI_API_URL=http://localhost:3010
-GENFEEDAI_APP_URL=http://localhost:3000
-GENFEEDAI_CDN_URL=http://localhost:3012
-GENFEEDAI_PUBLIC_URL=http://localhost:3000
-GENFEEDAI_WEBHOOKS_URL=http://localhost:3010
-GENFEEDAI_MICROSERVICES_FILES_URL=http://localhost:3012
-GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=http://localhost:3011
-
-# ─── Frontend ──────────────────────────────────────────────────────
-NEXT_PUBLIC_API_URL=/v1
-NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1
-NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
-NEXT_PUBLIC_CDN_URL=http://localhost:3012
-
-# ─── AI Providers (add your keys during onboarding) ────────────────
-# REPLICATE_KEY=
-# FAL_API_KEY=
-# ELEVENLABS_API_KEY=
-# HF_API_TOKEN=
-
-# ─── Ollama (local LLM — optional) ────────────────────────────────
-# OLLAMA_ENABLED=false
-# OLLAMA_BASE_URL=http://localhost:11434
-# OLLAMA_DEFAULT_MODEL=llama3.1
-`;
-
-const ENV_LOCATIONS = ['.env', 'apps/server/api/.env'];
-
-export async function writeDefaultEnv(projectDirectory: string): Promise<void> {
-  for (const location of ENV_LOCATIONS) {
-    const envPath = join(projectDirectory, location);
-    const hasEnv = await fileExists(envPath);
-
-    if (!hasEnv) {
-      await mkdir(dirname(envPath), { recursive: true });
-      await writeFile(envPath, DEFAULT_ENV, 'utf-8');
-    }
+  if (!/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(releaseTag)) {
+    throw new Error(
+      `Invalid release "${value}". Expected vX.Y.Z (for example, v0.5.0).`,
+    );
   }
 
-  consola.success('Created .env with working defaults');
+  return releaseTag;
 }
 
-export function openBrowser(url: string): void {
-  const platform = process.platform;
+export function imageTagFromReleaseTag(releaseTag: string): string {
+  return normalizeReleaseTag(releaseTag).slice(1);
+}
 
-  if (platform === 'darwin') {
-    execFile('open', [url]);
-  } else if (platform === 'linux') {
-    execFile('xdg-open', [url]);
-  } else if (platform === 'win32') {
-    execFile('cmd', ['/c', 'start', '', url]);
+export function getReleaseAssetUrls(
+  releaseTag: string,
+  downloadBaseUrl = process.env.GENFEED_RELEASE_DOWNLOAD_BASE_URL ??
+    DEFAULT_DOWNLOAD_BASE_URL,
+): ReleaseAssetUrls {
+  const normalizedTag = normalizeReleaseTag(releaseTag);
+  const baseUrl = downloadBaseUrl.replace(/\/$/, '');
+
+  return {
+    archive: `${baseUrl}/${normalizedTag}/${RELEASE_ARCHIVE_NAME}`,
+    checksum: `${baseUrl}/${normalizedTag}/${RELEASE_CHECKSUM_NAME}`,
+  };
+}
+
+export async function resolveReleaseTag(
+  requestedRelease?: string,
+  fetchImplementation: FetchImplementation = fetch,
+): Promise<string> {
+  if (requestedRelease) {
+    return normalizeReleaseTag(requestedRelease);
   }
+
+  const response = await fetchImplementation(RELEASE_API_URL, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': '@genfeedai/create',
+    },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Could not resolve the latest Genfeed.ai release (HTTP ${response.status}).`,
+    );
+  }
+
+  const payload: unknown = await response.json();
+  if (!isRecord(payload)) {
+    throw new Error('GitHub returned invalid latest-release metadata.');
+  }
+
+  const tagName = payload.tag_name;
+  if (typeof tagName !== 'string') {
+    throw new Error('GitHub latest release did not include a release tag.');
+  }
+
+  return normalizeReleaseTag(tagName);
 }
 
-async function waitForServer(
+export function readPackageVersion(
+  packageJsonUrl = new URL('../package.json', import.meta.url),
+): string {
+  const manifest: unknown = JSON.parse(
+    readFileSync(fileURLToPath(packageJsonUrl), 'utf8'),
+  );
+  if (!isRecord(manifest) || typeof manifest.version !== 'string') {
+    throw new Error('Could not read the @genfeedai/create package version.');
+  }
+
+  return manifest.version;
+}
+
+async function downloadFile(
   url: string,
+  destination: string,
+  fetchImplementation: FetchImplementation,
+): Promise<void> {
+  const response = await fetchImplementation(url, {
+    headers: { 'User-Agent': '@genfeedai/create' },
+    redirect: 'follow',
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Download failed (HTTP ${response.status}): ${url}`);
+  }
+
+  await writeFile(destination, new Uint8Array(await response.arrayBuffer()));
+}
+
+export async function verifyReleaseChecksum(
+  archivePath: string,
+  checksumPath: string,
+): Promise<void> {
+  const checksumContent = await readFile(checksumPath, 'utf8');
+  const match = checksumContent.match(/^([a-fA-F0-9]{64})\s+/);
+
+  if (!match) {
+    throw new Error('Release checksum file is malformed.');
+  }
+
+  const archive = await readFile(archivePath);
+  const actualChecksum = createHash('sha256').update(archive).digest('hex');
+  const expectedChecksum = match[1].toLowerCase();
+
+  if (actualChecksum !== expectedChecksum) {
+    throw new Error(
+      `Release checksum mismatch: expected ${expectedChecksum}, received ${actualChecksum}.`,
+    );
+  }
+}
+
+export function parseReleaseManifest(
+  content: string,
+  expectedReleaseTag: string,
+): ReleaseManifest {
+  const parsed: unknown = JSON.parse(content);
+  if (!isRecord(parsed)) {
+    throw new Error('Release manifest is not an object.');
+  }
+
+  const normalizedTag = normalizeReleaseTag(expectedReleaseTag);
+  const expectedImage = `${EXPECTED_IMAGE_REPOSITORY}:${imageTagFromReleaseTag(normalizedTag)}`;
+  const schemaVersion = parsed.schemaVersion;
+  const releaseTag = parsed.releaseTag;
+  const image = parsed.image;
+
+  if (
+    schemaVersion !== 1 ||
+    releaseTag !== normalizedTag ||
+    image !== expectedImage
+  ) {
+    throw new Error(
+      `Release manifest does not match ${normalizedTag} and ${expectedImage}.`,
+    );
+  }
+
+  return {
+    image,
+    releaseTag,
+    schemaVersion,
+  };
+}
+
+function commandExists(
+  command: string,
+  args: string[] = ['--version'],
+): boolean {
+  return spawnSync(command, args, { stdio: 'ignore' }).status === 0;
+}
+
+async function runCommand(
+  command: string,
+  args: string[],
+  options: RunCommandOptions = {},
+): Promise<void> {
+  await new Promise<void>((resolvePromise, rejectPromise) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      stdio: options.stdio ?? 'inherit',
+    });
+
+    child.once('error', rejectPromise);
+    child.once('close', (code, signal) => {
+      if (code === 0) {
+        resolvePromise();
+        return;
+      }
+
+      rejectPromise(
+        new Error(
+          `${command} ${args.join(' ')} failed with ${code ?? signal ?? 'an unknown error'}.`,
+        ),
+      );
+    });
+  });
+}
+
+function assertInstallPrerequisites(): void {
+  if (!commandExists('tar')) {
+    throw new Error(
+      'tar is required to extract the Genfeed.ai release bundle.',
+    );
+  }
+
+  if (!commandExists('docker', ['compose', 'version'])) {
+    throw new Error(
+      'Docker Compose is required. Install Docker Desktop or the Docker Compose plugin.',
+    );
+  }
+}
+
+async function waitForApp(
+  fetchImplementation: FetchImplementation,
   timeoutMs = 180_000,
 ): Promise<boolean> {
   const start = Date.now();
 
   while (Date.now() - start < timeoutMs) {
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(2000) });
-
-      if (response.ok || response.status === 404) {
+      const response = await fetchImplementation(APP_URL, {
+        redirect: 'manual',
+        signal: AbortSignal.timeout(2_000),
+      });
+      if (response.ok || (response.status >= 300 && response.status < 400)) {
         return true;
       }
     } catch {
-      // Server not ready yet
+      // The container is still starting.
     }
 
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((resolvePromise) => setTimeout(resolvePromise, 2_000));
   }
 
   return false;
 }
 
-async function runInstall(projectDirectory: string): Promise<InstallCommand> {
-  const installCommand = getInstallCommand();
+export function openBrowser(url: string): void {
+  let command: string | undefined;
+  let args: string[] = [];
 
-  await new Promise<void>((resolvePromise, rejectPromise) => {
-    const child = spawn(installCommand.command, installCommand.args, {
-      cwd: projectDirectory,
-      env: { ...process.env, HUSKY: '0' },
-      stdio: 'inherit',
-    });
+  if (process.platform === 'darwin') {
+    command = 'open';
+    args = [url];
+  } else if (process.platform === 'linux') {
+    command = 'xdg-open';
+    args = [url];
+  } else if (process.platform === 'win32') {
+    command = 'cmd';
+    args = ['/c', 'start', '', url];
+  }
 
-    child.on('error', (error) => rejectPromise(error));
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolvePromise();
-        return;
-      }
-      rejectPromise(
-        new Error(
-          `${installCommand.label} failed with exit code ${code ?? 'unknown'}`,
-        ),
-      );
-    });
+  if (!command) {
+    return;
+  }
+
+  const child = spawn(command, args, { detached: true, stdio: 'ignore' });
+  child.once('error', () => {
+    // Opening a browser is a convenience; the installation is already ready.
   });
-
-  return installCommand;
+  child.unref();
 }
 
-async function replaceEnvValue(
-  projectDirectory: string,
-  key: string,
-  value: string,
+export async function installRelease(
+  projectName: string,
+  options: CliOptions,
+  fetchImplementation: FetchImplementation = fetch,
 ): Promise<void> {
-  const pattern = new RegExp(`^${key}=.*$`, 'm');
+  assertInstallPrerequisites();
 
-  for (const location of ENV_LOCATIONS) {
-    const envPath = join(projectDirectory, location);
-    const exists = await fileExists(envPath);
-
-    if (!exists) continue;
-
-    const content = await readFile(envPath, 'utf-8');
-
-    if (pattern.test(content)) {
-      await writeFile(
-        envPath,
-        content.replace(pattern, `${key}=${value}`),
-        'utf-8',
-      );
-    } else {
-      await appendFile(envPath, `\n${key}=${value}`, 'utf-8');
+  const projectDirectory = resolve(process.cwd(), projectName);
+  try {
+    await access(projectDirectory);
+    throw new Error(`Destination already exists: ${projectDirectory}`);
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Destination')) {
+      throw error;
     }
   }
-}
 
-/**
- * Start a persistent redis-server process.
- * Data is stored at ~/.genfeed/data/redis with AOF persistence.
- */
-interface ProcessExit {
-  code: number | null;
-  signal: NodeJS.Signals | null;
-}
+  const releaseTag = await resolveReleaseTag(
+    options.release,
+    fetchImplementation,
+  );
+  const assetUrls = getReleaseAssetUrls(releaseTag);
+  const temporaryDirectory = await mkdtemp(
+    join(tmpdir(), 'genfeed-create-release-'),
+  );
+  const archivePath = join(temporaryDirectory, RELEASE_ARCHIVE_NAME);
+  const checksumPath = join(temporaryDirectory, RELEASE_CHECKSUM_NAME);
+  let createdProjectDirectory = false;
+  let startAttempted = false;
 
-function observeChildExit(child: ChildProcess): Promise<ProcessExit> {
-  return new Promise((resolvePromise, rejectPromise) => {
-    child.once('error', rejectPromise);
-    child.once('close', (code, signal) => {
-      resolvePromise({ code, signal });
-    });
-  });
-}
+  consola.start(`Downloading Genfeed.ai ${releaseTag}`);
 
-export async function startManagedRedis(): Promise<void> {
-  const redisDir = join(GENFEED_DATA_DIR, 'redis');
-  await mkdir(redisDir, { recursive: true });
+  try {
+    await Promise.all([
+      downloadFile(assetUrls.archive, archivePath, fetchImplementation),
+      downloadFile(assetUrls.checksum, checksumPath, fetchImplementation),
+    ]);
+    await verifyReleaseChecksum(archivePath, checksumPath);
 
-  if (!commandExists('redis-server')) {
-    consola.warn(
-      'redis-server not found. Install Redis or provide REDIS_URL in .env',
+    await mkdir(projectDirectory);
+    createdProjectDirectory = true;
+    await runCommand(
+      'tar',
+      ['-xzf', archivePath, '-C', projectDirectory, '--strip-components=1'],
+      { stdio: 'ignore' },
     );
-    consola.info('  macOS: brew install redis');
-    consola.info('  Linux: sudo apt install redis-server');
-    return;
-  }
 
-  const redis = spawn(
-    'redis-server',
-    [
-      '--dir',
-      redisDir,
-      '--appendonly',
-      'yes',
-      '--port',
-      '6379',
-      '--daemonize',
-      'yes',
-    ],
-    { stdio: 'ignore' },
-  );
-
-  redis.unref();
-  const startup = await Promise.race([
-    observeChildExit(redis),
-    new Promise<'started'>((resolvePromise) =>
-      setTimeout(() => resolvePromise('started'), 1000),
-    ),
-  ]);
-
-  if (startup !== 'started') {
-    consola.warn(
-      `redis-server failed to start with exit code ${startup.code ?? startup.signal ?? 'unknown'}`,
+    const releaseManifest = parseReleaseManifest(
+      await readFile(join(projectDirectory, RELEASE_MANIFEST_NAME), 'utf8'),
+      releaseTag,
     );
-    return;
-  }
-
-  consola.success('Redis started (persistent data at ~/.genfeed/data/redis)');
-}
-
-export async function setupPostgres(projectDirectory: string): Promise<void> {
-  const hasOwnPostgres = await consola.prompt(
-    'Do you have an existing PostgreSQL instance? (press Enter to use local defaults)',
-    { initial: false, type: 'confirm' },
-  );
-
-  if (hasOwnPostgres) {
-    const uri = await consola.prompt('Enter your DATABASE_URL:', {
-      initial: DEFAULT_DATABASE_URL,
-      type: 'text',
-    });
-
-    await replaceEnvValue(projectDirectory, 'DATABASE_URL', String(uri));
-    consola.success('DATABASE_URL saved to .env');
-    return;
-  }
-
-  await replaceEnvValue(projectDirectory, 'DATABASE_URL', DEFAULT_DATABASE_URL);
-  consola.info(
-    'Using the default local PostgreSQL URL. Start Postgres with `docker compose -f docker/local/docker-compose.yml up -d postgres` if it is not already running.',
-  );
-}
-
-export async function setupRedis(projectDirectory: string): Promise<void> {
-  const hasOwnRedis = await consola.prompt(
-    'Do you have an existing Redis instance? (press Enter to use managed Redis)',
-    { initial: false, type: 'confirm' },
-  );
-
-  if (hasOwnRedis) {
-    const url = await consola.prompt('Enter your Redis URL:', {
-      initial: 'redis://localhost:6379',
-      type: 'text',
-    });
-
-    await replaceEnvValue(projectDirectory, 'REDIS_URL', String(url));
-    consola.success('Redis URL saved to .env');
-    return;
-  }
-
-  await startManagedRedis();
-}
-
-export async function scaffoldProject(projectName: string): Promise<void> {
-  const projectDirectory = resolve(process.cwd(), projectName);
-
-  consola.start(`Scaffolding ${projectName} from ${TEMPLATE_REPOSITORY}`);
-
-  await downloadTemplate(TEMPLATE_REPOSITORY, {
-    dir: projectDirectory,
-    force: false,
-  });
-
-  consola.success(`Downloaded template into ${projectDirectory}`);
-
-  await writeDefaultEnv(projectDirectory);
-
-  const installCommand = await runInstall(projectDirectory);
-  consola.success(`Dependencies installed with ${installCommand.label}`);
-
-  await setupPostgres(projectDirectory);
-  await setupRedis(projectDirectory);
-
-  // Start all services
-  const devCommand = installCommand.command === 'bun' ? 'bun' : 'npm';
-  const child = spawn(devCommand, ['run', 'dev'], {
-    cwd: projectDirectory,
-    stdio: 'inherit',
-  });
-  const devProcessExit = observeChildExit(child);
-
-  consola.start('Waiting for services to start…');
-
-  const readiness = Promise.all([
-    waitForServer('http://localhost:3010/v1/health'),
-    waitForServer('http://localhost:3000'),
-  ]);
-  const startupResult = await Promise.race([readiness, devProcessExit]);
-
-  if (!Array.isArray(startupResult)) {
-    process.exitCode = startupResult.code ?? 1;
-    consola.error(
-      `Development server exited before becoming ready (exit code ${startupResult.code ?? startupResult.signal ?? 'unknown'})`,
+    await copyFile(
+      join(projectDirectory, '.env.example'),
+      join(projectDirectory, '.env'),
+      constants.COPYFILE_EXCL,
     );
-    return;
-  }
 
-  const [apiReady, webReady] = startupResult;
-
-  if (apiReady && webReady) {
-    consola.box(
+    await runCommand(
+      'docker',
       [
-        'Genfeed.ai is running!',
-        '',
-        `App:  http://localhost:3000`,
-        `API:  http://localhost:3010`,
-        '',
-        `Opening ${ONBOARDING_URL}`,
-      ].join('\n'),
+        'compose',
+        '--env-file',
+        '.env',
+        '-f',
+        'compose.yml',
+        'config',
+        '--quiet',
+      ],
+      { cwd: projectDirectory, stdio: 'ignore' },
     );
 
-    openBrowser(ONBOARDING_URL);
-  } else {
-    consola.warn('Services did not start in time. Open manually:');
-    consola.info(ONBOARDING_URL);
-  }
+    consola.success(
+      `Installed ${releaseManifest.releaseTag} (${releaseManifest.image}) in ${projectDirectory}`,
+    );
 
-  const exit = await devProcessExit;
-  process.exitCode = exit.code ?? 0;
+    if (!options.start) {
+      consola.info(
+        `Start later with: cd ${projectName} && docker compose --env-file .env -f compose.yml up -d`,
+      );
+      return;
+    }
+
+    startAttempted = true;
+    await runCommand(
+      'docker',
+      ['compose', '--env-file', '.env', '-f', 'compose.yml', 'up', '-d'],
+      { cwd: projectDirectory },
+    );
+
+    consola.start('Waiting for Genfeed.ai to become ready…');
+    if (await waitForApp(fetchImplementation)) {
+      consola.success(`Genfeed.ai is running at ${APP_URL}`);
+      openBrowser(APP_URL);
+    } else {
+      consola.warn(`The containers started, but ${APP_URL} is not ready yet.`);
+    }
+  } catch (error) {
+    if (createdProjectDirectory && !startAttempted) {
+      await rm(projectDirectory, { force: true, recursive: true });
+    } else if (startAttempted) {
+      consola.warn(
+        `Startup failed. Installation files were preserved at ${projectDirectory} for inspection or recovery.`,
+      );
+    }
+    throw error;
+  } finally {
+    await rm(temporaryDirectory, { force: true, recursive: true });
+  }
 }
 
 async function main(): Promise<void> {
   const program = new Command()
     .name('genfeedai')
-    .description('Genfeed.ai — AI OS for content creation. Self-host for free.')
-    .version('0.2.0')
-    .argument('<project-name>', 'Directory name for the new project')
-    .action(async (projectName: string) => {
-      await scaffoldProject(projectName);
+    .description('Install a public Genfeed.ai Community release.')
+    .version(readPackageVersion())
+    .argument('<project-name>', 'Directory for the self-hosted installation')
+    .option('--release <tag>', 'Install an exact release (for example, v0.5.0)')
+    .option(
+      '--no-start',
+      'Prepare and verify the installation without starting it',
+    )
+    .action(async (projectName: string, options: CliOptions) => {
+      await installRelease(projectName, options);
     })
     .showHelpAfterError();
 
@@ -390,6 +440,18 @@ async function main(): Promise<void> {
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+function isMainModule(): boolean {
+  if (!process.argv[1]) {
+    return false;
+  }
+
+  try {
+    return realpathSync(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule()) {
   void main();
 }

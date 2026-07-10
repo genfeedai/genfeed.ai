@@ -25,9 +25,6 @@ import type { Request } from 'express';
 
 describe('LinkedInController', () => {
   let controller: LinkedInController;
-  let brandsService: BrandsService;
-  let credentialsService: CredentialsService;
-  let linkedInService: LinkedInService;
 
   const mockBrandsService = { findOne: vi.fn() };
   const mockCredentialsService = {
@@ -35,6 +32,7 @@ describe('LinkedInController', () => {
     findOne: vi.fn(),
     patch: vi.fn(),
     saveCredentials: vi.fn(),
+    updateExternalProfile: vi.fn(),
   };
   const mockLinkedInService = {
     exchangeAuthCodeForAccessToken: vi.fn(),
@@ -71,9 +69,6 @@ describe('LinkedInController', () => {
       .compile();
 
     controller = module.get<LinkedInController>(LinkedInController);
-    brandsService = module.get<BrandsService>(BrandsService);
-    credentialsService = module.get<CredentialsService>(CredentialsService);
-    linkedInService = module.get<LinkedInService>(LinkedInService);
   });
 
   it('should be defined', () => {
@@ -154,6 +149,10 @@ describe('LinkedInController', () => {
         id: credId,
         isConnected: true,
       });
+      mockCredentialsService.updateExternalProfile.mockResolvedValue({
+        id: credId,
+        isConnected: true,
+      });
 
       const result = await controller.verify(mockRequest, {
         code: 'auth-code',
@@ -165,10 +164,17 @@ describe('LinkedInController', () => {
         credId,
         expect.objectContaining({
           accessToken: 'linkedin-token',
-          externalHandle: 'John Doe',
-          externalId: 'li-user-123',
           isConnected: true,
           isDeleted: false,
+        }),
+      );
+      expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        credId,
+        orgId,
+        expect.objectContaining({
+          handle: 'John Doe',
+          id: 'li-user-123',
+          name: 'John Doe',
         }),
       );
     });

@@ -65,4 +65,21 @@ describe('ReviewItemCard', () => {
     expect(screen.getByText('5,400 views')).toBeInTheDocument();
     expect(screen.getByText('7.4% engagement')).toBeInTheDocument();
   });
+
+  it('keeps the selection control touch-safe on compact viewports', () => {
+    render(
+      <ReviewItemCard
+        isActive={false}
+        isSelected={false}
+        item={baseItem}
+        onSelect={vi.fn()}
+        onToggleSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Select item' })).toHaveClass(
+      'size-11',
+      'sm:size-7',
+    );
+  });
 });

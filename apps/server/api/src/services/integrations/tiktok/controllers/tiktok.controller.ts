@@ -206,18 +206,20 @@ export class TiktokController {
       );
 
       // Pass access_token directly to avoid race condition (no DB re-query)
-      const { userId: externalId, username: externalHandle } =
-        await this.tiktokService.getTiktokInfo(
-          organizationId,
-          brandId,
-          access_token,
-        );
+      const profile = await this.tiktokService.getTiktokInfo(
+        organizationId,
+        brandId,
+        access_token,
+      );
 
-      credential = await this.credentialsService.patch(
+      credential = await this.credentialsService.updateExternalProfile(
         credential.id.toString(),
+        organizationId,
         {
-          externalHandle,
-          externalId,
+          avatarUrl: profile.avatarUrl,
+          handle: profile.username,
+          id: profile.userId,
+          name: profile.displayName,
         },
       );
 

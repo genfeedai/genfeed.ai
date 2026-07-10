@@ -3,14 +3,23 @@ import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-cre
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
+import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform, FileInputType } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type PopulateInput = (string | PopulateOption)[] | 'none';
+
+export interface ExternalCredentialProfile {
+  avatarUrl?: string | null;
+  handle?: string | null;
+  id?: string | null;
+  name?: string | null;
+}
 
 @Injectable()
 export class CredentialsService extends BaseService<
@@ -22,6 +31,7 @@ export class CredentialsService extends BaseService<
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly cryptoService: CredentialCryptoService,
+    private readonly filesClientService: FilesClientService,
   ) {
     super(prisma, 'credential', logger);
   }
@@ -136,5 +146,71 @@ export class CredentialsService extends BaseService<
     }
 
     return this.create(entity as unknown as CreateCredentialDto);
+  }
+
+  /**
+   * Persist public provider identity and mirror its avatar into Genfeed-owned
+   * storage. OAuth remains successful when avatar import fails; in that case
+   * the previous S3 avatar is preserved and the UI uses its fallback.
+   */
+  async updateExternalProfile(
+    credentialId: string,
+    organizationId: string,
+    profile: ExternalCredentialProfile,
+  ): Promise<CredentialDocument> {
+    const credential = await this.findOne({
+      id: credentialId,
+      isDeleted: false,
+      organization: organizationId,
+    });
+
+    if (!credential) {
+      throw new Error(`Credential ${credentialId} not found`);
+    }
+
+    const update: Record<string, string> = {};
+
+    if (profile.handle) {
+      update.externalHandle = profile.handle;
+    }
+    if (profile.id) {
+      update.externalId = profile.id;
+    }
+    if (profile.name) {
+      update.externalName = profile.name;
+    }
+
+    if (profile.avatarUrl) {
+      try {
+        const parsedAvatarUrl = new URL(profile.avatarUrl);
+        if (!['http:', 'https:'].includes(parsedAvatarUrl.protocol)) {
+          throw new Error('Credential avatar URL must use http or https');
+        }
+        assertUrlNotPrivate(profile.avatarUrl);
+        const metadata = await this.filesClientService.uploadToS3(
+          credentialId,
+          'social-avatars',
+          {
+            type: FileInputType.URL,
+            url: profile.avatarUrl,
+          },
+        );
+
+        if (metadata.publicUrl) {
+          update.externalAvatar = metadata.publicUrl;
+        }
+      } catch (error: unknown) {
+        this.logger.warn('Failed to import credential avatar', {
+          credentialId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    if (Object.keys(update).length === 0) {
+      return credential;
+    }
+
+    return this.patch(credential.id, update);
   }
 }

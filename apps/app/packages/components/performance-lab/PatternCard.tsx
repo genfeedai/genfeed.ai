@@ -55,7 +55,7 @@ function ScoreBar({ score }: ScoreBarProps) {
       </div>
       <div className="h-1 w-full bg-white/[0.06]">
         <div
-          className={cn('h-full transition-all duration-300', colorClass)}
+          className={cn('h-full transition-[width] duration-300', colorClass)}
           style={{ width: `${clampedScore}%` }}
         />
       </div>
@@ -70,7 +70,7 @@ export default function PatternCard({ pattern }: PatternCardProps) {
   const previewExamples = pattern.examples.slice(0, 3);
 
   return (
-    <div className="border border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.03] transition-all duration-200 flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4 border border-border bg-card p-4 transition-colors duration-200 hover:border-border-strong hover:bg-background-secondary">
       {/* Header row: type badge + source badge + sample size */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">

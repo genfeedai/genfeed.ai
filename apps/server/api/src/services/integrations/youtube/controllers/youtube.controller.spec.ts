@@ -38,6 +38,7 @@ describe('YoutubeController', () => {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     saveCredentials: ReturnType<typeof vi.fn>;
+    updateExternalProfile: ReturnType<typeof vi.fn>;
   };
   let youtubeService: {
     exchangeCodeForTokens: ReturnType<typeof vi.fn>;
@@ -67,6 +68,17 @@ describe('YoutubeController', () => {
           Promise.resolve({ id: credentialId, ...data }),
         ),
       saveCredentials: vi.fn().mockResolvedValue({ id: credentialId }),
+      updateExternalProfile: vi
+        .fn()
+        .mockImplementation((_id, _organizationId, data) =>
+          Promise.resolve({
+            externalAvatar: data.avatarUrl,
+            externalHandle: data.handle,
+            externalId: data.id,
+            externalName: data.name,
+            id: credentialId,
+          }),
+        ),
     };
     youtubeService = {
       exchangeCodeForTokens: vi.fn().mockResolvedValue({
@@ -84,7 +96,11 @@ describe('YoutubeController', () => {
           'https://accounts.google.com/o/oauth2/v2/auth?scope=youtube',
         ),
       getChannelDetails: vi.fn().mockResolvedValue({
+        customUrl: '@mychannel',
         id: 'UCxxxxxx',
+        thumbnails: {
+          high: { url: 'https://youtube.example/avatar.jpg' },
+        },
         title: 'My Channel',
       }),
       getTrends: vi.fn().mockResolvedValue([{ title: 'trending video' }]),
@@ -178,6 +194,16 @@ describe('YoutubeController', () => {
           accessToken: 'yt_access',
           isConnected: true,
           refreshToken: 'yt_refresh',
+        }),
+      );
+      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        credentialId,
+        orgId,
+        expect.objectContaining({
+          avatarUrl: 'https://youtube.example/avatar.jpg',
+          handle: 'mychannel',
+          id: 'UCxxxxxx',
+          name: 'My Channel',
         }),
       );
     });

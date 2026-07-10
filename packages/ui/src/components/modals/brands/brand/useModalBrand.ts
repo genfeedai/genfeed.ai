@@ -81,6 +81,7 @@ const DEFAULT_BRAND_FORM_VALUES: BrandFormValues = {
   secondaryColor: THEME_COLORS.SECONDARY,
   slug: '',
   text: '',
+  websiteUrl: '',
 };
 
 export type OrganizationOption = {
@@ -355,6 +356,7 @@ export function useModalBrand(
         activeBrand.secondaryColor || DEFAULT_BRAND_FORM_VALUES.secondaryColor,
       slug: activeBrand.slug || '',
       text: activeBrand.text || '',
+      websiteUrl: '',
     });
   }, [activeBrand, form, overlayBrandId]);
 
@@ -695,8 +697,9 @@ export function useModalBrand(
     async (isOrganizationChange: boolean) => {
       try {
         const service = await getBrandsService();
+        const { websiteUrl = '', ...brandFormValues } = form.getValues();
         const formData = {
-          ...form.getValues(),
+          ...brandFormValues,
           isDeleted: false,
           isSelected: false,
         };
@@ -714,6 +717,50 @@ export function useModalBrand(
           const createdBrand = await service.post(
             new Brand(formData as Partial<IBrand>),
           );
+
+          if (websiteUrl.trim()) {
+            try {
+              const normalizedWebsiteUrl = websiteUrl.trim();
+              const linksService = await getLinksService();
+              await linksService.post({
+                brand: createdBrand.id,
+                category: LinkCategory.WEBSITE,
+                label: 'Website',
+                url: normalizedWebsiteUrl,
+              } as unknown as Partial<Link>);
+
+              const draft = await service.crawlBrandKitWebsite(
+                createdBrand.id,
+                { url: normalizedWebsiteUrl },
+              );
+              const bannerCandidate = draft.assetCandidates.find(
+                (candidate) => candidate.role === 'banner',
+              );
+
+              if (bannerCandidate) {
+                await service.importBrandKitAssets(createdBrand.id, {
+                  assets: [
+                    {
+                      candidateId: bannerCandidate.candidateId,
+                      label: bannerCandidate.label,
+                      mimeType: bannerCandidate.mimeType,
+                      replaceExisting: false,
+                      role: 'banner',
+                      sourceType: 'website',
+                      sourceUrl:
+                        bannerCandidate.sourceUrl ?? bannerCandidate.url,
+                    },
+                  ],
+                });
+              }
+            } catch (enrichmentError) {
+              logger.error(
+                'Brand created but website enrichment failed',
+                enrichmentError,
+              );
+            }
+          }
+
           const createdBrandDetail = await service.findOne(createdBrand.id);
           const createdBrandSlug =
             createdBrandDetail.slug || createdBrand.slug || '';
@@ -764,6 +811,7 @@ export function useModalBrand(
     [
       form,
       getBrandsService,
+      getLinksService,
       mutateBrand,
       onConfirm,
       onClose,

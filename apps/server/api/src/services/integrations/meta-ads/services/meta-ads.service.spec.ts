@@ -1,3 +1,7 @@
+import type { LoggerService } from '@libs/logger/logger.service';
+import { HttpService } from '@nestjs/axios';
+import { Test, TestingModule } from '@nestjs/testing';
+import { SERVER_TOKENS } from '@server/server.dependencies';
 import type {
   MetaAdAccount,
   MetaAdCreative,
@@ -6,12 +10,8 @@ import type {
   MetaInsightsData,
   MetaInsightsParams,
   MetaTopPerformer,
-} from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
-import { Test, TestingModule } from '@nestjs/testing';
+} from '@server/services/integrations/meta-ads/interfaces/meta-ads.interface';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import { of, throwError } from 'rxjs';
 
 describe('MetaAdsService', () => {
@@ -22,10 +22,6 @@ describe('MetaAdsService', () => {
   const mockAccessToken = 'EAABsbCS1iHgBO0ZCtest';
 
   beforeEach(async () => {
-    const mockConfigService = {
-      get: vi.fn(),
-    };
-
     const mockHttpService = {
       get: vi.fn(),
       post: vi.fn(),
@@ -41,15 +37,14 @@ describe('MetaAdsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MetaAdsService,
-        { provide: ConfigService, useValue: mockConfigService },
         { provide: HttpService, useValue: mockHttpService },
-        { provide: LoggerService, useValue: mockLoggerService },
+        { provide: SERVER_TOKENS.logger, useValue: mockLoggerService },
       ],
     }).compile();
 
     service = module.get<MetaAdsService>(MetaAdsService);
     httpService = module.get(HttpService);
-    loggerService = module.get(LoggerService);
+    loggerService = module.get(SERVER_TOKENS.logger);
   });
 
   afterEach(() => {

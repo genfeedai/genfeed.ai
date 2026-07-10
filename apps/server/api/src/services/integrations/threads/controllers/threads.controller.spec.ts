@@ -36,6 +36,7 @@ describe('ThreadsController', () => {
     findOne: vi.fn(),
     patch: vi.fn(),
     saveCredentials: vi.fn(),
+    updateExternalProfile: vi.fn(),
   };
   const mockThreadsService = {
     getAccountDetails: vi.fn(),

@@ -32,12 +32,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "api-types",
+    "directory": "packages/api-types",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && mkdir -p dist/generated && cp src/generated/api.d.ts dist/generated/api.d.ts && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "generate": "bun run scripts/generate.ts --skip-on-error",

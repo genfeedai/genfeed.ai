@@ -16,6 +16,13 @@ On macOS, verify with
 `shasum -a 256 -c genfeed-selfhosted.tar.gz.sha256`. The bundle includes a
 manifest and pins the exact image version associated with its GitHub release.
 
+The create package performs the same download, checksum, manifest, and Compose
+validation automatically:
+
+```bash
+npx @genfeedai/create my-genfeed
+```
+
 This starts:
 
 - **Web** (port 3000) — Studio UI

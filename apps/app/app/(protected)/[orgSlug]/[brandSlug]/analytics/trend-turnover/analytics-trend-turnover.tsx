@@ -257,7 +257,7 @@ export default function AnalyticsTrendTurnover() {
                 </div>
                 <div className="h-1.5 w-full bg-tertiary overflow-hidden">
                   <div
-                    className="h-full bg-primary transition-all duration-500"
+                    className="h-full bg-primary transition-[width] duration-500"
                     style={{ width: `${item.turnoverRate}%` }}
                   />
                 </div>

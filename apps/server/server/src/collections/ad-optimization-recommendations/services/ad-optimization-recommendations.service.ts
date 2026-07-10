@@ -1,22 +1,27 @@
+import type { AdOptimizationRecommendation as PrismaAdOptimizationRecommendation } from '@genfeedai/prisma';
+import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import type {
   AdOptimizationRecommendationDocument,
   RecommendationReviewStatus,
   RecommendationStatus,
   RecommendationType,
-} from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { AdOptimizationRecommendation as PrismaAdOptimizationRecommendation } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { ConflictException, Injectable } from '@nestjs/common';
+} from '@server/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
+import {
+  SERVER_TOKENS,
+  type ServerLogger,
+  type ServerPrisma,
+} from '@server/server.dependencies';
 
 @Injectable()
 export class AdOptimizationRecommendationsService {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly logger: LoggerService,
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: Pick<ServerPrisma, 'adOptimizationRecommendation'>,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly logger: ServerLogger,
   ) {}
 
   async createBatch(

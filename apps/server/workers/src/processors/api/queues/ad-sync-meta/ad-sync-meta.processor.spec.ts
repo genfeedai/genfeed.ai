@@ -1,6 +1,6 @@
-import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
-import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
+import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 import {
   AdSyncMetaProcessor,
   type MetaAdSyncJobData,

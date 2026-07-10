@@ -27,6 +27,7 @@ import {
   HiTrash,
 } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -113,7 +114,8 @@ function BrandsListContent() {
                 alt={brand.label}
                 className="size-8 rounded-lg object-cover"
                 src={brand.logoUrl}
-                unoptimized
+                sizes="32px"
+                unoptimized={!canOptimizeImageSource(brand.logoUrl)}
                 width={32}
                 height={32}
               />

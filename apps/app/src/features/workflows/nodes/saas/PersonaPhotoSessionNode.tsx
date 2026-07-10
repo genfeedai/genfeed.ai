@@ -19,6 +19,7 @@ import {
   ProcessingMessage,
 } from '@/features/workflows/components/ui/status';
 import { coerceNodeData } from '@/features/workflows/nodes/node-data';
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 /**
  * Camera icon for photo session nodes
@@ -120,10 +121,11 @@ function PersonaPhotoSessionNodeComponent(props: NodeProps): React.JSX.Element {
                 className="overflow-hidden bg-black/20 aspect-square"
               >
                 <Image
-                  unoptimized
                   src={url}
                   alt={`Generated ${index + 1}`}
                   className="h-full w-full object-cover"
+                  sizes="104px"
+                  unoptimized={!canOptimizeImageSource(url)}
                   width={800}
                   height={600}
                 />

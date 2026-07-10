@@ -256,6 +256,7 @@ export class ThreadsController {
         access_token,
       )) as {
         id?: string;
+        threads_profile_picture_url?: string;
         username?: string;
       };
 
@@ -271,17 +272,26 @@ export class ThreadsController {
       }
 
       // Update the credential with the access token
-      const credential = await this.credentialsService.patch(
+      let credential = await this.credentialsService.patch(
         existingCredential.id,
         {
           accessToken: access_token,
           accessTokenExpiry: expires_in
             ? new Date(Date.now() + expires_in * 1000)
             : undefined,
-          externalHandle: accountDetails?.username,
-          externalId: userId || accountDetails?.id,
           isConnected: true,
           isDeleted: false,
+        },
+      );
+
+      credential = await this.credentialsService.updateExternalProfile(
+        credential.id,
+        organizationId,
+        {
+          avatarUrl: accountDetails?.threads_profile_picture_url,
+          handle: accountDetails?.username,
+          id: userId || accountDetails?.id,
+          name: accountDetails?.username,
         },
       );
 

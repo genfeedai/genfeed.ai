@@ -1,3 +1,11 @@
+import {
+  getIntegrationProviderDefinition,
+  IntegrationHttpClient,
+} from '@genfeedai/integrations';
+import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { HttpService } from '@nestjs/axios';
+import { Inject, Injectable } from '@nestjs/common';
+import { SERVER_TOKENS, type ServerLogger } from '@server/server.dependencies';
 import type {
   CreateAdParams,
   CreateAdSetParams,
@@ -14,16 +22,7 @@ import type {
   MetaVideoUploadResponse,
   UpdateAdSetParams,
   UpdateCampaignParams,
-} from '@api/services/integrations/meta-ads/interfaces/meta-ads.interface';
-import {
-  getIntegrationProviderDefinition,
-  IntegrationHttpClient,
-} from '@genfeedai/integrations';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+} from '@server/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -36,9 +35,9 @@ export class MetaAdsService {
   private readonly integrationHttpClient: IntegrationHttpClient;
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly httpService: HttpService,
-    private readonly loggerService: LoggerService,
+    @Inject(SERVER_TOKENS.logger)
+    private readonly loggerService: ServerLogger,
   ) {
     this.integrationHttpClient = new IntegrationHttpClient({
       fetch: (input, init) => this.fetchViaHttpService(input, init),

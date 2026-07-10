@@ -1,4 +1,59 @@
+import { CredentialPlatform } from '@genfeedai/enums';
+
 export class SocialUrlHelper {
+  static buildProfileUrl(
+    platform: CredentialPlatform,
+    handle?: string | null,
+    externalId?: string | null,
+  ): string | undefined {
+    const cleanHandle = handle?.trim().replace(/^@/, '');
+
+    switch (platform) {
+      case CredentialPlatform.YOUTUBE:
+        return externalId
+          ? `https://www.youtube.com/channel/${externalId}`
+          : cleanHandle
+            ? `https://www.youtube.com/@${cleanHandle}`
+            : undefined;
+      case CredentialPlatform.TIKTOK:
+        return cleanHandle
+          ? `https://www.tiktok.com/@${cleanHandle}`
+          : undefined;
+      case CredentialPlatform.INSTAGRAM:
+        return cleanHandle
+          ? `https://www.instagram.com/${cleanHandle}`
+          : undefined;
+      case CredentialPlatform.TWITTER:
+        return cleanHandle ? `https://x.com/${cleanHandle}` : undefined;
+      case CredentialPlatform.LINKEDIN:
+        return cleanHandle && !/\s/.test(cleanHandle)
+          ? `https://www.linkedin.com/in/${cleanHandle}`
+          : undefined;
+      case CredentialPlatform.FACEBOOK:
+        return externalId
+          ? `https://www.facebook.com/${externalId}`
+          : undefined;
+      case CredentialPlatform.PINTEREST:
+        return cleanHandle
+          ? `https://www.pinterest.com/${cleanHandle}`
+          : undefined;
+      case CredentialPlatform.REDDIT:
+        return cleanHandle
+          ? `https://www.reddit.com/user/${cleanHandle}`
+          : undefined;
+      case CredentialPlatform.THREADS:
+        return cleanHandle
+          ? `https://www.threads.net/@${cleanHandle}`
+          : undefined;
+      case CredentialPlatform.FANVUE:
+        return cleanHandle
+          ? `https://www.fanvue.com/${cleanHandle}`
+          : undefined;
+      default:
+        return undefined;
+    }
+  }
+
   static buildTwitterUrl(tweetId: string, username: string): string {
     if (!tweetId) {
       throw new Error('Tweet ID is required');

@@ -41,21 +41,7 @@
     }
   },
   "files": [
-    "dist",
-    "src/index.ts",
-    "src/async/sleep",
-    "src/async/sleep.helper.ts",
-    "src/aspect-ratio.helper.ts",
-    "src/business/pricing/pricing.helper.ts",
-    "src/business/tier-models/tier-models.helper.ts",
-    "src/deserializer.helper.ts",
-    "src/formatting/cn",
-    "src/model-capability.helper.ts",
-    "src/quality-routing.helper.ts",
-    "src/serializer.helper.ts",
-    "src/social-url.helper.ts",
-    "src/types/model-like.type.ts",
-    "src/video-duration.helper.ts"
+    "dist"
   ],
   "license": "MIT",
   "main": "./dist/index.js",
@@ -66,12 +52,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "helpers",
+    "directory": "packages/helpers",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "deps:update": "bunx npm-check-updates -u && bun install",
     "dev": "tsc --watch",
@@ -84,5 +70,5 @@
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",
-  "version": "2.2.12"
+  "version": "2.2.13"
 }

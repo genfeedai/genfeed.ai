@@ -77,7 +77,7 @@ describe('AgentRunCard', () => {
     expect(screen.getByText('x2')).toBeVisible();
     expect(screen.getByText('generateImage')).toBeVisible();
     expect(screen.getByText('1m 5s')).toBeVisible();
-    expect(document.querySelector('.bg-blue-500')).toHaveStyle({
+    expect(document.querySelector('.bg-info')).toHaveStyle({
       width: '35%',
     });
 

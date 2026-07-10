@@ -1,8 +1,45 @@
+import { CredentialPlatform } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 import { SocialUrlHelper } from './social-url.helper';
 
 describe('SocialUrlHelper', () => {
+  describe('buildProfileUrl', () => {
+    it('prefers the stable YouTube channel id', () => {
+      expect(
+        SocialUrlHelper.buildProfileUrl(
+          CredentialPlatform.YOUTUBE,
+          '@genfeed',
+          'channel-1',
+        ),
+      ).toBe('https://www.youtube.com/channel/channel-1');
+    });
+
+    it('normalizes account handles for profile routes', () => {
+      expect(
+        SocialUrlHelper.buildProfileUrl(CredentialPlatform.TWITTER, '@genfeed'),
+      ).toBe('https://x.com/genfeed');
+      expect(
+        SocialUrlHelper.buildProfileUrl(CredentialPlatform.THREADS, '@genfeed'),
+      ).toBe('https://www.threads.net/@genfeed');
+    });
+
+    it('returns undefined when a reliable profile route cannot be built', () => {
+      expect(
+        SocialUrlHelper.buildProfileUrl(CredentialPlatform.MASTODON, 'genfeed'),
+      ).toBeUndefined();
+      expect(
+        SocialUrlHelper.buildProfileUrl(CredentialPlatform.INSTAGRAM),
+      ).toBeUndefined();
+      expect(
+        SocialUrlHelper.buildProfileUrl(
+          CredentialPlatform.LINKEDIN,
+          'Jane Founder',
+        ),
+      ).toBeUndefined();
+    });
+  });
+
   describe('buildTwitterUrl', () => {
     it('builds a valid Twitter/X URL', () => {
       expect(SocialUrlHelper.buildTwitterUrl('123456', 'testuser')).toBe(

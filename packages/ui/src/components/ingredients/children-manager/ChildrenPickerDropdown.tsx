@@ -47,7 +47,7 @@ export default function ChildrenPickerDropdown({
       />
 
       {isDropdownOpen && (
-        <div className="absolute top-full mt-2 left-0 z-50 bg-card shadow-dropdown p-3 min-w-96 max-w-2xl">
+        <div className="absolute left-0 top-full z-50 mt-2 w-[min(32rem,calc(100vw-2rem))] bg-card p-3 shadow-dropdown">
           <div className="text-xs text-foreground/70 mb-2 font-medium">
             Select {parentIngredientCategory}s to add as children
           </div>
@@ -61,14 +61,14 @@ export default function ChildrenPickerDropdown({
               No available {parentIngredientCategory}s to add
             </div>
           ) : (
-            <div className="grid grid-cols-6 gap-2 max-h-72 overflow-y-auto">
+            <div className="grid max-h-72 grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-2 overflow-y-auto">
               {availableIngredients.map((ingredient: IIngredient) => {
                 const metadata = ingredient.metadata as IMetadata;
 
                 return (
                   <Button
                     key={ingredient.id}
-                    className="relative group block cursor-pointer text-left transition-all"
+                    className="group relative block cursor-pointer text-left focus-visible:outline-none"
                     onClick={() => onAddChild(ingredient.id)}
                     title={
                       metadata.label ||
@@ -78,7 +78,7 @@ export default function ChildrenPickerDropdown({
                     variant={ButtonVariant.UNSTYLED}
                     withWrapper={false}
                   >
-                    <div className="relative size-16 overflow-hidden border-2 border-transparent hover:border-primary transition-all hover:scale-105">
+                    <div className="relative size-16 overflow-hidden border-2 border-transparent transition-[border-color,transform] duration-200 group-hover:scale-105 group-hover:border-primary group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-background">
                       {isVideo ? (
                         <div className="size-full bg-background">
                           <VideoPlayer

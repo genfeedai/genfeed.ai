@@ -42,6 +42,7 @@ describe('FacebookController', () => {
     }),
     patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
     saveCredentials: vi.fn(),
+    updateExternalProfile: vi.fn().mockResolvedValue({ id: 'cred-1' }),
   };
 
   const mockBrandsService = {

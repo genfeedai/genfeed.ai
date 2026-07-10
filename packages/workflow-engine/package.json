@@ -5,6 +5,7 @@
     "recheck": "4.5.0"
   },
   "devDependencies": {
+    "tsup": "8.5.1",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -50,8 +51,7 @@
     }
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "main": "./dist/index.js",
   "license": "AGPL-3.0",
@@ -62,18 +62,19 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup src/index.ts src/execution/index.ts src/executors/index.ts src/presets/index.ts src/services/index.ts src/templates/index.ts src/utils/index.ts src/validation/index.ts --format esm --dts --clean --sourcemap",
+    "clean": "rm -rf dist",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
-    "dev": "tsc --watch",
+    "dev": "tsup src/index.ts src/execution/index.ts src/executors/index.ts src/presets/index.ts src/services/index.ts src/templates/index.ts src/utils/index.ts src/validation/index.ts --format esm --dts --watch --sourcemap",
     "prepublishOnly": "bun run build",
     "test": "vitest run"
   },
   "repository": {
-    "directory": "workflow-engine",
+    "directory": "packages/workflow-engine",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",
-  "version": "0.2.0"
+  "version": "0.2.1"
 }

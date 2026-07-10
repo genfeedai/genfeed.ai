@@ -3,7 +3,7 @@ import {
   CTA_PATTERN_CATEGORIES,
   HEADLINE_PATTERN_CATEGORIES,
   SPEND_BUCKETS,
-} from '@api/collections/ad-performance/utils/ad-performance-benchmark.util';
+} from '@server/collections/ad-performance/utils/ad-performance-benchmark.util';
 import { describe, expect, it } from 'vitest';
 
 describe('buildAdPerformanceBenchmarkFields', () => {

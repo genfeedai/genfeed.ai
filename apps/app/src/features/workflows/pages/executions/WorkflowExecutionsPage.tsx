@@ -295,7 +295,7 @@ export default function WorkflowExecutionsPage() {
                           <div className="flex items-center gap-2">
                             <div className="h-2 w-16 rounded-full bg-muted">
                               <div
-                                className="h-full rounded-full bg-primary transition-all"
+                                className="h-full rounded-full bg-primary transition-[width]"
                                 style={{
                                   width: `${execution.progress}%`,
                                 }}

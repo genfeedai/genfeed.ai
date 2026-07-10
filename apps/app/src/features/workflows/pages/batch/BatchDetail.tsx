@@ -15,6 +15,7 @@ import type {
   BatchJobStatus,
   WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 type OutputEntry = {
   ingredient: IIngredient;
@@ -141,7 +142,7 @@ export default function BatchDetail({
 
         <div className="mt-5 h-2 overflow-hidden rounded-full bg-muted">
           <div
-            className="h-full rounded-full bg-primary transition-all"
+            className="h-full rounded-full bg-primary transition-[width]"
             style={{ width: `${getProgressPercent(activeBatchStatus)}%` }}
           />
         </div>
@@ -273,10 +274,13 @@ export default function BatchDetail({
                 <div className="relative aspect-video bg-muted/50">
                   {ingredient?.thumbnailUrl ? (
                     <Image
-                      unoptimized
                       src={ingredient.thumbnailUrl}
                       alt={`Output ${ingredient.id}`}
                       className="h-full w-full object-cover"
+                      sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
+                      unoptimized={
+                        !canOptimizeImageSource(ingredient.thumbnailUrl)
+                      }
                       width={800}
                       height={600}
                     />

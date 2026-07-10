@@ -329,6 +329,11 @@ describe('Serializer Attributes', () => {
       const unique = new Set(apiKeyFullAttributes);
       expect(unique.size).toBe(apiKeyFullAttributes.length);
     });
+
+    it('exposes the one-time key without a stale token alias', () => {
+      expect(apiKeyFullAttributes).toContain('key');
+      expect(apiKeyFullAttributes).not.toContain('token');
+    });
   });
 
   describe('apiKeyAttributes', () => {
@@ -343,6 +348,11 @@ describe('Serializer Attributes', () => {
     it('should not contain duplicates', () => {
       const unique = new Set(apiKeyAttributes);
       expect(unique.size).toBe(apiKeyAttributes.length);
+    });
+
+    it('excludes sensitive key material', () => {
+      expect(apiKeyAttributes).not.toContain('key');
+      expect(apiKeyAttributes).not.toContain('token');
     });
   });
 
@@ -604,6 +614,15 @@ describe('Serializer Attributes', () => {
     it('should not contain duplicates', () => {
       const unique = new Set(credentialAttributes);
       expect(unique.size).toBe(credentialAttributes.length);
+    });
+
+    it('exposes public profile identity without credential secrets', () => {
+      expect(credentialAttributes).toEqual(
+        expect.arrayContaining(['externalAvatar', 'externalName']),
+      );
+      expect(credentialAttributes).not.toEqual(
+        expect.arrayContaining(['accessToken', 'oauthToken', 'refreshToken']),
+      );
     });
   });
 

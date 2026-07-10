@@ -181,7 +181,7 @@ export default function StudioClipsPage() {
                     variant={ButtonVariant.UNSTYLED}
                     isDisabled={opt.disabled}
                     onClick={() => setAvatarProvider(opt.value)}
-                    className={`relative rounded-lg border px-3 py-2 text-left transition-all ${
+                    className={`relative rounded-lg border px-3 py-2 text-left transition-colors ${
                       avatarProvider === opt.value
                         ? 'border-primary bg-primary/10'
                         : opt.disabled

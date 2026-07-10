@@ -144,7 +144,7 @@ export default function AgentRunCard({ run, onCancel }: AgentRunCardProps) {
       {isActive && (
         <div className="h-1 w-full overflow-hidden bg-muted">
           <div
-            className="h-full bg-blue-500 transition-all duration-500"
+            className="h-full bg-info transition-[width] duration-500"
             style={{ width: `${run.progress}%` }}
           />
         </div>

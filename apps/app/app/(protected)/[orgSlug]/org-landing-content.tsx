@@ -22,6 +22,7 @@ import {
   HiPlus,
 } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
   const cardHref = createBrandAppRoute(
@@ -41,8 +42,9 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
             alt={brand.label}
             className="size-10 rounded-lg object-cover"
             height={40}
+            sizes="40px"
             src={brand.logoUrl}
-            unoptimized
+            unoptimized={!canOptimizeImageSource(brand.logoUrl)}
             width={40}
           />
         ) : (
