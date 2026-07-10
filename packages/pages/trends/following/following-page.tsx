@@ -270,7 +270,7 @@ export default function FollowingPage() {
     <Container>
       <SectionTopbar
         title="Following"
-        description="Collected posts from cross-social accounts followed by this brand."
+        subtitle="Collected posts from cross-social accounts followed by this brand."
       />
       <SocialsNavigation active="following" />
 
