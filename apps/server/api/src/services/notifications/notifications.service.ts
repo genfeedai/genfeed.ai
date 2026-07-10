@@ -241,6 +241,34 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
+  sendReviewGatePendingEmail(input: {
+    to: string;
+    workflowId: string;
+    workflowLabel: string;
+    executionId: string;
+    nodeId: string;
+    reviewUrl?: string;
+    captionPreview?: string;
+    organizationId?: string;
+    userId?: string;
+  }): Promise<void> {
+    return this.sendNotification({
+      action: 'review_gate_pending',
+      organizationId: input.organizationId,
+      payload: input,
+      type: 'email',
+      userId: input.userId,
+    });
+  }
+
+  sendReviewGatePendingSlack(chatId: string, message: string): Promise<void> {
+    return this.sendNotification({
+      action: 'send_message',
+      payload: { chatId, message },
+      type: 'slack',
+    });
+  }
+
   sendVideoStatusEmail(input: {
     to: string;
     status: 'completed' | 'failed';

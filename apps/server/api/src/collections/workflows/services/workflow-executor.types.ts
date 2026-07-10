@@ -71,6 +71,21 @@ export interface PendingReviewGateState {
   inputCaption: string | null;
   rawMedia?: unknown;
   rawCaption?: unknown;
+  /**
+   * Node config captured at pause time so the timeout sweep and the reviewer
+   * notifier never need to re-read the workflow document to resolve behavior.
+   */
+  timeoutHours: number;
+  autoApproveIfNoResponse: boolean;
+  notifyChannels: string[];
+  notifyEmail?: string;
+  webhookUrl?: string;
+  slackChannel?: string;
+  /**
+   * Id of the task-inbox task created for this pending review, if any, so
+   * resolution (approve / reject / timeout) can close it.
+   */
+  taskId?: string;
 }
 
 export interface ReviewGateApprovalResult {
@@ -80,6 +95,13 @@ export interface ReviewGateApprovalResult {
   approvedBy: string;
   approvedAt: string;
   rejectionReason?: string;
+}
+
+/** Outcome of an automatic timeout resolution performed by the sweep. */
+export interface ReviewGateTimeoutResolution {
+  executionId: string;
+  nodeId: string;
+  resolution: 'approved' | 'rejected';
 }
 
 export interface ExecuteWorkflowDocumentOptions {

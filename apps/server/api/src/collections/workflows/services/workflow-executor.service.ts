@@ -1,5 +1,9 @@
-import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import {
+  type PendingReviewGateExecution,
+  WorkflowExecutionsService,
+} from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionFinalizerService } from '@api/collections/workflows/services/workflow-execution-finalizer.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
@@ -11,6 +15,7 @@ import {
 import type {
   DelayResumeJobData,
   ReviewGateApprovalResult,
+  ReviewGateTimeoutResolution,
   TriggerEvent,
   WorkflowExecutionResult,
 } from '@api/collections/workflows/services/workflow-executor.types';
@@ -67,6 +72,8 @@ export class WorkflowExecutorService {
     private readonly executionsService: WorkflowExecutionsService,
     @Optional()
     private readonly websocketService?: NotificationsPublisherService,
+    @Optional()
+    private readonly reviewGateNotifier?: ReviewGateNotificationService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -88,6 +95,7 @@ export class WorkflowExecutorService {
       this.graphService,
       this.progressService,
       this.finalizer,
+      this.reviewGateNotifier,
     );
     this.nodeProgressTracker = new WorkflowNodeProgressTrackerService(
       this.progressService,
@@ -248,6 +256,34 @@ export class WorkflowExecutorService {
       approved,
       rejectionReason,
     );
+  }
+
+  /**
+   * Auto-resolve a review gate whose reviewer timeout has elapsed. Invoked by
+   * the workers-side review-gate timeout sweep.
+   */
+  async resolveTimedOutReviewGate(
+    workflowId: string,
+    executionId: string,
+    organizationId: string,
+    nodeId: string,
+  ): Promise<ReviewGateTimeoutResolution | null> {
+    return this.reviewGateService.resolveTimedOutReviewGate(
+      workflowId,
+      executionId,
+      organizationId,
+      nodeId,
+    );
+  }
+
+  /**
+   * Passthrough for the workers timeout sweep — workers must not import the
+   * @api workflow-executions service directly (#1090 import boundary).
+   */
+  async findPendingReviewGateExecutions(): Promise<
+    PendingReviewGateExecution[]
+  > {
+    return this.executionsService.findPendingReviewGateExecutions();
   }
 
   async resumeAfterDelay(

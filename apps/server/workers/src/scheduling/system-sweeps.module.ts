@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
+import { CronReviewGateModule } from '@workers/crons/review-gate/cron.review-gate.module';
 import { CronStreaksModule } from '@workers/crons/streaks/cron.streaks.module';
 import { CronTiktokModule } from '@workers/crons/tiktok/cron.tiktok.module';
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
@@ -23,6 +24,7 @@ import { SystemSweepsProcessor } from '@workers/scheduling/system-sweeps.process
       name: SYSTEM_SWEEPS_QUEUE,
     }),
     CronPostsModule,
+    CronReviewGateModule,
     CronStreaksModule,
     CronTiktokModule,
     CronYoutubeModule,

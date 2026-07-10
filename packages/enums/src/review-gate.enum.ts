@@ -9,4 +9,5 @@ export enum NotificationChannel {
   EMAIL = 'email',
   WEBHOOK = 'webhook',
   SLACK = 'slack',
+  TASK_INBOX = 'task-inbox',
 }

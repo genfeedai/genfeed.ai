@@ -1,6 +1,7 @@
 import { IngredientCategory } from '@genfeedai/enums';
 import type {
   ICrmLeadOutreachEmailPayload,
+  IReviewGatePendingEmailPayload,
   IVideoStatusEmailPayload,
   IWorkflowStatusEmailPayload,
 } from '@genfeedai/interfaces';
@@ -338,9 +339,20 @@ export class NotificationHandlerService implements OnModuleInit {
         if (
           'to' in payload &&
           'workflowId' in payload &&
-          'workflowLabel' in payload
+          'workflowLabel' in payload &&
+          'status' in payload
         ) {
           await this.sendWorkflowStatusEmail(payload);
+        }
+        break;
+
+      case 'review_gate_pending':
+        if (
+          'to' in payload &&
+          'workflowLabel' in payload &&
+          'executionId' in payload
+        ) {
+          await this.sendReviewGatePendingEmail(payload);
         }
         break;
 
@@ -514,6 +526,39 @@ export class NotificationHandlerService implements OnModuleInit {
       text: isFailure
         ? `Your workflow ${workflowLabel} failed${payload.error ? `: ${String(payload.error)}` : '.'}`
         : `Your workflow ${workflowLabel} completed successfully.`,
+      to: String(payload.to || ''),
+    });
+  }
+
+  private async sendReviewGatePendingEmail(
+    payload: IReviewGatePendingEmailPayload,
+  ): Promise<void> {
+    const workflowLabel = String(payload.workflowLabel || 'workflow');
+    const subject = `Review needed: ${workflowLabel}`;
+    const captionPreview =
+      typeof payload.captionPreview === 'string' && payload.captionPreview
+        ? `<blockquote>${this.escapeHtml(payload.captionPreview)}</blockquote>`
+        : '';
+    const body = `<p>A step in your workflow <strong>${this.escapeHtml(
+      workflowLabel,
+    )}</strong> is waiting for your review before it can continue.</p>${captionPreview}`;
+    const reviewUrl =
+      typeof payload.reviewUrl === 'string' && payload.reviewUrl.length > 0
+        ? payload.reviewUrl
+        : undefined;
+
+    await this.resendService.sendEmail({
+      html: this.wrapEmailTemplate({
+        body,
+        ctaLabel: reviewUrl ? 'Open Review' : undefined,
+        ctaUrl: reviewUrl,
+        title: subject,
+      }),
+      idempotencyKey: `review-gate-pending/${String(
+        payload.executionId || workflowLabel,
+      )}/${String(payload.nodeId || '')}`,
+      subject,
+      text: `A step in your workflow ${workflowLabel} is waiting for your review before it can continue.`,
       to: String(payload.to || ''),
     });
   }
