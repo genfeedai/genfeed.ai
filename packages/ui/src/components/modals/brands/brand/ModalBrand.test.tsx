@@ -19,6 +19,23 @@ const findBrandMock = vi.fn().mockResolvedValue({
   label: 'Acme',
   slug: 'acme',
 });
+const crawlBrandKitMock = vi.fn().mockResolvedValue({
+  assetCandidates: [
+    {
+      candidateId: 'banner-1',
+      label: 'Website banner',
+      role: 'banner',
+      sourceUrl: 'https://acme.test/og.jpg',
+    },
+  ],
+});
+const importBrandKitAssetsMock = vi.fn().mockResolvedValue({
+  importedAssetIds: ['asset-1'],
+  status: 'accepted',
+});
+const formValues = vi.hoisted(() => ({
+  current: {} as Record<string, string>,
+}));
 
 vi.mock('@ui/overlays/entity/EntityOverlayShell', () => ({
   __esModule: true,
@@ -140,14 +157,20 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   default: () => () =>
     Promise.resolve({
       findOne: findBrandMock,
+      crawlBrandKitWebsite: crawlBrandKitMock,
+      importBrandKitAssets: importBrandKitAssetsMock,
       patch: vi.fn(),
       post: postBrandMock,
+      scrape: vi.fn(),
     }),
   useAuthedService: () => () =>
     Promise.resolve({
       findOne: findBrandMock,
+      crawlBrandKitWebsite: crawlBrandKitMock,
+      importBrandKitAssets: importBrandKitAssetsMock,
       patch: vi.fn(),
       post: postBrandMock,
+      scrape: vi.fn(),
     }),
 }));
 
@@ -250,7 +273,9 @@ vi.mock('react-hook-form', () => ({
   useForm: () => ({
     control: {},
     formState: { errors: {}, isValid: true },
-    getValues: vi.fn((name?: string) => (name ? '' : {})),
+    getValues: vi.fn((name?: string) =>
+      name ? (formValues.current[name] ?? '') : formValues.current,
+    ),
     handleSubmit: vi.fn((fn) => fn),
     register: vi.fn(),
     reset: vi.fn(),
@@ -269,6 +294,9 @@ describe('ModalBrand', () => {
     pushMock.mockReset();
     postBrandMock.mockClear();
     findBrandMock.mockClear();
+    crawlBrandKitMock.mockClear();
+    importBrandKitAssetsMock.mockClear();
+    formValues.current = {};
   });
 
   it('renders the create brand form in a dialog', () => {
@@ -290,6 +318,41 @@ describe('ModalBrand', () => {
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith('/acme-org/acme/settings');
+    });
+  });
+
+  it('stores and imports a website banner when creating a brand', async () => {
+    formValues.current = {
+      label: 'Acme',
+      slug: 'acme',
+      websiteUrl: 'https://acme.test',
+    };
+    render(<ModalBrand {...defaultProps} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create brand' }));
+
+    await waitFor(() => {
+      expect(postBrandMock).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          brand: 'brand-created',
+          category: 'website',
+          url: 'https://acme.test',
+        }),
+      );
+      expect(crawlBrandKitMock).toHaveBeenCalledWith('brand-created', {
+        url: 'https://acme.test',
+      });
+      expect(importBrandKitAssetsMock).toHaveBeenCalledWith('brand-created', {
+        assets: [
+          expect.objectContaining({
+            candidateId: 'banner-1',
+            replaceExisting: false,
+            role: 'banner',
+            sourceUrl: 'https://acme.test/og.jpg',
+          }),
+        ],
+      });
     });
   });
 

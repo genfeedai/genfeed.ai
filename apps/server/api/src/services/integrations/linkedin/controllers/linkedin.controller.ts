@@ -134,15 +134,25 @@ export class LinkedInController {
 
       // Update the credential with the access token
       // If reconnecting the same account, reactivate previously deleted credential
-      const credential = await this.credentialsService.patch(
+      let credential = await this.credentialsService.patch(
         existingCredential.id,
         {
           accessToken,
-          externalHandle: `${profile.firstName} ${profile.lastName}`,
-          externalId: profile.id,
           isConnected: true,
           isDeleted: false, // Reactivate if previously disconnected
           refreshTokenExpiry: expiryDate,
+        },
+      );
+
+      const profileName = `${profile.firstName} ${profile.lastName}`.trim();
+      credential = await this.credentialsService.updateExternalProfile(
+        credential.id,
+        organizationId,
+        {
+          avatarUrl: profile.picture,
+          handle: profileName,
+          id: profile.id,
+          name: profileName,
         },
       );
 

@@ -17,6 +17,8 @@ export class BaseCredential extends BaseEntity implements ICredential {
   public declare brand: string;
   public declare externalId: string;
   public declare externalHandle: string;
+  public declare externalName?: string;
+  public declare externalAvatar?: string;
   public declare handle: string;
   public declare label: string;
   public declare description?: string;

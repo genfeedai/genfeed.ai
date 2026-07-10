@@ -3,7 +3,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AssessAccountHealthDto } from '@api/collections/credentials/dto/assess-account-health.dto';
 import { ManualAccountHealthOverrideDto } from '@api/collections/credentials/dto/manual-account-health-override.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
-import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
@@ -496,8 +495,10 @@ export class CredentialsController {
       'accessTokenExpiry',
       'accessTokenSecret',
       'description',
+      'externalAvatar',
       'externalHandle',
       'externalId',
+      'externalName',
       'isConnected',
       'isDeleted',
       'label',
@@ -522,10 +523,35 @@ export class CredentialsController {
       }
     });
 
-    const data: CredentialDocument = await this.credentialsService.patch(
-      credential.id,
-      sanitizedUpdate as Partial<UpdateCredentialDto>,
-    );
+    const {
+      externalAvatar,
+      externalHandle,
+      externalId,
+      externalName,
+      ...credentialUpdate
+    } = sanitizedUpdate;
+
+    let data: CredentialDocument = credential;
+
+    if (Object.keys(credentialUpdate).length > 0) {
+      data = await this.credentialsService.patch(
+        credential.id,
+        credentialUpdate as Partial<UpdateCredentialDto>,
+      );
+    }
+
+    if (externalAvatar || externalHandle || externalId || externalName) {
+      data = await this.credentialsService.updateExternalProfile(
+        credential.id,
+        publicMetadata.organization,
+        {
+          avatarUrl: externalAvatar,
+          handle: externalHandle,
+          id: externalId,
+          name: externalName,
+        },
+      );
+    }
 
     return data
       ? serializeSingle(request, CredentialSerializer, data)

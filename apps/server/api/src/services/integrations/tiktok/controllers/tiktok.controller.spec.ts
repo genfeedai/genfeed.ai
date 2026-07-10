@@ -31,6 +31,7 @@ describe('TiktokController', () => {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     saveCredentials: ReturnType<typeof vi.fn>;
+    updateExternalProfile: ReturnType<typeof vi.fn>;
   };
   let tiktokService: {
     getTiktokInfo: ReturnType<typeof vi.fn>;
@@ -56,9 +57,22 @@ describe('TiktokController', () => {
           Promise.resolve({ id: credentialId, ...data }),
         ),
       saveCredentials: vi.fn().mockResolvedValue({ id: credentialId }),
+      updateExternalProfile: vi
+        .fn()
+        .mockImplementation((_id, _organizationId, data) =>
+          Promise.resolve({
+            externalAvatar: data.avatarUrl,
+            externalHandle: data.handle,
+            externalId: data.id,
+            externalName: data.name,
+            id: credentialId,
+          }),
+        ),
     };
     tiktokService = {
       getTiktokInfo: vi.fn().mockResolvedValue({
+        avatarUrl: 'https://tiktok.example/avatar.jpg',
+        displayName: 'TikTok Creator',
         userId: 'tiktok_ext_id',
         username: 'tiktok_handle',
       }),
@@ -182,6 +196,16 @@ describe('TiktokController', () => {
         expect.objectContaining({
           externalHandle: 'tiktok_handle',
           externalId: 'tiktok_ext_id',
+        }),
+      );
+      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        credentialId,
+        orgId,
+        expect.objectContaining({
+          avatarUrl: 'https://tiktok.example/avatar.jpg',
+          handle: 'tiktok_handle',
+          id: 'tiktok_ext_id',
+          name: 'TikTok Creator',
         }),
       );
     });

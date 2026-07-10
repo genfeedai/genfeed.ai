@@ -9,6 +9,8 @@ import type {
   IArticle,
   IBrandKitApplyRequest,
   IBrandKitApplyResult,
+  IBrandKitAssetImportRequest,
+  IBrandKitAssetImportResponse,
   IBrandKitDraft,
   IBrandKitManualInput,
   IBrandSetupRequest,
@@ -286,6 +288,18 @@ export class BrandsService extends BaseService<Brand> {
   ): Promise<IBrandKitApplyResult> {
     return await this.instance
       .post<{ data: IBrandKitApplyResult }>(`/${id}/brand-kit/apply`, data)
+      .then((res) => res.data.data);
+  }
+
+  public async importBrandKitAssets(
+    id: string,
+    data: IBrandKitAssetImportRequest,
+  ): Promise<IBrandKitAssetImportResponse> {
+    return await this.instance
+      .post<{ data: IBrandKitAssetImportResponse }>(
+        `/${id}/brand-kit/assets/import`,
+        data,
+      )
       .then((res) => res.data.data);
   }
 

@@ -2,7 +2,8 @@ import { AccountHealthService } from '@api/collections/credentials/services/acco
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { Module } from '@nestjs/common';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -11,6 +12,7 @@ import { Module } from '@nestjs/common';
     CredentialCryptoService,
     CredentialsService,
   ],
+  imports: [forwardRef(() => FilesClientModule)],
   providers: [
     AccountHealthService,
     AccountPublishingContextService,

@@ -31,9 +31,6 @@ import type { Request } from 'express';
 
 describe('TwitterController', () => {
   let controller: TwitterController;
-  let brandsService: BrandsService;
-  let credentialsService: CredentialsService;
-  let twitterService: TwitterService;
 
   const mockBrandsService = {
     findOne: vi.fn(),
@@ -43,6 +40,9 @@ describe('TwitterController', () => {
     findOne: vi.fn(),
     patch: vi.fn().mockResolvedValue({ id: 'cred', isConnected: true }),
     saveCredentials: vi.fn(),
+    updateExternalProfile: vi
+      .fn()
+      .mockResolvedValue({ id: 'cred', isConnected: true }),
   };
 
   const mockTwitterService = {
@@ -63,9 +63,14 @@ describe('TwitterController', () => {
       accessToken: 'oauth2-access-token',
       client: {
         v2: {
-          me: vi
-            .fn()
-            .mockResolvedValue({ data: { id: '1', username: 'testuser' } }),
+          me: vi.fn().mockResolvedValue({
+            data: {
+              id: '1',
+              name: 'Test User',
+              profile_image_url: 'https://twitter.example/avatar.jpg',
+              username: 'testuser',
+            },
+          }),
         },
       },
       expiresIn: 7200,
@@ -87,9 +92,6 @@ describe('TwitterController', () => {
       .compile();
 
     controller = module.get<TwitterController>(TwitterController);
-    brandsService = module.get<BrandsService>(BrandsService);
-    credentialsService = module.get<CredentialsService>(CredentialsService);
-    twitterService = module.get<TwitterService>(TwitterService);
   });
 
   it('should be defined', () => {
@@ -174,7 +176,7 @@ describe('TwitterController', () => {
         organization: organizationId,
       });
 
-      const result = await controller.verify({} as Request, {
+      await controller.verify({} as Request, {
         code: 'auth-code',
         state,
       });
@@ -184,11 +186,19 @@ describe('TwitterController', () => {
         'cred',
         expect.objectContaining({
           accessToken: 'oauth2-access-token',
-          externalHandle: 'testuser',
-          externalId: '1',
           isConnected: true,
           refreshToken: 'oauth2-refresh-token',
         }),
+      );
+      expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        'cred',
+        organizationId,
+        {
+          avatarUrl: 'https://twitter.example/avatar.jpg',
+          handle: 'testuser',
+          id: '1',
+          name: 'Test User',
+        },
       );
     });
 

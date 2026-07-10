@@ -23,6 +23,7 @@ describe('CredentialsService', () => {
   let crypto: CredentialCryptoService;
   let prisma: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
   let logger: Record<string, ReturnType<typeof vi.fn>>;
+  let filesClient: { uploadToS3: ReturnType<typeof vi.fn> };
 
   const orgId = 'test-org-id';
   const brandId = 'test-brand-id';
@@ -50,8 +51,19 @@ describe('CredentialsService', () => {
     crypto = new CredentialCryptoService({
       tokenEncryptionKey: KEY,
     } as unknown as ConfigService);
+    filesClient = {
+      uploadToS3: vi.fn().mockResolvedValue({
+        publicUrl:
+          'https://cdn.genfeed.ai/ingredients/social-avatars/existing-id',
+      }),
+    };
 
-    service = new CredentialsService(prisma as never, logger as never, crypto);
+    service = new CredentialsService(
+      prisma as never,
+      logger as never,
+      crypto,
+      filesClient as never,
+    );
   });
 
   describe('countConnected', () => {
@@ -214,6 +226,72 @@ describe('CredentialsService', () => {
       >;
       expect(data.accessToken).toMatch(CIPHERTEXT_PATTERN);
       expect(crypto.decrypt(data.accessToken)).toBe('save-raw');
+    });
+  });
+
+  describe('updateExternalProfile', () => {
+    beforeEach(() => {
+      prisma.credential.findFirst.mockResolvedValue({ id: 'existing-id' });
+    });
+
+    it('uploads a provider avatar to S3 and persists public identity', async () => {
+      await service.updateExternalProfile('existing-id', orgId, {
+        avatarUrl: 'https://platform.example/avatar.jpg',
+        handle: 'acme',
+        id: 'provider-1',
+        name: 'Acme Studio',
+      });
+
+      expect(filesClient.uploadToS3).toHaveBeenCalledWith(
+        'existing-id',
+        'social-avatars',
+        {
+          type: 'url',
+          url: 'https://platform.example/avatar.jpg',
+        },
+      );
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            externalAvatar:
+              'https://cdn.genfeed.ai/ingredients/social-avatars/existing-id',
+            externalHandle: 'acme',
+            externalId: 'provider-1',
+            externalName: 'Acme Studio',
+          }),
+        }),
+      );
+    });
+
+    it('rejects private avatar URLs before the files service fetches them', async () => {
+      await service.updateExternalProfile('existing-id', orgId, {
+        avatarUrl: 'http://127.0.0.1/avatar.jpg',
+        handle: 'acme',
+      });
+
+      expect(filesClient.uploadToS3).not.toHaveBeenCalled();
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ externalHandle: 'acme' }),
+        }),
+      );
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Failed to import credential avatar',
+        expect.objectContaining({ credentialId: 'existing-id' }),
+      );
+    });
+
+    it('preserves the previous avatar when S3 import fails', async () => {
+      filesClient.uploadToS3.mockRejectedValue(new Error('files unavailable'));
+
+      await service.updateExternalProfile('existing-id', orgId, {
+        avatarUrl: 'https://platform.example/avatar.jpg',
+        name: 'Acme Studio',
+      });
+
+      const data = prisma.credential.update.mock.calls[0][0].data;
+      expect(data).not.toHaveProperty('externalAvatar');
+      expect(data.externalName).toBe('Acme Studio');
     });
   });
 

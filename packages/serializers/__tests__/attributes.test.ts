@@ -605,6 +605,15 @@ describe('Serializer Attributes', () => {
       const unique = new Set(credentialAttributes);
       expect(unique.size).toBe(credentialAttributes.length);
     });
+
+    it('exposes public profile identity without credential secrets', () => {
+      expect(credentialAttributes).toEqual(
+        expect.arrayContaining(['externalAvatar', 'externalName']),
+      );
+      expect(credentialAttributes).not.toEqual(
+        expect.arrayContaining(['accessToken', 'oauthToken', 'refreshToken']),
+      );
+    });
   });
 
   describe('credentialInstagramAttributes', () => {

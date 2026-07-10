@@ -16,6 +16,7 @@ describe('BrandPersistenceService', () => {
   let brandsService: {
     findOne: ReturnType<typeof vi.fn>;
     generateUniqueSlug: ReturnType<typeof vi.fn>;
+    importBrandKitAssets: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     selectBrandForUser: ReturnType<typeof vi.fn>;
   };
@@ -38,6 +39,7 @@ describe('BrandPersistenceService', () => {
     brandsService = {
       findOne: vi.fn(),
       generateUniqueSlug: vi.fn(),
+      importBrandKitAssets: vi.fn(),
       patch: vi.fn(),
       selectBrandForUser: vi.fn(),
     };
@@ -146,6 +148,94 @@ describe('BrandPersistenceService', () => {
         label: 'Website',
         url: 'https://acme.com',
       });
+    });
+  });
+
+  describe('importScrapedBrandBanner', () => {
+    it('imports the scraped banner through the guarded Brand Kit pipeline', async () => {
+      brandsService.importBrandKitAssets.mockResolvedValue({
+        diagnostics: [],
+        status: 'accepted',
+      });
+
+      await service.importScrapedBrandBanner('brand_1', 'org_1', 'user_1', {
+        bannerUrl: 'https://acme.com/hero.jpg',
+        ogImage: 'https://acme.com/og.jpg',
+        scrapedAt: new Date(),
+        sourceUrl: 'https://acme.com',
+      });
+
+      expect(brandsService.importBrandKitAssets).toHaveBeenCalledWith(
+        'brand_1',
+        'org_1',
+        'user_1',
+        {
+          assets: [
+            {
+              candidateId: 'website-banner:brand_1',
+              label: 'Website header',
+              replaceExisting: false,
+              role: 'banner',
+              sourceType: 'website',
+              sourceUrl: 'https://acme.com/hero.jpg',
+            },
+          ],
+        },
+      );
+    });
+
+    it('falls back to og:image when no banner candidate is present', async () => {
+      brandsService.importBrandKitAssets.mockResolvedValue({
+        diagnostics: [],
+        status: 'accepted',
+      });
+
+      await service.importScrapedBrandBanner('brand_1', 'org_1', 'user_1', {
+        ogImage: 'https://acme.com/og.jpg',
+        scrapedAt: new Date(),
+        sourceUrl: 'https://acme.com',
+      });
+
+      expect(brandsService.importBrandKitAssets).toHaveBeenCalledWith(
+        'brand_1',
+        'org_1',
+        'user_1',
+        expect.objectContaining({
+          assets: [
+            expect.objectContaining({
+              sourceUrl: 'https://acme.com/og.jpg',
+            }),
+          ],
+        }),
+      );
+    });
+
+    it('does not call the importer when the website has no header image', async () => {
+      await service.importScrapedBrandBanner('brand_1', 'org_1', 'user_1', {
+        scrapedAt: new Date(),
+        sourceUrl: 'https://acme.com',
+      });
+
+      expect(brandsService.importBrandKitAssets).not.toHaveBeenCalled();
+    });
+
+    it('keeps onboarding non-blocking when banner import fails', async () => {
+      brandsService.importBrandKitAssets.mockRejectedValue(
+        new Error('files unavailable'),
+      );
+
+      await expect(
+        service.importScrapedBrandBanner('brand_1', 'org_1', 'user_1', {
+          bannerUrl: 'https://acme.com/hero.jpg',
+          scrapedAt: new Date(),
+          sourceUrl: 'https://acme.com',
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        'Website banner import failed',
+        expect.objectContaining({ brandId: 'brand_1' }),
+      );
     });
   });
 

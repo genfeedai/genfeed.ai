@@ -266,6 +266,7 @@ export class LinkedInService {
     firstName: string;
     lastName: string;
     email: string;
+    picture?: string;
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -274,6 +275,7 @@ export class LinkedInService {
         email: string;
         family_name: string;
         given_name: string;
+        picture?: string;
         sub: string;
       }>({
         headers: {
@@ -289,6 +291,7 @@ export class LinkedInService {
         firstName: response.given_name,
         id: response.sub,
         lastName: response.family_name,
+        ...(response.picture ? { picture: response.picture } : {}),
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);

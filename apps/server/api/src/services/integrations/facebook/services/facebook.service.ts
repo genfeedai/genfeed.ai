@@ -115,6 +115,7 @@ export class FacebookService {
     id: string;
     name: string;
     email: string;
+    picture?: { data?: { url?: string } };
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -123,7 +124,7 @@ export class FacebookService {
         this.httpService.get(`${this.graphUrl}/${this.apiVersion}/me`, {
           params: {
             access_token: accessToken,
-            fields: 'id,name,email',
+            fields: 'id,name,email,picture.width(256).height(256)',
           },
         }),
       );

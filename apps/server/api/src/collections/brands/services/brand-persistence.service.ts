@@ -142,6 +142,57 @@ export class BrandPersistenceService {
     });
   }
 
+  /**
+   * Import the strongest website header candidate as a normal brand banner.
+   * The Brand Kit importer owns URL validation, S3 upload, asset creation, and
+   * the preserve-existing policy. Enrichment is deliberately best-effort so a
+   * media-service outage cannot block brand onboarding.
+   */
+  async importScrapedBrandBanner(
+    brandId: string,
+    organizationId: string,
+    userId: string,
+    scrapedData: IScrapedBrandData,
+  ): Promise<void> {
+    const bannerUrl = scrapedData.bannerUrl ?? scrapedData.ogImage;
+
+    if (!bannerUrl) {
+      return;
+    }
+
+    try {
+      const result = await this.brandsService.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              candidateId: `website-banner:${brandId}`,
+              label: 'Website header',
+              replaceExisting: false,
+              role: 'banner',
+              sourceType: 'website',
+              sourceUrl: bannerUrl,
+            },
+          ],
+        },
+      );
+
+      if (result.status === 'blocked') {
+        this.loggerService.warn('Website banner import was skipped', {
+          brandId,
+          diagnostics: result.diagnostics,
+        });
+      }
+    } catch (error: unknown) {
+      this.loggerService.warn('Website banner import failed', {
+        brandId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   async updateBrandGuidance(
     brandId: string,
     extractedData: IExtractedBrandData,
