@@ -49,26 +49,42 @@ export class TrendPreferencesService {
   ): Promise<TrendPreferencesDocument> {
     try {
       const brandId = preferences.brandId ?? null;
+      const existing = await this.prisma.trendPreferences.findFirst({
+        where: { brandId, isDeleted: false, organizationId },
+      });
+      const storedConfig = this.readObjectRecord(existing?.config);
       const normalizedPreferences: Record<string, unknown> = {
-        categories: preferences.categories ?? [],
-        hashtags: preferences.hashtags ?? [],
-        keywords: preferences.keywords ?? [],
-        platforms: preferences.platforms ?? [],
+        ...(storedConfig ?? {}),
+        categories:
+          preferences.categories ??
+          this.readStringArray(storedConfig?.categories),
+        hashtags:
+          preferences.hashtags ?? this.readStringArray(storedConfig?.hashtags),
+        keywords:
+          preferences.keywords ?? this.readStringArray(storedConfig?.keywords),
+        platforms:
+          preferences.platforms ??
+          this.readStringArray(storedConfig?.platforms),
       };
-      // Only persist the opt-in flag when the caller supplied it, so callers that
-      // never touch it (the common case) leave the stored config shape untouched.
+
       if (preferences.autoRequeueWinners !== undefined) {
         normalizedPreferences.autoRequeueWinners =
           preferences.autoRequeueWinners;
+      } else if (storedConfig?.autoRequeueWinners !== undefined) {
+        // `config` is a Json column and Prisma REPLACES Json values on update
+        // (it does not merge), so preserve omitted fields from the stored
+        // document. Leave the opt-in flag absent for a never-configured record
+        // so the config shape stays clean (#1112).
+        normalizedPreferences.autoRequeueWinners = this.readBoolean(
+          storedConfig.autoRequeueWinners,
+          false,
+        );
       }
+
       const updateData = {
         config: normalizedPreferences,
         updatedAt: new Date(),
       };
-
-      const existing = await this.prisma.trendPreferences.findFirst({
-        where: { brandId, isDeleted: false, organizationId },
-      });
 
       if (existing) {
         const updated = await this.prisma.trendPreferences.update({

@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1034 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1035 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -1572,6 +1572,32 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "creditCost": 0,
     "description": "remove (DELETE /runs/{id})",
     "name": "agent_runs__remove",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "agent_runs"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "Retry a failed or cancelled agent run (POST /runs/{id}/retries)",
+    "name": "agent_runs__retry_run",
     "parameters": {
       "properties": {
         "id": {

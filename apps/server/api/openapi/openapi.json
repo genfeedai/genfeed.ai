@@ -41337,6 +41337,31 @@
         ]
       }
     },
+    "/runs/{id}/retries": {
+      "post": {
+        "operationId": "AgentRunsController.retryRun",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Run requeued"
+          }
+        },
+        "summary": "Retry a failed or cancelled agent run",
+        "tags": [
+          "runs",
+          "Agent Runs"
+        ]
+      }
+    },
     "/runs/{runId}": {
       "get": {
         "operationId": "RunsController.findOne",
