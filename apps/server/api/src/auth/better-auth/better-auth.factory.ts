@@ -546,6 +546,18 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     user: {
       // Better Auth's `image` field maps onto the existing `User.avatar` column.
       fields: { image: 'avatar' },
+      // `handle` is a required + unique column that Better Auth does not know
+      // about, so it strips the value injected by the `create.before` hook
+      // below before the adapter write — every first-time sign-up then fails
+      // with `Argument 'handle' is missing`. Declaring it as a known
+      // (non-input) field preserves the hook-supplied value through to Prisma.
+      additionalFields: {
+        handle: {
+          input: false,
+          required: false,
+          type: 'string',
+        },
+      },
     },
     databaseHooks: {
       user: {

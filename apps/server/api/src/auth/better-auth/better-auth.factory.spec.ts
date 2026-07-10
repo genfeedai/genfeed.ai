@@ -465,4 +465,16 @@ describe('createBetterAuthInstance source', () => {
     expect(source).toContain('enabled: true');
     expect(source).toContain('rateLimit');
   });
+
+  it('declares `handle` as a known user field so first-time sign-ups persist it', () => {
+    // The `databaseHooks.user.create.before` hook injects a generated `handle`,
+    // but Better Auth strips fields it does not know about before the adapter
+    // write. Without this `additionalFields` declaration the `handle` value is
+    // dropped and every first-time sign-up fails at `db.user.create()` with
+    // `Argument 'handle' is missing`, so no session is ever established.
+    const source = createBetterAuthInstance.toString();
+
+    expect(source).toContain('additionalFields');
+    expect(source).toMatch(/handle:\s*\{/);
+  });
 });

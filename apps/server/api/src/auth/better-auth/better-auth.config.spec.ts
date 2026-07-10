@@ -7,6 +7,7 @@ import {
   resolveCookieDomain,
   resolveExperimentalJoins,
   resolveSocialProviderConfig,
+  resolveTrustedOrigins,
 } from './better-auth.config';
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 
@@ -25,6 +26,33 @@ describe('Better Auth config', () => {
         'https://genfeed.ai, https://app.genfeed.ai, https://console.genfeed.ai',
       ),
     ).toContain('https://console.genfeed.ai');
+  });
+
+  describe('resolveTrustedOrigins', () => {
+    it('auto-trusts localhost AND local.genfeed.ai for local dev (no env needed)', () => {
+      const origins = resolveTrustedOrigins(undefined, 'development');
+      expect(origins).toContain('http://localhost:3000');
+      expect(origins).toContain('http://local.genfeed.ai:3000');
+    });
+
+    it('merges configured origins with the local-dev defaults and de-dupes', () => {
+      const origins = resolveTrustedOrigins(
+        'https://app.genfeed.ai, http://localhost:3000',
+        'development',
+      );
+      expect(origins).toContain('https://app.genfeed.ai');
+      expect(origins.filter((o) => o === 'http://localhost:3000')).toHaveLength(
+        1,
+      );
+    });
+
+    it('never auto-trusts localhost in production or staging', () => {
+      for (const env of ['production', 'staging']) {
+        const origins = resolveTrustedOrigins('https://app.genfeed.ai', env);
+        expect(origins).toEqual(['https://app.genfeed.ai']);
+        expect(origins).not.toContain('http://localhost:3000');
+      }
+    });
   });
 
   describe('parseCommaSeparated', () => {
