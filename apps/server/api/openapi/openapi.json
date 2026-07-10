@@ -45338,7 +45338,6 @@
         "operationId": "SourcePostsController.findOne",
         "parameters": [
           {
-            "description": "Filter by organization ID (superadmin only)",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -45347,7 +45346,6 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -45379,7 +45377,6 @@
         "operationId": "SourcePostsController.createDraft",
         "parameters": [
           {
-            "description": "Filter by organization ID (superadmin only)",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -45388,7 +45385,6 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
             "in": "query",
             "name": "brand",
             "required": false,
@@ -45430,7 +45426,6 @@
         "operationId": "SourcePostsController.publishTwitterAction",
         "parameters": [
           {
-            "description": "Filter by organization ID (superadmin only)",
             "in": "query",
             "name": "organization",
             "required": false,
@@ -45439,7 +45434,6 @@
             }
           },
           {
-            "description": "Filter by brand ID (superadmin only)",
             "in": "query",
             "name": "brand",
             "required": false,

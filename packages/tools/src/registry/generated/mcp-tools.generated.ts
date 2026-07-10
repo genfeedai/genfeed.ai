@@ -36072,14 +36072,12 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "default": "draft"
         },
         "brand": {
-          "description": "Filter by brand ID (superadmin only)",
           "type": "string"
         },
         "id": {
           "type": "string"
         },
         "organization": {
-          "description": "Filter by organization ID (superadmin only)",
           "type": "string"
         },
         "text": {
@@ -36183,14 +36181,12 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "parameters": {
       "properties": {
         "brand": {
-          "description": "Filter by brand ID (superadmin only)",
           "type": "string"
         },
         "id": {
           "type": "string"
         },
         "organization": {
-          "description": "Filter by organization ID (superadmin only)",
           "type": "string"
         }
       },
@@ -36228,14 +36224,12 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           ]
         },
         "brand": {
-          "description": "Filter by brand ID (superadmin only)",
           "type": "string"
         },
         "id": {
           "type": "string"
         },
         "organization": {
-          "description": "Filter by organization ID (superadmin only)",
           "type": "string"
         },
         "text": {
