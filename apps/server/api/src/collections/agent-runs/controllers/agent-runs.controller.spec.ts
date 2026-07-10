@@ -16,6 +16,7 @@ import type { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-a
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -48,11 +49,19 @@ describe('AgentRunsController', () => {
     remove: vi.fn(),
   };
 
+  const mockThreadEngineService = {
+    appendEvent: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AgentRunsController],
       providers: [
         { provide: AgentRunsService, useValue: mockServiceMethods },
+        {
+          provide: AgentThreadEngineService,
+          useValue: mockThreadEngineService,
+        },
         {
           provide: LoggerService,
           useValue: {
@@ -348,6 +357,55 @@ describe('AgentRunsController', () => {
         '507f1f77bcf86cd799439012',
         '507f1f77bcf86cd799439013',
       );
+      expect(mockThreadEngineService.appendEvent).not.toHaveBeenCalled();
+    });
+
+    it('should append a run.cancelled thread event from the scalar threadId FK', async () => {
+      const mockRun = {
+        _id: 'run1',
+        status: 'cancelled',
+        thread: undefined,
+        threadId: 'thread1',
+      };
+      mockServiceMethods.cancel.mockResolvedValue(mockRun);
+      mockThreadEngineService.appendEvent.mockResolvedValue({});
+
+      await controller.cancelRun(mockRequest, 'run1', mockUser);
+
+      expect(mockThreadEngineService.appendEvent).toHaveBeenCalledWith({
+        commandId: 'run-cancelled:run1',
+        organizationId: '507f1f77bcf86cd799439012',
+        payload: {
+          detail: 'The active run was cancelled by the user.',
+          label: 'Run cancelled',
+          status: 'cancelled',
+        },
+        runId: 'run1',
+        threadId: 'thread1',
+        type: 'run.cancelled',
+        userId: '507f1f77bcf86cd799439014',
+      });
+    });
+
+    it('should fall back to the populated thread id when threadId is absent', async () => {
+      const mockRun = {
+        _id: 'run1',
+        status: 'cancelled',
+        thread: { id: 'legacy-thread1' },
+        threadId: null,
+      };
+      mockServiceMethods.cancel.mockResolvedValue(mockRun);
+      mockThreadEngineService.appendEvent.mockResolvedValue({});
+
+      await controller.cancelRun(mockRequest, 'run1', mockUser);
+
+      expect(mockThreadEngineService.appendEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          runId: 'run1',
+          threadId: 'legacy-thread1',
+          type: 'run.cancelled',
+        }),
+      );
     });
 
     it('should throw NotFoundException when run not found', async () => {
@@ -356,6 +414,7 @@ describe('AgentRunsController', () => {
       await expect(
         controller.cancelRun(mockRequest, 'nonexistent', mockUser),
       ).rejects.toThrow(NotFoundException);
+      expect(mockThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
   });
 });
