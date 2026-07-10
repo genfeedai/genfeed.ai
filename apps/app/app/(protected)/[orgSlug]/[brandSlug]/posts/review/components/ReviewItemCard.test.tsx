@@ -71,7 +71,7 @@ describe('ReviewItemCard', () => {
       <ReviewItemCard
         isActive={false}
         isSelected={false}
-        item={{ ...baseItem, status: BatchItemStatus.PENDING }}
+        item={baseItem}
         onSelect={vi.fn()}
         onToggleSelect={vi.fn()}
       />,
