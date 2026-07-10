@@ -154,5 +154,9 @@ describe('useLLMSettingsStore — persistence & migration', () => {
     // `genfeed-settings` blob cannot strand the migrated keys.
     const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
     expect(persisted.providers.anthropic.apiKey).toBe('sk-legacy');
+
+    const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) ?? '{}');
+    expect(legacy.llm).toBeUndefined();
+    expect(legacy.edgeStyle).toBe('default');
   });
 });

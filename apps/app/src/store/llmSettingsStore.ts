@@ -83,7 +83,9 @@ function loadFromStorage(): LLMSettings {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return mergeLLM(JSON.parse(stored) as Partial<LLMSettings>);
+      const resolved = mergeLLM(JSON.parse(stored) as Partial<LLMSettings>);
+      removeLegacyLLMPayload();
+      return resolved;
     }
 
     // First load under the new key: migrate BYOK keys from the legacy combined
@@ -96,7 +98,9 @@ function loadFromStorage(): LLMSettings {
       const parsed = JSON.parse(legacy) as { llm?: Partial<LLMSettings> };
       if (parsed.llm) resolved = mergeLLM(parsed.llm);
     }
-    saveToStorage(resolved);
+    if (saveToStorage(resolved)) {
+      removeLegacyLLMPayload();
+    }
     return resolved;
   } catch {
     // Invalid JSON or storage error — fall back to defaults.
@@ -104,12 +108,31 @@ function loadFromStorage(): LLMSettings {
   return DEFAULT_LLM_SETTINGS;
 }
 
-function saveToStorage(llm: LLMSettings) {
+function removeLegacyLLMPayload(): void {
   if (typeof window === 'undefined') return;
+
+  try {
+    const stored = localStorage.getItem(LEGACY_SETTINGS_KEY);
+    if (!stored) return;
+
+    const parsed = JSON.parse(stored) as Record<string, unknown>;
+    if (!Object.hasOwn(parsed, 'llm')) return;
+
+    delete parsed.llm;
+    localStorage.setItem(LEGACY_SETTINGS_KEY, JSON.stringify(parsed));
+  } catch {
+    // Invalid legacy JSON or storage error — leave it untouched.
+  }
+}
+
+function saveToStorage(llm: LLMSettings): boolean {
+  if (typeof window === 'undefined') return false;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(llm));
+    return true;
   } catch {
     // Storage error (quota exceeded, private mode, etc.)
+    return false;
   }
 }
 

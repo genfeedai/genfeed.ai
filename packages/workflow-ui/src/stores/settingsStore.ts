@@ -177,8 +177,20 @@ function saveToStorage(state: {
   if (typeof window === 'undefined') return;
 
   try {
+    // Preserve host-owned top-level extensions while this package takes
+    // ownership of the shared settings key. Hosts migrate those fields on
+    // their own schedule; dropping them here can destroy data before the host
+    // module responsible for the migration has even loaded.
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const parsed: unknown = stored ? JSON.parse(stored) : null;
+    const hostExtensions =
+      parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {};
+
     // Don't persist API keys in plain text - only enabled status and non-sensitive settings
     const toSave = {
+      ...hostExtensions,
       autoSaveEnabled: state.autoSaveEnabled,
       debugMode: state.debugMode,
       defaults: state.defaults,

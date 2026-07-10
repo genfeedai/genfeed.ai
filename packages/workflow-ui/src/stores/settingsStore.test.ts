@@ -60,6 +60,21 @@ describe('settingsStore — sync not configured', () => {
       useSettingsStore.getState().syncToServer(),
     ).resolves.toBeUndefined();
   });
+
+  it('preserves host-owned fields when persisting shared settings', () => {
+    localStorage.setItem(
+      'genfeed-settings',
+      JSON.stringify({ hostExtension: { value: 'keep-me' } }),
+    );
+
+    useSettingsStore.getState().setEdgeStyle('straight');
+
+    const persisted = JSON.parse(
+      localStorage.getItem('genfeed-settings') ?? '{}',
+    );
+    expect(persisted.hostExtension).toEqual({ value: 'keep-me' });
+    expect(persisted.edgeStyle).toBe('straight');
+  });
 });
 
 describe('settingsStore — syncFromServer', () => {
