@@ -346,7 +346,7 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('does not render the terminal dock control on the hosted app hostname', () => {
+  it('does not infer SaaS mode from the hosted app hostname', () => {
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { ...originalLocation, hostname: 'app.genfeed.ai' },
@@ -356,8 +356,8 @@ describe('AppProtectedTopbar', () => {
     render(<AppProtectedTopbar isAgentCollapsed onAgentToggle={vi.fn()} />);
 
     expect(
-      screen.queryByRole('button', { name: 'Open terminal dock' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Open terminal dock' }),
+    ).toBeInTheDocument();
   });
 
   it('places credits first in the right-side control cluster', () => {
