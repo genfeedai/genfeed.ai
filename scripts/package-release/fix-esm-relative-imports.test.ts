@@ -57,14 +57,23 @@ describe('fix-esm-relative-imports', () => {
         '',
       ].join('\n'),
     );
+    writeOutput(
+      'types.d.ts',
+      [
+        "export type { Client } from './client';",
+        "type Folder = import('./folder').Folder;",
+        "import Client = require('./client');",
+        '',
+      ].join('\n'),
+    );
 
     expect(
       fixEsmRelativeImports([outputDir], {
         projectPath: path.join(root, 'tsconfig.json'),
       }),
     ).toEqual({
-      changedFiles: 1,
-      checkedFiles: 5,
+      changedFiles: 2,
+      checkedFiles: 6,
     });
     expect(readFileSync(path.join(outputDir, 'session.js'), 'utf8')).toBe(
       [
@@ -77,6 +86,14 @@ describe('fix-esm-relative-imports', () => {
         `const message = "load from './client' now";`,
         "const template = `import './client'`;",
         "// export { client } from './client';",
+        '',
+      ].join('\n'),
+    );
+    expect(readFileSync(path.join(outputDir, 'types.d.ts'), 'utf8')).toBe(
+      [
+        "export type { Client } from './client.js';",
+        "type Folder = import('./folder/index.js').Folder;",
+        "import Client = require('./client.js');",
         '',
       ].join('\n'),
     );

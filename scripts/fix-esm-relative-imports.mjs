@@ -2,12 +2,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { initSync, parse } from 'es-module-lexer';
+import ts from 'typescript';
 
 const OUTPUT_FILE = /(?:\.[cm]?js|\.d\.[cm]?ts)$/;
 const OUTPUT_EXTENSIONS = ['.js', '.mjs', '.cjs'];
-
-initSync();
 
 function isPathInside(parentPath, childPath) {
   const relativePath = path.relative(parentPath, childPath);
@@ -115,25 +113,67 @@ function resolveInternalAlias(filePath, specifier, aliases) {
   return specifier;
 }
 
+function moduleSpecifiers(source, filePath) {
+  const sourceFile = ts.createSourceFile(
+    filePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const specifiers = [];
+  const seen = new Set();
+
+  const addSpecifier = (node) => {
+    if (!node || !ts.isStringLiteralLike(node)) return;
+    const start = node.getStart(sourceFile) + 1;
+    const end = node.getEnd() - 1;
+    const key = `${start}:${end}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    specifiers.push({ end, specifier: node.text, start });
+  };
+
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+      addSpecifier(node.moduleSpecifier);
+    } else if (
+      ts.isImportEqualsDeclaration(node) &&
+      ts.isExternalModuleReference(node.moduleReference)
+    ) {
+      addSpecifier(node.moduleReference.expression);
+    } else if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) &&
+          node.expression.text === 'require'))
+    ) {
+      addSpecifier(node.arguments[0]);
+    } else if (
+      ts.isImportTypeNode(node) &&
+      ts.isLiteralTypeNode(node.argument)
+    ) {
+      addSpecifier(node.argument.literal);
+    }
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+  return specifiers;
+}
+
 export function rewriteRelativeModuleSpecifiers(
   source,
   filePath,
   aliases = [],
 ) {
-  const [imports] = parse(source, filePath);
   let rewritten = source;
-  for (const moduleImport of [...imports].reverse()) {
-    const specifier = moduleImport.n;
-    if (!specifier) continue;
+  for (const moduleImport of moduleSpecifiers(source, filePath).reverse()) {
+    const { specifier } = moduleImport;
     const resolved = specifier.startsWith('.')
       ? resolveRelativeSpecifier(filePath, specifier)
       : resolveInternalAlias(filePath, specifier, aliases);
     if (resolved === specifier) continue;
-    const replacement =
-      moduleImport.d >= 0
-        ? `${source[moduleImport.s]}${resolved}${source[moduleImport.e - 1]}`
-        : resolved;
-    rewritten = `${rewritten.slice(0, moduleImport.s)}${replacement}${rewritten.slice(moduleImport.e)}`;
+    rewritten = `${rewritten.slice(0, moduleImport.start)}${resolved}${rewritten.slice(moduleImport.end)}`;
   }
   return rewritten;
 }
