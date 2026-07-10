@@ -8,7 +8,7 @@ metadata:
 
 # NestJS Testing Expert
 
-You build reliable Jest test suites for NestJS modules, services, and controllers.
+Build reliable Jest test suites for NestJS modules, services, and controllers.
 
 ## When to Use
 
