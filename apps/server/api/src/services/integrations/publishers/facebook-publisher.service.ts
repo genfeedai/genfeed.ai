@@ -8,7 +8,7 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -151,82 +151,20 @@ export class FacebookPublisherService extends BasePublisherService {
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const { organizationId, brandId } = context;
-
-    // Filter for TEXT category children only - these become comments
-    const textChildren = children.filter(
-      (child) => child.category === PostCategory.TEXT,
-    );
-
-    if (textChildren.length === 0) {
-      this.logger.log(`${url} no TEXT children to post as comments`, {
-        parentExternalId,
-        parentPostId: context.postId,
-      });
-      return;
-    }
-
-    // Sort by order to ensure correct sequence
-    const sortedChildren = [...textChildren].sort(
-      (a, b) => (a.order || 0) - (b.order || 0),
-    );
-
-    this.logger.log(`${url} posting ${sortedChildren.length} comments`, {
-      childrenCount: sortedChildren.length,
+    return this.publishTextChildrenAsComments({
+      children,
+      context,
+      logPrefix: url,
       parentExternalId,
-      parentPostId: context.postId,
-    });
-
-    // Post each TEXT child as a comment
-    for (const child of sortedChildren) {
-      try {
-        // Sanitize HTML to plain text for comments
-        const commentText = this.sanitizeDescription(child.description);
-        const commentResult = await this.facebookService.postComment(
+      publishComment: (text) =>
+        this.facebookService.postComment(
           organizationId,
           brandId,
           parentExternalId,
-          commentText,
-        );
-
-        if (commentResult?.commentId) {
-          // Update child post with externalId and status
-          await this.postsService.patch(child.id.toString(), {
-            externalId: commentResult.commentId,
-            publicationDate: new Date(),
-            status: PostStatus.PUBLIC,
-          });
-
-          this.logger.log(`${url} posted comment`, {
-            childPostId: child.id.toString(),
-            commentId: commentResult.commentId,
-            order: child.order,
-          });
-        } else {
-          this.logger.error(`${url} failed to post comment`, {
-            childPostId: child.id.toString(),
-            order: child.order,
-          });
-
-          await this.postsService.patch(child.id.toString(), {
-            status: PostStatus.FAILED,
-          });
-        }
-      } catch (error: unknown) {
-        this.logger.error(`${url} error posting comment`, {
-          childPostId: child.id.toString(),
-          error: (error as Error)?.message,
-          order: child.order,
-        });
-
-        await this.postsService.patch(child.id.toString(), {
-          status: PostStatus.FAILED,
-        });
-      }
-    }
-
-    this.logger.log(`${url} completed posting comments`, {
-      childrenCount: sortedChildren.length,
-      parentPostId: context.postId,
+          text,
+        ),
+      updateChild: (childId, update) =>
+        this.postsService.patch(childId, update),
     });
   }
 }

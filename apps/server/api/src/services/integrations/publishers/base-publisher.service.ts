@@ -5,12 +5,37 @@ import type {
   MediaInfo,
   PublishContext,
   PublishResult,
+  ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+
+type CommentPublishResult = {
+  commentId?: string | null;
+};
+
+type ThreadChildStatusUpdate = {
+  externalId?: string;
+  publicationDate?: Date;
+  status: PostStatus;
+};
+
+type PublishTextChildrenAsCommentsParams = {
+  children: ThreadChild[];
+  context: PublishContext;
+  logPrefix: string;
+  parentExternalId: string;
+  publishComment: (
+    text: string,
+  ) => Promise<CommentPublishResult | null | undefined>;
+  updateChild: (
+    childId: string,
+    update: ThreadChildStatusUpdate,
+  ) => Promise<unknown>;
+};
 
 /**
  * Base class for platform publishers
@@ -227,5 +252,80 @@ export abstract class BasePublisherService implements IPublisher {
     description: string | null | undefined,
   ): string {
     return htmlToText(description);
+  }
+
+  protected async publishTextChildrenAsComments({
+    children,
+    context,
+    logPrefix,
+    parentExternalId,
+    publishComment,
+    updateChild,
+  }: PublishTextChildrenAsCommentsParams): Promise<void> {
+    const textChildren = children.filter(
+      (child) => child.category === PostCategory.TEXT,
+    );
+
+    if (textChildren.length === 0) {
+      this.logger.log(`${logPrefix} no TEXT children to post as comments`, {
+        parentExternalId,
+        parentPostId: context.postId,
+      });
+      return;
+    }
+
+    const sortedChildren = [...textChildren].sort(
+      (a, b) => (a.order || 0) - (b.order || 0),
+    );
+
+    this.logger.log(`${logPrefix} posting ${sortedChildren.length} comments`, {
+      childrenCount: sortedChildren.length,
+      parentExternalId,
+      parentPostId: context.postId,
+    });
+
+    for (const child of sortedChildren) {
+      const childId = child.id.toString();
+
+      try {
+        const commentResult = await publishComment(
+          this.sanitizeDescription(child.description),
+        );
+
+        if (commentResult?.commentId) {
+          await updateChild(childId, {
+            externalId: commentResult.commentId,
+            publicationDate: new Date(),
+            status: PostStatus.PUBLIC,
+          });
+
+          this.logger.log(`${logPrefix} posted comment`, {
+            childPostId: childId,
+            commentId: commentResult.commentId,
+            order: child.order,
+          });
+        } else {
+          this.logger.error(`${logPrefix} failed to post comment`, {
+            childPostId: childId,
+            order: child.order,
+          });
+
+          await updateChild(childId, { status: PostStatus.FAILED });
+        }
+      } catch (error: unknown) {
+        this.logger.error(`${logPrefix} error posting comment`, {
+          childPostId: childId,
+          error: (error as Error)?.message,
+          order: child.order,
+        });
+
+        await updateChild(childId, { status: PostStatus.FAILED });
+      }
+    }
+
+    this.logger.log(`${logPrefix} completed posting comments`, {
+      childrenCount: sortedChildren.length,
+      parentPostId: context.postId,
+    });
   }
 }
