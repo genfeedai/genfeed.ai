@@ -287,6 +287,59 @@ describe('TrendPreferencesService', () => {
       const createArg = prisma.trendPreferences.create.mock.calls[0][0];
       expect(createArg.data.config).not.toHaveProperty('autoRequeueWinners');
     });
+
+    it('should preserve every omitted field on a partial update', async () => {
+      prisma.trendPreferences.findFirst.mockResolvedValue({
+        config: {
+          autoRequeueWinners: true,
+          categories: ['technology'],
+          hashtags: ['#ai'],
+          keywords: ['old'],
+          platforms: ['twitter'],
+        },
+        id: 'pref-1',
+      });
+      prisma.trendPreferences.update.mockResolvedValue({});
+
+      // Common edit flow: keywords/categories/platforms change, opt-in flag untouched.
+      await service.savePreferences(organizationId, { keywords: ['ai'] });
+
+      const updateArg = prisma.trendPreferences.update.mock.calls[0][0];
+      expect(updateArg.data.config).toEqual({
+        autoRequeueWinners: true,
+        categories: ['technology'],
+        hashtags: ['#ai'],
+        keywords: ['ai'],
+        platforms: ['twitter'],
+      });
+    });
+
+    it('should preserve stored arrays when only the opt-in flag changes', async () => {
+      prisma.trendPreferences.findFirst.mockResolvedValue({
+        config: {
+          autoRequeueWinners: false,
+          categories: ['technology'],
+          hashtags: ['#ai'],
+          keywords: ['agents'],
+          platforms: ['twitter'],
+        },
+        id: 'pref-1',
+      });
+      prisma.trendPreferences.update.mockResolvedValue({});
+
+      await service.savePreferences(organizationId, {
+        autoRequeueWinners: true,
+      });
+
+      const updateArg = prisma.trendPreferences.update.mock.calls[0][0];
+      expect(updateArg.data.config).toEqual({
+        autoRequeueWinners: true,
+        categories: ['technology'],
+        hashtags: ['#ai'],
+        keywords: ['agents'],
+        platforms: ['twitter'],
+      });
+    });
   });
 
   describe('mergeWinnerSignals', () => {

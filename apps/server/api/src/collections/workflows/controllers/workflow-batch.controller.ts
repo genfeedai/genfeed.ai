@@ -43,18 +43,9 @@ export class WorkflowBatchController {
   }
 
   private getBatchItemId(item: {
-    _id?: string | { toString(): string };
     id?: string | { toString(): string };
     ingredientId: string | { toString(): string };
   }): string {
-    if (typeof item.id === 'string') {
-      return item.id;
-    }
-
-    if (item.id && typeof item.id.toString === 'function') {
-      return item.id.toString();
-    }
-
     if (typeof item.id === 'string') {
       return item.id;
     }

@@ -29,7 +29,7 @@ function normalizeStoredDashboardState(value: unknown): StoredDashboardState {
   const parsed = parseAgentDashboardBlocks(value.blocks ?? []);
   return {
     blocks: parsed.blocks,
-    isAgentModified: parsed.ok ? value.isAgentModified === true : true,
+    isAgentModified: parsed.isValid ? value.isAgentModified === true : true,
   };
 }
 
@@ -90,6 +90,11 @@ export const useAgentDashboardStore = create<AgentDashboardStore>((set) => ({
             ]
           : [...state.blocks, block];
       const parsed = parseAgentDashboardBlocks(rawBlocks);
+      // A failed merged-array validation (e.g. exceeding the block cap) must
+      // not wipe the previously-valid dashboard — reject only this operation.
+      if (!parsed.isValid) {
+        return state;
+      }
       const next = { blocks: parsed.blocks, isAgentModified: true };
       persistDashboardState(next);
       return next;
@@ -152,9 +157,14 @@ export const useAgentDashboardStore = create<AgentDashboardStore>((set) => ({
         b.id === id ? ({ ...b, ...partial } as AgentUIBlock) : b,
       );
       const parsed = parseAgentDashboardBlocks(rawBlocks);
+      // Same as addBlock: an invalid merged result rejects the update instead
+      // of replacing the whole dashboard with the fail-closed placeholder.
+      if (!parsed.isValid) {
+        return state;
+      }
       const next = {
         blocks: parsed.blocks,
-        isAgentModified: parsed.ok ? state.isAgentModified : true,
+        isAgentModified: state.isAgentModified,
       };
       persistDashboardState(next);
       return next;

@@ -41,6 +41,8 @@ export type {
   ModelBrowserModalProps,
   PromptLibraryService,
   PromptPickerProps,
+  SettingsSyncService,
+  SyncableSettings,
   WorkflowUIConfig,
   WorkflowUIHttpClient,
   WorkflowUILogger,
@@ -64,7 +66,10 @@ export {
   configurePromptLibrary,
   usePromptLibraryStore,
 } from './stores/promptLibraryStore';
-export { useSettingsStore } from './stores/settingsStore';
+export {
+  configureSettingsSync,
+  useSettingsStore,
+} from './stores/settingsStore';
 // Stores
 export { useUIStore } from './stores/uiStore';
 export { useWorkflowStore } from './stores/workflow';

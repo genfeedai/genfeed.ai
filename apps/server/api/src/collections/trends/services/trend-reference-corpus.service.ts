@@ -650,25 +650,34 @@ export class TrendReferenceCorpusService {
       },
     });
 
-    const remixCounts = await this.getRemixCounts(
-      docs.map((doc) => doc.id),
-      organizationId,
-      brandId,
-    );
-
+    // `isPromptReadyReference` does not consult remix counts, so build records
+    // with an empty map for the filter/slice pass and defer the remix-count
+    // query until after selection. Only the final `selectedReferences` are
+    // consumed downstream, so the raw `ANY(...)` array should carry just those
+    // ids rather than the full `limit * 4` over-fetched page (#1112 P2).
+    const emptyRemixCounts = new Map<string, number>();
     const promptReadyReferences = docs
       .map((doc) =>
         this.toReferenceRecord(
           doc.id,
           doc.data as unknown as ReferenceRecordData,
           doc.createdAt,
-          remixCounts,
+          emptyRemixCounts,
         ),
       )
       .filter((reference) =>
         this.isPromptReadyReference(reference, contentIntent),
       );
     const selectedReferences = promptReadyReferences.slice(0, limit);
+
+    const remixCounts = await this.getRemixCounts(
+      selectedReferences.map((reference) => reference.id),
+      organizationId,
+      brandId,
+    );
+    for (const reference of selectedReferences) {
+      reference.remixCount = remixCounts.get(reference.id) ?? 0;
+    }
 
     const packs = requestedTypes
       .map((type) =>

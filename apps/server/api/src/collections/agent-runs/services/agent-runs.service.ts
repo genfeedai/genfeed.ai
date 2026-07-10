@@ -9,7 +9,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
+import type { AgentRunJobData } from '@genfeedai/queue-contracts';
 import type {
   AgentRunStats,
   AgentRunStatsQueryParams,
@@ -17,7 +18,11 @@ import type {
 } from '@genfeedai/types';
 import { DEFAULT_AGENT_RUN_TIME_RANGE } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 type AgentRunStatsSummary = Omit<
   AgentRunStats,
@@ -37,6 +42,28 @@ type AgentRunPageOptions = {
 
 type AgentRunWriteData = Record<string, unknown>;
 type AgentRunPopulateInput = (string | PopulateOption)[] | 'none';
+
+type AgentRunRetryOptions = {
+  brandId?: string | null;
+  retriedBy: string;
+};
+
+type AgentRunRetryPreparation = {
+  jobData: AgentRunJobData;
+  previousStatus: AgentExecutionStatus;
+  rollback: AgentRunRetryRollback;
+  run: AgentRunDocument;
+};
+
+type AgentRunRetryRollback = {
+  claimedAt: Date;
+  state: Prisma.AgentRunUpdateManyMutationInput;
+};
+
+const RETRYABLE_AGENT_RUN_STATUSES: AgentExecutionStatus[] = [
+  AgentExecutionStatus.FAILED,
+  AgentExecutionStatus.CANCELLED,
+];
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_AGENT_RUN_LIMIT = 50;
@@ -70,6 +97,12 @@ function requireId(
 
 function brandScope(brandId: string | null | undefined) {
   return brandId ? { brandId } : {};
+}
+
+function readJsonRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function getTimeRangeDays(timeRange: AgentRunTimeRange): number {
@@ -373,6 +406,139 @@ export class AgentRunsService extends BaseService<
         status: AgentExecutionStatus.CANCELLED,
       },
     })) as AgentRunDocument | null;
+  }
+
+  /**
+   * Reset a failed or cancelled run so it can be re-enqueued, and rebuild the
+   * queue job data from the durable run/strategy records. Enqueueing is the
+   * caller's responsibility — this method only prepares state.
+   */
+  @HandleErrors('prepare agent run retry', 'agent-runs')
+  async prepareRetry(
+    id: string,
+    organizationId: string,
+    options: AgentRunRetryOptions,
+  ): Promise<AgentRunRetryPreparation | null> {
+    const run = (await this.delegate.findFirst({
+      include: { strategy: true },
+      where: {
+        id,
+        ...brandScope(options.brandId),
+        isDeleted: false,
+        organizationId,
+      },
+    })) as
+      | (AgentRunDocument & {
+          strategy?: { agentType?: string | null; config?: unknown } | null;
+        })
+      | null;
+
+    if (!run) return null;
+
+    const previousStatus = run.status as AgentExecutionStatus;
+    if (!RETRYABLE_AGENT_RUN_STATUSES.includes(previousStatus)) {
+      throw new BadRequestException(
+        `Only failed or cancelled agent runs can be retried (current status: ${previousStatus})`,
+      );
+    }
+
+    const metadata = readJsonRecord(run.metadata);
+    const strategyConfig = readJsonRecord(run.strategy?.config);
+    const claimedAt = new Date();
+
+    const jobData: AgentRunJobData = {
+      agentType:
+        run.strategy?.agentType ??
+        readOptionalId(strategyConfig, 'agentType') ??
+        undefined,
+      autonomyMode: readOptionalId(strategyConfig, 'autonomyMode') ?? undefined,
+      campaignId: readOptionalId(metadata, 'campaignId') ?? undefined,
+      creditBudget: run.creditBudget ?? undefined,
+      model:
+        readOptionalId(metadata, 'requestedModel') ??
+        readOptionalId(strategyConfig, 'model') ??
+        undefined,
+      objective: run.objective ?? undefined,
+      organizationId,
+      runId: run.id,
+      strategyId: run.strategyId ?? undefined,
+      userId: run.userId,
+    };
+
+    const retryState: Prisma.AgentRunUpdateManyMutationInput = {
+      completedAt: null,
+      durationMs: null,
+      error: null,
+      metadata: {
+        ...metadata,
+        lastRetryAt: claimedAt.toISOString(),
+        retriedBy: options.retriedBy,
+      },
+      progress: 0,
+      startedAt: null,
+      status: AgentExecutionStatus.PENDING,
+      summary: null,
+      updatedAt: claimedAt,
+    };
+    const claim = await this.delegate.updateMany({
+      where: {
+        id,
+        ...brandScope(options.brandId),
+        isDeleted: false,
+        organizationId,
+        status: previousStatus,
+      },
+      data: retryState,
+    });
+
+    if (claim.count !== 1) {
+      throw new ConflictException('Agent run retry is already in progress');
+    }
+
+    const updated = {
+      ...run,
+      ...retryState,
+    } as AgentRunDocument;
+    const rollback: AgentRunRetryRollback = {
+      claimedAt,
+      state: {
+        completedAt: run.completedAt ?? null,
+        durationMs: run.durationMs ?? null,
+        error: run.error ?? null,
+        metadata:
+          run.metadata === null
+            ? Prisma.JsonNull
+            : (run.metadata as Prisma.InputJsonValue),
+        progress: run.progress,
+        startedAt: run.startedAt ?? null,
+        status: previousStatus,
+        summary: run.summary ?? null,
+      },
+    };
+
+    return { jobData, previousStatus, rollback, run: updated };
+  }
+
+  @HandleErrors('rollback agent run retry', 'agent-runs')
+  async rollbackRetry(
+    id: string,
+    organizationId: string,
+    rollback: AgentRunRetryRollback,
+    brandId?: string | null,
+  ): Promise<boolean> {
+    const result = await this.delegate.updateMany({
+      data: rollback.state,
+      where: {
+        id,
+        ...brandScope(brandId),
+        isDeleted: false,
+        organizationId,
+        status: AgentExecutionStatus.PENDING,
+        updatedAt: rollback.claimedAt,
+      },
+    });
+
+    return result.count === 1;
   }
 
   @HandleErrors('get active runs', 'agent-runs')

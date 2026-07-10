@@ -172,9 +172,16 @@ export class FleetService {
 
         try {
           const start = Date.now();
-          const response = await axios.get(`${instance.apiUrl}/v1/health`, {
-            timeout: 5000,
-          });
+          // Use the detailed endpoint: the fleet dashboard renders
+          // memory/uptime/jobs from this body. The shared HealthController
+          // surfaces service-specific diagnostics (jobs) only on /health/detailed;
+          // base /v1/health stays a lean liveness probe (see isAvailable above).
+          const response = await axios.get(
+            `${instance.apiUrl}/v1/health/detailed`,
+            {
+              timeout: 5000,
+            },
+          );
           const responseTimeMs = Date.now() - start;
 
           return {

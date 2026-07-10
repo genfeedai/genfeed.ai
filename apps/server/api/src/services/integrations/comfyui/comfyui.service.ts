@@ -25,6 +25,8 @@ interface ComfyUIQueuePromptResponse {
   node_errors: Record<string, unknown>;
 }
 
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
+import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   buildFlux2DevPrompt,
@@ -55,6 +57,7 @@ export class ComfyUIService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
+    private readonly pollUntilService: PollUntilService,
   ) {
     this.comfyuiUrl = this.configService.get('DARKROOM_COMFYUI_URL') ?? '';
   }
@@ -180,32 +183,38 @@ export class ComfyUIService {
 
   /**
    * Poll until prompt completes or times out.
+   * Delegates the loop to {@link PollUntilService}; the error status is raised
+   * from the predicate so it surfaces as a failure rather than a timeout.
    */
   private async waitForCompletion(
     promptId: string,
   ): Promise<ComfyUIHistoryEntry> {
-    const deadline = Date.now() + DEFAULT_TIMEOUT_MS;
+    try {
+      const { value } = await this.pollUntilService.poll(
+        () => this.getHistory(promptId),
+        (history) => {
+          if (history?.status?.status_str === 'error') {
+            throw new Error(
+              // @ts-expect-error TS2339
+              `ComfyUI prompt ${promptId} failed: ${JSON.stringify(history.status?.messages)}`,
+            );
+          }
+          return Boolean(history?.status?.completed);
+        },
+        { intervalMs: DEFAULT_POLL_MS, timeoutMs: DEFAULT_TIMEOUT_MS },
+      );
 
-    while (Date.now() < deadline) {
-      const history = await this.getHistory(promptId);
-
-      if (history?.status?.completed) {
-        return history;
-      }
-
-      if (history?.status?.status_str === 'error') {
+      // `value` is defined here: the predicate only returns true for a completed
+      // history entry.
+      return value as ComfyUIHistoryEntry;
+    } catch (error: unknown) {
+      if (error instanceof PollTimeoutException) {
         throw new Error(
-          // @ts-expect-error TS2339
-          `ComfyUI prompt ${promptId} failed: ${JSON.stringify(history.status?.messages)}`,
+          `ComfyUI prompt ${promptId} timed out after ${DEFAULT_TIMEOUT_MS}ms`,
         );
       }
-
-      await this.sleep(DEFAULT_POLL_MS);
+      throw error;
     }
-
-    throw new Error(
-      `ComfyUI prompt ${promptId} timed out after ${DEFAULT_TIMEOUT_MS}ms`,
-    );
   }
 
   /**
@@ -339,9 +348,5 @@ export class ComfyUIService {
       }
     }
     return undefined;
-  }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

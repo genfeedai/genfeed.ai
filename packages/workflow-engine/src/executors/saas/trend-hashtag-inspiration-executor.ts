@@ -3,14 +3,17 @@ import {
   type ExecutorInput,
   type ExecutorOutput,
 } from '@workflow-engine/executors/base-executor';
+import {
+  buildHashtag,
+  normalizeHashtag,
+  type TrendInspirationPlatform,
+  toNonEmptyString,
+  uniqHashtags,
+  VALID_PLATFORMS,
+} from '@workflow-engine/executors/saas/trend-inspiration-shared';
 import type { ExecutableNode } from '@workflow-engine/types';
 
-export type TrendInspirationPlatform =
-  | 'tiktok'
-  | 'instagram'
-  | 'twitter'
-  | 'youtube'
-  | 'reddit';
+export type { TrendInspirationPlatform };
 
 export type TrendContentPreference = 'video' | 'image' | 'any';
 export type TrendContentType = 'video' | 'image' | 'carousel' | 'thread';
@@ -38,55 +41,11 @@ export type TrendHashtagInspirationResolver = (params: {
   auto: boolean;
 }) => Promise<TrendHashtagInspirationSource | null>;
 
-const VALID_PLATFORMS = new Set<TrendInspirationPlatform>([
-  'tiktok',
-  'instagram',
-  'twitter',
-  'youtube',
-  'reddit',
-]);
-
 const VALID_CONTENT_PREFERENCES = new Set<TrendContentPreference>([
   'video',
   'image',
   'any',
 ]);
-
-function toNonEmptyString(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function normalizeHashtag(value: string): string {
-  const normalized = value.replace(/^#/, '').replace(/[^a-zA-Z0-9_]/g, '');
-  return normalized.length > 0 ? normalized : 'trend';
-}
-
-function buildHashtag(value: string): string {
-  return `#${normalizeHashtag(value)}`;
-}
-
-function uniq(values: string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-
-  for (const value of values) {
-    const normalized = buildHashtag(value);
-    const key = normalized.toLowerCase();
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    result.push(normalized);
-  }
-
-  return result;
-}
 
 function selectContentType(
   preference: TrendContentPreference,
@@ -187,13 +146,15 @@ export class TrendHashtagInspirationExecutor extends BaseExecutor {
       toNonEmptyString(inputs.get('hashtag')) ??
       toNonEmptyString(node.config.hashtag);
 
+    const resolverResult = await this.resolver?.({
+      auto,
+      hashtag: requestedHashtag ? normalizeHashtag(requestedHashtag) : null,
+      organizationId: context.organizationId,
+      platform,
+    });
+
     const source =
-      (await this.resolver?.({
-        auto,
-        hashtag: requestedHashtag ? normalizeHashtag(requestedHashtag) : null,
-        organizationId: context.organizationId,
-        platform,
-      })) ??
+      resolverResult ??
       ({
         hashtag: requestedHashtag
           ? normalizeHashtag(requestedHashtag)
@@ -205,7 +166,7 @@ export class TrendHashtagInspirationExecutor extends BaseExecutor {
 
     const sourceHashtag = buildHashtag(source.hashtag);
     const contentType = selectContentType(contentPreference, source.platform);
-    const hashtags = uniq([
+    const hashtags = uniqHashtags([
       source.hashtag,
       ...source.relatedHashtags,
       source.platform,
@@ -231,7 +192,7 @@ export class TrendHashtagInspirationExecutor extends BaseExecutor {
       metadata: {
         auto,
         contentPreference,
-        resolvedFromSource: Boolean(this.resolver),
+        resolvedFromSource: Boolean(resolverResult),
       },
     };
   }

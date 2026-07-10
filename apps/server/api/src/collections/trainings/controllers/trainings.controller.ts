@@ -28,6 +28,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -41,6 +42,7 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
+import { TrainingStage } from '@genfeedai/prisma';
 import { TrainingSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -168,10 +170,10 @@ export class TrainingsController extends BaseCRUDController<
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
     @Req() request: Request,
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @Param('trainingId') trainingId: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!/^[0-9a-f]{24}$/i.test(trainingId)) {
+    if (!isEntityId(trainingId)) {
       throw new HttpException(
         {
           detail: `Training with ID ${trainingId} not found`,
@@ -181,7 +183,12 @@ export class TrainingsController extends BaseCRUDController<
       );
     }
 
-    const data = await this.trainingsService.findOne({ _id: trainingId });
+    const publicMetadata = getPublicMetadata(user);
+    const data = await this.trainingsService.findOne({
+      _id: trainingId,
+      isDeleted: false,
+      organization: publicMetadata.organization,
+    });
 
     if (!data) {
       throw new HttpException(
@@ -436,7 +443,7 @@ export class TrainingsController extends BaseCRUDController<
       );
     } catch (error: unknown) {
       await this.trainingsService.patch(training.id, {
-        status: IngredientStatus.FAILED,
+        stage: TrainingStage.FAILED,
       });
       this.loggerService.error('Failed to create training zip', error);
 
@@ -460,7 +467,7 @@ export class TrainingsController extends BaseCRUDController<
       await this.trainingsService.launchTraining(training, uploadedUrl);
     } catch (error: unknown) {
       await this.trainingsService.patch(training.id, {
-        status: IngredientStatus.FAILED,
+        stage: TrainingStage.FAILED,
       });
       this.loggerService.error('Failed to launch training', error);
 

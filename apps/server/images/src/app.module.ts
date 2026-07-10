@@ -3,7 +3,6 @@ import { ConfigService } from '@images/config/config.service';
 import { ComfyUIController } from '@images/controllers/comfyui.controller';
 import { DatasetController } from '@images/controllers/dataset.controller';
 import { GenerationController } from '@images/controllers/generation.controller';
-import { HealthController } from '@images/controllers/health.controller';
 import { LoraController } from '@images/controllers/lora.controller';
 import { TrainingController } from '@images/controllers/training.controller';
 import { GenerationRateLimitGuard } from '@images/guards/generation-rate-limit.guard';
@@ -14,6 +13,11 @@ import { GenerationService } from '@images/services/generation.service';
 import { JobService } from '@images/services/job.service';
 import { LoraService } from '@images/services/lora.service';
 import { TrainingService } from '@images/services/training.service';
+import { HealthController } from '@libs/health/health.controller';
+import {
+  HEALTH_CONTRIBUTOR,
+  type HealthContributor,
+} from '@libs/health/health-contributor.interface';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import { S3Module } from '@libs/s3/s3.module';
@@ -51,6 +55,13 @@ import { Module } from '@nestjs/common';
     JobService,
     LoraService,
     TrainingService,
+    {
+      inject: [JobService],
+      provide: HEALTH_CONTRIBUTOR,
+      useFactory: (jobService: JobService): HealthContributor => ({
+        getHealthDetails: async () => ({ jobs: await jobService.getStats() }),
+      }),
+    },
   ],
 })
 export class AppModule {}

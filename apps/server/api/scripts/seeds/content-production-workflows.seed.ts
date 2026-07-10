@@ -14,166 +14,36 @@
  *   bun run apps/server/api/scripts/seeds/content-production-workflows.seed.ts --env=production --live
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import process from 'node:process';
-import { fileURLToPath } from 'node:url';
-import { AppModule } from '@api/app.module';
-import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Logger } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import {
+  findMissingTemplateIds,
+  runWorkflowSeed,
+  type WorkflowSeedDryRunContext,
+} from './shared/run-workflow-seed';
 
-const logger = new Logger('ContentProductionWorkflowSeed');
-const scriptDir = fileURLToPath(new URL('.', import.meta.url));
-
-type SeedArgs = {
-  dryRun: boolean;
-  env?: string;
-  organizationId?: string;
-};
-
-function loadEnvFile(): void {
-  const args = process.argv.slice(2);
-  const envArg = args.find((arg) => arg.startsWith('--env='))?.split('=')[1];
-  const envSuffix = envArg || 'local';
-  const envPath = resolve(scriptDir, '..', '..', `.env.${envSuffix}`);
-
-  try {
-    const content = readFileSync(envPath, 'utf-8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) {
-        continue;
-      }
-      const eqIndex = trimmed.indexOf('=');
-      if (eqIndex === -1) {
-        continue;
-      }
-      const key = trimmed.slice(0, eqIndex).trim();
-      const value = trimmed.slice(eqIndex + 1).trim();
-      if (envArg || !process.env[key]) {
-        process.env[key] = value;
-      }
-    }
-    logger.log(`Loaded env from .env.${envSuffix}`);
-  } catch {
-    logger.log(`No .env.${envSuffix} found, using process env / defaults`);
-  }
-}
-
-function parseArgs(): SeedArgs {
-  const args = process.argv.slice(2);
-  return {
-    dryRun: !args.includes('--live'),
-    env: args.find((arg) => arg.startsWith('--env='))?.split('=')[1],
-    organizationId: args
-      .find((arg) => arg.startsWith('--organizationId='))
-      ?.split('=')[1],
-  };
-}
-
-async function main(): Promise<void> {
-  loadEnvFile();
-  const args = parseArgs();
-
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    logger: ['error', 'log', 'warn'],
-  });
-
-  try {
-    const workflowSeeder = app.get(WorkflowTemplateSeederService);
-    const prisma = app.get(PrismaService);
-
-    const where: Record<string, unknown> = { isDeleted: false };
-    if (args.organizationId) {
-      where.id = args.organizationId;
-    }
-
-    const organizations = await prisma.organization.findMany({
-      orderBy: { createdAt: 'asc' },
-      select: { id: true, userId: true },
-      where: where as never,
-    });
-
-    logger.log(
-      `${args.dryRun ? 'DRY RUN' : 'LIVE'} evaluating ${organizations.length} organization(s)${args.env ? ` for ${args.env}` : ''}`,
-    );
-
-    let processed = 0;
-    let skipped = 0;
-
-    for (const organization of organizations) {
-      if (!organization.userId) {
-        logger.warn(
-          `Skipping organization ${organization.id} - no owner userId`,
-        );
-        skipped += 1;
-        continue;
-      }
-
-      if (args.dryRun) {
-        await logDryRun(prisma, organization.id);
-        processed += 1;
-        continue;
-      }
-
-      await workflowSeeder.ensureContentProductionWorkflows(
-        organization.userId,
-        organization.id,
-      );
-      processed += 1;
-    }
-
-    logger.log(
-      `Content production workflow seed summary: processed=${processed}, skipped=${skipped}`,
-    );
-  } finally {
-    await app.close();
-  }
-}
-
-async function logDryRun(
-  prisma: PrismaService,
-  organizationId: string,
+/**
+ * Content production additionally mirrors content schedules into workflow rows,
+ * so its dry-run also reports how many schedules are missing a backing
+ * workflow alongside the standard template summary.
+ */
+async function reportContentProductionDryRun(
+  context: WorkflowSeedDryRunContext,
 ): Promise<void> {
-  const existingTemplates = await prisma.workflow.findMany({
-    select: { metadata: true },
-    where: {
-      isDeleted: false,
-      organizationId,
-      OR: CONTENT_PRODUCTION_WORKFLOW_TEMPLATES.map((template) => ({
-        metadata: {
-          equals: template.id,
-          path: ['sourceTemplateId'],
-        },
-      })),
-    },
-  });
-  const existingTemplateIds = new Set(
-    existingTemplates
-      .map((workflow) => {
-        const metadata = workflow.metadata as Record<string, unknown> | null;
-        return typeof metadata?.sourceTemplateId === 'string'
-          ? metadata.sourceTemplateId
-          : null;
-      })
-      .filter((value): value is string => Boolean(value)),
+  const missingTemplates = await findMissingTemplateIds(
+    context.prisma,
+    context.organizationId,
+    context.templates,
   );
-  const missingTemplates = CONTENT_PRODUCTION_WORKFLOW_TEMPLATES.filter(
-    (template) => !existingTemplateIds.has(template.id),
-  ).map((template) => template.id);
 
-  const schedules = await prisma.contentSchedule.findMany({
+  const schedules = await context.prisma.contentSchedule.findMany({
     orderBy: { createdAt: 'asc' },
     select: { id: true },
-    where: { isDeleted: false, organizationId },
+    where: { isDeleted: false, organizationId: context.organizationId },
   });
 
   let missingScheduleWorkflows = 0;
   for (const schedule of schedules) {
-    const existingWorkflow = await prisma.workflow.findFirst({
+    const existingWorkflow = await context.prisma.workflow.findFirst({
       select: { id: true },
       where: {
         isDeleted: false,
@@ -181,7 +51,7 @@ async function logDryRun(
           equals: schedule.id,
           path: ['contentScheduleId'],
         },
-        organizationId,
+        organizationId: context.organizationId,
       },
     });
     if (!existingWorkflow) {
@@ -189,12 +59,17 @@ async function logDryRun(
     }
   }
 
-  logger.log(
-    `[DRY RUN] org ${organizationId} missing ${missingTemplates.length}/${CONTENT_PRODUCTION_WORKFLOW_TEMPLATES.length} content production workflow(s): ${missingTemplates.join(', ') || 'none'}; content schedules missing workflows=${missingScheduleWorkflows}/${schedules.length}`,
+  context.logger.log(
+    `[DRY RUN] org ${context.organizationId} missing ${missingTemplates.length}/${context.templates.length} content production workflow(s): ${missingTemplates.join(', ') || 'none'}; content schedules missing workflows=${missingScheduleWorkflows}/${schedules.length}`,
   );
 }
 
-main().catch((error) => {
-  logger.error('Content production workflow seed failed', error);
-  process.exit(1);
+void runWorkflowSeed({
+  dryRunLabel: 'content production',
+  ensure: (seeder, userId, organizationId) =>
+    seeder.ensureContentProductionWorkflows(userId, organizationId),
+  loggerName: 'ContentProductionWorkflowSeed',
+  name: 'Content production workflow seed',
+  reportDryRun: reportContentProductionDryRun,
+  templates: CONTENT_PRODUCTION_WORKFLOW_TEMPLATES,
 });

@@ -3,8 +3,13 @@ import {
   type ExecutorInput,
   type ExecutorOutput,
 } from '@workflow-engine/executors/base-executor';
+import {
+  type TrendInspirationPlatform,
+  toNonEmptyString,
+  uniqOptionalHashtags,
+  VALID_PLATFORMS,
+} from '@workflow-engine/executors/saas/trend-inspiration-shared';
 import type { ExecutableNode } from '@workflow-engine/types';
-import type { TrendInspirationPlatform } from './trend-hashtag-inspiration-executor';
 
 export type TrendInspirationStyle =
   | 'match_closely'
@@ -55,55 +60,11 @@ export type TrendVideoInspirationResolver = (params: {
   minViralScore: number;
 }) => Promise<TrendVideoInspirationSource | null>;
 
-const VALID_PLATFORMS = new Set<TrendInspirationPlatform>([
-  'tiktok',
-  'instagram',
-  'twitter',
-  'youtube',
-  'reddit',
-]);
-
 const VALID_INSPIRATION_STYLES = new Set<TrendInspirationStyle>([
   'match_closely',
   'inspired_by',
   'remix_concept',
 ]);
-
-function toNonEmptyString(value: unknown): string | null {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function buildHashtag(value: string): string | null {
-  const normalized = value.replace(/^#/, '').replace(/[^a-zA-Z0-9_]/g, '');
-  return normalized.length > 0 ? `#${normalized}` : null;
-}
-
-function uniqHashtags(values: string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-
-  for (const value of values) {
-    const hashtag = buildHashtag(value);
-    if (!hashtag) {
-      continue;
-    }
-
-    const key = hashtag.toLowerCase();
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    result.push(hashtag);
-  }
-
-  return result;
-}
 
 function aspectRatioForPlatform(
   platform: TrendInspirationPlatform,
@@ -236,7 +197,7 @@ export class TrendVideoInspirationExecutor extends BaseExecutor {
         trendId,
       })) ?? null;
 
-    const hashtags = uniqHashtags([
+    const hashtags = uniqOptionalHashtags([
       ...(source?.hashtags ?? []),
       platform,
       inspirationStyle,
