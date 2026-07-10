@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1021 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1022 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -673,6 +673,19 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     ],
     "queryParams": [],
     "toolName": "agent_runs__remove"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "post",
+    "operationId": "AgentRunsController.retryRun",
+    "path": "/runs/{id}/retries",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "toolName": "agent_runs__retry_run"
   },
   {
     "bodyFields": [],
