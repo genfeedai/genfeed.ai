@@ -380,6 +380,7 @@ export class AgentRunsController extends BaseCRUDController<
     }
 
     const threadId =
+      run.threadId?.toString() ??
       (run.thread as unknown as { id?: string })?.id?.toString() ??
       run.thread?.toString();
 
