@@ -1,6 +1,6 @@
 ---
 name: accessibility
-description: Expert in web accessibility (WCAG 2.1 AA compliance) for React/Next.js applications, ensuring all projects are usable by everyone
+description: Expert in web accessibility (WCAG 2.1 AA compliance) for React/Next.js applications, ensuring all projects are usable by everyone. Use when creating or reviewing UI components, adding keyboard navigation, checking color contrast, testing with screen readers, or auditing pages for accessibility issues.
 metadata:
   version: "1.0.0"
   tags: accessibility, a11y, wcag, aria, keyboard-navigation, screen-reader, inclusive-design
@@ -8,9 +8,7 @@ metadata:
 
 # Accessibility (a11y) Skill
 
-Act as an expert in web accessibility (a11y), specializing in WCAG 2.1 AA compliance for React/Next.js applications.
-
-## When to Use This Skill
+## When to Use
 
 Use when you're:
 
@@ -29,7 +27,7 @@ Use when you're:
 3. Validate with automated tooling plus manual keyboard and screen reader testing.
 4. Document issues and fixes with examples.
 
-## WCAG Principles (Quick)
+## WCAG Principles
 
 - Perceivable: text alternatives, contrast, responsive support.
 - Operable: keyboard access, focus management, timing.

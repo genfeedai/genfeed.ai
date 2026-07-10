@@ -1,55 +1,54 @@
 ---
 name: prd-quality-gate
-description: Use when checking whether a Genfeed GitHub issue body is a complete Shipcode-format PRD before planning or implementation. Validates native GitHub metadata, required sections, title length, three feature phases, and concrete verification criteria.
+description: PRD completeness validation. Use to check that a PRD (or issue body that serves as one) contains the required sections before it is handed to a planning/execution agent, so the plan is built from a complete spec instead of hallucinated scope. Run it as a blocking gate or a warning-only lint.
+metadata:
+  version: "1.1.0"
+  tags: "prd, planning, validation, quality-gate, spec, requirements, ears"
 ---
 
 <prd_quality_gate>
-A well-formed PRD GitHub issue uses native GitHub/project fields for metadata
-and keeps the issue body focused on human-readable PRD content.
+A well-formed PRD (or the issue body that serves as one) must contain ALL of the
+following sections as markdown headings (## or ###).
 
-Do not require or add YAML frontmatter to GitHub issue bodies. GitHub renders
-issue-body frontmatter as visible noise, and the repository uses native GitHub
-issue/project metadata as the source of truth.
+Required sections:
 
-Required native metadata:
-- Issue type: Feature | Bug | Task
-- Project status: Backlog | Todo | In Progress | Human Review | Done | Deferred
-- Project priority: P0 | P1 | P2 | P3
-- Project complexity: Low | Medium | High
-- Project blast radius: Contained | Cross-package | Cross-app | Infra
-
-Required issue-body shape:
-- Starts with `# PRD: <name>`
-- Contains all required markdown sections before it is ready for implementation.
-
-Required sections, in order:
 - Executive Summary
 - Problem Statement
 - Goals
-- Non-Goals
-- User Stories
-- System Specification
 - Functional Requirements
-- Non-Functional Requirements
-- Feature Phase Breakdown
-- Success Criteria
-- Out of Scope
-- Dependencies
+- Acceptance Criteria
 - Verification Plan
-- Risks & Open Questions
 
-Additional quality rules:
-- Issue title should be 4-7 words and use imperative verb + object.
-- The `# PRD:` heading must be aligned with the issue title.
-- Feature Phase Breakdown must describe exactly three ordered phases.
-- Success Criteria and Out of Scope must each contain at least one concrete bullet.
-- User Stories must include explicit acceptance checks.
-- System Specification must cover observable behavior and boundaries, not implementation file names.
-- Verification Plan must name test files, suite names, or concrete manual QA steps.
-- No TODO, TBD, or placeholder text may remain when status is backlog.
+Acceptance Criteria must be written in EARS (Easy Approach to Requirements
+Syntax) so each bullet is machine-checkable and pass/fail without judgement.
+Every bullet under Acceptance Criteria must match one of:
 
-If any gate fails:
-- Keep the issue out of runnable workflow status through native GitHub/project fields.
-- Report the exact missing or weak sections.
-- Do not start implementation until the issue body is fixed.
+- WHEN <trigger> THE SYSTEM SHALL <response>        (event-driven)
+- WHILE <state> THE SYSTEM SHALL <response>         (state-driven)
+- WHERE <feature> THE SYSTEM SHALL <response>       (optional feature)
+- IF <condition> THEN THE SYSTEM SHALL <response>   (unwanted behavior)
+- THE SYSTEM SHALL <invariant>                      (ubiquitous)
+
+A bullet that does not match this grammar (case-insensitive regex
+`^\s*(\d+\.\s*)?(WHEN|WHILE|WHERE|IF|THE SYSTEM)\b.*\bSHALL\b`) is free-form
+prose, not a verifiable criterion.
+
+When the quality gate is ENABLED (blocking):
+
+- Missing any required section → fail immediately with an actionable message
+  listing the missing sections.
+- Any Acceptance Criteria bullet that is not EARS-shaped → fail, quoting each
+  offending bullet and the EARS pattern it should take.
+- The author must update the PRD and re-run the gate before planning proceeds.
+
+When the quality gate is DISABLED (default, warning-only):
+
+- Missing sections → log a warning.
+- Non-EARS Acceptance Criteria bullets → log a warning listing each offending
+  bullet.
+- Planning proceeds. The planner should still note the gaps in its output.
+
+Section matching is case-insensitive against ## and ### headings. Exact heading
+text must appear (e.g. "## Executive Summary" or "### Goals"). Headings nested
+inside code fences are ignored by convention (they are examples, not structure).
 </prd_quality_gate>
