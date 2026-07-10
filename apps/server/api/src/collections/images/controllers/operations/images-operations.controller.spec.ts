@@ -69,7 +69,8 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { RouterService } from '@api/services/router/router.service';
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
@@ -98,7 +99,7 @@ describe('ImagesOperationsController', () => {
   let leonardoaiService: vi.Mocked<LeonardoAIService>;
   let replicateService: vi.Mocked<ReplicateService>;
   let routerService: vi.Mocked<RouterService>;
-  let pollingService: vi.Mocked<PollingService>;
+  let pollingService: vi.Mocked<IngredientCompletionService>;
   let filesClientService: vi.Mocked<FilesClientService>;
   let comfyUIService: vi.Mocked<ComfyUIService>;
   let tagsService: vi.Mocked<TagsService>;
@@ -288,7 +289,7 @@ describe('ImagesOperationsController', () => {
           },
         },
         {
-          provide: PollingService,
+          provide: IngredientCompletionService,
           useValue: {
             waitForIngredientCompletion: vi.fn(),
             waitForMultipleIngredientsCompletion: vi.fn(),
@@ -455,7 +456,7 @@ describe('ImagesOperationsController', () => {
       module.get(FailedGenerationService),
       module.get(FilesClientService),
       module.get(FalService),
-      module.get(PollingService),
+      module.get(IngredientCompletionService),
       module.get(ImagesService),
       module.get(IngredientsService),
       module.get(OrganizationSettingsService),
@@ -493,7 +494,7 @@ describe('ImagesOperationsController', () => {
     leonardoaiService = module.get(LeonardoAIService);
     replicateService = module.get(ReplicateService);
     routerService = module.get(RouterService);
-    pollingService = module.get(PollingService);
+    pollingService = module.get(IngredientCompletionService);
     filesClientService = module.get(FilesClientService);
     comfyUIService = module.get(ComfyUIService);
     tagsService = module.get(TagsService);
@@ -721,8 +722,7 @@ describe('ImagesOperationsController', () => {
         waitForCompletion: true,
       };
 
-      const timeoutError = new Error('Polling timeout');
-      (timeoutError as Record<string, unknown>).name = 'PollingTimeoutError';
+      const timeoutError = new PollTimeoutException('Polling timeout', 180_000);
       pollingService.waitForIngredientCompletion.mockRejectedValue(
         timeoutError,
       );

@@ -24,7 +24,7 @@ import { ReplicateModule } from '@api/services/integrations/replicate/replicate.
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { RouterModule } from '@api/services/router/router.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
-import { PollingModule } from '@api/shared/services/polling/polling.module';
+import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingredient-completion.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
@@ -49,7 +49,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => PromptsModule),
     forwardRef(() => ReplicateModule),
     forwardRef(() => RouterModule),
-    forwardRef(() => PollingModule),
+    forwardRef(() => IngredientCompletionModule),
   ],
   providers: [MusicsService, CreditsGuard, ModelsGuard, CreditsInterceptor],
 })

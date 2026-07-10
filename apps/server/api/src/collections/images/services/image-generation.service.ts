@@ -38,7 +38,8 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
+import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
+import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
@@ -165,7 +166,7 @@ export class ImageGenerationService {
     private readonly failedGenerationService: FailedGenerationService,
     private readonly filesClientService: FilesClientService,
     private readonly falService: FalService,
-    private readonly pollingService: PollingService,
+    private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly imagesService: ImagesService,
     private readonly ingredientsService: IngredientsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
@@ -771,7 +772,7 @@ export class ImageGenerationService {
 
     if (plan.kind === 'poll-multiple') {
       const completedIngredients =
-        await this.pollingService.waitForMultipleIngredientsCompletion(
+        await this.ingredientCompletionService.waitForMultipleIngredientsCompletion(
           plan.pollIds ?? [context.ingredientData.id.toString()],
           180_000, // 3 minutes timeout
           2_000, // 2 seconds poll interval
@@ -781,7 +782,7 @@ export class ImageGenerationService {
     }
 
     // poll-single
-    return this.pollingService.waitForIngredientCompletion(
+    return this.ingredientCompletionService.waitForIngredientCompletion(
       context.ingredientData.id.toString(),
       180000, // 3 minutes timeout
       2000, // 2 seconds poll interval
@@ -798,7 +799,7 @@ export class ImageGenerationService {
     error: unknown,
     context: GenerationContext,
   ): Promise<void> {
-    if (!(error instanceof Error) || error.name !== 'PollingTimeoutError') {
+    if (!(error instanceof PollTimeoutException)) {
       return;
     }
 
