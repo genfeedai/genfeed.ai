@@ -581,6 +581,7 @@
         "@genfeedai/prisma": "workspace:*",
         "@genfeedai/queue-contracts": "workspace:*",
         "@genfeedai/server": "workspace:*",
+        "@genfeedai/tools": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
         "@nestjs/bullmq": "11.0.4",
         "@nestjs/event-emitter": "3.1.0",
