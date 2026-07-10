@@ -38,6 +38,41 @@ export function parseTrustedOrigins(value: string | undefined): string[] {
 }
 
 /**
+ * Frontends local dev serves from. Both `localhost` and `local.genfeed.ai`
+ * (which resolves to 127.0.0.1 via /etc/hosts) are auto-trusted so a fresh
+ * clone works on either hostname — app (3000), website (3002), API (3010) —
+ * without anyone having to set `BETTER_AUTH_TRUSTED_ORIGINS` by hand.
+ */
+const LOCAL_DEV_TRUSTED_ORIGINS = [
+  'http://localhost:3000',
+  'http://local.genfeed.ai:3000',
+  'http://localhost:3002',
+  'http://local.genfeed.ai:3002',
+  'http://localhost:3010',
+  'http://local.genfeed.ai:3010',
+] as const;
+
+/**
+ * Resolve Better Auth's trusted origins. Always honours whatever
+ * `BETTER_AUTH_TRUSTED_ORIGINS` lists; outside production/staging it also merges
+ * the standard {@link LOCAL_DEV_TRUSTED_ORIGINS} so local dev needs zero env
+ * config and never hits a spurious `INVALID_ORIGIN` when accessed via either
+ * `localhost` or `local.genfeed.ai`. Real deployments (production/staging) get
+ * exactly the configured list — localhost is never auto-trusted there.
+ */
+export function resolveTrustedOrigins(
+  value: string | undefined,
+  nodeEnv: string | undefined,
+): string[] {
+  const configured = parseTrustedOrigins(value);
+  const isDeployedEnv = nodeEnv === 'production' || nodeEnv === 'staging';
+  if (isDeployedEnv) {
+    return configured;
+  }
+  return Array.from(new Set([...configured, ...LOCAL_DEV_TRUSTED_ORIGINS]));
+}
+
+/**
  * Resolve the optional cross-subdomain cookie domain (e.g. `.genfeed.ai`).
  * Returns `undefined` when unset so single-host / Community deployments keep
  * the default host-scoped session cookie.

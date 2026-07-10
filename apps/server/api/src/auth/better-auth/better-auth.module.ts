@@ -16,12 +16,12 @@ import { PassportModule } from '@nestjs/passport';
 
 import {
   parseCommaSeparated,
-  parseTrustedOrigins,
   resolveBetterAuthBaseUrl,
   resolveBooleanFlag,
   resolveCookieDomain,
   resolveExperimentalJoins,
   resolveSocialProviderConfig,
+  resolveTrustedOrigins,
 } from './better-auth.config';
 import {
   BETTER_AUTH_INSTANCE,
@@ -175,8 +175,9 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
           sendResetPassword: (params) => mailer.sendResetPassword(params),
           sendVerificationEmail: (params) =>
             mailer.sendVerificationEmail(params),
-          trustedOrigins: parseTrustedOrigins(
+          trustedOrigins: resolveTrustedOrigins(
             config.get('BETTER_AUTH_TRUSTED_ORIGINS'),
+            config.get('NODE_ENV'),
           ),
         });
       },
