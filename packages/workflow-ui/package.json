@@ -106,16 +106,16 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "workflow-ui",
+    "directory": "packages/workflow-ui",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
     "build": "tsup && bun run scripts/prepend-use-client.ts",
     "dev": "tsup --watch",
     "prepublishOnly": "bun run build",
-    "release:npm": "../../scripts/publish-package.sh . --no-bump",
-    "release:npm:dry-run": "../../scripts/publish-package.sh . --no-bump --dry-run",
+    "release:npm": "../../scripts/publish-package.sh . --publish",
+    "release:npm:dry-run": "../../scripts/publish-package.sh . --dry-run",
     "test": "vitest run"
   },
   "sideEffects": [
@@ -123,5 +123,5 @@
   ],
   "type": "module",
   "types": "./dist/index.d.ts",
-  "version": "0.2.8"
+  "version": "0.2.9"
 }

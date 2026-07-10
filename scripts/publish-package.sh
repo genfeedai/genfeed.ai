@@ -1,172 +1,70 @@
 #!/usr/bin/env bash
 #
-# Publish a @genfeedai/* package to npm.
-#
-# Uses `bun publish` which automatically resolves workspace:* protocols
-# to real versions. Never use `npm publish` — it publishes workspace:*
-# literally, breaking external consumers.
+# Prepare or publish one already-versioned @genfeedai/* package.
+# Version changes must land on master through a pull request first.
 #
 # Usage:
-#   ./scripts/publish-package.sh packages/enums                    # patch bump + publish
-#   ./scripts/publish-package.sh packages/interfaces minor         # minor bump + publish
-#   ./scripts/publish-package.sh packages/cli major               # major bump + publish
-#   ./scripts/publish-package.sh packages/enums --no-bump         # publish current version
-#   ./scripts/publish-package.sh packages/enums patch --dry-run   # dry-run publish
-#
-# Requirements:
-#   - bun >= 1.2 (for workspace:* resolution)
-#   - NPM_TOKEN env var or ~/.npmrc with auth
-#   - Clean git working tree unless PUBLISH_SKIP_CLEAN_CHECK=true
+#   ./scripts/publish-package.sh packages/enums
+#   ./scripts/publish-package.sh packages/enums --dry-run
+#   ./scripts/publish-package.sh packages/enums --publish
 
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <package-dir> [patch|minor|major|--no-bump] [--dry-run]"
+  echo "Usage: $0 <package-dir> [--dry-run|--publish]"
   exit 1
 }
 
 PKG_DIR="${1:-}"
-if [ -z "$PKG_DIR" ]; then
+if [ -z "${PKG_DIR}" ]; then
   usage
 fi
 shift
 
-BUMP="patch"
-DRY_RUN=false
-
+MODE="dry-run"
 for arg in "$@"; do
-  case "$arg" in
-    patch|minor|major|--no-bump)
-      BUMP="$arg"
-      ;;
+  case "${arg}" in
     --dry-run)
-      DRY_RUN=true
+      MODE="dry-run"
+      ;;
+    --publish)
+      MODE="publish"
+      ;;
+    patch|minor|major|--no-bump)
+      echo "Error: version bumps are not allowed during publication. Merge the version through a PR first."
+      exit 1
       ;;
     *)
-      echo "Unknown argument: $arg"
+      echo "Unknown argument: ${arg}"
       usage
       ;;
   esac
 done
 
-if [ ! -f "$PKG_DIR/package.json" ]; then
-  echo "Error: $PKG_DIR/package.json not found"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+ABS_PKG_DIR="$(cd "${PKG_DIR}" && pwd -P)"
+PACKAGE_PATH="${ABS_PKG_DIR#"${REPO_ROOT}/"}"
+
+if [ ! -f "${ABS_PKG_DIR}/package.json" ]; then
+  echo "Error: ${PKG_DIR}/package.json not found"
   exit 1
 fi
 
-PKG_NAME=$(grep '"name"' "$PKG_DIR/package.json" | head -1 | sed 's/.*"\(@[^"]*\)".*/\1/')
-HAS_PUBLISH_CONFIG=$(grep -c '"publishConfig"' "$PKG_DIR/package.json" || true)
+PACKAGE_REQUEST="$(node -e '
+  const fs = require("node:fs");
+  const packagePath = process.argv[1];
+  const packageDir = process.argv[2];
+  const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+  process.stdout.write(JSON.stringify([{ path: packageDir, version: pkg.version }]));
+' "${ABS_PKG_DIR}/package.json" "${PACKAGE_PATH}")"
 
-if [ "$HAS_PUBLISH_CONFIG" -eq 0 ]; then
-  echo "Error: $PKG_NAME has no publishConfig — not a publishable package"
-  exit 1
-fi
+OUTPUT_DIR="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/genfeed-package-release"
+cd "${REPO_ROOT}"
+node scripts/publish-packages-from-json.mjs \
+  --packages-json "${PACKAGE_REQUEST}" \
+  --output-dir "${OUTPUT_DIR}"
 
-echo "=== Publishing $PKG_NAME ==="
-
-# Ensure clean working tree before publishing
-if [ "${PUBLISH_SKIP_CLEAN_CHECK:-false}" != "true" ] && ! git diff-index --quiet HEAD --; then
-  echo "Error: Working tree must be clean before publishing."
-  exit 1
-fi
-
-cd "$PKG_DIR"
-ORIGINAL_VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"\([0-9][^"]*\)".*/\1/')
-ROLLBACK_VERSION=false
-
-restore_original_version() {
-  if [ "$ROLLBACK_VERSION" = true ]; then
-    node -e '
-      const fs = require("node:fs");
-      const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-      packageJson.version = process.argv[1];
-      fs.writeFileSync("package.json", `${JSON.stringify(packageJson, null, 2)}\n`);
-    ' "$ORIGINAL_VERSION"
-  fi
-}
-
-if [ "$DRY_RUN" = true ] && [ "$BUMP" != "--no-bump" ]; then
-  ROLLBACK_VERSION=true
-  trap restore_original_version EXIT
-fi
-
-# Bump version (unless --no-bump)
-if [ "$BUMP" != "--no-bump" ]; then
-  echo "Bumping version ($BUMP)..."
-  node -e '
-    const fs = require("node:fs");
-    const path = require("node:path");
-
-    const packageJsonPath = path.join(process.cwd(), "package.json");
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-    const [major, minor, patch] = packageJson.version.split(".").map(Number);
-
-    if (![major, minor, patch].every((part) => Number.isInteger(part))) {
-      throw new Error(`Unsupported version format: ${packageJson.version}`);
-    }
-
-    const bump = process.argv[1];
-    let nextVersion;
-    switch (bump) {
-      case "major":
-        nextVersion = `${major + 1}.0.0`;
-        break;
-      case "minor":
-        nextVersion = `${major}.${minor + 1}.0`;
-        break;
-      case "patch":
-        nextVersion = `${major}.${minor}.${patch + 1}`;
-        break;
-      default:
-        throw new Error(`Unsupported bump type: ${bump}`);
-    }
-
-    packageJson.version = nextVersion;
-    fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
-    console.log(nextVersion);
-  ' "$BUMP"
-fi
-
-VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"\([0-9][^"]*\)".*/\1/')
-echo "Version: $VERSION"
-
-# Build after the version bump so any versioned artifacts match the package
-# version that will be published.
-echo "Building $PKG_NAME..."
-if grep -q '"build"' package.json; then
-  bun run build
-fi
-
-# Publish with bun (resolves workspace:* → real versions)
-if [ "$DRY_RUN" = true ]; then
-  echo "Dry-run publishing $PKG_NAME@$VERSION..."
-  bun publish --access public --provenance --dry-run
-else
-  echo "Publishing $PKG_NAME@$VERSION..."
-  bun publish --access public --provenance
-fi
-
-echo ""
-if [ "$DRY_RUN" = true ]; then
-  if [ "$BUMP" != "--no-bump" ]; then
-    restore_original_version
-    ROLLBACK_VERSION=false
-    trap - EXIT
-  fi
-  echo "=== Dry run complete for $PKG_NAME@$VERSION ==="
-else
-  echo "=== Published $PKG_NAME@$VERSION ==="
-  echo ""
-  echo "Verifying published manifest..."
-  DEPENDENCIES_JSON=$(npm view "$PKG_NAME@$VERSION" dependencies --json)
-  echo "$DEPENDENCIES_JSON"
-  node -e '
-    const dependencies = process.argv[1] ? JSON.parse(process.argv[1]) : {};
-    for (const [name, version] of Object.entries(dependencies ?? {})) {
-      if (typeof version === "string" && version.startsWith("workspace:")) {
-        console.error(`Published dependency ${name} retained workspace protocol (${version})`);
-        process.exit(1);
-      }
-    }
-  ' "$DEPENDENCIES_JSON"
+if [ "${MODE}" = "publish" ]; then
+  node scripts/publish-packages-from-json.mjs \
+    --publish-plan "${OUTPUT_DIR}/release-plan.json"
 fi

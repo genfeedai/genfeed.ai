@@ -3,6 +3,7 @@
     "@genfeedai/enums": "workspace:*"
   },
   "devDependencies": {
+    "tsc-alias": "1.9.0",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -29,12 +30,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "queue-contracts",
+    "directory": "packages/queue-contracts",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && bunx tsc-alias -p tsconfig.json -f -fe .js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "test": "vitest run --config vitest.config.ts",

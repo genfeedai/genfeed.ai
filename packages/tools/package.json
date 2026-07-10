@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "tsc-alias": "1.9.0",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -21,12 +22,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "tools",
+    "directory": "packages/tools",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build && test -f dist/index.js",
+    "build": "tsc --build && bunx tsc-alias -p tsconfig.json -f -fe .js && test -f dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "generate:mcp-tools": "bun run scripts/generate-mcp-tools.ts",
@@ -36,5 +37,5 @@
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",
-  "version": "0.1.3"
+  "version": "0.1.4"
 }

@@ -74,6 +74,7 @@
     "check:nested-node-modules": "bun run scripts/check-nested-node-modules.ts",
     "check:pages-boundary": "bun run scripts/check-pages-boundary.ts",
     "check:package-api-surface": "bun run scripts/check-package-api-surface.ts",
+    "check:public-packages": "node scripts/check-public-package-manifests.mjs",
     "check:design-system": "bun run scripts/check-design-system.ts",
     "check:desktop-schema-drift": "bun run scripts/check-desktop-schema-drift.ts",
     "check:generated-source": "bun run scripts/check-generated-source-artifacts.ts",

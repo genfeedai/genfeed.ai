@@ -719,6 +719,7 @@
       },
       "devDependencies": {
         "openapi-typescript": "7.13.0",
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
       },
     },
@@ -733,6 +734,7 @@
         "@types/node": "26.1.1",
         "@types/react": "19.2.17",
         "react": "19.2.7",
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
       },
       "peerDependencies": {
@@ -741,7 +743,7 @@
     },
     "packages/cli": {
       "name": "@genfeedai/cli",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "bin": {
         "genfeed": "dist/index.js",
         "gf": "dist/index.js",
@@ -771,7 +773,7 @@
     },
     "packages/client": {
       "name": "@genfeedai/client",
-      "version": "2.3.1",
+      "version": "2.3.2",
       "dependencies": {
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
@@ -779,6 +781,7 @@
         "zod": "4.4.3",
       },
       "devDependencies": {
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
       },
     },
@@ -797,12 +800,13 @@
     },
     "packages/constants": {
       "name": "@genfeedai/constants",
-      "version": "2.2.9",
+      "version": "2.2.10",
       "dependencies": {
         "@genfeedai/enums": "workspace:*",
+        "react-icons": "5.7.0",
       },
       "devDependencies": {
-        "react-icons": "5.7.0",
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
       },
     },
@@ -857,6 +861,7 @@
       },
       "devDependencies": {
         "@types/node": "26.1.1",
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
         "vitest": "4.1.10",
       },
@@ -884,14 +889,15 @@
     },
     "packages/enums": {
       "name": "@genfeedai/enums",
-      "version": "2.3.2",
+      "version": "2.3.3",
       "devDependencies": {
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
       },
     },
     "packages/errors": {
       "name": "@genfeedai/errors",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "chalk": "5.6.2",
       },
@@ -922,7 +928,7 @@
     },
     "packages/helpers": {
       "name": "@genfeedai/helpers",
-      "version": "2.2.12",
+      "version": "2.2.13",
       "dependencies": {
         "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/constants": "workspace:*",
@@ -944,6 +950,7 @@
         "react-dom": "19.2.7",
         "react-hook-form": "7.81.0",
         "react-icons": "5.7.0",
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
       },
     },
@@ -985,7 +992,7 @@
     },
     "packages/interfaces": {
       "name": "@genfeedai/interfaces",
-      "version": "2.3.20",
+      "version": "2.3.21",
       "dependencies": {
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
@@ -999,6 +1006,7 @@
         "react-dom": "19.2.7",
         "react-hook-form": "7.81.0",
         "react-icons": "5.7.0",
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
       },
     },
@@ -1064,6 +1072,7 @@
       },
       "devDependencies": {
         "@types/node": "26.1.1",
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
       },
     },
@@ -1080,7 +1089,7 @@
     },
     "packages/prompts": {
       "name": "@genfeedai/prompts",
-      "version": "0.2.2",
+      "version": "0.2.3",
       "devDependencies": {
         "@genfeedai/types": "workspace:*",
         "@types/node": "26.1.1",
@@ -1112,12 +1121,13 @@
         "@genfeedai/enums": "workspace:*",
       },
       "devDependencies": {
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
       },
     },
     "packages/serializers": {
       "name": "@genfeedai/serializers",
-      "version": "2.3.0",
+      "version": "2.3.1",
       "dependencies": {
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
@@ -1159,8 +1169,9 @@
     },
     "packages/tools": {
       "name": "@genfeedai/tools",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "devDependencies": {
+        "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
       },
     },
@@ -1170,7 +1181,7 @@
     },
     "packages/types": {
       "name": "@genfeedai/types",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "devDependencies": {
         "@xyflow/react": "12.11.2",
         "tsup": "8.5.1",
@@ -1184,17 +1195,13 @@
         "@fullcalendar/core": "6.1.21",
         "@fullcalendar/interaction": "6.1.21",
         "@fullcalendar/timegrid": "6.1.21",
+        "@genfeedai/client": "workspace:*",
         "@genfeedai/constants": "workspace:*",
-        "@genfeedai/contexts": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/hooks": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
-        "@genfeedai/models": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
-        "@genfeedai/props": "workspace:*",
-        "@genfeedai/services": "workspace:*",
-        "@genfeedai/utils": "workspace:*",
+        "@hookform/resolvers": "5.4.0",
         "@shipshitdev/ui": "0.8.3",
         "@tanstack/react-query": "5.101.2",
         "@tiptap/extension-blockquote": "3.27.3",
@@ -1211,11 +1218,23 @@
         "@tiptap/extension-strike": "3.27.3",
         "@tiptap/react": "3.27.3",
         "@tiptap/starter-kit": "3.27.3",
+        "cmdk": "1.1.1",
+        "date-fns": "4.4.0",
         "html-react-parser": "6.1.4",
+        "react-color": "2.19.3",
+        "react-day-picker": "10.0.1",
+        "react-dropzone": "15.0.0",
+        "react-hook-form": "7.81.0",
         "react-icons": "5.7.0",
+        "vaul": "1.1.2",
       },
       "devDependencies": {
-        "@genfeedai/client": "workspace:*",
+        "@genfeedai/contexts": "workspace:*",
+        "@genfeedai/hooks": "workspace:*",
+        "@genfeedai/models": "workspace:*",
+        "@genfeedai/props": "workspace:*",
+        "@genfeedai/services": "workspace:*",
+        "@genfeedai/utils": "workspace:*",
         "@tanstack/react-query-devtools": "5.101.2",
         "@testing-library/jest-dom": "6.9.1",
         "@testing-library/react": "16.3.2",
@@ -1226,11 +1245,9 @@
         "@vitejs/plugin-react": "6.0.3",
         "jsdom": "29.1.1",
         "react": "19.2.7",
-        "react-day-picker": "10.0.1",
         "react-dom": "19.2.7",
         "tsc-alias": "1.9.0",
         "typescript": "6.0.2",
-        "vaul": "1.1.2",
         "vitest": "4.1.10",
       },
       "peerDependencies": {
@@ -1286,19 +1303,20 @@
     },
     "packages/workflow-engine": {
       "name": "@genfeedai/workflow-engine",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
         "recheck": "4.5.0",
       },
       "devDependencies": {
+        "tsup": "8.5.1",
         "typescript": "6.0.2",
       },
     },
     "packages/workflow-saas": {
       "name": "@genfeedai/workflow-saas",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
@@ -1306,12 +1324,13 @@
         "@genfeedai/workflows": "workspace:*",
       },
       "devDependencies": {
+        "tsup": "8.5.1",
         "typescript": "6.0.2",
       },
     },
     "packages/workflow-ui": {
       "name": "@genfeedai/workflow-ui",
-      "version": "0.2.8",
+      "version": "0.2.9",
       "dependencies": {
         "@dagrejs/dagre": "3.0.0",
         "@genfeedai/core": "workspace:*",
@@ -1356,7 +1375,7 @@
     },
     "packages/workflows": {
       "name": "@genfeedai/workflows",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "dependencies": {
         "@genfeedai/types": "workspace:*",
       },

@@ -12,6 +12,7 @@
     "react-dom": "19.2.7",
     "react-hook-form": "7.81.0",
     "react-icons": "5.7.0",
+    "tsc-alias": "1.9.0",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -38,12 +39,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "interfaces",
+    "directory": "packages/interfaces",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && bunx tsc-alias -p tsconfig.json -f -fe .js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "deps:update": "bunx npm-check-updates -u && bun install",
     "dev": "tsc --watch",
@@ -51,5 +52,5 @@
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",
-  "version": "2.3.20"
+  "version": "2.3.21"
 }

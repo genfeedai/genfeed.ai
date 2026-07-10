@@ -23,8 +23,7 @@
     }
   },
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "main": "./dist/index.js",
   "license": "AGPL-3.0",
@@ -35,12 +34,12 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "serializers",
+    "directory": "packages/serializers",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build && bunx tsc-alias -p tsconfig.json && test -f dist/index.js",
+    "build": "tsc --build && bunx tsc-alias -p tsconfig.json -f -fe .js && test -f dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "tsc --watch",
@@ -52,5 +51,5 @@
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",
-  "version": "2.3.0"
+  "version": "2.3.1"
 }

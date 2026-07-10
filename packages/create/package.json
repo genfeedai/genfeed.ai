@@ -13,6 +13,7 @@
   "description": "Genfeed.ai — AI OS for content creation. Self-host for free.",
   "devDependencies": {
     "@types/node": "26.1.1",
+    "tsc-alias": "1.9.0",
     "typescript": "6.0.2",
     "vitest": "4.1.10"
   },
@@ -31,7 +32,8 @@
   "name": "@genfeedai/create",
   "type": "module",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "repository": {
     "directory": "packages/create",
@@ -39,7 +41,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && bunx tsc-alias -p tsconfig.json -f -fe .js",
     "check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },

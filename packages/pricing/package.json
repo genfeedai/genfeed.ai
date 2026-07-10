@@ -5,6 +5,7 @@
   },
   "devDependencies": {
     "@types/node": "26.1.1",
+    "tsc-alias": "1.9.0",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -30,13 +31,13 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "pricing",
+    "directory": "packages/pricing",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "type": "module",
   "scripts": {
-    "build": "bun run clean && tsc --build",
+    "build": "bun run clean && tsc --build && bunx tsc-alias -p tsconfig.json -f -fe .js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit"

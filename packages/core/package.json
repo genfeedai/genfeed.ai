@@ -35,9 +35,9 @@
     "registry": "https://registry.npmjs.org/"
   },
   "repository": {
-    "directory": "core",
+    "directory": "packages/core",
     "type": "git",
-    "url": "git+https://github.com/genfeedai/packages.git"
+    "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
     "build": "tsup",
