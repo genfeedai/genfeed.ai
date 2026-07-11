@@ -42,6 +42,12 @@ describe('CORS Configuration', () => {
         expect(localPattern.test('http://localhost:3011')).toBe(true); // Notifications
         expect(localPattern.test('http://localhost:3016')).toBe(true); // Discord
         expect(localPattern.test('http://local.genfeed.ai:3015')).toBe(true); // Clips
+        // genfeed.localhost dev host (loopback, no /etc/hosts, isolated cookies)
+        expect(localPattern.test('http://genfeed.localhost:3000')).toBe(true); // App
+        expect(localPattern.test('http://genfeed.localhost:3010')).toBe(true); // API
+        expect(localPattern.test('http://app.genfeed.localhost:3000')).toBe(
+          true,
+        ); // subdomain
         // Upper boundary
         expect(localPattern.test('http://localhost:3999')).toBe(true);
         // Out of range
