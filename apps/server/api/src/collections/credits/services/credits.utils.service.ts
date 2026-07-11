@@ -600,6 +600,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     newCreditAmount: number,
     source: string,
     description: string,
+    options?: IAddCreditsOptions,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -620,6 +621,19 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         throw new BusinessLogicException('Organization not found');
       }
 
+      const transactionOptions =
+        options?.referenceId || options?.referenceType || options?.metadata
+          ? {
+              ...(options.metadata ? { metadata: options.metadata } : {}),
+              ...(options.referenceId
+                ? { referenceId: options.referenceId }
+                : {}),
+              ...(options.referenceType
+                ? { referenceType: options.referenceType }
+                : {}),
+            }
+          : undefined;
+
       // Core reset logic — runs atomically inside a transaction when available
       const resetCore = async (tx?: PrismaTransactionClient) => {
         const currentBalance = await this.getOrganizationCreditsBalance(
@@ -632,17 +646,32 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           newCreditAmount,
           tx,
         );
-        await this.creditTransactionsService.createTransactionEntry(
-          organizationId,
-          CreditTransactionCategory.RESET,
-          newCreditAmount,
-          currentBalance,
-          newCreditAmount,
-          source,
-          description,
-          undefined,
-          tx,
-        );
+        if (transactionOptions) {
+          await this.creditTransactionsService.createTransactionEntry(
+            organizationId,
+            CreditTransactionCategory.RESET,
+            newCreditAmount,
+            currentBalance,
+            newCreditAmount,
+            source,
+            description,
+            undefined,
+            tx,
+            transactionOptions,
+          );
+        } else {
+          await this.creditTransactionsService.createTransactionEntry(
+            organizationId,
+            CreditTransactionCategory.RESET,
+            newCreditAmount,
+            currentBalance,
+            newCreditAmount,
+            source,
+            description,
+            undefined,
+            tx,
+          );
+        }
 
         return currentBalance;
       };

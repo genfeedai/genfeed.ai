@@ -20,6 +20,15 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 
+/**
+ * Durable reference type for subscription-invoice credit grants (#1398).
+ * Scoped by `stripe-invoice:{invoice.id}` so a Stripe replay of the same
+ * invoice (same or a fresh event id) can never re-grant credits, even after
+ * the 24h Redis webhook-event dedup marker has expired.
+ */
+const SUBSCRIPTION_INVOICE_CREDIT_REFERENCE_TYPE =
+  'stripe-invoice:subscription-grant';
+
 /** Handles invoice.paid / invoice.payment_failed Stripe webhook events. */
 @Injectable()
 export class StripeInvoiceWebhookHandler {
@@ -150,24 +159,78 @@ export class StripeInvoiceWebhookHandler {
       return;
     }
 
+    const organizationId = String(subscription.organization);
+    // #1398: durable Postgres-level dedup keyed on the invoice, covering
+    // BOTH rollover policies below. The Redis event-id marker only guards
+    // the 24h window immediately after the original webhook — this guards
+    // any later replay of the same invoice regardless of event id.
+    const creditReference = {
+      referenceId: `stripe-invoice:${invoice.id}`,
+      referenceType: SUBSCRIPTION_INVOICE_CREDIT_REFERENCE_TYPE,
+    };
+
+    if (
+      await this.supportService.hasSubscriptionInvoiceCreditGrant(
+        organizationId,
+        creditReference,
+      )
+    ) {
+      this.loggerService.log(
+        `${url} skipping duplicate subscription invoice credit grant`,
+        { invoiceId: invoice.id, organizationId, ...creditReference },
+      );
+      return;
+    }
+
     // Handle different rollover policies based on subscription type
     if (subscription.type === SubscriptionPlan.MONTHLY) {
-      // Monthly: 3-month rollover with expiration
-      await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-        String(subscription.organization),
-        creditsToAdd,
-        subscription.type,
-        `${subscription.type} subscription billing period`,
-        new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 months from now
-      );
+      // Monthly: 3-month rollover with expiration. The reference is also
+      // passed through to the transaction row as a race-condition backstop
+      // behind a unique index (P2002 is treated as a duplicate no-op below).
+      try {
+        await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
+          organizationId,
+          creditsToAdd,
+          subscription.type,
+          `${subscription.type} subscription billing period`,
+          new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 months from now
+          creditReference,
+        );
+      } catch (error: unknown) {
+        if (this.supportService.isUniqueConstraintError(error)) {
+          this.loggerService.log(
+            `${url} skipping duplicate subscription invoice credit grant`,
+            { invoiceId: invoice.id, organizationId, ...creditReference },
+          );
+          return;
+        }
+        throw error;
+      }
     } else if (subscription.type === SubscriptionPlan.YEARLY) {
-      // Yearly: reset credits (no rollover)
-      await this.creditsUtilsService.resetOrganizationCredits(
-        String(subscription.organization),
-        creditsToAdd,
-        subscription.type,
-        `${subscription.type} subscription billing period reset`,
-      );
+      // Yearly: reset credits (no rollover). The reference is also passed
+      // through to the reset transaction row as a race-condition backstop
+      // behind the same unique index used by the monthly path above (P2002
+      // is treated as a duplicate no-op below) — symmetric protection to
+      // MONTHLY, since the pre-check alone cannot see a prior grant unless
+      // the reset transaction actually persists the reference (#1398).
+      try {
+        await this.creditsUtilsService.resetOrganizationCredits(
+          organizationId,
+          creditsToAdd,
+          subscription.type,
+          `${subscription.type} subscription billing period reset`,
+          creditReference,
+        );
+      } catch (error: unknown) {
+        if (this.supportService.isUniqueConstraintError(error)) {
+          this.loggerService.log(
+            `${url} skipping duplicate subscription invoice credit grant`,
+            { invoiceId: invoice.id, organizationId, ...creditReference },
+          );
+          return;
+        }
+        throw error;
+      }
     }
 
     // Log activity for credit handling

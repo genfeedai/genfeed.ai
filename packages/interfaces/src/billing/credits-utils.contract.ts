@@ -131,6 +131,13 @@ export interface ICreditsUtilsService {
   /**
    * Reset the organization balance to a new absolute amount.
    * Used by billing cycle resets.
+   *
+   * `options.referenceId`/`referenceType` let callers persist a dedup
+   * reference on the reset transaction row itself, symmetric to
+   * {@link addOrganizationCreditsWithExpiration} — required so a resettable
+   * (e.g. yearly) billing cycle grant can be idempotency-checked the same
+   * way an additive (e.g. monthly) grant is (see #1398).
+   *
    * OSS no-op is a no-op.
    */
   resetOrganizationCredits(
@@ -138,6 +145,7 @@ export interface ICreditsUtilsService {
     newCreditAmount: number,
     source: string,
     description: string,
+    options?: IAddCreditsOptions,
   ): Promise<void>;
 
   /**

@@ -60,6 +60,7 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
     _newCreditAmount: number,
     _source: string,
     _description: string,
+    _options?: IAddCreditsOptions,
   ): Promise<void> {
     return undefined;
   }
