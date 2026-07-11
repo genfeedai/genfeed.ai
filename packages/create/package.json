@@ -42,7 +42,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
+    "build": "tsc -p tsconfig.json",
     "check": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run"
   },

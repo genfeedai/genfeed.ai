@@ -1,10 +1,10 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import type { IExtractedBrandData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const makeBrandData = (

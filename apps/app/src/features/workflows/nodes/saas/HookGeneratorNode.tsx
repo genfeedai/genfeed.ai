@@ -1,14 +1,14 @@
 'use client';
 
-import type {
-  HookFormula,
-  HookGeneratorNodeData,
-  HookToneStyle,
-} from '@genfeedai/workflow-saas';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
+import type {
+  HookFormula,
+  HookGeneratorNodeData,
+  HookToneStyle,
+} from '@genfeedai/workflows/nodes';
 import type { NodeProps } from '@xyflow/react';
 import { Zap } from 'lucide-react';
 import { memo, useCallback } from 'react';

@@ -19,7 +19,6 @@ import {
 import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -34,6 +33,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 @Injectable()
 export class WebhooksService {

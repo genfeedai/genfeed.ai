@@ -36,7 +36,7 @@
   },
   "type": "module",
   "scripts": {
-    "build": "bun run clean && tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
+    "build": "bun run clean && tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "test": "bun test src",

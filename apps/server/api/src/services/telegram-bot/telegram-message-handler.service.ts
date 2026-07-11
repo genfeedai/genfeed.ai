@@ -8,7 +8,6 @@
  */
 
 import path from 'node:path';
-import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type {
   ConversationState,
   WorkflowInput,
@@ -17,6 +16,7 @@ import type { TelegramConversationService } from '@api/services/telegram-bot/tel
 import type { TelegramRunCommandsService } from '@api/services/telegram-bot/telegram-run-commands.service';
 import { FileInputType } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Context } from 'grammy';
 
 type TelegramMediaInputType = Extract<

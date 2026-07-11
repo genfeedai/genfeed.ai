@@ -2,11 +2,8 @@ import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dt
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
-import { FalService } from '@api/services/integrations/fal/fal.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import {
   ByokProvider,
   VideoResolution,
@@ -14,6 +11,9 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface GenerateVideoConfig {
   model: VideoTaskModel;

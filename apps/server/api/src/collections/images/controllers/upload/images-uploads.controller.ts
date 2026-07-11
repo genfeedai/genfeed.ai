@@ -16,7 +16,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SolanaService } from '@api/services/integrations/solana/solana.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
@@ -51,6 +50,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
 

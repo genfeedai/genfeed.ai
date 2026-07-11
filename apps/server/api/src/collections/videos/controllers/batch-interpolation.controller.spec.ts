@@ -47,7 +47,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
@@ -59,6 +58,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 const mockBuildReferenceImageUrls = vi.mocked(buildReferenceImageUrls);

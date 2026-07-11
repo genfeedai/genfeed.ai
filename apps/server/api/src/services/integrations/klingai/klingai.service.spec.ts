@@ -1,8 +1,8 @@
-import { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 import { of, throwError } from 'rxjs';
 
 vi.mock('@helpers/utils/jwt/jwt.util', () => ({

@@ -1,10 +1,10 @@
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

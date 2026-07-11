@@ -1,6 +1,6 @@
 'use client';
 
-import type { BrandContextNodeData } from '@genfeedai/workflow-saas';
+import type { BrandContextNodeData } from '@genfeedai/workflows/nodes';
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';

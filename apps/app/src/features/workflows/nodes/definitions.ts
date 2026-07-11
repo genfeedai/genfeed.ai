@@ -1,4 +1,4 @@
-import { SAAS_NODE_DEFINITIONS } from '@genfeedai/workflow-saas';
+import { SAAS_NODE_DEFINITIONS } from '@genfeedai/workflows/nodes';
 
 export const extendedNodeDefinitions = {
   captionGen: {

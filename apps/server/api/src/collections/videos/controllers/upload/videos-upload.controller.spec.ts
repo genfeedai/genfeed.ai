@@ -5,12 +5,12 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation/upload-validation.pipe';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 // Mock serializers to avoid real serialization in unit tests

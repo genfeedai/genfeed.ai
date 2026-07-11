@@ -3,7 +3,6 @@ import { type IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   AssetScope,
@@ -14,6 +13,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 @Injectable()
 export class PresignedUploadService {

@@ -8,7 +8,9 @@ import type { ExecutableNode } from '@workflow-engine/types';
 
 export interface ImageGenOutput {
   imageUrl: string;
-  imageBuffer?: Buffer;
+  // Uint8Array (not node's Buffer) keeps the engine package node-free; Buffer
+  // is a Uint8Array subclass so runtime resolver values remain assignable.
+  imageBuffer?: Uint8Array;
   filename?: string;
   model: string;
   provider: string;

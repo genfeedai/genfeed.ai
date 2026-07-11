@@ -1,13 +1,13 @@
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import {
   PollAbortException,
   PollTimeoutException,
-} from '@api/shared/services/poll-until/poll-until.exception';
+} from '@server/shared/services/poll-until/poll-until.exception';
 import {
   type PollOptions,
   PollUntilService,
-} from '@api/shared/services/poll-until/poll-until.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+} from '@server/shared/services/poll-until/poll-until.service';
 
 describe('PollUntilService', () => {
   let service: PollUntilService;

@@ -25,13 +25,11 @@ import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
@@ -58,6 +56,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 import type { Request } from 'express';
 
 @AutoSwagger()

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/enums": "workspace:*",
     "@genfeedai/types": "workspace:*"
   },
   "devDependencies": {
@@ -24,6 +25,10 @@
       "types": "./dist/generation/comfyui/index.d.ts",
       "default": "./dist/generation/comfyui/index.js"
     },
+    "./nodes": {
+      "types": "./dist/nodes/index.d.ts",
+      "default": "./dist/nodes/index.js"
+    },
     "./workflows/*": "./workflows/*"
   },
   "files": [
@@ -44,8 +49,8 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/contracts/index.ts src/generation/index.ts src/generation/comfyui/index.ts --format esm --dts --clean --sourcemap",
-    "dev": "tsup src/index.ts src/contracts/index.ts src/generation/index.ts src/generation/comfyui/index.ts --format esm --dts --watch --sourcemap",
+    "build": "tsup src/index.ts src/contracts/index.ts src/generation/index.ts src/generation/comfyui/index.ts src/nodes/index.ts --format esm --dts --clean --sourcemap",
+    "dev": "tsup src/index.ts src/contracts/index.ts src/generation/index.ts src/generation/comfyui/index.ts src/nodes/index.ts --format esm --dts --watch --sourcemap",
     "prepublishOnly": "bun run build",
     "test": "bun test src"
   },

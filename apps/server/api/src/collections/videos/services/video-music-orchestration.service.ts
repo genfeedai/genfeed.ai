@@ -21,9 +21,7 @@ import { BackgroundMusicDto } from '@api/collections/videos/dto/create-video.dto
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -48,6 +46,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface OrchestrationContext {
   brandId: string;

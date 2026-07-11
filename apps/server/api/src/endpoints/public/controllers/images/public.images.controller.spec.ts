@@ -1,7 +1,6 @@
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   AssetScope,
   IngredientCategory,
@@ -10,6 +9,7 @@ import {
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type {
   Request as ExpressRequest,
   Response as ExpressResponse,

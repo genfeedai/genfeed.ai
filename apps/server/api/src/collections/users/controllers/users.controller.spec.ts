@@ -7,10 +7,10 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 describe('UsersController', () => {
   let controller: UsersController;

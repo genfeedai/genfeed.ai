@@ -266,7 +266,7 @@ config.turbopack = {
     '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
     '@genfeedai/types': '../../packages/types/src/index.ts',
     '@genfeedai/ui': '../../packages/ui/src/index.ts',
-    '@genfeedai/workflow-saas': '../../packages/workflow-saas/src/index.ts',
+    '@genfeedai/workflows/nodes': '../../packages/workflows/src/nodes/index.ts',
     '@genfeedai/workflow-ui': '../../packages/workflow-ui/src/index.ts',
     '@genfeedai/workflow-ui/canvas':
       '../../packages/workflow-ui/src/canvas/index.ts',
@@ -318,7 +318,7 @@ config.transpilePackages = [
   '@genfeedai/hooks',
   '@genfeedai/interfaces',
   '@genfeedai/types',
-  '@genfeedai/workflow-saas',
+  '@genfeedai/workflows',
 ];
 
 const existingWebpack = config.webpack;

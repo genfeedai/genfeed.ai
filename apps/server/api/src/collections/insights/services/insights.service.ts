@@ -8,11 +8,11 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 type Forecast = ForecastDocument;
 type Insight = InsightDocument;

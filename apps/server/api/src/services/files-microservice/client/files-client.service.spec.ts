@@ -1,8 +1,8 @@
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 

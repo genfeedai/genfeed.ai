@@ -35,7 +35,7 @@ export type AnalyticsFeedbackResolver = (params: {
  * content toward what works and away from what doesn't.
  *
  * Node Type: analyticsFeedback
- * Definition: @genfeedai/workflow-saas/nodes/analytics-feedback.ts
+ * Definition: @genfeedai/workflows/nodes/definitions/analytics-feedback.ts
  */
 export class AnalyticsFeedbackExecutor extends BaseExecutor {
   readonly nodeType = 'analyticsFeedback';

@@ -33,7 +33,6 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -69,6 +68,7 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 const BRAND_KIT_IMPORT_MAX_BYTES = 50 * 1024 * 1024;
 

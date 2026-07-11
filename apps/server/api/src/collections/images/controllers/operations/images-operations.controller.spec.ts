@@ -1,12 +1,15 @@
-vi.mock('@api/services/integrations/klingai/klingai.service', () => ({
-  KlingAIService: class {},
-}));
+vi.mock(
+  '@server/services/integrations/klingai/services/klingai.service',
+  () => ({
+    KlingAIService: class {},
+  }),
+);
 
 vi.mock('@api/services/integrations/comfyui/comfyui.service', () => ({
   ComfyUIService: class {},
 }));
 
-vi.mock('@api/services/integrations/fal/fal.service', () => ({
+vi.mock('@server/services/integrations/fal/services/fal.service', () => ({
   FalService: class {},
 }));
 
@@ -57,11 +60,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import { FalService } from '@api/services/integrations/fal/fal.service';
-import { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -69,7 +68,6 @@ import { RouterService } from '@api/services/router/router.service';
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
@@ -84,7 +82,12 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 import type { Request } from 'express';
 
 describe('ImagesOperationsController', () => {

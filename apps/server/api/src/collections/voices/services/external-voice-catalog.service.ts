@@ -1,10 +1,10 @@
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ExternalVoice, VoiceProvider } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 
 export interface ExternalVoiceFindAllOptions {
   provider?: VoiceProvider;

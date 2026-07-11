@@ -1,9 +1,5 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import {
-  createExecutorRegistry,
-  EXECUTOR_REGISTRY,
-} from '@workflow-engine/executors/executor-registry';
-import {
   createTrendHashtagInspirationExecutor,
   type TrendHashtagInspirationOutput,
 } from '@workflow-engine/executors/saas/trend-hashtag-inspiration-executor';
@@ -32,16 +28,16 @@ const TREND_INSPIRATION_NODE_TYPES = [
 ] as const;
 
 describe('trend inspiration executors', () => {
-  it('registers each implemented trend inspiration node with explicit credits', () => {
+  it('assigns explicit credits to each implemented trend inspiration node', () => {
     for (const nodeType of TREND_INSPIRATION_NODE_TYPES) {
-      expect(EXECUTOR_REGISTRY[nodeType]).toBeDefined();
       expect(DEFAULT_CREDIT_COSTS[nodeType]).toBe(1);
     }
+  });
 
-    const registry = createExecutorRegistry();
-    expect(registry.getTrendHashtagInspirationExecutor()).toBeDefined();
-    expect(registry.getTrendSoundInspirationExecutor()).toBeDefined();
-    expect(registry.getTrendVideoInspirationExecutor()).toBeDefined();
+  it('constructs an executor for each implemented trend inspiration node', () => {
+    expect(createTrendHashtagInspirationExecutor()).toBeDefined();
+    expect(createTrendSoundInspirationExecutor()).toBeDefined();
+    expect(createTrendVideoInspirationExecutor()).toBeDefined();
   });
 
   describe('TrendHashtagInspirationExecutor', () => {

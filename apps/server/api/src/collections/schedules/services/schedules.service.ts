@@ -10,7 +10,6 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type {
@@ -27,6 +26,7 @@ import {
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 type Schedule = ScheduleDocument;
 type RepurposingJob = RepurposingJobDocument;
