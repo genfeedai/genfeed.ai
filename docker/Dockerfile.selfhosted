@@ -141,22 +141,8 @@ RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
 # Copy source
 COPY tsconfig.json tsconfig.server.decorators.json webpack.base.config.js ./
 COPY configs/ configs/
-# Root build scripts must be present before the package builds below: every
-# ESM package's `build` runs `node ../../scripts/fix-esm-relative-imports.mjs`
-# (added in #1588 to harden public npm distribution), which resolves to
-# /app/scripts/fix-esm-relative-imports.mjs. Without this COPY the first package
-# build (@genfeedai/enums) aborts with `Cannot find module` and the image never
-# builds — the self-hosted release E2E (#1450) can't even reach boot. The dir
-# stays in the builder only; the runtime stage never copies it.
-COPY scripts/ scripts/
 COPY packages/ packages/
 COPY apps/server/ apps/server/
-
-# Shared package `build` scripts run `node ../../scripts/fix-esm-relative-imports.mjs`
-# (added in #1588) to rewrite ESM relative imports in their dist output. The builder
-# must have that script on disk before the package build batch below, or
-# `@genfeedai/enums build` fails with "Cannot find module .../scripts/...".
-COPY scripts/fix-esm-relative-imports.mjs scripts/fix-esm-relative-imports.mjs
 
 # Build the shared packages that downstream project references resolve through
 # package exports before the parallel batch. A clean Docker context has no host

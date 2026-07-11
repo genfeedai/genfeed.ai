@@ -6,6 +6,7 @@ import { builtinModules } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { fixEsmRelativeImports } from './fix-esm-relative-imports.mjs';
 
 const RUNTIME_DEPENDENCY_FIELDS = [
   'dependencies',
@@ -639,6 +640,24 @@ function injectLicenseIntoTarball({ licensePath, tarballPath }) {
   }
 }
 
+// Published tarballs must resolve under strict Node ESM, but workspace
+// packages compile with moduleResolution "bundler": extensionless relative
+// imports and internal tsconfig path aliases that plain `node` cannot load.
+// Rewrite the freshly built output here — publish time is the ONLY place a
+// Node-strict dist is needed (every in-repo consumer is a bundler or Bun) —
+// rather than in each package's `build` script, which forced every build
+// environment (Docker included) to carry the repo-root rewrite script.
+// validatePackedImports() fails the release if this rewrite ever regresses.
+export function rewriteDistForNodeResolution(packageDir) {
+  const distDir = path.join(packageDir, 'dist');
+  if (!fs.existsSync(distDir)) return null;
+  const projectPath = path.join(packageDir, 'tsconfig.json');
+  return fixEsmRelativeImports(
+    [distDir],
+    fs.existsSync(projectPath) ? { projectPath } : {},
+  );
+}
+
 function preparePackage({ artifactsDir, inventory, request, root }) {
   if (request.pkg.scripts?.clean) {
     run('bun', ['run', 'clean'], { cwd: request.packageDir });
@@ -654,6 +673,7 @@ function preparePackage({ artifactsDir, inventory, request, root }) {
     }
   }
   run('bun', ['run', 'build'], { cwd: request.packageDir });
+  rewriteDistForNodeResolution(request.packageDir);
 
   const fileName = tarballName(request);
   const tarballPath = path.join(artifactsDir, fileName);
