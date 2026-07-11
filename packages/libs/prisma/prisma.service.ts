@@ -1,6 +1,6 @@
 import type { Prisma } from '@genfeedai/prisma';
 import { PrismaClient } from '@genfeedai/prisma';
-import type { ConfigService } from '@libs/config/config.service';
+import { ConfigService } from '@libs/config/config.service';
 import {
   Injectable,
   type OnModuleDestroy,
