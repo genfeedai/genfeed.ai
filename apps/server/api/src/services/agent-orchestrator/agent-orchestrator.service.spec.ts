@@ -12,6 +12,7 @@ import { AgentContextAssemblyService } from '@api/services/agent-context-assembl
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
@@ -136,6 +137,17 @@ describe('AgentOrchestratorService', () => {
     };
     const organizationsServiceMock = {
       findOne: vi.fn(),
+    };
+    const threadEventRecorderMock = {
+      recordAssistantFinalized: vi.fn().mockResolvedValue(undefined),
+      recordPlanUpserted: vi.fn().mockResolvedValue(undefined),
+      recordRunCompleted: vi.fn().mockResolvedValue(undefined),
+      recordRunFailed: vi.fn().mockResolvedValue(undefined),
+      recordThreadTurnRequested: vi.fn().mockResolvedValue(undefined),
+      recordThreadTurnStarted: vi.fn().mockResolvedValue(undefined),
+      recordToolCompleted: vi.fn().mockResolvedValue(undefined),
+      recordToolStarted: vi.fn().mockResolvedValue(undefined),
+      recordUiBlocksUpdated: vi.fn().mockResolvedValue(undefined),
     };
     const settingsServiceMock = {
       findOne: vi.fn().mockResolvedValue(null),
@@ -278,6 +290,7 @@ describe('AgentOrchestratorService', () => {
             CreditsUtilsService,
             AgentToolExecutorService,
             AgentCompletionCardBuilderService,
+            AgentThreadEventRecorderService,
             OrganizationsService,
             OrganizationSettingsService,
             SettingsService,
@@ -299,6 +312,7 @@ describe('AgentOrchestratorService', () => {
             creditsUtilsSvc: CreditsUtilsService,
             toolExecutorSvc: AgentToolExecutorService,
             completionCardBuilderSvc: AgentCompletionCardBuilderService,
+            threadEventRecorderSvc: AgentThreadEventRecorderService,
             organizationsSvc: OrganizationsService,
             organizationSettingsSvc: OrganizationSettingsService,
             settingsSvc: SettingsService,
@@ -319,6 +333,7 @@ describe('AgentOrchestratorService', () => {
               creditsUtilsSvc,
               toolExecutorSvc,
               completionCardBuilderSvc,
+              threadEventRecorderSvc,
               organizationsSvc,
               organizationSettingsSvc,
               settingsSvc,
@@ -339,6 +354,10 @@ describe('AgentOrchestratorService', () => {
         {
           provide: LoggerService,
           useValue: loggerMock,
+        },
+        {
+          provide: AgentThreadEventRecorderService,
+          useValue: threadEventRecorderMock,
         },
         {
           provide: LlmDispatcherService,
