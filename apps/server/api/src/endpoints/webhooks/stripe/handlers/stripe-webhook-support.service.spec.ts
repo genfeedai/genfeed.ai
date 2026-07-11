@@ -276,6 +276,59 @@ describe('StripeWebhookSupportService', () => {
     });
   });
 
+  describe('hasSubscriptionInvoiceCreditGrant', () => {
+    it('returns false when no matching credit transaction exists', async () => {
+      prisma.creditTransaction.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.hasSubscriptionInvoiceCreditGrant('org_1', {
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        }),
+      ).resolves.toBe(false);
+
+      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          isDeleted: false,
+          organizationId: 'org_1',
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        },
+      });
+    });
+
+    it('returns true when a matching credit transaction exists, without filtering by category', async () => {
+      prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'txn_1' });
+
+      await expect(
+        service.hasSubscriptionInvoiceCreditGrant('org_1', {
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        }),
+      ).resolves.toBe(true);
+
+      const where = prisma.creditTransaction.findFirst.mock.calls[0][0].where;
+      expect(where).not.toHaveProperty('category');
+    });
+  });
+
+  describe('isUniqueConstraintError', () => {
+    it('returns true for a Prisma P2002 error', () => {
+      expect(service.isUniqueConstraintError({ code: 'P2002' })).toBe(true);
+    });
+
+    it('returns false for other error codes', () => {
+      expect(service.isUniqueConstraintError({ code: 'P2025' })).toBe(false);
+    });
+
+    it('returns false for non-object errors', () => {
+      expect(service.isUniqueConstraintError(new Error('boom'))).toBe(false);
+      expect(service.isUniqueConstraintError(null)).toBe(false);
+      expect(service.isUniqueConstraintError(undefined)).toBe(false);
+    });
+  });
+
   describe('recordCreditsActivity', () => {
     it('defaults to CREDITS_ADD and includes the user when given', async () => {
       await service.recordCreditsActivity({
