@@ -7,6 +7,7 @@
   },
   "description": "Genfeed.ai canonical JSON:API serializers",
   "devDependencies": {
+    "tsc-alias": "1.9.0",
     "typescript": "6.0.2"
   },
   "exports": {
@@ -38,7 +39,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build && test -f dist/index.js",
+    "build": "tsc --build && tsc-alias -p tsconfig.json && test -f dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "tsc --watch",
