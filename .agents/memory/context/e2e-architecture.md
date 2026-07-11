@@ -49,7 +49,7 @@ Top-level env: `TURBO_TOKEN` (secret) + `TURBO_TEAM` (var) enable Turborepo remo
 | `e2e-frontend` | Frontend E2E (Shard N/12) | ubuntu / 45m | **yes** (via gate) | matrix 12 shards, `fail-fast:false`, `bun run test:e2e:sharded -- --reporter=blob` |
 | `e2e-merge-reports` | Merge E2E Reports | ubuntu / 10m | no (`if: always()`) | `playwright merge-reports` → single HTML report |
 | `e2e-gate` | E2E Gate (all shards) | ubuntu / 5m | **yes — the aggregator** | bash check of `e2e-route-coverage` + `e2e-frontend` + `e2e-api` results (fails on any required job failure OR cancellation) |
-| `e2e-frontend-authed` | Frontend Authenticated E2E | ubuntu / 40m | no (`continue-on-error`, gated by `E2E_AUTHED_ENABLED` var) | `bun run test:e2e:authed` |
+| `e2e-frontend-authed` | Frontend Authed E2E (real Better Auth) | ubuntu / 40m | **yes on nightly cron** (`continue-on-error` on all other events; gated by `E2E_AUTHED_ENABLED` var) | hermetic full stack: Postgres+Redis containers, `prisma migrate deploy`, real API on :3010, `bun run test:e2e:authed` |
 
 `e2e-gate` is the single job that represents the required suite's pass/fail (it `needs:` route-coverage +
 frontend + API). It exits 1 if route coverage failed, API E2E failed, or any shard failed/was cancelled. Re-running only the
@@ -140,9 +140,14 @@ Primary config highlights:
   No real backend calls; `requiredEnvVars` is intentionally empty.
 - **global-teardown.ts** — deletes `apps/app/.next/dev/cache` (Turbopack persistent cache, observed at
   ~15 GB → `ENOSPC`). Best-effort; never fails the suite. Respects `PLAYWRIGHT_WEB_APP_PATH`.
-- **auth.setup.ts** (`better-auth-setup` project) — writes Better Auth storage state from
-  `E2E_BETTER_AUTH_SESSION_TOKEN` for the `app-authed` project.
-  Hard-fails if the token is missing when the authed project is enabled.
+- **auth.setup.ts** (`better-auth-setup` project) — hermetic by default: mints a fresh
+  session against the job-local API (`sign-up/email` → session cookie → `/auth/token`
+  JWT → `PATCH /users/me {isOnboardingCompleted:true}`), then writes Better Auth storage
+  state for the `app-authed` project. No repo secrets, no production dependency —
+  `BETTER_AUTH_SECRET` is a synthetic workflow literal. A pre-minted token can still be
+  supplied via `E2E_BETTER_AUTH_SESSION_TOKEN` for local runs (`E2E_AUTHED_LOCAL=1`).
+  The authed smoke derives org/brand slugs from the real provisioned workspace
+  (`/` → canonical redirect), not hardcoded `test-org/brand-1`.
 
 ### Mock-auth fixtures (`playwright/e2e/fixtures/`)
 Most specs use **3-layer auth bypass** (no real Better Auth session needed):
