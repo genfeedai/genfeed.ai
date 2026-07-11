@@ -58,6 +58,33 @@ bun run dev:docs
 The self-hosted distribution has a separate container-image path that does not
 require local Node.js or Bun. See [docs/self-hosting.md](docs/self-hosting.md).
 
+### Dev host
+
+Plain `localhost` works out of the box. The **recommended** dev host, though, is
+`genfeed.localhost`:
+
+- `*.localhost` resolves to loopback in every modern browser and OS
+  ([RFC 6761](https://www.rfc-editor.org/rfc/rfc6761)) — **no `/etc/hosts` entry
+  needed** (unlike the older `local.genfeed.ai`, which required one).
+- Browser cookies are keyed by host, not port, so a distinct host gives this
+  project its **own cookie jar**. The app (`:3000`) and API (`:3010`) still
+  share it (same host → auth cookies flow), but it never collides with the
+  session/JWT of another project you run on plain `localhost`.
+
+To use it, point the frontend and Better Auth at `genfeed.localhost` in
+`.env.local`:
+
+```env
+BETTER_AUTH_URL=http://genfeed.localhost:3010
+NEXT_PUBLIC_API_ENDPOINT=http://genfeed.localhost:3010/v1
+NEXT_PUBLIC_WS_ENDPOINT=ws://genfeed.localhost:3010
+```
+
+All three hosts (`genfeed.localhost`, `localhost`, `local.genfeed.ai`) are
+auto-trusted by Better Auth outside production/staging, so no
+`BETTER_AUTH_TRUSTED_ORIGINS` config is required for local dev
+(`apps/server/api/src/auth/better-auth/better-auth.config.ts`).
+
 ## Branch and pull-request workflow
 
 1. Fork the repository.

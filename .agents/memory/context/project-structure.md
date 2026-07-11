@@ -1,6 +1,6 @@
 ---
 created: 2026-04-07T00:00:00Z
-last_updated: 2026-07-06T00:00:00Z
+last_updated: 2026-07-11T00:00:00Z
 version: 1.2
 author: Claude Code PM System
 ---
@@ -12,12 +12,13 @@ author: Claude Code PM System
 ```
 genfeed.ai/
 ├── apps/
-│   ├── server/              # 11 NestJS backend service workspaces
+│   ├── server/              # 12 backend service/server-tier workspaces
 │   │   ├── api/             # Main API (port 3010)
 │   │   ├── notifications/   # Notification service (3011)
 │   │   ├── files/           # File processing (3012)
 │   │   ├── workers/         # Background jobs (3013)
 │   │   ├── mcp/             # MCP server (3014)
+│   │   ├── server/          # Shared @genfeedai/server source-level package
 │   │   ├── clips/           # Not currently a package workspace; re-verify before treating as a service
 │   │   ├── discord/         # Discord integration (3016)
 │   │   ├── slack/           # Slack integration (3018)

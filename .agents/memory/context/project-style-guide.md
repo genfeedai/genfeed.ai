@@ -64,4 +64,3 @@ author: Claude Code PM System
 - Colocated test files: `*.test.ts` / `*.spec.ts`
 - TDD: write failing tests first, then implement
 - Run per-package: `bun run test --filter=@genfeedai/[name]`
-- Never run full test suite locally
