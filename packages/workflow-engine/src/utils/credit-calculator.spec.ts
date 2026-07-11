@@ -137,10 +137,10 @@ describe('getNodeCreditCost', () => {
 
   it('should return 0 for free node types', () => {
     expect(getNodeCreditCost('webhook')).toBe(0);
-    expect(getNodeCreditCost('delay')).toBe(0);
-    expect(getNodeCreditCost('condition')).toBe(0);
+    expect(getNodeCreditCost('loop')).toBe(0);
+    expect(getNodeCreditCost('brand')).toBe(0);
     expect(getNodeCreditCost('publish')).toBe(0);
-    expect(getNodeCreditCost('rssInput')).toBe(0);
+    expect(getNodeCreditCost('videoInput')).toBe(0);
   });
 
   it('should use custom cost when provided', () => {
@@ -283,8 +283,8 @@ describe('groupCostsByCategory', () => {
 
   it('should group input nodes together', () => {
     const nodes = [
-      makeNode('n1', 'rssInput'),
-      makeNode('n2', 'tweetInput'),
+      makeNode('n1', 'videoInput'),
+      makeNode('n2', 'trendTrigger'),
       makeNode('n3', 'brand'),
     ];
 
@@ -298,7 +298,7 @@ describe('groupCostsByCategory', () => {
   it('should group output nodes together', () => {
     const nodes = [
       makeNode('n1', 'publish'),
-      makeNode('n2', 'socialPublish'),
+      makeNode('n2', 'sendDm'),
       makeNode('n3', 'webhook'),
     ];
 
@@ -310,16 +310,12 @@ describe('groupCostsByCategory', () => {
   });
 
   it('should group control nodes together', () => {
-    const nodes = [
-      makeNode('n1', 'condition'),
-      makeNode('n2', 'delay'),
-      makeNode('n3', 'loop'),
-    ];
+    const nodes = [makeNode('n1', 'loop'), makeNode('n2', 'promptConstructor')];
 
     const result = groupCostsByCategory(nodes);
 
     expect(result.control).toBeDefined();
-    expect(result.control.nodes).toHaveLength(3);
+    expect(result.control.nodes).toHaveLength(2);
     expect(result.control.totalCredits).toBe(0);
   });
 
@@ -343,9 +339,9 @@ describe('groupCostsByCategory', () => {
   it('should produce multiple categories for mixed node types', () => {
     const nodes = [
       makeNode('n1', 'generateImage'),
-      makeNode('n2', 'rssInput'),
+      makeNode('n2', 'videoInput'),
       makeNode('n3', 'publish'),
-      makeNode('n4', 'condition'),
+      makeNode('n4', 'loop'),
       makeNode('n5', 'resize'),
     ];
 
@@ -383,13 +379,9 @@ describe('DEFAULT_CREDIT_COSTS', () => {
     expect(DEFAULT_CREDIT_COSTS.brand).toBe(0);
     expect(DEFAULT_CREDIT_COSTS.brandAsset).toBe(0);
     expect(DEFAULT_CREDIT_COSTS.brandContext).toBe(0);
-    expect(DEFAULT_CREDIT_COSTS.condition).toBe(0);
-    expect(DEFAULT_CREDIT_COSTS.delay).toBe(0);
     expect(DEFAULT_CREDIT_COSTS.loop).toBe(0);
     expect(DEFAULT_CREDIT_COSTS.publish).toBe(0);
-    expect(DEFAULT_CREDIT_COSTS.rssInput).toBe(0);
-    expect(DEFAULT_CREDIT_COSTS.socialPublish).toBe(0);
-    expect(DEFAULT_CREDIT_COSTS.tweetInput).toBe(0);
+    expect(DEFAULT_CREDIT_COSTS.videoInput).toBe(0);
     expect(DEFAULT_CREDIT_COSTS.webhook).toBe(0);
   });
 
@@ -398,7 +390,6 @@ describe('DEFAULT_CREDIT_COSTS', () => {
     expect(DEFAULT_CREDIT_COSTS.clip).toBe(2);
     expect(DEFAULT_CREDIT_COSTS.resize).toBe(1);
     expect(DEFAULT_CREDIT_COSTS.transform).toBe(1);
-    expect(DEFAULT_CREDIT_COSTS.tweetRemix).toBe(1);
     expect(DEFAULT_CREDIT_COSTS.upscale).toBe(2);
   });
 });

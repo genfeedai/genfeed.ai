@@ -5,7 +5,7 @@
  * - Distribution: Platform export, caption generation, publishing
  * - Automation: Webhook triggers, scheduling
  * - Repurposing: AI clip selection, platform multiplier
- * - SaaS: Brand management, AI persona content
+ * - SaaS: Brand management, hooks, publishing
  */
 
 // Effects nodes
@@ -69,7 +69,7 @@ const extendedNodeCategories = {
   },
   saas: {
     color: 'cyan',
-    description: 'Brand management and AI persona nodes',
+    description: 'Brand management and publishing nodes',
     label: 'SaaS',
   },
 };

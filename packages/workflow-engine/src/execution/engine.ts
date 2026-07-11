@@ -66,6 +66,15 @@ export class WorkflowEngine {
     return this.executors.get(nodeType) ?? this.config.defaultExecutor;
   }
 
+  /**
+   * Node types with an explicitly registered executor (excludes the
+   * fallback default executor). Used by coverage specs to assert that every
+   * canonical node type has a real executor registered.
+   */
+  getRegisteredNodeTypes(): string[] {
+    return Array.from(this.executors.keys());
+  }
+
   async execute(
     workflow: ExecutableWorkflow,
     options: ExecutionOptions = {},
