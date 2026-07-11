@@ -29,6 +29,8 @@ describe('StripeInvoiceWebhookHandler', () => {
   const usersService = { findOne: vi.fn(), patch: vi.fn() };
   const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
   const supportService = {
+    hasSubscriptionInvoiceCreditGrant: vi.fn().mockResolvedValue(false),
+    isUniqueConstraintError: vi.fn().mockReturnValue(false),
     markOnboardingComplete: vi.fn(),
     recordCreditsActivity: vi.fn(),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
@@ -61,6 +63,8 @@ describe('StripeInvoiceWebhookHandler', () => {
     subscriptionsService.findOne.mockResolvedValue(monthlySubscription);
     subscriptionsService.patch.mockResolvedValue(monthlySubscription);
     supportService.resolveTierFromPriceId.mockReturnValue(null);
+    supportService.hasSubscriptionInvoiceCreditGrant.mockResolvedValue(false);
+    supportService.isUniqueConstraintError.mockReturnValue(false);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -103,6 +107,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         'monthly',
         expect.stringContaining('monthly'),
         expect.any(Date),
+        {
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        },
       );
       expect(supportService.setHasEverHadCredits).toHaveBeenCalledWith(
         'org_1',
@@ -134,6 +142,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         500_000,
         'yearly',
         expect.stringContaining('yearly'),
+        {
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        },
       );
     });
 
@@ -161,6 +173,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         'monthly',
         expect.stringContaining('monthly'),
         expect.any(Date),
+        {
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        },
       );
     });
 
@@ -188,6 +204,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         'monthly',
         expect.stringContaining('monthly'),
         expect.any(Date),
+        {
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        },
       );
     });
 
@@ -213,6 +233,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         96_000,
         'yearly',
         expect.stringContaining('yearly'),
+        {
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        },
       );
     });
 
@@ -271,6 +295,121 @@ describe('StripeInvoiceWebhookHandler', () => {
       expect(
         accessBootstrapCacheService.invalidateForUser,
       ).toHaveBeenCalledWith('user_1');
+    });
+
+    it('#1398: skips a duplicate monthly grant when the invoice reference already exists', async () => {
+      supportService.hasSubscriptionInvoiceCreditGrant.mockResolvedValue(true);
+
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          parent: {
+            subscription_details: { subscription: 'sub_stripe_1' },
+          },
+        }),
+        'test',
+      );
+
+      expect(
+        supportService.hasSubscriptionInvoiceCreditGrant,
+      ).toHaveBeenCalledWith('org_1', {
+        referenceId: 'stripe-invoice:in_123',
+        referenceType: 'stripe-invoice:subscription-grant',
+      });
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.resetOrganizationCredits,
+      ).not.toHaveBeenCalled();
+      expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
+    });
+
+    it('#1398: skips a duplicate yearly grant when the invoice reference already exists', async () => {
+      subscriptionsService.findOne.mockResolvedValue({
+        ...monthlySubscription,
+        type: 'yearly',
+      });
+      supportService.hasSubscriptionInvoiceCreditGrant.mockResolvedValue(true);
+
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          parent: {
+            subscription_details: { subscription: 'sub_stripe_1' },
+          },
+        }),
+        'test',
+      );
+
+      expect(
+        creditsUtilsService.resetOrganizationCredits,
+      ).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('#1398: treats a P2002 unique-constraint race on the monthly grant as a no-op, not an error', async () => {
+      const uniqueConstraintError = { code: 'P2002' };
+      creditsUtilsService.addOrganizationCreditsWithExpiration.mockRejectedValue(
+        uniqueConstraintError,
+      );
+      supportService.isUniqueConstraintError.mockReturnValue(true);
+
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          parent: {
+            subscription_details: { subscription: 'sub_stripe_1' },
+          },
+        }),
+        'test',
+      );
+
+      expect(supportService.isUniqueConstraintError).toHaveBeenCalledWith(
+        uniqueConstraintError,
+      );
+      // handleInvoicePaid's outer catch only logs — it must not fire here,
+      // proving the P2002 was swallowed locally as a duplicate no-op.
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
+    });
+
+    it('#1398: treats a P2002 unique-constraint race on the yearly grant as a no-op, not an error', async () => {
+      subscriptionsService.findOne.mockResolvedValue({
+        ...monthlySubscription,
+        type: 'yearly',
+      });
+      const uniqueConstraintError = { code: 'P2002' };
+      creditsUtilsService.resetOrganizationCredits.mockRejectedValue(
+        uniqueConstraintError,
+      );
+      supportService.isUniqueConstraintError.mockReturnValue(true);
+
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          parent: {
+            subscription_details: { subscription: 'sub_stripe_1' },
+          },
+        }),
+        'test',
+      );
+
+      expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
+        'org_1',
+        500_000,
+        'yearly',
+        expect.stringContaining('yearly'),
+        {
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        },
+      );
+      expect(supportService.isUniqueConstraintError).toHaveBeenCalledWith(
+        uniqueConstraintError,
+      );
+      // handleInvoicePaid's outer catch only logs — it must not fire here,
+      // proving the P2002 was swallowed locally as a duplicate no-op.
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
     });
 
     it('routes BYOK platform fee invoices to the BYOK path', async () => {
