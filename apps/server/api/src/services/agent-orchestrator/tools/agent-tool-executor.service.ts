@@ -1,13 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { CreateAgentGoalDto } from '@api/collections/agent-goals/dto/create-agent-goal.dto';
-import { UpdateAgentGoalDto } from '@api/collections/agent-goals/dto/update-agent-goal.dto';
-import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
-import type {
-  AgentMemoryContentType,
-  AgentMemoryKind,
-  AgentMemoryScope,
-} from '@api/collections/agent-memories/schemas/agent-memory.schema';
-import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
@@ -41,10 +32,10 @@ import {
 } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
-import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -351,6 +342,7 @@ export class AgentToolExecutorService {
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
     private readonly routeRewriteService: AgentRouteRewriteService,
+    private readonly memoryGoalsHandler: AgentMemoryGoalsToolHandler,
     @Optional()
     @Inject('AGENT_BOTS_SERVICE')
     private readonly botsService: AgentBotsServiceLike | undefined,
@@ -387,8 +379,6 @@ export class AgentToolExecutorService {
     @Optional()
     private readonly organizationSettingsService: OrganizationSettingsService,
     @Optional()
-    private readonly agentMemoryCaptureService: AgentMemoryCaptureService,
-    @Optional()
     private readonly usersService: UsersService,
     @Optional()
     private readonly streamPublisher: AgentStreamPublisherService,
@@ -402,8 +392,6 @@ export class AgentToolExecutorService {
     private readonly contentQualityScorerService: ContentQualityScorerService,
     @Optional()
     private readonly seoScorerService: SeoScorerService,
-    @Optional()
-    private readonly agentGoalsService: AgentGoalsService,
     @Optional()
     private readonly ingredientsService: IngredientsService,
     @Optional()
@@ -1054,16 +1042,16 @@ export class AgentToolExecutorService {
         return this.replicateTopIngredient(params, ctx);
 
       case AgentToolName.CAPTURE_MEMORY:
-        return this.captureMemory(params, ctx);
+        return this.memoryGoalsHandler.captureMemory(params, ctx);
 
       case AgentToolName.CREATE_GOAL:
-        return this.createGoal(params, ctx);
+        return this.memoryGoalsHandler.createGoal(params, ctx);
 
       case AgentToolName.CHECK_GOAL_PROGRESS:
-        return this.checkGoalProgress(params, ctx);
+        return this.memoryGoalsHandler.checkGoalProgress(params, ctx);
 
       case AgentToolName.UPDATE_GOAL:
-        return this.updateGoal(params, ctx);
+        return this.memoryGoalsHandler.updateGoal(params, ctx);
 
       // Brand context interview tools
       case AgentToolName.START_BRAND_INTERVIEW:
@@ -1231,99 +1219,6 @@ export class AgentToolExecutorService {
     return Math.max(1, Math.min(200, Math.floor(explicitLimit)));
   }
 
-  private async captureMemory(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.agentMemoryCaptureService) {
-      return {
-        creditsUsed: 0,
-        error: 'Memory capture is not available in this environment.',
-        success: false,
-      };
-    }
-
-    const content = String(params.content || '').trim();
-    if (!content) {
-      return {
-        creditsUsed: 0,
-        error: 'Memory capture requires content.',
-        success: false,
-      };
-    }
-
-    const brandId =
-      typeof params.brandId === 'string' ? params.brandId : undefined;
-    const campaignId =
-      typeof params.campaignId === 'string' ? params.campaignId : undefined;
-    const summary =
-      typeof params.summary === 'string' ? params.summary.trim() : undefined;
-    const capture = await this.agentMemoryCaptureService.capture(
-      ctx.userId,
-      ctx.organizationId,
-      {
-        brandId,
-        campaignId,
-        confidence:
-          typeof params.confidence === 'number' ? params.confidence : undefined,
-        content,
-        contentType: this.normalizeAgentMemoryContentType(params.contentType),
-        importance:
-          typeof params.importance === 'number' ? params.importance : undefined,
-        kind: this.normalizeAgentMemoryKind(params.kind),
-        performanceSnapshot:
-          params.performanceSnapshot &&
-          typeof params.performanceSnapshot === 'object'
-            ? (params.performanceSnapshot as Record<string, unknown>)
-            : undefined,
-        platform:
-          typeof params.platform === 'string' ? params.platform : undefined,
-        saveToContextMemory: params.saveToContextMemory === true,
-        scope: this.normalizeAgentMemoryScope(params.scope),
-        sourceContentId:
-          typeof params.sourceContentId === 'string'
-            ? params.sourceContentId
-            : undefined,
-        sourceMessageId:
-          typeof params.sourceMessageId === 'string'
-            ? params.sourceMessageId
-            : undefined,
-        sourceType:
-          typeof params.sourceType === 'string'
-            ? params.sourceType
-            : 'agent-save',
-        sourceUrl:
-          typeof params.sourceUrl === 'string' ? params.sourceUrl : undefined,
-        summary,
-        tags: Array.isArray(params.tags)
-          ? params.tags.filter((tag): tag is string => typeof tag === 'string')
-          : undefined,
-      },
-    );
-
-    const memory = capture.memory;
-    const destinations = ['agent memory'];
-    if (capture.wroteContextMemory) {
-      destinations.push('content memory');
-    }
-    if (capture.wroteBrandInsight) {
-      destinations.push('brand insights');
-    }
-
-    return {
-      creditsUsed: 0,
-      data: {
-        contentType: memory.contentType,
-        destinations,
-        id: String(memory.id),
-        kind: memory.kind,
-        scope: memory.scope,
-        summary: memory.summary || summary || content.slice(0, 180),
-      },
-      success: true,
-    };
-  }
-
   private async createBrand(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -1382,176 +1277,6 @@ export class AgentToolExecutorService {
         name,
       },
       nextActions: onboardingStatus.nextActions,
-      success: true,
-    };
-  }
-
-  private async createGoal(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.agentGoalsService) {
-      return {
-        creditsUsed: 0,
-        error: 'Agent goals are not available in this environment.',
-        success: false,
-      };
-    }
-
-    const label = String(params.label || '').trim();
-    const metric = String(params.metric || '').trim();
-    const targetValue = Number(params.targetValue);
-
-    if (!label || !metric || !Number.isFinite(targetValue)) {
-      return {
-        creditsUsed: 0,
-        error: 'create_goal requires label, metric, and numeric targetValue.',
-        success: false,
-      };
-    }
-
-    const dto: CreateAgentGoalDto = {
-      brand: typeof params.brandId === 'string' ? params.brandId : undefined,
-      description:
-        typeof params.description === 'string'
-          ? params.description.trim()
-          : undefined,
-      endDate:
-        typeof params.endDate === 'string'
-          ? new Date(params.endDate)
-          : undefined,
-      isActive:
-        typeof params.isActive === 'boolean' ? params.isActive : undefined,
-      label,
-      metric: metric as CreateAgentGoalDto['metric'],
-      startDate:
-        typeof params.startDate === 'string'
-          ? new Date(params.startDate)
-          : undefined,
-      targetValue,
-    };
-
-    const goal = await this.agentGoalsService.create(
-      dto,
-      ctx.organizationId,
-      ctx.userId,
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        currentValue: goal.currentValue,
-        goalId: String(goal.id),
-        label: goal.label,
-        metric: goal.metric,
-        progressPercent: goal.progressPercent,
-        targetValue: goal.targetValue,
-      },
-      success: true,
-    };
-  }
-
-  private async checkGoalProgress(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.agentGoalsService) {
-      return {
-        creditsUsed: 0,
-        error: 'Agent goals are not available in this environment.',
-        success: false,
-      };
-    }
-
-    const goalId = String(params.goalId || '').trim();
-    if (!EntityIdUtil.isValid(goalId)) {
-      return {
-        creditsUsed: 0,
-        error: 'check_goal_progress requires a valid goalId.',
-        success: false,
-      };
-    }
-
-    const goal = await this.agentGoalsService.refreshProgress(
-      goalId,
-      ctx.organizationId,
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        currentValue: goal.currentValue,
-        goalId: String(goal.id),
-        label: goal.label,
-        metric: goal.metric,
-        progressPercent: goal.progressPercent,
-        targetValue: goal.targetValue,
-      },
-      success: true,
-    };
-  }
-
-  private async updateGoal(
-    params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    if (!this.agentGoalsService) {
-      return {
-        creditsUsed: 0,
-        error: 'Agent goals are not available in this environment.',
-        success: false,
-      };
-    }
-
-    const goalId = String(params.goalId || '').trim();
-    if (!EntityIdUtil.isValid(goalId)) {
-      return {
-        creditsUsed: 0,
-        error: 'update_goal requires a valid goalId.',
-        success: false,
-      };
-    }
-
-    const dto: UpdateAgentGoalDto = {
-      description:
-        typeof params.description === 'string'
-          ? params.description.trim()
-          : undefined,
-      endDate:
-        typeof params.endDate === 'string'
-          ? new Date(params.endDate)
-          : undefined,
-      isActive:
-        typeof params.isActive === 'boolean' ? params.isActive : undefined,
-      label: typeof params.label === 'string' ? params.label.trim() : undefined,
-      metric:
-        typeof params.metric === 'string'
-          ? (params.metric as UpdateAgentGoalDto['metric'])
-          : undefined,
-      startDate:
-        typeof params.startDate === 'string'
-          ? new Date(params.startDate)
-          : undefined,
-      targetValue:
-        typeof params.targetValue === 'number' ? params.targetValue : undefined,
-    };
-
-    const goal = await this.agentGoalsService.update(
-      goalId,
-      dto,
-      ctx.organizationId,
-    );
-
-    return {
-      creditsUsed: 0,
-      data: {
-        currentValue: goal.currentValue,
-        goalId: String(goal.id),
-        label: goal.label,
-        metric: goal.metric,
-        progressPercent: goal.progressPercent,
-        targetValue: goal.targetValue,
-      },
       success: true,
     };
   }
@@ -9055,52 +8780,6 @@ export class AgentToolExecutorService {
         error: `Replicate ingredient failed: ${errorMessage}`,
         success: false,
       };
-    }
-  }
-
-  private normalizeAgentMemoryContentType(
-    value: unknown,
-  ): AgentMemoryContentType | undefined {
-    switch (value) {
-      case 'article':
-      case 'generic':
-      case 'newsletter':
-      case 'post':
-      case 'thread':
-      case 'tweet':
-        return value;
-      default:
-        return undefined;
-    }
-  }
-
-  private normalizeAgentMemoryKind(
-    value: unknown,
-  ): AgentMemoryKind | undefined {
-    switch (value) {
-      case 'instruction':
-      case 'negative_example':
-      case 'pattern':
-      case 'positive_example':
-      case 'preference':
-      case 'reference':
-      case 'winner':
-        return value;
-      default:
-        return undefined;
-    }
-  }
-
-  private normalizeAgentMemoryScope(
-    value: unknown,
-  ): AgentMemoryScope | undefined {
-    switch (value) {
-      case 'brand':
-      case 'campaign':
-      case 'user':
-        return value;
-      default:
-        return undefined;
     }
   }
 
