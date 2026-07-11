@@ -11,7 +11,6 @@ import type {
 } from '@api/endpoints/v1/managed-inference/interfaces/managed-inference.interfaces';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
@@ -25,6 +24,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
 
 const DEFAULT_MANAGED_INFERENCE_CREDITS = 1;
 const MANAGED_INFERENCE_REFUND_DAYS = 30;

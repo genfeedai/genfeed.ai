@@ -74,6 +74,7 @@ export {
   type ServerPrisma,
   type ServerSocialAnalytics,
 } from './server.dependencies';
+export { LeonardoAIService } from './services/integrations/leonardoai/services/leonardoai.service';
 export type {
   CreateAdParams,
   CreateAdSetParams,
