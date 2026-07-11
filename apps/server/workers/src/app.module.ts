@@ -1,6 +1,6 @@
-import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { SharedModule } from '@api/shared/shared.module';
 import { LoggerModule } from '@libs/logger/logger.module';
+import { PrismaModule } from '@libs/prisma/prisma.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';

@@ -3,9 +3,9 @@ import { DEFAULT_TRIGGER_EVALUATION_INTERVAL_MINUTES } from '@api/services/agent
 import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
 import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AgentCampaign } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 
 const MAX_CAMPAIGNS_PER_CYCLE = 20;

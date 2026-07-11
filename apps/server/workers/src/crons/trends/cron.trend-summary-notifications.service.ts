@@ -1,7 +1,6 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ParseMode } from '@genfeedai/enums';
 import {
   buildTrendDigestHtml,
@@ -10,6 +9,7 @@ import {
 } from '@genfeedai/helpers';
 import type { Setting } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';

@@ -1,9 +1,9 @@
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ArticleStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 
 export interface GenerateArticleConfig {

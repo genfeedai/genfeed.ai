@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createPrismaPgConfig } from './prisma.service';
+import { createPrismaPgConfig } from './prisma-pg-config';
 
 let tempDirectories: string[] = [];
 

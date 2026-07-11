@@ -185,8 +185,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/services/webhook-client/webhook-endpoint.validator',
   '@api/services/whisper/whisper.module',
   '@api/services/whisper/whisper.service',
-  '@api/shared/modules/prisma/prisma.module',
-  '@api/shared/modules/prisma/prisma.service',
   '@api/shared/shared.module',
   '@api/types/aggregate-paginate-result',
 ];

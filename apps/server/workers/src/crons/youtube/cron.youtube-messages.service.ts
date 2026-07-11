@@ -1,7 +1,7 @@
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';

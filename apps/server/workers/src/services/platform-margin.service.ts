@@ -1,7 +1,7 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PLATFORM_SETTING_KEY } from '@genfeedai/constants';
 import { setRuntimeMarginMultiplier } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 
 /**

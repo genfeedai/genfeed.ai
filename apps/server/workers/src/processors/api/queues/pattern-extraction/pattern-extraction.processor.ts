@@ -1,11 +1,11 @@
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PatternType } from '@genfeedai/interfaces';
 import {
   PATTERN_EXTRACTION_QUEUE,
   PatternExtractionJobData,
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Job } from 'bullmq';

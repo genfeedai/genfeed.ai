@@ -1,8 +1,8 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronWorkflowsService } from '@workers/crons/workflows/cron.workflows.service';
 import { GenerateArticleTask } from '@workers/crons/workflows/task-types/generate-article.task';
