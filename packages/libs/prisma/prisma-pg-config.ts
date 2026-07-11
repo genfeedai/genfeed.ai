@@ -151,7 +151,11 @@ export function createPrismaPgConfig(
 
   if (sslMode === 'disable') {
     return {
-      connectionString: stripResolvedParams(connectionString, poolParamKeys),
+      connectionString: stripResolvedParams(
+        connectionString,
+        poolAndSslParamKeys,
+      ),
+      ssl: false,
       ...poolConfig,
     };
   }
