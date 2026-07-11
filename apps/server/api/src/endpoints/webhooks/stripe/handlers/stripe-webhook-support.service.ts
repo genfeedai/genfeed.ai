@@ -206,7 +206,33 @@ export class StripeWebhookSupportService {
     return existing !== null;
   }
 
-  private isUniqueConstraintError(error: unknown): boolean {
+  /**
+   * Durable Postgres-level dedup for subscription-invoice credit grants
+   * (#1398). The Redis `stripe:webhook:{event.id}` marker only covers the
+   * originating event for 24h; a Stripe replay past that window (auto-retry
+   * runs up to 3 days, or a manual Dashboard resend) must still be a no-op.
+   * Unlike {@link hasPurchasedCreditGrant} this is NOT filtered by
+   * `category` — a MONTHLY grant writes an ADD row, a YEARLY grant writes a
+   * RESET row, and either must block a re-grant for the same invoice.
+   */
+  async hasSubscriptionInvoiceCreditGrant(
+    organizationId: string,
+    reference: PurchasedCreditsReference,
+  ): Promise<boolean> {
+    const existing = await this.prisma.creditTransaction.findFirst({
+      select: { id: true },
+      where: {
+        isDeleted: false,
+        organizationId,
+        referenceId: reference.referenceId,
+        referenceType: reference.referenceType,
+      },
+    });
+
+    return existing !== null;
+  }
+
+  isUniqueConstraintError(error: unknown): boolean {
     return (
       error !== null &&
       typeof error === 'object' &&

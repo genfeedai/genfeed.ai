@@ -1,11 +1,11 @@
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
-import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { ImageTaskModel } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
+import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ImageGenerationHandler', () => {

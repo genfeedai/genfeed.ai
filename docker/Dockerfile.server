@@ -127,12 +127,24 @@ FROM base AS builder
 # --- Layer 1: Root configs + shared packages (cached when only services change) ---
 COPY tsconfig.json tsconfig.server.decorators.json webpack.base.config.js ./
 COPY configs/ configs/
+# Root build scripts must be present before the package builds below: every ESM
+# package's `build` runs `node ../../scripts/fix-esm-relative-imports.mjs` (added
+# in #1588), which resolves to /app/scripts/fix-esm-relative-imports.mjs. Without
+# this COPY the first package build (@genfeedai/enums) aborts with `Cannot find
+# module` and the image never builds. The dir stays in the builder only.
+COPY scripts/ scripts/
 COPY packages/ packages/
 COPY ee/packages/billing/ ee/packages/billing/
 
 # Copy server-level configs needed before service source
 COPY apps/server/nest-cli.json apps/server/nest-cli.json
 COPY apps/server/tsconfig.json apps/server/tsconfig.json
+
+# Shared package `build` scripts run `node ../../scripts/fix-esm-relative-imports.mjs`
+# (added in #1588) to rewrite ESM relative imports in their dist output. Copy it
+# before the shared-package build batch or `@genfeedai/enums build` fails with
+# "Cannot find module .../scripts/fix-esm-relative-imports.mjs".
+COPY scripts/fix-esm-relative-imports.mjs scripts/fix-esm-relative-imports.mjs
 
 # Build shared workspace packages in dependency order (must run before service builds)
 # This layer is cached when only apps/server/* source changes

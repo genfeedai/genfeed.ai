@@ -19,11 +19,11 @@ All operations within the workspace root only. NEVER use `/tmp`, `/private/tmp`,
 
 ### NEVER DELETE Protected Root Files
 
-At repo root: `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `CONTRIBUTING.md`, `DESIGN.md`, `README.md`, and `RELEASING.md`. These are intentional root documentation surfaces -- NOT duplicates of `.agents/` files.
+At repo root: `AGENTS.md` and `CLAUDE.md`, `CONTRIBUTING.md`, `DESIGN.md`, `README.md`, and `RELEASING.md`. These are intentional root documentation surfaces -- NOT duplicates of `.agents/` files.
 
 ### NEVER Create Root-Level .md Files
 
-Only the current intentional root docs are allowed at root: `AGENTS.md`, `CLAUDE.md`, `CODEX.md`, `CONTRIBUTING.md`, `DESIGN.md`, `README.md`, and `RELEASING.md`. Everything else goes in `.agents/`.
+Only the current intentional root docs are allowed at root: `AGENTS.md` and `CLAUDE.md`, `CONTRIBUTING.md`, `DESIGN.md`, `README.md`, and `RELEASING.md`. Everything else goes in `.agents/`.
 
 ### Session Files: ONE FILE PER DAY
 
@@ -85,7 +85,3 @@ All imports at top of file, never `import('...')` inline in type definitions.
 ### NEVER Implement Backward Compatibility Workarounds
 
 Break things properly, then fix them at the source. No aliases, wrappers, or re-exports.
-
-### NEVER Run Full Test Suites Locally
-
-Scoped tests only: `bun test path/to/file.spec.ts` or `bun test src/collections/module/`. Full suite -> CI/CD.

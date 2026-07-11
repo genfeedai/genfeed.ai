@@ -97,7 +97,7 @@
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.e2e.ts",
-    "test:e2e:ci": "vitest run --config vitest.config.e2e.ts test/e2e/integrations.e2e-spec.ts test/integration/payment-processing.integration.spec.ts test/integration/health.e2e-spec.spec.ts test/integration/generation-credit-decrement.integration.spec.ts",
+    "test:e2e:ci": "vitest run --config vitest.config.e2e.ts test/e2e/integrations.e2e-spec.ts test/integration/payment-processing.integration.spec.ts test/integration/health.e2e-spec.spec.ts test/integration/stripe-webhook-credit-grant.integration.spec.ts test/integration/generation-credit-decrement.integration.spec.ts",
     "test:e2e:cov": "vitest run --coverage --config vitest.config.e2e.ts",
     "test:file": "vitest run --config vitest.config.ts",
     "test:file:cov": "vitest run --coverage --config vitest.config.ts",

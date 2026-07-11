@@ -5,13 +5,13 @@ import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenl
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import {
   ImageTaskModel,
   MusicTaskModel,
   VideoTaskModel,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 describe('StepExecutorService', () => {
   let service: StepExecutorService;

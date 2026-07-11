@@ -61,8 +61,6 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
-import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -85,6 +83,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 describe('ImagesOperationsController', () => {

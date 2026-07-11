@@ -2,8 +2,6 @@ import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dt
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
-import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import type {
   ContentDraft,
   SkillExecutionContext,
@@ -12,6 +10,8 @@ import type {
 import { ByokProvider, ImageTaskModel } from '@genfeedai/enums';
 import type { ByokResolutionResult } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
+import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 /**
  * Detects provider capacity/availability errors that warrant failover.
