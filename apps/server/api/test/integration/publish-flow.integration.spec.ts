@@ -60,7 +60,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestBrand,
   createTestOrganization,
-  createTestUser,
   generateIdString,
 } from '@api-test/e2e/e2e-test.utils';
 import type { TestDatabaseHelper } from '@api-test/e2e-test.module';
@@ -86,7 +85,11 @@ const seedOrganizationBrandFixture = async (
   const organizationId = generateIdString();
   const brandId = generateIdString();
 
-  await dbHelper.seedCollection('users', [createTestUser({ id: userId })]);
+  // No direct `users` seed here — `normalizeDocument`'s organization branch
+  // auto-upserts a schema-valid User row (`{id, handle, email}`) via
+  // `ensureUser()` for whatever `userId` the organization document carries.
+  // Mirrors the passing stripe-webhook-credit-grant spec's pattern, which
+  // never seeds `users` directly either.
   await dbHelper.seedCollection('organizations', [
     createTestOrganization({ id: organizationId, user: userId }),
   ]);
