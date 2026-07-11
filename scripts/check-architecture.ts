@@ -61,6 +61,14 @@ const checks = [
     ],
     name: 'Product workflow boundary',
   },
+  {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-agent-decomposition-size.ts',
+    ],
+    name: 'Agent decomposition size ratchet',
+  },
 ] as const;
 
 let failed = false;
