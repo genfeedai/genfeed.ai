@@ -1,6 +1,6 @@
 ---
 created: 2026-04-07T00:00:00Z
-last_updated: 2026-07-06T00:00:00Z
+last_updated: 2026-07-11T00:00:00Z
 version: 1.2
 author: Claude Code PM System
 ---
@@ -21,7 +21,7 @@ Genfeed.ai is an open-source AI operating system for content creation — a self
 
 ## Architecture Summary
 
-- **11 backend service workspaces** (NestJS): api, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers. `apps/server/clips/` is not currently a package workspace.
+- **12 backend service workspaces** (NestJS and server-tier packages): api, discord, files, images, mcp, notifications, server, slack, telegram, videos, voices, workers. `apps/server/clips/` is not currently a package workspace.
 - **7 frontend/client workspaces**: app (studio), docs, website, desktop, mobile, browser extension, IDE extension
 - **43 shared packages**: serializers, UI components, hooks, services, types, enums, workflow engine, integrations, Prisma, auth client, harness, etc.
 - **2 enterprise packages** (`ee/`): billing and harness
