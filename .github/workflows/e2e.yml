@@ -315,9 +315,13 @@ jobs:
         working-directory: packages/prisma
 
       - name: Start API (hermetic backend on :3010)
+        # Boot the compiled webpack bundle directly (same invocation
+        # build-verify.yml's boot gate uses). The api package's start:prod
+        # preloads tsconfig-paths/register, which is not a declared dependency
+        # anywhere in the workspace — path aliases are compiled into the bundle.
         run: |
           set -euo pipefail
-          (bun run --cwd apps/server/api start:prod > "$RUNNER_TEMP/api.log" 2>&1 &)
+          (node apps/server/dist/apps/api/main.js > "$RUNNER_TEMP/api.log" 2>&1 &)
           for attempt in $(seq 1 60); do
             if curl -fsS http://localhost:3010/v1/health >/dev/null 2>&1; then
               echo "API healthy after ~$((attempt * 2))s"
