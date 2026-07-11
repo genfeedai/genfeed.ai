@@ -303,4 +303,86 @@ describe('CronPostsService', () => {
       }),
     );
   });
+
+  it('resolves credential via scalar FKs when relation aliases are undefined (regression #1622)', async () => {
+    // Shaped the way findDueScheduledPosts actually returns rows: scalar FKs
+    // are populated (Post model requires them), but the top-level relation
+    // aliases (credential/organization/brand/user) are NOT included by the
+    // findDueScheduledPosts query — only children.credential is included.
+    // Pre-fix, publishSinglePost read post.credential/post.organization/etc
+    // (the aliases) which are undefined here, so credentialsService.findOne
+    // would be called with `{ _id: undefined }` and resolve to null.
+    const post = {
+      brandId: 'brand-scalar-1',
+      children: [],
+      credentialId: 'cred-scalar-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-scalar-1',
+      platform: CredentialPlatform.GHOST,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-scalar-1',
+      // Intentionally no `credential`, `organization`, `brand`, or `user`
+      // alias fields set — mirrors the real findDueScheduledPosts payload.
+    };
+
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+
+    const ghostCredential = {
+      id: 'cred-scalar-1',
+      platform: CredentialPlatform.GHOST,
+    };
+    credentialsService.findOne.mockImplementation((query: { _id?: unknown }) =>
+      query?._id === 'cred-scalar-1'
+        ? Promise.resolve(ghostCredential)
+        : Promise.resolve(null),
+    );
+
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        externalId: 'ghost-post-1',
+        externalShortcode: null,
+        platform: CredentialPlatform.GHOST,
+        status: PostStatus.PUBLIC,
+        success: true,
+        url: 'https://example.ghost.io/ghost-post-1',
+      }),
+      supportsThreads: false,
+    });
+
+    const result = await service.processQueuedPost({
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-scalar-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    // The fix: credentialsService.findOne must be called with the scalar
+    // credentialId, not the undefined `credential` alias.
+    expect(credentialsService.findOne).toHaveBeenCalledWith({
+      _id: 'cred-scalar-1',
+    });
+
+    // Post must NOT be marked FAILED with "Credential not found" — it
+    // should proceed all the way through to a successful publish.
+    expect(postsService.patch).not.toHaveBeenCalledWith(
+      'post-1',
+      expect.objectContaining({ status: PostStatus.FAILED }),
+    );
+    expect(
+      publishEventWebhookService.emitLegacyPostFailed,
+    ).not.toHaveBeenCalled();
+    expect(result).toEqual(
+      expect.objectContaining({ success: true, externalId: 'ghost-post-1' }),
+    );
+  });
 });
