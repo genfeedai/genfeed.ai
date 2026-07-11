@@ -15,7 +15,7 @@ export * from '@/features/workflows/nodes/saas';
 // Types
 export * from '@/features/workflows/nodes/types';
 
-// SaaS node definitions from workflow-saas registry
+// SaaS node definitions from @genfeedai/workflows/nodes registry
 import { ReviewGateNode } from '@/features/workflows/nodes/automation/ReviewGateNode';
 import { WebhookTriggerNode } from '@/features/workflows/nodes/automation/WebhookTriggerNode';
 import { CaptionGenNode } from '@/features/workflows/nodes/distribution/CaptionGenNode';

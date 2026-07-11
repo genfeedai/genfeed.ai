@@ -14,7 +14,7 @@ import type {
 import {
   NODE_DEFINITIONS as MERGED_DEFINITIONS,
   type SaaSNodeDefinition,
-} from '@genfeedai/workflow-saas';
+} from '@genfeedai/workflows/nodes';
 
 export type { RegistryNodeDefinition as NodeDefinition };
 

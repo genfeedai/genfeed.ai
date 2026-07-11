@@ -55,10 +55,6 @@ const TSCONFIG_UPDATES: Record<string, Record<string, string[]>> = {
     '@genfeedai/workflow-engine/*': ['./src/*'],
     '@workflow-engine/*': ['./src/*'],
   },
-  'packages/workflow-saas/tsconfig.json': {
-    '@genfeedai/workflow-saas/*': ['./src/*'],
-    '@workflow-saas/*': ['./src/*'],
-  },
 };
 
 type AliasCandidate = {

@@ -14,7 +14,7 @@ import {
 import { ExternalLink, Share2 } from 'lucide-react';
 import { memo, useCallback, useId } from 'react';
 
-// Cloud-specific types (to be defined in workflow-saas)
+// Cloud-specific types (to be defined in @genfeedai/workflows/nodes)
 export type SocialPlatform =
   | 'youtube'
   | 'tiktok'

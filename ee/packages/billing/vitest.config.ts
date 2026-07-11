@@ -152,18 +152,6 @@ export default defineConfig({
         replacement: pkg('workflow-engine/src/$1'),
       },
       {
-        find: '@genfeedai/workflow-saas',
-        replacement: pkg('workflow-saas/src'),
-      },
-      {
-        find: /^@genfeedai\/workflow-saas\/(.*)$/,
-        replacement: pkg('workflow-saas/src/$1'),
-      },
-      {
-        find: /^@workflow-saas\/(.*)$/,
-        replacement: pkg('workflow-saas/src/$1'),
-      },
-      {
         find: /^@serializers\/(.*)$/,
         replacement: pkg('serializers/src/$1'),
       },

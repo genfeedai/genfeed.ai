@@ -21,7 +21,6 @@
     "@genfeedai/types": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@genfeedai/workflow-engine": "workspace:*",
-    "@genfeedai/workflow-saas": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
     "@nestjs/event-emitter": "3.1.0",
     "@prisma/adapter-pg": "7.8.0",

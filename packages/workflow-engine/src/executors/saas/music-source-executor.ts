@@ -33,7 +33,7 @@ export type MusicSourceResolver = (params: {
  * Supports trending sounds, curated library, user uploads, and AI generation.
  *
  * Node Type: musicSource
- * Definition: @genfeedai/workflow-saas/nodes/music-source.ts
+ * Definition: @genfeedai/workflows/nodes/definitions/music-source.ts
  */
 export class MusicSourceExecutor extends BaseExecutor {
   readonly nodeType = 'musicSource';

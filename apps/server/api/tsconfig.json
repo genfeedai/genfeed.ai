@@ -37,9 +37,6 @@
       "@genfeedai/workflow-engine": [
         "../../../packages/workflow-engine/src/index.ts"
       ],
-      "@genfeedai/workflow-saas": [
-        "../../../packages/workflow-saas/src/index.ts"
-      ],
       "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
       "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
       "@genfeedai/prisma": ["../../../packages/prisma/src/index.ts"],
@@ -60,8 +57,7 @@
       "@libs/*": ["../../../packages/libs/*"],
       "@serializers/*": ["../../../packages/serializers/src/*"],
       "@server/*": ["../server/src/*"],
-      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
-      "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
+      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"]
     },
     "types": ["node", "vitest/globals", "multer"]
   },

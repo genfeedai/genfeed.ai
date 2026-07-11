@@ -73,7 +73,8 @@
       "@genfeedai/types/*": ["../../packages/types/src/*"],
       "@genfeedai/utils": ["../../packages/utils/index.ts"],
       "@genfeedai/utils/*": ["../../packages/utils/*"],
-      "@genfeedai/workflow-saas": ["../../packages/workflow-saas/src/index.ts"],
+      "@genfeedai/workflows": ["../../packages/workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["../../packages/workflows/src/*"],
       "@fullcalendar/core": ["./node_modules/@fullcalendar/core/index.d.ts"],
       "@fullcalendar/interaction": [
         "./node_modules/@fullcalendar/interaction/index.d.ts"
@@ -159,8 +160,7 @@
         "../../packages/ui/src/primitives/field.tsx"
       ],
       "@utils/*": ["../../packages/utils/*"],
-      "@workflow-engine/*": ["../../packages/workflow-engine/src/*"],
-      "@workflow-saas/*": ["../../packages/workflow-saas/src/*"]
+      "@workflow-engine/*": ["../../packages/workflow-engine/src/*"]
     }
   },
   "exclude": [

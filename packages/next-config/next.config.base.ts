@@ -53,7 +53,7 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
         '@genfeedai/serializers',
         '@genfeedai/types',
         '@genfeedai/ui',
-        '@genfeedai/workflow-saas',
+        '@genfeedai/workflows',
         '@radix-ui/react-icons',
         'date-fns',
         'lucide-react',
@@ -97,7 +97,7 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
       '@genfeedai/enums',
       '@genfeedai/helpers',
       '@genfeedai/interfaces',
-      '@genfeedai/workflow-saas',
+      '@genfeedai/workflows',
     ],
     // Skip type checking during build — handled by turbo typecheck separately
     typescript: {
