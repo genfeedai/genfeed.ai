@@ -25,6 +25,7 @@ import { AgentMessageBusService } from '@api/services/agent-campaign/agent-messa
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import {
   AGENT_CREDIT_COSTS,
   AGENT_MAX_TOOL_ROUNDS,
@@ -51,10 +52,7 @@ import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
-import type {
-  AgentThreadEngineService,
-  AppendAgentThreadEventParams,
-} from '@api/services/agent-threading/services/agent-thread-engine.service';
+import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type {
@@ -355,6 +353,7 @@ export class AgentOrchestratorService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly toolExecutorService: AgentToolExecutorService,
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
+    private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly organizationsService: OrganizationsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly settingsService: SettingsService,
@@ -440,7 +439,7 @@ export class AgentOrchestratorService {
       );
       const { seedTitle, threadId } = threadResolution;
       await this.recordProfileSnapshot(threadId, context, request.agentType);
-      await this.recordThreadTurnRequested({
+      await this.threadEventRecorder.recordThreadTurnRequested({
         content: request.content,
         context,
         model,
@@ -557,7 +556,7 @@ export class AgentOrchestratorService {
       request.payload,
     );
 
-    await this.recordThreadTurnRequested({
+    await this.threadEventRecorder.recordThreadTurnRequested({
       content: actionContent,
       context,
       model,
@@ -566,7 +565,7 @@ export class AgentOrchestratorService {
     });
 
     return await this.runInThreadLane(threadId, async () => {
-      await this.recordThreadTurnStarted({
+      await this.threadEventRecorder.recordThreadTurnStarted({
         context,
         model,
         runId: context.runId,
@@ -616,7 +615,7 @@ export class AgentOrchestratorService {
             );
         }
       } catch (error: unknown) {
-        await this.recordRunFailed({
+        await this.threadEventRecorder.recordRunFailed({
           context,
           error:
             error instanceof Error
@@ -665,7 +664,7 @@ export class AgentOrchestratorService {
       blockIds?: string[];
     } | null = null;
 
-    await this.recordThreadTurnStarted({
+    await this.threadEventRecorder.recordThreadTurnStarted({
       context,
       model,
       runId: context.runId,
@@ -849,14 +848,14 @@ export class AgentOrchestratorService {
             })),
             userId: context.userId,
           });
-          await this.recordAssistantFinalized({
+          await this.threadEventRecorder.recordAssistantFinalized({
             content,
             context,
             metadata: assistantMetadata,
             runId: context.runId,
             threadId,
           });
-          await this.recordRunCompleted({
+          await this.threadEventRecorder.recordRunCompleted({
             context,
             detail: 'Agent completed',
             runId: context.runId,
@@ -949,7 +948,7 @@ export class AgentOrchestratorService {
               });
 
               allToolCalls.push(summary);
-              await this.recordToolCompleted({
+              await this.threadEventRecorder.recordToolCompleted({
                 context,
                 durationMs,
                 error: unknownToolError,
@@ -995,7 +994,7 @@ export class AgentOrchestratorService {
             );
           }
 
-          await this.recordToolStarted({
+          await this.threadEventRecorder.recordToolStarted({
             context,
             parameters: toolParams,
             runId: context.runId,
@@ -1031,7 +1030,7 @@ export class AgentOrchestratorService {
               };
 
               allToolCalls.push(summary);
-              await this.recordToolCompleted({
+              await this.threadEventRecorder.recordToolCompleted({
                 context,
                 durationMs,
                 error,
@@ -1132,7 +1131,7 @@ export class AgentOrchestratorService {
               blocks: normalizedBlocks,
               operation: result.data.operation as AgentDashboardOperation,
             };
-            await this.recordUiBlocksUpdated({
+            await this.threadEventRecorder.recordUiBlocksUpdated({
               blockIds: result.data.blockIds as string[] | undefined,
               blocks: normalizedBlocks,
               context,
@@ -1148,7 +1147,7 @@ export class AgentOrchestratorService {
               .catch(() => undefined);
           }
 
-          await this.recordToolCompleted({
+          await this.threadEventRecorder.recordToolCompleted({
             context,
             durationMs,
             error: summary.error,
@@ -1171,7 +1170,7 @@ export class AgentOrchestratorService {
         `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`,
       );
     } catch (error: unknown) {
-      await this.recordRunFailed({
+      await this.threadEventRecorder.recordRunFailed({
         context,
         error: error instanceof Error ? error.message : 'Unknown error',
         runId: context.runId,
@@ -1264,7 +1263,7 @@ export class AgentOrchestratorService {
       streamContext,
       request.agentType,
     );
-    await this.recordThreadTurnRequested({
+    await this.threadEventRecorder.recordThreadTurnRequested({
       content: request.content,
       context: streamContext,
       model,
@@ -2118,16 +2117,6 @@ export class AgentOrchestratorService {
     );
   }
 
-  private async isFirstRun(organizationId: string): Promise<boolean> {
-    const organization = await this.organizationsService.findOne({
-      _id: organizationId,
-      isDeleted: false,
-    });
-
-    // Explicitly check for false; missing field is treated as already onboarded.
-    return organization?.onboardingCompleted === false;
-  }
-
   private async resolveOrCreateThreadId(
     request: AgentChatRequest,
     context: AgentChatContext,
@@ -2506,14 +2495,14 @@ export class AgentOrchestratorService {
       room: params.threadId,
       userId: params.context.userId,
     });
-    await this.recordAssistantFinalized({
+    await this.threadEventRecorder.recordAssistantFinalized({
       content: assistantResponse.content,
       context: params.context,
       metadata: assistantMetadata,
       runId: params.context.runId,
       threadId: params.threadId,
     });
-    await this.recordRunCompleted({
+    await this.threadEventRecorder.recordRunCompleted({
       context: params.context,
       detail: 'Recurring automation setup completed',
       runId: params.context.runId,
@@ -2684,7 +2673,7 @@ export class AgentOrchestratorService {
       title: envelope.title,
     });
 
-    await this.recordPlanUpserted({
+    await this.threadEventRecorder.recordPlanUpserted({
       context: params.context,
       plan,
       runId: params.context.runId,
@@ -2722,14 +2711,14 @@ export class AgentOrchestratorService {
       room: params.threadId,
       userId: params.context.userId,
     });
-    await this.recordAssistantFinalized({
+    await this.threadEventRecorder.recordAssistantFinalized({
       content,
       context: params.context,
       metadata: assistantMetadata,
       runId: params.context.runId,
       threadId: params.threadId,
     });
-    await this.recordRunCompleted({
+    await this.threadEventRecorder.recordRunCompleted({
       context: params.context,
       detail: 'Plan proposed and awaiting approval',
       runId: params.context.runId,
@@ -2780,7 +2769,7 @@ export class AgentOrchestratorService {
     const startedAtIso = new Date().toISOString();
     const startTime = Date.now();
 
-    await this.recordToolStarted({
+    await this.threadEventRecorder.recordToolStarted({
       context: params.context,
       parameters: toolParams,
       runId: params.context.runId,
@@ -2840,7 +2829,7 @@ export class AgentOrchestratorService {
       toolName,
     };
 
-    await this.recordToolCompleted({
+    await this.threadEventRecorder.recordToolCompleted({
       context: params.context,
       durationMs,
       error: summary.error,
@@ -2932,14 +2921,14 @@ export class AgentOrchestratorService {
       ],
       userId: params.context.userId,
     });
-    await this.recordAssistantFinalized({
+    await this.threadEventRecorder.recordAssistantFinalized({
       content: fullContent,
       context: params.context,
       metadata: assistantMetadata,
       runId: params.context.runId,
       threadId: params.threadId,
     });
-    await this.recordRunCompleted({
+    await this.threadEventRecorder.recordRunCompleted({
       context: params.context,
       detail: 'Agent completed',
       runId: params.context.runId,
@@ -4143,7 +4132,7 @@ export class AgentOrchestratorService {
     };
     const startTime = Date.now();
 
-    await this.recordToolStarted({
+    await this.threadEventRecorder.recordToolStarted({
       context: params.context,
       parameters: toolPayload,
       runId: params.context.runId,
@@ -4173,7 +4162,7 @@ export class AgentOrchestratorService {
       toolName,
     };
 
-    await this.recordToolCompleted({
+    await this.threadEventRecorder.recordToolCompleted({
       context: params.context,
       durationMs,
       error: summary.error,
@@ -4212,7 +4201,7 @@ export class AgentOrchestratorService {
     };
     const startTime = Date.now();
 
-    await this.recordToolStarted({
+    await this.threadEventRecorder.recordToolStarted({
       context: params.context,
       parameters: toolPayload,
       runId: params.context.runId,
@@ -4242,7 +4231,7 @@ export class AgentOrchestratorService {
       toolName,
     };
 
-    await this.recordToolCompleted({
+    await this.threadEventRecorder.recordToolCompleted({
       context: params.context,
       durationMs,
       error: summary.error,
@@ -4297,7 +4286,7 @@ export class AgentOrchestratorService {
     };
     const startTime = Date.now();
 
-    await this.recordToolStarted({
+    await this.threadEventRecorder.recordToolStarted({
       context: params.context,
       parameters: toolPayload,
       runId: params.context.runId,
@@ -4327,7 +4316,7 @@ export class AgentOrchestratorService {
       toolName,
     };
 
-    await this.recordToolCompleted({
+    await this.threadEventRecorder.recordToolCompleted({
       context: params.context,
       durationMs,
       error: summary.error,
@@ -4383,7 +4372,7 @@ export class AgentOrchestratorService {
       );
     }
 
-    await this.recordPlanUpserted({
+    await this.threadEventRecorder.recordPlanUpserted({
       context: params.context,
       plan: {
         approvedAt: new Date().toISOString(),
@@ -4804,117 +4793,6 @@ export class AgentOrchestratorService {
     }
   }
 
-  private async recordThreadTurnRequested(params: {
-    threadId: string;
-    context: AgentChatContext;
-    model: string;
-    content: string;
-    runId?: string;
-    source?: AgentChatRequest['source'];
-  }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.appendThreadEventEffect({
-        commandId: `turn-requested:${params.threadId}:${params.runId ?? Date.now()}`,
-        metadata: {
-          source: params.source ?? 'agent',
-        },
-        organizationId: params.context.organizationId,
-        payload: {
-          content: params.content,
-          model: params.model,
-          requestedModel: params.model,
-          source: params.source ?? 'agent',
-          startedAt: new Date().toISOString(),
-        },
-        runId: params.runId,
-        threadId: params.threadId,
-        type: 'thread.turn_requested',
-        userId: params.context.userId,
-      }),
-    );
-  }
-
-  private async recordAssistantFinalized(params: {
-    threadId: string;
-    context: AgentChatContext;
-    content: string;
-    metadata: Record<string, unknown>;
-    runId?: string;
-  }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.appendThreadEventEffect({
-        commandId: `assistant-finalized:${params.threadId}:${params.runId ?? Date.now()}`,
-        metadata: {
-          origin: 'agent-orchestrator',
-        },
-        organizationId: params.context.organizationId,
-        payload: {
-          content: params.content,
-          messageId: `${params.threadId}:${params.runId ?? 'sync'}`,
-          metadata: params.metadata,
-        },
-        runId: params.runId,
-        threadId: params.threadId,
-        type: 'assistant.finalized',
-        userId: params.context.userId,
-      }),
-    );
-  }
-
-  private async recordPlanUpserted(params: {
-    context: AgentChatContext;
-    threadId: string;
-    plan: {
-      id: string;
-      content: string;
-      explanation?: string;
-      steps?: Record<string, unknown>[];
-      status: 'awaiting_approval' | 'approved';
-      awaitingApproval: boolean;
-      lastReviewAction?: 'approve' | 'request_changes';
-      revisionNote?: string;
-      approvedAt?: string;
-    };
-    runId?: string;
-  }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.appendThreadEventEffect({
-        commandId: `plan-upserted:${params.threadId}:${params.plan.id}:${params.runId ?? Date.now()}`,
-        metadata: {
-          origin: 'agent-orchestrator',
-        },
-        organizationId: params.context.organizationId,
-        payload: {
-          approvedAt: params.plan.approvedAt,
-          awaitingApproval: params.plan.awaitingApproval,
-          content: params.plan.content,
-          explanation: params.plan.explanation,
-          id: params.plan.id,
-          lastReviewAction: params.plan.lastReviewAction,
-          revisionNote: params.plan.revisionNote,
-          status: params.plan.status,
-          steps: params.plan.steps,
-        },
-        runId: params.runId,
-        threadId: params.threadId,
-        type: 'plan.upserted',
-        userId: params.context.userId,
-      }),
-    );
-  }
-
   private async recordProfileSnapshot(
     threadId: string,
     context: AgentChatContext,
@@ -4957,200 +4835,6 @@ export class AgentOrchestratorService {
     run: () => Promise<T>,
   ): Promise<T> {
     return runEffectPromise(this.runInThreadLaneEffect(threadId, run));
-  }
-
-  private async recordThreadTurnStarted(params: {
-    context: AgentChatContext;
-    threadId: string;
-    model: string;
-    runId?: string;
-    source?: AgentChatRequest['source'];
-  }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.appendThreadEventEffect({
-        commandId: `turn-started:${params.threadId}:${params.runId ?? Date.now()}`,
-        metadata: {
-          origin: 'agent-orchestrator',
-          source: params.source ?? 'agent',
-        },
-        organizationId: params.context.organizationId,
-        payload: {
-          detail: 'Agent turn started',
-          model: params.model,
-          requestedModel: params.model,
-          source: params.source ?? 'agent',
-          startedAt: new Date().toISOString(),
-        },
-        runId: params.runId,
-        threadId: params.threadId,
-        type: 'thread.turn_started',
-        userId: params.context.userId,
-      }),
-    );
-  }
-
-  private async recordToolStarted(params: {
-    context: AgentChatContext;
-    threadId: string;
-    parameters: Record<string, unknown>;
-    runId?: string;
-    toolCallId?: string;
-    toolName: string;
-  }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.appendThreadEventEffect({
-        commandId: `tool-started:${params.threadId}:${params.toolCallId ?? params.toolName}:${params.runId ?? Date.now()}`,
-        metadata: {
-          origin: 'agent-orchestrator',
-        },
-        organizationId: params.context.organizationId,
-        payload: {
-          parameters: params.parameters,
-          toolCallId: params.toolCallId,
-          toolName: params.toolName,
-        },
-        runId: params.runId,
-        threadId: params.threadId,
-        type: 'tool.started',
-        userId: params.context.userId,
-      }),
-    );
-  }
-
-  private async recordToolCompleted(params: {
-    context: AgentChatContext;
-    threadId: string;
-    durationMs: number;
-    error?: string;
-    runId?: string;
-    status: 'completed' | 'failed';
-    toolCallId?: string;
-    toolName: string;
-  }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.appendThreadEventEffect({
-        commandId: `tool-completed:${params.threadId}:${params.toolCallId ?? params.toolName}:${params.runId ?? Date.now()}`,
-        metadata: {
-          origin: 'agent-orchestrator',
-        },
-        organizationId: params.context.organizationId,
-        payload: {
-          durationMs: params.durationMs,
-          error: params.error,
-          status: params.status,
-          toolCallId: params.toolCallId,
-          toolName: params.toolName,
-        },
-        runId: params.runId,
-        threadId: params.threadId,
-        type: 'tool.completed',
-        userId: params.context.userId,
-      }),
-    );
-  }
-
-  private async recordUiBlocksUpdated(params: {
-    blockIds?: string[];
-    blocks?: AgentUIBlock[];
-    context: AgentChatContext;
-    threadId: string;
-    operation: AgentDashboardOperation;
-    runId?: string;
-  }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.appendThreadEventEffect({
-        commandId: `ui-blocks:${params.threadId}:${params.runId ?? Date.now()}:${params.operation}`,
-        metadata: {
-          origin: 'agent-orchestrator',
-        },
-        organizationId: params.context.organizationId,
-        payload: {
-          blockIds: params.blockIds,
-          blocks: params.blocks,
-          operation: params.operation,
-        },
-        runId: params.runId,
-        threadId: params.threadId,
-        type: 'ui.blocks_updated',
-        userId: params.context.userId,
-      }),
-    );
-  }
-
-  private async recordRunCompleted(params: {
-    context: AgentChatContext;
-    threadId: string;
-    detail: string;
-    runId?: string;
-  }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.appendThreadEventEffect({
-        commandId: `run-completed:${params.threadId}:${params.runId ?? Date.now()}`,
-        metadata: {
-          origin: 'agent-orchestrator',
-        },
-        organizationId: params.context.organizationId,
-        payload: {
-          detail: params.detail,
-          label: 'Agent completed',
-          status: 'completed',
-        },
-        runId: params.runId,
-        threadId: params.threadId,
-        type: 'run.completed',
-        userId: params.context.userId,
-      }),
-    );
-  }
-
-  private async recordRunFailed(params: {
-    context: AgentChatContext;
-    threadId: string;
-    error: string;
-    runId?: string;
-  }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      return;
-    }
-
-    await runEffectPromise(
-      this.appendThreadEventEffect({
-        commandId: `run-failed:${params.threadId}:${params.runId ?? Date.now()}`,
-        metadata: {
-          origin: 'agent-orchestrator',
-        },
-        organizationId: params.context.organizationId,
-        payload: {
-          error: params.error,
-          label: 'Agent failed',
-          status: 'failed',
-        },
-        runId: params.runId,
-        threadId: params.threadId,
-        type: 'run.failed',
-        userId: params.context.userId,
-      }),
-    );
   }
 
   private publishStreamLifecycleStartedEffect(params: {
@@ -5637,18 +5321,6 @@ export class AgentOrchestratorService {
     );
   }
 
-  private appendThreadEventEffect(
-    params: AppendAgentThreadEventParams,
-  ): Effect.Effect<void, unknown> {
-    if (!this.agentThreadEngineService) {
-      return Effect.void;
-    }
-
-    return this.agentThreadEngineService
-      .appendEventEffect(params)
-      .pipe(Effect.asVoid);
-  }
-
   private recordThreadProfileSnapshotEffect(
     threadId: string,
     organizationId: string,
@@ -5716,7 +5388,7 @@ export class AgentOrchestratorService {
         operation: rawOperation,
       };
 
-      await this.recordUiBlocksUpdated({
+      await this.threadEventRecorder.recordUiBlocksUpdated({
         blockIds: latestUiBlocks.blockIds,
         blocks: normalizedBlocks,
         context: params.context,
@@ -5778,14 +5450,14 @@ export class AgentOrchestratorService {
       userId: params.context.userId,
     });
 
-    await this.recordAssistantFinalized({
+    await this.threadEventRecorder.recordAssistantFinalized({
       content: normalizedContent.content,
       context: params.context,
       metadata: assistantMetadata,
       runId: params.context.runId,
       threadId: params.threadId,
     });
-    await this.recordRunCompleted({
+    await this.threadEventRecorder.recordRunCompleted({
       context: params.context,
       detail: 'Agent completed',
       runId: params.context.runId,
