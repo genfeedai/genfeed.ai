@@ -11,6 +11,7 @@ import { SETTINGS_LOGO_HREF } from '@app-config/settings-menu-items.config';
 import { STUDIO_LOGO_HREF } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_LOGO_HREF } from '@app-config/workflows-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { isSaaS } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
@@ -108,9 +109,15 @@ export default function AppProtectedLayoutSidebar({
 }: Props) {
   const { href: buildHref, orgHref } = useOrgUrl();
   const { settings } = useBrand();
-  const orgSwitcherSlot = (
+  // Canonical switcher rule (ADR-DEPLOYMENT-MODES): the org switcher only
+  // renders in SaaS. Community and Desktop are single-tenant (one org), so an
+  // org switcher there can't switch anything. The brand switcher stays visible
+  // in every mode. Regressed after #743 shipped when the switcher moved into
+  // the sidebar (#1059) and dropped its cloud gate; re-applied here on the
+  // canonical isSaaS() rather than a raw env read.
+  const orgSwitcherSlot = isSaaS() ? (
     <OrganizationSwitcher subscriptionTier={settings?.subscriptionTier} />
-  );
+  ) : undefined;
   const collapseProps = {
     isCollapsed,
     onToggleCollapse,
