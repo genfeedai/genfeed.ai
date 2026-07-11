@@ -11,7 +11,6 @@ import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenl
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import {
   ByokProvider,
   ImageTaskModel,
@@ -21,6 +20,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface StepExecutionContext {
   organizationId: string;

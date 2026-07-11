@@ -13,9 +13,12 @@ vi.mock(
     LeonardoAIService: class LeonardoAIService {},
   }),
 );
-vi.mock('@api/services/integrations/replicate/replicate.service', () => ({
-  ReplicateService: class ReplicateService {},
-}));
+vi.mock(
+  '@server/services/integrations/replicate/services/replicate.service',
+  () => ({
+    ReplicateService: class ReplicateService {},
+  }),
+);
 vi.mock('@libs/logger/logger.service', () => ({
   LoggerService: class LoggerService {},
 }));
@@ -29,11 +32,11 @@ import type { ManagedInferenceAuthenticatedRequest } from '@api/endpoints/v1/man
 import { ManagedInferenceService } from '@api/endpoints/v1/managed-inference/managed-inference.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ActivitySource } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 describe('ManagedInferenceService', () => {
   const creditsUtilsService = {

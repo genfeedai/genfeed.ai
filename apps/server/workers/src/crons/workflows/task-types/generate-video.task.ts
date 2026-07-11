@@ -6,7 +6,6 @@ import { FalService } from '@api/services/integrations/fal/fal.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import {
   ByokProvider,
   VideoResolution,
@@ -14,6 +13,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface GenerateVideoConfig {
   model: VideoTaskModel;

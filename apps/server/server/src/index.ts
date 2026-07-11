@@ -93,4 +93,5 @@ export type {
   UpdateCampaignParams,
 } from './services/integrations/meta-ads/interfaces/meta-ads.interface';
 export { MetaAdsService } from './services/integrations/meta-ads/services/meta-ads.service';
+export { ReplicateService } from './services/integrations/replicate/services/replicate.service';
 export { LifecycleEmailDeliveryService } from './services/lifecycle-emails/lifecycle-email-delivery.service';

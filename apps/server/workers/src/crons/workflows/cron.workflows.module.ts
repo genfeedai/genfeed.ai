@@ -8,7 +8,6 @@ import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { HedraModule } from '@api/services/integrations/hedra/hedra.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
-import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
@@ -34,7 +33,6 @@ import { GenerationServicesModule } from '@workers/services/generation-services.
     KlingAIModule,
     ManagedInferenceModule,
     NotificationsModule,
-    ReplicateModule,
     WorkflowsModule,
   ],
   providers: [

@@ -1,9 +1,9 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TrendContentIdeasService } from './trend-content-ideas.service';

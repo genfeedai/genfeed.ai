@@ -8,7 +8,6 @@
  */
 
 import type { FalService } from '@api/services/integrations/fal/fal.service';
-import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import type { ReplicatePredictionResult } from '@api/services/telegram-bot/telegram-bot.types';
 import {
   FAL_IMAGE_MODEL_MAP,
@@ -21,6 +20,7 @@ import type {
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface WorkflowExecutorDeps {
   replicateService: ReplicateService;
