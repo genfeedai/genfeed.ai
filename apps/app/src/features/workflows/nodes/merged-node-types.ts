@@ -13,7 +13,7 @@ import { UnknownWorkflowNode } from '@/features/workflows/nodes/UnknownWorkflowN
  * Combines:
  * - 29 core OSS nodes (input, AI, processing, output, composition)
  * - 7 premium extended nodes (effects, distribution, automation, repurposing)
- * - 7 SaaS nodes (brand management, AI persona content, publishing)
+ * - 5 SaaS nodes (brand management, hooks, publishing)
  */
 const fallbackNodeType = UnknownWorkflowNode;
 
@@ -30,7 +30,7 @@ export const cloudNodeTypes: NodeTypes = Object.fromEntries(
     sendDm: TemplateCompatibilityNode,
     soundOverlay: TemplateCompatibilityNode,
     ...extendedNodeTypes, // 7 premium nodes
-    ...saasNodeTypes, // 7 SaaS nodes
+    ...saasNodeTypes, // 5 SaaS nodes
     unknown: fallbackNodeType,
   }).map(([nodeType, component]) => [nodeType, component ?? fallbackNodeType]),
 ) as NodeTypes;
