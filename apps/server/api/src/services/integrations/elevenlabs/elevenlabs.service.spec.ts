@@ -1,11 +1,11 @@
 import fs from 'node:fs';
-import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ApiKeyHelperService } from '@server/services/api-key/api-key-helper.service';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('node:fs', () => ({

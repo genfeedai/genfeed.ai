@@ -1,7 +1,7 @@
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MixMode } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 export interface SoundOverlayInput {
   videoUrl: string;

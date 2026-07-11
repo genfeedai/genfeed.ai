@@ -1,12 +1,12 @@
 import { UploadIntegrationMediaDto } from '@api/endpoints/integrations/dto/upload-integration-media.dto';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileInputType, IntegrationPlatform } from '@genfeedai/enums';
 import type { OrgIntegration } from '@genfeedai/prisma';
 import { Public } from '@libs/decorators/public.decorator';
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiParam } from '@nestjs/swagger';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { nanoid } from 'nanoid';
 
 // Internal controller for integration services

@@ -1,4 +1,3 @@
-import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { TELEGRAM_BOT_CONSTANTS } from '@api/services/telegram-bot/telegram-bot.constants';
 import type {
   ConversationState,
@@ -12,6 +11,7 @@ import type { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/t
 import { FileInputType } from '@genfeedai/enums';
 import type { WorkflowEngine } from '@genfeedai/workflow-engine';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Context } from 'grammy';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

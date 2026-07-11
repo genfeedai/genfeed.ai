@@ -5,7 +5,6 @@ import { CreateTrainingDto } from '@api/collections/trainings/dto/create-trainin
 import { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -15,6 +14,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import * as archiver from 'archiver';
 

@@ -7,7 +7,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   AssetScope,
@@ -27,6 +26,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 @AutoSwagger()

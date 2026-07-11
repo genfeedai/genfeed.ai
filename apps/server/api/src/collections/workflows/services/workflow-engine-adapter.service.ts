@@ -45,9 +45,7 @@ import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collection
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
@@ -68,6 +66,8 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 /**

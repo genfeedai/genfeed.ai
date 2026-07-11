@@ -3,7 +3,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   type ContentRating,
   type DarkroomAssetLabel,
@@ -16,6 +15,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 /**
  * Owns fleet asset (ingredient) listing + review, and the approved-asset

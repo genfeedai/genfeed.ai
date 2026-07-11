@@ -25,7 +25,6 @@ import { InternalIntegrationsController } from '@api/endpoints/integrations/inte
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -51,6 +50,7 @@ import { HttpService } from '@nestjs/axios';
 import { DynamicModule, ExecutionContext, Module, Type } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 /**

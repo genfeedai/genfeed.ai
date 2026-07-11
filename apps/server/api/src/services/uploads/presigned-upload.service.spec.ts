@@ -5,7 +5,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -16,6 +15,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 // Mock legacy auth provider utilities
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({

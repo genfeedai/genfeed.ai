@@ -12,7 +12,6 @@ import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-
 import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { resolveRoom } from '@api/helpers/utils/websocket-room/websocket-room.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { JOB_TYPES } from '@files/queues/queue.constants';
@@ -31,6 +30,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 @Injectable()
 export class AutoMergeService {

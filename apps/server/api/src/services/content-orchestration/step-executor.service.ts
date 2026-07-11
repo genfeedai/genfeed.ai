@@ -7,7 +7,6 @@ import type {
   TextToMusicStep,
   TextToSpeechStep,
 } from '@api/services/content-orchestration/pipeline.interfaces';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import {
@@ -19,6 +18,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { FalService } from '@server/services/integrations/fal/services/fal.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 

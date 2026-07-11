@@ -20,7 +20,6 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -48,6 +47,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 @AutoSwagger()

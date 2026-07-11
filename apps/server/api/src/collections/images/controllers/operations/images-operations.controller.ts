@@ -26,7 +26,6 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -57,6 +56,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 import sharp from 'sharp';
 

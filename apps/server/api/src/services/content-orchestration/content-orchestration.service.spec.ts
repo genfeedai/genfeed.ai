@@ -5,7 +5,6 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import type { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
 import { StepExecutorService } from '@api/services/content-orchestration/step-executor.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -15,6 +14,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 vi.mock('@sentry/nestjs', () => ({
   SentryTraced:

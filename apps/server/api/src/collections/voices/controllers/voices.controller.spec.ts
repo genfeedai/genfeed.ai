@@ -8,7 +8,6 @@ import {
   CREDITS_KEY,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { ByokService } from '@api/services/byok/byok.service';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -23,6 +22,7 @@ import { VoiceProvider as DbVoiceProvider } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
