@@ -523,10 +523,12 @@
         "@nestjs/bullmq": "11.0.4",
         "@nestjs/common": "11.1.28",
         "bullmq": "5.79.3",
+        "jsonwebtoken": "9.0.3",
         "rxjs": "7.8.2",
       },
       "devDependencies": {
         "@nestjs/testing": "11.1.28",
+        "@types/jsonwebtoken": "9.0.10",
         "@types/node": "26.1.1",
         "typescript": "6.0.2",
         "vitest": "4.1.10",
