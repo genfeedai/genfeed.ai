@@ -1,10 +1,10 @@
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
-import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { fal } from '@fal-ai/client';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
+import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 import { firstValueFrom } from 'rxjs';
 
 export interface FalImageResult {

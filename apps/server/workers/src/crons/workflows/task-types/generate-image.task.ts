@@ -1,8 +1,8 @@
 import { ByokService } from '@api/services/byok/byok.service';
-import { FalService } from '@api/services/integrations/fal/fal.service';
 import { ByokProvider, ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { FalService } from '@server/services/integrations/fal/services/fal.service';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 

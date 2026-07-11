@@ -1,12 +1,12 @@
-vi.mock('@api/helpers/utils/jwt/jwt.util', () => ({
+vi.mock('@server/helpers/utils/jwt/jwt.util', () => ({
   encodeJwtToken: vi.fn(() => 'jwt-token'),
 }));
 
-import { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 import { of, throwError } from 'rxjs';
 
 /**

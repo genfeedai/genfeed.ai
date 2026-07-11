@@ -74,6 +74,8 @@ export {
   type ServerPrisma,
   type ServerSocialAnalytics,
 } from './server.dependencies';
+export { FalService } from './services/integrations/fal/services/fal.service';
+export { KlingAIService } from './services/integrations/klingai/services/klingai.service';
 export { LeonardoAIService } from './services/integrations/leonardoai/services/leonardoai.service';
 export type {
   CreateAdParams,

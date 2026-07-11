@@ -1,11 +1,11 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
-import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
+import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 
 /**
  * Exercises the adapter through the REAL {@link PollUntilService} engine so the
