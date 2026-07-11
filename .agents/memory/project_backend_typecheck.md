@@ -1,7 +1,7 @@
 # Backend type-check pattern (`apps/server/*`)
 
-last_verified: 2026-07-06
-Source: PR #1148 and PR #1221 (#1145). Verified against committed `package.json` scripts and `tsconfig.typecheck.json` files on `origin/master`.
+last_verified: 2026-07-11
+Source: PR #1148, PR #1221 (#1145), and the `@genfeedai/server` extraction in PR #1584. Verified against committed `package.json` scripts and `tsconfig.typecheck.json` files.
 
 ## Invariant
 
@@ -48,9 +48,9 @@ PR #1342 added `scripts/architecture/check-no-api-imports-in-workers.ts` and the
 `@genfeedai/queue-contracts`, `@genfeedai/libs`, or the planned `@genfeedai/server`
 surface instead of adding more API deep imports.
 
-## Status (2026-07-06)
+## Status (2026-07-11)
 
-Green coverage is present for all current backend service workspaces:
-`api, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers`
-(11/11). `apps/server/clips/` is not currently a package workspace and has no
+Dedicated type-check configuration is present for all current backend service/server-tier workspaces:
+`api, discord, files, images, mcp, notifications, server, slack, telegram, videos, voices, workers`
+(12/12). `apps/server/clips/` is not currently a package workspace and has no
 `tsconfig.typecheck.json`; re-verify before treating it as an active service.

@@ -560,7 +560,11 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByTestId('sidebar-brand-switcher'),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
+    // Community mode (no cloud flag): the org switcher must not render — one
+    // org per instance, nothing to switch (ADR-DEPLOYMENT-MODES switcher rule).
+    expect(
+      screen.queryByTestId('organization-switcher'),
+    ).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
@@ -574,7 +578,7 @@ describe('AppProtectedLayout', () => {
         collapsedSidebarWidth: 0,
         currentApp: 'workspace',
         mobileSidebarWidth: 304,
-        orgSwitcherSlot: expect.anything(),
+        orgSwitcherSlot: undefined,
         renderTopSlot: expect.any(Function),
         secondaryItems: [
           { href: '/workspace/activity', label: 'Activity' },
@@ -593,6 +597,21 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
     expect(screen.getByTestId('agent-panel-rail')).toBeInTheDocument();
     expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
+  });
+
+  it('renders the org switcher only in SaaS mode', () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ orgSwitcherSlot: expect.anything() }),
+    );
   });
 
   it('renders the workspace quick actions in the sidebar top slot', () => {

@@ -8,7 +8,7 @@
 - [One API Epic](project_one_api_epic.md) — Epic #95: consolidate self-hosted + cloud into one NestJS API, 20 issues, 8 phases
 - [Fallow Health](project_fallow.md) — Fallow codebase health analysis (#83), weekly CI, score 72/100
 - [BullMQ Processor Placement](project_bullmq.md) — API no longer owns BullMQ processors; add new processors to workers or the owning runtime service
-- [Backend type-check pattern](project_backend_typecheck.md) — dedicated `tsconfig.typecheck.json` for all 11 backend service workspaces (never the runtime config); shared base, `useDefineForClassFields:false`, cross-app `$TURBO_ROOT$` inputs. #1145 closed by #1148 + #1221.
+- [Backend type-check pattern](project_backend_typecheck.md) — dedicated `tsconfig.typecheck.json` for all 12 backend service/server-tier workspaces (never the runtime config); shared base, `useDefineForClassFields:false`, cross-app `$TURBO_ROOT$` inputs. Includes `@genfeedai/server` from #1584.
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
 - [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation is local-first; cloud connect is optional
@@ -46,6 +46,8 @@
 - [NestJS value imports for DI](rules/nestjs_value_imports_for_di.md) — never `import type` classes used in decorator metadata (constructor DI, `@Body`/`@Query`/`@Param` DTOs); emitDecoratorMetadata erases them → DI injects undefined / validation silently skips; guarded by `check:di-value-imports` in CI
 - [server, not core](rules/server_not_core.md) — #1090 server-tier lib = `apps/server/server` / `@genfeedai/server`; the name "core" is retired (collides with `packages/core`); workflow UI target is `@genfeedai/workflows/ui`
 - [Pricing output meter](pricing_output_meter.md) — Credits/API rates are the monetization throttle; do not add hard product caps for brands or connected channels
+- [Better Auth additionalFields](rules/better_auth_additional_fields.md) — any `User` column a Better Auth hook sets (e.g. `handle`) MUST be declared in `user.additionalFields` or it's stripped and first-time signup fails with `Argument 'X' is missing` (#1576)
+- [Worktree env sync](rules/worktree_env_sync.md) — `.env*` is gitignored; new worktrees have no env. Use `git wt <path>` (after `bun run wt:setup`) or run `bun run wt:sync <path>` after `git worktree add`. NOT automatic for plain `git worktree add` (#1578)
 
 ## References
 
@@ -58,7 +60,7 @@
 ## Context (loaded via CLAUDE.md @import)
 
 - [System Patterns](context/system-patterns.md) — architecture patterns, serializers, multi-tenancy
-- [Project Structure](context/project-structure.md) — directory layout, 11 backend service workspaces, 7 frontend/client workspaces
+- [Project Structure](context/project-structure.md) — directory layout, 12 backend service/server-tier workspaces, 7 frontend/client workspaces
 - [Style Guide](context/project-style-guide.md) — TypeScript, git, formatting, naming conventions
 - [Skills Architecture](context/skills-architecture.md) — skills/ vs .agents/skills/ vs .claude/skills/
 - [Progress](context/progress.md) — migration status, active work areas

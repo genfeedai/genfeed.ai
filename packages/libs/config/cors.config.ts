@@ -60,8 +60,11 @@ export function getGenfeedCorsOrigins(
 
   if (isDevelopment) {
     return [
-      // Local development domains (ports 3000-3999: web apps and local services)
-      /^http:\/\/(localhost|local\.genfeed\.ai):(3\d{3})$/,
+      // Local development domains (ports 3000-3999: web apps and local services).
+      // genfeed.localhost (and any *.genfeed.localhost subdomain) is the
+      // recommended dev host — it resolves to loopback with no /etc/hosts entry
+      // and isolates this project's cookie jar from other localhost projects.
+      /^http:\/\/(localhost|local\.genfeed\.ai|([a-z0-9-]+\.)*genfeed\.localhost):(3\d{3})$/,
       /^https:\/\/([a-z0-9-]+\.)*genfeed\.localhost$/,
 
       // Allow Chrome extensions in development

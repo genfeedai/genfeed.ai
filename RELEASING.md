@@ -55,8 +55,9 @@ Do not change the visibility of the internal `genfeed.ai/server` package.
 
 After the release is green, publish `packages/create` through the package
 publishing workflow so npm users receive the installer tested by this contract.
-Use `[{"path":"packages/create","bump":"patch"}]` for `packages_json` and
-set `dry_run=false` only for the approved publish run.
+Use `[{"path":"packages/create","version":"0.2.0"}]` for `packages_json` — the
+exact version already merged to `master`, never a `bump` request (see the npm
+section below) — and set `dry_run=false` only for the approved publish run.
 
 Production backend deploys are handled separately through
 `.github/workflows/deploy-ecs.yml`, dispatched from `master` and gated by the

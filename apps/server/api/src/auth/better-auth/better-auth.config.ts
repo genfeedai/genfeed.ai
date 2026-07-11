@@ -38,16 +38,23 @@ export function parseTrustedOrigins(value: string | undefined): string[] {
 }
 
 /**
- * Frontends local dev serves from. Both `localhost` and `local.genfeed.ai`
- * (which resolves to 127.0.0.1 via /etc/hosts) are auto-trusted so a fresh
- * clone works on either hostname — app (3000), website (3002), API (3010) —
- * without anyone having to set `BETTER_AUTH_TRUSTED_ORIGINS` by hand.
+ * Frontends local dev serves from, auto-trusted so a fresh clone works with zero
+ * `BETTER_AUTH_TRUSTED_ORIGINS` config — app (3000), website (3002), API (3010).
+ *
+ * Recommended dev host is `genfeed.localhost`: `*.localhost` resolves to loopback
+ * in every modern browser/OS (RFC 6761) with NO `/etc/hosts` entry, and gives
+ * this project its own cookie jar so its session/JWT never collides with another
+ * project on plain `localhost`. `local.genfeed.ai` (needs an `/etc/hosts` entry)
+ * is kept for back-compat during migration; plain `localhost` also works.
  */
 const LOCAL_DEV_TRUSTED_ORIGINS = [
+  'http://genfeed.localhost:3000',
   'http://localhost:3000',
   'http://local.genfeed.ai:3000',
+  'http://genfeed.localhost:3002',
   'http://localhost:3002',
   'http://local.genfeed.ai:3002',
+  'http://genfeed.localhost:3010',
   'http://localhost:3010',
   'http://local.genfeed.ai:3010',
 ] as const;
@@ -56,9 +63,10 @@ const LOCAL_DEV_TRUSTED_ORIGINS = [
  * Resolve Better Auth's trusted origins. Always honours whatever
  * `BETTER_AUTH_TRUSTED_ORIGINS` lists; outside production/staging it also merges
  * the standard {@link LOCAL_DEV_TRUSTED_ORIGINS} so local dev needs zero env
- * config and never hits a spurious `INVALID_ORIGIN` when accessed via either
- * `localhost` or `local.genfeed.ai`. Real deployments (production/staging) get
- * exactly the configured list — localhost is never auto-trusted there.
+ * config and never hits a spurious `INVALID_ORIGIN` when accessed via
+ * `genfeed.localhost`, `localhost`, or `local.genfeed.ai`. Real deployments
+ * (production/staging) get exactly the configured list — loopback hosts are
+ * never auto-trusted there.
  */
 export function resolveTrustedOrigins(
   value: string | undefined,
