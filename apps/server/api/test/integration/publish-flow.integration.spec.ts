@@ -30,6 +30,16 @@ if (process.env.SKIP_PRISMA_DB === 'true') {
   g.test = g.it;
 }
 
+// This spec overrides ConfigService with a REAL instance (see the `providers`
+// array below) so CredentialCryptoService/GhostPublisherService get real
+// getters instead of the default mocked `.get()` shim. That means the real
+// Joi schema validates on construction — `PORT` is the only unconditionally
+// required var the e2e-api CI job's env block doesn't already set
+// (DATABASE_URL/REDIS_URL/etc. are set there). Must be set before the first
+// service import triggers module evaluation. `??=` so a real CI/dev PORT
+// always wins.
+process.env.PORT ??= '3010';
+
 // Both `CredentialCryptoService` (real path, used by `CredentialsService.create()`)
 // and the static `EncryptionUtil` facade (used internally by `GhostPublisherService`)
 // resolve the symmetric cipher key from this env var. It must be set before either
@@ -132,7 +142,9 @@ describe('Publish flow real-backend proof (#334)', () => {
   });
 
   afterAll(async () => {
-    await moduleRef.close();
+    // Guard against a `beforeAll` throw leaving `moduleRef` unset — don't
+    // let cleanup mask the real setup error with a second failure.
+    await moduleRef?.close();
   });
 
   beforeEach(async () => {
