@@ -6,7 +6,6 @@ import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
@@ -19,6 +18,7 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 /**
  * Owns fleet image generation: the synchronous ComfyUI generate path and

@@ -14,12 +14,12 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MembersService } from '@api/collections/members/services/members.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 describe('IngredientsOperationsController', () => {

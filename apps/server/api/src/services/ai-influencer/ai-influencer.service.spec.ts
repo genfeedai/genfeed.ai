@@ -10,7 +10,6 @@ import type { PersonaDocument } from '@api/collections/personas/schemas/persona.
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
-import { FalService } from '@api/services/integrations/fal/fal.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
@@ -19,6 +18,7 @@ import { LoraStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FalService } from '@server/services/integrations/fal/services/fal.service';
 
 describe('AiInfluencerService', () => {
   let service: AiInfluencerService;

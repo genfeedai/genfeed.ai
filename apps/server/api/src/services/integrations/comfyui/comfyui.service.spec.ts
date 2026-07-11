@@ -15,7 +15,6 @@ vi.mock('@genfeedai/workflows/generation/comfyui', () => ({
 }));
 
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   buildFlux2DevPrompt,
@@ -31,6 +30,7 @@ import {
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
+import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 import { of, throwError } from 'rxjs';
 
 describe('ComfyUIService', () => {

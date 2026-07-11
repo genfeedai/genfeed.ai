@@ -1,5 +1,11 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -7,6 +13,7 @@ import {
   assertCleanWorkingTree,
   normalizeReleaseRequests,
   registryAction,
+  rewriteDistForNodeResolution,
   sortReleaseRequests,
   validatePackedPackage,
 } from '../publish-packages-from-json.mjs';
@@ -231,6 +238,57 @@ describe('publish package release planning', () => {
     expect(() => registryAction('sha256-expected', 'sha256-different')).toThrow(
       'does not match the plan',
     );
+  });
+
+  it('rewrites built dist for strict Node resolution at publish time', () => {
+    const packageDir = mkdtempSync(path.join(tmpdir(), 'publish-rewrite-'));
+    try {
+      mkdirSync(path.join(packageDir, 'dist'));
+      writeFileSync(
+        path.join(packageDir, 'tsconfig.json'),
+        JSON.stringify({
+          compilerOptions: {
+            baseUrl: '.',
+            outDir: 'dist',
+            paths: { '@fixture/*': ['src/*'] },
+            rootDir: 'src',
+          },
+        }),
+      );
+      writeFileSync(
+        path.join(packageDir, 'dist', 'index.js'),
+        "import { util } from './util';\nimport { aliased } from '@fixture/aliased';\nexport { aliased, util };\n",
+      );
+      writeFileSync(
+        path.join(packageDir, 'dist', 'util.js'),
+        'export const util = 1;\n',
+      );
+      writeFileSync(
+        path.join(packageDir, 'dist', 'aliased.js'),
+        'export const aliased = 2;\n',
+      );
+
+      const result = rewriteDistForNodeResolution(packageDir);
+
+      expect(result?.changedFiles).toBe(1);
+      const rewritten = readFileSync(
+        path.join(packageDir, 'dist', 'index.js'),
+        'utf8',
+      );
+      expect(rewritten).toContain("from './util.js'");
+      expect(rewritten).toContain("from './aliased.js'");
+    } finally {
+      rmSync(packageDir, { force: true, recursive: true });
+    }
+  });
+
+  it('skips the publish-time rewrite when a package builds no dist', () => {
+    const packageDir = mkdtempSync(path.join(tmpdir(), 'publish-no-dist-'));
+    try {
+      expect(rewriteDistForNodeResolution(packageDir)).toBeNull();
+    } finally {
+      rmSync(packageDir, { force: true, recursive: true });
+    }
   });
 });
 

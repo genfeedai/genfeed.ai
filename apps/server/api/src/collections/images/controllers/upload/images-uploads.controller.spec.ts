@@ -17,7 +17,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SolanaService } from '@api/services/integrations/solana/solana.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
@@ -28,6 +27,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 import { of } from 'rxjs';
 

@@ -13,12 +13,12 @@ import type {
   LivestreamSessionContext,
   LivestreamTranscriptChunk,
 } from '@api/collections/bots/schemas/livestream-bot-session.schema';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BotPlatform } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 import { BotsLivestreamDeliveryService } from './bots-livestream-delivery.service';
 import {

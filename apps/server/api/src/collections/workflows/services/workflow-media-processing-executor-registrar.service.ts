@@ -7,7 +7,6 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -24,6 +23,7 @@ import {
 import type { WorkflowEngine } from '@genfeedai/workflow-engine';
 import { ConfigService } from '@libs/config/config.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 export class WorkflowMediaProcessingExecutorRegistrarService {
   constructor(

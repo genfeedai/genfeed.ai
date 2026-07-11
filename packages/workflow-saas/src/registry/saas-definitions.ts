@@ -1,37 +1,21 @@
 import {
   DEFAULT_ANALYTICS_FEEDBACK_DATA,
-  DEFAULT_BEAT_ANALYSIS_DATA,
-  DEFAULT_BEAT_SYNC_EDITOR_DATA,
   DEFAULT_BRAND_ASSET_DATA,
   DEFAULT_BRAND_CONTEXT_DATA,
   DEFAULT_BRAND_DATA,
   DEFAULT_COMMENT_TRIGGER_DATA,
-  DEFAULT_CONDITION_DATA,
-  DEFAULT_DELAY_DATA,
   DEFAULT_ENGAGEMENT_TRIGGER_DATA,
-  DEFAULT_FOLLOW_USER_DATA,
   DEFAULT_HOOK_GENERATOR_DATA,
-  DEFAULT_IMAGE_TEXT_OVERLAY_DATA,
   DEFAULT_KEYWORD_TRIGGER_DATA,
-  DEFAULT_LIKE_POST_DATA,
   DEFAULT_MUSIC_SOURCE_DATA,
-  DEFAULT_PATTERN_CONTEXT_DATA,
-  DEFAULT_PERSONA_CONTENT_PLAN_DATA,
-  DEFAULT_PERSONA_PHOTO_SESSION_DATA,
-  DEFAULT_PERSONA_VIDEO_CONTENT_DATA,
   DEFAULT_POST_REPLY_DATA,
   DEFAULT_PUBLISH_DATA,
   DEFAULT_SEND_DM_DATA,
-  DEFAULT_SLIDESHOW_IMAGE_BATCH_DATA,
   DEFAULT_SOUND_OVERLAY_DATA,
   DEFAULT_TREND_HASHTAG_INSPIRATION_DATA,
   DEFAULT_TREND_SOUND_INSPIRATION_DATA,
   DEFAULT_TREND_TRIGGER_DATA,
   DEFAULT_TREND_VIDEO_INSPIRATION_DATA,
-  DEFAULT_VIDEO_INPUT_DATA,
-  defaultRssInputData,
-  defaultTweetInputData,
-  defaultTweetRemixData,
 } from '@workflow-saas/nodes';
 import type {
   ExtendedNodeCategory,
@@ -50,39 +34,20 @@ export type SaaSNodeType =
   | 'brand'
   | 'brandAsset'
   | 'brandContext'
-  | 'patternContext'
-  // control flow
-  | 'condition'
-  | 'delay'
   // input / triggers
   | 'analyticsFeedback'
   | 'commentTrigger'
   | 'engagementTrigger'
-  | 'followUser'
   | 'keywordTrigger'
-  | 'likePost'
   | 'musicSource'
-  | 'rssInput'
   | 'trendTrigger'
-  | 'tweetInput'
-  | 'videoInput'
   // processing
-  | 'beatAnalysis'
-  | 'beatSyncEditor'
-  | 'imageTextOverlay'
-  | 'slideshowImageBatch'
   | 'soundOverlay'
-  | 'tweetRemix'
   // AI / generation
   | 'hookGenerator'
-  | 'hookPerformanceTracker'
   | 'trendHashtagInspiration'
   | 'trendSoundInspiration'
   | 'trendVideoInspiration'
-  // persona / content
-  | 'personaContentPlan'
-  | 'personaPhotoSession'
-  | 'personaVideoContent'
   // output / publish
   | 'postReply'
   | 'publish'
@@ -186,32 +151,6 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     ],
     type: 'commentTrigger',
   },
-  condition: {
-    category: 'processing',
-    defaultData: DEFAULT_CONDITION_DATA as Record<string, unknown>,
-    description:
-      'Branch workflow based on field conditions, comparisons, or expressions',
-    icon: 'GitBranch',
-    inputs: [{ id: 'value', label: 'Value', required: true, type: 'any' }],
-    label: 'Condition',
-    outputs: [
-      { id: 'true', label: 'True', type: 'any' },
-      { id: 'false', label: 'False', type: 'any' },
-    ],
-    type: 'condition',
-  },
-
-  delay: {
-    category: 'processing',
-    defaultData: DEFAULT_DELAY_DATA as Record<string, unknown>,
-    description:
-      'Pause workflow execution for a fixed duration, until a time, or optimal posting time',
-    icon: 'Clock',
-    inputs: [{ id: 'data', label: 'Data', required: false, type: 'any' }],
-    label: 'Delay',
-    outputs: [{ id: 'data', label: 'Data', type: 'any' }],
-    type: 'delay',
-  },
   engagementTrigger: {
     category: 'automation',
     defaultData: DEFAULT_ENGAGEMENT_TRIGGER_DATA as Record<string, unknown>,
@@ -229,19 +168,6 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
       { id: 'platform', label: 'Platform', type: 'text' },
     ],
     type: 'engagementTrigger',
-  },
-  followUser: {
-    category: 'automation',
-    defaultData: DEFAULT_FOLLOW_USER_DATA as Record<string, unknown>,
-    description: 'Follow a user account on a social platform',
-    icon: 'UserPlus',
-    inputs: [
-      { id: 'brand', label: 'Brand', required: true, type: 'brand' },
-      { id: 'userId', label: 'User ID', required: true, type: 'text' },
-    ],
-    label: 'Follow User',
-    outputs: [{ id: 'success', label: 'Success', type: 'text' }],
-    type: 'followUser',
   },
   keywordTrigger: {
     category: 'automation',
@@ -261,19 +187,6 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
       { id: 'platform', label: 'Platform', type: 'text' },
     ],
     type: 'keywordTrigger',
-  },
-  likePost: {
-    category: 'automation',
-    defaultData: DEFAULT_LIKE_POST_DATA as Record<string, unknown>,
-    description: 'Like or favorite a post on a social platform',
-    icon: 'Heart',
-    inputs: [
-      { id: 'brand', label: 'Brand', required: true, type: 'brand' },
-      { id: 'postId', label: 'Post ID', required: true, type: 'text' },
-    ],
-    label: 'Like Post',
-    outputs: [{ id: 'success', label: 'Success', type: 'text' }],
-    type: 'likePost',
   },
   musicSource: {
     category: 'input',
@@ -297,58 +210,6 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
       { id: 'title', label: 'Title', type: 'text' },
     ],
     type: 'musicSource',
-  },
-  patternContext: {
-    category: 'saas',
-    defaultData: DEFAULT_PATTERN_CONTEXT_DATA as Record<string, unknown>,
-    description:
-      'Retrieve proven creative patterns for your brand from performance data',
-    icon: 'TrendingUp',
-    inputs: [],
-    label: 'Pattern Context',
-    outputs: [{ id: 'patterns', label: 'Patterns', type: 'object' }],
-    type: 'patternContext',
-  },
-  personaContentPlan: {
-    category: 'saas',
-    defaultData: DEFAULT_PERSONA_CONTENT_PLAN_DATA as Record<string, unknown>,
-    description:
-      'Generate an N-day content plan based on persona content strategy',
-    icon: 'Calendar',
-    inputs: [{ id: 'brand', label: 'Brand', required: true, type: 'brand' }],
-    label: 'Content Plan',
-    outputs: [{ id: 'plan', label: 'Content Plan', type: 'object' }],
-    type: 'personaContentPlan',
-  },
-  personaPhotoSession: {
-    category: 'saas',
-    defaultData: DEFAULT_PERSONA_PHOTO_SESSION_DATA as Record<string, unknown>,
-    description: 'Generate batch photos for an AI persona using their avatar',
-    icon: 'Camera',
-    inputs: [{ id: 'brand', label: 'Brand', required: true, type: 'brand' }],
-    label: 'Persona Photo Session',
-    outputs: [
-      {
-        id: 'images',
-        label: 'Generated Photos',
-        multiple: true,
-        type: 'image',
-      },
-    ],
-    type: 'personaPhotoSession',
-  },
-  personaVideoContent: {
-    category: 'saas',
-    defaultData: DEFAULT_PERSONA_VIDEO_CONTENT_DATA as Record<string, unknown>,
-    description: 'Generate video content with AI persona avatar and voice',
-    icon: 'Video',
-    inputs: [
-      { id: 'brand', label: 'Brand', required: true, type: 'brand' },
-      { id: 'script', label: 'Script', type: 'text' },
-    ],
-    label: 'Persona Video',
-    outputs: [{ id: 'video', label: 'Generated Video', type: 'video' }],
-    type: 'personaVideoContent',
   },
   postReply: {
     category: 'automation',
@@ -445,57 +306,6 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     ],
     type: 'analyticsFeedback',
   },
-  beatAnalysis: {
-    category: 'processing',
-    defaultData: DEFAULT_BEAT_ANALYSIS_DATA as Record<string, unknown>,
-    description: 'Detect tempo and beat timestamps from audio',
-    icon: 'Activity',
-    inputs: [
-      { id: 'musicUrl', label: 'Music URL', required: true, type: 'audio' },
-    ],
-    label: 'Beat Analysis',
-    outputs: [
-      { id: 'tempo', label: 'Tempo (BPM)', type: 'number' },
-      {
-        id: 'beatTimestamps',
-        label: 'Beat Timestamps',
-        multiple: true,
-        type: 'number',
-      },
-      { id: 'downbeats', label: 'Downbeats', multiple: true, type: 'number' },
-      { id: 'beatCount', label: 'Beat Count', type: 'number' },
-    ],
-    type: 'beatAnalysis',
-  },
-  beatSyncEditor: {
-    category: 'processing',
-    defaultData: DEFAULT_BEAT_SYNC_EDITOR_DATA as Record<string, unknown>,
-    description: 'Cut videos to match beat timestamps',
-    icon: 'Scissors',
-    inputs: [
-      {
-        id: 'videoFiles',
-        label: 'Video Files',
-        multiple: true,
-        required: true,
-        type: 'video',
-      },
-      {
-        id: 'beatTimestamps',
-        label: 'Beat Timestamps',
-        multiple: true,
-        required: true,
-        type: 'number',
-      },
-      { id: 'musicUrl', label: 'Music URL', required: true, type: 'audio' },
-    ],
-    label: 'Beat Sync Editor',
-    outputs: [
-      { id: 'videoUrl', label: 'Output Video', type: 'video' },
-      { id: 'totalClips', label: 'Total Clips', type: 'number' },
-    ],
-    type: 'beatSyncEditor',
-  },
   hookGenerator: {
     category: 'saas',
     defaultData: DEFAULT_HOOK_GENERATOR_DATA as Record<string, unknown>,
@@ -514,78 +324,6 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
       { id: 'slidePrompts', label: 'Slide Prompts', type: 'text' },
     ],
     type: 'hookGenerator',
-  },
-  hookPerformanceTracker: {
-    category: 'saas',
-    defaultData: {},
-    description:
-      'Track hook performance to close the feedback loop on content that works',
-    icon: 'TrendingUp',
-    inputs: [
-      { id: 'postId', label: 'Post ID', required: true, type: 'text' },
-      { id: 'hookText', label: 'Hook Text', required: false, type: 'text' },
-      {
-        id: 'hookFormula',
-        label: 'Hook Formula',
-        required: false,
-        type: 'text',
-      },
-    ],
-    label: 'Hook Performance Tracker',
-    outputs: [
-      { id: 'performanceId', label: 'Performance ID', type: 'text' },
-      { id: 'analysisSummary', label: 'Analysis Summary', type: 'text' },
-    ],
-    type: 'hookPerformanceTracker',
-  },
-  imageTextOverlay: {
-    category: 'saas',
-    defaultData: DEFAULT_IMAGE_TEXT_OVERLAY_DATA as Record<string, unknown>,
-    description:
-      'Burn text overlay onto static images for TikTok slideshow hooks',
-    icon: 'Type',
-    inputs: [
-      { id: 'image', label: 'Image', required: true, type: 'image' },
-      { id: 'text', label: 'Text', required: true, type: 'text' },
-    ],
-    label: 'Image Text Overlay',
-    outputs: [{ id: 'image', label: 'Image with Text', type: 'image' }],
-    type: 'imageTextOverlay',
-  },
-  rssInput: {
-    category: 'input',
-    defaultData: defaultRssInputData as Record<string, unknown>,
-    description: 'Fetch and parse RSS feeds from URL or XML',
-    icon: 'Rss',
-    inputs: [],
-    label: 'RSS Input',
-    outputs: [
-      { id: 'title', label: 'Item Title', type: 'text' },
-      { id: 'description', label: 'Item Description', type: 'text' },
-      { id: 'link', label: 'Item Link', type: 'text' },
-    ],
-    type: 'rssInput',
-  },
-  slideshowImageBatch: {
-    category: 'saas',
-    defaultData: DEFAULT_SLIDESHOW_IMAGE_BATCH_DATA as Record<string, unknown>,
-    description:
-      'Generate a batch of consistent images for TikTok slideshow posts',
-    icon: 'Images',
-    inputs: [
-      {
-        id: 'slidePrompts',
-        label: 'Slide Prompts',
-        required: false,
-        type: 'text',
-      },
-      { id: 'basePrompt', label: 'Base Prompt', required: false, type: 'text' },
-    ],
-    label: 'Slideshow Image Batch',
-    outputs: [
-      { id: 'images', label: 'Slide Images', multiple: true, type: 'image' },
-    ],
-    type: 'slideshowImageBatch',
   },
   trendHashtagInspiration: {
     category: 'input',
@@ -665,50 +403,6 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
       { id: 'style', label: 'Style', type: 'text' },
     ],
     type: 'trendVideoInspiration',
-  },
-  tweetInput: {
-    category: 'input',
-    defaultData: defaultTweetInputData as Record<string, unknown>,
-    description: 'Fetch tweet content from URL or paste text directly',
-    icon: 'Twitter',
-    inputs: [],
-    label: 'Tweet Input',
-    outputs: [{ id: 'text', label: 'Tweet Text', type: 'text' }],
-    type: 'tweetInput',
-  },
-  tweetRemix: {
-    category: 'processing',
-    defaultData: defaultTweetRemixData as Record<string, unknown>,
-    description: 'Generate tweet variations with different tones and lengths',
-    icon: 'Sparkles',
-    inputs: [
-      { id: 'text', label: 'Input Tweet', required: true, type: 'text' },
-    ],
-    label: 'Tweet Remix',
-    outputs: [{ id: 'text', label: 'Selected Tweet', type: 'text' }],
-    type: 'tweetRemix',
-  },
-  videoInput: {
-    category: 'input',
-    defaultData: DEFAULT_VIDEO_INPUT_DATA as Record<string, unknown>,
-    description: 'Accept multiple video URLs for beat-synced editing',
-    icon: 'Video',
-    inputs: [
-      {
-        id: 'videoUrls',
-        label: 'Video URLs',
-        multiple: true,
-        required: true,
-        type: 'text',
-      },
-    ],
-    label: 'Video Input',
-    outputs: [
-      { id: 'videoFiles', label: 'Video Files', multiple: true, type: 'video' },
-      { id: 'totalDuration', label: 'Total Duration (s)', type: 'number' },
-      { id: 'videoCount', label: 'Video Count', type: 'number' },
-    ],
-    type: 'videoInput',
   },
 };
 

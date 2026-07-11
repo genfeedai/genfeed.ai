@@ -4,13 +4,13 @@ import { CredentialEntity } from '@api/collections/credentials/entities/credenti
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { CredentialPlatform, FileInputType } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 type PopulateInput = (string | PopulateOption)[] | 'none';
 

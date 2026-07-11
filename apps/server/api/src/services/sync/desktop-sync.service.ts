@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { isSelfHostedDeployment } from '@genfeedai/config';
@@ -13,6 +12,7 @@ import {
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { DesktopBrandManifestQueryDto } from './dto/desktop-brand-manifest-query.dto';
 import type {
   DesktopAssetDto,

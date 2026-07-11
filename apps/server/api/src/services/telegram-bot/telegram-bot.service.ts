@@ -16,9 +16,6 @@
 
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { RunsService } from '@api/collections/runs/services/runs.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { FalService } from '@api/services/integrations/fal/fal.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import {
   TELEGRAM_BOT_CONSTANTS,
   TELEGRAM_BOT_ENV,
@@ -44,6 +41,9 @@ import {
   type OnModuleInit,
   Optional,
 } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { Bot, type Context } from 'grammy';
 
 @Injectable()

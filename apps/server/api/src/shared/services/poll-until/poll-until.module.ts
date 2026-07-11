@@ -1,5 +1,5 @@
-import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { Module } from '@nestjs/common';
+import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 
 @Module({
   exports: [PollUntilService],

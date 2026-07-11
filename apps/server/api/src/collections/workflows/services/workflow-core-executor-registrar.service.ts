@@ -8,6 +8,7 @@ import {
   createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
   createBrandContextExecutor,
+  createBrandExecutor,
   createIterativeSeoRefineExecutor,
   createSeoRewriteExecutor,
   createSeoScoreExecutor,
@@ -64,10 +65,42 @@ export class WorkflowCoreExecutorRegistrarService {
   register(engine: WorkflowEngine): void {
     this.registerFallbackExecutors(engine);
     this.registerReviewGateExecutor(engine);
+    this.registerBrandExecutor(engine);
     this.registerBrandAssetExecutor(engine);
     this.registerBrandContextExecutor(engine);
     this.registerAnalyticsFeedbackExecutor(engine);
     this.registerSeoExecutors(engine);
+  }
+
+  private registerBrandExecutor(engine: WorkflowEngine): void {
+    if (!this.brandsService) return;
+    const brandsService = this.brandsService;
+    const executor = createBrandExecutor(async (brandId, organizationId) => {
+      const brand = await brandsService.findOne(
+        { _id: brandId, isDeleted: false, organization: organizationId },
+        ['detail'],
+      );
+      if (!brand) return null;
+      const brandDoc = brand as unknown as Record<string, unknown>;
+      return {
+        brandId: String(brandDoc.id),
+        colors:
+          (brandDoc.colors as {
+            primary: string;
+            secondary: string;
+            background: string;
+          } | null) ?? null,
+        fonts: (brandDoc.fonts as string | null) ?? null,
+        handle: String(brandDoc.slug ?? brandDoc.handle ?? ''),
+        label: String(brandDoc.name ?? brandDoc.label ?? ''),
+        models: null,
+        voice: (brandDoc.voice as string | null) ?? null,
+      };
+    });
+    engine.registerExecutor(
+      executor.nodeType,
+      this.helper.wrapEngineExecutor(executor),
+    );
   }
 
   private registerFallbackExecutors(engine: WorkflowEngine): void {

@@ -1,10 +1,10 @@
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { ArticleStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface GenerateArticleConfig {
   model: 'gpt-4-turbo-preview' | 'gpt-4' | 'gpt-3.5-turbo' | 'claude-3-opus';

@@ -2,7 +2,6 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   ActivityKey,
   IngredientCategory,
@@ -12,6 +11,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ConfigService } from '@workers/config/config.service';
 
 /**

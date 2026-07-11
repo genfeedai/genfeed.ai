@@ -3,7 +3,6 @@ import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
@@ -14,6 +13,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 interface EvaluationContext {
   prompt?: string;

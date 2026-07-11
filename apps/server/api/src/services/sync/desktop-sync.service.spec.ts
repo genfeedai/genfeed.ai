@@ -13,9 +13,12 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: mockGetPublicMetadata,
 }));
 
-vi.mock('@api/services/files-microservice/client/files-client.service', () => ({
-  FilesClientService: class FilesClientService {},
-}));
+vi.mock(
+  '@server/services/files-microservice/client/files-client.service',
+  () => ({
+    FilesClientService: class FilesClientService {},
+  }),
+);
 
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},

@@ -1,8 +1,6 @@
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
@@ -21,6 +19,8 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export class WorkflowMediaGenerationExecutorRegistrarService {
   constructor(

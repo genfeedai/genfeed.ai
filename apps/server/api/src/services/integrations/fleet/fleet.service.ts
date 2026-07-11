@@ -1,5 +1,4 @@
 import { CustomerInstancesService } from '@api/collections/customer-instances/services/customer-instances.service';
-import { appendWebhookToken } from '@api/endpoints/webhooks/webhook-token.util';
 import type {
   IFleetHealthResponse,
   IFleetInstance,
@@ -8,6 +7,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import { appendWebhookToken } from '@server/webhooks/webhook-token.util';
 import axios from 'axios';
 
 type FleetRole = 'images' | 'voices' | 'videos';

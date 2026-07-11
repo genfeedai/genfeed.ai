@@ -1,4 +1,4 @@
-import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
+import { encodeJwtToken } from '@server/helpers/utils/jwt/jwt.util';
 import jwt from 'jsonwebtoken';
 
 describe('encodeJwtToken', () => {

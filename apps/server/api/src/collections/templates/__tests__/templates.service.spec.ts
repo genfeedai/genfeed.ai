@@ -2,11 +2,11 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { TemplateMetadataService } from '@api/collections/template-metadata/services/template-metadata.service';
 import { TemplateUsageService } from '@api/collections/template-usage/services/template-usage.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type Template } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 describe('TemplatesService', () => {
   let service: TemplatesService;

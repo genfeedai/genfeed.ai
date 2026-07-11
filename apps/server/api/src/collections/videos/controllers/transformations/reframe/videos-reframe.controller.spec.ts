@@ -25,9 +25,12 @@ vi.mock('@api/collections/models/services/models.service', () => ({
 vi.mock('@api/collections/prompts/services/prompts.service', () => ({
   PromptsService: class {},
 }));
-vi.mock('@api/services/integrations/replicate/replicate.service', () => ({
-  ReplicateService: class {},
-}));
+vi.mock(
+  '@server/services/integrations/replicate/services/replicate.service',
+  () => ({
+    ReplicateService: class {},
+  }),
+);
 vi.mock('@api/services/prompt-builder/prompt-builder.service', () => ({
   PromptBuilderService: class {},
 }));
@@ -59,7 +62,6 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { VideosReframeController } from '@api/collections/videos/controllers/transformations/reframe/videos-reframe.controller';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
@@ -67,6 +69,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 const mockReq = {} as Request;

@@ -1,10 +1,10 @@
-import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { OpusProService } from '@api/services/integrations/opuspro/services/opuspro.service';
 import { ApiKeyCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ApiKeyHelperService } from '@server/services/api-key/api-key-helper.service';
 import { of } from 'rxjs';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({

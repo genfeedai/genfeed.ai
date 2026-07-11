@@ -5,13 +5,13 @@ vi.mock('@fal-ai/client', () => ({
   },
 }));
 
-import { FalService } from '@api/services/integrations/fal/fal.service';
-import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { fal } from '@fal-ai/client';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 import { of } from 'rxjs';
 
 /**

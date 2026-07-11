@@ -1,6 +1,4 @@
 export * from '@workflow-engine/executors/saas/analytics-feedback-executor';
-export * from '@workflow-engine/executors/saas/beat-analysis-executor';
-export * from '@workflow-engine/executors/saas/beat-sync-editor-executor';
 export * from '@workflow-engine/executors/saas/brand-asset-executor';
 export * from '@workflow-engine/executors/saas/brand-context-executor';
 export * from '@workflow-engine/executors/saas/brand-executor';
@@ -8,8 +6,6 @@ export * from '@workflow-engine/executors/saas/brand-executor';
 export * from '@workflow-engine/executors/saas/cinematic-camera-presets';
 export * from '@workflow-engine/executors/saas/cinematic-color-grade-executor';
 export * from '@workflow-engine/executors/saas/comment-trigger-executor';
-export * from '@workflow-engine/executors/saas/condition-executor';
-export * from '@workflow-engine/executors/saas/delay-executor';
 // Social trigger executors
 export * from '@workflow-engine/executors/saas/engagement-trigger-executor';
 export * from '@workflow-engine/executors/saas/film-grain-executor';
@@ -36,20 +32,11 @@ export * from '@workflow-engine/executors/saas/prompt-constructor-executor';
 export * from '@workflow-engine/executors/saas/publish-executor';
 // Reframe executor
 export * from '@workflow-engine/executors/saas/reframe-executor';
-export * from '@workflow-engine/executors/saas/rss-input-executor';
 export * from '@workflow-engine/executors/saas/send-dm-executor';
 export * from '@workflow-engine/executors/saas/send-email-executor';
 // SEO scoring + rewrite executors
 export * from '@workflow-engine/executors/saas/seo-rewrite-executor';
 export * from '@workflow-engine/executors/saas/seo-score-executor';
-export {
-  createSocialPublishExecutor,
-  SocialPublishExecutor,
-  type SocialPublisher,
-  type SocialPublishResult,
-  type SocialVisibility,
-  // Note: SocialPlatform is already exported from publish-executor
-} from '@workflow-engine/executors/saas/social-publish-executor';
 export * from '@workflow-engine/executors/saas/sound-overlay-executor';
 // Text to speech executor
 export * from '@workflow-engine/executors/saas/text-to-speech-executor';
@@ -58,11 +45,7 @@ export * from '@workflow-engine/executors/saas/trend-hashtag-inspiration-executo
 export * from '@workflow-engine/executors/saas/trend-sound-inspiration-executor';
 export * from '@workflow-engine/executors/saas/trend-trigger-executor';
 export * from '@workflow-engine/executors/saas/trend-video-inspiration-executor';
-export * from '@workflow-engine/executors/saas/tweet-input-executor';
-export * from '@workflow-engine/executors/saas/tweet-remix-executor';
 // Upscale executor
 export * from '@workflow-engine/executors/saas/upscale-executor';
-// Beat-synced video editor executors
-export * from '@workflow-engine/executors/saas/video-input-executor';
 // Voice change executor
 export * from '@workflow-engine/executors/saas/voice-change-executor';

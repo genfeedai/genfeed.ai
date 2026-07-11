@@ -182,6 +182,42 @@ export const createMockLeonardoAIService = () => ({
 });
 
 // ============================================================================
+// Fal Service Mocks (Image Generation)
+// `ImageGenerationService.dispatchFal` calls `generateImage(model, input)`
+// and reads `.url` off the resolved value — the shape below mirrors that,
+// unlike a generic Fal client mock.
+// ============================================================================
+
+export const createMockFalService = () => ({
+  generateImage: vi
+    .fn()
+    .mockResolvedValue({ url: 'https://mock-fal.test/output.png' }),
+});
+
+// ============================================================================
+// ComfyUI Service Mocks (genfeedai-hosted Image Generation)
+// `ImageGenerationService.dispatchGenfeedAi` calls `generateImage(...)` and
+// destructures `{ imageBuffer }` off the resolved value.
+// ============================================================================
+
+export const createMockComfyUIService = () => ({
+  generateImage: vi
+    .fn()
+    .mockResolvedValue({ imageBuffer: Buffer.from('mock-comfyui-image') }),
+});
+
+// ============================================================================
+// KlingAI Image Service Mocks (Image Generation)
+// `ImageGenerationService.dispatchKlingAI` calls `queueGenerateImage(...)`,
+// which the video-oriented `createMockKlingAIService` above does not expose —
+// keep this factory separate rather than changing that one's shape.
+// ============================================================================
+
+export const createMockKlingAIImageService = () => ({
+  queueGenerateImage: vi.fn().mockResolvedValue('mock-kling-image-task-id'),
+});
+
+// ============================================================================
 // Stripe Service Mocks (Payment Processing)
 // ============================================================================
 

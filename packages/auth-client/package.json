@@ -47,7 +47,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist && test -f dist/index.js",
+    "build": "tsc --build && test -f dist/index.js",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "deps:update": "bunx npm-check-updates -u && bun install",
     "test": "vitest run --config vitest.config.ts",

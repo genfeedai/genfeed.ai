@@ -1,7 +1,10 @@
 import type { LoggerService } from '@libs/logger/logger.service';
 import { UnauthorizedException } from '@nestjs/common';
+import {
+  appendWebhookToken,
+  assertWebhookToken,
+} from '@server/webhooks/webhook-token.util';
 import type { Request } from 'express';
-import { appendWebhookToken, assertWebhookToken } from './webhook-token.util';
 
 describe('webhook-token.util', () => {
   const loggerService = { warn: vi.fn() } as unknown as LoggerService;
