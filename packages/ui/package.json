@@ -124,7 +124,7 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsc --build && node ../../scripts/fix-esm-relative-imports.mjs --project tsconfig.json dist",
+    "build": "tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "test": "../../scripts/sh/sanitize-node-color-env.sh vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts"
