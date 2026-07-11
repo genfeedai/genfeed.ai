@@ -247,22 +247,46 @@ jobs:
           fi
           echo "All required E2E checks passed."
 
-  # Real-Better Auth authenticated smoke (Playwright `app-authed` project). Exercises
-  # the GENUINE authMiddleware path via a real Better Auth test-instance session — no
-  # proxy.ts bypass — so it must be built with a REAL Better Auth client (bypass flag
-  # OFF) and given the real test-instance secrets. Gated behind the E2E_AUTHED_ENABLED
-  # repo variable. It has been green for 7+ consecutive runs (all nightlies), so it is
-  # now GATING on the nightly cron — a real regression turns the nightly red and trips
-  # nightly-failure-report below, instead of rotting unseen behind continue-on-error
-  # (it sat red for 5+ June nightlies that way). On the deploy path it stays
-  # non-gating so a flake can never cancel a production release while this path keeps
-  # hardening: continue-on-error is true for every event EXCEPT the scheduled nightly.
+  # Hermetic real-Better Auth authenticated smoke (Playwright `app-authed`
+  # project). Exercises the GENUINE authMiddleware path — no proxy.ts bypass —
+  # against a fully job-local stack: Postgres + Redis service containers,
+  # migrated schema, and the real compiled API on :3010. auth.setup.ts mints a
+  # fresh session per run (sign-up → onboarding completion), so the job needs
+  # NO repo secrets and never touches production (#1448 — the previous design
+  # validated sessions against api.genfeed.ai with a static prod token).
+  # Gated behind the E2E_AUTHED_ENABLED repo variable. GATING on the nightly
+  # cron — a real regression turns the nightly red and trips
+  # nightly-failure-report below, instead of rotting unseen behind
+  # continue-on-error (it sat red for 5+ June nightlies that way). On the
+  # deploy path it stays non-gating so a flake can never cancel a production
+  # release: continue-on-error is true for every event EXCEPT the scheduled
+  # nightly.
   e2e-frontend-authed:
     name: Frontend Authed E2E (real Better Auth)
     if: ${{ vars.E2E_AUTHED_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
     continue-on-error: ${{ github.event_name != 'schedule' }}
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: test
+          POSTGRES_USER: genfeed
+          POSTGRES_PASSWORD: genfeed_local
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    env:
+      DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      REDIS_URL: redis://localhost:6379
+      # Synthetic signing secret — the whole auth stack is job-local, so this
+      # is deliberately a literal, not a credential.
+      BETTER_AUTH_SECRET: e2e-hermetic-better-auth-secret
+      E2E_API_ENDPOINT: http://localhost:3010/v1
     steps:
       - uses: actions/checkout@v5
 
@@ -273,66 +297,81 @@ jobs:
           install-command: "bun install"
           cache-playwright: "true"
 
-      - name: Check authed E2E secrets
-        id: authed_secrets
-        env:
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-          E2E_BETTER_AUTH_SESSION_TOKEN: ${{ secrets.E2E_BETTER_AUTH_SESSION_TOKEN }}
-        run: |
-          set -euo pipefail
-          missing=()
-          if [ -z "${BETTER_AUTH_SECRET:-}" ]; then
-            missing+=("BETTER_AUTH_SECRET")
-          fi
-          if [ -z "${E2E_BETTER_AUTH_SESSION_TOKEN:-}" ]; then
-            missing+=("E2E_BETTER_AUTH_SESSION_TOKEN")
-          fi
-
-          if [ "${#missing[@]}" -gt 0 ]; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::error::Authed E2E is enabled but missing required GitHub Actions secret(s): ${missing[*]}"
-            {
-              echo "## Authed E2E Blocked"
-              echo ""
-              echo "Missing GitHub Actions secret(s): ${missing[*]}."
-            } >> "$GITHUB_STEP_SUMMARY"
-            exit 1
-          fi
-
-          echo "ready=true" >> "$GITHUB_OUTPUT"
-
       - name: Build app (real Better Auth client, bypass OFF)
-        if: steps.authed_secrets.outputs.ready == 'true'
         run: bunx turbo run build --filter=@genfeedai/app
         env:
           # CRUCIAL: build with the bypass flag OFF so the app uses the real
           # Better Auth browser session path. NEXT_PUBLIC_* is inlined at build
           # time, so this MUST be set here — not just at runtime.
           NEXT_PUBLIC_PLAYWRIGHT_TEST: "false"
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
-          # Correct var name (app reads NEXT_PUBLIC_API_ENDPOINT, not _API_URL).
-          NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: "true"
+          # Point the app (client + proxy.ts) at the job-local API.
+          NEXT_PUBLIC_API_ENDPOINT: http://localhost:3010/v1
+
+      - name: Build API (compiled bundle)
+        # The api package emits to apps/server/dist, OUTSIDE apps/server/api,
+        # so turbo's package-relative `dist/**` outputs never capture it and a
+        # cache-hit replay restores nothing. Force a real build — same reason
+        # as build-verify.yml's boot gate.
+        run: bunx turbo run build --filter=@genfeedai/api --force
+
+      # Provision the schema on the ephemeral Postgres service container —
+      # same pattern as e2e-api above.
+      - name: Apply Prisma migrations to test DB
+        run: bun x prisma migrate deploy
+        working-directory: packages/prisma
+
+      - name: Start API (hermetic backend on :3010)
+        # Boot the compiled webpack bundle directly (same invocation
+        # build-verify.yml's boot gate uses). The api package's start:prod
+        # preloads tsconfig-paths/register, which is not a declared dependency
+        # anywhere in the workspace — path aliases are compiled into the bundle.
+        run: |
+          set -euo pipefail
+          (node apps/server/dist/apps/api/main.js > "$RUNNER_TEMP/api.log" 2>&1 &)
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://localhost:3010/v1/health >/dev/null 2>&1; then
+              echo "API healthy after ~$((attempt * 2))s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::API did not become healthy within 120s"
+          tail -n 200 "$RUNNER_TEMP/api.log"
+          exit 1
+        env:
+          NODE_ENV: test
+          PORT: "3010"
+          # Mock external provider keys — the spec's network guard blocks any
+          # real external call regardless.
+          REPLICATE_API_TOKEN: test-mock-key
+          STRIPE_SECRET_KEY: test-mock-key
 
       - name: Run authed E2E (Better Auth setup + app-authed)
-        if: steps.authed_secrets.outputs.ready == 'true'
         run: bun run test:e2e:authed
         env:
           CI: true
           APP_BASE_URL: http://localhost:3000
           NEXT_PUBLIC_PLAYWRIGHT_TEST: "false"
+          NEXT_PUBLIC_BETTER_AUTH_ENABLED: "true"
+          NEXT_PUBLIC_API_ENDPOINT: http://localhost:3010/v1
           # Unlocks the better-auth-setup + app-authed projects in
           # playwright.config.ts, which gate on process.env.E2E_AUTHED_ENABLED.
           # The job-level `if` checks the GitHub repo var; this plumbs the value
           # into the runner process so --project=app-authed actually resolves.
           E2E_AUTHED_ENABLED: "1"
-          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-          NEXT_PUBLIC_BETTER_AUTH_ENABLED: ${{ secrets.NEXT_PUBLIC_BETTER_AUTH_ENABLED || 'true' }}
-          E2E_BETTER_AUTH_SESSION_TOKEN: ${{ secrets.E2E_BETTER_AUTH_SESSION_TOKEN }}
+
+      - name: Upload API log (on failure)
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: api-log-authed
+          path: ${{ runner.temp }}/api.log
+          retention-days: 7
 
       - name: Upload authed Playwright report
         uses: actions/upload-artifact@v7
-        if: always() && steps.authed_secrets.outputs.ready == 'true'
+        if: always()
         with:
           name: playwright-report-authed
           path: playwright/artifacts/report/
@@ -340,7 +379,7 @@ jobs:
 
       - name: Upload authed traces (on failure)
         uses: actions/upload-artifact@v7
-        if: failure() && steps.authed_secrets.outputs.ready == 'true'
+        if: failure()
         with:
           name: playwright-traces-authed
           path: playwright/artifacts/results/

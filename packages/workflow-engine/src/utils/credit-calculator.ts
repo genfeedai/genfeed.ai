@@ -7,8 +7,9 @@ import type {
 /**
  * Credit costs per node type execution.
  *
- * All node types registered in EXECUTOR_REGISTRY must have an entry here.
- * The coverage spec (credit-calculator-coverage.spec.ts) enforces this.
+ * Every node type registered with the engine (via the API executor registrars)
+ * must have an entry here. The coverage spec (credit-calculator-coverage.spec.ts)
+ * enforces that every cost is a non-negative number.
  *
  * Costs marked [ESTIMATED] were inferred from comparable node types and should
  * be reviewed by the product team before billing goes live.
@@ -27,17 +28,13 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   newLikeTrigger: 0,
   newRepostTrigger: 0,
   noop: 0,
-  patternContext: 0,
   postPublishTrigger: 0, // trigger node — the optimization workflow it starts bills itself
   promptConstructor: 0,
-  rssInput: 0,
   trendTrigger: 0,
-  tweetInput: 0,
+  // videoInput is a core input node (see @genfeedai/types); free like other inputs
   videoInput: 0,
 
   // ----- control flow (free) -----
-  condition: 0,
-  delay: 0,
   loop: 0, // legacy alias
 
   // ----- publish / output (free — billed by platform API limits, not credits) -----
@@ -46,7 +43,6 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   // sendEmail is free at the node level; the trends digest is charged explicitly
   // by the workflow adapter post-run hook after a confirmed send (see trendDigest).
   sendEmail: 0,
-  socialPublish: 0,
   // trendDigest assembles the email payload only; the credit is deducted by the
   // adapter post-run hook on a confirmed send, not via the engine accumulator.
   trendDigest: 0,
@@ -63,7 +59,6 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   trendHashtagInspiration: 1, // [ESTIMATED] lightweight prompt synthesis from trend context
   trendSoundInspiration: 1, // [ESTIMATED] cached trend lookup / sound selection
   trendVideoInspiration: 1, // [ESTIMATED] lightweight prompt synthesis from trend context
-  tweetRemix: 1,
 
   // ----- image generation / processing -----
   generateImage: 5, // legacy alias
@@ -72,8 +67,6 @@ export const DEFAULT_CREDIT_COSTS: CreditCostConfig = {
   transform: 1, // legacy alias
 
   // ----- video generation / processing -----
-  beatAnalysis: 1, // [ESTIMATED] audio analysis; similar cost to resize
-  beatSyncEditor: 2, // [ESTIMATED] video edit; similar cost to clip
   cinematicColorGrade: 2, // [ESTIMATED] heavier FFmpeg pass than colorGrade
   clip: 2, // legacy alias
   colorGrade: 1, // [ESTIMATED] FFmpeg filter pass; comparable to resize
@@ -239,23 +232,17 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   newLikeTrigger: 'input',
   newRepostTrigger: 'input',
   noop: 'input',
-  patternContext: 'input',
   postPublishTrigger: 'input',
-  rssInput: 'input',
   trendTrigger: 'input',
-  tweetInput: 'input',
   videoInput: 'input',
 
   // control
-  condition: 'control',
-  delay: 'control',
   loop: 'control',
   promptConstructor: 'control',
 
   // output
   publish: 'output',
   sendDm: 'output',
-  socialPublish: 'output',
   webhook: 'output',
   postReply: 'output',
 
@@ -278,8 +265,6 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   voiceChange: 'ai',
 
   // processing
-  beatAnalysis: 'processing',
-  beatSyncEditor: 'processing',
   caption: 'processing',
   cinematicColorGrade: 'processing',
   clip: 'processing',
@@ -290,7 +275,6 @@ const NODE_CATEGORY_MAP: Record<string, string> = {
   resize: 'processing',
   soundOverlay: 'processing',
   transform: 'processing',
-  tweetRemix: 'processing',
   upscale: 'processing',
 };
 

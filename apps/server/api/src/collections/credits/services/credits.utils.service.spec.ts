@@ -252,6 +252,56 @@ describe('CreditsUtilsService', () => {
         500,
         txClient,
       );
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).toHaveBeenCalledWith(
+        'org_1',
+        expect.anything(),
+        500,
+        100,
+        500,
+        'system',
+        'reset',
+        undefined,
+        txClient,
+      );
+    });
+
+    // #1398: the yearly subscription reset path relies on this reference
+    // being persisted on the transaction row — otherwise
+    // StripeWebhookSupportService#hasSubscriptionInvoiceCreditGrant can
+    // never find a match and a replayed invoice.paid double-resets credits.
+    it('persists a referenceId/referenceType on the reset transaction when options are passed', async () => {
+      const service = buildService();
+
+      await service.resetOrganizationCredits(
+        'org_1',
+        500_000,
+        'yearly',
+        'yearly subscription billing period reset',
+        {
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        },
+      );
+
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).toHaveBeenCalledWith(
+        'org_1',
+        expect.anything(),
+        500_000,
+        100,
+        500_000,
+        'yearly',
+        'yearly subscription billing period reset',
+        undefined,
+        txClient,
+        {
+          referenceId: 'stripe-invoice:in_123',
+          referenceType: 'stripe-invoice:subscription-grant',
+        },
+      );
     });
   });
 

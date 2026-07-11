@@ -7,6 +7,7 @@ vi.mock(
 
 import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
+import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PostStatus } from '@genfeedai/enums';
@@ -608,6 +609,11 @@ describe('AgentToolExecutorService', () => {
       }),
     };
 
+    const memoryGoalsHandler = new AgentMemoryGoalsToolHandler(
+      agentMemoryCaptureService as never,
+      agentGoalsService as never,
+    );
+
     const service = new AgentToolExecutorService(
       loggerService,
       configService as never,
@@ -615,6 +621,7 @@ describe('AgentToolExecutorService', () => {
       postsService as never,
       brandsService as never,
       routeRewriteService,
+      memoryGoalsHandler,
       botsService as never,
       botsLivestreamService as never,
       campaignsService as never,
@@ -633,7 +640,6 @@ describe('AgentToolExecutorService', () => {
       credentialsService as never,
       organizationsService as never,
       organizationSettingsService as never,
-      agentMemoryCaptureService as never,
       usersService as never,
       streamPublisher as never,
       undefined as never, // agentSpawnService
@@ -641,7 +647,6 @@ describe('AgentToolExecutorService', () => {
       voicesService as never,
       contentQualityScorerService as never,
       seoScorerService as never,
-      agentGoalsService as never,
       ingredientsService as never,
       {} as never, // votesService
       adsResearchService as never,
@@ -3096,6 +3101,7 @@ describe('AgentToolExecutorService', () => {
         brandsService as never,
         organizationsService as never,
       ),
+      new AgentMemoryGoalsToolHandler(undefined as never, undefined as never),
       {} as never,
       {} as never,
       {} as never,
@@ -3114,7 +3120,6 @@ describe('AgentToolExecutorService', () => {
       credentialsService as never,
       organizationsService as never,
       { findOne: vi.fn().mockResolvedValue({}) } as never,
-      { findOne: vi.fn().mockResolvedValue({}) } as never,
       usersService as never,
       undefined as never, // streamPublisher
       undefined as never, // agentSpawnService
@@ -3122,7 +3127,6 @@ describe('AgentToolExecutorService', () => {
       { findAll: vi.fn().mockResolvedValue({ docs: [] }) } as never,
       undefined as never, // contentQualityScorerService (intentionally absent)
       undefined as never, // seoScorerService
-      undefined as never, // agentGoalsService
       undefined as never, // ingredientsService
       undefined as never, // votesService
       undefined as never, // adsResearchService
