@@ -35,7 +35,6 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ByokService } from '@api/services/byok/byok.service';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -84,6 +83,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import type { Request } from 'express';
 
 /**

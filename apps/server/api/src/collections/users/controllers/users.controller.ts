@@ -35,7 +35,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import {
   type ISubscriptionsService,
@@ -63,6 +62,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 @AutoSwagger()

@@ -1,4 +1,3 @@
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   type SoundOverlayInput,
   SoundOverlayProcessor,
@@ -6,6 +5,7 @@ import {
 import { MixMode } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 describe('SoundOverlayProcessor', () => {
   let processor: SoundOverlayProcessor;

@@ -1,12 +1,12 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 
 /**
  * Owns fleet lip-sync video generation and TTS voice generation, preferring

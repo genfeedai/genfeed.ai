@@ -10,9 +10,12 @@ vi.mock('@api/collections/ingredients/services/ingredients.service', () => ({
 vi.mock('@api/collections/metadata/services/metadata.service', () => ({
   MetadataService: class {},
 }));
-vi.mock('@api/services/files-microservice/client/files-client.service', () => ({
-  FilesClientService: class {},
-}));
+vi.mock(
+  '@server/services/files-microservice/client/files-client.service',
+  () => ({
+    FilesClientService: class {},
+  }),
+);
 vi.mock(
   '@api/services/notifications/publisher/notifications-publisher.service',
   () => ({ NotificationsPublisherService: class {} }),
@@ -28,13 +31,13 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { VideosResizeController } from '@api/collections/videos/controllers/transformations/resize/videos-resize.controller';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 const mockRequest = {
   originalUrl: '/api/videos',

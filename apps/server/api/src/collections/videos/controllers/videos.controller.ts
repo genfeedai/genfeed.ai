@@ -35,7 +35,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
@@ -68,6 +67,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 function toPlainRecord(value: unknown): Record<string, unknown> {
   const maybeDocument = value as {

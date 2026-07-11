@@ -14,7 +14,6 @@ import type {
   StepResult,
 } from '@api/services/content-orchestration/pipeline.interfaces';
 import { StepExecutorService } from '@api/services/content-orchestration/step-executor.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -29,6 +28,7 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 /** Config passed to the queue / processor. Exported as the canonical alias type. */
 export type PipelineConfig = PipelineConfigV2;

@@ -10,7 +10,6 @@ import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { HedraService } from '@api/services/integrations/hedra/services/hedra.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
@@ -30,6 +29,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import type { Request } from 'express';
 
 type HeyGenVoice = Awaited<ReturnType<HeyGenService['getVoices']>>[number];

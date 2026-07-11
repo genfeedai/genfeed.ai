@@ -5,13 +5,13 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { FileInputType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 /** Credits cost for generating an onboarding preview image */
 const ONBOARDING_PREVIEW_CREDIT_COST = 5;

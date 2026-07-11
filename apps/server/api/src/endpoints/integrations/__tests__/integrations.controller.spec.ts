@@ -7,11 +7,11 @@ import { InternalIntegrationsController } from '@api/endpoints/integrations/inte
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import type { OrgIntegration } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({

@@ -11,7 +11,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   AssetScope,
   IngredientCategory,
@@ -28,6 +27,7 @@ import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req, Res } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type {
   Request as ExpressRequest,
   Response as ExpressResponse,

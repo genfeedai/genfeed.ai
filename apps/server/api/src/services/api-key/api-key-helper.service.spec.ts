@@ -1,6 +1,6 @@
-import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ApiKeyCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
+import { ApiKeyHelperService } from '@server/services/api-key/api-key-helper.service';
 
 describe('ApiKeyHelperService', () => {
   let service: ApiKeyHelperService;

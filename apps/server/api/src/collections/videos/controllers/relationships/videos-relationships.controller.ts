@@ -34,7 +34,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
@@ -76,6 +75,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 @AutoSwagger()

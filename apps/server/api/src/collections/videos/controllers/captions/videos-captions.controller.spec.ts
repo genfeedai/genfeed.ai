@@ -14,13 +14,13 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
 describe('VideosCaptionsController', () => {

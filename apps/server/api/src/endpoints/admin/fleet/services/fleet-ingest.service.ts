@@ -12,7 +12,6 @@ import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   ContentIntelligencePlatform,
   FileInputType,
@@ -21,6 +20,7 @@ import {
 } from '@genfeedai/enums';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 /**
  * Owns fleet training-data ingestion: manual dataset uploads and the

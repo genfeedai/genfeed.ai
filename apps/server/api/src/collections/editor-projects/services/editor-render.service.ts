@@ -6,7 +6,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -24,6 +23,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 interface RenderResult {
   jobId: string;

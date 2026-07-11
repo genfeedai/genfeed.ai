@@ -1,8 +1,8 @@
 import { ByokService } from '@api/services/byok/byok.service';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { ByokProvider, MusicTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface GenerateMusicConfig {
