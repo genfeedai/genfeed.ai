@@ -32,7 +32,7 @@ export type BrandAssetResolver = (params: {
  * for use in downstream workflow nodes.
  *
  * Node Type: brandAsset
- * Definition: @genfeedai/workflow-saas/nodes/brand-asset.ts
+ * Definition: @genfeedai/workflows/nodes/definitions/brand-asset.ts
  */
 export class BrandAssetExecutor extends BaseExecutor {
   readonly nodeType = 'brandAsset';

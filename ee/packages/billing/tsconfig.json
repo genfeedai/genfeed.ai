@@ -52,9 +52,6 @@
       "@genfeedai/workflow-engine": [
         "../../../packages/workflow-engine/src/index.ts"
       ],
-      "@genfeedai/workflow-saas": [
-        "../../../packages/workflow-saas/src/index.ts"
-      ],
       "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
       "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
       "@files/*": ["../../../apps/server/files/src/*"],
@@ -62,8 +59,7 @@
       "@libs/*": ["../../../packages/libs/*"],
       "@serializers/*": ["../../../packages/serializers/src/*"],
       "@server/*": ["../../../apps/server/server/src/*"],
-      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
-      "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
+      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"]
     },
     "skipLibCheck": true,
     "strict": true,

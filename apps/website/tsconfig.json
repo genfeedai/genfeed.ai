@@ -19,7 +19,6 @@
       "@genfeedai/types/*": ["../../packages/types/src/*"],
       "@genfeedai/utils": ["../../packages/utils/index.ts"],
       "@genfeedai/utils/*": ["../../packages/utils/*"],
-      "@genfeedai/workflow-saas": ["../../packages/workflow-saas/src/index.ts"],
       "@configs/*": ["../../packages/next-config/*"],
       "@contexts/*": ["../../packages/contexts/*"],
       "@data/*": ["./packages/data/*"],
@@ -75,8 +74,7 @@
       "@utils/*": ["../../packages/utils/*"],
       "@web-components/*": ["./packages/components/*"],
       "@website/*": ["./app/*"],
-      "@workflow-engine/*": ["../../packages/workflow-engine/src/*"],
-      "@workflow-saas/*": ["../../packages/workflow-saas/src/*"]
+      "@workflow-engine/*": ["../../packages/workflow-engine/src/*"]
     }
   },
   "exclude": [

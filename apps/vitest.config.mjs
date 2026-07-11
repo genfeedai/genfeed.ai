@@ -240,15 +240,15 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/utils/$1'),
       },
       {
-        find: /^@genfeedai\/workflow-saas$/,
+        find: /^@genfeedai\/workflows$/,
         replacement: path.resolve(
           repoRoot,
-          './packages/workflow-saas/src/index.ts',
+          './packages/workflows/src/index.ts',
         ),
       },
       {
-        find: /^@genfeedai\/workflow-saas\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/workflow-saas/src/$1'),
+        find: /^@genfeedai\/workflows\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/workflows/src/$1'),
       },
       {
         find: /^@genfeedai\/workflow-ui$/,
@@ -319,17 +319,6 @@ export default defineConfig({
           repoRoot,
           './packages/workflow-ui/src/ui/index.ts',
         ),
-      },
-      {
-        find: /^@workflow-saas$/,
-        replacement: path.resolve(
-          repoRoot,
-          './packages/workflow-saas/src/index.ts',
-        ),
-      },
-      {
-        find: /^@workflow-saas\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/workflow-saas/src/$1'),
       },
       {
         find: /^@contexts$/,

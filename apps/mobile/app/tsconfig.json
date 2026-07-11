@@ -11,8 +11,7 @@
       "@genfeedai/ui": ["../../../packages/ui/src/index.ts"],
       "@genfeedai/ui/*": ["../../../packages/ui/src/*"],
       "@ui/*": ["../../../packages/ui/src/*"],
-      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
-      "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
+      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"]
     },
     "strict": true
   },

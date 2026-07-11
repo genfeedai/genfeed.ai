@@ -20,7 +20,6 @@
       "@genfeedai/agent": ["../agent/src/index.ts"],
       "@genfeedai/agent/*": ["../agent/src/*"],
       "@genfeedai/workflow-engine/*": ["../workflow-engine/src/*"],
-      "@genfeedai/workflow-saas/*": ["../workflow-saas/src/*"],
       "@components/*": ["../ui/src/components/*"],
       "@configs/*": ["../next-config/*"],
       "@contexts/*": ["../contexts/*"],
@@ -36,8 +35,7 @@
       "@styles/*": ["../styles/*"],
       "@ui/*": ["../ui/src/*", "../ui/src/components/*"],
       "@utils/*": ["../utils/*"],
-      "@workflow-engine/*": ["../workflow-engine/src/*"],
-      "@workflow-saas/*": ["../workflow-saas/src/*"]
+      "@workflow-engine/*": ["../workflow-engine/src/*"]
     }
   },
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],

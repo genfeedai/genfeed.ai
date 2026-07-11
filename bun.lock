@@ -189,8 +189,8 @@
         "@genfeedai/interfaces": "*",
         "@genfeedai/next-config": "*",
         "@genfeedai/types": "*",
-        "@genfeedai/workflow-saas": "*",
         "@genfeedai/workflow-ui": "*",
+        "@genfeedai/workflows": "*",
         "@radix-ui/react-collapsible": "1.1.16",
         "@remotion/player": "4.0.486",
         "@tanstack/react-query": "5.101.2",
@@ -415,7 +415,6 @@
         "@genfeedai/types": "workspace:*",
         "@genfeedai/utils": "workspace:*",
         "@genfeedai/workflow-engine": "workspace:*",
-        "@genfeedai/workflow-saas": "workspace:*",
         "@genfeedai/workflows": "workspace:*",
         "@nestjs/event-emitter": "3.1.0",
         "@prisma/adapter-pg": "7.8.0",
@@ -1301,20 +1300,6 @@
         "typescript": "6.0.2",
       },
     },
-    "packages/workflow-saas": {
-      "name": "@genfeedai/workflow-saas",
-      "version": "0.2.1",
-      "dependencies": {
-        "@genfeedai/enums": "workspace:*",
-        "@genfeedai/interfaces": "workspace:*",
-        "@genfeedai/types": "workspace:*",
-        "@genfeedai/workflows": "workspace:*",
-      },
-      "devDependencies": {
-        "tsup": "8.5.1",
-        "typescript": "6.0.2",
-      },
-    },
     "packages/workflow-ui": {
       "name": "@genfeedai/workflow-ui",
       "version": "0.2.9",
@@ -1364,6 +1349,7 @@
       "name": "@genfeedai/workflows",
       "version": "0.3.3",
       "dependencies": {
+        "@genfeedai/enums": "workspace:*",
         "@genfeedai/types": "workspace:*",
       },
       "devDependencies": {
@@ -2062,8 +2048,6 @@
     "@genfeedai/workers": ["@genfeedai/workers@workspace:apps/server/workers"],
 
     "@genfeedai/workflow-engine": ["@genfeedai/workflow-engine@workspace:packages/workflow-engine"],
-
-    "@genfeedai/workflow-saas": ["@genfeedai/workflow-saas@workspace:packages/workflow-saas"],
 
     "@genfeedai/workflow-ui": ["@genfeedai/workflow-ui@workspace:packages/workflow-ui"],
 
