@@ -1,2 +1,2 @@
 export { FalModule } from '@api/services/integrations/fal/fal.module';
-export { FalService } from '@api/services/integrations/fal/fal.service';
+export { FalService } from '@server/services/integrations/fal/services/fal.service';

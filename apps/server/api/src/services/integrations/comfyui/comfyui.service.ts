@@ -25,8 +25,6 @@ interface ComfyUIQueuePromptResponse {
   node_errors: Record<string, unknown>;
 }
 
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
-import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   buildFlux2DevPrompt,
@@ -43,6 +41,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
+import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 import { firstValueFrom } from 'rxjs';
 
 const DEFAULT_POLL_MS = 2000;

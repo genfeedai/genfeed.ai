@@ -30,7 +30,6 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
@@ -58,6 +57,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 import type { Request } from 'express';
 
 @AutoSwagger()

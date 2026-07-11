@@ -3,11 +3,9 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/managed-inference.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
-import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { HedraModule } from '@api/services/integrations/hedra/hedra.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
-import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
@@ -24,13 +22,11 @@ import { GenerationServicesModule } from '@workers/services/generation-services.
     ByokModule,
     CreditsModule,
     ElevenLabsModule,
-    FalModule,
     FleetModule,
     GenerationServicesModule,
     HedraModule,
     HiggsFieldModule,
     HttpModule,
-    KlingAIModule,
     ManagedInferenceModule,
     NotificationsModule,
     WorkflowsModule,

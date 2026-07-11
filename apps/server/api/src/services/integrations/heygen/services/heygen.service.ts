@@ -1,6 +1,5 @@
 import process from 'node:process';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
-import { appendWebhookToken } from '@api/endpoints/webhooks/webhook-token.util';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ApiKeyCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -8,6 +7,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { appendWebhookToken } from '@server/webhooks/webhook-token.util';
 import { firstValueFrom } from 'rxjs';
 
 type HeyGenApiRecord = Record<string, unknown>;

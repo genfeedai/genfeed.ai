@@ -30,14 +30,11 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import { FalService } from '@api/services/integrations/fal/fal.service';
-import { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
@@ -61,8 +58,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 
 /** Populate patterns for every image read on the wait/serialize path. */
 const IMAGE_POPULATE = [

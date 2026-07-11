@@ -21,11 +21,11 @@ import {
   LLM_LAST_REQUEST_KEY,
   LlmInstanceService,
 } from '@api/services/integrations/llm/llm-instance.service';
-import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 
 const mockPollUntilProvider = {
   provide: PollUntilService,

@@ -34,14 +34,11 @@ import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { FalService } from '@api/services/integrations/fal/fal.service';
-import { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -54,7 +51,10 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, StreamableFile } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { FalService } from '@server/services/integrations/fal/services/fal.service';
+import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 import type {
   Request as ExpressRequest,
   Response as ExpressResponse,

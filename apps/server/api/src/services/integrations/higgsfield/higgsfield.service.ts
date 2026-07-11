@@ -1,12 +1,12 @@
 import { ByokService } from '@api/services/byok/byok.service';
-import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
-import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import { ByokProvider } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
+import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 import pLimit from 'p-limit';
 import { firstValueFrom } from 'rxjs';
 

@@ -1,10 +1,10 @@
-import { appendWebhookToken } from '@api/endpoints/webhooks/webhook-token.util';
-import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { encodeJwtToken } from '@server/helpers/utils/jwt/jwt.util';
+import { appendWebhookToken } from '@server/webhooks/webhook-token.util';
 import pLimit from 'p-limit';
 import { firstValueFrom } from 'rxjs';
 

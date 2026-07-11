@@ -1,4 +1,3 @@
-import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
 import {
   DescribeInstancesCommand,
   EC2Client,
@@ -10,6 +9,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable } from '@nestjs/common';
+import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
 import axios from 'axios';
 
 export const LLM_LAST_REQUEST_KEY = 'llm-instance:last-request';

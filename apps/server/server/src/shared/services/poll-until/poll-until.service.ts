@@ -1,9 +1,9 @@
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
 import {
   PollAbortException,
   PollTimeoutException,
-} from '@api/shared/services/poll-until/poll-until.exception';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+} from '@server/shared/services/poll-until/poll-until.exception';
 
 export interface PollOptions {
   /** Interval between poll attempts in milliseconds. Default: 2000 */
