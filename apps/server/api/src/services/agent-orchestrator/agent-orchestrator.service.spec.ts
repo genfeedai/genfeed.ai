@@ -38,6 +38,7 @@ describe('AgentOrchestratorService', () => {
   let organizationsService: vi.Mocked<OrganizationsService>;
   let organizationSettingsService: vi.Mocked<OrganizationSettingsService>;
   let settingsService: vi.Mocked<SettingsService>;
+  let threadEventRecorder: vi.Mocked<AgentThreadEventRecorderService>;
   let agentStrategiesService: vi.Mocked<AgentStrategiesService>;
   let agentRunsService: vi.Mocked<AgentRunsService>;
   let agentMemoriesService: vi.Mocked<AgentMemoriesService>;
@@ -440,6 +441,7 @@ describe('AgentOrchestratorService', () => {
     organizationsService = module.get(OrganizationsService);
     organizationSettingsService = module.get(OrganizationSettingsService);
     settingsService = module.get(SettingsService);
+    threadEventRecorder = module.get(AgentThreadEventRecorderService);
     agentStrategiesService = module.get(AgentStrategiesService);
     agentRunsService = module.get(AgentRunsService);
     toolExecutorService = module.get(AgentToolExecutorService);
@@ -621,13 +623,12 @@ describe('AgentOrchestratorService', () => {
       },
       reviewRequired: true,
     });
-    expect(agentThreadEngineService.appendEvent).toHaveBeenCalledWith(
+    expect(threadEventRecorder.recordPlanUpserted).toHaveBeenCalledWith(
       expect.objectContaining({
-        payload: expect.objectContaining({
+        plan: expect.objectContaining({
           awaitingApproval: true,
           status: 'awaiting_approval',
         }),
-        type: 'plan.upserted',
       }),
     );
   });
@@ -3044,14 +3045,13 @@ describe('AgentOrchestratorService', () => {
     );
 
     expect(llmDispatcher.chatCompletion).toHaveBeenCalled();
-    expect(agentThreadEngineService.appendEvent).toHaveBeenCalledWith(
+    expect(threadEventRecorder.recordPlanUpserted).toHaveBeenCalledWith(
       expect.objectContaining({
-        payload: expect.objectContaining({
+        plan: expect.objectContaining({
           id: 'plan-1',
           lastReviewAction: 'approve',
           status: 'approved',
         }),
-        type: 'plan.upserted',
       }),
     );
     expect(response.message.content).toBe('Approved plan executed.');
