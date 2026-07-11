@@ -8,7 +8,6 @@ import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { HedraModule } from '@api/services/integrations/hedra/hedra.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { KlingAIModule } from '@api/services/integrations/klingai/klingai.module';
-import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { HttpModule } from '@nestjs/axios';
@@ -18,6 +17,7 @@ import { GenerateArticleTask } from '@workers/crons/workflows/task-types/generat
 import { GenerateImageTask } from '@workers/crons/workflows/task-types/generate-image.task';
 import { GenerateMusicTask } from '@workers/crons/workflows/task-types/generate-music.task';
 import { GenerateVideoTask } from '@workers/crons/workflows/task-types/generate-video.task';
+import { GenerationServicesModule } from '@workers/services/generation-services.module';
 
 @Module({
   exports: [CronWorkflowsService],
@@ -27,11 +27,11 @@ import { GenerateVideoTask } from '@workers/crons/workflows/task-types/generate-
     ElevenLabsModule,
     FalModule,
     FleetModule,
+    GenerationServicesModule,
     HedraModule,
     HiggsFieldModule,
     HttpModule,
     KlingAIModule,
-    LeonardoAIModule,
     ManagedInferenceModule,
     NotificationsModule,
     ReplicateModule,

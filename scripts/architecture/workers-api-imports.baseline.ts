@@ -148,8 +148,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/services/integrations/instagram/services/instagram.service',
   '@api/services/integrations/klingai/klingai.module',
   '@api/services/integrations/klingai/klingai.service',
-  '@api/services/integrations/leonardoai/leonardoai.module',
-  '@api/services/integrations/leonardoai/leonardoai.service',
   '@api/services/integrations/linkedin/linkedin.module',
   '@api/services/integrations/linkedin/services/linkedin.service',
   '@api/services/integrations/mastodon/mastodon.module',

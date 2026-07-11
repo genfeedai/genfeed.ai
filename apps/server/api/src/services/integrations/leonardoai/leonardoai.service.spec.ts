@@ -1,7 +1,7 @@
-import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
 
 // Mock the sdk instance that apiFactory returns
 const mockSdkInstance = {

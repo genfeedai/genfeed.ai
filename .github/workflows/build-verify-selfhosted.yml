@@ -1,13 +1,18 @@
-# Build Verify (Self-Hosted) — ensures the community all-in-one image builds
-# before release/full-suite runs, without slowing every pull request.
+# Build Verify (Self-Hosted) — builds the community all-in-one image, then boots
+# it and runs the LOCAL-mode release specs against it before release/full-suite
+# publishes, without slowing every pull request.
 # Mirror of build-verify.yml, but targets docker/Dockerfile.selfhosted (Redis +
 # NestJS services + Next.js in one container) instead of the microservice image.
 #
 # Why this exists: the self-hosted image is published ONLY on `release: published`
-# (see docker-publish.yml). A break in Dockerfile.selfhosted (e.g. a missing apt
-# package, a failed `bun.sh` install) should be caught while cutting a release,
-# but not paid on every PR. This guard is manual/reusable so Full Suite and
-# release prep can run it explicitly before publishing.
+# (see docker-publish.yml). A break in Dockerfile.selfhosted (a missing apt
+# package, a failed `bun.sh` install) OR a runtime break (the image boots but does
+# not serve LOCAL mode cleanly — e.g. `/` fails to redirect to the seeded
+# workspace, #1450) should be caught while cutting a release, but not paid on
+# every PR. Building alone is not enough: v0.5.0 built fine and still shipped a
+# broken LOCAL-mode root, red for days, because nothing booted the image before
+# publish. This guard is manual/reusable so Full Suite and release prep can run
+# the full build + boot + LOCAL E2E before publishing.
 name: Build Verify (Self-Hosted)
 
 on:
@@ -29,11 +34,15 @@ jobs:
     name: Build & Boot Check (Self-Hosted)
     runs-on: ubuntu-latest
     # Fatter than the server image: builds shared packages + 4 services + a full
-    # Next.js app in one shot, so it needs more headroom than build-verify.yml's 20.
-    timeout-minutes: 35
+    # Next.js app in one shot, then boots it and runs the LOCAL-mode release
+    # specs — so it needs more headroom than build-verify.yml's 20.
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
+    env:
+      APP_BASE_URL: http://localhost:3000
+      API_BASE_URL: http://localhost:3010
 
     steps:
       - name: Checkout code
@@ -130,11 +139,112 @@ jobs:
             echo "Self-hosted image verified ✅"
           '
 
+      # Boot the freshly built community image end to end and run the LOCAL-mode
+      # release specs against THIS build — the same suite the nightly release E2E
+      # runs, but before publish instead of after. build-verify used to stop at
+      # "the image builds + the bundles exist", which is exactly how a self-hosted
+      # image that boots but never redirects `/` to the seeded workspace (the
+      # keyless-root regression behind #1450: the fix, #1492, was cut into master
+      # two days AFTER v0.5.0) sailed through this pre-publish gate and shipped
+      # red for days. Booting here makes that class of regression fail BEFORE the
+      # image is pushed, not in the next nightly.
+      - name: Prepare compose env (LOCAL mode, pin the freshly built image)
+        run: |
+          set -euo pipefail
+          # Retag the loaded verify image under the repo the compose file expects
+          # so the stack runs THIS build with no registry pull.
+          docker tag "${IMAGE_NAME}:test" "ghcr.io/${GITHUB_REPOSITORY}:selfhosted-verify"
+          # docker-compose.selfhosted.yml consumes `.env` for both compose
+          # interpolation (${GENFEED_IMAGE_TAG}) and the genfeed service's
+          # env_file. Pinning the tag is all it needs — the entrypoint defaults
+          # everything else (BETTER_AUTH_ENABLED=false -> LOCAL mode; DATABASE_URL
+          # from the compose Postgres defaults).
+          printf 'GENFEED_IMAGE_TAG=selfhosted-verify\n' > docker/.env
+
+      - name: Boot self-hosted stack + Postgres
+        run: |
+          docker compose --env-file docker/.env \
+            -f docker/docker-compose.selfhosted.yml up -d
+
+      # Readiness gate — the #1 false-green risk. Migrate + seed run async on
+      # boot, so liveness can be green before the DB is usable. Fail loud on
+      # timeout; never let the specs run against a half-booted stack.
+      - name: Readiness — stage 1 (liveness, <=120s)
+        run: |
+          deadline=$((SECONDS + 120))
+          until curl -fsS "${API_BASE_URL}/v1/health/ready" >/dev/null \
+             && curl -fsS "${APP_BASE_URL}/playwright-ready" >/dev/null; do
+            if (( SECONDS >= deadline )); then
+              echo "::error::Liveness gate timed out after 120s — processes not answering"
+              exit 1
+            fi
+            sleep 3
+          done
+          echo "Liveness OK — API + app processes answering."
+
+      - name: Readiness — stage 2 (DB + seed + auth gate, <=180s)
+        run: |
+          # Poll bootstrap until it returns the SEEDED admin. This drives
+          # LOCAL-mode auth injection -> Prisma -> SelfHostedSeedService rows,
+          # so it only greens once DB + migrations + seed + auth are ALL live.
+          deadline=$((SECONDS + 180))
+          until curl -fsS "${API_BASE_URL}/v1/auth/bootstrap" | grep -q 'admin@localhost'; do
+            if (( SECONDS >= deadline )); then
+              echo "::error::Bootstrap/seed gate timed out after 180s — DB + migrate + seed + auth not all ready"
+              exit 1
+            fi
+            sleep 3
+          done
+          echo "Bootstrap + seed OK — seeded admin@localhost reachable."
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: "1.3.14"
+          install-command: "bun install"
+          cache-playwright: "true"
+
+      - name: Run LOCAL-mode release E2E specs against the freshly built image
+        run: bun run test:e2e:release
+        env:
+          CI: true
+
+      - name: Dump container logs (on failure)
+        if: failure()
+        run: |
+          docker compose --env-file docker/.env \
+            -f docker/docker-compose.selfhosted.yml logs --no-color > compose-logs.txt 2>&1 || true
+          echo "===== compose logs (tail) ====="
+          tail -n 200 compose-logs.txt || true
+
+      - name: Upload container logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: selfhosted-verify-compose-logs
+          path: compose-logs.txt
+          retention-days: 14
+
+      - name: Upload Playwright report (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: selfhosted-verify-playwright-report
+          path: playwright/artifacts/report/
+          retention-days: 14
+
+      - name: Tear down stack
+        if: always()
+        run: |
+          docker compose --env-file docker/.env \
+            -f docker/docker-compose.selfhosted.yml down -v || true
+
       - name: Build summary
         if: success()
         run: |
           {
-            echo "## ✅ Self-Hosted Build Verification Passed"
+            echo "## ✅ Self-Hosted Build + Boot Verification Passed"
             echo ""
-            echo "\`docker/Dockerfile.selfhosted\` built successfully (no push). Services, Next.js, Redis, tini, and CA bundle all verified."
+            echo "\`docker/Dockerfile.selfhosted\` built (no push); services, Next.js, Redis, tini, and CA bundle verified."
+            echo "The freshly built image booted with Postgres in LOCAL mode and passed the release E2E specs (root redirect, health, API bootstrap/seed, workspace shell)."
           } >> "$GITHUB_STEP_SUMMARY"
