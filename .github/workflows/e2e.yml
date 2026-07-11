@@ -297,8 +297,8 @@ jobs:
           install-command: "bun install"
           cache-playwright: "true"
 
-      - name: Build API + app (real Better Auth client, bypass OFF)
-        run: bunx turbo run build --filter=@genfeedai/api --filter=@genfeedai/app
+      - name: Build app (real Better Auth client, bypass OFF)
+        run: bunx turbo run build --filter=@genfeedai/app
         env:
           # CRUCIAL: build with the bypass flag OFF so the app uses the real
           # Better Auth browser session path. NEXT_PUBLIC_* is inlined at build
@@ -307,6 +307,13 @@ jobs:
           NEXT_PUBLIC_BETTER_AUTH_ENABLED: "true"
           # Point the app (client + proxy.ts) at the job-local API.
           NEXT_PUBLIC_API_ENDPOINT: http://localhost:3010/v1
+
+      - name: Build API (compiled bundle)
+        # The api package emits to apps/server/dist, OUTSIDE apps/server/api,
+        # so turbo's package-relative `dist/**` outputs never capture it and a
+        # cache-hit replay restores nothing. Force a real build — same reason
+        # as build-verify.yml's boot gate.
+        run: bunx turbo run build --filter=@genfeedai/api --force
 
       # Provision the schema on the ephemeral Postgres service container —
       # same pattern as e2e-api above.
