@@ -32,7 +32,7 @@ import { ParseMode, RunAuthType } from '@genfeedai/enums';
 import {
   createWorkflowEngine,
   type WorkflowEngine,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

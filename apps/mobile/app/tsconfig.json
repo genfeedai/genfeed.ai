@@ -10,8 +10,7 @@
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
       "@genfeedai/ui": ["../../../packages/ui/src/index.ts"],
       "@genfeedai/ui/*": ["../../../packages/ui/src/*"],
-      "@ui/*": ["../../../packages/ui/src/*"],
-      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"]
+      "@ui/*": ["../../../packages/ui/src/*"]
     },
     "strict": true
   },

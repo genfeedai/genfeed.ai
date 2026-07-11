@@ -12,7 +12,7 @@ import type {
   ExecutableNode,
   INodeExecutor,
   NodeExecutor,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 
 export interface PendingWorkflowOutput {

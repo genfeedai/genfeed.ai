@@ -23,7 +23,7 @@ import type {
   TrendDigestEntry,
   TrendPlatform,
   TrendTriggerOutput,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import {
   createPublishExecutor,
   createSendEmailExecutor,
@@ -33,7 +33,7 @@ import {
   createTrendVideoInspirationExecutor,
   TrendDigestExecutor,
   type WorkflowEngine,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 

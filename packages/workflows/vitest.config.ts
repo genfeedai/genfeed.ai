@@ -5,11 +5,8 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: '@genfeedai/workflows/contracts',
-        replacement: path.resolve(
-          __dirname,
-          '../workflows/src/contracts/index.ts',
-        ),
+        find: /^@workflow-engine\/(.*)$/,
+        replacement: path.resolve(__dirname, './src/engine/$1'),
       },
       {
         find: /^@genfeedai\/enums$/,
@@ -28,23 +25,19 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../interfaces/src/$1'),
       },
       {
-        find: '@genfeedai/workflow-engine',
-        replacement: path.resolve(__dirname, './src'),
+        find: /^@genfeedai\/types$/,
+        replacement: path.resolve(__dirname, '../types/src/index.ts'),
       },
       {
-        find: /^@genfeedai\/workflow-engine\/(.*)$/,
-        replacement: path.resolve(__dirname, './src/$1'),
-      },
-      {
-        find: /^@workflow-engine\/(.*)$/,
-        replacement: path.resolve(__dirname, './src/$1'),
+        find: /^@genfeedai\/types\/(.*)$/,
+        replacement: path.resolve(__dirname, '../types/src/$1'),
       },
     ],
   },
   test: {
     environment: 'node',
     globals: true,
-    include: ['src/**/*.spec.ts'],
+    include: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
     testTimeout: 15000,
   },
 });

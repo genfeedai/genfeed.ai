@@ -1,6 +1,6 @@
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import { WorkflowEngine } from '@genfeedai/workflow-engine';
+import { WorkflowEngine } from '@genfeedai/workflows/engine';
 import { describe, expect, it } from 'vitest';
 
 /**

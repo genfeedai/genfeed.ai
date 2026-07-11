@@ -47,8 +47,6 @@
       "@genfeedai/utils/*": ["../../packages/utils/*"],
       "@genfeedai/types": ["../../packages/types/src/index.ts"],
       "@genfeedai/types/*": ["../../packages/types/src/*"],
-      "@genfeedai/workflow-engine": ["../../packages/workflow-engine/src"],
-      "@genfeedai/workflow-engine/*": ["../../packages/workflow-engine/src/*"],
       "@genfeedai/workflows": ["../../packages/workflows/src/index.ts"],
       "@genfeedai/workflows/*": ["../../packages/workflows/src/*"],
       "@discord/*": ["./discord/src/*"],
@@ -67,8 +65,7 @@
       "@twitch/*": ["./twitch/src/*"],
       "@videos/*": ["./videos/src/*"],
       "@voices/*": ["./voices/src/*"],
-      "@workers/*": ["./workers/src/*"],
-      "@workflow-engine/*": ["../../packages/workflow-engine/src/*"]
+      "@workers/*": ["./workers/src/*"]
     },
     "removeComments": true,
     "skipLibCheck": true,

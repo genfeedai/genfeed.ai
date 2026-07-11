@@ -1,5 +1,5 @@
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import type { DmSender, ReplyPublisher } from '@genfeedai/workflow-engine';
+import type { DmSender, ReplyPublisher } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

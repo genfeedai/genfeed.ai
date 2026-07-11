@@ -12,12 +12,12 @@ export type {
   ValidationResult,
   ValidationWarning,
   WorkflowLifecycle,
-} from '@genfeedai/workflows/contracts';
-export { DEFAULT_RETRY_CONFIG } from '@genfeedai/workflows/contracts';
+} from '../contracts';
+export { DEFAULT_RETRY_CONFIG } from '../contracts';
 
 export interface NodeExecutionResult {
   nodeId: string;
-  status: import('@genfeedai/workflows/contracts').NodeExecutionStatus;
+  status: import('../contracts').NodeExecutionStatus;
   output?: unknown;
   error?: string;
   startedAt: Date;
@@ -29,7 +29,7 @@ export interface NodeExecutionResult {
 export interface ExecutionRunResult {
   runId: string;
   workflowId: string;
-  status: import('@genfeedai/workflows/contracts').ExecutionStatus;
+  status: import('../contracts').ExecutionStatus;
   nodeResults: Map<string, NodeExecutionResult>;
   totalCreditsUsed: number;
   startedAt: Date;
@@ -39,7 +39,7 @@ export interface ExecutionRunResult {
 
 export interface ExecutionRun {
   runId: string;
-  status: import('@genfeedai/workflows/contracts').ExecutionStatus;
+  status: import('../contracts').ExecutionStatus;
   executedNodeIds: string[];
   failedNodeId?: string;
   error?: string;
@@ -48,7 +48,7 @@ export interface ExecutionRun {
   completedAt?: Date;
   nodeResults: Array<{
     nodeId: string;
-    status: import('@genfeedai/workflows/contracts').NodeExecutionStatus;
+    status: import('../contracts').NodeExecutionStatus;
     output?: unknown;
     error?: string;
     startedAt: Date;

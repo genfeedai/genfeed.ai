@@ -17,7 +17,7 @@ import type {
   ExecutionProgressEvent,
   ExecutionRunResult,
   WorkflowEngine,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Context } from 'grammy';
 

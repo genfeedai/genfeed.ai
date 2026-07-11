@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { DEFAULT_POST_REPLY_DATA } from './post-reply';
 
 describe('post-reply node', () => {

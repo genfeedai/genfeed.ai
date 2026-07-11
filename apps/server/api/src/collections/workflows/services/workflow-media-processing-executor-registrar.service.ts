@@ -20,7 +20,7 @@ import {
   MusicSourceType,
   TransformationCategory,
 } from '@genfeedai/enums';
-import type { WorkflowEngine } from '@genfeedai/workflow-engine';
+import type { WorkflowEngine } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';

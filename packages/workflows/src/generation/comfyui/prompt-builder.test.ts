@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import {
   buildFlux2DevPrompt,
   buildFlux2DevPulidPrompt,

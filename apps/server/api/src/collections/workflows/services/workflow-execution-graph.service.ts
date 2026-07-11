@@ -3,7 +3,7 @@ import type {
   ExecutableEdge,
   ExecutableNode,
   ExecutionRunResult,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { mapEngineNodeStatus } from './workflow-execution-status.util';
 
 export class WorkflowExecutionGraphService {

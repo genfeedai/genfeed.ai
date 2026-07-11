@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { DEFAULT_PUBLISH_DATA, publishNodeDefinition } from './publish';
 
 describe('publish node', () => {

@@ -9,7 +9,7 @@ import { TelegramMessageHandlerService } from '@api/services/telegram-bot/telegr
 import type { TelegramRunCommandsService } from '@api/services/telegram-bot/telegram-run-commands.service';
 import type { TelegramWorkflowRunnerService } from '@api/services/telegram-bot/telegram-workflow-runner.service';
 import { FileInputType } from '@genfeedai/enums';
-import type { WorkflowEngine } from '@genfeedai/workflow-engine';
+import type { WorkflowEngine } from '@genfeedai/workflows/engine';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Context } from 'grammy';

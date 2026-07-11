@@ -12,14 +12,14 @@ import {
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/enums';
-import type { CreditEstimate } from '@genfeedai/workflow-engine';
+import type { CreditEstimate } from '@genfeedai/workflows/engine';
 import {
   calculateCreditEstimate,
   DEFAULT_CREDIT_COSTS,
   type ExecutableWorkflow,
   type ExecutionRunResult,
   type NodeStatusChangeEvent,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 

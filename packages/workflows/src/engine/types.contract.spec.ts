@@ -1,6 +1,6 @@
-import type { ExecutionOptions as CanonicalExecutionOptions } from '@genfeedai/workflows/contracts';
-import { DEFAULT_RETRY_CONFIG as CANONICAL_RETRY_CONFIG } from '@genfeedai/workflows/contracts';
 import { describe, expect, it } from 'vitest';
+import type { ExecutionOptions as CanonicalExecutionOptions } from '../contracts';
+import { DEFAULT_RETRY_CONFIG as CANONICAL_RETRY_CONFIG } from '../contracts';
 import type { ExecutionOptions as EngineExecutionOptions } from './types';
 import { DEFAULT_RETRY_CONFIG as ENGINE_RETRY_CONFIG } from './types';
 

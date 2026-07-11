@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { DEFAULT_SEND_DM_DATA } from './send-dm';
 
 describe('send-dm node', () => {

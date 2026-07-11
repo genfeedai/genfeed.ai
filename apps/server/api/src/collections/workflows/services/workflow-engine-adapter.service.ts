@@ -60,8 +60,8 @@ import type {
   ExecutionOptions,
   ExecutionRunResult,
   NodeExecutor,
-} from '@genfeedai/workflow-engine';
-import { WorkflowEngine } from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
+import { WorkflowEngine } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
