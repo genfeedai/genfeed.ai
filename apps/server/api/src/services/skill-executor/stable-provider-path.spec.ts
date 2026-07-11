@@ -3,7 +3,6 @@ import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
@@ -18,6 +17,7 @@ import {
 } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
 import { LeonardoAIService } from '@server/services/integrations/leonardoai/services/leonardoai.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('stable provider path smoke', () => {

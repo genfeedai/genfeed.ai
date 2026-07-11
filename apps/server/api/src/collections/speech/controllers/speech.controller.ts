@@ -17,7 +17,6 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { FileInputType } from '@genfeedai/enums';
 import { SpeechTranscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -34,6 +33,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import type { Request } from 'express';
 
 /**

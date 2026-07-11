@@ -1,8 +1,8 @@
 import { InsightsService } from '@api/collections/insights/services/insights.service';
 import type { ModelsService } from '@api/collections/models/services/models.service';
-import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 type MockInsightDelegate = {
   findFirst: ReturnType<typeof vi.fn>;

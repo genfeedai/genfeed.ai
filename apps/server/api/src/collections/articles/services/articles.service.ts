@@ -47,7 +47,6 @@ import {
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -75,6 +74,7 @@ import {
   Injectable,
   Optional,
 } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 @Injectable()
 export class ArticlesService extends BaseService<

@@ -13,7 +13,6 @@ import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { ActivitySource } from '@genfeedai/enums';
 import {
@@ -23,6 +22,7 @@ import {
 } from '@helpers/email/system-email.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface TrendVideoInspirationInput {
   trendId?: string;

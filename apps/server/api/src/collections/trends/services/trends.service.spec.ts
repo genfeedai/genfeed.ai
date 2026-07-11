@@ -18,11 +18,11 @@ import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 type MockCacheService = {
   invalidateByTags: ReturnType<typeof vi.fn>;

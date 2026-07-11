@@ -4,9 +4,9 @@ import { TrendIdea } from '@api/collections/trends/dto/trend-ideas.dto';
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 @Injectable()
 export class TrendContentIdeasService {

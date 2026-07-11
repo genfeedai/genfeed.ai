@@ -8,7 +8,6 @@ import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   ActivitySource,
@@ -21,6 +20,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface ReplyGenerationOptions {
   tweetContent: string;

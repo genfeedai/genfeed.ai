@@ -44,7 +44,6 @@ import {
   buildHarnessInput,
   buildPromptBuilderBrandContext,
 } from '@api/services/harness/harness-brief.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -69,6 +68,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export interface ArticleCycleModelConfig {
   generationModel?: string;

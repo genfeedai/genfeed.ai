@@ -27,7 +27,6 @@ import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-ke
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 // External service mock imports
@@ -52,6 +51,7 @@ import { HttpService } from '@nestjs/axios';
 import { DynamicModule, ExecutionContext, Module, Type } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 /**
  * Mock Guard that always allows access (bypasses auth for E2E tests)

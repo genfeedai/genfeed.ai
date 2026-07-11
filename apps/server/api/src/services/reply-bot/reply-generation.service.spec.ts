@@ -1,11 +1,11 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 describe('ReplyGenerationService', () => {
   let service: ReplyGenerationService;

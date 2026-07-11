@@ -50,7 +50,6 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
@@ -69,6 +68,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 /**
  * Bridges NestJS services with the pure workflow-engine package.
