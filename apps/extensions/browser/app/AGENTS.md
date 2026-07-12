@@ -2,6 +2,12 @@
 
 Plasmo-based Chrome/Firefox extension for Genfeed.ai. React + TypeScript + Tailwind CSS.
 
+## Key Entry Points
+
+- Extension popup and content scripts live in `src/`.
+- Shared types come from the monorepo `packages/` workspaces.
+- Extension builds use Plasmo's Chrome/Firefox targets.
+
 ## Project Documentation
 
 **Start here:** `../../../../.agents/README.md`
