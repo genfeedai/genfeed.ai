@@ -111,4 +111,8 @@ export interface IOrganizationSetting extends IBaseEntity {
   onboardingJourneyMissions?: IOnboardingJourneyMissionState[];
   onboardingJourneyCompletedAt?: string | Date | null;
   agentPolicy?: IAgentPolicy;
+
+  // First-asset unlock gate: durable org signal, flips true on the org's first
+  // completed generation (Ingredient -> GENERATED).
+  hasGeneratedFirstAsset?: boolean;
 }

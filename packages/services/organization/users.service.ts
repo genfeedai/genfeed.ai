@@ -83,4 +83,17 @@ export class UsersService extends BaseService<User> {
       .patch<JsonApiResponseDocument>('me', body)
       .then((res) => this.mapOne(res.data));
   }
+
+  /**
+   * First-asset unlock gate — persist the per-user "explore anyway" escape hatch.
+   * The API also invalidates the access-bootstrap cache so the next bootstrap
+   * reflects the dismissal.
+   */
+  public async dismissAssetGate(): Promise<IUser> {
+    return await this.instance
+      .patch<JsonApiResponseDocument>('me/asset-gate', {
+        hasDismissedAssetGate: true,
+      })
+      .then((res) => this.mapOne(res.data));
+  }
 }

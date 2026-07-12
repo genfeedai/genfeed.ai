@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
 import {
   HiChevronDown,
+  HiLockClosed,
   HiOutlineArrowPathRoundedSquare,
   HiOutlineArrowTrendingUp,
   HiOutlineBriefcase,
@@ -366,11 +367,13 @@ function getActiveItemKey({
 function AppSwitcherGridItem({
   app,
   isActive,
+  isLocked = false,
   href,
   onNavigateStart,
 }: {
   app: LifecycleAppSwitcherItemConfig;
   isActive: boolean;
+  isLocked?: boolean;
   href: string;
   onNavigateStart: () => void;
 }) {
@@ -383,6 +386,11 @@ function AppSwitcherGridItem({
       <Link
         href={href}
         aria-current={isActive ? 'page' : undefined}
+        aria-label={
+          isLocked
+            ? `${app.label} — locked. Generate your first asset to unlock.`
+            : undefined
+        }
         onClick={onNavigateStart}
         className={cn(
           'group grid min-h-[5.75rem] min-w-0 grid-rows-[2.75rem_1.25rem] place-items-center gap-1.5 rounded-lg border border-transparent px-1.5 py-2 text-center outline-none transition-[border-color,background-color,box-shadow]',
@@ -393,18 +401,25 @@ function AppSwitcherGridItem({
       >
         <span
           className={cn(
-            'inline-flex size-10 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
+            'relative inline-flex size-10 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
             isActive
               ? 'bg-foreground text-background'
               : 'group-hover:text-foreground/82',
+            isLocked && 'opacity-60',
           )}
         >
           <Icon aria-hidden="true" className="size-5" />
+          {isLocked ? (
+            <span className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full bg-background text-foreground/70 shadow-border">
+              <HiLockClosed aria-hidden="true" className="size-2.5" />
+            </span>
+          ) : null}
         </span>
         <span
           className={cn(
             'block max-w-full truncate text-[13px] font-semibold leading-5',
             isActive ? 'text-foreground' : 'text-foreground/58',
+            isLocked && 'text-foreground/45',
           )}
         >
           {app.label}
@@ -419,6 +434,7 @@ export function AppSwitcher({
   brandSlug,
   currentApp,
   currentPath,
+  isAssetGateLocked = false,
   orgSlug,
   preservedSearch,
   showAdmin = false,
@@ -441,6 +457,31 @@ export function AppSwitcher({
       app.route(orgSlug, getRouteBrandSlug(app)),
       preservedSearch,
     );
+  }
+
+  // First-asset unlock gate: the app-switcher entries for these gated sections
+  // render locked and route to the agent (Workflows/Calendar have no switcher
+  // entry — the page-level guard covers them).
+  function isAppLocked(app: AppSwitcherItemConfig): boolean {
+    return (
+      isAssetGateLocked &&
+      (app.id === 'workspace' || app.id === 'library' || app.id === 'analytics')
+    );
+  }
+
+  function resolveAppHref(app: AppSwitcherItemConfig): string {
+    if (!isAppLocked(app)) {
+      return getAppHref(app);
+    }
+
+    const agentApp = apps.find((candidate) => candidate.id === 'agent');
+    if (!agentApp) {
+      return getAppHref(app);
+    }
+
+    const agentHref = getAppHref(agentApp);
+    const separator = agentHref.includes('?') ? '&' : '?';
+    return `${agentHref}${separator}locked=${encodeURIComponent(app.id)}`;
   }
 
   const handleNavigateStart = () => {
@@ -581,7 +622,8 @@ export function AppSwitcher({
               key={app.itemKey}
               app={app}
               isActive={app.itemKey === activeItemKey}
-              href={getAppHref(app)}
+              isLocked={isAppLocked(app)}
+              href={resolveAppHref(app)}
               onNavigateStart={handleNavigateStart}
             />
           ))}

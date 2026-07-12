@@ -1,6 +1,7 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
@@ -17,6 +18,7 @@ import {
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 @Injectable()
 export class IngredientsService extends BaseService<
@@ -29,8 +31,52 @@ export class IngredientsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    // Resolved lazily (strict:false) to fire the first-asset unlock gate on
+    // GENERATED transitions without adding a module-import edge to this
+    // widely-used base service. See fireAssetGateForOrganizations().
+    protected readonly moduleRef: ModuleRef,
   ) {
     super(prisma, 'ingredient', logger);
+  }
+
+  /**
+   * First-asset unlock gate hook. When an Ingredient enters `GENERATED` (via
+   * create/patch/patchAll — the only three write paths, covering every
+   * generation pipeline: webhooks, inline ComfyUI/Fal, ElevenLabs voice), mark
+   * the owning org(s) as having generated their first asset.
+   *
+   * Best-effort and fully error-isolated so it can never break generation, but
+   * intentionally `await`ed by callers so the unlocked bootstrap is ready before
+   * generation-success reaches the client. Idempotent + monotonic in the gate
+   * service, so repeated GENERATED writes are cheap no-ops.
+   */
+  protected async fireAssetGateForOrganizations(
+    organizationIds: Array<string | null | undefined>,
+  ): Promise<void> {
+    const uniqueOrgIds = Array.from(
+      new Set(organizationIds.filter((id): id is string => Boolean(id))),
+    );
+
+    if (uniqueOrgIds.length === 0) {
+      return;
+    }
+
+    try {
+      const assetGateService = this.moduleRef.get(AssetGateService, {
+        strict: false,
+      });
+
+      await Promise.all(
+        uniqueOrgIds.map((organizationId) =>
+          assetGateService.markFirstAssetGenerated(organizationId),
+        ),
+      );
+    } catch (error: unknown) {
+      this.logger.warn(`${this.constructorName} asset-gate hook failed`, {
+        error,
+        organizationIds: uniqueOrgIds,
+      });
+    }
   }
 
   /**
@@ -85,6 +131,15 @@ export class IngredientsService extends BaseService<
     this.logger.debug(`${this.constructorName} create success`, {
       id: result.id,
     });
+
+    // Some pipelines persist a finished asset directly as GENERATED (fleet
+    // ingest, frame splits, public API) rather than via a patch transition.
+    // Guard on the input dto (app-form enum value), consistent with patch —
+    // `result.status` may be in DB casing after normalization.
+    if (createDto.status === IngredientStatus.GENERATED) {
+      await this.fireAssetGateForOrganizations([result.organizationId]);
+    }
+
     return result;
   }
 
@@ -332,6 +387,12 @@ export class IngredientsService extends BaseService<
 
       this.logger.debug(`${this.constructorName} patch success`, { id });
 
+      // Fire only on the GENERATED transition (updateDto intent), not on every
+      // patch of an already-generated asset. `result` carries organizationId.
+      if (updateDto.status === IngredientStatus.GENERATED) {
+        await this.fireAssetGateForOrganizations([result.organizationId]);
+      }
+
       return result;
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} patch failed`, {
@@ -350,11 +411,27 @@ export class IngredientsService extends BaseService<
     try {
       this.logger.debug(`${this.constructorName} patchAll`, { filter, update });
 
+      const normalizedWhere = this.normalizeWhere({
+        ...filter,
+        isDeleted: filter.isDeleted ?? false,
+      }) as never;
+
+      // Capture the owning org(s) BEFORE the update: once rows flip to GENERATED
+      // a post-update re-query on a status-based filter would match nothing.
+      const isGeneratedTransition =
+        update.status === IngredientStatus.GENERATED;
+      const targetOrganizationIds = isGeneratedTransition
+        ? (
+            await this.prisma.ingredient.findMany({
+              where: normalizedWhere,
+              select: { organizationId: true },
+              distinct: ['organizationId'],
+            })
+          ).map((row: { organizationId: string | null }) => row.organizationId)
+        : [];
+
       const result = await this.prisma.ingredient.updateMany({
-        where: this.normalizeWhere({
-          ...filter,
-          isDeleted: filter.isDeleted ?? false,
-        }) as never,
+        where: normalizedWhere,
         data: this.normalizeData(update) as never,
       });
 
@@ -362,6 +439,10 @@ export class IngredientsService extends BaseService<
         filter,
         modifiedCount: result.count,
       });
+
+      if (isGeneratedTransition && result.count > 0) {
+        await this.fireAssetGateForOrganizations(targetOrganizationIds);
+      }
 
       return { modifiedCount: result.count };
     } catch (error: unknown) {

@@ -71,6 +71,13 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   // Kept on the DTO type so those internal calls remain type-safe.
   readonly lastUsedOrganizationId?: string | null;
 
+  // First-asset unlock gate escape hatch. Deliberately UNDECORATED so the
+  // ValidationPipe whitelist strips it from arbitrary `PATCH /me` input — it is
+  // set only via the dedicated `PATCH /users/me/asset-gate` endpoint, which also
+  // invalidates the access caches. Kept on the DTO type for that internal
+  // `usersService.patch` call to stay type-safe.
+  readonly hasDismissedAssetGate?: boolean;
+
   @IsOptional()
   @IsString()
   @ApiProperty({
