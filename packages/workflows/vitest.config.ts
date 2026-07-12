@@ -47,8 +47,10 @@ export default defineConfig({
     ],
   },
   test: {
-    environment: 'node',
-    environmentMatchGlobs: [['src/ui/**', 'jsdom']],
+    // Whole-package jsdom: the /ui React specs need a DOM, and jsdom is a
+    // superset the engine/nodes/generation logic specs run fine under.
+    // (vitest 4 removed environmentMatchGlobs.)
+    environment: 'jsdom',
     globals: true,
     include: ['src/**/*.spec.ts', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: ['./vitest.setup.ts'],
