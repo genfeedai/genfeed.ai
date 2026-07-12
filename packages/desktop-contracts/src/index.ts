@@ -1,5 +1,43 @@
 /* ─── Desktop IPC Channel Names ─── */
 
+export const DESKTOP_ASSET_PROTOCOL_HOST = 'local';
+export const DESKTOP_ASSET_PROTOCOL_SCHEME = 'genfeed-asset';
+
+const DESKTOP_ASSET_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+
+export function buildDesktopAssetUrl(assetId: string): string {
+  if (!DESKTOP_ASSET_ID_PATTERN.test(assetId)) {
+    throw new Error('Invalid desktop asset id.');
+  }
+
+  return `${DESKTOP_ASSET_PROTOCOL_SCHEME}://${DESKTOP_ASSET_PROTOCOL_HOST}/${encodeURIComponent(assetId)}`;
+}
+
+export function parseDesktopAssetUrl(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl);
+    const assetId = decodeURIComponent(url.pathname.slice(1));
+
+    if (
+      url.protocol !== `${DESKTOP_ASSET_PROTOCOL_SCHEME}:` ||
+      url.hostname !== DESKTOP_ASSET_PROTOCOL_HOST ||
+      url.username.length > 0 ||
+      url.password.length > 0 ||
+      url.port.length > 0 ||
+      url.search.length > 0 ||
+      url.hash.length > 0 ||
+      url.pathname.slice(1).includes('/') ||
+      !DESKTOP_ASSET_ID_PATTERN.test(assetId)
+    ) {
+      return null;
+    }
+
+    return assetId;
+  } catch {
+    return null;
+  }
+}
+
 export const DESKTOP_IPC_CHANNELS = {
   appBootstrap: 'desktop:app:bootstrap',
   appEnableOfflineMode: 'desktop:app:enableOfflineMode',

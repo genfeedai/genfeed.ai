@@ -1,47 +1,28 @@
 import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import type {
   DesktopAssetKind,
   DesktopAssetUploadPolicy,
   IDesktopAsset,
 } from '@genfeedai/desktop-contracts';
-import { buildWorkspaceAssetsDir } from '@genfeedai/desktop-core';
+import { buildDesktopAssetUrl } from '@genfeedai/desktop-contracts';
+import {
+  buildWorkspaceAssetsDir,
+  resolvePathInsideRoot,
+} from '@genfeedai/desktop-core';
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
 import { dialog, shell } from 'electron';
+import {
+  extensionForDesktopAssetMimeType,
+  inferDesktopAssetMimeType,
+  validateDesktopAssetMimeType,
+} from './asset-mime.util';
 import { toDesktopAsset } from './desktop-asset.util';
 import { toIso } from './time.util';
 import type { DesktopWorkspaceService } from './workspace.service';
 
 const LOCAL_ORGANIZATION_ID = 'local-org';
-
-const MIME_BY_EXTENSION: Record<string, string> = {
-  '.avif': 'image/avif',
-  '.gif': 'image/gif',
-  '.jpeg': 'image/jpeg',
-  '.jpg': 'image/jpeg',
-  '.mp3': 'audio/mpeg',
-  '.mp4': 'video/mp4',
-  '.pdf': 'application/pdf',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.wav': 'audio/wav',
-  '.webp': 'image/webp',
-};
-
-const ASSET_EXTENSION_BY_MIME: Record<string, string> = {
-  'image/avif': '.avif',
-  'image/gif': '.gif',
-  'image/jpeg': '.jpg',
-  'image/png': '.png',
-  'image/svg+xml': '.svg',
-  'image/webp': '.webp',
-};
-
-const inferMimeType = (filePath: string): string =>
-  MIME_BY_EXTENSION[path.extname(filePath).toLowerCase()] ??
-  'application/octet-stream';
 
 const inferAssetKind = (mimeType: string): DesktopAssetKind => {
   if (mimeType.startsWith('image/')) return 'image';
@@ -49,9 +30,6 @@ const inferAssetKind = (mimeType: string): DesktopAssetKind => {
   if (mimeType.startsWith('audio/')) return 'audio';
   return 'document';
 };
-
-const extensionForMimeType = (mimeType: string): string =>
-  ASSET_EXTENSION_BY_MIME[mimeType.toLowerCase()] ?? '.bin';
 
 const sanitizeFilenamePart = (value: string): string =>
   value
@@ -67,6 +45,16 @@ const pathExists = async (targetPath: string): Promise<boolean> => {
   } catch {
     return false;
   }
+};
+
+const toRendererAsset = (asset: IDesktopAsset): IDesktopAsset => {
+  const { localPath: _localPath, ...rendererAsset } = asset;
+  return rendererAsset;
+};
+
+export type ResolvedDesktopAssetFile = {
+  absolutePath: string;
+  mimeType: string;
 };
 
 export interface GeneratedAssetWriteOptions {
@@ -146,7 +134,7 @@ export class DesktopFilesService {
         await this.registerAsset({
           displayName: targetFileName,
           localPath: targetPath,
-          mimeType: inferMimeType(targetPath),
+          mimeType: inferDesktopAssetMimeType(targetPath),
           origin: 'local-import',
           originalFileName: fileName,
           uploadPolicy: 'never',
@@ -197,17 +185,50 @@ export class DesktopFilesService {
   }
 
   async getAssetUrl(assetId: string): Promise<string> {
+    await this.resolveLocalAssetFile(assetId);
+    return buildDesktopAssetUrl(assetId);
+  }
+
+  async resolveLocalAssetFile(
+    assetId: string,
+  ): Promise<ResolvedDesktopAssetFile> {
     const asset = await this.prisma.desktopAsset.findUnique({
       where: {
         id: assetId,
       },
     });
 
-    if (!asset?.localPath) {
+    if (!asset?.localPath || !asset.workspaceId) {
       throw new Error('Local asset file is not available.');
     }
 
-    return pathToFileURL(asset.localPath).toString();
+    const workspace = this.workspaceService.getWorkspace(asset.workspaceId);
+    const assetsRoot = buildWorkspaceAssetsDir(workspace.path);
+    const absolutePath = resolvePathInsideRoot(assetsRoot, asset.localPath);
+    const [realWorkspaceRoot, realAssetsRoot, realAssetPath] =
+      await Promise.all([
+        fs.realpath(workspace.path),
+        fs.realpath(assetsRoot),
+        fs.realpath(absolutePath),
+      ]);
+    resolvePathInsideRoot(realWorkspaceRoot, realAssetsRoot);
+    resolvePathInsideRoot(realAssetsRoot, realAssetPath);
+
+    const stats = await fs.stat(realAssetPath);
+    if (
+      !stats.isFile() ||
+      !(await validateDesktopAssetMimeType(realAssetPath, asset.mimeType))
+    ) {
+      throw new Error('Local asset file type is invalid.');
+    }
+
+    return {
+      absolutePath: realAssetPath,
+      mimeType:
+        asset.mimeType === 'image/svg+xml'
+          ? 'application/octet-stream'
+          : asset.mimeType,
+    };
   }
 
   async listAssets(workspaceId?: string): Promise<IDesktopAsset[]> {
@@ -222,7 +243,7 @@ export class DesktopFilesService {
         : undefined,
     });
 
-    return rows.map(toDesktopAsset);
+    return rows.map((row) => toRendererAsset(toDesktopAsset(row)));
   }
 
   async writeGeneratedAsset(
@@ -232,7 +253,7 @@ export class DesktopFilesService {
     const targetDirectory = buildWorkspaceAssetsDir(workspace.path);
     await fs.mkdir(targetDirectory, { recursive: true });
 
-    const extension = extensionForMimeType(options.mimeType);
+    const extension = extensionForDesktopAssetMimeType(options.mimeType);
     const filename = `${sanitizeFilenamePart(options.provider)}-${sanitizeFilenamePart(options.model)}-${options.jobId}${extension}`;
     const targetPath = path.join(targetDirectory, filename);
     await fs.writeFile(targetPath, Buffer.from(options.bytes));
@@ -307,6 +328,6 @@ export class DesktopFilesService {
       },
     });
 
-    return toDesktopAsset(row);
+    return toRendererAsset(toDesktopAsset(row));
   }
 }

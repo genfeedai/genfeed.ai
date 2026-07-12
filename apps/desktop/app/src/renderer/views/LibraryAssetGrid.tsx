@@ -3,6 +3,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import { HiOutlineFolderOpen } from 'react-icons/hi2';
+import { hasLocalAssetCopy } from '../asset-url.util';
+import { LibraryAssetPreview } from './LibraryAssetPreview';
 
 type LibraryAssetGridProps = {
   assets: IDesktopAsset[];
@@ -19,6 +21,7 @@ export function LibraryAssetGrid({
     <div className="ingredient-grid">
       {assets.map((asset) => (
         <div className="ingredient-card panel-card" key={asset.id}>
+          <LibraryAssetPreview asset={asset} />
           <div className="ingredient-header">
             <strong className="ingredient-title">{asset.displayName}</strong>
             <span className="platform-badge">{asset.residency}</span>
@@ -30,7 +33,7 @@ export function LibraryAssetGrid({
             <span className="vote-count">
               {Math.round(asset.sizeBytes / 1024)} KB
             </span>
-            {asset.localPath && (
+            {hasLocalAssetCopy(asset) && (
               <Button
                 ariaLabel={`Show ${asset.displayName} in Finder`}
                 className="asset-card-action"
