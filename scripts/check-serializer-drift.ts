@@ -579,6 +579,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'context-base:ContextBase': [],
   'context-entry:ContextEntry': [],
   'cron-job:CronJob': [],
+  'dashboard-layout:DashboardLayout': [],
   'evaluation:Evaluation': [],
   'font-family:FontFamilyRecord': [],
   'link:Link': [],
