@@ -1,122 +1,18 @@
 'use client';
 
 import type { AgentSetupConnection } from '@genfeedai/agent/components/useAgentSetupStatus';
-import {
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-  CredentialPlatform,
-} from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import BrandCompletenessCard from '@ui/cards/brand-completeness-card/BrandCompletenessCard';
+import { OAUTH_CONNECT_PLATFORMS } from '@ui/constants/oauth-connect-platforms';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
-import {
-  FaFacebook,
-  FaInstagram,
-  FaLinkedin,
-  FaMastodon,
-  FaPinterest,
-  FaReddit,
-  FaShopify,
-  FaSnapchat,
-  FaStar,
-  FaThreads,
-  FaTiktok,
-  FaWordpress,
-  FaXTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
 import { HiOutlineSquares2X2 } from 'react-icons/hi2';
-
-interface AgentSetupPlatform {
-  icon: ReactNode;
-  label: string;
-  platform: CredentialPlatform;
-}
-
-/**
- * OAuth-connectable channels offered from the agent setup panel. Mirrors the
- * `OAUTH_PLATFORMS` list/pattern in
- * `packages/pages/brands/components/sidebar/BrandDetailSocialMediaCard.tsx`.
- */
-const AGENT_SETUP_PLATFORMS: AgentSetupPlatform[] = [
-  {
-    icon: <FaXTwitter className="mr-1.5 size-3.5" />,
-    label: 'Twitter',
-    platform: CredentialPlatform.TWITTER,
-  },
-  {
-    icon: <FaTiktok className="mr-1.5 size-3.5" />,
-    label: 'TikTok',
-    platform: CredentialPlatform.TIKTOK,
-  },
-  {
-    icon: <FaYoutube className="mr-1.5 size-3.5" />,
-    label: 'YouTube',
-    platform: CredentialPlatform.YOUTUBE,
-  },
-  {
-    icon: <FaInstagram className="mr-1.5 size-3.5" />,
-    label: 'Instagram',
-    platform: CredentialPlatform.INSTAGRAM,
-  },
-  {
-    icon: <FaStar className="mr-1.5 size-3.5" />,
-    label: 'Fanvue',
-    platform: CredentialPlatform.FANVUE,
-  },
-  {
-    icon: <FaFacebook className="mr-1.5 size-3.5" />,
-    label: 'Facebook',
-    platform: CredentialPlatform.FACEBOOK,
-  },
-  {
-    icon: <FaLinkedin className="mr-1.5 size-3.5" />,
-    label: 'LinkedIn',
-    platform: CredentialPlatform.LINKEDIN,
-  },
-  {
-    icon: <FaPinterest className="mr-1.5 size-3.5" />,
-    label: 'Pinterest',
-    platform: CredentialPlatform.PINTEREST,
-  },
-  {
-    icon: <FaReddit className="mr-1.5 size-3.5" />,
-    label: 'Reddit',
-    platform: CredentialPlatform.REDDIT,
-  },
-  {
-    icon: <FaThreads className="mr-1.5 size-3.5" />,
-    label: 'Threads',
-    platform: CredentialPlatform.THREADS,
-  },
-  {
-    icon: <FaWordpress className="mr-1.5 size-3.5" />,
-    label: 'WordPress',
-    platform: CredentialPlatform.WORDPRESS,
-  },
-  {
-    icon: <FaSnapchat className="mr-1.5 size-3.5" />,
-    label: 'Snapchat',
-    platform: CredentialPlatform.SNAPCHAT,
-  },
-  {
-    icon: <FaMastodon className="mr-1.5 size-3.5" />,
-    label: 'Mastodon',
-    platform: CredentialPlatform.MASTODON,
-  },
-  {
-    icon: <FaShopify className="mr-1.5 size-3.5" />,
-    label: 'Shopify',
-    platform: CredentialPlatform.SHOPIFY,
-  },
-];
 
 interface AgentSetupPanelProps {
   brand: Brand | undefined | null;
@@ -217,7 +113,7 @@ export function AgentSetupPanel({
 
   const unconnectedPlatforms = useMemo(
     () =>
-      AGENT_SETUP_PLATFORMS.filter(
+      OAUTH_CONNECT_PLATFORMS.filter(
         (item) => !connectedPlatforms.has(item.platform),
       ),
     [connectedPlatforms],
@@ -230,11 +126,18 @@ export function AgentSetupPanel({
 
     setConnectingPlatform(platform);
     // `onOAuthConnect` typically navigates the current window to the provider,
-    // so this component usually unmounts before the promise settles. Reset on
-    // failure so the buttons become interactive again if navigation is aborted.
-    Promise.resolve(onOAuthConnect(platform)).catch(() => {
-      setConnectingPlatform(null);
-    });
+    // so this component usually unmounts before settling. Reset in `finally` so
+    // the buttons re-enable if navigation is aborted, the handler rejects, or it
+    // throws synchronously.
+    void (async () => {
+      try {
+        await onOAuthConnect(platform);
+      } catch {
+        // The OAuth flow surfaces its own errors; just re-enable the buttons.
+      } finally {
+        setConnectingPlatform(null);
+      }
+    })();
   }
 
   const canConnect = Boolean(onOAuthConnect);
