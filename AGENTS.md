@@ -46,6 +46,8 @@ Detailed docs: `.agents/README.md`
 6. Do not manually edit generated `dist/` artifacts.
 7. Respect package boundaries: shared logic in `packages/*`, app-specific code in `apps/*`.
 8. Enterprise code (`ee/`): enforce multi-tenancy query guards (`{ organizationId: orgId, isDeleted: false }`).
+9. Self-hosted code outside `ee/` is single-tenant by default; organization filtering is optional there.
+10. Soft deletes use `isDeleted: boolean`, never `deletedAt`.
 
 ## Decorator Boundary Rules
 
@@ -66,17 +68,8 @@ Detailed docs: `.agents/README.md`
 
 - Never describe a change as "best" or "optimized" without repo-specific justification.
 - For non-trivial work, define the optimization target up front and compare at least 2 approaches.
-- Do not claim success without verification evidence: lint, type-check, tests, or task-specific checks.
+- Do not claim success without verification evidence from allowed checks or PR CI.
 - If evidence is incomplete, say so explicitly.
-
-## Pre-Push Baseline
-
-```bash
-bunx biome check --write .
-bunx turbo lint
-bun type-check
-bun run test --filter=@genfeedai/[changed-package]
-```
 
 ## Tracking Policy
 
