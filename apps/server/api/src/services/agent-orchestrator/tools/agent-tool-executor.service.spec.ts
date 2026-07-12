@@ -7,6 +7,7 @@ vi.mock(
 
 import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
+import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -613,6 +614,7 @@ describe('AgentToolExecutorService', () => {
       agentMemoryCaptureService as never,
       agentGoalsService as never,
     );
+    const dashboardHandler = new AgentDashboardToolHandler(undefined as never);
 
     const service = new AgentToolExecutorService(
       loggerService,
@@ -622,6 +624,7 @@ describe('AgentToolExecutorService', () => {
       brandsService as never,
       routeRewriteService,
       memoryGoalsHandler,
+      dashboardHandler,
       botsService as never,
       botsLivestreamService as never,
       campaignsService as never,
@@ -3102,6 +3105,7 @@ describe('AgentToolExecutorService', () => {
         organizationsService as never,
       ),
       new AgentMemoryGoalsToolHandler(undefined as never, undefined as never),
+      new AgentDashboardToolHandler(undefined as never),
       {} as never,
       {} as never,
       {} as never,
