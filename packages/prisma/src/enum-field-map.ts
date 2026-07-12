@@ -1245,6 +1245,22 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     enumFields: {},
   },
+  DashboardLayout: {
+    allFields: [
+      'brand',
+      'brandId',
+      'createdAt',
+      'document',
+      'id',
+      'isDeleted',
+      'organization',
+      'organizationId',
+      'pageKey',
+      'updatedAt',
+      'version',
+    ],
+    enumFields: {},
+  },
   DesktopAuthCode: {
     allFields: [
       'codeChallenge',

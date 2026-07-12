@@ -12,6 +12,7 @@ export interface AgentTypeConfig {
 const SHARED_READ_TOOLS: AgentToolName[] = [
   AgentToolName.GET_ANALYTICS,
   AgentToolName.GET_CREDITS_BALANCE,
+  AgentToolName.GET_DASHBOARD_LAYOUT,
   AgentToolName.GET_TRENDS,
   AgentToolName.LIST_BRANDS,
   AgentToolName.LIST_POSTS,

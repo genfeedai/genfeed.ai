@@ -76,6 +76,7 @@ const EXPECTED_TOOL_NAMES = [
   'get_content_calendar',
   'get_credits_balance',
   'get_current_brand',
+  'get_dashboard_layout',
   'get_google_ads_adgroup_insights',
   'get_google_ads_campaign_metrics',
   'get_google_ads_keyword_performance',
@@ -137,6 +138,7 @@ const EXPECTED_TOOL_NAMES = [
   'resolve_approval',
   'resolve_handle',
   'retry_agent_run',
+  'save_dashboard_layout',
   'schedule_post',
   'score_seo',
   'search_articles',
@@ -199,7 +201,7 @@ describe('SOURCE_TOOLS registry split (#692)', () => {
 
   it('partitions tools by their declared surface', () => {
     expect(OVERLAP_TOOLS).toHaveLength(17);
-    expect(AGENT_ONLY_TOOLS).toHaveLength(55);
+    expect(AGENT_ONLY_TOOLS).toHaveLength(57);
     expect(MCP_ONLY_TOOLS).toHaveLength(57);
     expect(BRAND_INTERVIEW_TOOLS).toHaveLength(4);
     expect(

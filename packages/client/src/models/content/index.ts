@@ -1,5 +1,6 @@
 export * from './article.model';
 export * from './caption.model';
+export * from './dashboard-layout.model';
 export * from './ingredient.model';
 export * from './knowledge-base.model';
 export * from './model.model';

@@ -35,6 +35,7 @@ import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
@@ -343,6 +344,7 @@ export class AgentToolExecutorService {
     private readonly brandsService: AgentBrandsServiceLike,
     private readonly routeRewriteService: AgentRouteRewriteService,
     private readonly memoryGoalsHandler: AgentMemoryGoalsToolHandler,
+    private readonly dashboardHandler: AgentDashboardToolHandler,
     @Optional()
     @Inject('AGENT_BOTS_SERVICE')
     private readonly botsService: AgentBotsServiceLike | undefined,
@@ -994,6 +996,10 @@ export class AgentToolExecutorService {
       // Dashboard tools
       case AgentToolName.RENDER_DASHBOARD:
         return this.renderDashboard(params, ctx);
+      case AgentToolName.SAVE_DASHBOARD_LAYOUT:
+        return this.dashboardHandler.saveDashboardLayout(params, ctx);
+      case AgentToolName.GET_DASHBOARD_LAYOUT:
+        return this.dashboardHandler.getDashboardLayout(params, ctx);
 
       // Generation preparation tools
       case AgentToolName.PREPARE_GENERATION:

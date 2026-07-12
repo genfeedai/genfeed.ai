@@ -1,5 +1,6 @@
 import type {
   AgentAlertSeverity,
+  AgentBlockSourceParams,
   AgentChartType,
   AgentTrendDirection,
   AgentUIBlock,
@@ -369,6 +370,23 @@ function parseHydration(source: DashboardRecord, path: FieldPath) {
   };
 }
 
+function parseSourceParams(
+  source: DashboardRecord,
+  path: FieldPath,
+): AgentBlockSourceParams | undefined {
+  const record = readRecord(source, 'sourceParams', path);
+  if (!record) {
+    return undefined;
+  }
+  // sanitizeRecord guarantees every value is a string, number, boolean, or null,
+  // which is exactly AgentBlockSourceParams — the cast narrows the `unknown`
+  // values back to that validated union.
+  return sanitizeRecord(
+    record,
+    `${path}.sourceParams`,
+  ) as AgentBlockSourceParams;
+}
+
 function parseBaseBlock(source: DashboardRecord, path: FieldPath) {
   const id = readString(source, 'id', path, {
     maxLength: 96,
@@ -380,11 +398,15 @@ function parseBaseBlock(source: DashboardRecord, path: FieldPath) {
   const title = readString(source, 'title', path, { maxLength: 160 });
   const width = readEnum(source, 'width', path, WIDTHS);
   const hydration = parseHydration(source, path);
+  const sourceKey = readString(source, 'sourceKey', path, { maxLength: 96 });
+  const sourceParams = parseSourceParams(source, path);
   return {
     ...(hydration ? { hydration } : {}),
     id,
     ...(title ? { title } : {}),
     ...(width ? { width } : {}),
+    ...(sourceKey ? { sourceKey } : {}),
+    ...(sourceParams ? { sourceParams } : {}),
   };
 }
 
