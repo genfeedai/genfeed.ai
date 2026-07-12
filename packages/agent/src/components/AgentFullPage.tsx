@@ -24,6 +24,10 @@ interface AgentFullPageProps {
   onOnboardingCompleted?: () => void | Promise<void>;
   onCreateFollowUpTasks?: (taskId: string) => Promise<{ createdCount: number }>;
   onOAuthConnect?: (platform: string) => void;
+  onBrandCreate?: (payload: {
+    name: string;
+    description: string;
+  }) => void | Promise<void>;
   onOpenRunThread?: (threadId: string) => void;
   onSelectCreditPack?: (pack: {
     label: string;
@@ -44,6 +48,7 @@ export function AgentFullPage({
   onOnboardingCompleted,
   onCreateFollowUpTasks,
   onOAuthConnect,
+  onBrandCreate,
   onOpenRunThread,
   onSelectCreditPack,
   userRole,
@@ -134,6 +139,7 @@ export function AgentFullPage({
               onCreateFollowUpTasks={onCreateFollowUpTasks}
               onOnboardingCompleted={onOnboardingCompleted}
               onOAuthConnect={onOAuthConnect}
+              onBrandCreate={onBrandCreate}
               onSelectCreditPack={onSelectCreditPack}
               onboardingMode={onboardingMode}
               isWideLayout={!hasThreadOutputs}

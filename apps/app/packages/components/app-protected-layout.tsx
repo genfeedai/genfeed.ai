@@ -160,6 +160,7 @@ function AppLayoutWithDynamicMenu({
     setConversationActions,
     handleNavigate,
     handleNavigateToBilling,
+    handleOAuthConnect,
     handleOpenCommandPalette,
     isLowCreditsBannerEnabled,
     isDesktopShell,
@@ -263,6 +264,7 @@ function AppLayoutWithDynamicMenu({
         authReady={isAuthReadyForAgentPanel}
         isActive={isAgentOpen}
         onNavigateToBilling={handleNavigateToBilling}
+        onOAuthConnect={handleOAuthConnect}
       />
     );
 

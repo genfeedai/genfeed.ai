@@ -50,6 +50,7 @@ export function UiActionRenderer({
   apiService,
   onCopy,
   onOAuthConnect,
+  onBrandCreate,
   onSelectCreditPack,
   onSelectIngredient,
   onRetry,
@@ -59,6 +60,10 @@ export function UiActionRenderer({
   apiService?: AgentApiService;
   onCopy?: (content: string) => void | Promise<void>;
   onOAuthConnect?: (platform: string) => void;
+  onBrandCreate?: (payload: {
+    name: string;
+    description: string;
+  }) => void | Promise<void>;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;
@@ -140,7 +145,7 @@ export function UiActionRenderer({
     case 'studio_handoff_card':
       return <StudioHandoffCard action={action} />;
     case 'brand_create_card':
-      return <BrandCreateCard action={action} />;
+      return <BrandCreateCard action={action} onCreate={onBrandCreate} />;
     case 'workflow_execute_card':
       return apiService ? (
         <WorkflowExecuteCard action={action} apiService={apiService} />

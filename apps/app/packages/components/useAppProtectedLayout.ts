@@ -28,6 +28,7 @@ import {
   APP_ROUTES,
   COMPOSE_ROUTES,
 } from '@genfeedai/constants';
+import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -352,6 +353,13 @@ export function useAppProtectedLayout(
   // Sync route context into the agent store
   useAgentPageContext(role);
 
+  // Shared with the dedicated /agent workspace page so the floating agent
+  // panel's oauth_connect_card actually connects (previously it received no
+  // handler and was a no-op outside /agent).
+  const handleOAuthConnect = useAgentOAuthConnect({
+    isOnboarding: isFocusedOnboardingRoute,
+  });
+
   const handleNavigateToBilling = useCallback(() => {
     push(orgHref(isEEEnabled() ? '/settings/billing' : '/settings/credits'));
   }, [push, orgHref]);
@@ -596,6 +604,7 @@ export function useAppProtectedLayout(
     // handlers
     handleNavigate,
     handleNavigateToBilling,
+    handleOAuthConnect,
     handleOpenCommandPalette,
     // banners
     isLowCreditsBannerEnabled,
