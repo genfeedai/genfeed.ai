@@ -1582,6 +1582,21 @@
       "path": "/cron-jobs/{id}/runs"
     },
     {
+      "method": "get",
+      "operationId": "DashboardLayoutsController.findForPage",
+      "path": "/dashboard-layouts"
+    },
+    {
+      "method": "delete",
+      "operationId": "DashboardLayoutsController.remove",
+      "path": "/dashboard-layouts/{id}"
+    },
+    {
+      "method": "put",
+      "operationId": "DashboardLayoutsController.upsert",
+      "path": "/dashboard-layouts"
+    },
+    {
       "method": "post",
       "operationId": "DesktopSyncController.confirmAssetUpload",
       "path": "/sync/desktop/assets/{id}/uploaded"

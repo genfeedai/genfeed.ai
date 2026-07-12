@@ -13608,6 +13608,31 @@
         ],
         "type": "string"
       },
+      "UpsertDashboardLayoutDto": {
+        "properties": {
+          "brandId": {
+            "description": "Brand ID this dashboard layout belongs to",
+            "type": "string"
+          },
+          "document": {
+            "description": "Persisted dashboard layout document (sanitized OpenUI blocks)",
+            "type": "object"
+          },
+          "pageKey": {
+            "description": "Page key identifying which dashboard page this layout is for. Defaults to `workspace-overview` when omitted.",
+            "type": "string"
+          },
+          "version": {
+            "description": "Layout schema version",
+            "type": "number"
+          }
+        },
+        "required": [
+          "brandId",
+          "document"
+        ],
+        "type": "object"
+      },
       "UpsertHarnessProfileDto": {
         "properties": {},
         "type": "object"
@@ -27091,6 +27116,85 @@
         },
         "tags": [
           "CronJobs"
+        ]
+      }
+    },
+    "/dashboard-layouts": {
+      "get": {
+        "operationId": "DashboardLayoutsController.findForPage",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "brand",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageKey",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "findForPage",
+        "tags": [
+          "dashboard-layouts"
+        ]
+      },
+      "put": {
+        "operationId": "DashboardLayoutsController.upsert",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertDashboardLayoutDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "upsert",
+        "tags": [
+          "dashboard-layouts"
+        ]
+      }
+    },
+    "/dashboard-layouts/{id}": {
+      "delete": {
+        "operationId": "DashboardLayoutsController.remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "remove",
+        "tags": [
+          "dashboard-layouts"
         ]
       }
     },
