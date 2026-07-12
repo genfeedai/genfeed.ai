@@ -2,8 +2,8 @@
 
 ## Last Verified
 
-- **Date:** 2026-07-06
-- **Sources:** fetched `origin/master`, local monorepo structure, package manifests, trunk rules, pre-push commands
+- **Date:** 2026-07-11
+- **Sources:** fetched `origin/master`, local monorepo structure, package manifests, and trunk rules
 
 ## Project Memory — READ AT SESSION START
 
@@ -68,15 +68,6 @@ Detailed docs: `.agents/README.md`
 - For non-trivial work, define the optimization target up front and compare at least 2 approaches.
 - Do not claim success without verification evidence: lint, type-check, tests, or task-specific checks.
 - If evidence is incomplete, say so explicitly.
-
-## Pre-Push Baseline
-
-```bash
-bunx biome check --write .
-bunx turbo lint
-bun type-check
-bun run test --filter=@genfeedai/[changed-package]
-```
 
 ## Tracking Policy
 

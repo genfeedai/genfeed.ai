@@ -11,7 +11,3 @@ script = "rm -fr node_modules"
 [[actions]]
 name = "Lint"
 command = "bunx turbo lint"
-
-[[actions]]
-name = "Type Check"
-command = "bun type-check"

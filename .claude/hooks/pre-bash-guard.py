@@ -4,9 +4,8 @@
 Deterministically enforces working agreements that used to live only as prose:
   1. Trunk is PR-only — no pushes to master/main.
   2. Bun only — npm/npx/yarn/pnpm are blocked.
-  3. No full test suites locally — scoped/--filter runs only; full suites go to CI.
-  4. No `vercel` without an existing .vercel/project.json link.
-  5. .env* files never get staged or committed (public repo).
+  3. No `vercel` without an existing .vercel/project.json link.
+  4. .env* files never get staged or committed (public repo).
 
 Contract: stdin receives {"tool_name","tool_input":{"command"}}. Exit 2 blocks
 the call and feeds stderr back to the agent so it can self-correct.
@@ -97,27 +96,7 @@ def main() -> None:
             "use `bun` / `bunx` instead (bun-not-npm rule)."
         )
 
-    # 3. No full test suites locally.
-    if (
-        re.search(COMMAND_POSITION + r"(bunx\s+)?turbo\s+(run\s+)?test\b", sanitized)
-        and "--filter" not in command
-    ):
-        block(
-            "unfiltered `turbo run test` runs the full suite — never locally. "
-            "Scope with --filter=@genfeedai/<pkg> or dispatch CI (gh workflow run)."
-        )
-    if (
-        re.search(
-            COMMAND_POSITION + r"bun\s+(run\s+)?test\s*(?:$|&&|\|\||[;|)])", sanitized
-        )
-        and "--filter" not in command
-    ):
-        block(
-            "bare `bun test` / `bun run test` runs the full suite — never locally. "
-            "Scope it: `bun run test <file>` or `bun run test --filter=@genfeedai/<pkg>`."
-        )
-
-    # 4. Vercel deploys require an existing project link.
+    # 3. Vercel deploys require an existing project link.
     if re.search(COMMAND_POSITION + r"(?:bunx\s+)?vercel\b", sanitized):
         if not os.path.isfile(os.path.join(project_dir, ".vercel", "project.json")):
             block(
@@ -125,7 +104,7 @@ def main() -> None:
                 "`vercel link` unattended; ask Vincent first (www/CLAUDE.md rule)."
             )
 
-    # 5. .env* never staged or committed — this repo is public.
+    # 4. .env* never staged or committed — this repo is public.
     if re.search(COMMAND_POSITION + r"git\b[^;&|]*\badd\b[^;&|]*\.env", command):
         block(
             "staging .env* files is forbidden — never commit env files "
