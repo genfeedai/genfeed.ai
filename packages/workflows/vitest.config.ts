@@ -36,14 +36,9 @@ export default defineConfig({
         find: /^@genfeedai\/types\/(.*)$/,
         replacement: path.resolve(__dirname, '../types/src/$1'),
       },
-      {
-        find: /^@genfeedai\/ui$/,
-        replacement: path.resolve(__dirname, '../ui/src/index.ts'),
-      },
-      {
-        find: /^@genfeedai\/ui\/(.*)$/,
-        replacement: path.resolve(__dirname, '../ui/src/$1'),
-      },
+      // NOTE: do NOT alias @genfeedai/ui to its src — its source uses an internal
+      // `@ui/*` alias the /ui specs can't resolve. Let it resolve via node_modules
+      // to the built dist (turbo `test` dependsOn ^build), matching workflow-ui.
     ],
   },
   test: {
