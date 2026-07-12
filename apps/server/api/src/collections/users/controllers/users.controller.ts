@@ -63,6 +63,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
@@ -587,6 +588,10 @@ export class UsersController {
    * `hasDismissedAssetGate` immediately (the payload is Redis-cached ~30s), which
    * is what lets the client clear the locked nav/overlay without a stale window.
    */
+  // Internal UI-only escape hatch — excluded from the OpenAPI surface (and thus
+  // the MCP tool/parity gates): it persists a client preference, not a public
+  // API operation, and keeping it out of the spec avoids a codegen churn.
+  @ApiExcludeEndpoint()
   @Patch('me/asset-gate')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateMeAssetGate(

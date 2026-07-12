@@ -463,6 +463,12 @@ vi.mock('@ui/guards/onboarding/OnboardingGuard', () => ({
   },
 }));
 
+// AssetGateGuard reads useAccessState/useOrgUrl; this suite mocks ProtectedProviders
+// down to bare children (no AccessStateProvider), so pass children through here.
+vi.mock('./asset-gate-guard', () => ({
+  default: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
+
 vi.mock('next/navigation', () => ({
   useParams: () => mockRouteParams,
   usePathname: () => mockPathname.value,

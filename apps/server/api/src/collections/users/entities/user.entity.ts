@@ -27,6 +27,8 @@ export class UserEntity extends BaseEntity implements User {
   declare readonly onboardingCompletedAt: Date | null;
   declare readonly onboardingType: User['onboardingType'];
   declare readonly onboardingStepsCompleted: string[];
+  // First-asset unlock gate — per-user "explore anyway" escape hatch.
+  declare readonly hasDismissedAssetGate: boolean;
 
   declare readonly settings: Setting | null;
 }

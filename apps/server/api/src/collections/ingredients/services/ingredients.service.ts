@@ -411,11 +411,6 @@ export class IngredientsService extends BaseService<
     try {
       this.logger.debug(`${this.constructorName} patchAll`, { filter, update });
 
-      const normalizedWhere = this.normalizeWhere({
-        ...filter,
-        isDeleted: filter.isDeleted ?? false,
-      }) as never;
-
       // Capture the owning org(s) BEFORE the update: once rows flip to GENERATED
       // a post-update re-query on a status-based filter would match nothing.
       const isGeneratedTransition =
@@ -423,7 +418,10 @@ export class IngredientsService extends BaseService<
       const targetOrganizationIds = isGeneratedTransition
         ? (
             await this.prisma.ingredient.findMany({
-              where: normalizedWhere,
+              where: this.normalizeWhere({
+                ...filter,
+                isDeleted: filter.isDeleted ?? false,
+              }) as never,
               select: { organizationId: true },
               distinct: ['organizationId'],
             })
@@ -431,7 +429,10 @@ export class IngredientsService extends BaseService<
         : [];
 
       const result = await this.prisma.ingredient.updateMany({
-        where: normalizedWhere,
+        where: this.normalizeWhere({
+          ...filter,
+          isDeleted: filter.isDeleted ?? false,
+        }) as never,
         data: this.normalizeData(update) as never,
       });
 
