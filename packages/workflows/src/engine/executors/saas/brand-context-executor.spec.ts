@@ -1,6 +1,6 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import { createBrandContextExecutor } from '@workflow-engine/executors/saas/brand-context-executor';
 import { describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import { createBrandContextExecutor } from './brand-context-executor';
 
 const ctx: ExecutionContext = {
   organizationId: 'org-1',

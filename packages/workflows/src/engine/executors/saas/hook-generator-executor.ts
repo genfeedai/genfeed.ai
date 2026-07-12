@@ -1,10 +1,10 @@
+import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
   type ExecutorInput,
   type ExecutorOutput,
-} from '@workflow-engine/executors/base-executor';
-import { toNonEmptyString } from '@workflow-engine/executors/saas/trend-inspiration-shared';
-import type { ExecutableNode } from '@workflow-engine/types';
+} from '../base-executor';
+import { toNonEmptyString } from './trend-inspiration-shared';
 
 export type HookFormula =
   | 'person_conflict_resolution'

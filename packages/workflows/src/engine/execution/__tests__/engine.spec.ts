@@ -1,14 +1,11 @@
-import {
-  type NodeExecutor,
-  WorkflowEngine,
-} from '@workflow-engine/execution/engine';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type {
   ExecutableEdge,
   ExecutableNode,
   ExecutableWorkflow,
-} from '@workflow-engine/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+} from '../../types';
+import { type NodeExecutor, WorkflowEngine } from '../engine';
 
 function makeNode(
   id: string,

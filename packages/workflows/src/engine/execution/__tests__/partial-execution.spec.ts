@@ -1,19 +1,13 @@
-import {
-  canExecuteNode,
-  planPartialExecution,
-} from '@workflow-engine/execution/partial-execution';
+import { describe, expect, it } from 'vitest';
+import type { ExecutableEdge, ExecutableNode } from '../../types';
+import { DEFAULT_RETRY_CONFIG } from '../../types';
+import { canExecuteNode, planPartialExecution } from '../partial-execution';
 import {
   analyzeForResume,
   createCacheFromRun,
   mergeExecutionResults,
-} from '@workflow-engine/execution/resume-handler';
-import {
-  calculateRetryDelay,
-  isRetryableError,
-} from '@workflow-engine/execution/retry-handler';
-import type { ExecutableEdge, ExecutableNode } from '@workflow-engine/types';
-import { DEFAULT_RETRY_CONFIG } from '@workflow-engine/types';
-import { describe, expect, it } from 'vitest';
+} from '../resume-handler';
+import { calculateRetryDelay, isRetryableError } from '../retry-handler';
 
 function makeNode(
   id: string,

@@ -1,9 +1,9 @@
+import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
   type ExecutorInput,
   type ExecutorOutput,
-} from '@workflow-engine/executors/base-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
+} from '../base-executor';
 
 export type TrendPlatform = 'tiktok' | 'instagram' | 'youtube' | 'twitter';
 export type TrendType = 'video' | 'sound' | 'hashtag';

@@ -1,6 +1,6 @@
-import type { CinematicColorGradeConfig } from '@workflow-engine/executors/saas/cinematic-color-grade-executor';
-import type { FilmGrainConfig } from '@workflow-engine/executors/saas/film-grain-executor';
-import type { LensEffectsConfig } from '@workflow-engine/executors/saas/lens-effects-executor';
+import type { CinematicColorGradeConfig } from './cinematic-color-grade-executor';
+import type { FilmGrainConfig } from './film-grain-executor';
+import type { LensEffectsConfig } from './lens-effects-executor';
 
 export interface CinematicCameraPreset {
   id: string;

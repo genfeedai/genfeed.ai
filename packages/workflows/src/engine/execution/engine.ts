@@ -1,12 +1,4 @@
-import {
-  canExecuteNode,
-  planPartialExecution,
-} from '@workflow-engine/execution/partial-execution';
-import {
-  analyzeForResume,
-  createCacheFromRun,
-} from '@workflow-engine/execution/resume-handler';
-import { withRetry } from '@workflow-engine/execution/retry-handler';
+import { v4 as uuidv4 } from 'uuid';
 import type {
   CreditCostConfig,
   ExecutableNode,
@@ -18,9 +10,11 @@ import type {
   NodeExecutionResult,
   NodeStatusChangeEvent,
   RetryConfig,
-} from '@workflow-engine/types';
-import { DEFAULT_RETRY_CONFIG } from '@workflow-engine/types';
-import { v4 as uuidv4 } from 'uuid';
+} from '../types';
+import { DEFAULT_RETRY_CONFIG } from '../types';
+import { canExecuteNode, planPartialExecution } from './partial-execution';
+import { analyzeForResume, createCacheFromRun } from './resume-handler';
+import { withRetry } from './retry-handler';
 
 export type NodeExecutor = (
   node: ExecutableNode,

@@ -1,5 +1,5 @@
-import type { RetryConfig } from '@workflow-engine/types';
-import { DEFAULT_RETRY_CONFIG } from '@workflow-engine/types';
+import type { RetryConfig } from '../types';
+import { DEFAULT_RETRY_CONFIG } from '../types';
 
 const RETRYABLE_PATTERNS = [
   'network',

@@ -1,9 +1,9 @@
+import { describe, expect, it } from 'vitest';
 import {
   createSafeRegExp,
   SAFE_PATTERN_MAX_LENGTH,
   SAFE_SUBJECT_MAX_LENGTH,
-} from '@workflow-engine/utils/safe-regex';
-import { describe, expect, it } from 'vitest';
+} from './safe-regex';
 
 describe('createSafeRegExp', () => {
   it('returns a RegExp for a safe pattern', () => {

@@ -1,15 +1,15 @@
+import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
   type ExecutorInput,
   type ExecutorOutput,
-} from '@workflow-engine/executors/base-executor';
+} from '../base-executor';
 import {
   type TrendInspirationPlatform,
   toNonEmptyString,
   uniqOptionalHashtags,
   VALID_PLATFORMS,
-} from '@workflow-engine/executors/saas/trend-inspiration-shared';
-import type { ExecutableNode } from '@workflow-engine/types';
+} from './trend-inspiration-shared';
 
 export type TrendInspirationStyle =
   | 'match_closely'

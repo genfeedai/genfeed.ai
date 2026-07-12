@@ -1,11 +1,11 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import type { ExecutableNode } from '../../types';
+import type { ExecutorInput } from '../base-executor';
 import {
   VoiceChangeExecutor,
   type VoiceChangeResolver,
-} from '@workflow-engine/executors/saas/voice-change-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+} from './voice-change-executor';
 
 function makeNode(
   configOverrides: Record<string, unknown> = {},

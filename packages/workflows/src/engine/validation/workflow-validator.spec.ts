@@ -1,8 +1,9 @@
+import { describe, expect, it } from 'vitest';
 import type {
   ExecutableEdge,
   ExecutableNode,
   ExecutableWorkflow,
-} from '@workflow-engine/types';
+} from '../types';
 import {
   getInputNodes,
   getOutputNodes,
@@ -10,8 +11,7 @@ import {
   hasOutputNodes,
   validateNodeConfig,
   validateWorkflow,
-} from '@workflow-engine/validation/workflow-validator';
-import { describe, expect, it } from 'vitest';
+} from './workflow-validator';
 
 function makeNode(
   id: string,

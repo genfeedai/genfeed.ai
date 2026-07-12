@@ -1,13 +1,13 @@
-import {
-  type PartialExecutionPlan,
-  planPartialExecution,
-} from '@workflow-engine/execution/partial-execution';
 import type {
   ExecutableEdge,
   ExecutableNode,
   ExecutionRun,
   NodeExecutionStatus,
-} from '@workflow-engine/types';
+} from '../types';
+import {
+  type PartialExecutionPlan,
+  planPartialExecution,
+} from './partial-execution';
 
 export interface ResumeAnalysis {
   canResume: boolean;

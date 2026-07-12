@@ -10,9 +10,6 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",
-    "paths": {
-      "@workflow-engine/*": ["./src/engine/*"]
-    },
     "resolveJsonModule": true,
     "rootDir": "./src",
     "skipLibCheck": true,

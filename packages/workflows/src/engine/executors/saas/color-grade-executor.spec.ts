@@ -1,10 +1,10 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
+import { describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
 import {
   buildFfmpegFilterChain,
   COLOR_GRADE_PRESETS,
   createColorGradeExecutor,
-} from '@workflow-engine/executors/saas/color-grade-executor';
-import { describe, expect, it, vi } from 'vitest';
+} from './color-grade-executor';
 
 const ctx: ExecutionContext = {
   organizationId: 'o',

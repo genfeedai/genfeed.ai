@@ -1,9 +1,9 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
+import { describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
 import {
   createTrendTriggerExecutor,
   type TrendTriggerOutput,
-} from '@workflow-engine/executors/saas/trend-trigger-executor';
-import { describe, expect, it, vi } from 'vitest';
+} from './trend-trigger-executor';
 
 const ctx: ExecutionContext = {
   organizationId: 'o',

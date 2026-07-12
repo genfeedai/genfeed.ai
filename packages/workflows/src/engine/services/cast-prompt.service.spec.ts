@@ -1,10 +1,10 @@
+import { describe, expect, it } from 'vitest';
 import {
   type CASTInput,
   extractPostProcessingConfig,
   generateCASTPrompt,
   validateCASTInput,
-} from '@workflow-engine/services/cast-prompt.service';
-import { describe, expect, it } from 'vitest';
+} from './cast-prompt.service';
 
 describe('CASTPromptService', () => {
   const validInput: CASTInput = {

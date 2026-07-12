@@ -1,5 +1,5 @@
-import type { CinematicPreset } from '@workflow-engine/presets/cinematic-presets';
-import { getPresetById } from '@workflow-engine/presets/cinematic-presets';
+import type { CinematicPreset } from '../presets/cinematic-presets';
+import { getPresetById } from '../presets/cinematic-presets';
 
 export type CameraMovement =
   | 'dolly'

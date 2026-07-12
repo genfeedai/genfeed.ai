@@ -2,7 +2,7 @@ import type {
   CreditCostConfig,
   CreditEstimate,
   ExecutableNode,
-} from '@workflow-engine/types';
+} from '../types';
 
 /**
  * Credit costs per node type execution.

@@ -2,7 +2,7 @@ import {
   BaseExecutor,
   type ExecutorInput,
   type ExecutorOutput,
-} from '@workflow-engine/executors/base-executor';
+} from '../base-executor';
 
 // =============================================================================
 // TYPES

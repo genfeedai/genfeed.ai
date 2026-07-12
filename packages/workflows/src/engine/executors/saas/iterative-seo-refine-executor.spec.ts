@@ -1,14 +1,14 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import type { ExecutableNode } from '../../types';
+import type { ExecutorInput } from '../base-executor';
 import {
   createIterativeSeoRefineExecutor,
   type IterativeSeoRefineExecutor,
   type IterativeSeoRefineOutput,
-} from '@workflow-engine/executors/saas/iterative-seo-refine-executor';
-import type { SeoRewriteResolver } from '@workflow-engine/executors/saas/seo-rewrite-executor';
-import type { SeoScoreResolver } from '@workflow-engine/executors/saas/seo-score-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+} from './iterative-seo-refine-executor';
+import type { SeoRewriteResolver } from './seo-rewrite-executor';
+import type { SeoScoreResolver } from './seo-score-executor';
 
 function makeInput(
   config: Record<string, unknown>,

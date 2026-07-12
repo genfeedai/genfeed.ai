@@ -1,11 +1,11 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import type { ExecutableNode } from '../../types';
+import type { ExecutorInput } from '../base-executor';
 import {
   PostPublishTriggerExecutor,
   type PostPublishTriggerOutput,
-} from '@workflow-engine/executors/saas/post-publish-trigger-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
-import { beforeEach, describe, expect, it } from 'vitest';
+} from './post-publish-trigger-executor';
 
 function makeInput(
   config: Record<string, unknown>,

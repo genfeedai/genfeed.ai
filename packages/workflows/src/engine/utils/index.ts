@@ -1,2 +1,2 @@
-export * from '@workflow-engine/utils/credit-calculator';
-export * from '@workflow-engine/utils/safe-regex';
+export * from './credit-calculator';
+export * from './safe-regex';

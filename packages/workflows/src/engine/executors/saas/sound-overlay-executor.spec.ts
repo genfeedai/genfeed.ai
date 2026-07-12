@@ -1,6 +1,6 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import { createSoundOverlayExecutor } from '@workflow-engine/executors/saas/sound-overlay-executor';
 import { describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import { createSoundOverlayExecutor } from './sound-overlay-executor';
 
 const ctx: ExecutionContext = {
   organizationId: 'o',

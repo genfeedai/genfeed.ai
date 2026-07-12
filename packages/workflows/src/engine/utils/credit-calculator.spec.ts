@@ -1,4 +1,5 @@
-import type { ExecutableNode } from '@workflow-engine/types';
+import { describe, expect, it } from 'vitest';
+import type { ExecutableNode } from '../types';
 import {
   calculateCreditEstimate,
   DEFAULT_CREDIT_COSTS,
@@ -6,8 +7,7 @@ import {
   getNodeCreditCost,
   groupCostsByCategory,
   hasInsufficientCredits,
-} from '@workflow-engine/utils/credit-calculator';
-import { describe, expect, it } from 'vitest';
+} from './credit-calculator';
 
 function makeNode(
   id: string,

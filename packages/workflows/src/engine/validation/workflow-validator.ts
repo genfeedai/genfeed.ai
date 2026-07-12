@@ -5,7 +5,7 @@ import type {
   ValidationError,
   ValidationResult,
   ValidationWarning,
-} from '@workflow-engine/types';
+} from '../types';
 
 export interface ValidationOptions {
   validateConfigs?: boolean;

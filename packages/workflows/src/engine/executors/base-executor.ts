@@ -1,5 +1,5 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import type { ExecutableNode } from '@workflow-engine/types';
+import type { ExecutionContext } from '../execution/engine';
+import type { ExecutableNode } from '../types';
 
 export interface ExecutorInput {
   node: ExecutableNode;

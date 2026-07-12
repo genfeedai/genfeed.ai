@@ -1,12 +1,12 @@
+import { describe, expect, it, vi } from 'vitest';
+import { DEFAULT_RETRY_CONFIG } from '../types';
 import {
   calculateRetryDelay,
   createRetryHandler,
   isRetryableError,
   sleep,
   withRetry,
-} from '@workflow-engine/execution/retry-handler';
-import { DEFAULT_RETRY_CONFIG } from '@workflow-engine/types';
-import { describe, expect, it, vi } from 'vitest';
+} from './retry-handler';
 
 describe('calculateRetryDelay', () => {
   it('increases delay with attempt number', () => {

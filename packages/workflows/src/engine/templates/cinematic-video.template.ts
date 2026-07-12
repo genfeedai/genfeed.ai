@@ -1,4 +1,4 @@
-import type { ExecutableEdge, ExecutableNode } from '@workflow-engine/types';
+import type { ExecutableEdge, ExecutableNode } from '../types';
 
 export interface WorkflowTemplate {
   id: string;

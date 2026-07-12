@@ -1,13 +1,10 @@
+import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
   type ExecutorInput,
   type ExecutorOutput,
-} from '@workflow-engine/executors/base-executor';
-import {
-  pickSeoString,
-  resolveSeoUpstream,
-} from '@workflow-engine/executors/saas/seo-score-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
+} from '../base-executor';
+import { pickSeoString, resolveSeoUpstream } from './seo-score-executor';
 
 // =============================================================================
 // TYPES

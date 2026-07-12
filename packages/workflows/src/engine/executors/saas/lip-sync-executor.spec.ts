@@ -1,11 +1,8 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
-import {
-  LipSyncExecutor,
-  type LipSyncResolver,
-} from '@workflow-engine/executors/saas/lip-sync-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import type { ExecutableNode } from '../../types';
+import type { ExecutorInput } from '../base-executor';
+import { LipSyncExecutor, type LipSyncResolver } from './lip-sync-executor';
 
 function makeNode(
   configOverrides: Record<string, unknown> = {},

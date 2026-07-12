@@ -9,8 +9,9 @@
  * the API adapter layer, where both the registrars and the merged node registry
  * are visible (see workflow-core-executor-registrar.service.spec.ts).
  */
-import { DEFAULT_CREDIT_COSTS } from '@workflow-engine/utils/credit-calculator';
+
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_CREDIT_COSTS } from './credit-calculator';
 
 /** Node types deleted in #481 — must never regain a credit cost. */
 const REMOVED_NODE_TYPES = [

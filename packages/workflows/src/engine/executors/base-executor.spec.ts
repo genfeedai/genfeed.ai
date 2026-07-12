@@ -1,12 +1,12 @@
+import { describe, expect, it } from 'vitest';
+import type { ExecutableNode } from '../types';
 import {
   BaseExecutor,
   createSimpleExecutor,
   type ExecutorInput,
   type ExecutorOutput,
   NoopExecutor,
-} from '@workflow-engine/executors/base-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
-import { describe, expect, it } from 'vitest';
+} from './base-executor';
 
 class TestExecutor extends BaseExecutor {
   readonly nodeType = 'test';

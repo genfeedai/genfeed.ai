@@ -1,10 +1,10 @@
+import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
   type ExecutorInput,
   type ExecutorOutput,
-} from '@workflow-engine/executors/base-executor';
-import type { BrandContextOutput } from '@workflow-engine/executors/saas/brand-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
+} from '../base-executor';
+import type { BrandContextOutput } from './brand-executor';
 
 export type SocialPlatform =
   | 'twitter'

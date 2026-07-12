@@ -1,14 +1,14 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import type { ExecutableNode } from '../../types';
+import type { ExecutorInput } from '../base-executor';
 import {
   buildLensEffectsFilterChain,
   createLensEffectsExecutor,
   type LensEffectsConfig,
   type LensEffectsExecutor,
   type LensEffectsProcessor,
-} from '@workflow-engine/executors/saas/lens-effects-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+} from './lens-effects-executor';
 
 function makeInput(
   config: Record<string, unknown>,

@@ -1,10 +1,10 @@
+import { describe, expect, it } from 'vitest';
 import {
   CINEMATIC_VIDEO_TEMPLATE,
   createCinematicWorkflowInstance,
   getAvailableTemplates,
   getTemplateById,
-} from '@workflow-engine/templates/cinematic-video.template';
-import { describe, expect, it } from 'vitest';
+} from './cinematic-video.template';
 
 describe('CinematicVideoTemplate', () => {
   describe('Template Structure', () => {

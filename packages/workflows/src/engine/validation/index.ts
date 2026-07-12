@@ -1,1 +1,1 @@
-export * from '@workflow-engine/validation/workflow-validator';
+export * from './workflow-validator';

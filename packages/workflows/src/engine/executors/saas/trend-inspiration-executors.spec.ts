@@ -1,18 +1,18 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
+import { describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import { DEFAULT_CREDIT_COSTS } from '../../utils/credit-calculator';
 import {
   createTrendHashtagInspirationExecutor,
   type TrendHashtagInspirationOutput,
-} from '@workflow-engine/executors/saas/trend-hashtag-inspiration-executor';
+} from './trend-hashtag-inspiration-executor';
 import {
   createTrendSoundInspirationExecutor,
   type TrendSoundInspirationOutput,
-} from '@workflow-engine/executors/saas/trend-sound-inspiration-executor';
+} from './trend-sound-inspiration-executor';
 import {
   createTrendVideoInspirationExecutor,
   type TrendVideoInspirationOutput,
-} from '@workflow-engine/executors/saas/trend-video-inspiration-executor';
-import { DEFAULT_CREDIT_COSTS } from '@workflow-engine/utils/credit-calculator';
-import { describe, expect, it, vi } from 'vitest';
+} from './trend-video-inspiration-executor';
 
 const ctx: ExecutionContext = {
   organizationId: 'o',

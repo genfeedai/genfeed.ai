@@ -1,14 +1,10 @@
+import { describe, expect, it } from 'vitest';
+import type { ExecutableEdge, ExecutableNode, ExecutionRun } from '../types';
 import {
   analyzeForResume,
   createCacheFromRun,
   mergeExecutionResults,
-} from '@workflow-engine/execution/resume-handler';
-import type {
-  ExecutableEdge,
-  ExecutableNode,
-  ExecutionRun,
-} from '@workflow-engine/types';
-import { describe, expect, it } from 'vitest';
+} from './resume-handler';
 
 const nodes: ExecutableNode[] = [
   { config: {}, id: 'a', inputs: [], label: 'A', type: 'text' },

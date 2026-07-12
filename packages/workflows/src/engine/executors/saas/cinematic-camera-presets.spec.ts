@@ -1,9 +1,9 @@
+import { describe, expect, it } from 'vitest';
 import {
   CINEMATIC_CAMERA_PRESETS,
   getCinematicCameraPreset,
   listCinematicCameraPresetIds,
-} from '@workflow-engine/executors/saas/cinematic-camera-presets';
-import { describe, expect, it } from 'vitest';
+} from './cinematic-camera-presets';
 
 describe('cinematic-camera-presets', () => {
   it('has 6 presets', () => {

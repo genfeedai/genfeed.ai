@@ -1,7 +1,7 @@
 import { MusicSourceType } from '@genfeedai/enums';
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import { createMusicSourceExecutor } from '@workflow-engine/executors/saas/music-source-executor';
 import { describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import { createMusicSourceExecutor } from './music-source-executor';
 
 const ctx: ExecutionContext = {
   organizationId: 'o',

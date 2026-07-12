@@ -5,23 +5,21 @@
  *   iterate-until loop lives inside `iterativeSeoRefine` rather than the graph,
  * - the executors, run in dependency order, produce the score -> rewrite path.
  */
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
+
+import { describe, expect, it } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import type { ExecutableNode, ExecutableWorkflow } from '../../types';
+import { validateWorkflow } from '../../validation/workflow-validator';
 import {
   createSeoRewriteExecutor,
   type SeoRewriteOutput,
   type SeoRewriteResolver,
-} from '@workflow-engine/executors/saas/seo-rewrite-executor';
+} from './seo-rewrite-executor';
 import {
   createSeoScoreExecutor,
   type SeoScoreOutput,
   type SeoScoreResolver,
-} from '@workflow-engine/executors/saas/seo-score-executor';
-import type {
-  ExecutableNode,
-  ExecutableWorkflow,
-} from '@workflow-engine/types';
-import { validateWorkflow } from '@workflow-engine/validation/workflow-validator';
-import { describe, expect, it } from 'vitest';
+} from './seo-score-executor';
 
 const CONTEXT: ExecutionContext = {
   organizationId: 'org-1',

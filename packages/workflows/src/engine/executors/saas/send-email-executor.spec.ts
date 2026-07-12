@@ -1,12 +1,12 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import type { ExecutableNode } from '../../types';
+import type { ExecutorInput } from '../base-executor';
 import {
   createSendEmailExecutor,
   type EmailSender,
   type SendEmailExecutor,
-} from '@workflow-engine/executors/saas/send-email-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+} from './send-email-executor';
 
 function makeInput(
   config: Record<string, unknown>,

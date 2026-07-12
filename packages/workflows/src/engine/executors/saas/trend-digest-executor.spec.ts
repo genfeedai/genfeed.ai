@@ -1,5 +1,7 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
-import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import type { ExecutableNode } from '../../types';
+import type { ExecutorInput } from '../base-executor';
 import {
   type DigestCreditsChecker,
   type DigestIdempotencyGuard,
@@ -10,9 +12,7 @@ import {
   TrendDigestExecutor,
   type TrendDigestReadyOutput,
   type TrendDigestSkippedOutput,
-} from '@workflow-engine/executors/saas/trend-digest-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+} from './trend-digest-executor';
 
 const SAMPLE_TRENDS: TrendDigestEntry[] = [
   { platform: 'tiktok', topic: 'Dancing cats', type: 'video', viralScore: 92 },

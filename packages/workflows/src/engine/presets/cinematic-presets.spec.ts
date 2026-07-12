@@ -1,11 +1,11 @@
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   CINEMATIC_PRESETS,
   type CinematicPreset,
   getAllPresets,
   getPresetById,
   getPresetsByCategory,
-} from '@workflow-engine/presets/cinematic-presets';
-import { beforeEach, describe, expect, it } from 'vitest';
+} from './cinematic-presets';
 
 describe('CinematicPresets', () => {
   describe('Preset Structure', () => {

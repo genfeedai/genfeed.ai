@@ -1,10 +1,10 @@
-import type { ExecutionContext } from '@workflow-engine/execution/engine';
+import type { ExecutionContext } from '../../execution/engine';
+import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
   type ExecutorInput,
   type ExecutorOutput,
-} from '@workflow-engine/executors/base-executor';
-import type { ExecutableNode } from '@workflow-engine/types';
+} from '../base-executor';
 
 export interface TtsResult {
   audioUrl: string;
