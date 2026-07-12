@@ -1,2 +1,2 @@
 declare module '*.css';
-declare module '@genfeedai/workflow-ui/styles';
+declare module '@genfeedai/workflows/ui/styles';

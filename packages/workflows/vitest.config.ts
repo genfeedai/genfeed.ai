@@ -21,6 +21,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../interfaces/src/$1'),
       },
       {
+        find: /^@genfeedai\/pricing$/,
+        replacement: path.resolve(__dirname, '../pricing/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/pricing\/(.*)$/,
+        replacement: path.resolve(__dirname, '../pricing/src/$1'),
+      },
+      {
         find: /^@genfeedai\/types$/,
         replacement: path.resolve(__dirname, '../types/src/index.ts'),
       },
@@ -28,12 +36,22 @@ export default defineConfig({
         find: /^@genfeedai\/types\/(.*)$/,
         replacement: path.resolve(__dirname, '../types/src/$1'),
       },
+      {
+        find: /^@genfeedai\/ui$/,
+        replacement: path.resolve(__dirname, '../ui/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/ui\/(.*)$/,
+        replacement: path.resolve(__dirname, '../ui/src/$1'),
+      },
     ],
   },
   test: {
     environment: 'node',
+    environmentMatchGlobs: [['src/ui/**', 'jsdom']],
     globals: true,
-    include: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
+    include: ['src/**/*.spec.ts', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    setupFiles: ['./vitest.setup.ts'],
     testTimeout: 15000,
   },
 });

@@ -2,11 +2,11 @@ import type { EdgeStyle, ProviderType } from '@genfeedai/types';
 import type {
   SettingsSyncService,
   SyncableSettings,
-} from '@genfeedai/workflow-ui/provider';
+} from '@genfeedai/workflows/ui/provider';
 import { settingsApi } from './settings';
 
 /**
- * App-owned adapter injected into `@genfeedai/workflow-ui` via
+ * App-owned adapter injected into `@genfeedai/workflows/ui` via
  * `WorkflowUIConfig.settingsSync`. It maps the package settings store's
  * {@link SyncableSettings} to/from the app's `/settings` DTOs; the package store
  * owns the actual merge (it holds current state), so this layer only translates.
