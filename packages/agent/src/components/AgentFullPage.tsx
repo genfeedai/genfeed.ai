@@ -3,6 +3,7 @@ import { AgentFullPageMobileBar } from '@genfeedai/agent/components/AgentFullPag
 import { AgentFullPageMobileDrawers } from '@genfeedai/agent/components/AgentFullPageMobileDrawers';
 import { AgentFullPageOnboardingChrome } from '@genfeedai/agent/components/AgentFullPageOnboardingChrome';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
+import { AgentSetupPanel } from '@genfeedai/agent/components/AgentSetupPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
 import { AgentWorkspaceRunSummary } from '@genfeedai/agent/components/AgentWorkspaceRunSummary';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
@@ -50,11 +51,13 @@ export function AgentFullPage({
 }: AgentFullPageProps): ReactElement {
   const {
     activeThreadStatus,
+    agentSetup,
     currentStepId,
     hasThreadOutputs,
     isLoadingThread,
     mobileChecklistOpen,
     mobileOutputsOpen,
+    mobileSetupOpen,
     mobileThreadsOpen,
     onboardingCompletionPercent,
     onboardingEarnedCredits,
@@ -65,8 +68,10 @@ export function AgentFullPage({
     resolvedActions,
     setMobileChecklistOpen,
     setMobileOutputsOpen,
+    setMobileSetupOpen,
     setMobileThreadsOpen,
     showRuntimeSuggestedActions,
+    showSetupPanel,
     workspacePlanningTaskId,
     ONBOARDING_SUGGESTED_ACTIONS,
   } = useAgentFullPage({
@@ -94,8 +99,10 @@ export function AgentFullPage({
         <AgentFullPageMobileBar
           showThreadSidebar={showThreadSidebar}
           hasThreadOutputs={hasThreadOutputs}
+          showSetupPanel={showSetupPanel}
           onOpenThreads={() => setMobileThreadsOpen(true)}
           onOpenOutputs={() => setMobileOutputsOpen(true)}
+          onOpenSetup={() => setMobileSetupOpen(true)}
         />
 
         {showRunSummary ? (
@@ -136,7 +143,7 @@ export function AgentFullPage({
               onOAuthConnect={onOAuthConnect}
               onSelectCreditPack={onSelectCreditPack}
               onboardingMode={onboardingMode}
-              isWideLayout={!hasThreadOutputs}
+              isWideLayout={!hasThreadOutputs && !showSetupPanel}
               promptBarLayoutMode="surface-fixed"
               workspacePlanningTaskId={workspacePlanningTaskId}
             />
@@ -145,6 +152,16 @@ export function AgentFullPage({
           {hasThreadOutputs ? (
             <div className="hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background-secondary">
               <AgentOutputsPanel className="h-full w-full" />
+            </div>
+          ) : showSetupPanel ? (
+            <div className="hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background-secondary">
+              <AgentSetupPanel
+                className="h-full w-full"
+                brand={agentSetup.brand}
+                connectedConnections={agentSetup.connectedConnections}
+                connectedPlatformsCount={agentSetup.connectedPlatformsCount}
+                onOAuthConnect={onOAuthConnect}
+              />
             </div>
           ) : null}
         </div>
@@ -172,6 +189,11 @@ export function AgentFullPage({
         hasThreadOutputs={hasThreadOutputs}
         mobileOutputsOpen={mobileOutputsOpen}
         onMobileOutputsOpenChange={setMobileOutputsOpen}
+        showSetupPanel={showSetupPanel}
+        mobileSetupOpen={mobileSetupOpen}
+        onMobileSetupOpenChange={setMobileSetupOpen}
+        agentSetup={agentSetup}
+        onOAuthConnect={onOAuthConnect}
       />
     </div>
   );

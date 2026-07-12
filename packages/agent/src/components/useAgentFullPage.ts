@@ -1,3 +1,4 @@
+import { useAgentSetupStatus } from '@genfeedai/agent/components/useAgentSetupStatus';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -120,6 +121,7 @@ export function useAgentFullPage({
   const [isLoadingThread, setIsLoadingThread] = useState(false);
   const [mobileChecklistOpen, setMobileChecklistOpen] = useState(false);
   const [mobileOutputsOpen, setMobileOutputsOpen] = useState(false);
+  const [mobileSetupOpen, setMobileSetupOpen] = useState(false);
   const [mobileThreadsOpen, setMobileThreadsOpen] = useState(false);
   const [activeThreadStatus, setActiveThreadStatus] =
     useState<AgentThreadStatus | null>(null);
@@ -184,9 +186,22 @@ export function useAgentFullPage({
   );
   const hasThreadOutputs = threadOutputs.length > 0;
 
+  const agentSetup = useAgentSetupStatus();
+  // Thread outputs take priority over the setup panel: only offer setup in the
+  // right pane / mobile drawer when the active thread has produced nothing yet.
+  const showSetupPanel = agentSetup.showSetupPanel && !hasThreadOutputs;
+
   useEffect(() => {
     activeThreadRef.current = activeStoreThreadId;
   }, [activeStoreThreadId]);
+
+  useEffect(() => {
+    if (showSetupPanel) {
+      return;
+    }
+
+    setMobileSetupOpen(false);
+  }, [showSetupPanel]);
 
   useEffect(() => {
     messageCountRef.current = existingMessages.length;
@@ -426,11 +441,13 @@ export function useAgentFullPage({
 
   return {
     activeThreadStatus,
+    agentSetup,
     currentStepId,
     hasThreadOutputs,
     isLoadingThread,
     mobileChecklistOpen,
     mobileOutputsOpen,
+    mobileSetupOpen,
     mobileThreadsOpen,
     onboardingCompletionPercent,
     onboardingEarnedCredits,
@@ -441,8 +458,10 @@ export function useAgentFullPage({
     resolvedActions,
     setMobileChecklistOpen,
     setMobileOutputsOpen,
+    setMobileSetupOpen,
     setMobileThreadsOpen,
     showRuntimeSuggestedActions,
+    showSetupPanel,
     workspacePlanningTaskId,
     ONBOARDING_SUGGESTED_ACTIONS,
   };
