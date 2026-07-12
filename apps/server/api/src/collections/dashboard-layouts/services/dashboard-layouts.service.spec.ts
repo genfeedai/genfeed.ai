@@ -79,7 +79,9 @@ describe('DashboardLayoutsService', () => {
         'workspace-overview',
       );
 
-      expect(result).toEqual(mockDashboardLayout);
+      // BaseService.findOne runs normalizeDocument, which adds legacy alias
+      // fields (organization, brand) on top of the raw row — match a subset.
+      expect(result).toMatchObject(mockDashboardLayout);
       expect(mockPrisma.dashboardLayout.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -130,6 +132,7 @@ describe('DashboardLayoutsService', () => {
         },
         update: {
           document: sanitizedDocument,
+          isDeleted: false,
         },
         where: {
           organizationId_brandId_pageKey: {
@@ -243,7 +246,8 @@ describe('DashboardLayoutsService', () => {
 
       const result = await service.removeScoped('dl-1', 'org-1');
 
-      expect(result).toEqual({ ...mockDashboardLayout, isDeleted: true });
+      // remove() normalizes the returned row (adds alias fields) — match subset.
+      expect(result).toMatchObject({ ...mockDashboardLayout, isDeleted: true });
       expect(mockPrisma.dashboardLayout.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
