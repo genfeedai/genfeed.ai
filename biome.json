@@ -102,7 +102,7 @@
       }
     },
     {
-      "includes": ["apps/server/**"],
+      "includes": ["apps/server/**", "packages/libs/**"],
       "javascript": {
         "parser": {
           "unsafeParameterDecoratorsEnabled": true

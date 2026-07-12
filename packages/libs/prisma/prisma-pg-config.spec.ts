@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createPrismaPgConfig } from './prisma.service';
+import { createPrismaPgConfig } from './prisma-pg-config';
 
 let tempDirectories: string[] = [];
 
@@ -54,14 +54,18 @@ describe('createPrismaPgConfig', () => {
     });
   });
 
-  it('lets sslmode=disable win over CA env configuration', () => {
+  it('lets sslmode=disable win over CA env configuration and strips sslmode', () => {
     const connectionString = pgUrl('postgres', '?sslmode=disable');
 
     expect(
       createPrismaPgConfig(connectionString, {
         caFilePaths: [writeCaFile()],
       }),
-    ).toEqual({ connectionString, ...defaultPool });
+    ).toEqual({
+      connectionString: pgUrl('postgres'),
+      ssl: false,
+      ...defaultPool,
+    });
   });
 
   it('maps sslmode=no-verify to encrypted TLS without chain verification', () => {

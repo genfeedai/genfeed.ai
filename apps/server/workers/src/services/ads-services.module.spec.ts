@@ -1,5 +1,5 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { Test } from '@nestjs/testing';
 import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';

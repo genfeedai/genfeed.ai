@@ -4,7 +4,6 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentAutonomyMode,
   AgentExecutionTrigger,
@@ -12,6 +11,7 @@ import {
 } from '@genfeedai/enums';
 import type { AgentStrategy } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 
 const MAX_CONSECUTIVE_FAILURES = 5;

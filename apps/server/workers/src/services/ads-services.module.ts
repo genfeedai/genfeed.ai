@@ -1,7 +1,7 @@
-import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaModule } from '@libs/prisma/prisma.module';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { AdBulkUploadJobsService } from '@server/collections/ad-bulk-upload-jobs/services/ad-bulk-upload-jobs.service';

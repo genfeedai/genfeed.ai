@@ -2,6 +2,7 @@
   "dependencies": {
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/prisma": "workspace:*",
     "@genfeedai/storage": "workspace:*",
     "jose": "^6.2.3"
   },
