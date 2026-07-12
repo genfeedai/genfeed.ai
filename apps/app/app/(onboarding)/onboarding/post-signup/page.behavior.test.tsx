@@ -13,6 +13,7 @@ const {
   currentUserState,
   getTokenMock,
   getMyOrganizationsMock,
+  isCloudMock,
   isEEEnabledMock,
   isSelfHostedMock,
   managedCreateCheckoutSessionMock,
@@ -33,6 +34,7 @@ const {
   },
   getTokenMock: vi.fn(),
   getMyOrganizationsMock: vi.fn(),
+  isCloudMock: vi.fn(),
   isEEEnabledMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
   managedCreateCheckoutSessionMock: vi.fn(),
@@ -156,6 +158,7 @@ vi.mock('@genfeedai/config/license', () => ({
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({
+  isCloudDeployment: () => isCloudMock(),
   isSelfHostedDeployment: () => isSelfHostedMock(),
 }));
 
@@ -185,6 +188,7 @@ describe('PostSignupPage behavior', () => {
     managedCreateCheckoutSessionMock.mockReset();
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
+    isCloudMock.mockReset();
     isEEEnabledMock.mockReset();
     isSelfHostedMock.mockReset();
     resolveAuthTokenMock.mockReset();
@@ -198,6 +202,7 @@ describe('PostSignupPage behavior', () => {
       onboardingStepsCompleted: [],
     };
     currentUserState.isLoading = false;
+    isCloudMock.mockReturnValue(false);
     isEEEnabledMock.mockReturnValue(false);
     isSelfHostedMock.mockReturnValue(true);
     resolveAuthTokenMock.mockResolvedValue('api-token');
@@ -369,5 +374,69 @@ describe('PostSignupPage behavior', () => {
     expect(locationState.href).toBe(
       'https://checkout.stripe.test/managed-session',
     );
+  });
+
+  it('routes new cloud signups to the org-scoped agent onboarding surface', async () => {
+    isCloudMock.mockReturnValue(true);
+    isSelfHostedMock.mockReturnValue(false);
+    getMyOrganizationsMock.mockResolvedValue([
+      {
+        brand: null,
+        id: 'org-1',
+        isActive: true,
+        isOwner: true,
+        label: 'Acme',
+        slug: 'acme',
+      },
+    ]);
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(locationState.href).toBe('/acme/~/agent/onboarding');
+    });
+    expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the wizard when no cloud org slug can be resolved', async () => {
+    isCloudMock.mockReturnValue(true);
+    isSelfHostedMock.mockReturnValue(false);
+    getMyOrganizationsMock.mockResolvedValue([]);
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(locationState.href).toBe('/onboarding/brand');
+    });
+  });
+
+  it('keeps plan checkout returns on the wizard even on cloud (preserves #1421)', async () => {
+    isCloudMock.mockReturnValue(true);
+    isEEEnabledMock.mockReturnValue(true);
+    isSelfHostedMock.mockReturnValue(false);
+    getMyOrganizationsMock.mockResolvedValue([
+      {
+        brand: null,
+        id: 'org-1',
+        isActive: true,
+        isOwner: true,
+        label: 'Acme',
+        slug: 'acme',
+      },
+    ]);
+    searchParamsState.value = new URLSearchParams('plan=price_123');
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(createCheckoutSessionMock).toHaveBeenCalledWith({
+        cancelUrl: 'http://localhost/onboarding/providers',
+        quantity: null,
+        stripePriceId: 'price_123',
+        successUrl:
+          'http://localhost/onboarding/brand?checkout=completed&checkoutKind=plan',
+      });
+    });
+    expect(locationState.href).toBe('https://checkout.stripe.test/session');
   });
 });

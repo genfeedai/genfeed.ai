@@ -2,9 +2,11 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { isCloudDeployment } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
   createBrandAppRoute,
+  createOrganizationAppRoute,
   getResumeStep,
   ONBOARDING_STEPS,
 } from '@genfeedai/constants';
@@ -98,7 +100,11 @@ export default function OrgLandingContent() {
       ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
 
     if (!hasCompletedOnboarding) {
-      replace(`/onboarding/${getResumeStep(completedSteps)}`);
+      replace(
+        isCloudDeployment() && orgSlug
+          ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
+          : `/onboarding/${getResumeStep(completedSteps)}`,
+      );
       return;
     }
 
