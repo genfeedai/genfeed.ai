@@ -64,10 +64,22 @@ jobs:
           POSTGRES_PASSWORD: genfeed_local
         ports:
           - 5432:5432
+        # Gate job start on container readiness so the first DB touch can
+        # never race container startup (deferred CodeRabbit finding on #1615).
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
       redis:
         image: redis:7
         ports:
           - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       NODE_ENV: test
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
@@ -276,10 +288,22 @@ jobs:
           POSTGRES_PASSWORD: genfeed_local
         ports:
           - 5432:5432
+        # Gate job start on container readiness so the first DB touch can
+        # never race container startup (deferred CodeRabbit finding on #1615).
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
       redis:
         image: redis:7
         ports:
           - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       REDIS_URL: redis://localhost:6379
