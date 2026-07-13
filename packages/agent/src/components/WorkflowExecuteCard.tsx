@@ -5,6 +5,7 @@ import type {
   WorkflowInterfaceSchema,
 } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   type ChangeEvent,
@@ -68,6 +69,10 @@ export function WorkflowExecuteCard({
   const workflowId = action.workflowId;
   const currentWorkflowId = workflowId ?? null;
   const workflowName = action.workflowName ?? 'Workflow';
+  const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const activeThread = useAgentChatStore((state) =>
+    state.threads.find((thread) => thread.id === state.activeThreadId),
+  );
   const [status, setStatus] = useState<CardStatus>('idle');
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -198,6 +203,12 @@ export function WorkflowExecuteCard({
           workflowId,
           sanitizeInputValues(formValues),
           controller.signal,
+          activeThreadId && activeThread?.contextVersion !== undefined
+            ? {
+                expectedContextVersion: activeThread.contextVersion,
+                threadId: activeThreadId,
+              }
+            : undefined,
         ),
       );
       setExecutionId(result.id);
@@ -211,7 +222,14 @@ export function WorkflowExecuteCard({
       );
       setStatus('error');
     }
-  }, [apiService, formValues, inputEntries, workflowId]);
+  }, [
+    activeThread?.contextVersion,
+    activeThreadId,
+    apiService,
+    formValues,
+    inputEntries,
+    workflowId,
+  ]);
 
   const handleRetry = useCallback(() => {
     setStatus('idle');

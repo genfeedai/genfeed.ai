@@ -41,12 +41,17 @@ import {
 } from 'react';
 import {
   HiOutlineArrowLeft,
+  HiOutlineBolt,
   HiOutlineChatBubbleLeftRight,
   HiOutlineEye,
   HiOutlineSquares2X2,
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
 import { buildLibraryRemixIntentHref } from '@/features/library-remix/library-remix-reference';
+import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
+import { WorkflowPickerOverlay } from '@/features/workflows/workspace/WorkflowPickerOverlay';
+import { WorkflowSurfaceInspector } from '@/features/workflows/workspace/WorkflowSurfaceInspector';
+import { resolveWorkflowSurfaceRoute } from '@/features/workflows/workspace/workflow-surface-routing';
 import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
@@ -122,6 +127,7 @@ function UniversalWorkspaceShellContent({
   const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const threads = useAgentChatStore((state) => state.threads);
+  const seedComposer = useAgentChatStore((state) => state.seedComposer);
   const activeSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
@@ -204,6 +210,14 @@ function UniversalWorkspaceShellContent({
   const activeThread = useMemo(
     () => threads.find((thread) => thread.id === effectiveThreadId) ?? null,
     [effectiveThreadId, threads],
+  );
+  const workflowSurfaceRoute = useMemo(
+    () =>
+      resolveWorkflowSurfaceRoute(
+        rawPathname,
+        new URLSearchParams(searchParamsString),
+      ),
+    [rawPathname, searchParamsString],
   );
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
   const shellContextLabel =
@@ -395,6 +409,15 @@ function UniversalWorkspaceShellContent({
     });
   }, [launchWorkspaceOverlay]);
 
+  const handleOpenWorkflowPicker = useCallback(
+    (): boolean =>
+      launchWorkspaceOverlay({
+        key: 'workflow-picker',
+        parameters: {},
+      }),
+    [launchWorkspaceOverlay],
+  );
+
   const handleComposerAction = useCallback(
     (
       invocation: ConversationComposerActionInvocation,
@@ -419,6 +442,28 @@ function UniversalWorkspaceShellContent({
             'That action is not registered. Your draft and references are unchanged.',
           status: 'unavailable',
         };
+      }
+
+      if (trustedAction.name === 'workflow') {
+        if (!activeThread?.brandId) {
+          return {
+            message:
+              '/workflow needs an active thread brand. Select a brand through the scoped controls; your draft has been preserved.',
+            status: 'unauthorized',
+          };
+        }
+
+        return handleOpenWorkflowPicker()
+          ? {
+              message:
+                'Opened the authorized workflow picker. Choose a workflow to attach it or open its focused editor.',
+              status: 'dispatched',
+            }
+          : {
+              message:
+                'The workflow picker is unavailable. Your draft and references are unchanged.',
+              status: 'unavailable',
+            };
       }
 
       if (trustedAction.requiredScope === 'brand' && !brandSlug) {
@@ -475,11 +520,13 @@ function UniversalWorkspaceShellContent({
     },
     [
       activeThreadId,
+      activeThread?.brandId,
       brandSlug,
       conversationScope.isConsequentiallyBlocked,
       currentHref,
       effectiveThreadId,
       href,
+      handleOpenWorkflowPicker,
       launchWorkspaceOverlay,
       orgHref,
       push,
@@ -537,6 +584,37 @@ function UniversalWorkspaceShellContent({
       ),
     );
   }, [back, rawPathname, replace, searchParamsString]);
+
+  const openWorkflowCanvas = useCallback(
+    (workflow?: WorkflowSummary) => {
+      const destinationHref = href(
+        workflow ? `/workflows/${workflow._id}` : '/workflows',
+      );
+      const launch = resolveWorkspaceSurfaceLaunch({
+        currentHref,
+        destinationHref,
+        threadId: effectiveThreadId ?? activeThreadId,
+      });
+      if (launch.history !== 'push' || launch.mode !== 'canvas') {
+        return;
+      }
+
+      pendingTransitionRef.current = 'canvas_launch';
+      push(launch.href);
+    },
+    [activeThreadId, currentHref, effectiveThreadId, href, push],
+  );
+
+  const handleAttachWorkflow = useCallback(
+    (workflow: WorkflowSummary) => {
+      seedComposer(
+        `Use the deterministic workflow “${workflow.name}” (workflow ID: ${workflow._id}) for this request: `,
+        effectiveThreadId ?? activeThreadId,
+      );
+      handleDismissOverlay();
+    },
+    [activeThreadId, effectiveThreadId, handleDismissOverlay, seedComposer],
+  );
 
   const handleInspectorResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -598,30 +676,47 @@ function UniversalWorkspaceShellContent({
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         {conversationScope.inspectorScope}
-        <div
-          className="gen-shell-empty-state p-4"
-          data-testid={
-            resolvedSurfaceAdapter
-              ? 'workspace-surface-adapter-inspector'
-              : undefined
-          }
-        >
-          <p className="text-sm font-medium text-foreground">
-            {resolvedSurfaceAdapter
-              ? resolvedSurfaceAdapter.registration.title
-              : `Registered ${surfaceKey} adapter slot`}
-          </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            {resolvedSurfaceAdapter
-              ? resolvedSurfaceAdapter.registration.description
-              : 'Product-owned context adapters land here without changing their canonical route or granting execution authority.'}
-          </p>
-          {resolvedSurfaceAdapter ? (
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">
-              Full management remains available on this canonical route.
+        {surfaceKey === 'workflows' ? (
+          <WorkflowSurfaceInspector
+            contextVersion={activeThread?.contextVersion}
+            pathname={rawPathname}
+            searchParams={new URLSearchParams(searchParamsString)}
+            threadId={effectiveThreadId}
+          />
+        ) : (
+          <div
+            className="gen-shell-empty-state p-4"
+            data-testid={
+              resolvedSurfaceAdapter
+                ? 'workspace-surface-adapter-inspector'
+                : undefined
+            }
+          >
+            <p className="text-sm font-medium text-foreground">
+              {resolvedSurfaceAdapter
+                ? resolvedSurfaceAdapter.registration.title
+                : `Registered ${surfaceKey} adapter slot`}
             </p>
-          ) : null}
-        </div>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {resolvedSurfaceAdapter
+                ? resolvedSurfaceAdapter.registration.description
+                : 'Product-owned context adapters land here without changing their canonical route or granting execution authority.'}
+            </p>
+            {resolvedSurfaceAdapter ? (
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                Full management remains available on this canonical route.
+              </p>
+            ) : null}
+          </div>
+        )}
+        <Button
+          icon={<HiOutlineBolt className="size-4" />}
+          onClick={handleOpenWorkflowPicker}
+          variant={ButtonVariant.OUTLINE}
+          withWrapper={false}
+        >
+          Choose workflow
+        </Button>
         <Button
           icon={<HiOutlineEye className="size-4" />}
           onClick={handleOpenOverlay}
@@ -734,7 +829,10 @@ function UniversalWorkspaceShellContent({
               aria-hidden={baseState !== 'canvas'}
               aria-label="Primary workspace canvas"
               className={cn(
-                'gen-workspace-shell-region-emphasis h-full min-w-0 overflow-auto bg-background pb-48 shadow-border md:pb-56',
+                'gen-workspace-shell-region-emphasis h-full min-w-0 bg-background shadow-border',
+                workflowSurfaceRoute.isGraphCanvas
+                  ? 'overflow-hidden'
+                  : 'overflow-auto pb-48 md:pb-56',
                 baseState !== 'canvas' && 'hidden',
               )}
               data-testid="workspace-canvas-layout"
@@ -835,6 +933,16 @@ function UniversalWorkspaceShellContent({
 
         <WorkspaceOverlayHost
           composerPortalRef={setComposerPortalTarget}
+          content={
+            overlay?.key === 'workflow-picker' ? (
+              <WorkflowPickerOverlay
+                activeBrandId={activeThread?.brandId}
+                onAttachWorkflow={handleAttachWorkflow}
+                onOpenLibrary={() => openWorkflowCanvas()}
+                onOpenWorkflow={openWorkflowCanvas}
+              />
+            ) : undefined
+          }
           fallbackFocusRef={primaryRegionRef}
           isOpen={state === 'overlay'}
           onDismiss={handleDismissOverlay}

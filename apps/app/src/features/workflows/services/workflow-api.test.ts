@@ -344,8 +344,10 @@ describe('WorkflowApiService', () => {
     });
     await expect(
       service().execute('workflow-1', {
+        expectedContextVersion: 4,
         inputValues: { topic: 'launch' },
         metadata: { source: 'test' },
+        threadId: 'thread-1',
       }),
     ).resolves.toMatchObject({ _id: 'execution-1' });
     await expect(
@@ -371,8 +373,10 @@ describe('WorkflowApiService', () => {
       2,
       'https://api.test/v1/workflow-executions',
       {
+        expectedContextVersion: 4,
         inputValues: { topic: 'launch' },
         metadata: { source: 'test' },
+        threadId: 'thread-1',
         workflow: 'workflow-1',
       },
     );
@@ -391,6 +395,30 @@ describe('WorkflowApiService', () => {
     expect(mocks.get).toHaveBeenNthCalledWith(
       2,
       'https://api.test/v1/workflow-executions/execution-1',
+    );
+  });
+
+  it('resumes a failed execution with connected thread authority', async () => {
+    mocks.post.mockResolvedValueOnce({
+      data: {
+        data: {
+          message: 'Partial execution started',
+          runId: 'execution-2',
+          status: 'pending',
+        },
+      },
+    });
+
+    await expect(
+      service().resumeExecution('workflow-1', 'execution-1', {
+        expectedContextVersion: 4,
+        threadId: 'thread-1',
+      }),
+    ).resolves.toMatchObject({ runId: 'execution-2' });
+
+    expect(mocks.post).toHaveBeenCalledWith(
+      '/workflow-1/execute/resume/execution-1',
+      { expectedContextVersion: 4, threadId: 'thread-1' },
     );
   });
 
@@ -470,8 +498,26 @@ describe('WorkflowApiService', () => {
     });
     await service().deleteWebhook('workflow-1');
     await expect(
-      service().submitApproval('workflow-1', 'execution-1', 'review-1', true),
+      service().submitApproval(
+        'workflow-1',
+        'execution-1',
+        'review-1',
+        true,
+        undefined,
+        { expectedContextVersion: 4, threadId: 'thread-1' },
+      ),
     ).resolves.toMatchObject({ status: 'approved' });
+    expect(mocks.post).toHaveBeenNthCalledWith(
+      2,
+      '/workflow-1/executions/execution-1/approve',
+      {
+        approved: true,
+        expectedContextVersion: 4,
+        nodeId: 'review-1',
+        rejectionReason: undefined,
+        threadId: 'thread-1',
+      },
+    );
     await expect(service().listTemplates()).resolves.toEqual([
       {
         id: 'template-1',

@@ -5434,6 +5434,10 @@
       },
       "CreateWorkflowExecutionDto": {
         "properties": {
+          "expectedContextVersion": {
+            "minimum": 1,
+            "type": "number"
+          },
           "inputValues": {
             "description": "Input values for workflow variables",
             "type": "object"
@@ -5441,6 +5445,10 @@
           "metadata": {
             "description": "Additional metadata",
             "type": "object"
+          },
+          "threadId": {
+            "description": "Active agent thread ID",
+            "type": "string"
           },
           "trigger": {
             "allOf": [
@@ -8542,10 +8550,18 @@
       },
       "ResumeExecutionDto": {
         "properties": {
+          "expectedContextVersion": {
+            "minimum": 1,
+            "type": "number"
+          },
           "respectLocks": {
             "default": true,
             "description": "Whether to skip locked nodes",
             "type": "boolean"
+          },
+          "threadId": {
+            "description": "Active agent thread ID",
+            "type": "string"
           }
         },
         "type": "object"
@@ -9369,6 +9385,10 @@
             "example": true,
             "type": "boolean"
           },
+          "expectedContextVersion": {
+            "minimum": 1,
+            "type": "number"
+          },
           "nodeId": {
             "description": "Review gate node ID awaiting approval",
             "example": "review-gate-1",
@@ -9377,6 +9397,10 @@
           "rejectionReason": {
             "description": "Optional rejection reason when approval is denied",
             "example": "Rejected by reviewer",
+            "type": "string"
+          },
+          "threadId": {
+            "description": "Active agent thread ID",
             "type": "string"
           }
         },
@@ -17987,6 +18011,15 @@
             "schema": {
               "default": true,
               "type": "boolean"
+            }
+          },
+          {
+            "description": "Restrict visible workflows to the active brand for an authorized picker.",
+            "in": "query",
+            "name": "brandId",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           },
           {
