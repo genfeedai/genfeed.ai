@@ -2,6 +2,11 @@ import type { CreateDashboardLayoutDto } from '@api/collections/dashboard-layout
 import type { UpdateDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto/update-dashboard-layout.dto';
 import type { UpsertDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto/upsert-dashboard-layout.dto';
 import type { DashboardLayoutDocument } from '@api/collections/dashboard-layouts/schemas/dashboard-layout.schema';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -9,7 +14,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { sanitizeLayoutForPersistence } from '@genfeedai/agent/dashboard';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 const DEFAULT_PAGE_KEY = 'workspace-overview';
 
@@ -22,8 +27,35 @@ export class DashboardLayoutsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    @Optional()
+    private readonly cacheInvalidationService?: CacheInvalidationService,
   ) {
     super(prisma, 'dashboardLayout', logger);
+  }
+
+  /**
+   * Invalidate the dashboard-layout list + single-record cache keys after a
+   * write. Mirrors ArticlesService.invalidateArticleListCaches — see api
+   * CLAUDE.md → Cache Invalidation Pattern. No-ops when the (optional)
+   * CacheInvalidationService isn't wired (e.g. unit tests).
+   */
+  private async invalidateLayoutCaches(
+    organizationId: string,
+    layoutId?: string,
+  ): Promise<void> {
+    if (!this.cacheInvalidationService) {
+      return;
+    }
+
+    const keys = [CACHE_PATTERNS.DASHBOARD_LAYOUTS_LIST(organizationId)];
+    if (layoutId) {
+      keys.push(CACHE_PATTERNS.DASHBOARD_LAYOUTS_SINGLE(layoutId));
+    }
+
+    await this.cacheInvalidationService.invalidate(...keys);
+    await this.cacheInvalidationService.invalidatePattern(
+      `${CACHE_TAGS.DASHBOARD_LAYOUTS}:*`,
+    );
   }
 
   async findForPage(
@@ -95,6 +127,8 @@ export class DashboardLayoutsService extends BaseService<
       },
     });
 
+    await this.invalidateLayoutCaches(organizationId, record.id);
+
     return record as DashboardLayoutDocument;
   }
 
@@ -102,16 +136,21 @@ export class DashboardLayoutsService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<DashboardLayoutDocument | null> {
-    const existing = await this.findOne({
-      id,
-      isDeleted: false,
-      organizationId,
+    // Atomic, tenant-scoped soft delete: the WHERE clause (not a prior read)
+    // is what enforces the org boundary, so there is no gap between the
+    // ownership check and the mutation for a concurrent request to exploit.
+    // BaseService.remove() only scopes by id, so it can't be reused here.
+    const { count } = await this.prisma.dashboardLayout.updateMany({
+      data: { isDeleted: true },
+      where: { id, isDeleted: false, organizationId },
     });
 
-    if (!existing) {
+    if (count === 0) {
       return null;
     }
 
-    return this.remove(id);
+    await this.invalidateLayoutCaches(organizationId, id);
+
+    return this.findOne({ id, organizationId });
   }
 }

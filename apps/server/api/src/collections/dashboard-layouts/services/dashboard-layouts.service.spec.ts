@@ -1,4 +1,5 @@
 import { DashboardLayoutsService } from '@api/collections/dashboard-layouts/services/dashboard-layouts.service';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -35,6 +36,7 @@ const mockPrisma = {
   dashboardLayout: {
     findFirst: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     upsert: vi.fn(),
   },
 };
@@ -45,6 +47,11 @@ const mockLogger = {
   log: vi.fn(),
   warn: vi.fn(),
 };
+
+const mockCacheInvalidationService = {
+  invalidate: vi.fn(),
+  invalidatePattern: vi.fn(),
+} as unknown as CacheInvalidationService;
 
 describe('DashboardLayoutsService', () => {
   let service: DashboardLayoutsService;
@@ -61,6 +68,10 @@ describe('DashboardLayoutsService', () => {
         DashboardLayoutsService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: LoggerService, useValue: mockLogger },
+        {
+          provide: CacheInvalidationService,
+          useValue: mockCacheInvalidationService,
+        },
       ],
     }).compile();
 
@@ -142,6 +153,42 @@ describe('DashboardLayoutsService', () => {
           },
         },
       });
+    });
+
+    it('invalidates the list and single-layout caches after a successful upsert', async () => {
+      mockPrisma.brand.findFirst.mockResolvedValueOnce({
+        organizationId: 'org-1',
+      });
+      mockPrisma.dashboardLayout.upsert.mockResolvedValueOnce(
+        mockDashboardLayout,
+      );
+
+      await service.upsertForPage('org-1', {
+        brandId: 'brand-1',
+        document: { blocks: [] },
+        pageKey: 'workspace-overview',
+      });
+
+      expect(mockCacheInvalidationService.invalidate).toHaveBeenCalledWith(
+        'dashboardLayouts:list:org-1',
+        'dashboardLayouts:single:dl-1',
+      );
+      expect(
+        mockCacheInvalidationService.invalidatePattern,
+      ).toHaveBeenCalledWith('dashboardLayouts:*');
+    });
+
+    it('does not invalidate caches when the upsert is rejected for a cross-org brand', async () => {
+      mockPrisma.brand.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.upsertForPage('org-2', {
+          brandId: 'brand-1',
+          document: { blocks: [] },
+        }),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(mockCacheInvalidationService.invalidate).not.toHaveBeenCalled();
     });
 
     it('defaults pageKey to workspace-overview when omitted', async () => {
@@ -226,41 +273,69 @@ describe('DashboardLayoutsService', () => {
   });
 
   describe('removeScoped', () => {
-    it('returns null when the layout is not owned by the caller organization', async () => {
-      mockPrisma.dashboardLayout.findFirst.mockResolvedValueOnce(null);
+    it('returns null without a re-fetch when the layout is not owned by the caller organization', async () => {
+      mockPrisma.dashboardLayout.updateMany.mockResolvedValueOnce({
+        count: 0,
+      });
 
       const result = await service.removeScoped('dl-1', 'org-2');
 
       expect(result).toBeNull();
-      expect(mockPrisma.dashboardLayout.update).not.toHaveBeenCalled();
+      expect(mockPrisma.dashboardLayout.updateMany).toHaveBeenCalledWith({
+        data: { isDeleted: true },
+        where: { id: 'dl-1', isDeleted: false, organizationId: 'org-2' },
+      });
+      // No successful mutation — the ownership check is the WHERE clause
+      // itself, so there is nothing to re-fetch and nothing to invalidate.
+      expect(mockPrisma.dashboardLayout.findFirst).not.toHaveBeenCalled();
+      expect(mockCacheInvalidationService.invalidate).not.toHaveBeenCalled();
     });
 
-    it('soft-deletes the layout when owned by the caller organization', async () => {
-      mockPrisma.dashboardLayout.findFirst.mockResolvedValueOnce(
-        mockDashboardLayout,
-      );
-      mockPrisma.dashboardLayout.update.mockResolvedValueOnce({
+    it('atomically soft-deletes the layout scoped to id + organization in a single mutation', async () => {
+      mockPrisma.dashboardLayout.updateMany.mockResolvedValueOnce({
+        count: 1,
+      });
+      mockPrisma.dashboardLayout.findFirst.mockResolvedValueOnce({
         ...mockDashboardLayout,
         isDeleted: true,
       });
 
       const result = await service.removeScoped('dl-1', 'org-1');
 
-      // remove() normalizes the returned row (adds alias fields) — match subset.
+      expect(mockPrisma.dashboardLayout.updateMany).toHaveBeenCalledWith({
+        data: { isDeleted: true },
+        where: { id: 'dl-1', isDeleted: false, organizationId: 'org-1' },
+      });
+      // findOne() normalizes the returned row (adds alias fields) — match subset.
       expect(result).toMatchObject({ ...mockDashboardLayout, isDeleted: true });
       expect(mockPrisma.dashboardLayout.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             id: 'dl-1',
-            isDeleted: false,
             organizationId: 'org-1',
           }),
         }),
       );
-      expect(mockPrisma.dashboardLayout.update).toHaveBeenCalledWith({
-        data: { isDeleted: true },
-        where: { id: 'dl-1' },
+    });
+
+    it('invalidates the list and single-layout caches after a successful removal', async () => {
+      mockPrisma.dashboardLayout.updateMany.mockResolvedValueOnce({
+        count: 1,
       });
+      mockPrisma.dashboardLayout.findFirst.mockResolvedValueOnce({
+        ...mockDashboardLayout,
+        isDeleted: true,
+      });
+
+      await service.removeScoped('dl-1', 'org-1');
+
+      expect(mockCacheInvalidationService.invalidate).toHaveBeenCalledWith(
+        'dashboardLayouts:list:org-1',
+        'dashboardLayouts:single:dl-1',
+      );
+      expect(
+        mockCacheInvalidationService.invalidatePattern,
+      ).toHaveBeenCalledWith('dashboardLayouts:*');
     });
   });
 });
