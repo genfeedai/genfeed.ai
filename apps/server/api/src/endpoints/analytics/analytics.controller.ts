@@ -16,6 +16,7 @@ import {
   AdminBrandsQueryDto,
   AdminOrgsQueryDto,
   AnalyticsDateRangeDto,
+  AnalyticsExportQueryDto,
   AnalyticsFilterQueryDto,
   GrowthQueryDto,
   LeaderboardQueryDto,
@@ -279,9 +280,7 @@ export class AnalyticsController {
   @Get('export')
   async exportData(
     @CurrentUser() user: User,
-    @Query('format') format: string,
-    @Query('fields') fields: string,
-    @Query('organization') organizationId: string,
+    @Query() query: AnalyticsExportQueryDto,
     @Res() response: ExpressResponse,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -292,7 +291,7 @@ export class AnalyticsController {
 
     if (getIsSuperAdmin(user)) {
       // Superadmins can export all data or filter by specific org
-      targetOrganizationId = organizationId || undefined;
+      targetOrganizationId = query.organization || undefined;
     } else {
       // Non-superadmins can only export their own organization's data
       if (!publicMetadata.organization) {
@@ -301,7 +300,10 @@ export class AnalyticsController {
         );
       }
       // If they try to export another org's data, deny access
-      if (organizationId && organizationId !== publicMetadata.organization) {
+      if (
+        query.organization &&
+        query.organization !== publicMetadata.organization
+      ) {
         throw new ForbiddenException(
           'You can only export data for your own organization',
         );
@@ -310,11 +312,11 @@ export class AnalyticsController {
     }
 
     // Default to CSV if no format specified
-    const exportFormat = format === 'xlsx' ? 'xlsx' : 'csv';
+    const exportFormat = query.format === 'xlsx' ? 'xlsx' : 'csv';
 
     // Parse fields from comma-separated string or use default fields
-    const exportFields = fields
-      ? fields.split(',').map((field) => field.trim())
+    const exportFields = query.fields
+      ? query.fields.split(',').map((field) => field.trim())
       : ['videoLabel', 'views', 'comments', 'likes', 'platform'];
 
     this.loggerService.log(url, {
@@ -327,7 +329,14 @@ export class AnalyticsController {
     const data = await this.analyticsExportService.exportData(
       exportFormat,
       exportFields,
-      targetOrganizationId,
+      {
+        brandId: query.brand,
+        endDate: query.endDate,
+        organizationId: targetOrganizationId,
+        platform: query.platform,
+        postId: query.postId,
+        startDate: query.startDate,
+      },
     );
 
     const filename = targetOrganizationId
@@ -340,6 +349,7 @@ export class AnalyticsController {
         'Content-Disposition',
         `attachment; filename="${filename}.csv"`,
       );
+      response.setHeader('X-Analytics-Export-Limit', '5000');
       response.send(data);
     } else {
       response.setHeader(
@@ -350,6 +360,7 @@ export class AnalyticsController {
         'Content-Disposition',
         `attachment; filename="${filename}.xlsx"`,
       );
+      response.setHeader('X-Analytics-Export-Limit', '5000');
       response.send(data);
     }
   }

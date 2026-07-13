@@ -1,9 +1,6 @@
 'use client';
 
-import {
-  AnalyticsProvider,
-  useAnalyticsContext,
-} from '@contexts/analytics/analytics-context';
+import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { Timeframe } from '@genfeedai/enums';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -12,9 +9,11 @@ import FeatureGate from '@ui/guards/feature/FeatureGate';
 import Container from '@ui/layout/container/Container';
 import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { HiOutlineChartBar } from 'react-icons/hi2';
+import AnalyticsWorkSurfaceAdapter from './_surface/analytics-work-surface-adapter';
 
 function AnalyticsLayoutContent({ children }: LayoutProps) {
-  const { setDateRange, triggerRefresh, isRefreshing } = useAnalyticsContext();
+  const { dateRange, setDateRange, triggerRefresh, isRefreshing } =
+    useAnalyticsContext();
 
   return (
     <Container
@@ -26,6 +25,7 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
           <FormDateRangePicker
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}
+            value={dateRange}
           />
           <ButtonRefresh onClick={triggerRefresh} isRefreshing={isRefreshing} />
         </div>
@@ -44,9 +44,9 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
 export default function AnalyticsLayout({ children }: LayoutProps) {
   return (
     <FeatureGate flagKey="analytics">
-      <AnalyticsProvider syncWithBrandContext>
+      <AnalyticsWorkSurfaceAdapter>
         <AnalyticsLayoutContent>{children}</AnalyticsLayoutContent>
-      </AnalyticsProvider>
+      </AnalyticsWorkSurfaceAdapter>
     </FeatureGate>
   );
 }

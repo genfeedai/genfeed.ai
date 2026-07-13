@@ -3,7 +3,7 @@
 import { ButtonVariant, Timeframe } from '@genfeedai/enums';
 import type { DateRange as AnalyticsDateRange } from '@genfeedai/interfaces/utils/date.interface';
 import { format, subDays } from 'date-fns';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { DateRange as CalendarDateRange } from 'react-day-picker';
 import { HiCalendarDays } from 'react-icons/hi2';
 import { cn } from '../lib/utils';
@@ -23,6 +23,7 @@ export interface DateRangePickerProps {
   onChange?: (range: AnalyticsDateRange) => void;
   defaultPreset?: DateRangePreset;
   className?: string;
+  value?: AnalyticsDateRange;
 }
 
 function getStartDate(
@@ -56,10 +57,33 @@ function formatSelectedDateRange(
   return `${format(dateRange.from, 'MMM d')} - ${format(dateRange.to, 'MMM d, yyyy')}`;
 }
 
+function getPresetForRange(
+  range: AnalyticsDateRange,
+): DateRangePreset | 'custom' {
+  if (!range.startDate || !range.endDate) {
+    return 'custom';
+  }
+  const durationDays =
+    Math.round(
+      (range.endDate.getTime() - range.startDate.getTime()) / 86_400_000,
+    ) + 1;
+  if (durationDays === 7) {
+    return Timeframe.D7;
+  }
+  if (durationDays === 30) {
+    return Timeframe.D30;
+  }
+  if (durationDays === 90) {
+    return Timeframe.D90;
+  }
+  return 'custom';
+}
+
 export default function DateRangePicker({
   onChange = () => {},
   defaultPreset = Timeframe.D7,
   className = '',
+  value,
 }: DateRangePickerProps) {
   const [selectedPreset, setSelectedPreset] = useState<
     DateRangePreset | 'custom'
@@ -71,6 +95,21 @@ export default function DateRangePicker({
     from: getStartDate(defaultPreset, yesterday),
     to: yesterday,
   });
+
+  const valueStartTime = value?.startDate?.getTime() ?? null;
+  const valueEndTime = value?.endDate?.getTime() ?? null;
+
+  useEffect(() => {
+    if (valueStartTime === null || valueEndTime === null) {
+      return;
+    }
+    const nextValue = {
+      endDate: new Date(valueEndTime),
+      startDate: new Date(valueStartTime),
+    };
+    setDateRange({ from: nextValue.startDate, to: nextValue.endDate });
+    setSelectedPreset(getPresetForRange(nextValue));
+  }, [valueEndTime, valueStartTime]);
 
   const handlePresetChange = (preset: DateRangePreset) => {
     setSelectedPreset(preset);

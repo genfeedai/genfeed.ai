@@ -47,6 +47,10 @@ import {
   HiOutlineSquares2X2,
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
+import {
+  AnalyticsWorkspaceSurfaceAdapterProvider,
+  useActiveAnalyticsWorkspaceSurfaceAdapter,
+} from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
 import { buildLibraryRemixIntentHref } from '@/features/library-remix/library-remix-reference';
 import {
   type ResearchWorkspaceSurfaceAdapterRegistration,
@@ -131,6 +135,7 @@ function UniversalWorkspaceShellContent({
   const { brandId, organizationId } = useBrand();
   const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const activeSurfaceAdapter = useActiveAnalyticsWorkspaceSurfaceAdapter();
   const threads = useAgentChatStore((state) => state.threads);
   const seedComposer = useAgentChatStore((state) => state.seedComposer);
   const activeWorkspaceSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
@@ -272,7 +277,14 @@ function UniversalWorkspaceShellContent({
     pathname: rawPathname,
     searchParams: new URLSearchParams(searchParamsString),
   });
-  const composerContextLabel = `${conversationScope.contextLabel} · ${shellContextLabel}`;
+  const effectiveSurfaceAdapter =
+    activeSurfaceAdapter?.surfaceKey === surfaceKey
+      ? activeSurfaceAdapter
+      : null;
+  const effectiveShellContextLabel = effectiveSurfaceAdapter
+    ? effectiveSurfaceAdapter.contextLabel
+    : shellContextLabel;
+  const composerContextLabel = `${conversationScope.contextLabel} · ${effectiveShellContextLabel}`;
 
   useLayoutEffect(() => {
     if (!isUnthreadedConversation) {
@@ -722,6 +734,8 @@ function UniversalWorkspaceShellContent({
             searchParams={new URLSearchParams(searchParamsString)}
             threadId={effectiveThreadId}
           />
+        ) : effectiveSurfaceAdapter ? (
+          effectiveSurfaceAdapter.inspectorContent
         ) : resolvedSurfacePresentationAdapter ? (
           resolvedSurfacePresentationAdapter.inspector
         ) : activeResearchSurfaceAdapter ? (
@@ -760,14 +774,17 @@ function UniversalWorkspaceShellContent({
         >
           Choose workflow
         </Button>
-        <Button
-          icon={<HiOutlineEye className="size-4" />}
-          onClick={handleOpenOverlay}
-          variant={ButtonVariant.OUTLINE}
-          withWrapper={false}
-        >
-          Open overlay preview
-        </Button>
+        {effectiveSurfaceAdapter ||
+        resolvedSurfacePresentationAdapter ? null : (
+          <Button
+            icon={<HiOutlineEye className="size-4" />}
+            onClick={handleOpenOverlay}
+            variant={ButtonVariant.OUTLINE}
+            withWrapper={false}
+          >
+            Open overlay preview
+          </Button>
+        )}
         <Button
           icon={<HiOutlineChatBubbleLeftRight className="size-4" />}
           onClick={handleReturnToConversation}
@@ -793,6 +810,9 @@ function UniversalWorkspaceShellContent({
         <>
           {conversationScope.scopeControls}
           {composerScopeControls}
+          {effectiveSurfaceAdapter
+            ? effectiveSurfaceAdapter.composerContext
+            : null}
         </>
       }
       shellState={state}
@@ -1013,12 +1033,14 @@ export default function UniversalWorkspaceShell({
   return (
     <AgentWorkspaceLayoutClient agentApiService={agentApiService}>
       <WorkspaceSurfaceAdapterProvider>
-        <UniversalWorkspaceShellContent
-          agentApiService={agentApiService}
-          composerScopeControls={composerScopeControls}
-        >
-          {children}
-        </UniversalWorkspaceShellContent>
+        <AnalyticsWorkspaceSurfaceAdapterProvider>
+          <UniversalWorkspaceShellContent
+            agentApiService={agentApiService}
+            composerScopeControls={composerScopeControls}
+          >
+            {children}
+          </UniversalWorkspaceShellContent>
+        </AnalyticsWorkspaceSurfaceAdapterProvider>
       </WorkspaceSurfaceAdapterProvider>
     </AgentWorkspaceLayoutClient>
   );

@@ -237,11 +237,18 @@ describe('AnalyticsExportService', () => {
       const orgId = 'org-scoped-abc';
       mockPostsService.findAll.mockResolvedValue({ docs: [] });
 
-      await service.exportData('csv', ['id', 'title'], orgId);
+      await service.exportData('csv', ['id', 'title'], {
+        organizationId: orgId,
+      });
 
       expect(mockPostsService.findAll).toHaveBeenCalledWith(
         { where: { status: 'published', organizationId: orgId } },
-        { pagination: false },
+        {
+          limit: 5000,
+          page: 1,
+          pagination: true,
+          sort: '-publicationDate',
+        },
       );
     });
 
@@ -252,8 +259,67 @@ describe('AnalyticsExportService', () => {
 
       expect(mockPostsService.findAll).toHaveBeenCalledWith(
         { where: { status: 'published' } },
-        { pagination: false },
+        {
+          limit: 5000,
+          page: 1,
+          pagination: true,
+          sort: '-publicationDate',
+        },
       );
+    });
+
+    it('bounds exports to the requested brand, platform, and date range', async () => {
+      mockPostsService.findAll.mockResolvedValue({ docs: [] });
+
+      await service.exportData('csv', ['id'], {
+        brandId: 'brand-1',
+        endDate: '2026-07-12',
+        organizationId: 'org-1',
+        platform: 'instagram',
+        postId: 'post-1',
+        startDate: '2026-07-01',
+      });
+
+      expect(mockPostsService.findAll).toHaveBeenCalledWith(
+        {
+          where: {
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            platform: 'instagram',
+            id: 'post-1',
+            publicationDate: {
+              gte: new Date('2026-07-01T00:00:00.000Z'),
+              lte: new Date('2026-07-12T23:59:59.999Z'),
+            },
+            status: 'published',
+          },
+        },
+        {
+          limit: 5000,
+          page: 1,
+          pagination: true,
+          sort: '-publicationDate',
+        },
+      );
+    });
+
+    it('rejects export ranges larger than one year', async () => {
+      await expect(
+        service.exportData('csv', ['id'], {
+          endDate: '2026-07-12',
+          startDate: '2025-07-11',
+        }),
+      ).rejects.toThrow('Analytics exports support at most 366 days');
+
+      expect(mockPostsService.findAll).not.toHaveBeenCalled();
+    });
+
+    it('rejects unknown export fields before querying posts', async () => {
+      await expect(service.exportData('xlsx', ['__proto__'])).rejects.toThrow(
+        'Invalid analytics export fields',
+      );
+
+      expect(mockPostsService.findAll).not.toHaveBeenCalled();
     });
   });
 

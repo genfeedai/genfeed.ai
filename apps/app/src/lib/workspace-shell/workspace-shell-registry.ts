@@ -518,6 +518,10 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/analytics/streaks',
     ],
     {
+      adapter: {
+        key: 'analytics',
+        status: 'ready',
+      },
       fallback: '/:orgSlug/:brandSlug/analytics/overview',
       mode: 'canvas',
       scope: 'brand',

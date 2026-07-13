@@ -1,6 +1,7 @@
 import type { AgentType } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
+  AnalyticsQueryReference,
   SocialInboxAgentContextRecord,
   SocialInboxReference,
   ValidatedAgentScope,
@@ -16,6 +17,7 @@ export interface AgentChatAttachment {
 
 export interface AgentPageContext {
   authorizedSocialContext?: SocialInboxAgentContextRecord[];
+  analyticsQuery?: AnalyticsQueryReference;
   contentFormat?: string;
   draftBody?: string;
   draftInstructions?: string;

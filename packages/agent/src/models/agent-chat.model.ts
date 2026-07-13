@@ -6,6 +6,7 @@ import type {
   AgentClipRunIdentity,
   AgentDashboardOperation,
   AgentUIBlock,
+  AnalyticsQueryReference,
   SocialInboxReference,
 } from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
@@ -441,6 +442,7 @@ export interface AgentThreadSnapshot {
 }
 
 export interface AgentPageContext {
+  analyticsQuery?: AnalyticsQueryReference;
   contentFormat?: string;
   draftBody?: string;
   draftInstructions?: string;

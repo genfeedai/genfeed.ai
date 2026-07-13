@@ -30,7 +30,7 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { BotStatus, IngredientCategory } from '@genfeedai/enums';
+import { BotStatus } from '@genfeedai/enums';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -295,16 +295,21 @@ describe('AnalyticsController', () => {
       } as never;
       await controller.exportData(
         mockUser,
-        'csv',
-        'videoLabel,views',
-        undefined as never,
+        { fields: 'videoLabel,views', format: 'csv' },
         mockResponse,
       );
 
       expect(analyticsExportService.exportData).toHaveBeenCalledWith(
         'csv',
         ['videoLabel', 'views'],
-        undefined,
+        {
+          brandId: undefined,
+          endDate: undefined,
+          organizationId: undefined,
+          platform: undefined,
+          postId: undefined,
+          startDate: undefined,
+        },
       );
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Type',
@@ -323,16 +328,21 @@ describe('AnalyticsController', () => {
       } as never;
       await controller.exportData(
         mockUser,
-        'xlsx',
-        '',
-        undefined as never,
+        { fields: '', format: 'xlsx' },
         mockResponse,
       );
 
       expect(analyticsExportService.exportData).toHaveBeenCalledWith(
         'xlsx',
         ['videoLabel', 'views', 'comments', 'likes', 'platform'],
-        undefined,
+        {
+          brandId: undefined,
+          endDate: undefined,
+          organizationId: undefined,
+          platform: undefined,
+          postId: undefined,
+          startDate: undefined,
+        },
       );
       expect(mockResponse.setHeader).toHaveBeenCalledWith(
         'Content-Type',

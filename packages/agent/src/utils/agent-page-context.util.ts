@@ -45,5 +45,9 @@ export function toAgentRequestPageContext(
     requestContext.socialReferences = context.socialReferences;
   }
 
+  if (context.analyticsQuery?.kind === 'analytics-query') {
+    requestContext.analyticsQuery = context.analyticsQuery;
+  }
+
   return Object.keys(requestContext).length > 0 ? requestContext : undefined;
 }
