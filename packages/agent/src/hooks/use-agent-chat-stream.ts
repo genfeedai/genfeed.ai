@@ -319,7 +319,7 @@ export function useAgentChatStream(
       createdAt?: string,
       planModeEnabled?: boolean,
       contextVersion?: number,
-      brandId?: string,
+      brandId?: string | null,
     ) => {
       if (threadId !== activeThreadId) {
         setActiveThread(threadId);
