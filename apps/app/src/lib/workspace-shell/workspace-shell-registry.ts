@@ -30,6 +30,7 @@ export type {
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
 type RouteGroupConfig = {
+  readonly adapterStatus?: WorkspaceShellRouteRegistration['adapter']['status'];
   readonly fallback: string;
   readonly mode: WorkspaceShellRouteMode;
   readonly scope: WorkspaceShellScopeRequirement;
@@ -104,7 +105,7 @@ function freezeRouteRegistration(
     accessPolicy: ACCESS_POLICY_BY_SCOPE[config.scope],
     adapter: Object.freeze({
       key: config.surfaceKey,
-      status: ADAPTER_STATUS_BY_MODE[config.mode],
+      status: config.adapterStatus ?? ADAPTER_STATUS_BY_MODE[config.mode],
     }),
     allowedShellModes: Object.freeze([config.mode] as const),
     availability: AVAILABILITY_BY_MODE[config.mode],
@@ -477,6 +478,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/analytics/streaks',
     ],
     {
+      adapterStatus: 'ready',
       fallback: '/:orgSlug/:brandSlug/analytics/overview',
       mode: 'canvas',
       scope: 'brand',

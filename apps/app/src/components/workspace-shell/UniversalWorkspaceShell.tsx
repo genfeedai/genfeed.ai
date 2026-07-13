@@ -42,6 +42,10 @@ import {
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
 import {
+  AnalyticsWorkspaceSurfaceAdapterProvider,
+  useActiveAnalyticsWorkspaceSurfaceAdapter,
+} from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
+import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
@@ -102,6 +106,7 @@ function UniversalWorkspaceShellContent({
   const { back, push, replace } = useRouter();
   const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const activeSurfaceAdapter = useActiveAnalyticsWorkspaceSurfaceAdapter();
   const threads = useAgentChatStore((state) => state.threads);
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
@@ -182,6 +187,18 @@ function UniversalWorkspaceShellContent({
       : state === 'overlay'
         ? 'Overlay · conversation connected'
         : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`;
+  const effectiveComposerContextLabel =
+    activeSurfaceAdapter?.surfaceKey === surfaceKey
+      ? activeSurfaceAdapter.contextLabel
+      : composerContextLabel;
+  const effectiveScopeControls = (
+    <>
+      {composerScopeControls}
+      {activeSurfaceAdapter?.surfaceKey === surfaceKey
+        ? activeSurfaceAdapter.composerContext
+        : null}
+    </>
+  );
 
   useLayoutEffect(() => {
     if (!isUnthreadedConversation) {
@@ -472,23 +489,29 @@ function UniversalWorkspaceShellContent({
         />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <div className="gen-shell-empty-state p-4">
-          <p className="text-sm font-medium text-foreground">
-            Registered {surfaceKey} adapter slot
-          </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Product-owned context adapters land here without changing their
-            canonical route or granting execution authority.
-          </p>
-        </div>
-        <Button
-          icon={<HiOutlineEye className="size-4" />}
-          onClick={handleOpenOverlay}
-          variant={ButtonVariant.OUTLINE}
-          withWrapper={false}
-        >
-          Open overlay preview
-        </Button>
+        {activeSurfaceAdapter?.surfaceKey === surfaceKey ? (
+          activeSurfaceAdapter.inspectorContent
+        ) : (
+          <div className="gen-shell-empty-state p-4">
+            <p className="text-sm font-medium text-foreground">
+              Registered {surfaceKey} adapter slot
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Product-owned context adapters land here without changing their
+              canonical route or granting execution authority.
+            </p>
+          </div>
+        )}
+        {activeSurfaceAdapter?.surfaceKey === surfaceKey ? null : (
+          <Button
+            icon={<HiOutlineEye className="size-4" />}
+            onClick={handleOpenOverlay}
+            variant={ButtonVariant.OUTLINE}
+            withWrapper={false}
+          >
+            Open overlay preview
+          </Button>
+        )}
         <Button
           icon={<HiOutlineChatBubbleLeftRight className="size-4" />}
           onClick={handleReturnToConversation}
@@ -503,11 +526,11 @@ function UniversalWorkspaceShellContent({
 
   return (
     <ConversationComposerShellProvider
-      contextLabel={composerContextLabel}
+      contextLabel={effectiveComposerContextLabel}
       dispatchAction={handleComposerAction}
       draftScopeKey={draftScopeKey}
       portalTarget={composerPortalTarget}
-      scopeControls={composerScopeControls}
+      scopeControls={effectiveScopeControls}
       shellState={state}
     >
       <div
@@ -700,11 +723,13 @@ export default function UniversalWorkspaceShell({
 }: UniversalWorkspaceShellProps) {
   return (
     <AgentWorkspaceLayoutClient agentApiService={agentApiService}>
-      <UniversalWorkspaceShellContent
-        composerScopeControls={composerScopeControls}
-      >
-        {children}
-      </UniversalWorkspaceShellContent>
+      <AnalyticsWorkspaceSurfaceAdapterProvider>
+        <UniversalWorkspaceShellContent
+          composerScopeControls={composerScopeControls}
+        >
+          {children}
+        </UniversalWorkspaceShellContent>
+      </AnalyticsWorkspaceSurfaceAdapterProvider>
     </AgentWorkspaceLayoutClient>
   );
 }

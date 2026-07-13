@@ -20,6 +20,7 @@ export * from './analytics/activity.interface';
 export * from './analytics/aggregation.interface';
 export * from './analytics/analytics.interface';
 export * from './analytics/analytics-context.interface';
+export * from './analytics/analytics-query-reference.interface';
 export * from './analytics/analytics-ui.interface';
 export * from './analytics/creator-watchlist.interface';
 export * from './analytics/dashboard-preset.interface';

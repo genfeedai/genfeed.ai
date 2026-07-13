@@ -1,6 +1,7 @@
 'use client';
 
 import PatternCard from '@app-components/performance-lab/PatternCard';
+import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { AlertCategory } from '@genfeedai/enums';
 import type { PatternType } from '@genfeedai/interfaces';
 import { usePatternContext } from '@hooks/data/analytics/use-pattern-context/use-pattern-context';
@@ -17,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
 import { HiOutlineBeaker } from 'react-icons/hi2';
 
 const PLATFORM_OPTIONS = [
@@ -80,9 +81,13 @@ function FilterSelect<T extends string>({
   value: T;
   onChange: (value: T) => void;
 }) {
+  const selectId = useId();
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] text-foreground/40 uppercase tracking-wider">
+      <label
+        className="text-[10px] text-foreground/40 uppercase tracking-wider"
+        htmlFor={selectId}
+      >
         {label}
       </label>
       <Select
@@ -91,7 +96,10 @@ function FilterSelect<T extends string>({
           onChange((nextValue === ALL_FILTER_VALUE ? '' : nextValue) as T)
         }
       >
-        <SelectTrigger className="min-w-[140px] bg-background text-xs">
+        <SelectTrigger
+          className="min-w-[140px] bg-background text-xs"
+          id={selectId}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -110,9 +118,19 @@ function FilterSelect<T extends string>({
 }
 
 export default function PatternLabPage({ className }: PatternLabPageProps) {
-  const [platform, setPlatform] = useState<string>('');
-  const [patternType, setPatternType] = useState<PatternType | ''>('');
-  const [scope, setScope] = useState<string>('');
+  const analyticsContext = useOptionalAnalyticsContext();
+  const surfaceFilters = analyticsContext?.filters;
+  const setSurfaceFilter = analyticsContext?.setFilter;
+  const [localPlatform, setLocalPlatform] = useState<string>('');
+  const [localPatternType, setLocalPatternType] = useState<PatternType | ''>(
+    '',
+  );
+  const [localScope, setLocalScope] = useState<string>('');
+  const platform = surfaceFilters?.platform ?? localPlatform;
+  const patternType =
+    (surfaceFilters?.patternType as PatternType | undefined) ??
+    localPatternType;
+  const scope = surfaceFilters?.visibility ?? localScope;
 
   const filters: PatternLabFilters = {
     patternType: patternType || undefined,
@@ -122,17 +140,29 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
 
   const { patterns, isLoading, error } = usePatternContext(filters);
 
-  const handlePlatformChange = useCallback((value: string) => {
-    setPlatform(value);
-  }, []);
+  const handlePlatformChange = useCallback(
+    (value: string) => {
+      setLocalPlatform(value);
+      setSurfaceFilter?.('platform', value || undefined);
+    },
+    [setSurfaceFilter],
+  );
 
-  const handlePatternTypeChange = useCallback((value: PatternType | '') => {
-    setPatternType(value);
-  }, []);
+  const handlePatternTypeChange = useCallback(
+    (value: PatternType | '') => {
+      setLocalPatternType(value);
+      setSurfaceFilter?.('patternType', value || undefined);
+    },
+    [setSurfaceFilter],
+  );
 
-  const handleScopeChange = useCallback((value: string) => {
-    setScope(value);
-  }, []);
+  const handleScopeChange = useCallback(
+    (value: string) => {
+      setLocalScope(value);
+      setSurfaceFilter?.('visibility', value || undefined);
+    },
+    [setSurfaceFilter],
+  );
 
   const filterBar = (
     <div className="flex flex-wrap items-end gap-4 mb-6">

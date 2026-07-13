@@ -1,5 +1,8 @@
 import type { AgentType } from '@genfeedai/enums';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import type {
+  AnalyticsQueryReference,
+  ValidatedAgentScope,
+} from '@genfeedai/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 
 export interface AgentChatAttachment {
@@ -10,6 +13,7 @@ export interface AgentChatAttachment {
 }
 
 export interface AgentPageContext {
+  analyticsQuery?: AnalyticsQueryReference;
   contentFormat?: string;
   draftBody?: string;
   draftInstructions?: string;

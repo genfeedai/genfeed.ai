@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { type ReactNode, useEffect } from 'react';
+import { type ReactNode, useEffect, useMemo } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
@@ -206,7 +206,26 @@ vi.mock('@/lib/workspace-shell/workspace-shell-telemetry', () => ({
   captureWorkspaceShellTransition: vi.fn(),
 }));
 
+import {
+  type AnalyticsWorkspaceSurfaceAdapterState,
+  useAnalyticsWorkspaceSurfaceAdapter,
+} from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
 import UniversalWorkspaceShell from './UniversalWorkspaceShell';
+
+function AnalyticsAdapterFixture() {
+  const adapter = useMemo<AnalyticsWorkspaceSurfaceAdapterState>(
+    () => ({
+      composerContext: <span>Visible analytics query</span>,
+      contextLabel: 'Canvas · Post analytics',
+      inspectorContent: <div>Authoritative Analytics context</div>,
+      key: 'analytics:/analytics/posts',
+      surfaceKey: 'analytics',
+    }),
+    [],
+  );
+  useAnalyticsWorkspaceSurfaceAdapter(adapter);
+  return <div>Post analytics canvas</div>;
+}
 
 describe('UniversalWorkspaceShell', () => {
   beforeEach(() => {
@@ -271,6 +290,26 @@ describe('UniversalWorkspaceShell', () => {
     expect(router.replace).toHaveBeenCalledWith(
       '/acme/moonrise/workspace/overview?thread=thread-1',
     );
+  });
+
+  it('renders product-owned adapter context in the shared shell slots', () => {
+    navigation.pathname = '/acme/moonrise/analytics/posts';
+    navigation.searchParams = new URLSearchParams({ thread: 'thread-1' });
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <AnalyticsAdapterFixture />
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.getByText('Post analytics canvas')).toBeInTheDocument();
+    expect(
+      screen.getAllByText('Authoritative Analytics context').length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText('Visible analytics query')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Registered analytics adapter slot'),
+    ).not.toBeInTheDocument();
   });
 
   it('preserves the existing new-conversation reset on canonical agent entry', () => {

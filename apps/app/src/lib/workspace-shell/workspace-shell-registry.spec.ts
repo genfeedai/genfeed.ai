@@ -122,6 +122,12 @@ describe('workspace shell trusted registry', () => {
     );
   });
 
+  it('marks Analytics canvases ready for the product-owned adapter', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/analytics/posts')?.adapter,
+    ).toEqual({ owner: 'product', status: 'ready' });
+  });
+
   it('keeps notifications and deployment-specific dock chrome explicit', () => {
     expect(getWorkspaceShellOverlayRegistration('notifications')).toMatchObject(
       {
