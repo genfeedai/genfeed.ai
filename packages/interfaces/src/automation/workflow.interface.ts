@@ -9,3 +9,7 @@ export interface IWorkflow extends IBaseEntity {
   description?: string;
   status: WorkflowStatus;
 }
+
+export interface WorkflowTriggerQueueOptions {
+  jobId?: string;
+}

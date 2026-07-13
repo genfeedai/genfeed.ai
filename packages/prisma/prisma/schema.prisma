@@ -2716,6 +2716,11 @@ model SocialMessage {
   idempotencyKey          String?
   workflowRunId           String?
   agentRunId              String?
+  workflowTriggerStatus   String?
+  workflowTriggerJobId    String?
+  workflowTriggerError    String?
+  workflowTriggerAttemptedAt DateTime?
+  workflowTriggerQueuedAt DateTime?
   actionProvenance        Json               @default("{}")
   failureReason           String?
   metadata                Json               @default("{}")

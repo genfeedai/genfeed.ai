@@ -4,10 +4,13 @@ import type {
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { isProtectedSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { WorkflowStatus } from '@genfeedai/enums';
+import type { WorkflowTriggerQueueOptions } from '@genfeedai/interfaces';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { Queue } from 'bullmq';
 
 // =============================================================================
@@ -80,7 +83,10 @@ export class WorkflowExecutionQueueService {
    * Queue a trigger event for processing.
    * The processor will find matching workflows and execute them.
    */
-  async queueTriggerEvent(event: TriggerEvent): Promise<string> {
+  async queueTriggerEvent(
+    event: TriggerEvent,
+    options: WorkflowTriggerQueueOptions = {},
+  ): Promise<string> {
     const job = await this.executionQueue.add(
       'trigger',
       {
@@ -89,6 +95,7 @@ export class WorkflowExecutionQueueService {
       },
       {
         attempts: 1, // Triggers should not auto-retry at queue level
+        ...(options.jobId ? { jobId: options.jobId } : {}),
         removeOnComplete: 200,
         removeOnFail: 100,
       },
