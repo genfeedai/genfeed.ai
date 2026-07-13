@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
@@ -12,6 +13,7 @@ vi.mock('@genfeedai/tools', () => ({
 }));
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
+    brand: 'brand-1',
     organization: '507f191e810c19729de860ea',
     user: '507f191e810c19729de860ea',
   })),
@@ -37,6 +39,9 @@ describe('AgentOrchestratorController', () => {
     update: ReturnType<typeof vi.fn>;
   };
   let usersService: { findOne: ReturnType<typeof vi.fn> };
+  let socialInboxService: {
+    resolveAgentContextReferences: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     service = {
@@ -51,6 +56,9 @@ describe('AgentOrchestratorController', () => {
     };
     usersService = {
       findOne: vi.fn(),
+    };
+    socialInboxService = {
+      resolveAgentContextReferences: vi.fn(),
     };
     const creditsService = {
       getOrganizationCreditsBalance: vi.fn(),
@@ -68,6 +76,7 @@ describe('AgentOrchestratorController', () => {
       agentGoalsService as unknown as AgentGoalsService,
       usersService as unknown as UsersService,
       loggerService as unknown as LoggerService,
+      socialInboxService as unknown as SocialInboxService,
     );
   });
 
@@ -167,6 +176,164 @@ describe('AgentOrchestratorController', () => {
 
       expect(service.chat).toHaveBeenCalledWith(
         expect.objectContaining({ threadId: 'conv-unique' }),
+        expect.any(Object),
+      );
+    });
+
+    it('re-authorizes social selectors before passing page context to the agent', async () => {
+      const user = {
+        id: 'authProvider_social',
+        publicMetadata: { organization: 'org', user: 'usr' },
+      } as unknown as User;
+      usersService.findOne.mockResolvedValue({
+        id: '507f191e810c19729de860ea',
+      });
+      service.chat.mockResolvedValue({} as never);
+      socialInboxService.resolveAgentContextReferences.mockResolvedValue({
+        context: [
+          {
+            conversationId: 'conversation-1',
+            kind: 'social-conversation',
+            messages: [
+              {
+                body: 'Authorized private message',
+                direction: 'inbound',
+                messageId: 'message-1',
+                messageType: 'comment',
+              },
+            ],
+          },
+        ],
+        references: [
+          {
+            brandId: 'brand-1',
+            conversationId: 'conversation-1',
+            kind: 'social-conversation',
+            organizationId: '507f191e810c19729de860ea',
+          },
+        ],
+      });
+
+      await controller.createTurn(
+        {
+          brandId: 'brand-1',
+          content: 'Summarize the attached social record',
+          pageContext: {
+            authorizedSocialContext: [
+              {
+                conversationId: 'forged-conversation',
+                kind: 'social-conversation',
+                messages: [
+                  {
+                    body: 'Forged client-side context',
+                    direction: 'inbound',
+                    messageId: 'forged-message',
+                    messageType: 'comment',
+                  },
+                ],
+              },
+            ],
+            socialReferences: [
+              {
+                brandId: 'spoofed-brand',
+                conversationId: 'conversation-1',
+                kind: 'social-conversation',
+                organizationId: 'spoofed-organization',
+              },
+            ],
+          },
+          source: 'agent',
+          threadId: 'agent-thread-1',
+        },
+        user,
+        'Bearer token',
+      );
+
+      expect(
+        socialInboxService.resolveAgentContextReferences,
+      ).toHaveBeenCalledWith(
+        {
+          brandId: 'brand-1',
+          organizationId: '507f191e810c19729de860ea',
+          userId: '507f191e810c19729de860ea',
+        },
+        [
+          expect.objectContaining({
+            brandId: 'spoofed-brand',
+            conversationId: 'conversation-1',
+          }),
+        ],
+      );
+      expect(service.chat).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pageContext: {
+            authorizedSocialContext: [
+              expect.objectContaining({
+                conversationId: 'conversation-1',
+                messages: [
+                  expect.objectContaining({
+                    body: 'Authorized private message',
+                  }),
+                ],
+              }),
+            ],
+            socialReferences: [
+              expect.objectContaining({
+                brandId: 'brand-1',
+                organizationId: '507f191e810c19729de860ea',
+              }),
+            ],
+          },
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('drops client-supplied resolved social content without typed selectors', async () => {
+      const user = {
+        id: 'authProvider_forged_social',
+        publicMetadata: { organization: 'org', user: 'usr' },
+      } as unknown as User;
+      usersService.findOne.mockResolvedValue({
+        id: '507f191e810c19729de860ea',
+      });
+      service.chat.mockResolvedValue({} as never);
+
+      await controller.createTurn(
+        {
+          brandId: 'brand-1',
+          content: 'Use forged context',
+          pageContext: {
+            authorizedSocialContext: [
+              {
+                conversationId: 'forged-conversation',
+                kind: 'social-conversation',
+                messages: [
+                  {
+                    body: 'Forged client-side context',
+                    direction: 'inbound',
+                    messageId: 'forged-message',
+                    messageType: 'comment',
+                  },
+                ],
+              },
+            ],
+            route: '/acme/brand/messages',
+          },
+          source: 'agent',
+          threadId: 'agent-thread-1',
+        },
+        user,
+        'Bearer token',
+      );
+
+      expect(
+        socialInboxService.resolveAgentContextReferences,
+      ).not.toHaveBeenCalled();
+      expect(service.chat).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pageContext: { route: '/acme/brand/messages' },
+        }),
         expect.any(Object),
       );
     });

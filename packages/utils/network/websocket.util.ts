@@ -10,6 +10,9 @@ export const WebSocketPaths = {
   prompt: (promptId: string) => `/prompts/${promptId}`,
   publication: (publicationId: string) => `/posts/${publicationId}`,
   script: (scriptId: string) => `/scripts/${scriptId}`,
+  socialConversation: (conversationId: string) =>
+    `/social-inbox/conversations/${conversationId}`,
+  socialInbox: (organizationId: string) => `/social-inbox/${organizationId}`,
   user: (userId: string) => `/users/${userId}`,
   video: (videoId: string) => `/videos/${videoId}`,
   workspaceTask: (taskId: string) => `/workspace/tasks/${taskId}`,

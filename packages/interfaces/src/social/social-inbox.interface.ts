@@ -129,6 +129,40 @@ export interface SocialMessage {
   updatedAt: string;
 }
 
+export type SocialInboxReference =
+  | {
+      brandId?: string;
+      conversationId: string;
+      kind: 'social-conversation';
+      organizationId: string;
+    }
+  | {
+      brandId?: string;
+      conversationId: string;
+      kind: 'social-message';
+      messageId: string;
+      organizationId: string;
+    };
+
+export interface SocialInboxRealtimeEvent {
+  conversationId: string;
+  kind: 'conversation-updated' | 'message-created' | 'message-updated';
+}
+
+export interface SocialInboxAgentMessageContext {
+  body: string;
+  direction: SocialMessageDirection | string;
+  messageId: string;
+  messageType: SocialMessageType | string;
+}
+
+export interface SocialInboxAgentContextRecord {
+  conversationId: string;
+  kind: SocialInboxReference['kind'];
+  messageId?: string;
+  messages: SocialInboxAgentMessageContext[];
+}
+
 export interface SocialInboxQuery {
   assignedOwnerId?: string;
   automationState?: SocialAutomationState;

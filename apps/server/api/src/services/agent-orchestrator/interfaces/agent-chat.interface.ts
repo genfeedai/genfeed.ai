@@ -1,5 +1,9 @@
 import type { AgentType } from '@genfeedai/enums';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import type {
+  SocialInboxAgentContextRecord,
+  SocialInboxReference,
+  ValidatedAgentScope,
+} from '@genfeedai/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 
 export interface AgentChatAttachment {
@@ -10,6 +14,7 @@ export interface AgentChatAttachment {
 }
 
 export interface AgentPageContext {
+  authorizedSocialContext?: SocialInboxAgentContextRecord[];
   contentFormat?: string;
   draftBody?: string;
   draftInstructions?: string;
@@ -20,6 +25,7 @@ export interface AgentPageContext {
   postContent?: string;
   route?: string;
   selectedText?: string;
+  socialReferences?: SocialInboxReference[];
   url?: string;
 }
 

@@ -5,6 +5,7 @@ import type {
   AgentClipRunIdentity,
   AgentDashboardOperation,
   AgentUIBlock,
+  SocialInboxReference,
 } from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
@@ -447,6 +448,7 @@ export interface AgentPageContext {
   postAuthor?: string;
   route?: string;
   selectedText?: string;
+  socialReferences?: SocialInboxReference[];
   url?: string;
 }
 

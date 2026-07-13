@@ -41,5 +41,9 @@ export function toAgentRequestPageContext(
   assign('selectedText', context.selectedText);
   assign('url', context.url);
 
+  if (context.socialReferences?.length) {
+    requestContext.socialReferences = context.socialReferences;
+  }
+
   return Object.keys(requestContext).length > 0 ? requestContext : undefined;
 }

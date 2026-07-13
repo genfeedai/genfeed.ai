@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
+  IPaginatedResponse,
   SocialActionInput,
   SocialConversation,
   SocialConversationStatus,
@@ -42,6 +43,22 @@ export class SocialMessagesService extends BaseService<
     return this.findAll(params as Record<string, unknown>);
   }
 
+  listPage(
+    params: SocialInboxQuery = {},
+    signal?: AbortSignal,
+  ): Promise<IPaginatedResponse<SocialConversationModel>> {
+    return this.executeWithErrorHandling(
+      `GET ${this.baseURL}`,
+      this.instance
+        .get<JsonApiResponseDocument>('', { params, signal })
+        .then((response) => response.data)
+        .then(async (document) => {
+          const items = await this.mapMany(document);
+          return this.toPage(items, document, params);
+        }),
+    );
+  }
+
   getConversation(
     id: string,
     signal?: AbortSignal,
@@ -67,6 +84,28 @@ export class SocialMessagesService extends BaseService<
             (item) => new SocialMessageModel(item),
           ),
         ),
+    );
+  }
+
+  listMessagesPage(
+    conversationId: string,
+    params: SocialMessageQuery = {},
+    signal?: AbortSignal,
+  ): Promise<IPaginatedResponse<SocialMessageModel>> {
+    return this.executeWithErrorHandling(
+      `GET ${this.baseURL}/${conversationId}/messages`,
+      this.instance
+        .get<JsonApiResponseDocument>(`/${conversationId}/messages`, {
+          params,
+          signal,
+        })
+        .then((response) => response.data)
+        .then((document) => {
+          const items = this.extractCollection<Partial<SocialMessage>>(
+            document,
+          ).map((item) => new SocialMessageModel(item));
+          return this.toPage(items, document, params);
+        }),
     );
   }
 
@@ -185,5 +224,31 @@ export class SocialMessagesService extends BaseService<
             ),
         ),
     );
+  }
+
+  private toPage<T>(
+    items: T[],
+    document: JsonApiResponseDocument,
+    params: { limit?: number; page?: number },
+  ): IPaginatedResponse<T> {
+    const pagination = document.links?.pagination;
+    const page = pagination?.page ?? params.page ?? 1;
+    const pageSize = Math.max(
+      1,
+      pagination?.limit ?? params.limit ?? items.length,
+    );
+    const total = pagination?.total ?? items.length;
+    const totalPages =
+      pagination?.pages ?? Math.max(1, Math.ceil(total / pageSize));
+
+    return {
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+      items,
+      page,
+      pageSize,
+      total,
+      totalPages,
+    };
   }
 }

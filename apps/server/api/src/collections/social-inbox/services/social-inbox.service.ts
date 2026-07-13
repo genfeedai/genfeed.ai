@@ -6,14 +6,18 @@ import type {
   SocialMessageDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { PostStatus } from '@genfeedai/enums';
+import type {
+  SocialInboxAgentContextRecord,
+  SocialInboxRealtimeEvent,
+  SocialInboxReference,
+} from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import {
@@ -113,6 +117,8 @@ const SUPPORTED_PLATFORMS = new Set(['youtube', 'instagram']);
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
 const WORKFLOW_TRIGGER_CLAIM_TIMEOUT_MS = 5 * 60 * 1000;
+const MAX_AGENT_CONTEXT_REFERENCES = 20;
+const SAFE_AGENT_CONTEXT_REFERENCE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
 @Injectable()
 export class SocialInboxService {
@@ -122,6 +128,8 @@ export class SocialInboxService {
     private readonly instagramService: InstagramService,
     @Optional()
     private readonly workflowExecutionQueueService?: WorkflowExecutionQueueService,
+    @Optional()
+    private readonly notificationsPublisher?: NotificationsPublisherService,
   ) {}
 
   async listConversations(
@@ -198,6 +206,116 @@ export class SocialInboxService {
       page,
       limit,
     );
+  }
+
+  async authorizeAgentContextReferences(
+    scope: SocialInboxScope,
+    references: readonly SocialInboxReference[],
+  ): Promise<SocialInboxReference[]> {
+    const resolved = await this.resolveAgentContextReferences(
+      scope,
+      references,
+    );
+    return resolved.references;
+  }
+
+  async resolveAgentContextReferences(
+    scope: SocialInboxScope,
+    references: readonly SocialInboxReference[],
+  ): Promise<{
+    context: SocialInboxAgentContextRecord[];
+    references: SocialInboxReference[];
+  }> {
+    const boundedReferences = references.slice(0, MAX_AGENT_CONTEXT_REFERENCES);
+    const uniqueReferences = new Map<string, SocialInboxReference>();
+
+    for (const reference of boundedReferences) {
+      if (
+        (reference.kind !== 'social-conversation' &&
+          reference.kind !== 'social-message') ||
+        typeof reference.conversationId !== 'string' ||
+        !SAFE_AGENT_CONTEXT_REFERENCE_ID.test(reference.conversationId) ||
+        (reference.kind === 'social-message' &&
+          (typeof reference.messageId !== 'string' ||
+            !SAFE_AGENT_CONTEXT_REFERENCE_ID.test(reference.messageId)))
+      ) {
+        throw new BadRequestException('Invalid social inbox reference');
+      }
+
+      const key =
+        reference.kind === 'social-message'
+          ? `${reference.kind}:${reference.conversationId}:${reference.messageId}`
+          : `${reference.kind}:${reference.conversationId}`;
+      uniqueReferences.set(key, reference);
+    }
+
+    const authorized: SocialInboxReference[] = [];
+    const context: SocialInboxAgentContextRecord[] = [];
+    for (const reference of uniqueReferences.values()) {
+      const conversation = await this.getConversation(
+        scope,
+        reference.conversationId,
+      );
+
+      if (reference.kind === 'social-message') {
+        const message = await findOrThrow(
+          this.prisma.socialMessage,
+          {
+            where: {
+              conversationId: conversation.id,
+              id: reference.messageId,
+              isDeleted: false,
+              organizationId: conversation.organizationId,
+            },
+          },
+          'Social message',
+        );
+        authorized.push({
+          ...(conversation.brandId ? { brandId: conversation.brandId } : {}),
+          conversationId: conversation.id,
+          kind: 'social-message',
+          messageId: reference.messageId,
+          organizationId: conversation.organizationId,
+        });
+        const messageDocument = this.toMessageDocument(message);
+        context.push({
+          conversationId: conversation.id,
+          kind: 'social-message',
+          messageId: messageDocument.id,
+          messages: [
+            {
+              body: messageDocument.body,
+              direction: messageDocument.direction,
+              messageId: messageDocument.id,
+              messageType: messageDocument.messageType,
+            },
+          ],
+        });
+        continue;
+      }
+
+      authorized.push({
+        ...(conversation.brandId ? { brandId: conversation.brandId } : {}),
+        conversationId: conversation.id,
+        kind: 'social-conversation',
+        organizationId: conversation.organizationId,
+      });
+      const recentMessages = await this.listMessages(scope, conversation.id, {
+        limit: 20,
+      });
+      context.push({
+        conversationId: conversation.id,
+        kind: 'social-conversation',
+        messages: recentMessages.docs.map((message) => ({
+          body: message.body,
+          direction: message.direction,
+          messageId: message.id,
+          messageType: message.messageType,
+        })),
+      });
+    }
+
+    return { context, references: authorized };
   }
 
   async ingestInboundMessage(
@@ -301,6 +419,12 @@ export class SocialInboxService {
 
     await this.queueCommentTrigger(input, message, conversation);
 
+    await this.emitRealtimeUpdate(
+      input.organizationId,
+      conversation.id,
+      'message-created',
+    );
+
     return this.toMessageDocument(message);
   }
 
@@ -311,34 +435,65 @@ export class SocialInboxService {
   ): Promise<SocialMessageDocument> {
     const conversation = await this.getConversation(scope, conversationId);
     const body = this.sanitizeBody(input.text);
+    const existing = await this.findIdempotentDraft(
+      scope,
+      conversation,
+      input,
+      body,
+    );
+    if (existing) {
+      return existing;
+    }
 
-    const message = await this.prisma.socialMessage.create({
-      data: {
-        actionProvenance: this.buildActionProvenance({
-          action: 'draft',
-          conversation,
-          input,
-          scope,
+    let message: Awaited<ReturnType<typeof this.prisma.socialMessage.create>>;
+    try {
+      message = await this.prisma.socialMessage.create({
+        data: {
+          actionProvenance: this.buildActionProvenance({
+            action: 'draft',
+            conversation,
+            input,
+            scope,
+            status: 'draft',
+          }) as Prisma.InputJsonValue,
+          agentRunId: input.agentRunId,
+          body,
+          brandId: conversation.brandId,
+          conversationId: conversation.id,
+          credentialId: conversation.credentialId,
+          direction: 'outbound',
+          idempotencyKey: input.idempotencyKey,
+          messageType: input.messageType === 'dm' ? 'dm' : 'reply',
+          metadata: {
+            draftRecipientId: input.recipientId,
+          } as Prisma.InputJsonValue,
+          organizationId: conversation.organizationId,
+          platform: conversation.platform,
+          postId: conversation.postId,
           status: 'draft',
-        }) as Prisma.InputJsonValue,
-        agentRunId: input.agentRunId,
+          userId: scope.userId,
+          workflowRunId: input.workflowRunId,
+        },
+      });
+    } catch (error: unknown) {
+      if (
+        !input.idempotencyKey ||
+        (error as { code?: string })?.code !== 'P2002'
+      ) {
+        throw error;
+      }
+
+      const winner = await this.findIdempotentDraft(
+        scope,
+        conversation,
+        input,
         body,
-        brandId: conversation.brandId,
-        conversationId: conversation.id,
-        credentialId: conversation.credentialId,
-        direction: 'outbound',
-        messageType: input.messageType === 'dm' ? 'dm' : 'reply',
-        metadata: {
-          draftRecipientId: input.recipientId,
-        } as Prisma.InputJsonValue,
-        organizationId: conversation.organizationId,
-        platform: conversation.platform,
-        postId: conversation.postId,
-        status: 'draft',
-        userId: scope.userId,
-        workflowRunId: input.workflowRunId,
-      },
-    });
+      );
+      if (!winner) {
+        throw error;
+      }
+      return winner;
+    }
 
     await this.prisma.socialConversation.update({
       data: {
@@ -350,6 +505,12 @@ export class SocialInboxService {
       },
       where: { id: conversation.id },
     });
+
+    await this.emitRealtimeUpdate(
+      conversation.organizationId,
+      conversation.id,
+      'message-created',
+    );
 
     return this.toMessageDocument(message);
   }
@@ -390,6 +551,12 @@ export class SocialInboxService {
       where: { id: draft.id },
     });
 
+    await this.emitRealtimeUpdate(
+      draft.organizationId,
+      conversationId,
+      'message-updated',
+    );
+
     return sent;
   }
 
@@ -422,6 +589,12 @@ export class SocialInboxService {
       where: { id: conversationId },
     });
 
+    await this.emitRealtimeUpdate(
+      draft.organizationId,
+      conversationId,
+      'message-updated',
+    );
+
     return this.toMessageDocument(rejected);
   }
 
@@ -439,7 +612,7 @@ export class SocialInboxService {
     }
 
     const body = this.sanitizeBody(input.text);
-    return await this.executeOutboundAction(
+    const message = await this.executeOutboundAction(
       'post_reply',
       'reply',
       conversation,
@@ -448,6 +621,12 @@ export class SocialInboxService {
       body,
       () => this.publishReply(conversation, body),
     );
+    await this.emitRealtimeUpdate(
+      conversation.organizationId,
+      conversation.id,
+      'message-created',
+    );
+    return message;
   }
 
   async sendDm(
@@ -464,7 +643,7 @@ export class SocialInboxService {
     }
 
     const body = this.sanitizeBody(input.text);
-    return await this.executeOutboundAction(
+    const message = await this.executeOutboundAction(
       'send_dm',
       'dm',
       conversation,
@@ -477,6 +656,12 @@ export class SocialInboxService {
           text: body,
         }),
     );
+    await this.emitRealtimeUpdate(
+      conversation.organizationId,
+      conversation.id,
+      'message-created',
+    );
+    return message;
   }
 
   async updateConversation(
@@ -515,7 +700,39 @@ export class SocialInboxService {
       where: { id: conversationId },
     });
 
+    await this.emitRealtimeUpdate(
+      updated.organizationId,
+      updated.id,
+      'conversation-updated',
+    );
+
     return this.toConversationDocument(updated);
+  }
+
+  private async emitRealtimeUpdate(
+    organizationId: string,
+    conversationId: string,
+    kind: SocialInboxRealtimeEvent['kind'],
+  ): Promise<void> {
+    if (!this.notificationsPublisher) {
+      return;
+    }
+
+    const payload: SocialInboxRealtimeEvent & { room: string } = {
+      conversationId,
+      kind,
+      room: `org-${organizationId}`,
+    };
+    await Promise.allSettled([
+      this.notificationsPublisher.emit(
+        WebSocketPaths.socialInbox(organizationId),
+        payload,
+      ),
+      this.notificationsPublisher.emit(
+        WebSocketPaths.socialConversation(conversationId),
+        payload,
+      ),
+    ]);
   }
 
   async ingestYoutubeComments(
@@ -1283,6 +1500,43 @@ export class SocialInboxService {
     }
 
     return this.toMessageDocument(message);
+  }
+
+  private async findIdempotentDraft(
+    scope: SocialInboxScope,
+    conversation: SocialConversationDocument,
+    input: SocialActionInput,
+    body: string,
+  ): Promise<SocialMessageDocument | null> {
+    if (!input.idempotencyKey) {
+      return null;
+    }
+
+    const existing = await this.prisma.socialMessage.findFirst({
+      where: {
+        idempotencyKey: input.idempotencyKey,
+        isDeleted: false,
+        organizationId: scope.organizationId,
+      },
+    });
+    if (!existing) {
+      return null;
+    }
+
+    const expectedMessageType = input.messageType === 'dm' ? 'dm' : 'reply';
+    if (
+      existing.body !== body ||
+      existing.conversationId !== conversation.id ||
+      existing.direction !== 'outbound' ||
+      existing.messageType !== expectedMessageType ||
+      existing.status !== 'draft'
+    ) {
+      throw new BadRequestException(
+        'Idempotency key is already used by another social action',
+      );
+    }
+
+    return this.toMessageDocument(existing);
   }
 
   private async reserveOutboundAction(

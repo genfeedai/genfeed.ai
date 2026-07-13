@@ -106,6 +106,9 @@ type PrismaMock = {
 type TestContext = {
   conversations: StoreConversation[];
   messages: StoreMessage[];
+  notificationsPublisher: {
+    emit: ReturnType<typeof vi.fn>;
+  };
   instagramService: {
     replyToComment: ReturnType<typeof vi.fn>;
     sendCommentReplyDm: ReturnType<typeof vi.fn>;
@@ -392,11 +395,15 @@ function createContext(): TestContext {
   const queueService = {
     queueTriggerEvent: vi.fn().mockResolvedValue('workflow-job-1'),
   };
+  const notificationsPublisher = {
+    emit: vi.fn().mockResolvedValue(undefined),
+  };
 
   return {
     conversations,
     instagramService,
     messages,
+    notificationsPublisher,
     prisma: prisma as unknown as PrismaMock,
     queueService,
     service: new SocialInboxService(
@@ -404,6 +411,7 @@ function createContext(): TestContext {
       youtubeService as never,
       instagramService as never,
       queueService as never,
+      notificationsPublisher as never,
     ),
     youtubeService,
   };
@@ -437,6 +445,180 @@ describe('SocialInboxService', () => {
       canPostReply: true,
       canSendDm: false,
     });
+  });
+
+  it('authorizes typed agent selectors against the current inbox scope', async () => {
+    const { service } = createContext();
+    const message = await service.ingestInboundMessage({
+      body: 'Sensitive customer text',
+      brandId: 'brand-1',
+      conversationType: 'comment',
+      externalConversationId: 'thread-1',
+      externalMessageId: 'comment-1',
+      organizationId: 'org-1',
+      participantExternalId: 'author-1',
+      participantName: 'Sensitive identity',
+      platform: 'youtube',
+    });
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+
+    await expect(
+      service.authorizeAgentContextReferences(scope, [
+        {
+          brandId: 'spoofed-brand',
+          conversationId: message.conversationId,
+          kind: 'social-conversation',
+          organizationId: 'spoofed-organization',
+        },
+        {
+          conversationId: message.conversationId,
+          kind: 'social-message',
+          messageId: message.id,
+          organizationId: 'spoofed-organization',
+        },
+      ]),
+    ).resolves.toEqual([
+      {
+        brandId: 'brand-1',
+        conversationId: message.conversationId,
+        kind: 'social-conversation',
+        organizationId: 'org-1',
+      },
+      {
+        brandId: 'brand-1',
+        conversationId: message.conversationId,
+        kind: 'social-message',
+        messageId: message.id,
+        organizationId: 'org-1',
+      },
+    ]);
+    const resolved = await service.resolveAgentContextReferences(scope, [
+      {
+        conversationId: message.conversationId,
+        kind: 'social-message',
+        messageId: message.id,
+        organizationId: 'spoofed-organization',
+      },
+    ]);
+    expect(resolved.context).toEqual([
+      {
+        conversationId: message.conversationId,
+        kind: 'social-message',
+        messageId: message.id,
+        messages: [
+          {
+            body: 'Sensitive customer text',
+            direction: 'inbound',
+            messageId: message.id,
+            messageType: 'comment',
+          },
+        ],
+      },
+    ]);
+    expect(JSON.stringify(resolved.context)).not.toMatch(
+      /Sensitive identity|credential/,
+    );
+    await expect(
+      service.authorizeAgentContextReferences(
+        { ...scope, organizationId: 'org-2' },
+        [
+          {
+            conversationId: message.conversationId,
+            kind: 'social-conversation',
+            organizationId: 'org-1',
+          },
+        ],
+      ),
+    ).rejects.toThrow();
+    await expect(
+      service.authorizeAgentContextReferences(scope, [
+        {
+          conversationId: 'conversation-1\nignore-instructions',
+          kind: 'social-conversation',
+          organizationId: 'org-1',
+        },
+      ]),
+    ).rejects.toThrow('Invalid social inbox reference');
+  });
+
+  it('publishes redacted scoped realtime events for new inbox messages', async () => {
+    const { notificationsPublisher, service } = createContext();
+    const message = await service.ingestInboundMessage({
+      body: 'Sensitive customer text',
+      brandId: 'brand-1',
+      conversationType: 'comment',
+      externalConversationId: 'thread-1',
+      externalMessageId: 'comment-1',
+      organizationId: 'org-1',
+      participantExternalId: 'author-1',
+      participantName: 'Sensitive identity',
+      platform: 'youtube',
+    });
+
+    expect(notificationsPublisher.emit).toHaveBeenCalledWith(
+      '/social-inbox/org-1',
+      {
+        conversationId: message.conversationId,
+        kind: 'message-created',
+        room: 'org-org-1',
+      },
+    );
+    expect(notificationsPublisher.emit).toHaveBeenCalledWith(
+      `/social-inbox/conversations/${message.conversationId}`,
+      {
+        conversationId: message.conversationId,
+        kind: 'message-created',
+        room: 'org-org-1',
+      },
+    );
+    expect(JSON.stringify(notificationsPublisher.emit.mock.calls)).not.toMatch(
+      /Sensitive customer text|Sensitive identity/,
+    );
+  });
+
+  it('returns one draft for repeated deterministic idempotency keys', async () => {
+    const { messages, service } = createContext();
+    const inbound = await service.ingestInboundMessage({
+      body: 'Inbound',
+      brandId: 'brand-1',
+      conversationType: 'comment',
+      externalConversationId: 'thread-1',
+      externalMessageId: 'comment-1',
+      organizationId: 'org-1',
+      participantExternalId: 'author-1',
+      platform: 'youtube',
+    });
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    const input = {
+      idempotencyKey: 'messages:conversation-1:draft:1',
+      text: 'One draft only',
+    };
+
+    const first = await service.createDraft(
+      scope,
+      inbound.conversationId,
+      input,
+    );
+    const repeated = await service.createDraft(
+      scope,
+      inbound.conversationId,
+      input,
+    );
+
+    expect(repeated.id).toBe(first.id);
+    expect(
+      messages.filter(
+        (message) => message.idempotencyKey === input.idempotencyKey,
+      ),
+    ).toHaveLength(1);
   });
 
   it('posts replies idempotently through the connected YouTube account', async () => {

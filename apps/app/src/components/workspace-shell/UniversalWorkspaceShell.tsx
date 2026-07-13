@@ -60,6 +60,10 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
+import {
+  type WorkspaceSurfaceAdapter,
+  WorkspaceSurfaceAdapterProvider,
+} from './WorkspaceSurfaceAdapterContext';
 
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
@@ -108,6 +112,8 @@ function UniversalWorkspaceShellContent({
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
   const [composerPortalTarget, setComposerPortalTarget] =
     useState<HTMLElement | null>(null);
+  const [surfaceAdapter, setSurfaceAdapter] =
+    useState<WorkspaceSurfaceAdapter | null>(null);
   const primaryRegionRef = useRef<HTMLElement>(null);
   const previousPathnameRef = useRef<string | null>(null);
   const previousStateRef = useRef<WorkspaceShellState | null>(null);
@@ -177,11 +183,19 @@ function UniversalWorkspaceShellContent({
   );
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
   const composerContextLabel =
-    state === 'conversation'
+    surfaceAdapter?.contextLabel ??
+    (state === 'conversation'
       ? 'Conversation'
       : state === 'overlay'
         ? 'Overlay · conversation connected'
-        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`;
+        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`);
+
+  const handleSurfaceAdapterChange = useCallback(
+    (adapter: WorkspaceSurfaceAdapter | null) => {
+      setSurfaceAdapter((current) => (current === adapter ? current : adapter));
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
     if (!isUnthreadedConversation) {
@@ -472,15 +486,17 @@ function UniversalWorkspaceShellContent({
         />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <div className="gen-shell-empty-state p-4">
-          <p className="text-sm font-medium text-foreground">
-            Registered {surfaceKey} adapter slot
-          </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Product-owned context adapters land here without changing their
-            canonical route or granting execution authority.
-          </p>
-        </div>
+        {surfaceAdapter?.inspector ?? (
+          <div className="gen-shell-empty-state p-4">
+            <p className="text-sm font-medium text-foreground">
+              Registered {surfaceKey} adapter slot
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Product-owned context adapters land here without changing their
+              canonical route or granting execution authority.
+            </p>
+          </div>
+        )}
         <Button
           icon={<HiOutlineEye className="size-4" />}
           onClick={handleOpenOverlay}
@@ -614,7 +630,14 @@ function UniversalWorkspaceShellContent({
                   Context
                 </Button>
               </div>
-              {baseState === 'canvas' ? children : null}
+              {baseState === 'canvas' ? (
+                <WorkspaceSurfaceAdapterProvider
+                  activeSurfaceKey={surfaceKey}
+                  onAdapterChange={handleSurfaceAdapterChange}
+                >
+                  {children}
+                </WorkspaceSurfaceAdapterProvider>
+              ) : null}
             </section>
 
             {state !== 'overlay' ? (
