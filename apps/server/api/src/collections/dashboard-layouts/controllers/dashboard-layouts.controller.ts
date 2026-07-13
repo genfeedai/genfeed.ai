@@ -3,7 +3,6 @@ import { UpsertDashboardLayoutDto } from '@api/collections/dashboard-layouts/dto
 import { DashboardLayoutsService } from '@api/collections/dashboard-layouts/services/dashboard-layouts.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnNotFound,
@@ -13,6 +12,7 @@ import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { DashboardLayoutSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -22,6 +22,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { ApiQuery } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 const DEFAULT_PAGE_KEY = 'workspace-overview';
@@ -37,6 +38,16 @@ export class DashboardLayoutsController {
   ) {}
 
   @Get()
+  // Without the Nest Swagger CLI plugin, @nestjs/swagger can't see that
+  // `pageKey` is a TS-optional (`?`) handler param, so it defaults the
+  // generated spec to `required: true` — wrong, since findForPage falls back
+  // to DEFAULT_PAGE_KEY when it's omitted. Declare it explicitly.
+  @ApiQuery({
+    description:
+      'Page key identifying which dashboard page to load. Defaults to `workspace-overview` when omitted.',
+    name: 'pageKey',
+    required: false,
+  })
   async findForPage(
     @Req() request: Request,
     @CurrentUser() user: User,
@@ -44,7 +55,7 @@ export class DashboardLayoutsController {
     @Query('pageKey') pageKey?: string,
   ): Promise<JsonApiSingleResponse> {
     if (!brandId) {
-      throw new NotFoundException({
+      throw new BadRequestException({
         message: 'Query param `brand` is required',
       });
     }

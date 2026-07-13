@@ -4,6 +4,7 @@ import { DashboardLayoutsService } from '@api/collections/dashboard-layouts/serv
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -141,10 +142,10 @@ describe('DashboardLayoutsController', () => {
       expect(result).toEqual({ error: 'DashboardLayoutsController:brand-1' });
     });
 
-    it('throws NotFoundException when the brand query param is missing', async () => {
+    it('throws BadRequestException when the brand query param is missing', async () => {
       await expect(
         controller.findForPage(mockRequest as never, mockUser, ''),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(BadRequestException);
 
       expect(service.findForPage).not.toHaveBeenCalled();
     });
