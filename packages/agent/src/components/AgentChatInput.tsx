@@ -1,6 +1,7 @@
 import { AgentChatInputAttachmentTray } from '@genfeedai/agent/components/AgentChatInputAttachmentTray';
 import { AgentChatInputStyles } from '@genfeedai/agent/components/AgentChatInputStyles';
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
+import { AgentComposerContextRail } from '@genfeedai/agent/components/AgentComposerContextRail';
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -81,16 +82,20 @@ export function AgentChatInput({
   clearAllAttachments,
 }: AgentChatInputProps): ReactElement {
   const {
+    actionFeedback,
     canSendMessage,
     editor,
     handlePasteImages,
     handleRemoveAttachment,
+    handleInsertReference,
+    handleSelectAction,
     handleSend,
     handleShellPointerDown,
     hasAttachments,
     isDragActive,
     isListening,
     isTranscribing,
+    references,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,
@@ -114,6 +119,13 @@ export function AgentChatInput({
     () => attachments.map(mapAttachmentToTrayAsset),
     [attachments],
   );
+  const attachmentStatusById = useMemo(
+    () =>
+      Object.fromEntries(
+        attachments.map((attachment) => [attachment.id, attachment.status]),
+      ),
+    [attachments],
+  );
 
   return (
     <div
@@ -124,49 +136,69 @@ export function AgentChatInput({
       <AgentChatInputStyles />
 
       {isDragActive && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-md border-2 border-dashed border-primary/50 bg-primary/5">
-          <p className="text-sm font-medium text-primary/70">
-            Drop images here
-          </p>
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-primary/50 bg-primary/5">
+          <p className="text-sm font-medium text-primary/70">Drop files here</p>
         </div>
       )}
 
+      {actionFeedback ? (
+        <div
+          aria-live="polite"
+          className="mb-2 rounded-lg border border-border bg-background-secondary/92 px-3 py-2 text-xs leading-5 text-foreground/78 shadow-border"
+          role="status"
+        >
+          {actionFeedback}
+        </div>
+      ) : null}
+
       <PromptBarShell
         className={cn(
-          'rounded-md border border-border bg-card p-2 shadow-border transition-[border-color,box-shadow] focus-within:border-foreground/[0.18] focus-within:shadow-border-strong',
+          'overflow-hidden rounded-xl border border-border bg-card shadow-border transition-[border-color,box-shadow] focus-within:border-foreground/[0.18] focus-within:shadow-border-strong',
           disabled && 'opacity-50',
           isDragActive && 'ring-1 ring-primary/40',
         )}
         data-testid="agent-chat-input-shell"
         onPointerDown={handleShellPointerDown}
       >
-        {hasAttachments && (
+        <AgentComposerContextRail
+          attachmentCount={attachments.length}
+          referenceCount={references.length}
+        />
+
+        {(hasAttachments || references.length > 0) && (
           <AgentChatInputAttachmentTray
             assets={trayAssets}
+            attachmentStatusById={attachmentStatusById}
             isDisabled={disabled}
             onRemoveAttachedAsset={handleRemoveAttachment}
+            references={references}
           />
         )}
 
-        <div className="p-2">
+        <div className="px-3 pb-1 pt-2">
           <EditorContent editor={editor} className="flex-1" />
-        </div>
 
-        <AgentChatInputToolbar
-          disabled={disabled}
-          isUploading={isUploading}
-          showStop={showStop}
-          onStop={onStop}
-          isTranscribing={isTranscribing}
-          isListening={isListening}
-          shouldShowVoiceInput={shouldShowVoiceInput}
-          shouldShowSendButton={shouldShowSendButton}
-          canSendMessage={canSendMessage}
-          hasEditor={Boolean(editor)}
-          onStartListening={startListening}
-          onStopListening={stopListening}
-          onSend={handleSend}
-        />
+          <AgentChatInputToolbar
+            canSendMessage={canSendMessage}
+            disabled={disabled}
+            hasEditor={Boolean(editor)}
+            isListening={isListening}
+            isTranscribing={isTranscribing}
+            isUploading={isUploading}
+            onAddFiles={addFiles}
+            onInsertReference={handleInsertReference}
+            onSelectAction={handleSelectAction}
+            onSend={() => {
+              void handleSend();
+            }}
+            onStartListening={startListening}
+            onStop={onStop}
+            onStopListening={stopListening}
+            shouldShowSendButton={shouldShowSendButton}
+            shouldShowVoiceInput={shouldShowVoiceInput}
+            showStop={showStop}
+          />
+        </div>
       </PromptBarShell>
     </div>
   );

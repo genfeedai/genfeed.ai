@@ -1,7 +1,10 @@
+import type { AgentChatReferenceItem } from '@genfeedai/agent/components/AgentChatInputAttachmentTray';
 import { BrandMentionList } from '@genfeedai/agent/components/BrandMentionList';
 import { ContentMentionList } from '@genfeedai/agent/components/ContentMentionList';
+import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMentionList';
 import { TeamMentionList } from '@genfeedai/agent/components/TeamMentionList';
+import { parseConversationComposerCommand } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import { BrandMention } from '@genfeedai/agent/extensions/brand-mention.extension';
 import { ContentMention } from '@genfeedai/agent/extensions/content-mention.extension';
 import { CredentialMention } from '@genfeedai/agent/extensions/credential-mention.extension';
@@ -12,8 +15,15 @@ import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions'
 import { useCredentialMentions } from '@genfeedai/agent/hooks/use-credential-mentions';
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import { useTeamMentions } from '@genfeedai/agent/hooks/use-team-mentions';
+import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  clearConversationComposerDraft,
+  readConversationComposerDraft,
+  writeConversationComposerDocument,
+  writeConversationComposerFocusIntent,
+} from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -32,6 +42,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -223,6 +234,12 @@ export function useAgentChatInput({
   getCompletedAttachments,
   clearAllAttachments,
 }: UseAgentChatInputParams) {
+  const composerShell = useConversationComposerShell();
+  const draftScopeKey = composerShell?.draftScopeKey ?? null;
+  const restoredDraft = useMemo(
+    () => readConversationComposerDraft(draftScopeKey),
+    [draftScopeKey],
+  );
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const composerSeed = useAgentChatStore((s) => s.composerSeed);
   const clearComposerSeed = useAgentChatStore((s) => s.clearComposerSeed);
@@ -234,7 +251,24 @@ export function useAgentChatInput({
   const { mentions: teamMentions } = useTeamMentions(apiService ?? null);
   const { mentions: contentMentions } = useContentMentions(apiService ?? null);
 
-  const [isEmpty, setIsEmpty] = useState(true);
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [isEmpty, setIsEmpty] = useState(!restoredDraft.plainText.trim());
+  const [references, setReferences] = useState<AgentChatReferenceItem[]>(() =>
+    restoredDraft.document
+      ? extractMentions(restoredDraft.document).map((mention) => ({
+          id: mention.id,
+          label:
+            mention.type === 'brand'
+              ? `#${mention.brandName}`
+              : mention.type === 'team'
+                ? `@${mention.displayName}`
+                : mention.type === 'credential'
+                  ? `!${mention.handle}`
+                  : `^${mention.contentTitle}`,
+          type: mention.type,
+        }))
+      : [],
+  );
   const editorRef = useRef<Editor | null>(null);
 
   const hasAttachments = attachments.length > 0;
@@ -265,10 +299,14 @@ export function useAgentChatInput({
   });
 
   const editor = useEditor({
+    content: restoredDraft.document ?? undefined,
     editorProps: {
       attributes: {
+        'aria-label': 'Conversation prompt',
+        'aria-multiline': 'true',
         class:
           'prose prose-sm prose-invert max-w-none flex-1 bg-transparent py-1.5 text-sm text-foreground focus:outline-none',
+        role: 'textbox',
       },
     },
     extensions: [
@@ -344,19 +382,81 @@ export function useAgentChatInput({
     immediatelyRender: false,
   });
 
-  // Track editor empty state
+  // Track editor state and keep the tab-scoped reload draft current.
   useEffect(() => {
     if (!editor) {
       return;
     }
     const updateHandler = () => {
       setIsEmpty(editor.isEmpty);
+      const document = editor.getJSON();
+      const nextReferences = extractMentions(document).map((mention) => ({
+        id: mention.id,
+        label:
+          mention.type === 'brand'
+            ? `#${mention.brandName}`
+            : mention.type === 'team'
+              ? `@${mention.displayName}`
+              : mention.type === 'credential'
+                ? `!${mention.handle}`
+                : `^${mention.contentTitle}`,
+        type: mention.type,
+      }));
+      setReferences(nextReferences);
+      writeConversationComposerDocument(
+        draftScopeKey,
+        document,
+        editor.getText(),
+      );
+      setActionFeedback(null);
+    };
+    const focusHandler = () => {
+      writeConversationComposerFocusIntent(draftScopeKey, true);
+    };
+    const blurHandler = ({ event }: { event: FocusEvent }) => {
+      if (event.relatedTarget) {
+        writeConversationComposerFocusIntent(draftScopeKey, false);
+      }
     };
     editor.on('update', updateHandler);
+    editor.on('focus', focusHandler);
+    editor.on('blur', blurHandler);
     return () => {
       editor.off('update', updateHandler);
+      editor.off('focus', focusHandler);
+      editor.off('blur', blurHandler);
     };
-  }, [editor]);
+  }, [draftScopeKey, editor]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    const draft = readConversationComposerDraft(draftScopeKey);
+    editor.commands.setContent(draft.document ?? '');
+    setIsEmpty(!draft.plainText.trim());
+    setReferences(
+      draft.document
+        ? extractMentions(draft.document).map((mention) => ({
+            id: mention.id,
+            label:
+              mention.type === 'brand'
+                ? `#${mention.brandName}`
+                : mention.type === 'team'
+                  ? `@${mention.displayName}`
+                  : mention.type === 'credential'
+                    ? `!${mention.handle}`
+                    : `^${mention.contentTitle}`,
+            type: mention.type,
+          }))
+        : [],
+    );
+
+    if (draft.hasFocusIntent) {
+      window.requestAnimationFrame(() => editor.commands.focus('end'));
+    }
+  }, [draftScopeKey, editor]);
 
   // Keep editorRef in sync for the microphone callback
   useEffect(() => {
@@ -381,50 +481,15 @@ export function useAgentChatInput({
     clearComposerSeed();
   }, [activeThreadId, clearComposerSeed, composerSeed, editor]);
 
-  // Handle Enter key to send message
-  useEffect(() => {
-    function handleSendEvent() {
-      if (!editor || disabled) {
-        return;
-      }
-      const text = editor.getText().trim();
-      const canSend = Boolean(text) || hasCompletedAttachments;
-      if (!canSend) {
-        return;
-      }
-      const json = editor.getJSON();
-      const mentionData = extractMentions(json);
-      const completed = getCompletedAttachments?.();
-      onSend(
-        text,
-        mentionData.length > 0 ? mentionData : undefined,
-        completed && completed.length > 0 ? completed : undefined,
-        { planModeEnabled: false },
-      );
-      editor.commands.clearContent();
-      clearAllAttachments?.();
-    }
-
-    document.addEventListener('agent-chat-send', handleSendEvent);
-    return () =>
-      document.removeEventListener('agent-chat-send', handleSendEvent);
-  }, [
-    editor,
-    disabled,
-    onSend,
-    hasCompletedAttachments,
-    getCompletedAttachments,
-    clearAllAttachments,
-  ]);
-
   // Sync disabled state
   useEffect(() => {
     if (editor) {
       editor.setEditable(!disabled);
+      editor.view.dom.setAttribute('aria-disabled', String(Boolean(disabled)));
     }
   }, [editor, disabled]);
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     if (!editor || disabled) {
       return;
     }
@@ -433,6 +498,34 @@ export function useAgentChatInput({
     if (!canSend) {
       return;
     }
+    const parsedCommand = parseConversationComposerCommand(text);
+    if (parsedCommand.kind === 'unknown') {
+      setActionFeedback(
+        `Unknown command /${parsedCommand.command.command}. Choose a trusted action from the Actions menu.`,
+      );
+      return;
+    }
+    if (parsedCommand.kind === 'action') {
+      if (!composerShell?.dispatchAction) {
+        setActionFeedback(
+          'This action is unavailable here. Your draft has been preserved.',
+        );
+        return;
+      }
+
+      try {
+        const result = await composerShell.dispatchAction(
+          parsedCommand.invocation,
+        );
+        setActionFeedback(result.message);
+      } catch {
+        setActionFeedback(
+          'That action could not be opened. Your draft and references are unchanged.',
+        );
+      }
+      return;
+    }
+
     const json = editor.getJSON();
     const mentionData = extractMentions(json);
     const completed = getCompletedAttachments?.();
@@ -444,7 +537,10 @@ export function useAgentChatInput({
     );
     editor.commands.clearContent();
     clearAllAttachments?.();
+    clearConversationComposerDraft(draftScopeKey);
   }, [
+    composerShell,
+    draftScopeKey,
     editor,
     disabled,
     onSend,
@@ -452,6 +548,38 @@ export function useAgentChatInput({
     getCompletedAttachments,
     clearAllAttachments,
   ]);
+
+  // Handle Enter after handleSend is stable so keyboard and click paths share
+  // the same trusted-command checks and recovery behavior.
+  useEffect(() => {
+    function handleSendEvent() {
+      void handleSend();
+    }
+
+    document.addEventListener('agent-chat-send', handleSendEvent);
+    return () =>
+      document.removeEventListener('agent-chat-send', handleSendEvent);
+  }, [handleSend]);
+
+  const handleSelectAction = useCallback(
+    (actionName: ConversationComposerActionName) => {
+      if (!editor) {
+        return;
+      }
+
+      if (editor.isEmpty) {
+        editor.commands.setContent(`/${actionName} `);
+      } else {
+        editor.chain().focus('start').insertContent(`/${actionName} `).run();
+      }
+      editor.commands.focus('end');
+    },
+    [editor],
+  );
+
+  const handleInsertReference = useCallback(() => {
+    editor?.chain().focus('end').insertContent('^').run();
+  }, [editor]);
 
   const handleShellPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -476,8 +604,11 @@ export function useAgentChatInput({
         return;
       }
 
-      const files = Array.from(event.clipboardData.files ?? []).filter((file) =>
-        file.type.startsWith('image/'),
+      const files = Array.from(event.clipboardData.files ?? []).filter(
+        (file) =>
+          file.type.startsWith('image/') ||
+          file.type.startsWith('video/') ||
+          file.type.startsWith('audio/'),
       );
 
       if (files.length === 0) {
@@ -513,16 +644,20 @@ export function useAgentChatInput({
     (!isSupported || !isEmpty || hasCompletedAttachments);
 
   return {
+    actionFeedback,
     canSendMessage,
     editor,
     handlePasteImages,
     handleRemoveAttachment,
+    handleInsertReference,
+    handleSelectAction,
     handleSend,
     handleShellPointerDown,
     hasAttachments,
     isDragActive,
     isListening,
     isTranscribing,
+    references,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,

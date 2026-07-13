@@ -10,6 +10,8 @@ import {
   useState,
 } from 'react';
 import {
+  HiOutlineArrowUturnLeft,
+  HiOutlineBeaker,
   HiOutlineBolt,
   HiOutlineCalendarDays,
   HiOutlineChartBar,
@@ -17,8 +19,11 @@ import {
   HiOutlineDocumentText,
   HiOutlineHashtag,
   HiOutlineLightBulb,
+  HiOutlinePaperAirplane,
   HiOutlinePhoto,
+  HiOutlinePresentationChartLine,
   HiOutlineRocketLaunch,
+  HiOutlineSparkles,
   HiOutlineSquare2Stack,
 } from 'react-icons/hi2';
 
@@ -27,12 +32,17 @@ const COMMAND_ICONS: Record<string, ReactElement> = {
   batch: <HiOutlineSquare2Stack className="size-4" />,
   caption: <HiOutlineChatBubbleBottomCenterText className="size-4" />,
   'create-post': <HiOutlineDocumentText className="size-4" />,
+  create: <HiOutlineSparkles className="size-4" />,
   'generate-image': <HiOutlinePhoto className="size-4" />,
   hashtags: <HiOutlineHashtag className="size-4" />,
   ideas: <HiOutlineLightBulb className="size-4" />,
   repurpose: <HiOutlineRocketLaunch className="size-4" />,
+  remix: <HiOutlineArrowUturnLeft className="size-4" />,
+  reply: <HiOutlinePaperAirplane className="size-4" />,
+  research: <HiOutlineBeaker className="size-4" />,
   schedule: <HiOutlineCalendarDays className="size-4" />,
   trends: <HiOutlineBolt className="size-4" />,
+  workflow: <HiOutlinePresentationChartLine className="size-4" />,
 };
 
 interface AgentCommandListHandle {

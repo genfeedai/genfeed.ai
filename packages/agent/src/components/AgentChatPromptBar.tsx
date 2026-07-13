@@ -2,7 +2,15 @@ import {
   AgentChatInput,
   type ExtractedMention,
 } from '@genfeedai/agent/components/AgentChatInput';
+import { AgentComposerStatusStack } from '@genfeedai/agent/components/AgentComposerStatusStack';
+import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
+import type {
+  AgentInputRequest,
+  AgentProposedPlan,
+  AgentWorkEvent,
+} from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -12,6 +20,7 @@ import type {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import type { ReactElement, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 type AgentChatPromptBarProps = {
   apiService: AgentApiService;
@@ -37,6 +46,14 @@ type AgentChatPromptBarProps = {
     options?: { planModeEnabled?: boolean },
   ) => void;
   onStop: () => void;
+  activeWorkEvent: AgentWorkEvent | null;
+  error: string | null;
+  isSubmittingInputRequest: boolean;
+  latestProposedPlan: AgentProposedPlan | null;
+  onClearError: () => void;
+  onSubmitInputRequest: (answer: string) => void | Promise<void>;
+  pendingInputRequest: AgentInputRequest | null;
+  socketConnectionState: AgentSocketConnectionState;
 };
 
 export function AgentChatPromptBar({
@@ -58,19 +75,45 @@ export function AgentChatPromptBar({
   clearAllAttachments,
   onSend,
   onStop,
+  activeWorkEvent,
+  error,
+  isSubmittingInputRequest,
+  latestProposedPlan,
+  onClearError,
+  onSubmitInputRequest,
+  pendingInputRequest,
+  socketConnectionState,
 }: AgentChatPromptBarProps): ReactElement {
-  return (
+  const composerShell = useConversationComposerShell();
+  const statusStack = (
+    <AgentComposerStatusStack
+      activeWorkEvent={activeWorkEvent}
+      error={error}
+      isSubmittingInputRequest={isSubmittingInputRequest}
+      latestProposedPlan={latestProposedPlan}
+      onClearError={onClearError}
+      onSubmitInputRequest={onSubmitInputRequest}
+      pendingInputRequest={pendingInputRequest}
+      socketConnectionState={socketConnectionState}
+    />
+  );
+  const topContent = (
+    <>
+      {statusStack}
+      {showSuggestedActionsWhenNotEmpty && promptBarSuggestions ? (
+        <div className="px-1 pb-3">{promptBarSuggestions}</div>
+      ) : null}
+    </>
+  );
+  const promptBar = (
     <PromptBarContainer
-      layoutMode={layoutMode}
+      layoutMode={composerShell?.portalTarget ? 'inflow' : layoutMode}
       maxWidth="4xl"
-      showTopFade
-      topContent={
-        showSuggestedActionsWhenNotEmpty && promptBarSuggestions ? (
-          <div className="px-1 pb-3">{promptBarSuggestions}</div>
-        ) : undefined
-      }
+      showTopFade={!composerShell?.portalTarget}
+      topContent={topContent}
       zIndex={40}
       className={cn(
+        composerShell?.portalTarget && 'w-full',
         layoutMode === 'fixed' && 'bottom-2 md:bottom-4',
         layoutMode === 'surface-fixed' && 'bottom-3 md:bottom-5',
       )}
@@ -95,4 +138,8 @@ export function AgentChatPromptBar({
       />
     </PromptBarContainer>
   );
+
+  return composerShell?.portalTarget
+    ? createPortal(promptBar, composerShell.portalTarget)
+    : promptBar;
 }

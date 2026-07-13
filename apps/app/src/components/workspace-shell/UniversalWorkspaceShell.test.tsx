@@ -14,6 +14,12 @@ const router = vi.hoisted(() => ({
 }));
 const agentState = vi.hoisted(() => ({
   activeThreadId: 'thread-1' as string | null,
+  threads: [
+    {
+      contextVersion: 3,
+      id: 'thread-1',
+    },
+  ],
 }));
 const agentActions = vi.hoisted(() => ({
   resetActiveConversationState: vi.fn(),
@@ -23,6 +29,73 @@ const pageShellMount = vi.hoisted(() => vi.fn());
 const agentApiService = {} as never;
 
 vi.mock('@genfeedai/agent', () => ({
+  ConversationComposerShellProvider: ({
+    children,
+    dispatchAction,
+    draftScopeKey,
+    scopeControls,
+  }: {
+    children: ReactNode;
+    dispatchAction: (invocation: {
+      action: {
+        isConsequentialProposal: boolean;
+        label: string;
+        name: string;
+        requiredScope: string;
+        route: string;
+      };
+      arguments: string;
+    }) => void;
+    draftScopeKey: string;
+    scopeControls?: ReactNode;
+  }) => (
+    <div data-draft-scope={draftScopeKey}>
+      {children}
+      {scopeControls}
+      <button
+        aria-label="Dispatch publish action"
+        onClick={() =>
+          dispatchAction({
+            action: {
+              isConsequentialProposal: true,
+              label: 'Publish',
+              name: 'publish',
+              requiredScope: 'brand',
+              route: '/posts/review',
+            },
+            arguments: 'post-1',
+          })
+        }
+        type="button"
+      />
+      <button
+        aria-label="Dispatch forged publish action"
+        onClick={() =>
+          dispatchAction({
+            action: {
+              isConsequentialProposal: true,
+              label: 'Publish',
+              name: 'publish',
+              requiredScope: 'brand',
+              route: '/posts/calendar',
+            },
+            arguments: 'post-1',
+          })
+        }
+        type="button"
+      />
+    </div>
+  ),
+  getConversationComposerAction: (name: string) =>
+    name === 'publish'
+      ? {
+          isConsequentialProposal: true,
+          label: 'Publish',
+          name: 'publish',
+          requiredScope: 'brand',
+          route: '/posts/review',
+        }
+      : null,
   useAgentChatStore: Object.assign(
     (selector: (state: typeof agentState) => unknown) => selector(agentState),
     {
@@ -53,7 +126,10 @@ vi.mock(
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    brandSlug: navigation.pathname.includes('/moonrise/') ? 'moonrise' : '',
+    href: (href: string) => `/acme/moonrise${href}`,
     orgHref: (href: string) => `/acme/~${href}`,
+    orgSlug: navigation.pathname.split('/').filter(Boolean)[0] ?? '',
   }),
 }));
 
@@ -217,6 +293,9 @@ describe('UniversalWorkspaceShell', () => {
       'overlay',
     );
     expect(screen.getByTestId('workspace-dialog')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('workspace-overlay-composer-slot'),
+    ).toBeInTheDocument();
     expect(screen.getByText('asset reference selected')).toBeInTheDocument();
 
     fireEvent.click(
@@ -226,6 +305,74 @@ describe('UniversalWorkspaceShell', () => {
     expect(router.back).not.toHaveBeenCalled();
     expect(router.replace).toHaveBeenCalledWith(
       '/acme/moonrise/library/images?thread=thread-1',
+    );
+  });
+
+  it('dispatches publish only as a trusted brand-scoped review route', () => {
+    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.searchParams = new URLSearchParams({ thread: 'thread-1' });
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Workspace</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dispatch publish action' }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith(
+      '/acme/moonrise/posts/review?thread=thread-1',
+    );
+  });
+
+  it('exposes the optional scope-control composition slot without owning it', () => {
+    render(
+      <UniversalWorkspaceShell
+        agentApiService={agentApiService}
+        composerScopeControls={<span>Scoped controls</span>}
+      >
+        <div>Conversation</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.getByText('Scoped controls')).toBeInTheDocument();
+  });
+
+  it('preserves an unauthorized brand action instead of widening org scope', () => {
+    navigation.pathname = '/acme/~/agent/thread-1';
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Conversation</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dispatch publish action' }),
+    );
+
+    expect(router.push).not.toHaveBeenCalledWith(
+      expect.stringContaining('/posts/review'),
+    );
+  });
+
+  it('rejects forged command metadata instead of trusting the invocation', () => {
+    navigation.pathname = '/acme/moonrise/workspace/overview';
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Workspace</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dispatch forged publish action' }),
+    );
+
+    expect(router.push).not.toHaveBeenCalledWith(
+      expect.stringContaining('/posts/calendar'),
     );
   });
 

@@ -31,6 +31,11 @@ export {
   DynamicTable,
 } from '@genfeedai/agent/components/blocks';
 export { ClipRunCard } from '@genfeedai/agent/components/ClipRunCard';
+export {
+  type ConversationComposerShellContextValue,
+  ConversationComposerShellProvider,
+  useConversationComposerShell,
+} from '@genfeedai/agent/components/ConversationComposerShellContext';
 export { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
 export { IngredientAlternativesCard } from '@genfeedai/agent/components/IngredientAlternativesCard';
 export { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
@@ -48,6 +53,11 @@ export {
 export { AGENT_PANEL_ICON_STRIP_WIDTH } from '@genfeedai/agent/constants/agent-panel.constant';
 export type { AgentSlashCommand } from '@genfeedai/agent/constants/agent-slash-commands.constant';
 export { AGENT_SLASH_COMMANDS } from '@genfeedai/agent/constants/agent-slash-commands.constant';
+export {
+  CONVERSATION_COMPOSER_ACTIONS,
+  getConversationComposerAction,
+  parseConversationComposerCommand,
+} from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 export type {
   DashboardBlocksParseResult,
   DashboardOpenUIComponent,
@@ -123,6 +133,17 @@ export type {
   ClipRunModes,
   ClipRunStep,
 } from '@genfeedai/agent/models/clip-run-card.model';
+export type {
+  ConversationComposerActionDefinition,
+  ConversationComposerActionInvocation,
+  ConversationComposerActionName,
+  ConversationComposerDispatchResult,
+  ConversationComposerDispatchStatus,
+  ConversationComposerScope,
+  ParsedConversationComposerCommand,
+  PersistedConversationComposerAttachment,
+  PersistedConversationComposerDraft,
+} from '@genfeedai/agent/models/conversation-composer.model';
 export type {
   AgentApiConfig,
   AgentApiEffectError,

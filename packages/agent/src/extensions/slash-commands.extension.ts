@@ -20,11 +20,15 @@ export const SlashCommands = Extension.create<{
       suggestion: {
         char: '/',
         command: ({ editor, range, props }) => {
+          const insertedContent =
+            props.kind === 'action'
+              ? `/${props.actionName ?? props.name} `
+              : (props.promptPrefix ?? '');
           editor
             .chain()
             .focus()
             .deleteRange(range)
-            .insertContent(props.promptPrefix)
+            .insertContent(insertedContent)
             .run();
         },
         items: ({ query }: { query: string }) => {

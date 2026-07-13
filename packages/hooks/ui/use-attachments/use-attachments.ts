@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const DEFAULT_MAX_FILES = 4;
 const DEFAULT_MAX_FILE_SIZE_MB = 10;
 const DEFAULT_ACCEPTED_TYPES = ['image/*'];
+const EMPTY_INITIAL_ATTACHMENTS: AttachmentItem[] = [];
 
 function generateAttachmentId(): string {
   const randomUuid = globalThis.crypto?.randomUUID;
@@ -55,12 +56,16 @@ export function useAttachments(
     maxFiles = DEFAULT_MAX_FILES,
     maxFileSizeMb = DEFAULT_MAX_FILE_SIZE_MB,
     acceptedTypes = DEFAULT_ACCEPTED_TYPES,
+    initialAttachments = EMPTY_INITIAL_ATTACHMENTS,
+    onAttachmentsChange,
     onUpload,
   } = options;
 
-  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  const [attachments, setAttachments] =
+    useState<AttachmentItem[]>(initialAttachments);
   const [dragState, setDragState] = useState<DragState>({ isActive: false });
   const dragDepthRef = useRef(0);
+  const pendingInitialAttachmentsRef = useRef<AttachmentItem[] | null>(null);
   const previewUrlsRef = useRef<Set<string>>(new Set());
 
   const isUploading = attachments.some(
@@ -78,8 +83,30 @@ export function useAttachments(
     };
   }, []);
 
+  useEffect(() => {
+    pendingInitialAttachmentsRef.current = initialAttachments;
+    setAttachments(initialAttachments);
+  }, [initialAttachments]);
+
+  useEffect(() => {
+    const pendingInitialAttachments = pendingInitialAttachmentsRef.current;
+    if (
+      pendingInitialAttachments &&
+      attachments !== pendingInitialAttachments
+    ) {
+      return;
+    }
+
+    pendingInitialAttachmentsRef.current = null;
+    onAttachmentsChange?.(attachments);
+  }, [attachments, onAttachmentsChange]);
+
   const uploadFile = useCallback(
     async (item: AttachmentItem) => {
+      if (!item.file) {
+        return;
+      }
+
       setAttachments((prev) =>
         prev.map((a) =>
           a.id === item.id ? { ...a, status: 'uploading' as const } : a,

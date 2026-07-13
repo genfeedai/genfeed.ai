@@ -15,22 +15,21 @@ import type { ReactElement, ReactNode } from 'react';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 
 type AgentChatEmptyStateProps = {
+  addFiles: (files: File[]) => void;
   apiService: AgentApiService;
+  chatAttachments: AttachmentItem[];
+  clearAllAttachments: () => void;
+  dragHandlers: DragHandlers;
+  dragState: DragState;
   emptyStateTitle: string;
   emptyStateDescription: string;
-  isWideLayout: boolean;
+  getCompletedAttachments: () => ChatAttachment[];
+  isAttachmentUploading: boolean;
   isBusy: boolean;
+  isComposerVisible: boolean;
   isReadOnly: boolean;
   isRunActive: boolean;
-  placeholder?: string;
-  chatAttachments: AttachmentItem[];
-  isAttachmentUploading: boolean;
-  dragState: DragState;
-  dragHandlers: DragHandlers;
-  addFiles: (files: File[]) => void;
-  removeAttachment: (id: string) => void;
-  getCompletedAttachments: () => ChatAttachment[];
-  clearAllAttachments: () => void;
+  isWideLayout: boolean;
   onSend: (
     content: string,
     mentions?: ExtractedMention[],
@@ -38,29 +37,32 @@ type AgentChatEmptyStateProps = {
     options?: { planModeEnabled?: boolean },
   ) => void;
   onStop: () => void;
+  placeholder?: string;
   promptBarSuggestions: ReactNode;
+  removeAttachment: (id: string) => void;
 };
 
 export function AgentChatEmptyState({
+  addFiles,
   apiService,
+  chatAttachments,
+  clearAllAttachments,
+  dragHandlers,
+  dragState,
   emptyStateTitle,
   emptyStateDescription,
-  isWideLayout,
+  getCompletedAttachments,
+  isAttachmentUploading,
   isBusy,
+  isComposerVisible,
   isReadOnly,
   isRunActive,
-  placeholder,
-  chatAttachments,
-  isAttachmentUploading,
-  dragState,
-  dragHandlers,
-  addFiles,
-  removeAttachment,
-  getCompletedAttachments,
-  clearAllAttachments,
+  isWideLayout,
   onSend,
   onStop,
+  placeholder,
   promptBarSuggestions,
+  removeAttachment,
 }: AgentChatEmptyStateProps): ReactElement {
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden">
@@ -82,29 +84,31 @@ export function AgentChatEmptyState({
             {emptyStateDescription}
           </p>
 
-          <PromptBarContainer
-            layoutMode="inflow"
-            maxWidth={isWideLayout ? '2xl' : '4xl'}
-            zIndex={60}
-            className="mt-4 w-full"
-          >
-            <AgentChatInput
-              onSend={onSend}
-              disabled={isBusy || isReadOnly}
-              placeholder={placeholder}
-              apiService={apiService}
-              onStop={onStop}
-              showStop={isRunActive}
-              attachments={chatAttachments}
-              isUploading={isAttachmentUploading}
-              dragState={dragState}
-              dragHandlers={dragHandlers}
-              addFiles={addFiles}
-              removeAttachment={removeAttachment}
-              getCompletedAttachments={getCompletedAttachments}
-              clearAllAttachments={clearAllAttachments}
-            />
-          </PromptBarContainer>
+          {isComposerVisible ? (
+            <PromptBarContainer
+              className="mt-4 w-full"
+              layoutMode="inflow"
+              maxWidth={isWideLayout ? '2xl' : '4xl'}
+              zIndex={60}
+            >
+              <AgentChatInput
+                addFiles={addFiles}
+                apiService={apiService}
+                attachments={chatAttachments}
+                clearAllAttachments={clearAllAttachments}
+                disabled={isBusy || isReadOnly}
+                dragHandlers={dragHandlers}
+                dragState={dragState}
+                getCompletedAttachments={getCompletedAttachments}
+                isUploading={isAttachmentUploading}
+                onSend={onSend}
+                onStop={onStop}
+                placeholder={placeholder}
+                removeAttachment={removeAttachment}
+                showStop={isRunActive}
+              />
+            </PromptBarContainer>
+          ) : null}
 
           {promptBarSuggestions ? (
             <div className="mt-5">{promptBarSuggestions}</div>
