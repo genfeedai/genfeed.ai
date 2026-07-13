@@ -42,6 +42,10 @@ import {
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
 import {
+  type ResearchWorkspaceSurfaceAdapterRegistration,
+  ResearchWorkspaceSurfaceAdapterRegistrationContext,
+} from '@/features/research/work-surface/research-workspace-surface-adapter-context';
+import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
@@ -108,6 +112,10 @@ function UniversalWorkspaceShellContent({
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
   const [composerPortalTarget, setComposerPortalTarget] =
     useState<HTMLElement | null>(null);
+  const [surfaceAdapter, setSurfaceAdapter] = useState<{
+    readonly registration: ResearchWorkspaceSurfaceAdapterRegistration;
+    readonly token: symbol;
+  } | null>(null);
   const primaryRegionRef = useRef<HTMLElement>(null);
   const previousPathnameRef = useRef<string | null>(null);
   const previousStateRef = useRef<WorkspaceShellState | null>(null);
@@ -182,6 +190,28 @@ function UniversalWorkspaceShellContent({
       : state === 'overlay'
         ? 'Overlay · conversation connected'
         : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`;
+  const activeSurfaceAdapter =
+    surfaceAdapter?.registration.surfaceKey === surfaceKey
+      ? surfaceAdapter.registration
+      : null;
+
+  const registerSurfaceAdapter = useCallback(
+    (registration: ResearchWorkspaceSurfaceAdapterRegistration) => {
+      if (registration.surfaceKey !== surfaceKey) {
+        return () => undefined;
+      }
+
+      const token = Symbol(registration.surfaceKey);
+      setSurfaceAdapter({ registration, token });
+
+      return () => {
+        setSurfaceAdapter((current) =>
+          current?.token === token ? null : current,
+        );
+      };
+    },
+    [surfaceKey],
+  );
 
   useLayoutEffect(() => {
     if (!isUnthreadedConversation) {
@@ -472,15 +502,19 @@ function UniversalWorkspaceShellContent({
         />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <div className="gen-shell-empty-state p-4">
-          <p className="text-sm font-medium text-foreground">
-            Registered {surfaceKey} adapter slot
-          </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Product-owned context adapters land here without changing their
-            canonical route or granting execution authority.
-          </p>
-        </div>
+        {activeSurfaceAdapter ? (
+          activeSurfaceAdapter.inspectorContent
+        ) : (
+          <div className="gen-shell-empty-state p-4">
+            <p className="text-sm font-medium text-foreground">
+              Registered {surfaceKey} adapter slot
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Product-owned context adapters land here without changing their
+              canonical route or granting execution authority.
+            </p>
+          </div>
+        )}
         <Button
           icon={<HiOutlineEye className="size-4" />}
           onClick={handleOpenOverlay}
@@ -507,6 +541,7 @@ function UniversalWorkspaceShellContent({
       dispatchAction={handleComposerAction}
       draftScopeKey={draftScopeKey}
       portalTarget={composerPortalTarget}
+      references={activeSurfaceAdapter?.references}
       scopeControls={composerScopeControls}
       shellState={state}
     >
@@ -614,7 +649,11 @@ function UniversalWorkspaceShellContent({
                   Context
                 </Button>
               </div>
-              {baseState === 'canvas' ? children : null}
+              <ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider
+                value={registerSurfaceAdapter}
+              >
+                {baseState === 'canvas' ? children : null}
+              </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
             </section>
 
             {state !== 'overlay' ? (

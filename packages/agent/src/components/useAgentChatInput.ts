@@ -253,7 +253,9 @@ export function useAgentChatInput({
 
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(!restoredDraft.plainText.trim());
-  const [references, setReferences] = useState<AgentChatReferenceItem[]>(() =>
+  const [mentionReferences, setMentionReferences] = useState<
+    AgentChatReferenceItem[]
+  >(() =>
     restoredDraft.document
       ? extractMentions(restoredDraft.document).map((mention) => ({
           id: mention.id,
@@ -402,7 +404,7 @@ export function useAgentChatInput({
                 : `^${mention.contentTitle}`,
         type: mention.type,
       }));
-      setReferences(nextReferences);
+      setMentionReferences(nextReferences);
       writeConversationComposerDocument(
         draftScopeKey,
         document,
@@ -436,7 +438,7 @@ export function useAgentChatInput({
     const draft = readConversationComposerDraft(draftScopeKey);
     editor.commands.setContent(draft.document ?? '');
     setIsEmpty(!draft.plainText.trim());
-    setReferences(
+    setMentionReferences(
       draft.document
         ? extractMentions(draft.document).map((mention) => ({
             id: mention.id,
@@ -627,6 +629,23 @@ export function useAgentChatInput({
     },
     [removeAttachment],
   );
+
+  const references = useMemo<AgentChatReferenceItem[]>(() => {
+    const referencesByKey = new Map<string, AgentChatReferenceItem>();
+
+    for (const reference of composerShell?.references ?? []) {
+      referencesByKey.set(`${reference.kind}:${reference.id}`, {
+        id: reference.id,
+        label: reference.label,
+        type: reference.kind,
+      });
+    }
+    for (const reference of mentionReferences) {
+      referencesByKey.set(`${reference.type}:${reference.id}`, reference);
+    }
+
+    return [...referencesByKey.values()];
+  }, [composerShell?.references, mentionReferences]);
 
   const isDragActive = dragState?.isActive ?? false;
   const canSendMessage = !isEmpty || hasCompletedAttachments;

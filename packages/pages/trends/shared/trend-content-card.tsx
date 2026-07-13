@@ -6,6 +6,7 @@ import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import type { AuthorizedResearchFinding } from '@pages/research/work-surface/research-work-surface.types';
 import type {
   TrendContentItem,
   TrendItem,
@@ -87,7 +88,17 @@ function toSourceItem(item: TrendContentItem): TrendSourceItem {
   };
 }
 
-export default function TrendContentCard({ item }: { item: TrendContentItem }) {
+export default function TrendContentCard({
+  finding,
+  isSelected = false,
+  item,
+  onSelect,
+}: {
+  finding?: AuthorizedResearchFinding;
+  isSelected?: boolean;
+  item: TrendContentItem;
+  onSelect?: (finding: AuthorizedResearchFinding) => void;
+}) {
   const brandId = useBrandId();
   const router = useRouter();
   const [isSavingBrief, setIsSavingBrief] = useState(false);
@@ -256,6 +267,16 @@ export default function TrendContentCard({ item }: { item: TrendContentItem }) {
         </div>
 
         <div className="flex flex-wrap gap-2 pt-1">
+          {finding && onSelect ? (
+            <Button
+              aria-pressed={isSelected}
+              label={isSelected ? 'Selected for context' : 'Use as context'}
+              onClick={() => onSelect(finding)}
+              variant={
+                isSelected ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+              }
+            />
+          ) : null}
           <Button
             icon={<HiOutlineSparkles className="size-3.5" />}
             label="Remix"

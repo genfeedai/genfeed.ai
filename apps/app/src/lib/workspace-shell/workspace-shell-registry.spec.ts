@@ -122,6 +122,22 @@ describe('workspace shell trusted registry', () => {
     );
   });
 
+  it('registers Research as an embedded adapter with its canonical fallback', () => {
+    const route = resolveWorkspaceShellRoute(
+      '/acme/moonrise/research/ads/google',
+    );
+
+    expect(route).toMatchObject({
+      adapter: { key: 'research', status: 'embedded' },
+      mode: 'canvas',
+      safeFallback: '/:orgSlug/:brandSlug/research/discovery',
+      surfaceKey: 'research',
+    });
+    expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
+      '/acme/moonrise/research/discovery',
+    );
+  });
+
   it('keeps notifications and deployment-specific dock chrome explicit', () => {
     expect(getWorkspaceShellOverlayRegistration('notifications')).toMatchObject(
       {

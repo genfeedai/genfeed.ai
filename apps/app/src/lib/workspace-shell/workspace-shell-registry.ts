@@ -1,6 +1,7 @@
 import type {
   ResolvedWorkspaceShellRoute,
   WorkspaceShellAccessPolicy,
+  WorkspaceShellAdapterSeam,
   WorkspaceShellAuxiliaryRegistration,
   WorkspaceShellDeployment,
   WorkspaceShellOverlayRegistration,
@@ -30,6 +31,7 @@ export type {
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
 type RouteGroupConfig = {
+  readonly adapter?: WorkspaceShellAdapterSeam;
   readonly fallback: string;
   readonly mode: WorkspaceShellRouteMode;
   readonly scope: WorkspaceShellScopeRequirement;
@@ -102,10 +104,12 @@ function freezeRouteRegistration(
 ): WorkspaceShellRouteRegistration {
   return Object.freeze({
     accessPolicy: ACCESS_POLICY_BY_SCOPE[config.scope],
-    adapter: Object.freeze({
-      key: config.surfaceKey,
-      status: ADAPTER_STATUS_BY_MODE[config.mode],
-    }),
+    adapter: Object.freeze(
+      config.adapter ?? {
+        key: config.surfaceKey,
+        status: ADAPTER_STATUS_BY_MODE[config.mode],
+      },
+    ),
     allowedShellModes: Object.freeze([config.mode] as const),
     availability: AVAILABILITY_BY_MODE[config.mode],
     canonicalUrl,
@@ -358,6 +362,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/research/:platform',
     ],
     {
+      adapter: { key: 'research', status: 'embedded' },
       fallback: '/:orgSlug/:brandSlug/research/discovery',
       mode: 'canvas',
       scope: 'brand',

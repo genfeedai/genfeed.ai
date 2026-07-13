@@ -135,6 +135,32 @@ describe('AgentChatInput', () => {
     expect(screen.getByText('Reattach')).toBeInTheDocument();
   });
 
+  it('renders an authorized typed surface reference without changing the draft', () => {
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Research"
+        draftScopeKey="acme:thread-1:3"
+        portalTarget={null}
+        references={[
+          {
+            authorization: 'authorized',
+            id: 'video-123',
+            kind: 'research-trend-video',
+            label: 'Three viral hook patterns',
+          },
+        ]}
+        shellState="canvas"
+      >
+        <AgentChatInput onSend={vi.fn()} />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(screen.getByText('Three viral hook patterns')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).not.toHaveTextContent(
+      'Three viral hook patterns',
+    );
+  });
+
   it('dispatches a selected trusted action without clearing or sending the draft', async () => {
     const dispatchAction = vi.fn(() => ({
       message: 'Opened Publish. Explicit approval is still required.',
