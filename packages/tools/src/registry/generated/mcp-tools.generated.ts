@@ -14533,12 +14533,12 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "type": "string"
         },
         "pageKey": {
+          "description": "Page key identifying which dashboard page to load. Defaults to `workspace-overview` when omitted.",
           "type": "string"
         }
       },
       "required": [
-        "brand",
-        "pageKey"
+        "brand"
       ],
       "type": "object"
     },

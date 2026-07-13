@@ -27132,9 +27132,10 @@
             }
           },
           {
+            "description": "Page key identifying which dashboard page to load. Defaults to `workspace-overview` when omitted.",
             "in": "query",
             "name": "pageKey",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string"
             }
