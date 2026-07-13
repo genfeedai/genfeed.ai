@@ -7,6 +7,8 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSources": true,
     "sourceMap": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",
@@ -17,6 +19,6 @@
     "target": "es2022",
     "types": ["node"]
   },
-  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
-  "include": ["src/**/*"]
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

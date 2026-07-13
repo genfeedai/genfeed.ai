@@ -1,13 +1,13 @@
 'use client';
 
+import {
+  selectUpdateNodeData,
+  useWorkflowStore,
+} from '@genfeedai/workflow-ui/stores';
 import type {
   BrandAssetNodeData,
   BrandAssetType,
 } from '@genfeedai/workflows/nodes';
-import {
-  selectUpdateNodeData,
-  useWorkflowStore,
-} from '@genfeedai/workflows/ui/stores';
 import type { NodeProps } from '@xyflow/react';
 import Image from 'next/image';
 import { memo, useCallback } from 'react';

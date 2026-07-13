@@ -3,4 +3,4 @@ export {
   EASING_PRESETS,
   evaluateBezier,
   getEasingDisplayName,
-} from '@genfeedai/workflows/ui/lib';
+} from '@genfeedai/workflow-ui/lib';

@@ -1,4 +1,4 @@
 export {
   getImageDimensions,
   getVideoMetadata,
-} from '@genfeedai/workflows/ui/lib';
+} from '@genfeedai/workflow-ui/lib';

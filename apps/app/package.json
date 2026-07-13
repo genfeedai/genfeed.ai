@@ -13,6 +13,7 @@
     "@genfeedai/interfaces": "*",
     "@genfeedai/next-config": "*",
     "@genfeedai/types": "*",
+    "@genfeedai/workflow-ui": "*",
     "@genfeedai/workflows": "*",
     "@radix-ui/react-collapsible": "1.1.16",
     "@remotion/player": "4.0.486",

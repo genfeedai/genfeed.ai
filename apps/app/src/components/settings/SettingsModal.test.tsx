@@ -10,7 +10,7 @@ const mockCloseModal = vi.fn();
 const mockOpenModal = vi.fn();
 
 // Import mocked modules at top level (vi.mock is hoisted above these imports)
-import { useUIStore } from '@genfeedai/workflows/ui/stores';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
 
 const mockedUIStore = vi.mocked(useUIStore);
 
@@ -54,7 +54,7 @@ vi.mock('@/components/ui/button', () => ({
 
 // Shared workflow settings now live in the package store; the app injects
 // promptApi + settings sync through the provider and no longer shadows it.
-vi.mock('@genfeedai/workflows/ui/stores', () => ({
+vi.mock('@genfeedai/workflow-ui/stores', () => ({
   useSettingsStore: vi.fn(
     (selector?: (state: Record<string, unknown>) => unknown) => {
       const state = {

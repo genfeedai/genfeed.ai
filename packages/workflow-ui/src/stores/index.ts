@@ -1,7 +1,7 @@
 /**
- * Store re-exports for @genfeedai/workflows/ui
+ * Store re-exports for @genfeedai/workflow-ui
  *
- * These are the actual Zustand stores used by workflows/ui components.
+ * These are the actual Zustand stores used by workflow-ui components.
  * The consuming app can override behavior by:
  * - Configuring bundler aliases to point to app-specific stores
  * - Extending stores via the slice pattern

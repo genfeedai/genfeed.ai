@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   writeText: vi.fn(),
 }));
 
-vi.mock('@genfeedai/workflows/ui/stores', () => ({
+vi.mock('@genfeedai/workflow-ui/stores', () => ({
   selectUpdateNodeData: (state: {
     updateNodeData: typeof mocks.updateNodeData;
   }) => state.updateNodeData,

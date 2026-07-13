@@ -1,0 +1,37 @@
+import { defineConfig } from 'tsup';
+
+export default defineConfig({
+  bundle: false,
+  clean: true,
+  dts: true,
+  entry: {
+    canvas: 'src/canvas/index.ts',
+    hooks: 'src/hooks/index.ts',
+    index: 'src/index.ts',
+    lib: 'src/lib/index.ts',
+    nodes: 'src/nodes/index.ts',
+    panels: 'src/panels/index.ts',
+    provider: 'src/provider/index.ts',
+    stores: 'src/stores/index.ts',
+    toolbar: 'src/toolbar/index.ts',
+    ui: 'src/ui/index.ts',
+  },
+  external: [
+    'react',
+    'react-dom',
+    '@xyflow/react',
+    'zustand',
+    'zundo',
+    'next',
+    'next/image',
+    '@genfeedai/pricing',
+    '@genfeedai/types',
+  ],
+  format: ['esm'],
+  jsx: 'automatic',
+  noExternal: ['react-compare-slider'],
+  outExtension: () => ({ js: '.mjs' }),
+  sourcemap: true,
+  treeshake: true,
+  tsconfig: 'tsconfig.build.json',
+});

@@ -1,9 +1,9 @@
-export { getSchemaDefaults } from '@genfeedai/workflows/ui/lib';
+export { getSchemaDefaults } from '@genfeedai/workflow-ui/lib';
 
 /**
  * Check whether a model's input schema accepts image input.
  *
- * Overrides the upstream @genfeedai/workflows/ui version which is missing
+ * Overrides the upstream @genfeedai/workflow-ui version which is missing
  * `image_url` and `image_urls` — used by FAL nano-banana-2/edit and similar models.
  * Permissive default: returns true when schema is absent.
  */

@@ -4,7 +4,7 @@ import {
   selectIsDirty,
   selectIsSaving,
   useWorkflowStore,
-} from '@genfeedai/workflows/ui/stores';
+} from '@genfeedai/workflow-ui/stores';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
