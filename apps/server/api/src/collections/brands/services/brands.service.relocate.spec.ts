@@ -12,15 +12,15 @@ import {
   SECOND_ORDER_TARGETS,
 } from '@api/collections/brands/constants/brand-org-cascade.constants';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import { CacheService } from '@api/services/cache/services/cache.service';
-import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import type { CacheService } from '@api/services/cache/services/cache.service';
+import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 type Delegate = {
   count: ReturnType<typeof vi.fn>;
@@ -397,9 +397,11 @@ describe('BrandsService.relocateToOrganization', () => {
     );
 
     expect(getDelegate('workflow').create).not.toHaveBeenCalled();
+    // Workflow definition is re-homed through the first-order brand cascade
+    // (matched by brandId, not a precomputed id list — see the sibling test above).
     expect(getDelegate('workflow').updateMany).toHaveBeenCalledWith({
       data: { organizationId: DEST_ORG },
-      where: { id: { in: ['wf_owned'] }, organizationId: { not: DEST_ORG } },
+      where: { brandId: BRAND_ID, organizationId: { not: DEST_ORG } },
     });
     expect(result.summary).toEqual({
       ...EMPTY_RELOCATION_SUMMARY,
