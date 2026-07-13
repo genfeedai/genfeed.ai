@@ -206,6 +206,15 @@ vi.mock('@/lib/workspace-shell/workspace-shell-telemetry', () => ({
   captureWorkspaceShellTransition: vi.fn(),
 }));
 
+vi.mock('./use-conversation-scope-controls', () => ({
+  useConversationScopeControls: () => ({
+    contextLabel: 'Acme · Organization-wide',
+    inspectorScope: <div data-testid="workspace-effective-scope" />,
+    isConsequentiallyBlocked: false,
+    scopeControls: <span>Thread scope</span>,
+  }),
+}));
+
 import UniversalWorkspaceShell from './UniversalWorkspaceShell';
 
 describe('UniversalWorkspaceShell', () => {
@@ -358,6 +367,8 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(screen.getByText('Scoped controls')).toBeInTheDocument();
+    expect(screen.getByText('Thread scope')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-effective-scope')).toBeInTheDocument();
   });
 
   it('preserves an unauthorized brand action instead of widening org scope', () => {
