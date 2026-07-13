@@ -1,5 +1,6 @@
 import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInput';
 import { AGENT_REFRESH_CONVERSATIONS_EVENT } from '@genfeedai/agent/components/AgentThreadList';
+import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 import {
@@ -14,15 +15,23 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
+import type { PersistedConversationComposerAttachment } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  readConversationComposerDraft,
+  writeConversationComposerAttachments,
+} from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { deriveTimeline } from '@genfeedai/agent/utils/derive-timeline';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
+import type {
+  AttachmentItem,
+  ChatAttachment,
+} from '@genfeedai/props/ui/attachments.props';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -40,6 +49,42 @@ interface UseAgentChatContainerParams {
   workspacePlanningTaskId?: string | null;
 }
 
+function restoreComposerAttachments(
+  attachments: PersistedConversationComposerAttachment[],
+): AttachmentItem[] {
+  return attachments.map((attachment) => {
+    const wasInterrupted =
+      attachment.status === 'pending' || attachment.status === 'uploading';
+
+    return {
+      ...attachment,
+      error: wasInterrupted
+        ? 'Upload was interrupted. Reattach this file to retry.'
+        : attachment.error,
+      previewUrl: attachment.previewUrl ?? attachment.url ?? '',
+      status: wasInterrupted ? 'failed' : attachment.status,
+    };
+  });
+}
+
+function persistableComposerAttachments(
+  attachments: AttachmentItem[],
+): PersistedConversationComposerAttachment[] {
+  return attachments.map((attachment) => ({
+    error: attachment.error,
+    id: attachment.id,
+    ingredientId: attachment.ingredientId,
+    kind: attachment.kind,
+    name: attachment.name,
+    previewUrl: attachment.previewUrl.startsWith('blob:')
+      ? attachment.url
+      : attachment.previewUrl,
+    progress: attachment.progress,
+    status: attachment.status,
+    url: attachment.url,
+  }));
+}
+
 export function useAgentChatContainer({
   apiService,
   isLoadingThread,
@@ -53,6 +98,24 @@ export function useAgentChatContainer({
   onSelectIngredient: onSelectIngredientProp,
   workspacePlanningTaskId,
 }: UseAgentChatContainerParams) {
+  const composerShell = useConversationComposerShell();
+  const draftScopeKey = composerShell?.draftScopeKey ?? null;
+  const initialComposerAttachments = useMemo(
+    () =>
+      restoreComposerAttachments(
+        readConversationComposerDraft(draftScopeKey).attachments,
+      ),
+    [draftScopeKey],
+  );
+  const handleComposerAttachmentsChange = useCallback(
+    (attachments: AttachmentItem[]) => {
+      writeConversationComposerAttachments(
+        draftScopeKey,
+        persistableComposerAttachments(attachments),
+      );
+    },
+    [draftScopeKey],
+  );
   const addMessage = useAgentChatStore((s) => s.addMessage);
   const messages = useAgentChatStore((s) => s.messages);
   const isGenerating = useAgentChatStore((s) => s.isGenerating);
@@ -81,6 +144,9 @@ export function useAgentChatContainer({
   const setActiveRun = useAgentChatStore((s) => s.setActiveRun);
   const setActiveRunStatus = useAgentChatStore((s) => s.setActiveRunStatus);
   const workEvents = useAgentChatStore((s) => s.workEvents);
+  const socketConnectionState = useAgentChatStore(
+    (s) => s.socketConnectionState,
+  );
   const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
   const setDraftPlanModeEnabled = useAgentChatStore(
     (s) => s.setDraftPlanModeEnabled,
@@ -116,6 +182,9 @@ export function useAgentChatContainer({
     getCompletedAttachments,
     dragHandlers,
   } = useAttachments({
+    acceptedTypes: ['image/*', 'video/*', 'audio/*'],
+    initialAttachments: initialComposerAttachments,
+    onAttachmentsChange: handleComposerAttachmentsChange,
     onUpload: (file, onProgress) =>
       runAgentApiEffect(apiService.uploadAttachmentEffect(file, onProgress)),
   });
@@ -764,6 +833,7 @@ export function useAgentChatContainer({
     onboardingSignupGiftCredits,
     onboardingTotalJourneyCredits,
     pendingInputRequest,
+    socketConnectionState,
     workEvents,
     // derived
     isBusy,

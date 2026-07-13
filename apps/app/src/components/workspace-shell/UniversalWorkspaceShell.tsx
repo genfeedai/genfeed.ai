@@ -2,7 +2,14 @@
 
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
 import { AgentWorkspacePageShell } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspacePageShell';
-import { type AgentApiService, useAgentChatStore } from '@genfeedai/agent';
+import {
+  type AgentApiService,
+  type ConversationComposerActionInvocation,
+  type ConversationComposerDispatchResult,
+  ConversationComposerShellProvider,
+  getConversationComposerAction,
+  useAgentChatStore,
+} from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -51,6 +58,7 @@ import {
   captureWorkspaceShellRestorationFailure,
   captureWorkspaceShellTransition,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
+import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
 
 const INSPECTOR_DEFAULT_WIDTH = 320;
@@ -60,11 +68,12 @@ const INSPECTOR_MAX_WIDTH = 480;
 type UniversalWorkspaceShellProps = {
   readonly agentApiService: AgentApiService;
   readonly children: ReactNode;
+  readonly composerScopeControls?: ReactNode;
 };
 
 type UniversalWorkspaceShellContentProps = Pick<
   UniversalWorkspaceShellProps,
-  'children'
+  'children' | 'composerScopeControls'
 >;
 
 function clampInspectorWidth(width: number): number {
@@ -85,16 +94,20 @@ function requireWorkspaceShellLocation(
 
 function UniversalWorkspaceShellContent({
   children,
+  composerScopeControls,
 }: UniversalWorkspaceShellContentProps) {
   const rawPathname = usePathname();
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { back, push, replace } = useRouter();
-  const { orgHref } = useOrgUrl();
+  const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const threads = useAgentChatStore((state) => state.threads);
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
+  const [composerPortalTarget, setComposerPortalTarget] =
+    useState<HTMLElement | null>(null);
   const primaryRegionRef = useRef<HTMLElement>(null);
   const previousPathnameRef = useRef<string | null>(null);
   const previousStateRef = useRef<WorkspaceShellState | null>(null);
@@ -158,6 +171,17 @@ function UniversalWorkspaceShellContent({
     rawPathname,
     new URLSearchParams(searchParamsString),
   );
+  const activeThread = useMemo(
+    () => threads.find((thread) => thread.id === effectiveThreadId) ?? null,
+    [effectiveThreadId, threads],
+  );
+  const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
+  const composerContextLabel =
+    state === 'conversation'
+      ? 'Conversation'
+      : state === 'overlay'
+        ? 'Overlay · conversation connected'
+        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`;
 
   useLayoutEffect(() => {
     if (!isUnthreadedConversation) {
@@ -310,6 +334,70 @@ function UniversalWorkspaceShellContent({
     push(launch.href);
   }, [currentHref, push, replace]);
 
+  const handleComposerAction = useCallback(
+    (
+      invocation: ConversationComposerActionInvocation,
+    ): ConversationComposerDispatchResult => {
+      const trustedAction = getConversationComposerAction(
+        invocation.action.name,
+      );
+      if (
+        !trustedAction ||
+        trustedAction.route !== invocation.action.route ||
+        trustedAction.requiredScope !== invocation.action.requiredScope
+      ) {
+        return {
+          message:
+            'That action is not registered. Your draft and references are unchanged.',
+          status: 'unavailable',
+        };
+      }
+
+      if (trustedAction.requiredScope === 'brand' && !brandSlug) {
+        return {
+          message: `/${trustedAction.name} needs an explicit brand route. Select a brand through the scoped controls; your draft has been preserved.`,
+          status: 'unauthorized',
+        };
+      }
+
+      const destination =
+        trustedAction.requiredScope === 'brand'
+          ? href(trustedAction.route)
+          : orgHref(trustedAction.route);
+      const launch = resolveWorkspaceSurfaceLaunch({
+        currentHref,
+        destinationHref: destination,
+        threadId: effectiveThreadId ?? activeThreadId,
+      });
+      if (launch.history !== 'push' || launch.mode !== 'canvas') {
+        return {
+          message:
+            'That product surface is unavailable. Your draft and references are unchanged.',
+          status: 'unavailable',
+        };
+      }
+
+      pendingTransitionRef.current = 'canvas_launch';
+      push(launch.href);
+
+      return {
+        message: trustedAction.isConsequentialProposal
+          ? `Opened ${trustedAction.label}. Your draft is preserved; execution still requires the product's explicit typed confirmation and authorization.`
+          : `Opened ${trustedAction.label}. Your draft and references are preserved.`,
+        status: 'dispatched',
+      };
+    },
+    [
+      activeThreadId,
+      brandSlug,
+      currentHref,
+      effectiveThreadId,
+      href,
+      orgHref,
+      push,
+    ],
+  );
+
   const handleDismissOverlay = useCallback(() => {
     pendingTransitionRef.current = 'overlay_dismiss';
     if (isOwnedOverlayEntryRef.current) {
@@ -414,45 +502,109 @@ function UniversalWorkspaceShellContent({
   );
 
   return (
-    <div
-      className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-black p-2"
-      data-shell-state={state}
-      data-workspace-surface={surfaceKey}
-      data-testid="universal-workspace-shell"
+    <ConversationComposerShellProvider
+      contextLabel={composerContextLabel}
+      dispatchAction={handleComposerAction}
+      draftScopeKey={draftScopeKey}
+      portalTarget={composerPortalTarget}
+      scopeControls={composerScopeControls}
+      shellState={state}
     >
-      <div aria-live="polite" className="sr-only" role="status">
-        Workspace mode: {state}. Active surface: {surfaceKey}.
-        {state === 'overlay' && overlayRegistration
-          ? ` ${overlayRegistration.presentation.openAnnouncement}`
-          : null}
-      </div>
-
       <div
-        className={cn(
-          'h-[calc(100dvh-var(--desktop-titlebar-height)-4rem)] min-h-0 gap-2 xl:grid',
-          isInspectorOpen
-            ? 'xl:grid-cols-[minmax(0,1fr)_auto]'
-            : 'xl:grid-cols-1',
-        )}
-        data-testid="workspace-shell-regions"
+        className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-black p-2"
+        data-shell-state={state}
+        data-workspace-surface={surfaceKey}
+        data-testid="universal-workspace-shell"
       >
-        <div className="h-full min-h-0 min-w-0">
-          <div
-            aria-hidden={baseState !== 'conversation'}
-            className={cn(
-              'gen-workspace-shell-region-emphasis h-full min-h-0 overflow-hidden bg-background shadow-border',
-              baseState !== 'conversation' && 'hidden',
-            )}
-            data-testid="workspace-conversation-region"
-            inert={baseState !== 'conversation'}
-          >
-            <div className="flex h-11 items-center justify-between border-b border-border px-3">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                Conversation
-              </p>
-              <div className="flex items-center gap-1">
+        <div aria-live="polite" className="sr-only" role="status">
+          Workspace mode: {state}. Active surface: {surfaceKey}.
+          {state === 'overlay' && overlayRegistration
+            ? ` ${overlayRegistration.presentation.openAnnouncement}`
+            : null}
+        </div>
+
+        <div
+          className={cn(
+            'h-[calc(100dvh-var(--desktop-titlebar-height)-4rem)] min-h-0 gap-2 xl:grid',
+            isInspectorOpen
+              ? 'xl:grid-cols-[minmax(0,1fr)_auto]'
+              : 'xl:grid-cols-1',
+          )}
+          data-testid="workspace-shell-regions"
+        >
+          <div className="relative h-full min-h-0 min-w-0">
+            <div
+              aria-hidden={baseState !== 'conversation'}
+              className={cn(
+                'gen-workspace-shell-region-emphasis h-full min-h-0 overflow-hidden bg-background shadow-border',
+                baseState !== 'conversation' && 'hidden',
+              )}
+              data-testid="workspace-conversation-region"
+              inert={baseState !== 'conversation'}
+            >
+              <div className="flex h-11 items-center justify-between border-b border-border px-3">
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                  Conversation
+                </p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    className="xl:hidden"
+                    icon={<HiOutlineViewColumns className="size-4" />}
+                    onClick={() => setIsMobileInspectorOpen(true)}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.GHOST}
+                    withWrapper={false}
+                  >
+                    Context
+                  </Button>
+                  <Button
+                    icon={<HiOutlineSquares2X2 className="size-4" />}
+                    onClick={handleOpenCanvas}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.GHOST}
+                    withWrapper={false}
+                  >
+                    Open workspace canvas
+                  </Button>
+                </div>
+              </div>
+              <section
+                aria-label="Primary conversation workspace"
+                className="flex h-[calc(100%-2.75rem)] min-h-0"
+                ref={
+                  baseState === 'conversation' ? primaryRegionRef : undefined
+                }
+                tabIndex={-1}
+              >
+                <AgentWorkspacePageShell
+                  threadId={effectiveThreadId ?? undefined}
+                />
+              </section>
+            </div>
+
+            <section
+              aria-hidden={baseState !== 'canvas'}
+              aria-label="Primary workspace canvas"
+              className={cn(
+                'gen-workspace-shell-region-emphasis h-full min-w-0 overflow-auto bg-background pb-48 shadow-border md:pb-56',
+                baseState !== 'canvas' && 'hidden',
+              )}
+              data-testid="workspace-canvas-layout"
+              inert={baseState !== 'canvas'}
+              ref={baseState === 'canvas' ? primaryRegionRef : undefined}
+              tabIndex={-1}
+            >
+              <div className="flex h-11 items-center justify-between border-b border-border px-3 xl:hidden">
                 <Button
-                  className="xl:hidden"
+                  icon={<HiOutlineArrowLeft className="size-4" />}
+                  onClick={handleReturnToConversation}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                >
+                  Conversation
+                </Button>
+                <Button
                   icon={<HiOutlineViewColumns className="size-4" />}
                   onClick={() => setIsMobileInspectorOpen(true)}
                   size={ButtonSize.SM}
@@ -461,133 +613,96 @@ function UniversalWorkspaceShellContent({
                 >
                   Context
                 </Button>
-                <Button
-                  icon={<HiOutlineSquares2X2 className="size-4" />}
-                  onClick={handleOpenCanvas}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                >
-                  Open workspace canvas
-                </Button>
               </div>
-            </div>
-            <section
-              aria-label="Primary conversation workspace"
-              className="flex h-[calc(100%-2.75rem)] min-h-0"
-              ref={baseState === 'conversation' ? primaryRegionRef : undefined}
-              tabIndex={-1}
-            >
-              <AgentWorkspacePageShell
-                threadId={effectiveThreadId ?? undefined}
-              />
+              {baseState === 'canvas' ? children : null}
             </section>
+
+            {state !== 'overlay' ? (
+              <div
+                className="pointer-events-none absolute inset-x-3 bottom-3 z-40 md:inset-x-5 md:bottom-5"
+                data-testid="workspace-composer-slot"
+              >
+                <div
+                  className="pointer-events-auto"
+                  ref={setComposerPortalTarget}
+                />
+              </div>
+            ) : null}
           </div>
 
-          <section
-            aria-hidden={baseState !== 'canvas'}
-            aria-label="Primary workspace canvas"
-            className={cn(
-              'gen-workspace-shell-region-emphasis h-full min-w-0 overflow-auto bg-background shadow-border',
-              baseState !== 'canvas' && 'hidden',
-            )}
-            data-testid="workspace-canvas-layout"
-            inert={baseState !== 'canvas'}
-            ref={baseState === 'canvas' ? primaryRegionRef : undefined}
-            tabIndex={-1}
-          >
-            <div className="flex h-11 items-center justify-between border-b border-border px-3 xl:hidden">
+          {isInspectorOpen ? (
+            <aside
+              aria-label="Context inspector"
+              className="gen-workspace-shell-region relative hidden min-h-0 overflow-hidden bg-background-secondary shadow-border xl:block"
+              style={{ width: inspectorWidth }}
+            >
               <Button
-                icon={<HiOutlineArrowLeft className="size-4" />}
-                onClick={handleReturnToConversation}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.GHOST}
+                aria-orientation="vertical"
+                aria-valuemax={INSPECTOR_MAX_WIDTH}
+                aria-valuemin={INSPECTOR_MIN_WIDTH}
+                aria-valuenow={inspectorWidth}
+                ariaLabel="Resize context inspector"
+                className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
+                onKeyDown={handleInspectorResizeKeyDown}
+                onMouseDown={handleInspectorResizeStart}
+                role="separator"
+                variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
-              >
-                Conversation
-              </Button>
-              <Button
-                icon={<HiOutlineViewColumns className="size-4" />}
-                onClick={() => setIsMobileInspectorOpen(true)}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              >
-                Context
-              </Button>
-            </div>
-            {baseState === 'canvas' ? children : null}
-          </section>
-        </div>
-
-        {isInspectorOpen ? (
-          <aside
-            aria-label="Context inspector"
-            className="gen-workspace-shell-region relative hidden min-h-0 overflow-hidden bg-background-secondary shadow-border xl:block"
-            style={{ width: inspectorWidth }}
-          >
+              />
+              {inspectorContent}
+            </aside>
+          ) : (
             <Button
-              aria-orientation="vertical"
-              aria-valuemax={INSPECTOR_MAX_WIDTH}
-              aria-valuemin={INSPECTOR_MIN_WIDTH}
-              aria-valuenow={inspectorWidth}
-              ariaLabel="Resize context inspector"
-              className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
-              onKeyDown={handleInspectorResizeKeyDown}
-              onMouseDown={handleInspectorResizeStart}
-              role="separator"
-              variant={ButtonVariant.UNSTYLED}
+              ariaLabel="Open context inspector"
+              className="absolute right-4 top-4 z-10 hidden size-8 xl:inline-flex"
+              icon={<HiOutlineViewColumns className="size-4" />}
+              onClick={() => setIsInspectorOpen(true)}
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.OUTLINE}
               withWrapper={false}
             />
-            {inspectorContent}
-          </aside>
-        ) : (
-          <Button
-            ariaLabel="Open context inspector"
-            className="absolute right-4 top-4 z-10 hidden size-8 xl:inline-flex"
-            icon={<HiOutlineViewColumns className="size-4" />}
-            onClick={() => setIsInspectorOpen(true)}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.OUTLINE}
-            withWrapper={false}
-          />
-        )}
+          )}
+        </div>
+
+        <Drawer
+          open={isMobileInspectorOpen}
+          onOpenChange={setIsMobileInspectorOpen}
+        >
+          <DrawerContent className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]">
+            <DrawerHeader>
+              <DrawerTitle>Context inspector</DrawerTitle>
+              <DrawerDescription>
+                Context for the active canonical product route.
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="min-h-0 overflow-y-auto">{inspectorContent}</div>
+          </DrawerContent>
+        </Drawer>
+
+        <WorkspaceOverlayHost
+          composerPortalRef={setComposerPortalTarget}
+          fallbackFocusRef={primaryRegionRef}
+          isOpen={state === 'overlay'}
+          onDismiss={handleDismissOverlay}
+          overlay={overlay}
+          registration={overlayRegistration}
+          returnFocusRef={overlayReturnFocusRef}
+        />
       </div>
-
-      <Drawer
-        open={isMobileInspectorOpen}
-        onOpenChange={setIsMobileInspectorOpen}
-      >
-        <DrawerContent className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]">
-          <DrawerHeader>
-            <DrawerTitle>Context inspector</DrawerTitle>
-            <DrawerDescription>
-              Context for the active canonical product route.
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="min-h-0 overflow-y-auto">{inspectorContent}</div>
-        </DrawerContent>
-      </Drawer>
-
-      <WorkspaceOverlayHost
-        fallbackFocusRef={primaryRegionRef}
-        isOpen={state === 'overlay'}
-        onDismiss={handleDismissOverlay}
-        overlay={overlay}
-        registration={overlayRegistration}
-        returnFocusRef={overlayReturnFocusRef}
-      />
-    </div>
+    </ConversationComposerShellProvider>
   );
 }
 
 export default function UniversalWorkspaceShell({
   agentApiService,
   children,
+  composerScopeControls,
 }: UniversalWorkspaceShellProps) {
   return (
     <AgentWorkspaceLayoutClient agentApiService={agentApiService}>
-      <UniversalWorkspaceShellContent>
+      <UniversalWorkspaceShellContent
+        composerScopeControls={composerScopeControls}
+      >
         {children}
       </UniversalWorkspaceShellContent>
     </AgentWorkspaceLayoutClient>

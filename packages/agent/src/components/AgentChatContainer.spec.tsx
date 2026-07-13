@@ -293,6 +293,7 @@ type StoreState = {
     title: string;
   } | null;
   runStartedAt: string | null;
+  socketConnectionState: 'connected';
   setActiveThread: ReturnType<typeof vi.fn>;
   setActiveRun: ReturnType<typeof vi.fn>;
   setActiveRunStatus: ReturnType<typeof vi.fn>;
@@ -341,6 +342,7 @@ const storeState: StoreState = {
     title: 'Prompt bar mode',
   },
   runStartedAt: null,
+  socketConnectionState: 'connected',
   setActiveRun: vi.fn(),
   setActiveRunStatus: vi.fn(),
   setActiveThread: vi.fn(),
