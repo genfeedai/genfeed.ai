@@ -33,6 +33,12 @@ ContentDraft/Newsletter approval through `approvedVersionPinId`. Publishing a
 pinned Post or Newsletter re-resolves the same pin and rejects execution when
 the canonical material digest changed after approval.
 
+Brand relocation does not rewrite pins. Their organization and optional brand
+scope are part of the immutable authorization snapshot, so relocating a brand
+deliberately invalidates earlier version-bound approvals. The relocated
+canonical record must be reviewed again to receive a pin in its new tenant
+scope.
+
 ## Desktop v1
 
 Desktop v1 excludes local-only version-bound approval flows. Local/BYOK records
