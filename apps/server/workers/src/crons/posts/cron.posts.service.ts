@@ -150,7 +150,11 @@ export class CronPostsService {
     post: PostEntity,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    await this.assertAgentPublishingScope(post);
+    try {
+      await this.assertAgentPublishingScope(post);
+    } catch (error: unknown) {
+      return this.handleTerminalPublishValidationFailure(post, error);
+    }
     const result = await this.publishSinglePost(post);
 
     if (result.success) {
@@ -175,6 +179,23 @@ export class CronPostsService {
     }
 
     return result;
+  }
+
+  private async handleTerminalPublishValidationFailure(
+    post: PostEntity,
+    error: unknown,
+  ): Promise<PublishResult> {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Agent scope validation failed';
+
+    this.logger.error('Agent scope validation rejected queued publishing', {
+      error: errorMessage,
+      postId: post.id,
+    });
+    await this.attemptRetry(post, false, errorMessage);
+    this.emitPublishFailedWebhook(post, errorMessage);
+
+    return this.createFailedResult('', errorMessage);
   }
 
   private async assertAgentPublishingScope(post: PostEntity): Promise<void> {
@@ -564,6 +585,7 @@ export class CronPostsService {
 
     // Max retries reached - mark parent and children as failed
     await this.postsService.patch(post.id.toString(), {
+      lastAttemptAt: new Date(),
       status: PostStatus.FAILED,
     });
     await this.failChildren(post, 'Parent post failed');

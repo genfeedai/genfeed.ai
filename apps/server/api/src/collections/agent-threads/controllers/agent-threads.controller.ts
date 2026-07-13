@@ -164,7 +164,7 @@ export class AgentThreadsController {
         source: body.source || 'web',
         title: body.title,
         userId: dbUserId,
-      } as Record<string, unknown>);
+      });
       return serializeSingle(req, AgentThreadSerializer, thread);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'createThread');

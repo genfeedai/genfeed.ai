@@ -64,7 +64,7 @@ export interface ToolCallSummary {
 }
 
 export interface AgentChatResult {
-  brandId?: string;
+  brandId?: string | null;
   contextVersion?: number;
   threadId: string;
   creditsRemaining: number;

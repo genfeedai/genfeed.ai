@@ -493,7 +493,7 @@ export interface AgentChatPayload {
 
 export interface AgentChatResponse {
   threadId: string;
-  brandId?: string;
+  brandId?: string | null;
   contextVersion: number;
   message: {
     role: string;
@@ -544,7 +544,7 @@ export interface AgentRunSummary {
 
 export interface AgentChatStreamResponse {
   threadId: string;
-  brandId?: string;
+  brandId?: string | null;
   contextVersion: number;
   runId: string;
   startedAt: string;

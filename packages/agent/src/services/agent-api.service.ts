@@ -20,6 +20,7 @@ import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.se
 import { AgentThreadStatus } from '@genfeedai/enums';
 import type {
   AgentContentMentionsResponse,
+  AgentScopePayload,
   AgentTeamMentionsResponse,
   AgentContentMentionItem as ContentMentionItem,
   IModel,
@@ -348,7 +349,7 @@ export class AgentApiService extends AgentBaseApiService {
     requestId: string,
     answer: string,
     signal?: AbortSignal,
-    scope?: { brandId?: string | null; expectedContextVersion?: number },
+    scope?: AgentScopePayload,
   ): Effect.Effect<
     {
       answer: string | null;
@@ -381,7 +382,7 @@ export class AgentApiService extends AgentBaseApiService {
     action: string,
     payload?: Record<string, unknown>,
     signal?: AbortSignal,
-    scope?: { brandId?: string | null; expectedContextVersion?: number },
+    scope?: AgentScopePayload,
   ): Effect.Effect<AgentChatResponse, AgentApiError> {
     return this.fetchJsonEffect<AgentChatResponse>(
       `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/ui-actions`,

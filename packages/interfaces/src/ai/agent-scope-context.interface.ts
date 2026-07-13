@@ -5,6 +5,11 @@ export type AgentScopeSource =
   | 'legacy_organization_only'
   | 'thread_created';
 
+export interface AgentScopePayload {
+  brandId?: string | null;
+  expectedContextVersion?: number;
+}
+
 export interface ValidatedAgentScope {
   brandId?: string;
   contextVersion: number;

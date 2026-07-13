@@ -187,7 +187,7 @@ describe('CronPostsService', () => {
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
   });
 
-  it('rejects stale durable agent scope before publishing side effects', async () => {
+  it('marks stale durable agent scope as a terminal publish failure', async () => {
     const post = {
       agentContextSource: 'explicit',
       agentContextVersion: 2,
@@ -211,17 +211,33 @@ describe('CronPostsService', () => {
       new Error('Agent context is stale.'),
     );
 
-    await expect(
-      service.processQueuedPost({
-        enqueuedAt: '2026-07-07T10:00:00.000Z',
-        organizationId: 'org-1',
-        postId: 'post-1',
-        source: 'scheduled_sweep',
-      }),
-    ).rejects.toThrow('Agent context is stale.');
+    const result = await service.processQueuedPost({
+      enqueuedAt: '2026-07-07T10:00:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
 
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Agent context is stale.',
+        status: PostStatus.FAILED,
+        success: false,
+      }),
+    );
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
-    expect(postsService.patch).not.toHaveBeenCalled();
+    expect(postsService.patch).toHaveBeenCalledWith('post-1', {
+      lastAttemptAt: expect.any(Date),
+      status: PostStatus.FAILED,
+    });
+    expect(
+      publishEventWebhookService.emitLegacyPostFailed,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorMessage: 'Agent context is stale.',
+        post,
+      }),
+    );
   });
 
   it('emits publish webhooks after a queued scheduled post publishes', async () => {

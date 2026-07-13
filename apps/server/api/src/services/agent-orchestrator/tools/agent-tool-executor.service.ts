@@ -3327,6 +3327,12 @@ export class AgentToolExecutorService {
         };
       }
 
+      this.assertResourceScope(
+        ctx,
+        this.readOptionalString(post.brand),
+        'selected post',
+      );
+
       const summary =
         await this.postAnalyticsService.getPostAnalyticsSummary(postId);
       const metrics = this.buildMetricItems([

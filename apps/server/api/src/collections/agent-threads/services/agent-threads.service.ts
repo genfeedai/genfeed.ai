@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
@@ -141,7 +142,7 @@ export class AgentThreadsService extends BaseService<
               actorUserId: userId,
               brandId: parent.brandId,
               fromContextVersion: 0,
-              id: `branch:${parent.id}:${Date.now()}`,
+              id: randomUUID(),
               previousBrandId: null,
               source: 'thread_created',
               toContextVersion: 1,
@@ -150,7 +151,7 @@ export class AgentThreadsService extends BaseService<
         : [],
       title: parent.title ? `${parent.title} (branch)` : 'Branched thread',
       userId,
-    } as Record<string, unknown>);
+    });
 
     await this.agentMessagesService.copyMessages(
       threadId,

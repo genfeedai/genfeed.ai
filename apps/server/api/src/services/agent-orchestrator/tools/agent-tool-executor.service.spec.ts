@@ -1207,6 +1207,48 @@ describe('AgentToolExecutorService', () => {
     ]);
   });
 
+  it('rejects direct post analytics outside the validated brand scope', async () => {
+    const {
+      agentScopeContextService,
+      postAnalyticsService,
+      postsService,
+      service,
+    } = createService();
+    postsService.findOne.mockResolvedValue({
+      brand: '67a123456789012345678952',
+      id: '67a123456789012345678953',
+    });
+    agentScopeContextService.assertResourceBrand.mockImplementation(
+      (_scope: unknown, brandId: string | undefined) => {
+        if (brandId !== '67a123456789012345678951') {
+          throw new Error(
+            'Selected post is outside the validated brand scope.',
+          );
+        }
+      },
+    );
+
+    const context = scopedContext('67a123456789012345678951');
+    const result = await service.executeTool(
+      AgentToolName.GET_ANALYTICS,
+      { postId: '67a123456789012345678953' },
+      context,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Selected post is outside the validated brand scope.',
+        success: false,
+      }),
+    );
+    expect(agentScopeContextService.assertResourceBrand).toHaveBeenCalledWith(
+      context.validatedScope,
+      '67a123456789012345678952',
+      'selected post',
+    );
+    expect(postAnalyticsService.getPostAnalyticsSummary).not.toHaveBeenCalled();
+  });
+
   it('returns a no-analytics-yet response when content has no published post', async () => {
     const { credentialsService, ingredientsService, postsService, service } =
       createService();

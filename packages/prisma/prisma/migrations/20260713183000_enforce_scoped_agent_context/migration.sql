@@ -23,21 +23,21 @@ UPDATE "agent_threads"
 SET "isLegacyBrandFallbackEligible" = true
 WHERE "brandId" IS NULL;
 
-CREATE INDEX "agent_threads_org_brand_deleted_updated_at_idx"
-ON "agent_threads"("organizationId", "brandId", "isDeleted", "updatedAt" DESC);
-
-CREATE INDEX "posts_agentThreadId_idx"
-ON "posts"("agentThreadId");
-
+-- Add the foreign keys without scanning the live tables under a stronger lock.
+-- PostgreSQL enforces NOT VALID constraints for new writes immediately; the
+-- follow-up validation migration verifies the existing rows with a lock that
+-- does not block normal reads or writes.
 ALTER TABLE "agent_threads"
 ADD CONSTRAINT "agent_threads_brandId_organizationId_fkey"
 FOREIGN KEY ("brandId", "organizationId")
 REFERENCES "brands"("id", "organizationId")
 ON DELETE RESTRICT
-ON UPDATE CASCADE;
+ON UPDATE CASCADE
+NOT VALID;
 
 ALTER TABLE "posts"
 ADD CONSTRAINT "posts_agentThreadId_fkey"
 FOREIGN KEY ("agentThreadId") REFERENCES "agent_threads"("id")
 ON DELETE SET NULL
-ON UPDATE CASCADE;
+ON UPDATE CASCADE
+NOT VALID;

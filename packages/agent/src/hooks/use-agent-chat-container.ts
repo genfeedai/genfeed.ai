@@ -367,9 +367,9 @@ export function useAgentChatContainer({
             normalizedAnswer,
             undefined,
             (() => {
-              const thread = useAgentChatStore
-                .getState()
-                .threads.find((item) => item.id === request.threadId);
+              const thread = threads.find(
+                (item) => item.id === request.threadId,
+              );
               return {
                 brandId: thread?.brandId ?? null,
                 expectedContextVersion: thread?.contextVersion,
@@ -401,6 +401,7 @@ export function useAgentChatContainer({
       clearPendingInputRequest,
       pendingInputRequest,
       setError,
+      threads,
     ],
   );
 
