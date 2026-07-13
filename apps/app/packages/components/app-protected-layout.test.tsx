@@ -755,8 +755,9 @@ describe('AppProtectedLayout', () => {
         agentPanel: expect.anything(),
       }),
     );
-    expect(appLayoutSpy.mock.lastCall?.[0]).not.toHaveProperty(
+    expect(appLayoutSpy.mock.lastCall?.[0]).toHaveProperty(
       'isWorkspaceShell',
+      false,
     );
     consoleError.mockRestore();
   });
