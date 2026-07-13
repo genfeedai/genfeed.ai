@@ -1,49 +1,29 @@
+import type {
+  RestoreWorkspaceShellLocationParams,
+  WorkspaceShellLocation,
+  WorkspaceShellReferenceKind,
+  WorkspaceShellTypedReference,
+} from '@genfeedai/interfaces/ui/workspace-shell.interface';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 import {
   getWorkspaceShellOverlayRegistration,
   resolveWorkspaceShellRoute,
   resolveWorkspaceShellSafeFallback,
-  type WorkspaceShellBaseState,
-  type WorkspaceShellReferenceKind,
 } from './workspace-shell-registry';
+
+export type {
+  RestoreWorkspaceShellLocationParams,
+  WorkspaceShellLocation,
+  WorkspaceShellRestorationFailure,
+  WorkspaceShellState,
+  WorkspaceShellTypedReference,
+} from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
 export const WORKSPACE_SHELL_QUERY_KEYS = [
   'overlay',
   'overlayRef',
   'thread',
 ] as const;
-
-export type WorkspaceShellState = WorkspaceShellBaseState | 'overlay';
-
-export type WorkspaceShellTypedReference = {
-  readonly id: string;
-  readonly kind: WorkspaceShellReferenceKind;
-};
-
-export type WorkspaceShellRestorationFailure =
-  | 'invalid_overlay'
-  | 'invalid_overlay_reference'
-  | 'invalid_thread';
-
-export type WorkspaceShellLocation = {
-  readonly baseState: WorkspaceShellBaseState;
-  readonly canonicalSearchParams: URLSearchParams;
-  readonly isCanonical: boolean;
-  readonly overlayKey: string | null;
-  readonly overlayReference: WorkspaceShellTypedReference | null;
-  readonly restorationFailure: WorkspaceShellRestorationFailure | null;
-  readonly routeKey: string;
-  readonly safeFallbackHref: string;
-  readonly state: WorkspaceShellState;
-  readonly surfaceKey: string;
-  readonly threadId: string | null;
-};
-
-type RestoreWorkspaceShellLocationParams = {
-  readonly normalizedPathname: string;
-  readonly pathname: string;
-  readonly searchParams: URLSearchParams;
-};
 
 function isSafeOpaqueId(value: string | null): value is string {
   return Boolean(

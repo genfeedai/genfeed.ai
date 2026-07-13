@@ -101,6 +101,13 @@ describe('workspace shell trusted registry', () => {
     ).toBeNull();
   });
 
+  it('does not treat reserved application prefixes as scoped routes', () => {
+    expect(resolveWorkspaceShellRoute('/settings/~/overview')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/settings/example/posts')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/admin/~/overview')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/admin/example/posts')).toBeNull();
+  });
+
   it('interpolates a safe fallback without widening scope', () => {
     const route = resolveWorkspaceShellRoute(
       '/acme/moonrise/analytics/trends/detail/trend-1',

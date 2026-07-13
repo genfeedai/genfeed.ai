@@ -1,23 +1,15 @@
-import {
-  resolveWorkspaceShellRoute,
-  type WorkspaceShellAdapterSeam,
-  type WorkspaceShellRouteMode,
-} from './workspace-shell-registry';
+import type {
+  ResolvedWorkspaceShellRoute,
+  ResolveWorkspaceSurfaceLaunchParams,
+  WorkspaceShellRouteMode,
+  WorkspaceSurfaceLaunch,
+} from '@genfeedai/interfaces/ui/workspace-shell.interface';
+import { resolveWorkspaceShellRoute } from './workspace-shell-registry';
 
-export type WorkspaceSurfaceLaunch = {
-  readonly adapter: WorkspaceShellAdapterSeam | null;
-  readonly announcement: string;
-  readonly history: 'none' | 'push';
-  readonly href: string;
-  readonly mode: WorkspaceShellRouteMode;
-  readonly registryKey: string | null;
-};
-
-type ResolveWorkspaceSurfaceLaunchParams = {
-  readonly currentHref: string;
-  readonly destinationHref: string;
-  readonly threadId?: string | null;
-};
+export type {
+  ResolveWorkspaceSurfaceLaunchParams,
+  WorkspaceSurfaceLaunch,
+} from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
 const INTERNAL_ORIGIN = 'https://workspace.genfeed.invalid';
 
@@ -75,6 +67,79 @@ function stripAllShellParams(url: URL): void {
   url.searchParams.delete('thread');
 }
 
+function createUnavailableLaunch(
+  currentUrl: URL | null,
+): WorkspaceSurfaceLaunch {
+  return {
+    adapter: null,
+    announcement: 'Surface unavailable.',
+    history: 'none',
+    href: currentUrl ? toRelativeHref(currentUrl) : '/',
+    mode: 'dedicated',
+    registryKey: null,
+  };
+}
+
+function resolveRetainedThreadId(
+  currentUrl: URL | null,
+  currentRoute: ResolvedWorkspaceShellRoute | null,
+  destinationRoute: ResolvedWorkspaceShellRoute,
+  explicitThreadId: string | null | undefined,
+): string | null {
+  if (!currentUrl) {
+    return null;
+  }
+
+  const currentOrganizationSlug = currentRoute?.params.orgSlug;
+  const destinationOrganizationSlug = destinationRoute.params.orgSlug;
+  if (
+    !currentOrganizationSlug ||
+    !destinationOrganizationSlug ||
+    currentOrganizationSlug !== destinationOrganizationSlug
+  ) {
+    return null;
+  }
+
+  return getCurrentThreadId(currentUrl, explicitThreadId);
+}
+
+function applyCanvasLaunch(url: URL, retainedThreadId: string | null): void {
+  stripOverlayParams(url);
+  if (retainedThreadId) {
+    url.searchParams.set('thread', retainedThreadId);
+  } else {
+    url.searchParams.delete('thread');
+  }
+}
+
+function applyConversationLaunch(
+  url: URL,
+  route: ResolvedWorkspaceShellRoute,
+  retainedThreadId: string | null,
+): void {
+  stripAllShellParams(url);
+  if (retainedThreadId && route.canonicalUrl.endsWith('/agent')) {
+    url.pathname = `${url.pathname.replace(/\/$/, '')}/${encodeURIComponent(retainedThreadId)}`;
+  }
+}
+
+function applyDestinationPolicy(
+  url: URL,
+  route: ResolvedWorkspaceShellRoute,
+  retainedThreadId: string | null,
+): void {
+  switch (route.mode) {
+    case 'canvas':
+      applyCanvasLaunch(url, retainedThreadId);
+      return;
+    case 'conversation':
+      applyConversationLaunch(url, route, retainedThreadId);
+      return;
+    case 'dedicated':
+      stripAllShellParams(url);
+  }
+}
+
 function formatAnnouncement(
   surfaceKey: string,
   mode: WorkspaceShellRouteMode,
@@ -102,14 +167,7 @@ export function resolveWorkspaceSurfaceLaunch({
   const destinationUrl = parseInternalHref(destinationHref);
 
   if (!destinationUrl) {
-    return {
-      adapter: null,
-      announcement: 'Surface unavailable.',
-      history: 'none',
-      href: currentUrl ? toRelativeHref(currentUrl) : '/',
-      mode: 'dedicated',
-      registryKey: null,
-    };
+    return createUnavailableLaunch(currentUrl);
   }
 
   const currentRoute = currentUrl
@@ -118,43 +176,16 @@ export function resolveWorkspaceSurfaceLaunch({
   const destinationRoute = resolveWorkspaceShellRoute(destinationUrl.pathname);
 
   if (!destinationRoute) {
-    return {
-      adapter: null,
-      announcement: 'Surface unavailable.',
-      history: 'none',
-      href: currentUrl ? toRelativeHref(currentUrl) : '/',
-      mode: 'dedicated',
-      registryKey: null,
-    };
+    return createUnavailableLaunch(currentUrl);
   }
 
-  const currentOrganizationSlug = currentRoute?.params.orgSlug ?? null;
-  const destinationOrganizationSlug = destinationRoute.params.orgSlug ?? null;
-  const canRetainThread = Boolean(
-    currentOrganizationSlug &&
-      destinationOrganizationSlug &&
-      currentOrganizationSlug === destinationOrganizationSlug,
+  const retainedThreadId = resolveRetainedThreadId(
+    currentUrl,
+    currentRoute,
+    destinationRoute,
+    threadId,
   );
-  const retainedThreadId =
-    canRetainThread && currentUrl
-      ? getCurrentThreadId(currentUrl, threadId)
-      : null;
-
-  if (destinationRoute.mode === 'canvas') {
-    stripOverlayParams(destinationUrl);
-    if (retainedThreadId) {
-      destinationUrl.searchParams.set('thread', retainedThreadId);
-    } else {
-      destinationUrl.searchParams.delete('thread');
-    }
-  } else if (destinationRoute.mode === 'conversation') {
-    stripAllShellParams(destinationUrl);
-    if (retainedThreadId && destinationRoute.canonicalUrl.endsWith('/agent')) {
-      destinationUrl.pathname = `${destinationUrl.pathname.replace(/\/$/, '')}/${encodeURIComponent(retainedThreadId)}`;
-    }
-  } else {
-    stripAllShellParams(destinationUrl);
-  }
+  applyDestinationPolicy(destinationUrl, destinationRoute, retainedThreadId);
 
   return {
     adapter: destinationRoute.adapter,

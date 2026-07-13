@@ -1,113 +1,33 @@
-export type WorkspaceShellBaseState = 'canvas' | 'conversation';
+import type {
+  ResolvedWorkspaceShellRoute,
+  WorkspaceShellAccessPolicy,
+  WorkspaceShellAuxiliaryRegistration,
+  WorkspaceShellDeployment,
+  WorkspaceShellOverlayRegistration,
+  WorkspaceShellRestorationPolicy,
+  WorkspaceShellRouteMode,
+  WorkspaceShellRouteRegistration,
+  WorkspaceShellScopeRequirement,
+} from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
-export type WorkspaceShellRouteMode = WorkspaceShellBaseState | 'dedicated';
-
-export type WorkspaceShellSurfaceMode = WorkspaceShellRouteMode | 'overlay';
-
-export type WorkspaceShellScopeRequirement =
-  | 'brand'
-  | 'organization'
-  | 'personal'
-  | 'platform-admin';
-
-export type WorkspaceShellDeployment =
-  | 'cloud-web'
-  | 'desktop'
-  | 'self-hosted-web';
-
-export type WorkspaceShellAccessPolicy =
-  | 'authenticated'
-  | 'brand-member'
-  | 'organization-member'
-  | 'platform-admin';
-
-export type WorkspaceShellAvailability =
-  | 'always'
-  | 'conversation-shell'
-  | 'legacy-shell';
-
-export type WorkspaceShellLaunchTarget =
-  | 'dedicated-route'
-  | 'focused-canvas'
-  | 'inline'
-  | 'inspector'
-  | 'overlay';
-
-export type WorkspaceShellReferenceKind = 'asset' | 'post';
-
-export type WorkspaceShellRestorationPolicy = {
-  readonly history: 'canonical-url';
-  readonly invalidShellParams: 'replace';
-  readonly searchParams: 'preserve-opaque';
-};
-
-export type WorkspaceShellAdapterSeam = {
-  readonly key: string;
-  readonly status: 'dedicated-route' | 'placeholder';
-};
-
-export type WorkspaceShellRouteRegistration = {
-  readonly accessPolicy: WorkspaceShellAccessPolicy;
-  readonly adapter: WorkspaceShellAdapterSeam;
-  readonly allowedShellModes: readonly [WorkspaceShellRouteMode];
-  readonly availability: Exclude<WorkspaceShellAvailability, 'legacy-shell'>;
-  readonly canonicalUrl: string;
-  readonly deployments: readonly WorkspaceShellDeployment[];
-  readonly key: string;
-  readonly kind: 'route';
-  readonly launchTarget: Extract<
-    WorkspaceShellLaunchTarget,
-    'dedicated-route' | 'focused-canvas' | 'inline'
-  >;
-  readonly mode: WorkspaceShellRouteMode;
-  readonly restoration: WorkspaceShellRestorationPolicy;
-  readonly safeFallback: string;
-  readonly scope: WorkspaceShellScopeRequirement;
-  readonly surfaceKey: string;
-  readonly switcherItems: readonly string[];
-  readonly telemetryClass: 'agent' | 'management' | 'product';
-};
-
-export type ResolvedWorkspaceShellRoute = WorkspaceShellRouteRegistration & {
-  readonly params: Readonly<Record<string, string>>;
-};
-
-export type WorkspaceShellOverlayRegistration = {
-  readonly accessPolicy: 'organization-member';
-  readonly adapter: WorkspaceShellAdapterSeam;
-  readonly allowedReferenceKinds: readonly WorkspaceShellReferenceKind[];
-  readonly allowedShellModes: readonly ['overlay'];
-  readonly availability: 'conversation-shell';
-  readonly canonicalUrl: null;
-  readonly deployments: readonly WorkspaceShellDeployment[];
-  readonly key: string;
-  readonly kind: 'overlay';
-  readonly launchTarget: 'overlay';
-  readonly restoration: WorkspaceShellRestorationPolicy;
-  readonly safeFallback: 'same-canonical-url';
-  readonly scope: 'organization';
-  readonly telemetryClass: 'notifications' | 'shell_preview';
-};
-
-export type WorkspaceShellChromeRegistration = {
-  readonly accessPolicy: 'organization-member';
-  readonly adapter: WorkspaceShellAdapterSeam;
-  readonly allowedShellModes: readonly ['dedicated'];
-  readonly availability: 'legacy-shell';
-  readonly canonicalUrl: null;
-  readonly deployments: readonly WorkspaceShellDeployment[];
-  readonly key: 'terminal-dock';
-  readonly kind: 'chrome';
-  readonly launchTarget: 'dedicated-route';
-  readonly restoration: WorkspaceShellRestorationPolicy;
-  readonly safeFallback: 'same-canonical-url';
-  readonly scope: 'organization';
-  readonly telemetryClass: 'legacy_chrome';
-};
-
-export type WorkspaceShellAuxiliaryRegistration =
-  | WorkspaceShellChromeRegistration
-  | WorkspaceShellOverlayRegistration;
+export type {
+  ResolvedWorkspaceShellRoute,
+  WorkspaceShellAccessPolicy,
+  WorkspaceShellAdapterSeam,
+  WorkspaceShellAuxiliaryRegistration,
+  WorkspaceShellAvailability,
+  WorkspaceShellBaseState,
+  WorkspaceShellChromeRegistration,
+  WorkspaceShellDeployment,
+  WorkspaceShellLaunchTarget,
+  WorkspaceShellOverlayRegistration,
+  WorkspaceShellReferenceKind,
+  WorkspaceShellRestorationPolicy,
+  WorkspaceShellRouteMode,
+  WorkspaceShellRouteRegistration,
+  WorkspaceShellScopeRequirement,
+  WorkspaceShellSurfaceMode,
+} from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
 type RouteGroupConfig = {
   readonly fallback: string;
@@ -137,40 +57,62 @@ const URL_RESTORATION_POLICY = Object.freeze({
   searchParams: 'preserve-opaque',
 } as const satisfies WorkspaceShellRestorationPolicy);
 
+const RESERVED_SCOPED_ROUTE_PREFIXES = Object.freeze(['admin', 'settings']);
+
+const ACCESS_POLICY_BY_SCOPE = Object.freeze({
+  brand: 'brand-member',
+  organization: 'organization-member',
+  personal: 'authenticated',
+  'platform-admin': 'platform-admin',
+} as const satisfies Record<
+  WorkspaceShellScopeRequirement,
+  WorkspaceShellAccessPolicy
+>);
+
+const ADAPTER_STATUS_BY_MODE = Object.freeze({
+  canvas: 'placeholder',
+  conversation: 'placeholder',
+  dedicated: 'dedicated-route',
+} as const satisfies Record<
+  WorkspaceShellRouteMode,
+  WorkspaceShellRouteRegistration['adapter']['status']
+>);
+
+const AVAILABILITY_BY_MODE = Object.freeze({
+  canvas: 'conversation-shell',
+  conversation: 'conversation-shell',
+  dedicated: 'always',
+} as const satisfies Record<
+  WorkspaceShellRouteMode,
+  WorkspaceShellRouteRegistration['availability']
+>);
+
+const LAUNCH_TARGET_BY_MODE = Object.freeze({
+  canvas: 'focused-canvas',
+  conversation: 'inline',
+  dedicated: 'dedicated-route',
+} as const satisfies Record<
+  WorkspaceShellRouteMode,
+  WorkspaceShellRouteRegistration['launchTarget']
+>);
+
 function freezeRouteRegistration(
   canonicalUrl: string,
   config: RouteGroupConfig,
 ): WorkspaceShellRouteRegistration {
-  const status =
-    config.mode === 'dedicated' ? 'dedicated-route' : 'placeholder';
-  const accessPolicy: WorkspaceShellAccessPolicy =
-    config.scope === 'personal'
-      ? 'authenticated'
-      : config.scope === 'organization'
-        ? 'organization-member'
-        : config.scope === 'brand'
-          ? 'brand-member'
-          : 'platform-admin';
-  const launchTarget: WorkspaceShellRouteRegistration['launchTarget'] =
-    config.mode === 'canvas'
-      ? 'focused-canvas'
-      : config.mode === 'conversation'
-        ? 'inline'
-        : 'dedicated-route';
-
   return Object.freeze({
-    accessPolicy,
+    accessPolicy: ACCESS_POLICY_BY_SCOPE[config.scope],
     adapter: Object.freeze({
       key: config.surfaceKey,
-      status,
+      status: ADAPTER_STATUS_BY_MODE[config.mode],
     }),
     allowedShellModes: Object.freeze([config.mode] as const),
-    availability: config.mode === 'dedicated' ? 'always' : 'conversation-shell',
+    availability: AVAILABILITY_BY_MODE[config.mode],
     canonicalUrl,
     deployments: ALL_DEPLOYMENTS,
     key: `route:${canonicalUrl}`,
     kind: 'route',
-    launchTarget,
+    launchTarget: LAUNCH_TARGET_BY_MODE[config.mode],
     mode: config.mode,
     restoration: URL_RESTORATION_POLICY,
     safeFallback: config.fallback,
@@ -843,12 +785,17 @@ function hasRequiredPathScope(
   scope: WorkspaceShellScopeRequirement,
 ): boolean {
   const segments = pathname.split('/').filter(Boolean);
+  const hasReservedPrefix = RESERVED_SCOPED_ROUTE_PREFIXES.some(
+    (prefix) => segments[0] === prefix,
+  );
 
   switch (scope) {
     case 'brand':
-      return segments.length >= 3 && segments[1] !== '~';
+      return !hasReservedPrefix && segments.length >= 3 && segments[1] !== '~';
     case 'organization':
-      return segments.length === 1 || segments[1] === '~';
+      return (
+        !hasReservedPrefix && (segments.length === 1 || segments[1] === '~')
+      );
     case 'personal':
       return pathname === '/' || pathname.startsWith('/settings');
     case 'platform-admin':
