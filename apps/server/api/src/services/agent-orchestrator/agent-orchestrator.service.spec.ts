@@ -2,7 +2,6 @@ import { AgentMemoriesService } from '@api/collections/agent-memories/services/a
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
-import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -22,6 +21,7 @@ import { AgentThreadEngineService } from '@api/services/agent-threading/services
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { AgentAutonomyMode, AgentType } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentScopeContextService } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';

@@ -1,7 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   AgentScopeSource,
   ValidatedAgentScope,
@@ -10,11 +7,26 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Inject,
   Injectable,
 } from '@nestjs/common';
+import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
 
 const MAX_SCOPE_PROVENANCE_ENTRIES = 50;
 const MAX_LEGACY_BRAND_FALLBACK_USES = 20;
+
+function agentThreadNotFound(threadId: string): HttpException {
+  return new HttpException(
+    {
+      detail: `Agent thread with identifier '${threadId}' not found`,
+      source: { parameter: threadId },
+      title: 'Resource Not Found',
+    },
+    HttpStatus.NOT_FOUND,
+  );
+}
 
 type ScopeMutationSource = 'thread_context_api' | 'thread_created';
 
@@ -68,7 +80,13 @@ export interface MutateAgentScopeParams {
 
 @Injectable()
 export class AgentScopeContextService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: Pick<
+      ServerPrisma,
+      'agentMessage' | 'agentThread' | 'brand'
+    >,
+  ) {}
 
   async prepareForTurn(
     params: PrepareAgentScopeParams,
@@ -82,7 +100,7 @@ export class AgentScopeContextService {
       : null;
 
     if (params.threadId && !thread) {
-      throw new NotFoundException('Agent thread', params.threadId);
+      throw agentThreadNotFound(params.threadId);
     }
 
     if (!thread) {
@@ -185,7 +203,7 @@ export class AgentScopeContextService {
     );
 
     if (!thread) {
-      throw new NotFoundException('Agent thread', params.threadId);
+      throw agentThreadNotFound(params.threadId);
     }
 
     if (thread.brandId !== (params.brandId ?? null)) {
@@ -202,7 +220,7 @@ export class AgentScopeContextService {
 
   async mutateBrandScope(
     params: MutateAgentScopeParams,
-  ): Promise<AgentRoomDocument> {
+  ): Promise<Record<string, unknown>> {
     const thread = await this.findThread(
       params.threadId,
       params.organizationId,
@@ -210,7 +228,7 @@ export class AgentScopeContextService {
     );
 
     if (!thread) {
-      throw new NotFoundException('Agent thread', params.threadId);
+      throw agentThreadNotFound(params.threadId);
     }
 
     this.assertExpectedVersion(thread, params.expectedContextVersion);
@@ -234,10 +252,10 @@ export class AgentScopeContextService {
       });
 
       if (!unchanged) {
-        throw new NotFoundException('Agent thread', params.threadId);
+        throw agentThreadNotFound(params.threadId);
       }
 
-      return unchanged as unknown as AgentRoomDocument;
+      return unchanged as unknown as Record<string, unknown>;
     }
 
     const provenance = this.readProvenance(thread.scopeChangeProvenance);
@@ -279,7 +297,7 @@ export class AgentScopeContextService {
       );
       throw latest
         ? this.contextConflict(latest)
-        : new NotFoundException('Agent thread', params.threadId);
+        : agentThreadNotFound(params.threadId);
     }
 
     const updated = await this.prisma.agentThread.findFirst({
@@ -292,10 +310,10 @@ export class AgentScopeContextService {
     });
 
     if (!updated) {
-      throw new NotFoundException('Agent thread', params.threadId);
+      throw agentThreadNotFound(params.threadId);
     }
 
-    return updated as unknown as AgentRoomDocument;
+    return updated as unknown as Record<string, unknown>;
   }
 
   async assertConsequentialBoundary(

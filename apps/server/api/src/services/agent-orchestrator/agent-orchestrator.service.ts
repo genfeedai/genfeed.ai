@@ -10,10 +10,6 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
-import {
-  AgentScopeContextService,
-  type PreparedAgentScope,
-} from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -47,12 +43,32 @@ import {
 } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
+import type {
+  AgentChatAttachment,
+  AgentChatContext,
+  AgentChatRequest,
+  AgentChatResult,
+  AgentThreadUiActionRequest,
+  ThreadResolutionResult,
+  ToolCallSummary,
+} from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   type AgentGenerationPriority,
   ResolvedAgentExecutionPolicy,
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
+import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
+import {
+  buildAgentRoutingMetadata,
+  resolveAgentRoutingPlugins,
+  resolveAgentRoutingPolicy,
+} from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
+import {
+  buildAgentScopeMetadata,
+  recordAgentRunScope,
+  withAgentScopeResult,
+} from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
@@ -84,6 +100,10 @@ import {
   type ValidatedAgentScope,
 } from '@genfeedai/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
+import {
+  AgentScopeContextService,
+  type PreparedAgentScope,
+} from '@genfeedai/server';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -96,139 +116,12 @@ import {
 } from '@nestjs/common';
 import { Effect } from 'effect';
 
-const EXPLICIT_WEB_SEARCH_PATTERN =
-  /\b(browse|find online|google|internet|look up online|online research|search (?:the )?(?:internet|online|web)|web search)\b/i;
-const LIVE_DATA_KEYWORDS = [
-  'breaking',
-  'current',
-  'latest',
-  'live data',
-  'news today',
-  'recent',
-  'right now',
-  'today',
-  'up to date',
-] as const;
-const LIVE_DATA_TOPIC_KEYWORDS = [
-  'algorithm',
-  'announcement',
-  'competitor',
-  'creator economy',
-  'market',
-  'news',
-  'pricing',
-  'release',
-  'trend',
-  'trending',
-  'update',
-] as const;
-
-type AgentRoutingPolicyReason =
-  | 'default'
-  | 'explicit-web-search'
-  | 'fresh-live-data';
-
-interface AgentRoutingPolicy {
-  plugins?: OpenRouterPlugin[];
-  reason: AgentRoutingPolicyReason;
-}
-
-interface ThreadResolutionResult {
-  isCreated: boolean;
-  seedTitle: string;
-  threadId: string;
-}
-
 const PAID_SUBSCRIPTION_TIERS = new Set<string>([
   SubscriptionTier.PRO,
   SubscriptionTier.SCALE,
   SubscriptionTier.ENTERPRISE,
 ]);
 
-export interface AgentChatAttachment {
-  ingredientId: string;
-  url: string;
-  kind?: string;
-  name?: string;
-}
-
-export interface AgentPageContext {
-  contentFormat?: string;
-  draftBody?: string;
-  draftInstructions?: string;
-  draftSummary?: string;
-  draftTitle?: string;
-  draftType?: string;
-  postAuthor?: string;
-  postContent?: string;
-  route?: string;
-  selectedText?: string;
-  url?: string;
-}
-
-export interface AgentChatRequest {
-  agentType?: AgentType;
-  attachments?: AgentChatAttachment[];
-  brandId?: string | null;
-  content: string;
-  expectedContextVersion?: number;
-  pageContext?: AgentPageContext;
-  planModeEnabled?: boolean;
-  threadId?: string;
-  model?: string;
-  source?: 'agent' | 'proactive' | 'onboarding';
-  systemPromptOverride?: string;
-}
-
-export interface AgentChatContext {
-  authToken?: string;
-  /** Campaign ID — when set, enables campaign coordination features */
-  campaignId?: string;
-  generationPriority?: string;
-  organizationId: string;
-  /** Resolved runtime skills for tool set augmentation */
-  resolvedSkills?: ResolvedRuntimeSkill[];
-  scope?: ValidatedAgentScope;
-  /** When set, tool call progress is tracked against this agent-runs record */
-  runId?: string;
-  /** Strategy ID — enables content attribution on created posts/content */
-  strategyId?: string;
-  userId: string;
-}
-
-export interface ToolCallSummary {
-  creditsUsed: number;
-  durationMs: number;
-  error?: string;
-  parameters?: Record<string, unknown>;
-  resultSummary?: string;
-  status: 'completed' | 'failed';
-  toolName: string;
-}
-
-export interface AgentChatResult {
-  brandId?: string;
-  contextVersion?: number;
-  threadId: string;
-  creditsRemaining: number;
-  creditsUsed: number;
-  message: {
-    content: string;
-    metadata: Record<string, unknown>;
-    role: string;
-  };
-  toolCalls: ToolCallSummary[];
-}
-
-export interface AgentThreadUiActionRequest {
-  action: string;
-  brandId?: string | null;
-  expectedContextVersion?: number;
-  payload?: Record<string, unknown>;
-  threadId: string;
-}
-
-const MAX_PAGE_CONTEXT_FIELD_LENGTH = 4_000;
 const RESULT_SUMMARY_MAX_LENGTH = 500;
 
 // During live token streaming, cancellation cannot be checked per token
@@ -250,49 +143,6 @@ class StreamCancelledError extends Error {
     super('agent stream cancelled');
     this.name = 'StreamCancelledError';
   }
-}
-
-function clampPageContextField(value?: string): string | null {
-  const normalized = value?.replace(/\s+/g, ' ').trim();
-
-  if (!normalized) {
-    return null;
-  }
-
-  if (normalized.length <= MAX_PAGE_CONTEXT_FIELD_LENGTH) {
-    return normalized;
-  }
-
-  return `${normalized.slice(0, MAX_PAGE_CONTEXT_FIELD_LENGTH)}...`;
-}
-
-function buildPageContextPrompt(pageContext?: AgentPageContext): string {
-  if (!pageContext) {
-    return '';
-  }
-
-  const fields = [
-    ['Route', pageContext.route || pageContext.url],
-    ['Draft type', pageContext.draftType],
-    ['Format', pageContext.contentFormat],
-    ['Title', pageContext.draftTitle],
-    ['Summary', pageContext.draftSummary],
-    ['Instructions', pageContext.draftInstructions],
-    ['Selected text', pageContext.selectedText],
-    ['Draft body', pageContext.draftBody || pageContext.postContent],
-  ]
-    .map(([label, value]) => {
-      const clamped = clampPageContextField(value);
-      return clamped ? `- ${label}: ${clamped}` : null;
-    })
-    .filter(Boolean)
-    .join('\n');
-
-  if (!fields) {
-    return '';
-  }
-
-  return `\n\n## Current Page Context\nThe user is working in a visible Genfeed surface. Use this context when answering, especially for writing co-pilot requests. Propose edits, structure, or next actions against the current draft instead of starting from scratch unless asked.\n${fields}`;
 }
 
 function summarizeToolResult(result: {
@@ -406,35 +256,6 @@ export class AgentOrchestratorService {
     return this.configService?.get('AGENT_TOKEN_STREAMING_ENABLED') === 'true';
   }
 
-  private withScopeResult(
-    result: AgentChatResult,
-    scope: ValidatedAgentScope,
-  ): AgentChatResult {
-    return {
-      ...result,
-      brandId: scope.brandId,
-      contextVersion: scope.contextVersion,
-    };
-  }
-
-  private scopeMetadata(context: AgentChatContext): Record<string, unknown> {
-    return context.scope
-      ? { agentScope: toAgentScopeMetadata(context.scope) }
-      : {};
-  }
-
-  private async recordRunScope(context: AgentChatContext): Promise<void> {
-    if (!context.runId || !context.scope) {
-      return;
-    }
-
-    await this.agentRunsService.mergeMetadata(
-      context.runId,
-      context.organizationId,
-      this.scopeMetadata(context),
-    );
-  }
-
   async chat(
     request: AgentChatRequest,
     context: AgentChatContext,
@@ -507,7 +328,7 @@ export class AgentOrchestratorService {
         resolvedSkills: resolved.resolvedSkills,
         scope,
       };
-      await this.recordRunScope(context);
+      await recordAgentRunScope(this.agentRunsService, context);
       await this.recordProfileSnapshot(threadId, context, request.agentType);
       await this.threadEventRecorder.recordThreadTurnRequested({
         content: request.content,
@@ -546,7 +367,7 @@ export class AgentOrchestratorService {
       });
 
       if (planModeResponse) {
-        return this.withScopeResult(planModeResponse, scope);
+        return withAgentScopeResult(planModeResponse, scope);
       }
 
       const deterministicResponse = await this.tryHandleRecurringTaskDraftTurn({
@@ -558,7 +379,7 @@ export class AgentOrchestratorService {
       });
 
       if (deterministicResponse) {
-        return this.withScopeResult(deterministicResponse, scope);
+        return withAgentScopeResult(deterministicResponse, scope);
       }
 
       const result = await this.runInThreadLane(threadId, async () => {
@@ -575,7 +396,7 @@ export class AgentOrchestratorService {
           turnCost,
         });
       });
-      return this.withScopeResult(result, scope);
+      return withAgentScopeResult(result, scope);
     } catch (error: unknown) {
       if (error instanceof Error && error.name.includes('ValidationError')) {
         this.loggerService.error(
@@ -652,7 +473,7 @@ export class AgentOrchestratorService {
       generationPriority: basePolicy.generationPriority,
       scope,
     };
-    await this.recordRunScope(context);
+    await recordAgentRunScope(this.agentRunsService, context);
 
     const model = await this.resolveThreadUiActionModel(
       threadId,
@@ -727,7 +548,7 @@ export class AgentOrchestratorService {
               `Unsupported thread UI action: ${request.action}`,
             );
         }
-        return this.withScopeResult(result, scope);
+        return withAgentScopeResult(result, scope);
       } catch (error: unknown) {
         await this.threadEventRecorder.recordRunFailed({
           context,
@@ -915,8 +736,8 @@ export class AgentOrchestratorService {
               uiActions: allUiActions,
             });
           const assistantMetadata = {
-            ...this.scopeMetadata(context),
-            ...this.buildRoutingMetadata({
+            ...buildAgentScopeMetadata(context),
+            ...buildAgentRoutingMetadata({
               model,
               prompt: request.content,
               source: request.source,
@@ -1379,7 +1200,7 @@ export class AgentOrchestratorService {
         agentScope: scopeMetadata,
         model,
         requestedModel: model,
-        ...this.buildRoutingMetadata({
+        ...buildAgentRoutingMetadata({
           model,
           prompt: request.content,
           source: request.source,
@@ -1807,8 +1628,8 @@ export class AgentOrchestratorService {
             brandId: context.scope?.brandId,
             content,
             metadata: {
-              ...this.scopeMetadata(context),
-              ...this.buildRoutingMetadata({
+              ...buildAgentScopeMetadata(context),
+              ...buildAgentRoutingMetadata({
                 model,
                 prompt: latestUserMessage,
                 source,
@@ -2586,7 +2407,7 @@ export class AgentOrchestratorService {
       scope: params.scope,
       userId: params.userId,
     };
-    await this.recordRunScope(context);
+    await recordAgentRunScope(this.agentRunsService, context);
 
     const assistantResponse = await this.processRecurringTaskDraft({
       context,
@@ -2608,7 +2429,7 @@ export class AgentOrchestratorService {
       brandId: context.scope?.brandId,
       content: assistantResponse.content,
       metadata: {
-        ...this.scopeMetadata(context),
+        ...buildAgentScopeMetadata(context),
         ...assistantResponse.metadata,
         creditsRemaining,
       },
@@ -2660,7 +2481,7 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
-      ...this.scopeMetadata(params.context),
+      ...buildAgentScopeMetadata(params.context),
       ...assistantResponse.metadata,
       creditsRemaining,
       totalCreditsUsed: assistantResponse.creditsUsed,
@@ -2865,8 +2686,8 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
-      ...this.scopeMetadata(params.context),
-      ...this.buildRoutingMetadata({
+      ...buildAgentScopeMetadata(params.context),
+      ...buildAgentRoutingMetadata({
         model: params.model,
         prompt: params.request.content,
         source: params.request.source,
@@ -3072,7 +2893,7 @@ export class AgentOrchestratorService {
         uiActions: result.nextActions ?? [],
       });
     const assistantMetadata = {
-      ...this.scopeMetadata(params.context),
+      ...buildAgentScopeMetadata(params.context),
       creditsRemaining,
       ...this.buildResolvedModelMetadata(params.model),
       reviewRequired: result.requiresConfirmation ?? false,
@@ -3162,7 +2983,7 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
-      ...this.scopeMetadata(params.context),
+      ...buildAgentScopeMetadata(params.context),
       ...assistantResponse.metadata,
       creditsRemaining,
       totalCreditsUsed: assistantResponse.creditsUsed,
@@ -5202,7 +5023,7 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
-      ...this.scopeMetadata(params.context),
+      ...buildAgentScopeMetadata(params.context),
       isFallbackContent: normalizedContent.isFallback,
       ...this.buildResolvedModelMetadata(params.model),
       reviewRequired: params.result.requiresConfirmation ?? false,
@@ -5282,12 +5103,12 @@ export class AgentOrchestratorService {
     tool_choice: 'auto';
     tools: OpenRouterTool[];
   } {
-    const routingPolicy = this.resolveRoutingPolicy({
+    const routingPolicy = resolveAgentRoutingPolicy({
       model: params.model,
       prompt: params.prompt,
       source: params.source,
     });
-    const plugins = this.resolveRoutingPlugins(routingPolicy);
+    const plugins = resolveAgentRoutingPlugins(routingPolicy);
     const titleInstruction = params.seedTitle?.trim()
       ? [
           {
@@ -5322,12 +5143,12 @@ export class AgentOrchestratorService {
     plugins?: OpenRouterPlugin[];
     temperature: number;
   } {
-    const routingPolicy = this.resolveRoutingPolicy({
+    const routingPolicy = resolveAgentRoutingPolicy({
       model: params.model,
       prompt: params.prompt,
       source: params.source,
     });
-    const plugins = this.resolveRoutingPlugins(routingPolicy);
+    const plugins = resolveAgentRoutingPlugins(routingPolicy);
     const planInstruction = {
       content:
         'Plan mode is enabled. Do not call tools or execute work. Respond with valid JSON only: {"title":"optional thread title","summary":"one short summary sentence","explanation":"brief rationale","content":"markdown plan","steps":[{"step":"...", "status":"pending"}]}. Keep the plan concise and execution-ready.',
@@ -5405,85 +5226,6 @@ export class AgentOrchestratorService {
       },
       summary,
       title,
-    };
-  }
-
-  private resolveRoutingPolicy(params: {
-    model: string;
-    prompt: string;
-    source?: AgentChatRequest['source'];
-  }): AgentRoutingPolicy {
-    if (params.model !== DEFAULT_AGENT_CHAT_MODEL) {
-      return { reason: 'default' };
-    }
-
-    if (params.source === 'onboarding') {
-      return { reason: 'default' };
-    }
-
-    if (this.isExplicitWebSearchPrompt(params.prompt)) {
-      return {
-        plugins: [{ id: 'web' }],
-        reason: 'explicit-web-search',
-      };
-    }
-
-    if (this.isFreshLiveDataPrompt(params.prompt)) {
-      return {
-        plugins: [{ id: 'web' }],
-        reason: 'fresh-live-data',
-      };
-    }
-
-    return { reason: 'default' };
-  }
-
-  private resolveRoutingPlugins(
-    policy: AgentRoutingPolicy,
-  ): OpenRouterPlugin[] | undefined {
-    if (policy.reason === 'default') {
-      return undefined;
-    }
-
-    return policy.plugins;
-  }
-
-  private isExplicitWebSearchPrompt(prompt: string): boolean {
-    return EXPLICIT_WEB_SEARCH_PATTERN.test(prompt);
-  }
-
-  private isFreshLiveDataPrompt(prompt: string): boolean {
-    const normalizedPrompt = prompt.toLowerCase();
-    const hasFreshnessCue = LIVE_DATA_KEYWORDS.some((keyword) =>
-      normalizedPrompt.includes(keyword),
-    );
-
-    if (!hasFreshnessCue) {
-      return false;
-    }
-
-    return LIVE_DATA_TOPIC_KEYWORDS.some((keyword) =>
-      normalizedPrompt.includes(keyword),
-    );
-  }
-
-  private buildRoutingMetadata(params: {
-    model: string;
-    prompt: string;
-    source?: AgentChatRequest['source'];
-  }): Partial<{
-    routingPolicy: AgentRoutingPolicyReason;
-    webSearchEnabled: boolean;
-  }> {
-    const policy = this.resolveRoutingPolicy(params);
-
-    if (policy.reason === 'default') {
-      return {};
-    }
-
-    return {
-      routingPolicy: policy.reason,
-      webSearchEnabled: true,
     };
   }
 

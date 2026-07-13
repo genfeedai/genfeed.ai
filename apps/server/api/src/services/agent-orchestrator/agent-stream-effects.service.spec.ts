@@ -1,8 +1,8 @@
 import type { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
-import type { AgentChatContext } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import type { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { Effect } from 'effect';
 
 const context: AgentChatContext = {

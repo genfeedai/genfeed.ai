@@ -1,10 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
-import type { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AgentThreadStatus } from '@genfeedai/enums';
+import type { AgentScopeContextService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({

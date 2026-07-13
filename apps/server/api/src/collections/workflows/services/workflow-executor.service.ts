@@ -1,4 +1,3 @@
-import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import {
   type PendingReviewGateExecution,
   WorkflowExecutionsService,
@@ -34,6 +33,7 @@ import {
 } from '@genfeedai/enums';
 import type { ValidatedAgentScope } from '@genfeedai/interfaces';
 import { toAgentScopeMetadata } from '@genfeedai/interfaces';
+import { AgentScopeContextService } from '@genfeedai/server';
 import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';

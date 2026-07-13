@@ -1,7 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
-import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -16,6 +15,7 @@ import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
 } from '@genfeedai/serializers';
+import { AgentScopeContextService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

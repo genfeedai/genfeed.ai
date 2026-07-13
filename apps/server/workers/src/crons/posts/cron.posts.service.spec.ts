@@ -1,5 +1,4 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -8,7 +7,10 @@ import { PublisherFactoryService } from '@api/services/integrations/publishers/p
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
-import { PostPublishQueueService } from '@genfeedai/server';
+import {
+  AgentScopeContextService,
+  PostPublishQueueService,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';

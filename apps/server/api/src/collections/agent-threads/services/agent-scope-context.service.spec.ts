@@ -1,7 +1,9 @@
-import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { AgentScopeContextService } from '@genfeedai/server';
+import {
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+} from '@nestjs/common';
 
 const THREAD_ID = 'thread-1';
 const ORGANIZATION_ID = 'org-1';
@@ -45,7 +47,7 @@ describe('AgentScopeContextService', () => {
       },
       brand: { findFirst: vi.fn().mockResolvedValue({ id: BRAND_ID }) },
     };
-    service = new AgentScopeContextService(prisma as unknown as PrismaService);
+    service = new AgentScopeContextService(prisma as never);
   });
 
   it('resolves an authorized thread scope from immutable server authority', async () => {
@@ -108,7 +110,7 @@ describe('AgentScopeContextService', () => {
         threadId: 'foreign-thread',
         userId: USER_ID,
       }),
-    ).rejects.toBeInstanceOf(NotFoundException);
+    ).rejects.toBeInstanceOf(HttpException);
   });
 
   it('performs a tenant-scoped compare-and-swap mutation with bounded provenance', async () => {

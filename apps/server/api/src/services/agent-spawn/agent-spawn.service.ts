@@ -1,10 +1,8 @@
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
-import type {
-  AgentChatContext,
-  AgentOrchestratorService,
-} from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
+import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { SYSTEM_PROMPT_MANAGER } from '@api/services/agent-spawn/constants/spawn-system-prompt.constant';
 import { AgentType } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';

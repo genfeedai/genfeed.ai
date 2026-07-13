@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
@@ -89,6 +88,7 @@ import {
   serializeAgentBrand,
   serializeAgentBrands,
 } from '@genfeedai/serializers';
+import { AgentScopeContextService } from '@genfeedai/server';
 import {
   type CanonicalToolDefinition,
   getToolsForRole,

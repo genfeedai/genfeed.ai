@@ -2,7 +2,7 @@ import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import type {
   AgentChatContext,
   AgentChatRequest,
-} from '@api/services/agent-orchestrator/agent-orchestrator.service';
+} from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   AgentThreadEngineService,
   type AppendAgentThreadEventParams,

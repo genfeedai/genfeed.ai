@@ -1,6 +1,5 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
@@ -30,7 +29,10 @@ import {
 } from '@genfeedai/enums';
 import type { AgentScopeSource } from '@genfeedai/interfaces';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
-import { PostPublishQueueService } from '@genfeedai/server';
+import {
+  AgentScopeContextService,
+  PostPublishQueueService,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
