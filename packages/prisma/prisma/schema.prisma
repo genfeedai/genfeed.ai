@@ -756,6 +756,7 @@ model Organization {
   creatorAnalyses               CreatorAnalysis[]
   mcpApprovals                  McpApproval[]
   moodBoards                    MoodBoard[]                    @relation("org_moodboard")
+  dashboardLayouts              DashboardLayout[]              @relation("org_dashboard_layout")
   brandInterviews               BrandInterview[]
   warmupAccounts                WarmupAccount[]
 
@@ -889,6 +890,7 @@ model Brand {
   schedules                  Schedule[]
   bookmarks                  Bookmark[]
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
+  dashboardLayouts           DashboardLayout[]          @relation("brand_dashboard_layout")
   brandInterviews            BrandInterview[]
   warmupAccounts             WarmupAccount[]
 
@@ -952,6 +954,23 @@ model MoodBoard {
 
   @@index([organizationId, isDeleted])
   @@map("mood_boards")
+}
+
+model DashboardLayout {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation("org_dashboard_layout", fields: [organizationId], references: [id])
+  brandId        String
+  brand          Brand        @relation("brand_dashboard_layout", fields: [brandId], references: [id])
+  pageKey        String
+  document       Json         @default("{}")
+  version        Int          @default(1)
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, brandId, pageKey])
+  @@map("dashboard_layouts")
 }
 
 model Member {

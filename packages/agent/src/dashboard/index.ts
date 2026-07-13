@@ -1,4 +1,13 @@
 export type {
+  DashboardHydrationData,
+  SanitizeLayoutResult,
+} from '@genfeedai/agent/dashboard/dashboard-hydration';
+export {
+  hydrateLayout,
+  isResolvableSourceKey,
+  sanitizeLayoutForPersistence,
+} from '@genfeedai/agent/dashboard/dashboard-hydration';
+export type {
   DashboardBlocksParseResult,
   DashboardOpenUIComponent,
   DashboardValidationIssue,

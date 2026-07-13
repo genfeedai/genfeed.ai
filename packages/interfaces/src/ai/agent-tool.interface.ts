@@ -68,6 +68,8 @@ export enum AgentToolName {
   GENERATE_AS_IDENTITY = 'generate_as_identity',
   // Dashboard tools
   RENDER_DASHBOARD = 'render_dashboard',
+  SAVE_DASHBOARD_LAYOUT = 'save_dashboard_layout',
+  GET_DASHBOARD_LAYOUT = 'get_dashboard_layout',
   // Generation preparation tools
   PREPARE_GENERATION = 'prepare_generation',
   PREPARE_WORKFLOW_TRIGGER = 'prepare_workflow_trigger',

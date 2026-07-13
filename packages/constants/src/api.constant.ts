@@ -29,6 +29,7 @@ export const API_ENDPOINTS = {
   CAPTIONS: '/captions',
   CONTEXTS: '/contexts',
   CREDENTIALS: '/credentials',
+  DASHBOARD_LAYOUTS: '/dashboard-layouts',
   EDITOR_PROJECTS: '/editor-projects',
   ELEMENTS: '/elements',
   EVALUATIONS: '/evaluations',

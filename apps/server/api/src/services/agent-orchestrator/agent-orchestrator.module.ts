@@ -14,6 +14,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { DashboardLayoutsModule } from '@api/collections/dashboard-layouts/dashboard-layouts.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
@@ -37,6 +38,7 @@ import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agen
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
+import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -79,6 +81,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ContentQualityModule),
     forwardRef(() => CredentialsCoreModule),
     forwardRef(() => CreditsModule),
+    forwardRef(() => DashboardLayoutsModule),
     forwardRef(() => HttpModule),
     forwardRef(() => ImagesModule),
     forwardRef(() => LoggerModule),
@@ -99,6 +102,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     AgentCompletionCardBuilderService,
+    AgentDashboardToolHandler,
     AgentMemoryGoalsToolHandler,
     AgentOrchestratorService,
     AgentRouteRewriteService,

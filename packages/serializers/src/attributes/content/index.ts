@@ -14,6 +14,7 @@ export * from '@serializers/attributes/content/content-schedule.attributes';
 export * from '@serializers/attributes/content/content-skill.attributes';
 export * from '@serializers/attributes/content/context-base.attributes';
 export * from '@serializers/attributes/content/context-entry.attributes';
+export * from '@serializers/attributes/content/dashboard-layout.attributes';
 export * from '@serializers/attributes/content/distribution.attributes';
 export * from '@serializers/attributes/content/editor-project.attributes';
 export * from '@serializers/attributes/content/fanvue-content.attributes';

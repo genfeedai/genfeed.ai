@@ -399,6 +399,7 @@
         "@aws-sdk/client-cloudfront": "3.1081.0",
         "@aws-sdk/client-ec2": "3.1081.0",
         "@better-auth/infra": "0.3.5",
+        "@genfeedai/agent": "workspace:*",
         "@genfeedai/auth-client": "workspace:*",
         "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",

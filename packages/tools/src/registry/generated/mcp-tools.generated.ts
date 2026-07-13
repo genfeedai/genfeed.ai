@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1035 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1038 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -14520,6 +14520,102 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     },
     "tags": [
       "cron_jobs"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "findForPage (GET /dashboard-layouts)",
+    "name": "dashboard_layouts__find_for_page",
+    "parameters": {
+      "properties": {
+        "brand": {
+          "type": "string"
+        },
+        "pageKey": {
+          "description": "Page key identifying which dashboard page to load. Defaults to `workspace-overview` when omitted.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "brand"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "dashboard_layouts"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "remove (DELETE /dashboard-layouts/{id})",
+    "name": "dashboard_layouts__remove",
+    "parameters": {
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "dashboard_layouts"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "upsert (PUT /dashboard-layouts)",
+    "name": "dashboard_layouts__upsert",
+    "parameters": {
+      "properties": {
+        "brandId": {
+          "description": "Brand ID this dashboard layout belongs to",
+          "type": "string"
+        },
+        "document": {
+          "description": "Persisted dashboard layout document (sanitized OpenUI blocks)",
+          "type": "object"
+        },
+        "pageKey": {
+          "description": "Page key identifying which dashboard page this layout is for. Defaults to `workspace-overview` when omitted.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Layout schema version",
+          "type": "number"
+        }
+      },
+      "required": [
+        "brandId",
+        "document"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "dashboard_layouts"
     ]
   },
   {

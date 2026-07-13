@@ -15,6 +15,7 @@ export * from '@serializers/server/content/content-schedule.serializer';
 export * from '@serializers/server/content/content-skill.serializer';
 export * from '@serializers/server/content/context-base.serializer';
 export * from '@serializers/server/content/context-entry.serializer';
+export * from '@serializers/server/content/dashboard-layout.serializer';
 export * from '@serializers/server/content/distribution.serializer';
 export * from '@serializers/server/content/editor-project.serializer';
 export * from '@serializers/server/content/fanvue-content.serializer';

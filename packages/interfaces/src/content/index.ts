@@ -6,6 +6,7 @@ export * from './clip-terminal-contract.interface';
 export * from './composer-content.interface';
 export * from './content-run.interface';
 export * from './content-run-service.contract';
+export * from './dashboard-layout.interface';
 export * from './enhancement-response.interface';
 export * from './generation-payload.interface';
 export * from './model.interface';

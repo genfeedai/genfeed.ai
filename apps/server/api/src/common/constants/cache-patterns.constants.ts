@@ -26,6 +26,8 @@ export const CACHE_PATTERNS = {
   CREDITS_LAST_PURCHASE_BASELINE: (orgId: string) =>
     `credits:last-purchase-baseline:${orgId}`,
   CREDITS_USAGE: (orgId: string) => `credits:usage:${orgId}`,
+  DASHBOARD_LAYOUTS_LIST: (orgId: string) => `dashboardLayouts:list:${orgId}`,
+  DASHBOARD_LAYOUTS_SINGLE: (id: string) => `dashboardLayouts:single:${id}`,
 } as const;
 
 /**
@@ -37,4 +39,5 @@ export const CACHE_TAGS = {
   ARTICLES: 'articles',
   BRANDS: 'brands',
   CREDITS: 'credits',
+  DASHBOARD_LAYOUTS: 'dashboardLayouts',
 } as const;
