@@ -1,5 +1,10 @@
 import type { AppContext } from '@genfeedai/interfaces';
 
+export interface AppSwitcherNavigationTarget {
+  announcement?: string;
+  href: string;
+}
+
 export interface AppSwitcherProps {
   /** Selected brand context used by brand-aware apps when the current route is org-scoped. */
   brandAwareSlug?: string;
@@ -14,6 +19,8 @@ export interface AppSwitcherProps {
   isAssetGateLocked?: boolean;
   orgSlug: string;
   preservedSearch?: string;
+  /** Application-owned resolver for trusted shell launches. */
+  resolveNavigation?: (href: string) => AppSwitcherNavigationTarget;
   /** Include platform-admin navigation for users with platform access. */
   showAdmin?: boolean;
   /** Trigger style: compact grid icon (sidebar) or labeled section pill (topbar) */

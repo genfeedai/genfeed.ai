@@ -166,8 +166,8 @@ export function useAppProtectedLayout(
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
   const isConversationShellEnabled = useConversationShellEnabled();
   const workspaceShellRoute = useMemo(
-    () => resolveWorkspaceShellRoute(pathname),
-    [pathname],
+    () => resolveWorkspaceShellRoute(rawPathname),
+    [rawPathname],
   );
   const isUniversalWorkspaceShell = Boolean(
     isConversationShellEnabled &&

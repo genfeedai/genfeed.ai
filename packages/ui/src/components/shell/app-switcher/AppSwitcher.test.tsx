@@ -260,6 +260,31 @@ describe('AppSwitcher', () => {
     expect(activeButton).toHaveAttribute('aria-current', 'page');
   });
 
+  it('uses the application-owned navigation resolver and announces the mode change', () => {
+    render(
+      <AppSwitcher
+        orgSlug="acme"
+        currentApp="agent"
+        resolveNavigation={(href) => ({
+          announcement: 'Opening workspace in canvas mode.',
+          href: `${href}?thread=thread-1`,
+        })}
+      />,
+    );
+
+    const workspaceLink = screen.getByRole('link', { name: 'Workspace' });
+    expect(workspaceLink).toHaveAttribute(
+      'href',
+      '/acme/~/overview?thread=thread-1',
+    );
+
+    fireEvent.click(workspaceLink);
+
+    expect(
+      screen.getByText('Opening workspace in canvas mode.'),
+    ).toBeInTheDocument();
+  });
+
   it('marks the operator agent item active on the agent surface', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="agent" />);
 

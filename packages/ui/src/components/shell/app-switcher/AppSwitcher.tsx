@@ -7,7 +7,10 @@ import {
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AppContext, AppSwitcherItemConfig } from '@genfeedai/interfaces';
-import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
+import type {
+  AppSwitcherNavigationTarget,
+  AppSwitcherProps,
+} from '@genfeedai/props/ui/app-switcher.props';
 import Link from 'next/link';
 import { useMemo, useRef, useState } from 'react';
 import {
@@ -369,13 +372,15 @@ function AppSwitcherGridItem({
   isActive,
   isLocked = false,
   href,
+  navigationAnnouncement,
   onNavigateStart,
 }: {
   app: LifecycleAppSwitcherItemConfig;
   isActive: boolean;
   isLocked?: boolean;
   href: string;
-  onNavigateStart: () => void;
+  navigationAnnouncement?: string;
+  onNavigateStart: (announcement?: string) => void;
 }) {
   const Icon =
     PRIMARY_APP_ICONS[app.itemKey as (typeof PRIMARY_APP_ITEM_KEYS)[number]] ??
@@ -391,7 +396,7 @@ function AppSwitcherGridItem({
             ? `${app.label} — locked. Generate your first asset to unlock.`
             : undefined
         }
-        onClick={onNavigateStart}
+        onClick={() => onNavigateStart(navigationAnnouncement)}
         className={cn(
           'group grid min-h-[5.75rem] min-w-0 grid-rows-[2.75rem_1.25rem] place-items-center gap-1.5 rounded-lg border border-transparent px-1.5 py-2 text-center outline-none transition-[border-color,background-color,box-shadow]',
           'hover:border-border hover:bg-foreground/[0.04] focus-visible:border-border focus-visible:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-popover',
@@ -437,12 +442,14 @@ export function AppSwitcher({
   isAssetGateLocked = false,
   orgSlug,
   preservedSearch,
+  resolveNavigation,
   showAdmin = false,
   variant = 'icon',
 }: AppSwitcherProps) {
   const preventTriggerAutoFocusRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
 
   function getRouteBrandSlug(app: AppSwitcherItemConfig) {
     if (app.id === 'agent') {
@@ -484,8 +491,17 @@ export function AppSwitcher({
     return `${agentHref}${separator}locked=${encodeURIComponent(app.id)}`;
   }
 
-  const handleNavigateStart = () => {
+  function resolveAppNavigation(
+    app: AppSwitcherItemConfig,
+  ): AppSwitcherNavigationTarget {
+    const href = resolveAppHref(app);
+
+    return resolveNavigation?.(href) ?? { href };
+  }
+
+  const handleNavigateStart = (announcement?: string) => {
     preventTriggerAutoFocusRef.current = true;
+    setNavigationAnnouncement(announcement ?? 'Opening app.');
   };
 
   const sections = useMemo(
@@ -617,16 +633,21 @@ export function AppSwitcher({
         </div>
 
         <div className="grid grid-cols-3 gap-x-1 gap-y-2 px-3.5 py-3.5">
-          {visibleApps.map((app) => (
-            <AppSwitcherGridItem
-              key={app.itemKey}
-              app={app}
-              isActive={app.itemKey === activeItemKey}
-              isLocked={isAppLocked(app)}
-              href={resolveAppHref(app)}
-              onNavigateStart={handleNavigateStart}
-            />
-          ))}
+          {visibleApps.map((app) => {
+            const navigation = resolveAppNavigation(app);
+
+            return (
+              <AppSwitcherGridItem
+                key={app.itemKey}
+                app={app}
+                isActive={app.itemKey === activeItemKey}
+                isLocked={isAppLocked(app)}
+                href={navigation.href}
+                navigationAnnouncement={navigation.announcement}
+                onNavigateStart={handleNavigateStart}
+              />
+            );
+          })}
         </div>
 
         {visibleApps.length === 0 ? (
@@ -650,6 +671,9 @@ export function AppSwitcher({
           ) : null}
         </div>
       </DropdownMenuContent>
+      <span aria-live="polite" className="sr-only" role="status">
+        {navigationAnnouncement}
+      </span>
     </DropdownMenu>
   );
 }

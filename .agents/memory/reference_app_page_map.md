@@ -17,9 +17,15 @@ Source of truth:
 
 - Next App Router pages under `apps/app/app/**/page.tsx`
 - Route constants in `packages/constants/src/routes.constant.ts`
+- Executable protected-route classification in
+  `apps/app/src/lib/workspace-shell/workspace-shell-registry.ts`
 - Shell surface resolver in `apps/app/packages/components/useAppProtectedLayout.ts`
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
 - App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
+
+The application registry mirrors all 206 parity-eligible patterns below and
+keeps Notifications plus the Community/Desktop terminal dock as explicit
+trusted non-route surfaces. The two hard-cut families remain outside it.
 
 Regenerate the raw route list with:
 
