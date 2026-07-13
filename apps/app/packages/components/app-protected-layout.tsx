@@ -25,6 +25,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
 } from 'react';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
@@ -186,6 +187,8 @@ function AppLayoutWithDynamicMenu({
     isUniversalWorkspaceShell,
     workspaceShellRoute,
   } = useAppProtectedLayout(initialBootstrap);
+  const isWorkspaceShellReady =
+    isUniversalWorkspaceShell && agentApiService !== null;
 
   const renderConversations = useCallback(
     () =>
@@ -201,7 +204,7 @@ function AppLayoutWithDynamicMenu({
 
   const menuComponent = useMemo(() => {
     if (
-      !isUniversalWorkspaceShell &&
+      !isWorkspaceShellReady &&
       (isFocusedOnboardingRoute || isEditorCanvasRoute || isMoodboardRoute)
     ) {
       return undefined;
@@ -224,7 +227,7 @@ function AppLayoutWithDynamicMenu({
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
         isWorkflowsRoute={isWorkflowsRoute}
-        isUniversalWorkspaceShell={isUniversalWorkspaceShell}
+        isUniversalWorkspaceShell={isWorkspaceShellReady}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         composeMenuItems={composeMenuItems}
@@ -262,7 +265,7 @@ function AppLayoutWithDynamicMenu({
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
-    isUniversalWorkspaceShell,
+    isWorkspaceShellReady,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
@@ -277,7 +280,7 @@ function AppLayoutWithDynamicMenu({
   ]);
 
   const topbarComponent =
-    !isUniversalWorkspaceShell &&
+    !isWorkspaceShellReady &&
     (isEditorCanvasRoute || isFocusedOnboardingRoute || isMoodboardRoute)
       ? undefined
       : isAdminRoute
@@ -320,15 +323,30 @@ function AppLayoutWithDynamicMenu({
   const legacyAgentPanel = shouldMountLegacyAgentPanel
     ? agentPanelContent
     : undefined;
+  const shouldRestoreLegacyPanelBeforeShellReady =
+    isUniversalWorkspaceShell &&
+    !isWorkspaceShellReady &&
+    shouldMountLegacyAgentPanel;
+  const visibleAgentPanel = shouldRestoreLegacyPanelBeforeShellReady
+    ? legacyAgentPanel
+    : agentPanel;
+  const fallbackTelemetryReasonRef = useRef<
+    'dedicated_route' | 'registry_miss' | null
+  >(null);
 
   useEffect(() => {
     if (!isConversationShellEnabled || isUniversalWorkspaceShell) {
+      fallbackTelemetryReasonRef.current = null;
       return;
     }
 
-    captureWorkspaceShellFallback(
-      workspaceShellRoute ? 'dedicated_route' : 'registry_miss',
-    );
+    const reason = workspaceShellRoute ? 'dedicated_route' : 'registry_miss';
+    if (fallbackTelemetryReasonRef.current === reason) {
+      return;
+    }
+
+    fallbackTelemetryReasonRef.current = reason;
+    captureWorkspaceShellFallback(reason);
   }, [
     isConversationShellEnabled,
     isUniversalWorkspaceShell,
@@ -360,13 +378,17 @@ function AppLayoutWithDynamicMenu({
       topbarChromeVariant={topbarChromeVariant}
       hasSecondaryTopbar={hasSecondaryTopbar}
       menuItems={isAdminRoute ? adminMenuItems : menuItems}
-      agentPanel={agentPanel}
+      agentPanel={visibleAgentPanel}
       isAgentCollapsed={!isAgentOpen}
-      onAgentToggle={shouldMountAgentPanel ? toggleAgent : undefined}
+      onAgentToggle={
+        shouldMountAgentPanel || shouldRestoreLegacyPanelBeforeShellReady
+          ? toggleAgent
+          : undefined
+      }
       orgSlug={orgSlug}
-      isWorkspaceShell={isUniversalWorkspaceShell}
+      isWorkspaceShell={isWorkspaceShellReady}
     >
-      {isUniversalWorkspaceShell && agentApiService ? (
+      {isWorkspaceShellReady && agentApiService ? (
         <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
           {children}
         </LazyUniversalWorkspaceShell>
@@ -400,7 +422,7 @@ function AppLayoutWithDynamicMenu({
         {children}
       </AppLayout>
     );
-  const guardedMainLayout = isUniversalWorkspaceShell ? (
+  const guardedMainLayout = isWorkspaceShellReady ? (
     <ErrorBoundary
       fallback={legacyFallbackLayout}
       onError={() => {
@@ -414,7 +436,7 @@ function AppLayoutWithDynamicMenu({
     mainLayout
   );
 
-  if (!isUniversalWorkspaceShell && (isEditorCanvasRoute || isMoodboardRoute)) {
+  if (!isWorkspaceShellReady && (isEditorCanvasRoute || isMoodboardRoute)) {
     return (
       <CommandPaletteProvider>
         <CommandPaletteInitializer />
@@ -434,8 +456,8 @@ function AppLayoutWithDynamicMenu({
       ) : null}
       <CommandPaletteProvider>
         {!isFocusedOnboardingRoute &&
-        (!isEditorCanvasRoute || isUniversalWorkspaceShell) &&
-        (isConversationRoute || isUniversalWorkspaceShell) ? (
+        (!isEditorCanvasRoute || isWorkspaceShellReady) &&
+        (isConversationRoute || isWorkspaceShellReady) ? (
           <AgentThreadCommandsBridge
             threads={threads}
             enabled

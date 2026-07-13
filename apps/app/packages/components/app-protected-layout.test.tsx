@@ -739,7 +739,7 @@ describe('AppProtectedLayout', () => {
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
 
-    render(
+    const view = render(
       <AppProtectedLayout>
         <div>Canonical studio content</div>
       </AppProtectedLayout>,
@@ -759,6 +759,21 @@ describe('AppProtectedLayout', () => {
       'isWorkspaceShell',
       false,
     );
+
+    const shellAttemptsAfterFailure = universalShellSpy.mock.calls.length;
+    featureFlagState.shellThrows = false;
+    view.unmount();
+    render(
+      <AppProtectedLayout>
+        <div>Canonical studio content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('universal-workspace-shell'),
+    ).not.toBeInTheDocument();
+    expect(universalShellSpy).toHaveBeenCalledTimes(shellAttemptsAfterFailure);
     consoleError.mockRestore();
   });
 

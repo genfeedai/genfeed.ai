@@ -62,6 +62,17 @@ function matchesRoutePrefix(pathname: string, prefix: string): boolean {
 export function resolveWorkspaceShellRoute(
   normalizedPathname: string,
 ): WorkspaceShellRouteRegistration | null {
+  const dedicatedPrefix = DEDICATED_PREFIXES.find((prefix) =>
+    matchesRoutePrefix(normalizedPathname, prefix),
+  );
+  if (dedicatedPrefix) {
+    return {
+      key: `dedicated:${dedicatedPrefix.slice(1)}`,
+      mode: 'dedicated',
+      telemetryClass: 'management',
+    };
+  }
+
   if (
     normalizedPathname === '/agent' ||
     normalizedPathname === '/agent/new' ||
@@ -71,17 +82,6 @@ export function resolveWorkspaceShellRoute(
       key: 'agent-conversation',
       mode: 'conversation',
       telemetryClass: 'agent',
-    };
-  }
-
-  const dedicatedPrefix = DEDICATED_PREFIXES.find((prefix) =>
-    matchesRoutePrefix(normalizedPathname, prefix),
-  );
-  if (dedicatedPrefix) {
-    return {
-      key: `dedicated:${dedicatedPrefix.slice(1)}`,
-      mode: 'dedicated',
-      telemetryClass: 'management',
     };
   }
 

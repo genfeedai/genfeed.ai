@@ -127,6 +127,18 @@ describe('workspace shell URL restoration', () => {
   it('returns null for dedicated and unknown routes', () => {
     expect(
       restoreWorkspaceShellLocation({
+        normalizedPathname: '/agent/journey',
+        searchParams: new URLSearchParams(),
+      }),
+    ).toBeNull();
+    expect(
+      restoreWorkspaceShellLocation({
+        normalizedPathname: '/agent/onboarding',
+        searchParams: new URLSearchParams(),
+      }),
+    ).toBeNull();
+    expect(
+      restoreWorkspaceShellLocation({
         normalizedPathname: '/settings/billing',
         searchParams: new URLSearchParams(),
       }),
