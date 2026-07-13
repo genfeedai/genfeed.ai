@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { EdgeStyle } from '@genfeedai/types';
-import { useSettingsStore } from '@genfeedai/workflows/ui/stores';
+import { useSettingsStore } from '@genfeedai/workflow-ui/stores';
 import { Button } from '@ui/primitives/button';
 import { InfoBox, SettingsField } from '@/components/ui/settings-section';
 import { ToggleSwitch } from '@/components/ui/toggle-switch';

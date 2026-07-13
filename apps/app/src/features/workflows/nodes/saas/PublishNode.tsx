@@ -1,13 +1,13 @@
 'use client';
 
+import {
+  selectUpdateNodeData,
+  useWorkflowStore,
+} from '@genfeedai/workflow-ui/stores';
 import type {
   PublishNodeData,
   PublishPlatform,
 } from '@genfeedai/workflows/nodes';
-import {
-  selectUpdateNodeData,
-  useWorkflowStore,
-} from '@genfeedai/workflows/ui/stores';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';

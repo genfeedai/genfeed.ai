@@ -14,18 +14,18 @@ import { Button } from '@ui/primitives/button';
 import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
-import { WorkflowEditorShell } from '@genfeedai/workflows/ui';
+import { WorkflowEditorShell } from '@genfeedai/workflow-ui';
 import {
   type WorkflowUIConfig,
   WorkflowUIProvider,
-} from '@genfeedai/workflows/ui/provider';
+} from '@genfeedai/workflow-ui/provider';
 import {
   selectEdges,
   selectNodes,
   useWorkflowStore,
-} from '@genfeedai/workflows/ui/stores';
+} from '@genfeedai/workflow-ui/stores';
 import { useCallback, useMemo, useState } from 'react';
-import '@genfeedai/workflows/ui/styles';
+import '@genfeedai/workflow-ui/styles';
 import '@/features/workflows/styles/workflow-scope.css';
 
 import { Play } from 'lucide-react';

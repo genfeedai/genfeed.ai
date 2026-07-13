@@ -1,4 +1,4 @@
-import { useWorkflowStore } from '@genfeedai/workflows/ui/stores';
+import { useWorkflowStore } from '@genfeedai/workflow-ui/stores';
 import { logger } from '@services/core/logger.service';
 import { create } from 'zustand';
 import { cloudNodeTypes } from '@/features/workflows/nodes/merged-node-types';
@@ -112,7 +112,7 @@ const AUTO_SAVE_DEBOUNCE_MS = 2000;
  * - Brand list for BrandNode
  *
  * The actual workflow data (nodes, edges, groups) lives in the shared
- * useWorkflowStore from @genfeedai/workflows/ui.
+ * useWorkflowStore from @genfeedai/workflow-ui.
  */
 export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
   (set, get) => ({

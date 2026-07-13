@@ -144,7 +144,7 @@ function saveToStorage(llm: LLMSettings): boolean {
  * App-owned BYOK store for the conversational workflow assistant's LLM keys.
  *
  * Split out of the workflow-ui settings shadow: shared canvas settings now live
- * in `@genfeedai/workflows/ui/stores`, while LLM BYOK stays app-local because it
+ * in `@genfeedai/workflow-ui/stores`, while LLM BYOK stays app-local because it
  * is not a package concern. Persisted under its own key so it never collides
  * with the package store's `genfeed-settings` blob.
  */

@@ -5,6 +5,22 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@genfeedai\/core$/,
+        replacement: path.resolve(__dirname, '../core/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/core\/(.*)$/,
+        replacement: path.resolve(__dirname, '../core/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/constants$/,
+        replacement: path.resolve(__dirname, '../constants/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/constants\/(.*)$/,
+        replacement: path.resolve(__dirname, '../constants/src/$1'),
+      },
+      {
         find: /^@genfeedai\/enums$/,
         replacement: path.resolve(__dirname, '../enums/src/index.ts'),
       },
@@ -21,6 +37,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../interfaces/src/$1'),
       },
       {
+        find: /^@genfeedai\/pricing$/,
+        replacement: path.resolve(__dirname, '../pricing/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/pricing\/(.*)$/,
+        replacement: path.resolve(__dirname, '../pricing/src/$1'),
+      },
+      {
         find: /^@genfeedai\/types$/,
         replacement: path.resolve(__dirname, '../types/src/index.ts'),
       },
@@ -31,9 +55,8 @@ export default defineConfig({
     ],
   },
   test: {
-    environment: 'node',
+    environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
-    testTimeout: 15000,
+    setupFiles: ['./vitest.setup.ts'],
   },
 });

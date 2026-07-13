@@ -55,7 +55,7 @@ export const baseTailwindConfig: Config = {
     './lib/**/*.{js,ts,jsx,tsx,mdx}',
     '../../../packages/**/*.{js,ts,jsx,tsx,mdx}',
     // External @genfeedai packages (npm) — scan for Tailwind class usage
-    '../../../node_modules/@genfeedai/workflows/dist/ui/**/*.mjs',
+    '../../../node_modules/@genfeedai/workflow-ui/dist/**/*.mjs',
   ],
   theme: {
     extend: {

@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   workflowId: 'workflow-1' as string | null,
 }));
 
-vi.mock('@genfeedai/workflows/ui/stores', () => {
+vi.mock('@genfeedai/workflow-ui/stores', () => {
   const useWorkflowStore = vi.fn(
     (
       selector: (state: {

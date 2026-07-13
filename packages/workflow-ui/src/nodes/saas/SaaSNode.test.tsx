@@ -27,7 +27,7 @@ describe('workflow SaaS node React Flow mapping', () => {
   });
 
   it('spreads workflow SaaS node types into the package nodeTypes map', () => {
-    const indexSource = readFileSync('src/ui/nodes/index.ts', 'utf8');
+    const indexSource = readFileSync('src/nodes/index.ts', 'utf8');
 
     expect(indexSource).toContain(
       "import { workflowSaaSNodeTypes } from './saas'",

@@ -30,41 +30,47 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const appDir = path.dirname(fileURLToPath(import.meta.url));
-const workflowUiRoot = path.resolve(appDir, '../../packages/workflows/src/ui');
+const workflowUiRoot = path.resolve(appDir, '../../packages/workflow-ui');
 const helpersRoot = path.resolve(appDir, '../../packages/helpers');
 const serializersRoot = path.resolve(appDir, '../../packages/serializers');
 
 const workflowUiAliases = {
   '@genfeedai/helpers': path.join(helpersRoot, 'src/index.ts'),
-  '@genfeedai/workflows/ui': path.join(workflowUiRoot, 'index.ts'),
-  '@genfeedai/workflows/ui/canvas': path.join(
+  '@genfeedai/workflow-ui': path.join(workflowUiRoot, 'src/index.ts'),
+  '@genfeedai/workflow-ui/canvas': path.join(
     workflowUiRoot,
-    'canvas/index.ts',
+    'src/canvas/index.ts',
   ),
-  '@genfeedai/workflows/ui/hooks': path.join(workflowUiRoot, 'hooks/index.ts'),
-  '@genfeedai/workflows/ui/lib': path.join(workflowUiRoot, 'lib/index.ts'),
-  '@genfeedai/workflows/ui/nodes': path.join(workflowUiRoot, 'nodes/index.ts'),
-  '@genfeedai/workflows/ui/panels': path.join(
+  '@genfeedai/workflow-ui/hooks': path.join(
     workflowUiRoot,
-    'panels/index.ts',
+    'src/hooks/index.ts',
   ),
-  '@genfeedai/workflows/ui/provider': path.join(
+  '@genfeedai/workflow-ui/lib': path.join(workflowUiRoot, 'src/lib/index.ts'),
+  '@genfeedai/workflow-ui/nodes': path.join(
     workflowUiRoot,
-    'provider/index.ts',
+    'src/nodes/index.ts',
   ),
-  '@genfeedai/workflows/ui/stores': path.join(
+  '@genfeedai/workflow-ui/panels': path.join(
     workflowUiRoot,
-    'stores/index.ts',
+    'src/panels/index.ts',
   ),
-  '@genfeedai/workflows/ui/styles': path.join(
+  '@genfeedai/workflow-ui/provider': path.join(
     workflowUiRoot,
-    'styles/workflow-ui.css',
+    'src/provider/index.ts',
   ),
-  '@genfeedai/workflows/ui/toolbar': path.join(
+  '@genfeedai/workflow-ui/stores': path.join(
     workflowUiRoot,
-    'toolbar/index.ts',
+    'src/stores/index.ts',
   ),
-  '@genfeedai/workflows/ui/ui': path.join(workflowUiRoot, 'ui/index.ts'),
+  '@genfeedai/workflow-ui/styles': path.join(
+    workflowUiRoot,
+    'src/styles/workflow-ui.css',
+  ),
+  '@genfeedai/workflow-ui/toolbar': path.join(
+    workflowUiRoot,
+    'src/toolbar/index.ts',
+  ),
+  '@genfeedai/workflow-ui/ui': path.join(workflowUiRoot, 'src/ui/index.ts'),
 };
 
 const NEXT_PUBLIC_GENFEED_CLOUD = envFlag(
@@ -261,26 +267,25 @@ config.turbopack = {
     '@genfeedai/types': '../../packages/types/src/index.ts',
     '@genfeedai/ui': '../../packages/ui/src/index.ts',
     '@genfeedai/workflows/nodes': '../../packages/workflows/src/nodes/index.ts',
-    '@genfeedai/workflows/ui': '../../packages/workflows/src/ui/index.ts',
-    '@genfeedai/workflows/ui/canvas':
-      '../../packages/workflows/src/ui/canvas/index.ts',
-    '@genfeedai/workflows/ui/hooks':
-      '../../packages/workflows/src/ui/hooks/index.ts',
-    '@genfeedai/workflows/ui/lib':
-      '../../packages/workflows/src/ui/lib/index.ts',
-    '@genfeedai/workflows/ui/nodes':
-      '../../packages/workflows/src/ui/nodes/index.ts',
-    '@genfeedai/workflows/ui/panels':
-      '../../packages/workflows/src/ui/panels/index.ts',
-    '@genfeedai/workflows/ui/provider':
-      '../../packages/workflows/src/ui/provider/index.ts',
-    '@genfeedai/workflows/ui/stores':
-      '../../packages/workflows/src/ui/stores/index.ts',
-    '@genfeedai/workflows/ui/styles':
-      '../../packages/workflows/src/ui/styles/workflow-ui.css',
-    '@genfeedai/workflows/ui/toolbar':
-      '../../packages/workflows/src/ui/toolbar/index.ts',
-    '@genfeedai/workflows/ui/ui': '../../packages/workflows/src/ui/ui/index.ts',
+    '@genfeedai/workflow-ui': '../../packages/workflow-ui/src/index.ts',
+    '@genfeedai/workflow-ui/canvas':
+      '../../packages/workflow-ui/src/canvas/index.ts',
+    '@genfeedai/workflow-ui/hooks':
+      '../../packages/workflow-ui/src/hooks/index.ts',
+    '@genfeedai/workflow-ui/lib': '../../packages/workflow-ui/src/lib/index.ts',
+    '@genfeedai/workflow-ui/nodes':
+      '../../packages/workflow-ui/src/nodes/index.ts',
+    '@genfeedai/workflow-ui/panels':
+      '../../packages/workflow-ui/src/panels/index.ts',
+    '@genfeedai/workflow-ui/provider':
+      '../../packages/workflow-ui/src/provider/index.ts',
+    '@genfeedai/workflow-ui/stores':
+      '../../packages/workflow-ui/src/stores/index.ts',
+    '@genfeedai/workflow-ui/styles':
+      '../../packages/workflow-ui/src/styles/workflow-ui.css',
+    '@genfeedai/workflow-ui/toolbar':
+      '../../packages/workflow-ui/src/toolbar/index.ts',
+    '@genfeedai/workflow-ui/ui': '../../packages/workflow-ui/src/ui/index.ts',
     '@protected': './app/(protected)/admin',
     '@serializers': '../../packages/serializers/src',
     '@ui/forms/base/form-control/FormControl':

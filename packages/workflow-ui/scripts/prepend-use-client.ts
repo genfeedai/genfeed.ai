@@ -15,7 +15,7 @@ const entryFiles = [
 ];
 
 const directive = '"use client";';
-const distRoot = join(import.meta.dir, '..', 'dist', 'ui');
+const distRoot = join(import.meta.dir, '..', 'dist');
 
 for (const fileName of entryFiles) {
   const filePath = join(distRoot, fileName);

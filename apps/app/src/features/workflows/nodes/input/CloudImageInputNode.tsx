@@ -1,10 +1,10 @@
 'use client';
 
-import { BaseNode } from '@genfeedai/workflows/ui/nodes';
+import { BaseNode } from '@genfeedai/workflow-ui/nodes';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
-} from '@genfeedai/workflows/ui/stores';
+} from '@genfeedai/workflow-ui/stores';
 import type { NodeProps } from '@xyflow/react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo, useState } from 'react';

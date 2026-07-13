@@ -142,7 +142,7 @@
         "packages/hooks/**",
         "packages/pages/**",
         "packages/ui/src/components/**",
-        "packages/workflows/src/ui/**"
+        "packages/workflow-ui/src/**"
       ],
       "linter": {
         "rules": {
