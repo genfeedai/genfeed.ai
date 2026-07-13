@@ -30,6 +30,10 @@ import {
 import { autoUpdater } from 'electron-updater';
 import { DesktopAppShellService } from './main/app-shell.service';
 import {
+  DesktopAssetProtocolService,
+  registerDesktopAssetScheme,
+} from './main/asset-protocol.service';
+import {
   buildDesktopFailureScreenUrl,
   buildDesktopLoadingScreenUrl,
   getDesktopBootBackground,
@@ -58,6 +62,8 @@ import { DesktopWorkspaceService } from './main/workspace.service';
 const configService = new DesktopConfigService();
 const environment = configService.getEnvironment();
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
+
+registerDesktopAssetScheme();
 
 let mainWindow: BrowserWindow | null = null;
 let bootstrapCache: IDesktopBootstrap | null = null;
@@ -957,6 +963,7 @@ app.whenReady().then(async () => {
   syncService = new DesktopSyncService(prismaClient);
   await syncService.init();
   filesService = new DesktopFilesService(workspaceService, prismaClient);
+  new DesktopAssetProtocolService(filesService).register();
   terminalService = new DesktopTerminalService(workspaceService);
   generationService = new DesktopGenerationService(
     {
