@@ -608,13 +608,17 @@ export function useAgentPageContext(role?: MemberRole): PageContextConfig {
     }
 
     setPageContext({
+      ...(currentContext?.route === pathname ? currentContext : {}),
       placeholder: config.placeholder,
       route: pathname,
       suggestedActions: config.suggestedActions,
     });
 
     return () => {
-      setPageContext(null);
+      const latestContext = useAgentChatStore.getState().pageContext;
+      if (latestContext?.route === pathname) {
+        setPageContext(null);
+      }
     };
   }, [pathname, config, setPageContext]);
 

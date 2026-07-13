@@ -48,7 +48,15 @@ import {
   HiOutlineSquares2X2,
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
+import {
+  AnalyticsWorkspaceSurfaceAdapterProvider,
+  useActiveAnalyticsWorkspaceSurfaceAdapter,
+} from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
 import { buildLibraryRemixIntentHref } from '@/features/library-remix/library-remix-reference';
+import {
+  type ResearchWorkspaceSurfaceAdapterRegistration,
+  ResearchWorkspaceSurfaceAdapterRegistrationContext,
+} from '@/features/research/work-surface/research-workspace-surface-adapter-context';
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 import { WorkflowPickerOverlay } from '@/features/workflows/workspace/WorkflowPickerOverlay';
 import { WorkflowSurfaceInspector } from '@/features/workflows/workspace/WorkflowSurfaceInspector';
@@ -126,6 +134,7 @@ function UniversalWorkspaceShellContent({
   const { brandId, organizationId } = useBrand();
   const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const activeSurfaceAdapter = useActiveAnalyticsWorkspaceSurfaceAdapter();
   const threads = useAgentChatStore((state) => state.threads);
   const updateThread = useAgentChatStore((state) => state.updateThread);
   const seedComposer = useAgentChatStore((state) => state.seedComposer);
@@ -138,6 +147,10 @@ function UniversalWorkspaceShellContent({
   const [surfaceScopeStatus, setSurfaceScopeStatus] = useState<
     'error' | 'ready' | 'syncing'
   >('ready');
+  const [researchSurfaceAdapter, setResearchSurfaceAdapter] = useState<{
+    readonly registration: ResearchWorkspaceSurfaceAdapterRegistration;
+    readonly token: symbol;
+  } | null>(null);
   const primaryRegionRef = useRef<HTMLElement>(null);
   const previousActiveThreadIdRef = useRef(activeThreadId);
   const previousPathnameRef = useRef<string | null>(null);
@@ -188,7 +201,7 @@ function UniversalWorkspaceShellContent({
     () => resolveWorkspaceShellRoute(normalizedPathname),
     [normalizedPathname],
   );
-  const resolvedSurfaceAdapter =
+  const resolvedWorkspaceSurfaceAdapter =
     routeRegistration?.adapter.status === 'embedded' &&
     activeWorkspaceSurfaceAdapter?.registration.key ===
       routeRegistration.adapter.key &&
@@ -244,6 +257,28 @@ function UniversalWorkspaceShellContent({
       : state === 'overlay'
         ? 'Overlay · conversation connected'
         : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`;
+  const activeResearchSurfaceAdapter =
+    researchSurfaceAdapter?.registration.surfaceKey === surfaceKey
+      ? researchSurfaceAdapter.registration
+      : null;
+
+  const registerSurfaceAdapter = useCallback(
+    (registration: ResearchWorkspaceSurfaceAdapterRegistration) => {
+      if (registration.surfaceKey !== surfaceKey) {
+        return () => undefined;
+      }
+
+      const token = Symbol(registration.surfaceKey);
+      setResearchSurfaceAdapter({ registration, token });
+
+      return () => {
+        setResearchSurfaceAdapter((current) =>
+          current?.token === token ? null : current,
+        );
+      };
+    },
+    [surfaceKey],
+  );
   const conversationScope = useConversationScopeControls({
     activeThread,
     apiService: agentApiService,
@@ -251,9 +286,17 @@ function UniversalWorkspaceShellContent({
     pathname: rawPathname,
     searchParams: new URLSearchParams(searchParamsString),
   });
-  const composerContextLabel =
+  const effectiveSurfaceAdapter =
+    activeSurfaceAdapter?.surfaceKey === surfaceKey
+      ? activeSurfaceAdapter
+      : null;
+  const effectiveShellContextLabel =
     productSurfaceAdapter?.contextLabel ??
-    `${conversationScope.contextLabel} · ${shellContextLabel}`;
+    effectiveSurfaceAdapter?.contextLabel ??
+    shellContextLabel;
+  const composerContextLabel = productSurfaceAdapter
+    ? effectiveShellContextLabel
+    : `${conversationScope.contextLabel} · ${effectiveShellContextLabel}`;
 
   useEffect(() => {
     if (!activeThread || !surfaceBrandId) {
@@ -771,26 +814,30 @@ function UniversalWorkspaceShellContent({
             searchParams={new URLSearchParams(searchParamsString)}
             threadId={effectiveThreadId}
           />
+        ) : effectiveSurfaceAdapter ? (
+          effectiveSurfaceAdapter.inspectorContent
+        ) : activeResearchSurfaceAdapter ? (
+          activeResearchSurfaceAdapter.inspectorContent
         ) : (
           <div
             className="gen-shell-empty-state p-4"
             data-testid={
-              resolvedSurfaceAdapter
+              resolvedWorkspaceSurfaceAdapter
                 ? 'workspace-surface-adapter-inspector'
                 : undefined
             }
           >
             <p className="text-sm font-medium text-foreground">
-              {resolvedSurfaceAdapter
-                ? resolvedSurfaceAdapter.registration.title
+              {resolvedWorkspaceSurfaceAdapter
+                ? resolvedWorkspaceSurfaceAdapter.registration.title
                 : `Registered ${surfaceKey} adapter slot`}
             </p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {resolvedSurfaceAdapter
-                ? resolvedSurfaceAdapter.registration.description
+              {resolvedWorkspaceSurfaceAdapter
+                ? resolvedWorkspaceSurfaceAdapter.registration.description
                 : 'Product-owned context adapters land here without changing their canonical route or granting execution authority.'}
             </p>
-            {resolvedSurfaceAdapter ? (
+            {resolvedWorkspaceSurfaceAdapter ? (
               <p className="mt-3 text-xs leading-5 text-muted-foreground">
                 Full management remains available on this canonical route.
               </p>
@@ -805,14 +852,16 @@ function UniversalWorkspaceShellContent({
         >
           Choose workflow
         </Button>
-        <Button
-          icon={<HiOutlineEye className="size-4" />}
-          onClick={handleOpenOverlay}
-          variant={ButtonVariant.OUTLINE}
-          withWrapper={false}
-        >
-          Open overlay preview
-        </Button>
+        {effectiveSurfaceAdapter ? null : (
+          <Button
+            icon={<HiOutlineEye className="size-4" />}
+            onClick={handleOpenOverlay}
+            variant={ButtonVariant.OUTLINE}
+            withWrapper={false}
+          >
+            Open overlay preview
+          </Button>
+        )}
         <Button
           icon={<HiOutlineChatBubbleLeftRight className="size-4" />}
           onClick={handleReturnToConversation}
@@ -828,11 +877,11 @@ function UniversalWorkspaceShellContent({
   return (
     <ConversationComposerShellProvider
       artifactReferences={
-        surfaceReferences ?? resolvedSurfaceAdapter?.artifactReferences
+        surfaceReferences ?? resolvedWorkspaceSurfaceAdapter?.artifactReferences
       }
       brandId={
         isSurfaceScopeAligned
-          ? (surfaceBrandId ?? resolvedSurfaceAdapter?.brandId)
+          ? (surfaceBrandId ?? resolvedWorkspaceSurfaceAdapter?.brandId)
           : undefined
       }
       contextLabel={composerContextLabel}
@@ -840,10 +889,14 @@ function UniversalWorkspaceShellContent({
       draftScopeKey={draftScopeKey}
       isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
       portalTarget={composerPortalTarget}
+      references={activeResearchSurfaceAdapter?.references}
       scopeControls={
         <>
           {conversationScope.scopeControls}
           {composerScopeControls}
+          {effectiveSurfaceAdapter
+            ? effectiveSurfaceAdapter.composerContext
+            : null}
         </>
       }
       shellState={state}
@@ -955,13 +1008,17 @@ function UniversalWorkspaceShellContent({
                   Context
                 </Button>
               </div>
-              {baseState === 'canvas' ? (
-                <WorkspaceShellActionsProvider
-                  openOverlay={launchWorkspaceOverlay}
-                >
-                  {children}
-                </WorkspaceShellActionsProvider>
-              ) : null}
+              <ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider
+                value={registerSurfaceAdapter}
+              >
+                {baseState === 'canvas' ? (
+                  <WorkspaceShellActionsProvider
+                    openOverlay={launchWorkspaceOverlay}
+                  >
+                    {children}
+                  </WorkspaceShellActionsProvider>
+                ) : null}
+              </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
             </section>
 
             {state !== 'overlay' ? (
@@ -1060,12 +1117,14 @@ export default function UniversalWorkspaceShell({
   return (
     <AgentWorkspaceLayoutClient agentApiService={agentApiService}>
       <WorkspaceSurfaceAdapterProvider>
-        <UniversalWorkspaceShellContent
-          agentApiService={agentApiService}
-          composerScopeControls={composerScopeControls}
-        >
-          {children}
-        </UniversalWorkspaceShellContent>
+        <AnalyticsWorkspaceSurfaceAdapterProvider>
+          <UniversalWorkspaceShellContent
+            agentApiService={agentApiService}
+            composerScopeControls={composerScopeControls}
+          >
+            {children}
+          </UniversalWorkspaceShellContent>
+        </AnalyticsWorkspaceSurfaceAdapterProvider>
       </WorkspaceSurfaceAdapterProvider>
     </AgentWorkspaceLayoutClient>
   );

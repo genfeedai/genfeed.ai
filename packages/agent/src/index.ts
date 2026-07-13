@@ -138,6 +138,8 @@ export type {
   ConversationComposerActionInvocation,
   ConversationComposerActionName,
   ConversationComposerArtifactReference,
+  ConversationComposerContextReference,
+  ConversationComposerContextReferenceKind,
   ConversationComposerDispatchResult,
   ConversationComposerDispatchStatus,
   ConversationComposerScope,

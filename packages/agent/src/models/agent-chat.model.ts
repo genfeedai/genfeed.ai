@@ -6,6 +6,7 @@ import type {
   AgentClipRunIdentity,
   AgentDashboardOperation,
   AgentUIBlock,
+  AnalyticsQueryReference,
 } from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
@@ -440,6 +441,7 @@ export interface AgentThreadSnapshot {
 }
 
 export interface AgentPageContext {
+  analyticsQuery?: AnalyticsQueryReference;
   contentFormat?: string;
   draftBody?: string;
   draftInstructions?: string;

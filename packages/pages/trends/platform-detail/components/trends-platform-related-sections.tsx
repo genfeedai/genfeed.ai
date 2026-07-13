@@ -5,6 +5,14 @@ import type {
   ITrendSound,
   ITrendVideo,
 } from '@genfeedai/interfaces';
+import {
+  type AuthorizedResearchFinding,
+  isSameResearchFindingReference,
+  type ResearchFindingReference,
+  toTrendHashtagFinding,
+  toTrendSoundFinding,
+  toTrendVideoFinding,
+} from '@pages/research/work-surface/research-work-surface.types';
 import { HiHashtag, HiMusicalNote, HiOutlineFilm } from 'react-icons/hi2';
 import RelatedMetricCard from './related-metric-card';
 
@@ -20,6 +28,8 @@ type TrendsPlatformRelatedSectionsProps = {
   showSounds: boolean;
   isLoadingSounds: boolean;
   sounds: ITrendSound[];
+  selectedReference?: ResearchFindingReference | null;
+  onSelect?: (finding: AuthorizedResearchFinding) => void;
 };
 
 export default function TrendsPlatformRelatedSections({
@@ -32,6 +42,8 @@ export default function TrendsPlatformRelatedSections({
   showSounds,
   isLoadingSounds,
   sounds,
+  selectedReference,
+  onSelect,
 }: TrendsPlatformRelatedSectionsProps) {
   return (
     <>
@@ -49,16 +61,25 @@ export default function TrendsPlatformRelatedSections({
             </div>
           ) : viralVideos.length > 0 ? (
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-              {viralVideos.map((video: ITrendVideo) => (
-                <RelatedMetricCard
-                  badgeValue={video.viralScore}
-                  detail={
-                    video.creatorHandle ? `@${video.creatorHandle}` : null
-                  }
-                  key={video.id}
-                  title={video.title || video.hook || 'Untitled'}
-                />
-              ))}
+              {viralVideos.map((video: ITrendVideo) => {
+                const finding = toTrendVideoFinding(video);
+                return (
+                  <RelatedMetricCard
+                    badgeValue={video.viralScore}
+                    detail={
+                      video.creatorHandle ? `@${video.creatorHandle}` : null
+                    }
+                    finding={finding}
+                    isSelected={isSameResearchFindingReference(
+                      selectedReference ?? null,
+                      finding.reference,
+                    )}
+                    key={video.id}
+                    onSelect={onSelect}
+                    title={video.title || video.hook || 'Untitled'}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="py-3 text-sm text-foreground/40">
@@ -82,16 +103,25 @@ export default function TrendsPlatformRelatedSections({
             </div>
           ) : hashtags.length > 0 ? (
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-              {hashtags.map((hashtag: ITrendHashtag) => (
-                <RelatedMetricCard
-                  badgeValue={hashtag.viralityScore}
-                  detail={
-                    hashtag.platform ? hashtag.platform.toLowerCase() : null
-                  }
-                  key={hashtag.id || hashtag.hashtag}
-                  title={hashtag.hashtag}
-                />
-              ))}
+              {hashtags.map((hashtag: ITrendHashtag) => {
+                const finding = toTrendHashtagFinding(hashtag);
+                return (
+                  <RelatedMetricCard
+                    badgeValue={hashtag.viralityScore}
+                    detail={
+                      hashtag.platform ? hashtag.platform.toLowerCase() : null
+                    }
+                    finding={finding}
+                    isSelected={isSameResearchFindingReference(
+                      selectedReference ?? null,
+                      finding.reference,
+                    )}
+                    key={hashtag.id || hashtag.hashtag}
+                    onSelect={onSelect}
+                    title={hashtag.hashtag}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="py-3 text-sm text-foreground/40">
@@ -115,14 +145,25 @@ export default function TrendsPlatformRelatedSections({
             </div>
           ) : sounds.length > 0 ? (
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-              {sounds.map((sound: ITrendSound) => (
-                <RelatedMetricCard
-                  badgeValue={sound.viralityScore}
-                  detail={sound.platform ? sound.platform.toLowerCase() : null}
-                  key={sound.soundId}
-                  title={sound.soundName || 'Untitled sound'}
-                />
-              ))}
+              {sounds.map((sound: ITrendSound) => {
+                const finding = toTrendSoundFinding(sound);
+                return (
+                  <RelatedMetricCard
+                    badgeValue={sound.viralityScore}
+                    detail={
+                      sound.platform ? sound.platform.toLowerCase() : null
+                    }
+                    finding={finding}
+                    isSelected={isSameResearchFindingReference(
+                      selectedReference ?? null,
+                      finding.reference,
+                    )}
+                    key={sound.soundId}
+                    onSelect={onSelect}
+                    title={sound.soundName || 'Untitled sound'}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="py-3 text-sm text-foreground/40">

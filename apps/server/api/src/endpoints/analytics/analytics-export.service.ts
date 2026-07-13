@@ -13,7 +13,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { CredentialPlatform, PublishStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import type {
   ExportPostData,
@@ -21,6 +21,43 @@ import type {
   PlatformStats,
   ProcessedExportData,
 } from './analytics.types';
+
+export const MAX_ANALYTICS_EXPORT_ROWS = 5_000;
+const MAX_ANALYTICS_EXPORT_RANGE_DAYS = 366;
+const ANALYTICS_EXPORT_FIELDS = new Set<string>([
+  'comments',
+  'createdAt',
+  'description',
+  'extension',
+  'id',
+  'isRepeat',
+  'likes',
+  'maxRepeats',
+  'model',
+  'platform',
+  'publicationDate',
+  'repeatCount',
+  'repeatFrequency',
+  'repeatInterval',
+  'scheduledDate',
+  'status',
+  'style',
+  'tags',
+  'title',
+  'updatedAt',
+  'videoDescription',
+  'videoLabel',
+  'views',
+] satisfies readonly (keyof ProcessedExportData)[]);
+
+export interface AnalyticsExportScope {
+  readonly brandId?: string;
+  readonly endDate?: string;
+  readonly organizationId?: string;
+  readonly platform?: string;
+  readonly postId?: string;
+  readonly startDate?: string;
+}
 
 @Injectable()
 export class AnalyticsExportService {
@@ -38,9 +75,15 @@ export class AnalyticsExportService {
   public async exportData(
     format: 'csv' | 'xlsx',
     fields: string[],
-    organizationId?: string,
+    scope: AnalyticsExportScope = {},
   ): Promise<Buffer | string> {
-    const data = await this.getExportData(organizationId);
+    if (
+      fields.length === 0 ||
+      fields.some((field) => !ANALYTICS_EXPORT_FIELDS.has(field))
+    ) {
+      throw new BadRequestException('Invalid analytics export fields');
+    }
+    const data = await this.getExportData(scope);
 
     if (format === 'csv') {
       return this.generateCsv(data, fields);
@@ -50,20 +93,34 @@ export class AnalyticsExportService {
   }
 
   private async getExportData(
-    organizationId?: string,
+    scope: AnalyticsExportScope,
   ): Promise<ProcessedExportData[]> {
-    // Build match stage with optional organization filter
     const matchStage: Record<string, unknown> = {
       status: PublishStatus.PUBLISHED,
     };
-    if (organizationId) {
-      matchStage.organizationId = organizationId;
+    if (scope.organizationId) {
+      matchStage.organizationId = scope.organizationId;
+    }
+    if (scope.brandId) {
+      matchStage.brandId = scope.brandId;
+    }
+    if (scope.platform) {
+      matchStage.platform = scope.platform;
+    }
+    if (scope.postId) {
+      matchStage.id = scope.postId;
+    }
+    if (scope.startDate || scope.endDate) {
+      matchStage.publicationDate = this.getPublicationDateFilter(scope);
     }
 
     const aggregate = { where: matchStage };
 
     const result = await this.postsService.findAll(aggregate, {
-      pagination: false,
+      limit: MAX_ANALYTICS_EXPORT_ROWS,
+      page: 1,
+      pagination: true,
+      sort: '-publicationDate',
     });
     const docs = (result as unknown as { docs?: ExportPostData[] }).docs || [];
 
@@ -108,6 +165,38 @@ export class AnalyticsExportService {
     return processedData;
   }
 
+  private getPublicationDateFilter(
+    scope: AnalyticsExportScope,
+  ): Record<string, Date> {
+    const startDate = scope.startDate
+      ? new Date(`${scope.startDate}T00:00:00.000Z`)
+      : undefined;
+    const endDate = scope.endDate
+      ? new Date(`${scope.endDate}T23:59:59.999Z`)
+      : undefined;
+
+    if (
+      (startDate && Number.isNaN(startDate.getTime())) ||
+      (endDate && Number.isNaN(endDate.getTime()))
+    ) {
+      throw new BadRequestException('Invalid analytics export date range');
+    }
+    if (startDate && endDate) {
+      const durationDays =
+        Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1;
+      if (durationDays < 1 || durationDays > MAX_ANALYTICS_EXPORT_RANGE_DAYS) {
+        throw new BadRequestException(
+          `Analytics exports support at most ${MAX_ANALYTICS_EXPORT_RANGE_DAYS} days`,
+        );
+      }
+    }
+
+    return {
+      ...(startDate ? { gte: startDate } : {}),
+      ...(endDate ? { lte: endDate } : {}),
+    };
+  }
+
   /**
    * Batch fetch analytics by platform to avoid N+1 queries
    * Groups posts by platform and fetches in parallel with concurrency limit
@@ -138,12 +227,15 @@ export class AnalyticsExportService {
         for (let i = 0; i < posts.length; i += BATCH_SIZE) {
           const batch = posts.slice(i, i + BATCH_SIZE);
           const batchPromises = batch.map(async (post) => {
+            if (!post.externalId) {
+              return;
+            }
             try {
               const stats = await this.fetchPlatformStats(
                 platform,
                 post.organizationId,
                 post.brandId,
-                post.externalId!,
+                post.externalId,
               );
               statsMap.set(post.id, stats);
             } catch (error) {

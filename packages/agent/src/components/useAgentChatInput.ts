@@ -278,7 +278,9 @@ export function useAgentChatInput({
 
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(!restoredDraft.plainText.trim());
-  const [references, setReferences] = useState<AgentChatReferenceItem[]>(() =>
+  const [mentionReferences, setMentionReferences] = useState<
+    AgentChatReferenceItem[]
+  >(() =>
     restoredDraft.document
       ? extractMentions(restoredDraft.document).map((mention) => ({
           id: mention.id,
@@ -294,31 +296,6 @@ export function useAgentChatInput({
         }))
       : [],
   );
-  const displayedReferences = useMemo<AgentChatReferenceItem[]>(() => {
-    const referencesByKey = new Map<string, AgentChatReferenceItem>();
-
-    for (const reference of composerShell?.references ?? []) {
-      referencesByKey.set(`${reference.kind}:${reference.id}`, {
-        id: reference.id,
-        label: reference.label,
-        type: reference.kind,
-      });
-    }
-    for (const reference of references) {
-      referencesByKey.set(`${reference.type}:${reference.id}`, reference);
-    }
-    for (const item of surfaceArtifactReferences) {
-      const normalizedItem = normalizeSurfaceArtifactReference(item);
-      const reference = {
-        id: normalizedItem.reference.recordId,
-        label: normalizedItem.label,
-        type: 'asset' as const,
-      };
-      referencesByKey.set(`${reference.type}:${reference.id}`, reference);
-    }
-
-    return [...referencesByKey.values()];
-  }, [composerShell?.references, references, surfaceArtifactReferences]);
   const editorRef = useRef<Editor | null>(null);
 
   const hasAttachments = attachments.length > 0;
@@ -452,7 +429,7 @@ export function useAgentChatInput({
                 : `^${mention.contentTitle}`,
         type: mention.type,
       }));
-      setReferences(nextReferences);
+      setMentionReferences(nextReferences);
       writeConversationComposerDocument(
         draftScopeKey,
         document,
@@ -486,7 +463,7 @@ export function useAgentChatInput({
     const draft = readConversationComposerDraft(draftScopeKey);
     editor.commands.setContent(draft.document ?? '');
     setIsEmpty(!draft.plainText.trim());
-    setReferences(
+    setMentionReferences(
       draft.document
         ? extractMentions(draft.document).map((mention) => ({
             id: mention.id,
@@ -687,6 +664,37 @@ export function useAgentChatInput({
       removeAttachment?.(assetId);
     },
     [removeAttachment],
+  );
+
+  const references = useMemo<AgentChatReferenceItem[]>(() => {
+    const referencesByKey = new Map<string, AgentChatReferenceItem>();
+
+    for (const reference of composerShell?.references ?? []) {
+      referencesByKey.set(`${reference.kind}:${reference.id}`, {
+        id: reference.id,
+        label: reference.label,
+        type: reference.kind,
+      });
+    }
+    for (const reference of mentionReferences) {
+      referencesByKey.set(`${reference.type}:${reference.id}`, reference);
+    }
+
+    return [...referencesByKey.values()];
+  }, [composerShell?.references, mentionReferences]);
+  const displayedReferences = useMemo<AgentChatReferenceItem[]>(
+    () => [
+      ...references,
+      ...surfaceArtifactReferences.map((item) => {
+        const normalizedItem = normalizeSurfaceArtifactReference(item);
+        return {
+          id: normalizedItem.reference.recordId,
+          label: normalizedItem.label,
+          type: 'asset' as const,
+        };
+      }),
+    ],
+    [references, surfaceArtifactReferences],
   );
 
   const isDragActive = dragState?.isActive ?? false;

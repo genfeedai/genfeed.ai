@@ -1,5 +1,6 @@
 export * from './activity.interface';
 export * from './analytics.interface';
+export * from './analytics-query-reference.interface';
 export * from './evaluation.interface';
 export * from './training.interface';
 export * from './trend.interface';

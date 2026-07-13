@@ -4,10 +4,12 @@ import { Type } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -167,6 +169,42 @@ export class AnalyticsFilterQueryDto extends AnalyticsDateRangeDto {
   @IsOptional()
   @IsString()
   platform?: string;
+}
+
+export class AnalyticsExportQueryDto extends AnalyticsFilterQueryDto {
+  @ApiProperty({
+    description: 'Selected post ID to export',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  postId?: string;
+
+  @ApiProperty({
+    description: 'Export format',
+    enum: ['csv', 'xlsx'],
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(['csv', 'xlsx'])
+  format?: 'csv' | 'xlsx';
+
+  @ApiProperty({
+    description: 'Comma-separated export fields',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  fields?: string;
+
+  @ApiProperty({
+    description: 'Organization ID (superadmin only)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  organization?: string;
 }
 
 export class TopContentQueryDto extends AnalyticsDateRangeDto {

@@ -395,6 +395,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/research/:platform',
     ],
     {
+      adapter: { key: 'research', status: 'embedded' },
       fallback: '/:orgSlug/:brandSlug/research/discovery',
       mode: 'canvas',
       scope: 'brand',
@@ -527,6 +528,10 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/analytics/streaks',
     ],
     {
+      adapter: {
+        key: 'analytics',
+        status: 'ready',
+      },
       fallback: '/:orgSlug/:brandSlug/analytics/overview',
       mode: 'canvas',
       scope: 'brand',

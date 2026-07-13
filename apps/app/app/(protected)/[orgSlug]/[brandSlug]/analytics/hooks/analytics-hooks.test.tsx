@@ -1,8 +1,17 @@
 import '@testing-library/jest-dom/vitest';
+import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsHooks from './analytics-hooks';
+
+function analyticsHooksTree(brandId?: string) {
+  return (
+    <AnalyticsProvider>
+      <AnalyticsHooks brandId={brandId} />
+    </AnalyticsProvider>
+  );
+}
 
 const mocks = vi.hoisted(() => ({
   getAnalyticsService: vi.fn(),
@@ -236,7 +245,7 @@ describe('AnalyticsHooks', () => {
   });
 
   it('renders hook analytics and refreshes with brand query params', async () => {
-    render(<AnalyticsHooks />);
+    render(analyticsHooksTree());
 
     expect(screen.getByTestId('loading')).toBeVisible();
     expect(await screen.findByText('Viral Hooks')).toBeVisible();
@@ -277,7 +286,7 @@ describe('AnalyticsHooks', () => {
   it('uses an explicit brand id and renders default empty data', async () => {
     mocks.getViralHooks.mockResolvedValueOnce({});
 
-    render(<AnalyticsHooks brandId="brand-prop" />);
+    render(analyticsHooksTree('brand-prop'));
 
     expect(await screen.findByText('Viral Hooks')).toBeVisible();
     expect(screen.getByText('N/A')).toBeVisible();
@@ -293,14 +302,14 @@ describe('AnalyticsHooks', () => {
 
   it('does not fetch without organization context and resets on failures', async () => {
     mocks.organizationId = null;
-    const { rerender } = render(<AnalyticsHooks />);
+    const { rerender } = render(analyticsHooksTree());
 
     expect(screen.getByTestId('loading')).toBeVisible();
     expect(mocks.getAnalyticsService).not.toHaveBeenCalled();
 
     mocks.organizationId = 'org-1';
     mocks.getViralHooks.mockRejectedValueOnce(new Error('hooks failed'));
-    rerender(<AnalyticsHooks />);
+    rerender(analyticsHooksTree());
 
     expect(await screen.findByText('Viral Hooks')).toBeVisible();
     expect(mocks.loggerError).toHaveBeenCalledWith(

@@ -15,6 +15,16 @@ import type {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
+  useOptionalResearchWorkSurface,
+  useResearchQueryState,
+  useResearchSearchParamState,
+  useRestoreResearchFinding,
+} from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
+import {
+  getResearchFindingReferenceKey,
+  toAdsResearchFinding,
+} from '@pages/research/work-surface/research-work-surface.types';
+import {
   AdsResearchService,
   type UnifiedAdAccountOption,
 } from '@services/ads/ads-research.service';
@@ -53,6 +63,25 @@ type CredentialOption = {
 
 type AdSortKey = 'score' | 'ctr' | 'roas';
 
+const SOURCE_VALUES = ['all', 'my_accounts', 'public'] as const;
+const PLATFORM_VALUES = ['all', 'google', 'meta'] as const;
+const CHANNEL_VALUES = ['all', 'display', 'search', 'youtube'] as const;
+const METRIC_VALUES = [
+  'performanceScore',
+  'ctr',
+  'roas',
+  'conversions',
+  'spendEfficiency',
+] as const;
+const TIMEFRAME_VALUES = [
+  'last_7_days',
+  'last_30_days',
+  'last_90_days',
+  'all_time',
+] as const;
+const SORT_VALUES = ['score', 'ctr', 'roas'] as const;
+const VIEW_VALUES = [ViewType.GRID, ViewType.TABLE] as const;
+
 function getBrandLabel(selectedBrand?: { label?: string; name?: string }) {
   return selectedBrand?.label || selectedBrand?.name || 'Brand';
 }
@@ -61,23 +90,59 @@ export function useAdsResearchPageClient(
   initialPlatform: AdsResearchPlatform | 'all',
 ) {
   const { href } = useOrgUrl();
+  const surface = useOptionalResearchWorkSurface();
   const { brandId, credentials, isReady, selectedBrand } = useBrand();
   const getAdsResearchService = useAuthedService((token: string) =>
     AdsResearchService.getInstance(token),
   );
 
-  const [source, setSource] = useState<AdsResearchSource>('all');
-  const [platform, setPlatform] = useState<AdsResearchPlatform | 'all'>(
-    initialPlatform,
-  );
-  const [channel, setChannel] = useState<AdsChannel>('all');
-  const [metric, setMetric] = useState<AdsResearchMetric>('performanceScore');
+  const [source, setSource] = useResearchSearchParamState<AdsResearchSource>({
+    allowedValues: SOURCE_VALUES,
+    defaultValue: 'all',
+    key: 'source',
+  });
+  const [platform, setPlatform] = useResearchSearchParamState<
+    AdsResearchPlatform | 'all'
+  >({
+    allowedValues:
+      initialPlatform === 'all' ? PLATFORM_VALUES : [initialPlatform],
+    defaultValue: initialPlatform,
+    key: 'platform',
+  });
+  const [channel, setChannel] = useResearchSearchParamState<AdsChannel>({
+    allowedValues: CHANNEL_VALUES,
+    defaultValue: 'all',
+    key: 'channel',
+  });
+  const [metric, setMetric] = useResearchSearchParamState<AdsResearchMetric>({
+    allowedValues: METRIC_VALUES,
+    defaultValue: 'performanceScore',
+    key: 'metric',
+  });
   const [timeframe, setTimeframe] =
-    useState<AdsResearchTimeframe>('last_30_days');
-  const [industry, setIndustry] = useState('');
-  const [credentialId, setCredentialId] = useState('');
-  const [adAccountId, setAdAccountId] = useState('');
-  const [loginCustomerId, setLoginCustomerId] = useState('');
+    useResearchSearchParamState<AdsResearchTimeframe>({
+      allowedValues: TIMEFRAME_VALUES,
+      defaultValue: 'last_30_days',
+      key: 'timeframe',
+    });
+  const [industry, setIndustry] = useResearchSearchParamState<string>({
+    defaultValue: '',
+    key: 'industry',
+    maxLength: 120,
+  });
+  const [credentialId, setCredentialId] = useResearchSearchParamState<string>({
+    defaultValue: '',
+    key: 'credential',
+  });
+  const [adAccountId, setAdAccountId] = useResearchSearchParamState<string>({
+    defaultValue: '',
+    key: 'account',
+  });
+  const [loginCustomerId, setLoginCustomerId] =
+    useResearchSearchParamState<string>({
+      defaultValue: '',
+      key: 'loginCustomer',
+    });
   const [selectedAd, setSelectedAd] = useState<SelectedAdRef | null>(null);
   const [busyAction, setBusyAction] = useState<
     'ad_pack' | 'workflow' | 'launch_prep' | null
@@ -92,10 +157,27 @@ export function useAdsResearchPageClient(
     workflowName: string;
   } | null>(null);
 
-  const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState<AdSortKey>('score');
-  const [viewType, setViewType] = useState<ViewType>(ViewType.GRID);
-  const [showFilters, setShowFilters] = useState(false);
+  const [search, setSearch] = useResearchQueryState();
+  const [sortKey, setSortKey] = useResearchSearchParamState<AdSortKey>({
+    allowedValues: SORT_VALUES,
+    defaultValue: 'score',
+    key: 'sort',
+  });
+  const [viewType, setViewType] = useResearchSearchParamState<ViewType>({
+    allowedValues: VIEW_VALUES,
+    defaultValue: ViewType.GRID,
+    key: 'view',
+  });
+  const [filtersVisibility, setFiltersVisibility] = useResearchSearchParamState<
+    'hidden' | 'visible'
+  >({
+    allowedValues: ['hidden', 'visible'],
+    defaultValue: 'hidden',
+    key: 'filters',
+  });
+  const showFilters = filtersVisibility === 'visible';
+  const setShowFilters = (isVisible: boolean) =>
+    setFiltersVisibility(isVisible ? 'visible' : 'hidden');
 
   const brandLabel = getBrandLabel(selectedBrand);
   const effectivePlatform =
@@ -106,7 +188,7 @@ export function useAdsResearchPageClient(
     if (!showChannelFilter && channel !== 'all') {
       setChannel('all');
     }
-  }, [channel, showChannelFilter]);
+  }, [channel, setChannel, showChannelFilter]);
 
   useEffect(() => {
     if (!credentialId) {
@@ -115,7 +197,7 @@ export function useAdsResearchPageClient(
     }
 
     setAdAccountId('');
-  }, [credentialId]);
+  }, [credentialId, setAdAccountId]);
 
   const credentialOptions = useMemo(
     () =>
@@ -263,6 +345,49 @@ export function useAdsResearchPageClient(
 
     return filtered;
   }, [results.publicAds, results.connectedAds, search, sortKey]);
+  const findings = useMemo(() => allAds.map(toAdsResearchFinding), [allAds]);
+  const requestedReference = surface?.urlState.requestedReference ?? null;
+
+  useRestoreResearchFinding(findings, isLoading);
+
+  useEffect(() => {
+    if (!requestedReference) {
+      setSelectedAd(null);
+      return;
+    }
+
+    if (isLoading) {
+      return;
+    }
+
+    const requestedKey = getResearchFindingReferenceKey(requestedReference);
+    const item = allAds.find(
+      (candidate) =>
+        getResearchFindingReferenceKey(
+          toAdsResearchFinding(candidate).reference,
+        ) === requestedKey,
+    );
+    if (!item) {
+      return;
+    }
+
+    setSelectedAd({
+      adAccountId: item.adAccountId || adAccountId || undefined,
+      channel: item.channel,
+      credentialId: item.credentialId || credentialId || undefined,
+      id: item.source === 'my_accounts' ? item.sourceId : item.id,
+      loginCustomerId: item.loginCustomerId || loginCustomerId || undefined,
+      platform: item.platform,
+      source: item.source,
+    });
+  }, [
+    adAccountId,
+    allAds,
+    credentialId,
+    isLoading,
+    loginCustomerId,
+    requestedReference,
+  ]);
 
   const handleSelectAd = (item: AdsResearchItem) => {
     setActionError(null);
@@ -279,6 +404,7 @@ export function useAdsResearchPageClient(
       platform: item.platform,
       source: item.source,
     });
+    surface?.selectFinding(toAdsResearchFinding(item));
   };
 
   const handleCloseDetail = () => {
@@ -287,6 +413,7 @@ export function useAdsResearchPageClient(
     setAdPackResult(null);
     setLaunchPrepResult(null);
     setWorkflowResult(null);
+    surface?.clearFinding();
   };
 
   const runAction = async (action: 'ad_pack' | 'workflow' | 'launch_prep') => {

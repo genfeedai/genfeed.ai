@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { formatDuration } from '@genfeedai/helpers';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import type {
@@ -19,7 +20,7 @@ import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
 import { PLATFORM_CONFIGS_ARRAY as PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
-import { format, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiClock, HiOutlineVideoCamera } from 'react-icons/hi2';
 import HookAnalysisSection from './HookAnalysisSection';
@@ -54,6 +55,7 @@ export default function AnalyticsHooks({
   brandId: propBrandId,
 }: AnalyticsHooksProps) {
   const { brandId: contextBrandId, organizationId } = useBrand();
+  const { dateRange } = useAnalyticsContext();
   const brandId = propBrandId || contextBrandId;
 
   const getAnalyticsService = useAuthedService((token: string) =>
@@ -72,11 +74,13 @@ export default function AnalyticsHooks({
 
     try {
       const service = await getAnalyticsService();
-      const endDate = new Date();
-      const startDate = subDays(endDate, 30);
       const query: IQueryParams = {
-        endDate: format(endDate, 'yyyy-MM-dd'),
-        startDate: format(startDate, 'yyyy-MM-dd'),
+        endDate: dateRange.endDate
+          ? format(dateRange.endDate, 'yyyy-MM-dd')
+          : undefined,
+        startDate: dateRange.startDate
+          ? format(dateRange.startDate, 'yyyy-MM-dd')
+          : undefined,
       };
 
       if (brandId) {
@@ -92,7 +96,7 @@ export default function AnalyticsHooks({
       setVideos([]);
       setAnalysisData(createDefaultAnalysis());
     }
-  }, [brandId, getAnalyticsService]);
+  }, [brandId, dateRange, getAnalyticsService]);
 
   useEffect(() => {
     if (!organizationId) {

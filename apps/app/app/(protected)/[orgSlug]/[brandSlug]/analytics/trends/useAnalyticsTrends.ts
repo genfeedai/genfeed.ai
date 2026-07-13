@@ -1,4 +1,5 @@
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
+import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { Platform, Timeframe } from '@genfeedai/enums';
 import type {
   ITrend,
@@ -32,6 +33,9 @@ const trendsCache = createLocalStorageCache({ prefix: 'trends:' });
 
 export function useAnalyticsTrends() {
   const brandId = useBrandId();
+  const analyticsContext = useOptionalAnalyticsContext();
+  const surfaceFilters = analyticsContext?.filters;
+  const setSurfaceFilter = analyticsContext?.setFilter;
   const getTrendsService = useAuthedService((token: string) =>
     TrendsService.getInstance(token),
   );
@@ -56,10 +60,32 @@ export function useAnalyticsTrends() {
   const [isLoadingSounds, setIsLoadingSounds] = useState(true);
 
   // Filter states
-  const [videoTimeframe, setVideoTimeframe] = useState<
+  const [localVideoTimeframe, setLocalVideoTimeframe] = useState<
     Timeframe.H24 | Timeframe.H72 | Timeframe.D7
   >(Timeframe.H72);
-  const [hashtagPlatform, setHashtagPlatform] = useState<string>('');
+  const [localHashtagPlatform, setLocalHashtagPlatform] = useState<string>('');
+  const restoredTimeframe = surfaceFilters?.timeframe;
+  const videoTimeframe = (
+    [Timeframe.H24, Timeframe.H72, Timeframe.D7] as string[]
+  ).includes(restoredTimeframe ?? '')
+    ? (restoredTimeframe as Timeframe.H24 | Timeframe.H72 | Timeframe.D7)
+    : localVideoTimeframe;
+  const hashtagPlatform = surfaceFilters?.platform ?? localHashtagPlatform;
+
+  const setVideoTimeframe = useCallback(
+    (value: Timeframe.H24 | Timeframe.H72 | Timeframe.D7) => {
+      setLocalVideoTimeframe(value);
+      setSurfaceFilter?.('timeframe', value);
+    },
+    [setSurfaceFilter],
+  );
+  const setHashtagPlatform = useCallback(
+    (value: string) => {
+      setLocalHashtagPlatform(value);
+      setSurfaceFilter?.('platform', value || undefined);
+    },
+    [setSurfaceFilter],
+  );
 
   const [remixVideo, setRemixVideo] = useState<ITrendVideo | null>(null);
 

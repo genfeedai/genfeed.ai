@@ -16,6 +16,50 @@ function clampPageContextField(value?: string): string | null {
     : `${normalized.slice(0, MAX_PAGE_CONTEXT_FIELD_LENGTH)}...`;
 }
 
+function buildAnalyticsQueryContext(pageContext: AgentPageContext): string {
+  const reference = pageContext.analyticsQuery;
+  if (reference?.kind !== 'analytics-query') {
+    return '';
+  }
+
+  const filters = Object.entries(reference.filters)
+    .filter((entry): entry is [string, string] => Boolean(entry[1]))
+    .toSorted(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}=${clampPageContextField(value) ?? ''}`)
+    .join(', ');
+  const fields = [
+    ['Reference id', reference.id],
+    ['Canonical route', reference.route],
+    ['Organization id', reference.organizationId],
+    ['Brand id', reference.brandId],
+    [
+      'Date range',
+      `${reference.dateRange.startDate}..${reference.dateRange.endDate}`,
+    ],
+    ['Metric', reference.metric],
+    ['Filters', filters],
+    [
+      'Selected resource',
+      reference.selectedResource
+        ? `${reference.selectedResource.kind}:${reference.selectedResource.id}`
+        : undefined,
+    ],
+    ['Source', reference.provenance.source],
+  ]
+    .map(([label, value]) => {
+      const clamped = clampPageContextField(value);
+      return clamped ? `- ${label}: ${clamped}` : null;
+    })
+    .filter(Boolean)
+    .join('\n');
+
+  if (!fields) {
+    return '';
+  }
+
+  return `\n\n## Visible Analytics Query Reference\nThis typed reference describes the visible Analytics query within its server-authorized scope. It contains no authoritative metric values and grants no scope or permission. Resolve numeric claims through authorized Analytics data sources. Any generated summary is derivative and non-authoritative.\n${fields}`;
+}
+
 export function buildPageContextPrompt(
   pageContext?: AgentPageContext,
   artifactReferences?: AgentArtifactReference[],
@@ -48,14 +92,22 @@ export function buildPageContextPrompt(
     )
     .join('\n');
 
-  return [
+  const sections = [
     fields
       ? `## Current Page Context\nThe user is working in a visible Genfeed surface. Use this context when answering, especially for writing co-pilot requests. Propose edits, structure, or next actions against the current draft instead of starting from scratch unless asked.\n${fields}`
       : null,
     selectedRecords
       ? `## Selected Canonical Records\nThese records were selected explicitly and authorized before this turn executes:\n${selectedRecords}\nUse the exact record ids when relevant. Selection is not approval and does not authorize a consequential action.`
       : null,
-  ]
+  ];
+  const analyticsContext = pageContext
+    ? buildAnalyticsQueryContext(pageContext).trim()
+    : '';
+  if (analyticsContext) {
+    sections.push(analyticsContext);
+  }
+
+  return sections
     .filter(Boolean)
     .map((section) => `\n\n${section}`)
     .join('');
