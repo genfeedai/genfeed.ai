@@ -51,6 +51,12 @@
   /* Semantic: canonical card/surface radius — sharp 0px, matching the Brand OS
      editorial direction. This single knob drives every card; retune here once. */
   --radius-card: 0px;
+  /* Conversation workspace geometry is intentionally scoped. Editorial cards
+     continue to resolve through --radius-card and remain square. */
+  --radius-workspace-shell: var(--radius-lg);
+  --radius-workspace-shell-emphasis: var(--radius-xl);
+  --radius-workspace-composer: var(--radius-xl);
+  --radius-workspace-overlay: var(--radius-2xl);
 
   --motion-duration-fast: 200ms;
   --motion-duration-normal: 300ms;

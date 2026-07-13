@@ -29,6 +29,7 @@ export default function AppLayout({
   currentApp,
   orgSlug,
   brandSlug,
+  isWorkspaceShell = false,
 }: AppLayoutProps) {
   const {
     agentPanelHeight,
@@ -69,14 +70,19 @@ export default function AppLayout({
     <SidebarNavigationProvider items={menuItems}>
       <div
         className="ship-ui min-h-screen overflow-x-hidden bg-background"
+        data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
         style={layoutStyle}
       >
         {menuComponent && (
           <>
             {/* Desktop sidebar */}
             <DesktopSidebar
+              ariaLabel={
+                isWorkspaceShell ? 'Conversation threads' : 'Navigation'
+              }
               collapsedWidth={desktopSidebarCollapsedWidth}
               isCollapsed={isDesktopCollapsed}
+              isWorkspaceShell={isWorkspaceShell}
               shellChromeVariant={shellChromeVariant}
               width={desktopSidebarExpandedWidth}
             >

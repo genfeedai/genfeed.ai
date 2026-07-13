@@ -47,6 +47,20 @@ describe('useFeatureFlag', () => {
     expect(result.current).toBe(true);
   });
 
+  it('fails the conversation shell closed when no provider is configured', () => {
+    const { result } = renderHook(() => useFeatureFlag('conversation_shell'));
+
+    expect(result.current).toBe(false);
+  });
+
+  it('enables the conversation shell only when explicitly configured true', () => {
+    const { result } = renderHook(() => useFeatureFlag('conversation_shell'), {
+      wrapper: createWrapper({ conversation_shell: true }),
+    });
+
+    expect(result.current).toBe(true);
+  });
+
   it('returns false when environment defaults are invalid', () => {
     vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
 

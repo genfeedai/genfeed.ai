@@ -17,11 +17,13 @@ const {
   commandPaletteOpenSpy,
   dispatchOpenTaskComposerSpy,
   endOverlaySessionSpy,
+  featureFlagState,
   onboardingGuardSpy,
   lowCreditsBannerSpy,
   protectedProvidersSpy,
   setIsOpenSpy,
   toggleOpenSpy,
+  universalShellSpy,
 } = vi.hoisted(() => ({
   agentPanelSpy: vi.fn(),
   agentThreadListSpy: vi.fn(),
@@ -31,11 +33,13 @@ const {
   commandPaletteOpenSpy: vi.fn(),
   dispatchOpenTaskComposerSpy: vi.fn(),
   endOverlaySessionSpy: vi.fn(),
+  featureFlagState: { conversationShell: false, shellThrows: false },
   lowCreditsBannerSpy: vi.fn(),
   onboardingGuardSpy: vi.fn(),
   protectedProvidersSpy: vi.fn(),
   setIsOpenSpy: vi.fn(),
   toggleOpenSpy: vi.fn(),
+  universalShellSpy: vi.fn(),
 }));
 
 const mockPathname = vi.hoisted(() => ({
@@ -337,6 +341,20 @@ vi.mock('next/dynamic', () => ({
       };
     }
 
+    if (source.includes('UniversalWorkspaceShell')) {
+      return function LazyUniversalWorkspaceShellStub({
+        children,
+      }: {
+        children: ReactNode;
+      }) {
+        universalShellSpy();
+        if (featureFlagState.shellThrows) {
+          throw new Error('workspace shell render failed');
+        }
+        return <div data-testid="universal-workspace-shell">{children}</div>;
+      };
+    }
+
     if (source.includes('CommandPalette')) {
       return function LazyCommandPaletteStub() {
         return <div data-testid="command-palette" />;
@@ -407,7 +425,10 @@ vi.mock(
 );
 
 vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
-  useFeatureFlag: () => true,
+  useFeatureFlag: (flagKey: string) =>
+    flagKey === 'conversation_shell'
+      ? featureFlagState.conversationShell
+      : true,
 }));
 
 vi.mock('@providers/protected-providers/protected-providers', () => ({
@@ -491,6 +512,9 @@ vi.mock('@services/core/agent-overlay-coordination.service', async () => {
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockPathname.value = '/workspace';
+    featureFlagState.conversationShell = false;
+    featureFlagState.shellThrows = false;
+    sessionStorage.clear();
     mockBrandState.brandId = 'brand-123';
     mockRouteParams.brandSlug = 'brand-123';
     mockRouteParams.orgSlug = 'org-123';
@@ -509,6 +533,7 @@ describe('AppProtectedLayout', () => {
     protectedProvidersSpy.mockClear();
     setIsOpenSpy.mockClear();
     toggleOpenSpy.mockClear();
+    universalShellSpy.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
     Object.defineProperty(window, 'location', {
@@ -678,6 +703,78 @@ describe('AppProtectedLayout', () => {
         topbarChromeVariant: 'default',
       }),
     );
+  });
+
+  it('mounts the flagged universal shell without the legacy terminal dock', async () => {
+    featureFlagState.conversationShell = true;
+    mockPathname.value = '/studio/image';
+
+    render(
+      <AppProtectedLayout>
+        <div>Canonical studio content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByTestId('universal-workspace-shell')).toBeInTheDocument();
+    expect(screen.getByText('Canonical studio content')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ isWorkspaceShell: true }),
+    );
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        renderBody: expect.any(Function),
+        shellMode: 'default',
+        showPrimaryItems: false,
+      }),
+    );
+  });
+
+  it('restores the exact legacy dock when the flagged shell fails to render', () => {
+    featureFlagState.conversationShell = true;
+    featureFlagState.shellThrows = true;
+    mockPathname.value = '/studio/image';
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    const view = render(
+      <AppProtectedLayout>
+        <div>Canonical studio content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByText('Canonical studio content')).toBeInTheDocument();
+    expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('universal-workspace-shell'),
+    ).not.toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        agentPanel: expect.anything(),
+      }),
+    );
+    expect(appLayoutSpy.mock.lastCall?.[0]).toHaveProperty(
+      'isWorkspaceShell',
+      false,
+    );
+
+    const shellAttemptsAfterFailure = universalShellSpy.mock.calls.length;
+    featureFlagState.shellThrows = false;
+    view.unmount();
+    render(
+      <AppProtectedLayout>
+        <div>Canonical studio content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('universal-workspace-shell'),
+    ).not.toBeInTheDocument();
+    expect(universalShellSpy).toHaveBeenCalledTimes(shellAttemptsAfterFailure);
+    consoleError.mockRestore();
   });
 
   it('keeps shared shell chrome on standard agent workspace routes', async () => {

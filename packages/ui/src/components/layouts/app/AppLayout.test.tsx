@@ -114,6 +114,19 @@ describe('AppLayout', () => {
     expect(screen.getAllByTestId('menu-component')).toHaveLength(2);
   });
 
+  it('labels and scopes the conversation workspace thread rail', () => {
+    render(
+      <AppLayout isWorkspaceShell menuComponent={<MenuComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    expect(screen.getByLabelText('Conversation threads')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('app-content-shell').parentElement,
+    ).toHaveAttribute('data-workspace-shell', 'true');
+  });
+
   it('keeps the desktop rail transparent when the shell variant is transparent', () => {
     render(
       <AppLayout

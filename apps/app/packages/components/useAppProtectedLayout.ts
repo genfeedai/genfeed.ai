@@ -71,6 +71,8 @@ import {
   withTaskContextHref,
 } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
+import { useConversationShellEnabled } from '@/lib/workspace-shell/use-conversation-shell';
+import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 
 const WORKFLOWS_NAMED_ROUTES = new Set([
@@ -162,6 +164,16 @@ export function useAppProtectedLayout(
     pathname.startsWith(APP_ROUTE_PREFIXES.ORCHESTRATION);
   const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
+  const isConversationShellEnabled = useConversationShellEnabled();
+  const workspaceShellRoute = useMemo(
+    () => resolveWorkspaceShellRoute(pathname),
+    [pathname],
+  );
+  const isUniversalWorkspaceShell = Boolean(
+    isConversationShellEnabled &&
+      workspaceShellRoute &&
+      workspaceShellRoute.mode !== 'dedicated',
+  );
 
   const currentApp: AppContext = isStudioRoute
     ? 'studio'
@@ -187,13 +199,15 @@ export function useAppProtectedLayout(
                         ? 'agent'
                         : 'workspace';
 
-  const shouldMountAgentPanel =
+  const shouldMountLegacyAgentPanel =
     isTerminalDockAvailable() &&
     !isEditorCanvasRoute &&
     !isMoodboardRoute &&
     !isConversationRoute;
+  const shouldMountAgentPanel =
+    shouldMountLegacyAgentPanel && !isUniversalWorkspaceShell;
   const shouldInitAgentApiService =
-    shouldMountAgentPanel || isConversationRoute;
+    shouldMountAgentPanel || isConversationRoute || isUniversalWorkspaceShell;
 
   const { push, refresh } = useRouter();
   const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useOptionalAuth();
@@ -572,6 +586,9 @@ export function useAppProtectedLayout(
     isStudioRoute,
     isWorkflowsRoute,
     isWorkspaceRoute,
+    isConversationShellEnabled,
+    isUniversalWorkspaceShell,
+    workspaceShellRoute,
     hasSecondaryTopbar,
     // app/org
     currentApp,
@@ -584,6 +601,7 @@ export function useAppProtectedLayout(
     toggleAgent,
     threads,
     shouldMountAgentPanel,
+    shouldMountLegacyAgentPanel,
     // menu items
     adminMenuItems,
     analyticsMenuItems,

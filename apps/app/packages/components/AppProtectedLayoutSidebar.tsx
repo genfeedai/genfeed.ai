@@ -58,6 +58,7 @@ type Props = {
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
   isWorkflowsRoute: boolean;
+  isUniversalWorkspaceShell?: boolean;
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   composeMenuItems: MenuItemConfig[];
@@ -92,6 +93,7 @@ export default function AppProtectedLayoutSidebar({
   isSettingsRoute,
   isStudioRoute,
   isWorkflowsRoute,
+  isUniversalWorkspaceShell = false,
   adminMenuItems,
   analyticsMenuItems,
   composeMenuItems,
@@ -125,6 +127,34 @@ export default function AppProtectedLayoutSidebar({
 
   if (isFocusedOnboardingRoute) {
     return null;
+  }
+
+  const conversationSidebar = (
+    <AppSidebar
+      {...collapseProps}
+      currentApp={currentApp}
+      items={[]}
+      logoHref={withTaskContextHref(
+        buildHref(APP_LOGO_HREF),
+        taskContextSearchParams,
+      )}
+      sectionLabel="Workspace"
+      collapsedSidebarWidth={0}
+      orgSwitcherSlot={orgSwitcherSlot}
+      renderBody={() => (
+        <AgentSidebarContent
+          conversationActions={conversationActions}
+          renderConversations={renderConversations}
+        />
+      )}
+      shellMode="default"
+      showPrimaryItems={false}
+      shellChromeVariant={shellChromeVariant}
+    />
+  );
+
+  if (isUniversalWorkspaceShell) {
+    return conversationSidebar;
   }
 
   const surface = (
@@ -228,49 +258,39 @@ export default function AppProtectedLayoutSidebar({
     );
   }
 
+  if (isConversationRoute) {
+    return conversationSidebar;
+  }
+
   return (
     <AppSidebar
       {...collapseProps}
       currentApp={currentApp}
-      items={isConversationRoute ? [] : menuItems}
+      items={menuItems}
       logoHref={withTaskContextHref(
         buildHref(APP_LOGO_HREF),
         taskContextSearchParams,
       )}
       sectionLabel="Workspace"
       collapsedSidebarWidth={0}
-      mobileSidebarWidth={isConversationRoute ? undefined : 304}
+      mobileSidebarWidth={304}
       orgSwitcherSlot={orgSwitcherSlot}
-      renderTopSlot={
-        isConversationRoute
-          ? undefined
-          : () => (
-              <>
-                <SidebarActionTrigger
-                  ariaLabel="Open new task modal"
-                  icon={<HiPlus className="size-4 flex-shrink-0" />}
-                  label="New Task"
-                  onClick={dispatchOpenTaskComposer}
-                  shortcut="⌘⇧N"
-                />
-                <SidebarSearchTrigger onClick={onOpenCommandPalette} />
-              </>
-            )
-      }
-      secondaryItems={isConversationRoute ? undefined : secondaryMenuItems}
-      renderBody={
-        isConversationRoute
-          ? () => (
-              <AgentSidebarContent
-                conversationActions={conversationActions}
-                renderConversations={renderConversations}
-              />
-            )
-          : undefined
-      }
-      shellMode={isConversationRoute ? 'default' : 'workspace'}
-      showPrimaryItems={!isConversationRoute}
-      sidebarWidth={isConversationRoute ? undefined : 304}
+      renderTopSlot={() => (
+        <>
+          <SidebarActionTrigger
+            ariaLabel="Open new task modal"
+            icon={<HiPlus className="size-4 flex-shrink-0" />}
+            label="New Task"
+            onClick={dispatchOpenTaskComposer}
+            shortcut="⌘⇧N"
+          />
+          <SidebarSearchTrigger onClick={onOpenCommandPalette} />
+        </>
+      )}
+      secondaryItems={secondaryMenuItems}
+      shellMode="workspace"
+      showPrimaryItems
+      sidebarWidth={304}
       shellChromeVariant={shellChromeVariant}
     />
   );

@@ -1,0 +1,43 @@
+'use client';
+
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
+import { useSyncExternalStore } from 'react';
+
+const WORKSPACE_SHELL_CIRCUIT_BREAKER_KEY =
+  'genfeed:conversation-shell:circuit-open';
+
+export function isWorkspaceShellCircuitOpen(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    return sessionStorage.getItem(WORKSPACE_SHELL_CIRCUIT_BREAKER_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+export function openWorkspaceShellCircuit(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    sessionStorage.setItem(WORKSPACE_SHELL_CIRCUIT_BREAKER_KEY, '1');
+  } catch {
+    // Storage denial is itself a reason to stay on the already-rendered legacy
+    // fallback. The error boundary owns that fallback for the current session.
+  }
+}
+
+export function useConversationShellEnabled(): boolean {
+  const isFlagEnabled = useFeatureFlag('conversation_shell');
+  const isCircuitOpen = useSyncExternalStore(
+    () => () => undefined,
+    isWorkspaceShellCircuitOpen,
+    () => false,
+  );
+
+  return isFlagEnabled && !isCircuitOpen;
+}
