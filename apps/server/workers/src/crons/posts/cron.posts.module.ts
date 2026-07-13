@@ -1,4 +1,5 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
+import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
@@ -12,6 +13,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
 
 @Module({
   imports: [
+    forwardRef(() => AgentThreadsModule),
     forwardRef(() => ActivitiesModule),
     forwardRef(() => CredentialsModule),
     forwardRef(() => OrganizationsModule),

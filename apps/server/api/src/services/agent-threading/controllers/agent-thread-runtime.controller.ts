@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -29,6 +30,7 @@ import type { Request } from 'express';
 export class AgentThreadRuntimeController {
   constructor(
     private readonly agentThreadEngineService: AgentThreadEngineService,
+    private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly usersService: UsersService,
@@ -119,12 +121,32 @@ export class AgentThreadRuntimeController {
   async respondToInputRequest(
     @Param('threadId') threadId: string,
     @Param('requestId') requestId: string,
-    @Body() body: { answer: string },
+    @Body()
+    body: {
+      answer: string;
+      brandId?: string | null;
+      expectedContextVersion?: number;
+    },
     @CurrentUser() user: User,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveMongoUserId(user);
+      const preparedScope = await this.agentScopeContextService.prepareForTurn({
+        expectedContextVersion: body.expectedContextVersion,
+        organizationId,
+        requestedBrandId: body.brandId,
+        threadId,
+        userId,
+      });
+      const scope = preparedScope.existingScope;
+      if (!scope) {
+        throw new UnauthorizedException('Agent thread scope is unavailable.');
+      }
+      await this.agentScopeContextService.assertConsequentialBoundary(
+        scope,
+        'workflow',
+      );
       const inputRequest = await runEffectPromise(
         this.resolveInputRequestEffect({
           answer: body.answer,
@@ -148,6 +170,7 @@ export class AgentThreadRuntimeController {
             : undefined,
         threadId,
         userId,
+        scope,
       });
 
       return {
@@ -171,7 +194,13 @@ export class AgentThreadRuntimeController {
   @ApiOperation({ summary: 'Execute a thread UI action' })
   async respondToUiAction(
     @Param('threadId') threadId: string,
-    @Body() body: { action: string; payload?: Record<string, unknown> },
+    @Body()
+    body: {
+      action: string;
+      brandId?: string | null;
+      expectedContextVersion?: number;
+      payload?: Record<string, unknown>;
+    },
     @CurrentUser() user: User,
   ) {
     try {
@@ -181,6 +210,8 @@ export class AgentThreadRuntimeController {
       return await this.agentOrchestratorService.handleThreadUiAction(
         {
           action: body.action,
+          brandId: body.brandId,
+          expectedContextVersion: body.expectedContextVersion,
           payload: body.payload,
           threadId,
         },

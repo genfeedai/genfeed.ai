@@ -6,17 +6,18 @@
 
 import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messages.module';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
+import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersModule } from '@api/collections/users/users.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [AgentThreadsController],
-  exports: [AgentThreadsService],
+  exports: [AgentScopeContextService, AgentThreadsService],
   imports: [
     forwardRef(() => AgentMessagesModule),
     forwardRef(() => UsersModule),
   ],
-  providers: [AgentThreadsService],
+  providers: [AgentScopeContextService, AgentThreadsService],
 })
 export class AgentThreadsModule {}

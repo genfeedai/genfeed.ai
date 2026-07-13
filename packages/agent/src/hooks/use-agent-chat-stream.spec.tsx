@@ -149,6 +149,7 @@ describe('useAgentChatStream', () => {
         }
 
         return {
+          contextVersion: 1,
           runId: 'run-1',
           startedAt,
           threadId: 'thread-new',
@@ -181,6 +182,7 @@ describe('useAgentChatStream', () => {
 
     const apiService = createApiService({
       chat: vi.fn().mockResolvedValue({
+        contextVersion: 1,
         creditsRemaining: 96,
         creditsUsed: 4,
         message: {

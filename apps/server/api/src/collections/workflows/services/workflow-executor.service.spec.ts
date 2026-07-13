@@ -168,4 +168,104 @@ describe('WorkflowExecutorService', () => {
     expect(prisma.workflow.update).not.toHaveBeenCalled();
     expect(executionsService.completeExecution).not.toHaveBeenCalled();
   });
+
+  it('rejects stale agent scope before loading or executing a workflow', async () => {
+    const scopeService = {
+      assertConsequentialBoundary: vi
+        .fn()
+        .mockRejectedValue(new Error('Agent context is stale.')),
+      assertResourceBrand: vi.fn(),
+    };
+    const scopedService = new WorkflowExecutorService(
+      prisma as never,
+      logger as never,
+      engineAdapter as never,
+      executionsService as never,
+      websocketService as never,
+      undefined,
+      scopeService as never,
+    );
+
+    await expect(
+      scopedService.executeManualWorkflow(
+        'workflow-1',
+        'user-1',
+        'org-1',
+        {},
+        undefined,
+        undefined,
+        {
+          brandId: 'brand-1',
+          contextVersion: 2,
+          isLegacyFallback: false,
+          isVersionExplicit: true,
+          organizationId: 'org-1',
+          source: 'explicit',
+          threadId: 'thread-1',
+          userId: 'user-1',
+        },
+      ),
+    ).rejects.toThrow('Agent context is stale.');
+
+    expect(prisma.workflow.findFirst).not.toHaveBeenCalled();
+    expect(engineAdapter.executeWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('revalidates durable agent scope before a delayed workflow resumes', async () => {
+    const scopeService = {
+      assertConsequentialBoundary: vi
+        .fn()
+        .mockRejectedValue(new Error('Agent context is stale.')),
+      assertResourceBrand: vi.fn(),
+    };
+    const scopedService = new WorkflowExecutorService(
+      prisma as never,
+      logger as never,
+      engineAdapter as never,
+      executionsService as never,
+      websocketService as never,
+      undefined,
+      scopeService as never,
+    );
+    prisma.workflow.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'workflow-1',
+      organizationId: 'org-1',
+    });
+    executionsService.getRuntimeState.mockResolvedValue({
+      metadata: {
+        agentScope: {
+          brandId: 'brand-1',
+          contextVersion: 2,
+          isLegacyFallback: false,
+          organizationId: 'org-1',
+          source: 'explicit',
+          threadId: 'thread-1',
+        },
+      },
+      progress: 40,
+      startedAt: new Date(),
+    });
+
+    await expect(
+      scopedService.resumeAfterDelay({
+        delayNodeId: 'delay-node',
+        executionId: 'exec-1',
+        nodeOutputCache: {},
+        organizationId: 'org-1',
+        remainingNodeIds: ['next-node'],
+        triggerEvent: {
+          data: {},
+          organizationId: 'org-1',
+          platform: 'manual',
+          type: 'manual',
+          userId: 'user-1',
+        },
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+      }),
+    ).rejects.toThrow('Agent context is stale.');
+
+    expect(engineAdapter.executeWorkflow).not.toHaveBeenCalled();
+  });
 });

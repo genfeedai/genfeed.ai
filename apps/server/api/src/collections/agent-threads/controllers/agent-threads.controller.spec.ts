@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
+import type { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AgentThreadStatus } from '@genfeedai/enums';
@@ -28,6 +29,10 @@ describe('AgentThreadsController', () => {
     getMessagesByRoom: ReturnType<typeof vi.fn>;
     getRecentMessages: ReturnType<typeof vi.fn>;
   };
+  let scopeService: {
+    mutateBrandScope: ReturnType<typeof vi.fn>;
+    prepareForTurn: ReturnType<typeof vi.fn>;
+  };
   let usersService: {
     findOne: ReturnType<typeof vi.fn>;
   };
@@ -53,6 +58,16 @@ describe('AgentThreadsController', () => {
       getMessagesByRoom: vi.fn().mockResolvedValue([]),
       getRecentMessages: vi.fn().mockResolvedValue([]),
     };
+    scopeService = {
+      mutateBrandScope: vi.fn(),
+      prepareForTurn: vi.fn().mockResolvedValue({
+        initialScopeFields: {
+          contextVersion: 1,
+          isLegacyBrandFallbackEligible: false,
+          scopeChangeProvenance: [],
+        },
+      }),
+    };
     usersService = {
       findOne: vi.fn().mockResolvedValue({
         _id: mockUser.publicMetadata.user,
@@ -67,6 +82,7 @@ describe('AgentThreadsController', () => {
 
     controller = new AgentThreadsController(
       service as unknown as AgentThreadsService,
+      scopeService as unknown as AgentScopeContextService,
       messagesService as unknown as AgentMessagesService,
       usersService as unknown as UsersService,
       loggerService as unknown as LoggerService,
@@ -225,6 +241,31 @@ describe('AgentThreadsController', () => {
           userId: 'user_current',
         }),
       );
+    });
+  });
+
+  describe('updateThreadContext', () => {
+    it('passes the canonical tenant and user authority to the CAS service', async () => {
+      scopeService.mutateBrandScope.mockResolvedValue({
+        brandId: 'brand-1',
+        contextVersion: 4,
+        id: 'thread-1',
+      });
+
+      await controller.updateThreadContext(
+        {} as never,
+        'thread-1',
+        { brandId: 'brand-1', expectedContextVersion: 3 },
+        mockUser,
+      );
+
+      expect(scopeService.mutateBrandScope).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        expectedContextVersion: 3,
+        organizationId: 'org_current',
+        threadId: 'thread-1',
+        userId: 'user_current',
+      });
     });
   });
 

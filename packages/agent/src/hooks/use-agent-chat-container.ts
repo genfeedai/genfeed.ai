@@ -365,6 +365,16 @@ export function useAgentChatContainer({
             request.threadId,
             request.inputRequestId,
             normalizedAnswer,
+            undefined,
+            (() => {
+              const thread = useAgentChatStore
+                .getState()
+                .threads.find((item) => item.id === request.threadId);
+              return {
+                brandId: thread?.brandId ?? null,
+                expectedContextVersion: thread?.contextVersion,
+              };
+            })(),
           ),
         );
         clearPendingInputRequest();
@@ -470,8 +480,20 @@ export function useAgentChatContainer({
       setError(null);
 
       try {
+        const currentThread = threads.find(
+          (thread) => thread.id === activeThreadId,
+        );
         const response = await runAgentApiEffect(
-          apiService.respondToUiActionEffect(activeThreadId, action, payload),
+          apiService.respondToUiActionEffect(
+            activeThreadId,
+            action,
+            payload,
+            undefined,
+            {
+              brandId: currentThread?.brandId ?? null,
+              expectedContextVersion: currentThread?.contextVersion,
+            },
+          ),
         );
 
         if (response.threadId !== activeThreadId) {
@@ -484,7 +506,9 @@ export function useAgentChatContainer({
         );
 
         upsertThread({
+          brandId: response.brandId,
           createdAt: existingThread?.createdAt ?? now,
+          contextVersion: response.contextVersion,
           id: response.threadId,
           planModeEnabled:
             existingThread?.planModeEnabled ?? draftPlanModeEnabled,

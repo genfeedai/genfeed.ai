@@ -35,7 +35,9 @@ interface AgentChatAttachment {
 }
 
 interface AgentChatBody {
+  brandId?: string | null;
   content: string;
+  expectedContextVersion?: number;
   pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
@@ -159,7 +161,9 @@ export class AgentOrchestratorController {
 
     return {
       attachments: body.attachments,
+      brandId: body.brandId,
       content: body.content,
+      expectedContextVersion: body.expectedContextVersion,
       model: body.model,
       pageContext: body.pageContext,
       planModeEnabled: body.planModeEnabled,

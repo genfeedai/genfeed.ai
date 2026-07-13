@@ -1,4 +1,5 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -25,6 +26,10 @@ describe('CronPostsService', () => {
   };
   let quotaService: { checkQuota: ReturnType<typeof vi.fn> };
   let loggerService: vi.Mocked<LoggerService>;
+  let agentScopeContextService: {
+    assertConsequentialBoundary: ReturnType<typeof vi.fn>;
+    assertResourceBrand: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     activitiesService = {
@@ -46,6 +51,10 @@ describe('CronPostsService', () => {
     quotaService = {
       checkQuota: vi.fn(),
     };
+    agentScopeContextService = {
+      assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
+      assertResourceBrand: vi.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -61,6 +70,10 @@ describe('CronPostsService', () => {
         {
           provide: ActivitiesService,
           useValue: activitiesService,
+        },
+        {
+          provide: AgentScopeContextService,
+          useValue: agentScopeContextService,
         },
         {
           provide: CredentialsService,
@@ -170,6 +183,43 @@ describe('CronPostsService', () => {
       source: 'scheduled_sweep',
     });
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+  });
+
+  it('rejects stale durable agent scope before publishing side effects', async () => {
+    const post = {
+      agentContextSource: 'explicit',
+      agentContextVersion: 2,
+      agentThreadId: 'thread-1',
+      brand: 'brand-1',
+      children: [],
+      credential: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organization: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    agentScopeContextService.assertConsequentialBoundary.mockRejectedValue(
+      new Error('Agent context is stale.'),
+    );
+
+    await expect(
+      service.processQueuedPost({
+        enqueuedAt: '2026-07-07T10:00:00.000Z',
+        organizationId: 'org-1',
+        postId: 'post-1',
+        source: 'scheduled_sweep',
+      }),
+    ).rejects.toThrow('Agent context is stale.');
+
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+    expect(postsService.patch).not.toHaveBeenCalled();
   });
 
   it('emits publish webhooks after a queued scheduled post publishes', async () => {

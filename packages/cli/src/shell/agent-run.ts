@@ -2,6 +2,7 @@ import {
   type AgentChatRequest,
   type AgentPendingInputRequest,
   type AgentThreadEvent,
+  getThread,
   getThreadEvents,
   getThreadSnapshot,
   respondToInputRequest,
@@ -161,11 +162,16 @@ export async function runAgentTurn(
   request: AgentChatRequest,
   timeoutMs = 120_000
 ): Promise<AgentRunResult> {
-  const initialSequence = request.threadId
-    ? ((await getThreadSnapshot(request.threadId)).lastSequence ?? 0)
-    : 0;
+  const [thread, snapshot] = request.threadId
+    ? await Promise.all([getThread(request.threadId), getThreadSnapshot(request.threadId)])
+    : [undefined, undefined];
+  const initialSequence = snapshot?.lastSequence ?? 0;
 
-  const run = await startAgentChatStream(request);
+  const run = await startAgentChatStream({
+    ...request,
+    brandId: thread?.brandId ?? null,
+    expectedContextVersion: thread?.contextVersion,
+  });
   const result = await collectRunResult(run.threadId, initialSequence, timeoutMs);
 
   return {
@@ -181,7 +187,7 @@ export async function answerPendingInput(
   requestId?: string,
   timeoutMs = 120_000
 ): Promise<AgentRunResult> {
-  const snapshot = await getThreadSnapshot(threadId);
+  const [thread, snapshot] = await Promise.all([getThread(threadId), getThreadSnapshot(threadId)]);
   const pendingInputRequest =
     snapshot.pendingInputRequests.find((request) => request.requestId === requestId) ??
     snapshot.pendingInputRequests.at(-1);
@@ -190,6 +196,9 @@ export async function answerPendingInput(
     throw new Error(`Thread ${threadId} has no pending input requests.`);
   }
 
-  await respondToInputRequest(threadId, pendingInputRequest.requestId, answer);
+  await respondToInputRequest(threadId, pendingInputRequest.requestId, answer, {
+    brandId: thread.brandId ?? null,
+    expectedContextVersion: thread.contextVersion,
+  });
   return await collectRunResult(threadId, snapshot.lastSequence ?? 0, timeoutMs);
 }

@@ -48,6 +48,7 @@ describe('agent-chat.store upsertThread', () => {
 
   function makeThread(id: string) {
     return {
+      contextVersion: 1,
       createdAt: '2026-03-26T10:00:00.000Z',
       id,
       status: AgentThreadStatus.ACTIVE,

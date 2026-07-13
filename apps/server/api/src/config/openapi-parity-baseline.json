@@ -347,6 +347,11 @@
       "path": "/agent/threads/{threadId}"
     },
     {
+      "method": "patch",
+      "operationId": "AgentThreadsController.updateThreadContext",
+      "path": "/agent/threads/{threadId}/context"
+    },
+    {
       "method": "post",
       "operationId": "AgentToolsController.execute",
       "path": "/agent-tools/{name}/execute"

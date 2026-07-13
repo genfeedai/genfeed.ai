@@ -3,6 +3,8 @@
  * Automation templates: reusable multi-step workflows, triggers (manual/auto),
 dependency management, and workflow execution tracking.
  */
+
+import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -96,6 +98,7 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowGenerationService,
   ],
   imports: [
+    forwardRef(() => AgentThreadsModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CaptionsModule),
     forwardRef(() => CredentialsCoreModule),

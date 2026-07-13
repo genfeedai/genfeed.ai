@@ -26,6 +26,7 @@ describe('useAgentChat', () => {
 
   it('uses the runtime default model when no explicit model is supplied', async () => {
     const chat = vi.fn().mockResolvedValue({
+      contextVersion: 1,
       creditsRemaining: 95,
       creditsUsed: 5,
       message: {
@@ -64,6 +65,7 @@ describe('useAgentChat', () => {
 
   it('preserves an explicit model override for internal callers', async () => {
     const chat = vi.fn().mockResolvedValue({
+      contextVersion: 1,
       creditsRemaining: 95,
       creditsUsed: 5,
       message: {
@@ -118,6 +120,7 @@ describe('useAgentChat', () => {
     });
 
     const chat = vi.fn().mockResolvedValue({
+      contextVersion: 1,
       creditsRemaining: 95,
       creditsUsed: 5,
       message: {

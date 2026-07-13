@@ -35,6 +35,7 @@ export const VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
 };
 
 export const EXECUTABLE_WORKFLOW_SELECT = {
+  brandId: true,
   config: true,
   description: true,
   edges: true,

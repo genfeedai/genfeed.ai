@@ -1,5 +1,6 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { AgentScopeContextService } from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
@@ -27,6 +28,7 @@ import {
   PostStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
+import type { AgentScopeSource } from '@genfeedai/interfaces';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
 import { PostPublishQueueService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -70,6 +72,7 @@ export class CronPostsService {
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly postPublishQueueService: PostPublishQueueService,
+    private readonly agentScopeContextService: AgentScopeContextService,
   ) {}
 
   /**
@@ -145,6 +148,7 @@ export class CronPostsService {
     post: PostEntity,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    await this.assertAgentPublishingScope(post);
     const result = await this.publishSinglePost(post);
 
     if (result.success) {
@@ -169,6 +173,65 @@ export class CronPostsService {
     }
 
     return result;
+  }
+
+  private async assertAgentPublishingScope(post: PostEntity): Promise<void> {
+    const threadId = this.readPostString(post, ['agentThreadId']);
+    if (!threadId) {
+      return;
+    }
+
+    const record = post as unknown as Record<string, unknown>;
+    const contextVersion = record.agentContextVersion;
+    const source = record.agentContextSource;
+    const organizationId = this.readPostString(post, [
+      'organizationId',
+      'organization',
+    ]);
+    const userId = this.readPostString(post, ['userId', 'user']);
+
+    if (
+      typeof contextVersion !== 'number' ||
+      !this.isAgentScopeSource(source) ||
+      !organizationId ||
+      !userId
+    ) {
+      throw new Error(
+        `Post ${post.id.toString()} has an incomplete durable agent scope.`,
+      );
+    }
+
+    const brandId = this.readPostString(post, ['brandId', 'brand']);
+    const scope = {
+      brandId,
+      contextVersion,
+      isLegacyFallback: source.startsWith('legacy_'),
+      isVersionExplicit: true,
+      organizationId,
+      source,
+      threadId,
+      userId,
+    };
+
+    await this.agentScopeContextService.assertConsequentialBoundary(
+      scope,
+      'publish',
+    );
+    this.agentScopeContextService.assertResourceBrand(
+      scope,
+      brandId,
+      'queued post',
+    );
+  }
+
+  private isAgentScopeSource(value: unknown): value is AgentScopeSource {
+    return (
+      value === 'explicit' ||
+      value === 'thread_created' ||
+      value === 'legacy_execution_policy' ||
+      value === 'legacy_message_history' ||
+      value === 'legacy_organization_only'
+    );
   }
 
   private async findQueuedPostForPublish(
@@ -683,6 +746,13 @@ export class CronPostsService {
       const ingredients = post.ingredients || [];
 
       const postData = {
+        ...(post.agentThreadId
+          ? {
+              agentContextSource: post.agentContextSource,
+              agentContextVersion: post.agentContextVersion,
+              agentThreadId: post.agentThreadId,
+            }
+          : {}),
         brand: this.readPostString(post, ['brandId', 'brand']) ?? '',
         category: (post.category as PostCategory) || PostCategory.VIDEO,
         credential:
@@ -758,6 +828,13 @@ export class CronPostsService {
           .map((ingredient) => String(ingredient));
 
         const childData = {
+          ...(originalParent.agentThreadId
+            ? {
+                agentContextSource: originalParent.agentContextSource,
+                agentContextVersion: originalParent.agentContextVersion,
+                agentThreadId: originalParent.agentThreadId,
+              }
+            : {}),
           brand:
             this.readPostString(originalParent, ['brandId', 'brand']) ?? '',
           category:

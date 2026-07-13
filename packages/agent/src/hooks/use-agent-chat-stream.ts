@@ -318,6 +318,8 @@ export function useAgentChatStream(
       existingThreadTitle?: string,
       createdAt?: string,
       planModeEnabled?: boolean,
+      contextVersion?: number,
+      brandId?: string,
     ) => {
       if (threadId !== activeThreadId) {
         setActiveThread(threadId);
@@ -325,7 +327,9 @@ export function useAgentChatStream(
 
       const now = new Date().toISOString();
       upsertThread({
+        brandId,
         createdAt: createdAt ?? now,
+        contextVersion: contextVersion ?? 1,
         id: threadId,
         planModeEnabled,
         status: AgentThreadStatus.ACTIVE,
@@ -370,11 +374,16 @@ export function useAgentChatStream(
       try {
         const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
         const requestPageContext = toAgentRequestPageContext(pageContext);
+        const currentThread = useAgentChatStore
+          .getState()
+          .threads.find((item) => item.id === threadIdOverride);
         const response = await runAgentApiEffect(
           apiService.chatEffect(
             {
               attachments: sendOptions?.attachments,
+              brandId: currentThread?.brandId ?? null,
               content,
+              expectedContextVersion: currentThread?.contextVersion,
               model: resolvedModel,
               pageContext: requestPageContext,
               planModeEnabled: sendOptions?.planModeEnabled,
@@ -395,6 +404,8 @@ export function useAgentChatStream(
           existingThread?.title,
           existingThread?.createdAt,
           existingThread?.planModeEnabled ?? sendOptions?.planModeEnabled,
+          response.contextVersion,
+          response.brandId,
         );
         updateThreadSummary(response.threadId, {
           attentionState: null,
@@ -1001,11 +1012,16 @@ export function useAgentChatStream(
 
         const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
         const requestPageContext = toAgentRequestPageContext(pageContext);
+        const currentThread = useAgentChatStore
+          .getState()
+          .threads.find((item) => item.id === currentActiveThreadId);
         const response = await runAgentApiEffect(
           apiService.chatStreamEffect(
             {
               attachments: sendOptions?.attachments,
+              brandId: currentThread?.brandId ?? null,
               content,
+              expectedContextVersion: currentThread?.contextVersion,
               model: resolvedModel,
               pageContext: requestPageContext,
               planModeEnabled: sendOptions?.planModeEnabled,
@@ -1033,6 +1049,8 @@ export function useAgentChatStream(
           existingThread?.title,
           existingThread?.createdAt,
           existingThread?.planModeEnabled ?? sendOptions?.planModeEnabled,
+          response.contextVersion,
+          response.brandId,
         );
         scheduleCompletionWatchdog();
         flushBufferedEvents(response.threadId);

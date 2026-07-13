@@ -385,7 +385,9 @@ export function useAgentFullPage({
           const now = new Date().toISOString();
           const firstUserMessage = msgs.find((msg) => msg.role === 'user');
           upsertThread({
+            brandId: thread.brandId,
             createdAt: now,
+            contextVersion: thread.contextVersion,
             id: threadId,
             planModeEnabled: thread.planModeEnabled,
             source: thread.source,

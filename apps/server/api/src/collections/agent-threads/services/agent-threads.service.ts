@@ -127,10 +127,27 @@ export class AgentThreadsService extends BaseService<
     }
 
     const cloned = await this.create({
+      brandId: parent.brandId,
+      contextVersion: 1,
+      isLegacyBrandFallbackEligible: false,
       organizationId: parent.organizationId,
       parentThreadId: parent.id,
       source: parent.source,
       systemPrompt: parent.systemPrompt,
+      scopeChangeProvenance: parent.brandId
+        ? [
+            {
+              acceptedAt: new Date().toISOString(),
+              actorUserId: userId,
+              brandId: parent.brandId,
+              fromContextVersion: 0,
+              id: `branch:${parent.id}:${Date.now()}`,
+              previousBrandId: null,
+              source: 'thread_created',
+              toContextVersion: 1,
+            },
+          ]
+        : [],
       title: parent.title ? `${parent.title} (branch)` : 'Branched thread',
       userId,
     } as Record<string, unknown>);

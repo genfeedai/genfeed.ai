@@ -615,6 +615,10 @@ describe('AgentToolExecutorService', () => {
       agentGoalsService as never,
     );
     const dashboardHandler = new AgentDashboardToolHandler(undefined as never);
+    const agentScopeContextService = {
+      assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
+      assertResourceBrand: vi.fn(),
+    };
 
     const service = new AgentToolExecutorService(
       loggerService,
@@ -654,10 +658,12 @@ describe('AgentToolExecutorService', () => {
       {} as never, // votesService
       adsResearchService as never,
       brandInterviewService as never,
+      agentScopeContextService as never,
     );
 
     return {
       adsResearchService,
+      agentScopeContextService,
       agentGoalsService,
       agentMemoryCaptureService,
       aiActionsService,
@@ -705,6 +711,7 @@ describe('AgentToolExecutorService', () => {
         targetValue: 1000,
       },
       {
+        brandId: 'brand-1',
         organizationId: '67a123456789012345678901',
         userId: '67a123456789012345678902',
       },
@@ -1764,6 +1771,16 @@ describe('AgentToolExecutorService', () => {
         runId: 'run-1',
         threadId: 'thread-1',
         userId: '67a123456789012345678902',
+        validatedScope: {
+          brandId: 'brand-1',
+          contextVersion: 1,
+          isLegacyFallback: false,
+          isVersionExplicit: true,
+          organizationId: '67a123456789012345678901',
+          source: 'explicit',
+          threadId: 'thread-1',
+          userId: '67a123456789012345678902',
+        },
       },
     );
 
@@ -3060,6 +3077,43 @@ describe('AgentToolExecutorService', () => {
       undefined,
       '67a123456789012345678901',
     );
+  });
+
+  it('rejects stale thread scope before dispatching a tool', async () => {
+    const { agentScopeContextService, batchGenerationService, service } =
+      createService();
+    agentScopeContextService.assertConsequentialBoundary.mockRejectedValue(
+      new Error('Agent context is stale.'),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.GENERATE_CONTENT_BATCH,
+      { count: 2, platforms: ['instagram'] },
+      {
+        brandId: 'brand-1',
+        organizationId: '67a123456789012345678901',
+        threadId: 'thread-1',
+        userId: '67a123456789012345678902',
+        validatedScope: {
+          brandId: 'brand-1',
+          contextVersion: 2,
+          isLegacyFallback: false,
+          isVersionExplicit: true,
+          organizationId: '67a123456789012345678901',
+          source: 'explicit',
+          threadId: 'thread-1',
+          userId: '67a123456789012345678902',
+        },
+      },
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Agent context is stale.',
+        success: false,
+      }),
+    );
+    expect(batchGenerationService.processBatch).not.toHaveBeenCalled();
   });
 
   it('should fail rate_content when contentId is missing', async () => {

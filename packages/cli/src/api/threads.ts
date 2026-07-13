@@ -10,6 +10,8 @@ const AGENT_THREADS_ENDPOINT = '/agent/threads';
 
 export interface AgentThread {
   id: string;
+  brandId?: string | null;
+  contextVersion: number;
   attentionState?: string | null;
   isPinned?: boolean;
   lastActivityAt?: string;
@@ -68,6 +70,8 @@ export interface AgentChatAttachment {
 export interface AgentChatRequest {
   attachments?: AgentChatAttachment[];
   content: string;
+  brandId?: string | null;
+  expectedContextVersion?: number;
   model?: string;
   source?: 'agent' | 'onboarding' | 'proactive';
   threadId?: string;
@@ -110,6 +114,8 @@ export interface AgentThreadSnapshot {
 }
 
 export interface AgentChatStreamStartResponse {
+  brandId?: string;
+  contextVersion: number;
   runId: string;
   startedAt: string;
   threadId: string;
@@ -159,6 +165,17 @@ export async function archiveThread(threadId: string): Promise<AgentThread> {
   return flattenSingle<AgentThread>(response);
 }
 
+export async function updateThreadContext(
+  threadId: string,
+  input: { brandId?: string | null; expectedContextVersion: number }
+): Promise<AgentThread> {
+  const response = await patch<JsonApiSingleResponse>(
+    `${AGENT_THREADS_ENDPOINT}/${threadId}/context`,
+    input
+  );
+  return flattenSingle<AgentThread>(response);
+}
+
 export async function getThreadSnapshot(threadId: string): Promise<AgentThreadSnapshot> {
   return await get<AgentThreadSnapshot>(`${AGENT_THREADS_ENDPOINT}/${threadId}/snapshot`);
 }
@@ -183,11 +200,12 @@ export async function getThreadEvents(
 export async function respondToInputRequest(
   threadId: string,
   requestId: string,
-  answer: string
+  answer: string,
+  scope?: { brandId?: string | null; expectedContextVersion?: number }
 ): Promise<RespondToInputRequestResponse> {
   return await post<RespondToInputRequestResponse>(
     `${AGENT_THREADS_ENDPOINT}/${threadId}/input-requests/${requestId}/responses`,
-    { answer }
+    { answer, ...(scope ?? {}) }
   );
 }
 
@@ -196,7 +214,9 @@ export async function startAgentChatStream(
 ): Promise<AgentChatStreamStartResponse> {
   const body = {
     attachments: request.attachments,
+    brandId: request.brandId,
     content: request.content,
+    expectedContextVersion: request.expectedContextVersion,
     model: request.model,
     source: request.source ?? 'agent',
   };

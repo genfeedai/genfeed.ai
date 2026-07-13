@@ -489,6 +489,8 @@ describe('AgentChatContainer', () => {
         'thread-1',
         'input-1',
         'Use the hybrid prompt bar',
+        undefined,
+        { brandId: null, expectedContextVersion: undefined },
       );
     });
 
@@ -952,6 +954,7 @@ describe('AgentChatContainer', () => {
   it('submits workflow confirmation through the UI action endpoint', async () => {
     const apiService = createApiService({
       respondToUiAction: vi.fn().mockResolvedValue({
+        contextVersion: 1,
         creditsRemaining: 48,
         creditsUsed: 0,
         message: {
@@ -1011,6 +1014,8 @@ describe('AgentChatContainer', () => {
         'thread-1',
         'confirm_install_official_workflow',
         { sourceId: 'template-1' },
+        undefined,
+        { brandId: null, expectedContextVersion: undefined },
       );
     });
 

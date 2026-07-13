@@ -10,6 +10,10 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import {
+  AgentScopeContextService,
+  type PreparedAgentScope,
+} from '@api/collections/agent-threads/services/agent-scope-context.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -76,6 +80,8 @@ import {
   type AgentUIBlock,
   type AgentUIBlocksEvent,
   type AgentUiAction,
+  toAgentScopeMetadata,
+  type ValidatedAgentScope,
 } from '@genfeedai/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
@@ -128,6 +134,7 @@ interface AgentRoutingPolicy {
 }
 
 interface ThreadResolutionResult {
+  isCreated: boolean;
   seedTitle: string;
   threadId: string;
 }
@@ -162,7 +169,9 @@ export interface AgentPageContext {
 export interface AgentChatRequest {
   agentType?: AgentType;
   attachments?: AgentChatAttachment[];
+  brandId?: string | null;
   content: string;
+  expectedContextVersion?: number;
   pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
@@ -179,6 +188,7 @@ export interface AgentChatContext {
   organizationId: string;
   /** Resolved runtime skills for tool set augmentation */
   resolvedSkills?: ResolvedRuntimeSkill[];
+  scope?: ValidatedAgentScope;
   /** When set, tool call progress is tracked against this agent-runs record */
   runId?: string;
   /** Strategy ID — enables content attribution on created posts/content */
@@ -197,6 +207,8 @@ export interface ToolCallSummary {
 }
 
 export interface AgentChatResult {
+  brandId?: string;
+  contextVersion?: number;
   threadId: string;
   creditsRemaining: number;
   creditsUsed: number;
@@ -210,6 +222,8 @@ export interface AgentChatResult {
 
 export interface AgentThreadUiActionRequest {
   action: string;
+  brandId?: string | null;
+  expectedContextVersion?: number;
   payload?: Record<string, unknown>;
   threadId: string;
 }
@@ -348,6 +362,7 @@ export class AgentOrchestratorService {
     private readonly loggerService: LoggerService,
     private readonly llmDispatcher: LlmDispatcherService,
     private readonly agentThreadsService: AgentThreadsService,
+    private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMemoriesService: AgentMemoriesService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly contextAssemblyService: AgentContextAssemblyService,
@@ -391,6 +406,35 @@ export class AgentOrchestratorService {
     return this.configService?.get('AGENT_TOKEN_STREAMING_ENABLED') === 'true';
   }
 
+  private withScopeResult(
+    result: AgentChatResult,
+    scope: ValidatedAgentScope,
+  ): AgentChatResult {
+    return {
+      ...result,
+      brandId: scope.brandId,
+      contextVersion: scope.contextVersion,
+    };
+  }
+
+  private scopeMetadata(context: AgentChatContext): Record<string, unknown> {
+    return context.scope
+      ? { agentScope: toAgentScopeMetadata(context.scope) }
+      : {};
+  }
+
+  private async recordRunScope(context: AgentChatContext): Promise<void> {
+    if (!context.runId || !context.scope) {
+      return;
+    }
+
+    await this.agentRunsService.mergeMetadata(
+      context.runId,
+      context.organizationId,
+      this.scopeMetadata(context),
+    );
+  }
+
   async chat(
     request: AgentChatRequest,
     context: AgentChatContext,
@@ -412,9 +456,6 @@ export class AgentOrchestratorService {
       if (resolved.model !== request.model) {
         request = { ...request, model: resolved.model };
       }
-      // Attach resolved skills to context for tool set augmentation
-      context = { ...context, resolvedSkills: resolved.resolvedSkills };
-
       const model = request.model || DEFAULT_AGENT_CHAT_MODEL;
 
       // Brand interview turns are free — the engine charges 10 credits once via
@@ -438,8 +479,35 @@ export class AgentOrchestratorService {
       const threadResolution = await this.resolveOrCreateThreadId(
         request,
         context,
+        resolved.preparedScope,
       );
-      const { seedTitle, threadId } = threadResolution;
+      const { isCreated, seedTitle, threadId } = threadResolution;
+      const scope = isCreated
+        ? await this.agentScopeContextService.resolveCreatedThreadScope({
+            brandId: resolved.preparedScope.initialBrandId,
+            organizationId: context.organizationId,
+            threadId,
+            userId: context.userId,
+          })
+        : resolved.preparedScope.existingScope;
+
+      if (!scope) {
+        throw new InternalServerErrorException(
+          'Unable to resolve server-authoritative agent scope.',
+        );
+      }
+
+      const policy: ResolvedAgentExecutionPolicy = {
+        ...resolved.policy,
+        brandId: scope.brandId,
+        scope,
+      };
+      context = {
+        ...context,
+        resolvedSkills: resolved.resolvedSkills,
+        scope,
+      };
+      await this.recordRunScope(context);
       await this.recordProfileSnapshot(threadId, context, request.agentType);
       await this.threadEventRecorder.recordThreadTurnRequested({
         content: request.content,
@@ -452,10 +520,14 @@ export class AgentOrchestratorService {
 
       // Save user message
       await this.agentMessagesService.addMessage({
+        brandId: scope.brandId,
         content: request.content,
-        metadata: request.attachments?.length
-          ? { attachments: request.attachments }
-          : undefined,
+        metadata: {
+          agentScope: toAgentScopeMetadata(scope),
+          ...(request.attachments?.length
+            ? { attachments: request.attachments }
+            : {}),
+        },
         organizationId: context.organizationId,
         role: AgentMessageRole.USER,
         room: threadId,
@@ -474,7 +546,7 @@ export class AgentOrchestratorService {
       });
 
       if (planModeResponse) {
-        return planModeResponse;
+        return this.withScopeResult(planModeResponse, scope);
       }
 
       const deterministicResponse = await this.tryHandleRecurringTaskDraftTurn({
@@ -486,15 +558,15 @@ export class AgentOrchestratorService {
       });
 
       if (deterministicResponse) {
-        return deterministicResponse;
+        return this.withScopeResult(deterministicResponse, scope);
       }
 
-      return await this.runInThreadLane(threadId, async () => {
-        return await this.executeSynchronousChatLoop({
+      const result = await this.runInThreadLane(threadId, async () => {
+        return this.executeSynchronousChatLoop({
           context,
           generationPriority,
           model,
-          policy: resolved.policy,
+          policy,
           request,
           resolvedMemories,
           seedTitle,
@@ -503,6 +575,7 @@ export class AgentOrchestratorService {
           turnCost,
         });
       });
+      return this.withScopeResult(result, scope);
     } catch (error: unknown) {
       if (error instanceof Error && error.name.includes('ValidationError')) {
         this.loggerService.error(
@@ -549,6 +622,38 @@ export class AgentOrchestratorService {
       throw new BadRequestException('Thread not found or inaccessible.');
     }
 
+    const orgSettings = await this.organizationSettingsService.findOne({
+      isDeleted: false,
+      organization: context.organizationId,
+    });
+    const { policy: basePolicy } = resolveEffectiveAgentExecutionConfig({
+      organizationSettings: orgSettings,
+    });
+    const preparedScope = await this.agentScopeContextService.prepareForTurn({
+      expectedContextVersion: request.expectedContextVersion,
+      organizationId: context.organizationId,
+      policyBrandId: basePolicy.brandId,
+      requestedBrandId: request.brandId,
+      threadId,
+      userId: context.userId,
+    });
+    const scope = preparedScope.existingScope;
+    if (!scope) {
+      throw new InternalServerErrorException(
+        'Unable to resolve server-authoritative agent scope.',
+      );
+    }
+    await this.agentScopeContextService.assertConsequentialBoundary(
+      scope,
+      'tool',
+    );
+    context = {
+      ...context,
+      generationPriority: basePolicy.generationPriority,
+      scope,
+    };
+    await this.recordRunScope(context);
+
     const model = await this.resolveThreadUiActionModel(
       threadId,
       context.organizationId,
@@ -575,47 +680,54 @@ export class AgentOrchestratorService {
       });
 
       try {
+        let result: AgentChatResult;
         switch (request.action) {
           case 'approve_plan':
-            return await this.executeApprovedPlanAction({
+            result = await this.executeApprovedPlanAction({
               context,
               model,
               payload: request.payload,
               threadId,
             });
+            break;
           case 'revise_plan':
-            return await this.executeRevisedPlanAction({
+            result = await this.executeRevisedPlanAction({
               context,
               model,
               payload: request.payload,
               threadId,
             });
+            break;
           case 'confirm_install_official_workflow':
-            return await this.executeConfirmedInstallOfficialWorkflowAction({
+            result = await this.executeConfirmedInstallOfficialWorkflowAction({
               context,
               model,
               payload: request.payload,
               threadId,
             });
+            break;
           case 'confirm_save_brand_voice_profile':
-            return await this.executeConfirmedSaveBrandVoiceProfileAction({
+            result = await this.executeConfirmedSaveBrandVoiceProfileAction({
               context,
               model,
               payload: request.payload,
               threadId,
             });
+            break;
           case 'confirm_publish_post':
-            return await this.executeConfirmedPublishPostAction({
+            result = await this.executeConfirmedPublishPostAction({
               context,
               model,
               payload: request.payload,
               threadId,
             });
+            break;
           default:
             throw new BadRequestException(
               `Unsupported thread UI action: ${request.action}`,
             );
         }
+        return this.withScopeResult(result, scope);
       } catch (error: unknown) {
         await this.threadEventRecorder.recordRunFailed({
           context,
@@ -803,6 +915,7 @@ export class AgentOrchestratorService {
               uiActions: allUiActions,
             });
           const assistantMetadata = {
+            ...this.scopeMetadata(context),
             ...this.buildRoutingMetadata({
               model,
               prompt: request.content,
@@ -824,6 +937,7 @@ export class AgentOrchestratorService {
           };
 
           await this.agentMessagesService.addMessage({
+            brandId: context.scope?.brandId,
             content,
             metadata: {
               creditsRemaining,
@@ -1075,6 +1189,7 @@ export class AgentOrchestratorService {
               thinkingModel: policy.thinkingModelOverride ?? model,
               threadId,
               userId: context.userId,
+              validatedScope: policy.scope,
             },
           );
           const durationMs = Date.now() - startTime;
@@ -1185,7 +1300,13 @@ export class AgentOrchestratorService {
   async chatStream(
     request: AgentChatRequest,
     context: AgentChatContext,
-  ): Promise<{ threadId: string; runId: string; startedAt: string }> {
+  ): Promise<{
+    brandId?: string;
+    contextVersion: number;
+    threadId: string;
+    runId: string;
+    startedAt: string;
+  }> {
     // Look up user's generation priority setting
     const userSettings = await this.settingsService.findOne({
       isDeleted: false,
@@ -1226,12 +1347,36 @@ export class AgentOrchestratorService {
     const threadResolution = await this.resolveOrCreateThreadId(
       request,
       context,
+      resolved.preparedScope,
     );
-    const { seedTitle, threadId } = threadResolution;
+    const { isCreated, seedTitle, threadId } = threadResolution;
+    const scope = isCreated
+      ? await this.agentScopeContextService.resolveCreatedThreadScope({
+          brandId: resolved.preparedScope.initialBrandId,
+          organizationId: context.organizationId,
+          threadId,
+          userId: context.userId,
+        })
+      : resolved.preparedScope.existingScope;
+
+    if (!scope) {
+      throw new InternalServerErrorException(
+        'Unable to resolve server-authoritative agent scope.',
+      );
+    }
+
+    const policy: ResolvedAgentExecutionPolicy = {
+      ...resolved.policy,
+      brandId: scope.brandId,
+      scope,
+    };
+    const scopeMetadata = toAgentScopeMetadata(scope);
 
     const createdRun = await this.agentRunsService.create({
+      brand: scope.brandId,
       label: request.content.slice(0, 120),
       metadata: {
+        agentScope: scopeMetadata,
         model,
         requestedModel: model,
         ...this.buildRoutingMetadata({
@@ -1259,6 +1404,7 @@ export class AgentOrchestratorService {
       ...context,
       resolvedSkills: resolved.resolvedSkills,
       runId,
+      scope,
     };
     await this.recordProfileSnapshot(
       threadId,
@@ -1285,10 +1431,14 @@ export class AgentOrchestratorService {
 
     // Save user message
     await this.agentMessagesService.addMessage({
+      brandId: scope.brandId,
       content: request.content,
-      metadata: request.attachments?.length
-        ? { attachments: request.attachments }
-        : undefined,
+      metadata: {
+        agentScope: scopeMetadata,
+        ...(request.attachments?.length
+          ? { attachments: request.attachments }
+          : {}),
+      },
       organizationId: context.organizationId,
       role: AgentMessageRole.USER,
       room: threadId,
@@ -1308,14 +1458,20 @@ export class AgentOrchestratorService {
     });
 
     if (handledPlanMode) {
-      return { runId, startedAt, threadId };
+      return {
+        brandId: scope.brandId,
+        contextVersion: scope.contextVersion,
+        runId,
+        startedAt,
+        threadId,
+      };
     }
 
     const handledDeterministically =
       (await this.tryHandleBatchGenerationTurnStream({
         context: streamContext,
         model,
-        policy: resolved.policy,
+        policy,
         requestContent: request.content,
         seedTitle,
         startedAt,
@@ -1331,7 +1487,13 @@ export class AgentOrchestratorService {
       }));
 
     if (handledDeterministically) {
-      return { runId, startedAt, threadId };
+      return {
+        brandId: scope.brandId,
+        contextVersion: scope.contextVersion,
+        runId,
+        startedAt,
+        threadId,
+      };
     }
 
     // Fire-and-forget streaming
@@ -1342,7 +1504,7 @@ export class AgentOrchestratorService {
         systemPromptOverride,
         model,
         turnCost,
-        resolved.policy,
+        policy,
         generationPriority,
         resolvedMemories,
         request.agentType,
@@ -1361,7 +1523,13 @@ export class AgentOrchestratorService {
       );
     });
 
-    return { runId, startedAt, threadId };
+    return {
+      brandId: scope.brandId,
+      contextVersion: scope.contextVersion,
+      runId,
+      startedAt,
+      threadId,
+    };
   }
 
   private async runStreamLoop(
@@ -1636,8 +1804,10 @@ export class AgentOrchestratorService {
 
           // Save assistant message to DB
           await this.agentMessagesService.addMessage({
+            brandId: context.scope?.brandId,
             content,
             metadata: {
+              ...this.scopeMetadata(context),
               ...this.buildRoutingMetadata({
                 model,
                 prompt: latestUserMessage,
@@ -1946,6 +2116,7 @@ export class AgentOrchestratorService {
               thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
               threadId,
               userId: context.userId,
+              validatedScope: resolvedPolicy.scope,
             },
           );
 
@@ -2124,30 +2295,28 @@ export class AgentOrchestratorService {
   private async resolveOrCreateThreadId(
     request: AgentChatRequest,
     context: AgentChatContext,
+    preparedScope: PreparedAgentScope,
   ): Promise<ThreadResolutionResult> {
-    const existingThreadId = await this.findAccessibleThreadId(
-      request.threadId,
-      context.organizationId,
-      context.userId,
-    );
-
-    if (existingThreadId) {
+    if (preparedScope.existingScope) {
       return {
+        isCreated: false,
         seedTitle: '',
-        threadId: existingThreadId,
+        threadId: preparedScope.existingScope.threadId,
       };
     }
 
     const seedTitle = this.buildSeedThreadTitle(request.content);
 
     const thread = await this.agentThreadsService.create({
-      organization: context.organizationId,
+      ...preparedScope.initialScopeFields,
+      organizationId: context.organizationId,
       planModeEnabled: request.planModeEnabled ?? false,
       source: request.source || 'agent',
       title: seedTitle,
-      user: context.userId,
+      userId: context.userId,
     } as Record<string, unknown>);
     return {
+      isCreated: true,
       seedTitle,
       threadId: String(thread.id),
     };
@@ -2386,6 +2555,7 @@ export class AgentOrchestratorService {
     fieldId?: string;
     organizationId: string;
     runId?: string;
+    scope: ValidatedAgentScope;
     threadId: string;
     userId: string;
   }): Promise<void> {
@@ -2413,8 +2583,10 @@ export class AgentOrchestratorService {
     const context: AgentChatContext = {
       organizationId: params.organizationId,
       runId: params.runId ?? binding?.runId,
+      scope: params.scope,
       userId: params.userId,
     };
+    await this.recordRunScope(context);
 
     const assistantResponse = await this.processRecurringTaskDraft({
       context,
@@ -2433,8 +2605,10 @@ export class AgentOrchestratorService {
       );
 
     await this.agentMessagesService.addMessage({
+      brandId: context.scope?.brandId,
       content: assistantResponse.content,
       metadata: {
+        ...this.scopeMetadata(context),
         ...assistantResponse.metadata,
         creditsRemaining,
       },
@@ -2486,12 +2660,14 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
+      ...this.scopeMetadata(params.context),
       ...assistantResponse.metadata,
       creditsRemaining,
       totalCreditsUsed: assistantResponse.creditsUsed,
     };
 
     await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
       content: assistantResponse.content,
       metadata: assistantMetadata,
       organizationId: params.context.organizationId,
@@ -2689,6 +2865,7 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
+      ...this.scopeMetadata(params.context),
       ...this.buildRoutingMetadata({
         model: params.model,
         prompt: params.request.content,
@@ -2705,6 +2882,7 @@ export class AgentOrchestratorService {
       'I drafted a plan and paused here for your approval. Review it, then approve or request changes.';
 
     await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
       content,
       metadata: {
         creditsRemaining,
@@ -2816,6 +2994,7 @@ export class AgentOrchestratorService {
         thinkingModel: params.policy.thinkingModelOverride ?? undefined,
         threadId: params.threadId,
         userId: params.context.userId,
+        validatedScope: params.policy.scope,
       },
     );
 
@@ -2893,6 +3072,7 @@ export class AgentOrchestratorService {
         uiActions: result.nextActions ?? [],
       });
     const assistantMetadata = {
+      ...this.scopeMetadata(params.context),
       creditsRemaining,
       ...this.buildResolvedModelMetadata(params.model),
       reviewRequired: result.requiresConfirmation ?? false,
@@ -2905,6 +3085,7 @@ export class AgentOrchestratorService {
     };
 
     await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
       content: fullContent,
       metadata: assistantMetadata,
       organizationId: params.context.organizationId,
@@ -2981,12 +3162,14 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
+      ...this.scopeMetadata(params.context),
       ...assistantResponse.metadata,
       creditsRemaining,
       totalCreditsUsed: assistantResponse.creditsUsed,
     };
 
     await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
       content: assistantResponse.content,
       metadata: assistantMetadata,
       organizationId: params.context.organizationId,
@@ -3106,8 +3289,10 @@ export class AgentOrchestratorService {
         timezone: params.draft.timezone,
       },
       {
+        brandId: params.context.scope?.brandId,
         organizationId: params.context.organizationId,
         runId: params.context.runId,
+        validatedScope: params.context.scope,
         threadId: params.threadId,
         userId: params.context.userId,
       },
@@ -3569,6 +3754,7 @@ export class AgentOrchestratorService {
   ): Promise<{
     model: string | undefined;
     policy: ResolvedAgentExecutionPolicy;
+    preparedScope: PreparedAgentScope;
     resolvedSkills: ResolvedRuntimeSkill[];
     systemPrompt: string | undefined;
     memories: AgentMemoryDocument[];
@@ -3587,10 +3773,24 @@ export class AgentOrchestratorService {
       isDeleted: false,
       organization: context.organizationId,
     });
-    const { policy, strategyModel } = resolveEffectiveAgentExecutionConfig({
-      organizationSettings: orgSettings,
-      strategy,
+    const { policy: basePolicy, strategyModel } =
+      resolveEffectiveAgentExecutionConfig({
+        organizationSettings: orgSettings,
+        strategy,
+      });
+    const preparedScope = await this.agentScopeContextService.prepareForTurn({
+      expectedContextVersion: request.expectedContextVersion,
+      organizationId: context.organizationId,
+      policyBrandId: basePolicy.brandId,
+      requestedBrandId: request.brandId,
+      threadId: request.threadId,
+      userId: context.userId,
     });
+    const policy: ResolvedAgentExecutionPolicy = {
+      ...basePolicy,
+      brandId:
+        preparedScope.existingScope?.brandId ?? preparedScope.initialBrandId,
+    };
 
     let thread: {
       systemPrompt?: string;
@@ -3670,6 +3870,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt: ONBOARDING_SYSTEM_PROMPT,
       };
@@ -3680,6 +3881,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt: BRAND_INTERVIEW_SYSTEM_PROMPT,
       };
@@ -3697,6 +3899,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(brandContext?.defaultModel),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt: prompt,
       };
@@ -3714,6 +3917,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(brandContext?.defaultModel),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt: prompt,
       };
@@ -3739,6 +3943,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(brandContext.defaultModel),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt,
       };
@@ -3764,6 +3969,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt,
       };
@@ -3773,6 +3979,7 @@ export class AgentOrchestratorService {
       memories,
       model: resolveModel(),
       policy,
+      preparedScope,
       resolvedSkills,
       systemPrompt: agentTypeConfig?.systemPromptSuffix
         ? basePrompt
@@ -4155,6 +4362,8 @@ export class AgentOrchestratorService {
         strategyId: params.context.strategyId,
         threadId: params.threadId,
         userId: params.context.userId,
+        brandId: params.context.scope?.brandId,
+        validatedScope: params.context.scope,
       },
     );
     const durationMs = Date.now() - startTime;
@@ -4224,6 +4433,8 @@ export class AgentOrchestratorService {
         strategyId: params.context.strategyId,
         threadId: params.threadId,
         userId: params.context.userId,
+        brandId: params.context.scope?.brandId,
+        validatedScope: params.context.scope,
       },
     );
     const durationMs = Date.now() - startTime;
@@ -4309,6 +4520,8 @@ export class AgentOrchestratorService {
         strategyId: params.context.strategyId,
         threadId: params.threadId,
         userId: params.context.userId,
+        brandId: params.context.scope?.brandId,
+        validatedScope: params.context.scope,
       },
     );
     const durationMs = Date.now() - startTime;
@@ -4411,7 +4624,7 @@ export class AgentOrchestratorService {
       policy: {
         allowAdvancedOverrides: false,
         autonomyMode: AgentAutonomyMode.SUPERVISED,
-        brandId: undefined,
+        brandId: params.context.scope?.brandId,
         creditGovernance: {
           useOrganizationPool: true,
         },
@@ -4420,6 +4633,7 @@ export class AgentOrchestratorService {
         platform: undefined,
         qualityTier: 'balanced',
         reviewModelOverride: undefined,
+        scope: params.context.scope,
         thinkingModelOverride: undefined,
       } as ResolvedAgentExecutionPolicy,
       request,
@@ -4988,6 +5202,7 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
+      ...this.scopeMetadata(params.context),
       isFallbackContent: normalizedContent.isFallback,
       ...this.buildResolvedModelMetadata(params.model),
       reviewRequired: params.result.requiresConfirmation ?? false,
@@ -5001,6 +5216,7 @@ export class AgentOrchestratorService {
     };
 
     await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
       content: normalizedContent.content,
       metadata: {
         creditsRemaining,
