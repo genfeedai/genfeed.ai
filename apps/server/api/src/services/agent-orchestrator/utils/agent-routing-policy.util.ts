@@ -1,6 +1,10 @@
 import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import type { AgentChatRequest } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { OpenRouterPlugin } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import type {
+  AgentRoutingPolicy,
+  AgentRoutingPolicyReason,
+} from '@genfeedai/interfaces';
 
 const EXPLICIT_WEB_SEARCH_PATTERN =
   /\b(browse|find online|google|internet|look up online|online research|search (?:the )?(?:internet|online|web)|web search)\b/i;
@@ -28,16 +32,6 @@ const LIVE_DATA_TOPIC_KEYWORDS = [
   'trending',
   'update',
 ] as const;
-
-export type AgentRoutingPolicyReason =
-  | 'default'
-  | 'explicit-web-search'
-  | 'fresh-live-data';
-
-export interface AgentRoutingPolicy {
-  plugins?: OpenRouterPlugin[];
-  reason: AgentRoutingPolicyReason;
-}
 
 export function resolveAgentRoutingPolicy(params: {
   model: string;

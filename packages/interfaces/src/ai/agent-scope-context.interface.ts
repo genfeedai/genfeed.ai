@@ -10,6 +10,20 @@ export interface AgentScopePayload {
   expectedContextVersion?: number;
 }
 
+export interface AgentRoutingPlugin {
+  id: string;
+}
+
+export type AgentRoutingPolicyReason =
+  | 'default'
+  | 'explicit-web-search'
+  | 'fresh-live-data';
+
+export interface AgentRoutingPolicy {
+  plugins?: AgentRoutingPlugin[];
+  reason: AgentRoutingPolicyReason;
+}
+
 export interface ValidatedAgentScope {
   brandId?: string;
   contextVersion: number;
