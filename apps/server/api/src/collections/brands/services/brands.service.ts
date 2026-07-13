@@ -2265,16 +2265,9 @@ Respond ONLY with the JSON array.`;
       },
     });
 
-    // Move brand-owned workflows (definition + org-keyed execution/batch history)
-    // into the destination org. The scalar workflow.brandId stays unchanged.
+    // Workflow definitions already moved through FIRST_ORDER_TARGETS. Move the
+    // org-keyed execution and batch history that follows those workflows.
     if (workflowsToMove.length > 0) {
-      await client.workflow.updateMany({
-        data: { organizationId: destOrgId },
-        where: {
-          id: { in: workflowsToMove },
-          organizationId: { not: destOrgId },
-        },
-      });
       await client.workflowExecution.updateMany({
         data: { organizationId: destOrgId },
         where: {

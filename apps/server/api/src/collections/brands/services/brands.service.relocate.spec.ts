@@ -353,8 +353,12 @@ describe('BrandsService.relocateToOrganization', () => {
       { isSuperAdmin: true, userId: USER_ID },
     );
 
-    // Workflow definition re-homed to the destination org.
+    // Workflow definition is re-homed once through the first-order brand cascade.
     expect(getDelegate('workflow').updateMany).toHaveBeenCalledWith({
+      data: { organizationId: DEST_ORG },
+      where: { brandId: BRAND_ID, organizationId: { not: DEST_ORG } },
+    });
+    expect(getDelegate('workflow').updateMany).not.toHaveBeenCalledWith({
       data: { organizationId: DEST_ORG },
       where: { id: { in: ['wf_sole'] }, organizationId: { not: DEST_ORG } },
     });

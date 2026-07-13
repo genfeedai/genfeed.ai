@@ -91,7 +91,6 @@ export interface WorkflowDocument
   > {
   organization?: string;
   user?: string;
-  brand?: string | null;
   name?: string | null;
   trigger?: string;
   sourceAsset?: string | null;

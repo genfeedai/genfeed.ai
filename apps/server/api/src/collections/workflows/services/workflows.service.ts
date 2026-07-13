@@ -29,7 +29,12 @@ import {
   WorkflowStepStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ForbiddenException, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 type WorkflowCreateExtras = CreateWorkflowDto & {
   brandId?: string | null;
@@ -114,6 +119,25 @@ export class WorkflowsService extends BaseService<
       .filter((id) => id.length > 0);
 
     return legacyIds[0] ?? fallbackBrandId;
+  }
+
+  private async assertWorkflowBrandAccess(
+    brandId: string | undefined,
+    organizationId: string,
+  ): Promise<void> {
+    if (!brandId) {
+      return;
+    }
+
+    const brand = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: { id: brandId, isDeleted: false, organizationId },
+    });
+    if (!brand) {
+      throw new BadRequestException(
+        'Brand is not available in this organization',
+      );
+    }
   }
 
   private normalizeWorkflowStepsForCreate(
@@ -279,6 +303,7 @@ export class WorkflowsService extends BaseService<
       (workflowData as WorkflowCreateExtras).brands,
       defaultBrandId,
     );
+    await this.assertWorkflowBrandAccess(brandId, organizationId);
 
     const workflow = await this.create(
       this.buildWorkflowCreatePayload({
@@ -478,6 +503,7 @@ export class WorkflowsService extends BaseService<
         workflowDoc.brandId,
         (workflowDoc as WorkflowCreateExtras).brands,
       );
+    await this.assertWorkflowBrandAccess(brandId, organizationId);
 
     const clonedWorkflow = await this.create(
       this.buildWorkflowCreatePayload({

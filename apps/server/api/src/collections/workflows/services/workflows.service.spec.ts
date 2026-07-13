@@ -11,12 +11,17 @@ describe('WorkflowsService template creation', () => {
     log: vi.fn(),
     warn: vi.fn(),
   };
+  const brandFindFirst = vi.fn();
 
   let service: WorkflowsService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new WorkflowsService({} as never, logger as never);
+    brandFindFirst.mockResolvedValue({ id: 'brand-1' });
+    service = new WorkflowsService(
+      { brand: { findFirst: brandFindFirst } } as never,
+      logger as never,
+    );
     vi.spyOn(service, 'create').mockResolvedValue({
       _id: { toString: () => 'workflow-1' },
       id: 'workflow-1',
@@ -172,6 +177,28 @@ describe('WorkflowsService template creation', () => {
     expect(createInput.user).toBeUndefined();
   });
 
+  it('rejects workflow brands outside the authenticated organization', async () => {
+    brandFindFirst.mockResolvedValue(null);
+
+    await expect(
+      service.createWorkflow('user-1', 'org-1', {
+        brandId: 'foreign-brand',
+        edges: [],
+        nodes: [],
+      } as never),
+    ).rejects.toThrow('Brand is not available in this organization');
+
+    expect(brandFindFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        id: 'foreign-brand',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(service.create).not.toHaveBeenCalled();
+  });
+
   it('skips initial manual execution when required inputs do not have defaults', async () => {
     await service.createWorkflow('user-1', 'org-1', {
       edges: [],
@@ -225,12 +252,17 @@ describe('WorkflowsService system workflow guardrails', () => {
     log: vi.fn(),
     warn: vi.fn(),
   };
+  const brandFindFirst = vi.fn();
 
   let service: WorkflowsService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new WorkflowsService({} as never, logger as never);
+    brandFindFirst.mockResolvedValue({ id: 'brand-1' });
+    service = new WorkflowsService(
+      { brand: { findFirst: brandFindFirst } } as never,
+      logger as never,
+    );
   });
 
   it('rejects mutable access to protected system workflows', async () => {
@@ -420,6 +452,34 @@ describe('WorkflowsService system workflow guardrails', () => {
     expect(createInput.mongoId).toBeUndefined();
     expect(createInput.organization).toBeUndefined();
     expect(createInput.user).toBeUndefined();
+  });
+
+  it('rejects clone target brands outside the authenticated organization', async () => {
+    vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
+      brandId: 'source-brand',
+      edges: [],
+      id: 'workflow-1',
+      inputVariables: [],
+      label: 'Launch Workflow',
+      nodes: [],
+      steps: [],
+    } as never);
+    vi.spyOn(service, 'create').mockResolvedValue({} as never);
+    brandFindFirst.mockResolvedValue(null);
+
+    await expect(
+      service.cloneWorkflow('workflow-1', 'user-1', 'org-1', 'foreign-brand'),
+    ).rejects.toThrow('Brand is not available in this organization');
+
+    expect(brandFindFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        id: 'foreign-brand',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(service.create).not.toHaveBeenCalled();
   });
 });
 
