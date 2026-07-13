@@ -149,6 +149,8 @@ describe('useAgentChatStream', () => {
         }
 
         return {
+          brandId: null,
+          contextVersion: 1,
           runId: 'run-1',
           startedAt,
           threadId: 'thread-new',
@@ -173,6 +175,13 @@ describe('useAgentChatStream', () => {
     expect(state.activeRunId).toBe('run-1');
     expect(state.runStartedAt).toBe(startedAt);
     expect(state.stream.streamingContent).toBe('Hello world');
+    expect(state.threads[0]).toEqual(
+      expect.objectContaining({
+        brandId: null,
+        contextVersion: 1,
+        id: 'thread-new',
+      }),
+    );
   });
 
   it('falls back to non-streaming chat when the socket is not ready', async () => {
@@ -181,6 +190,8 @@ describe('useAgentChatStream', () => {
 
     const apiService = createApiService({
       chat: vi.fn().mockResolvedValue({
+        brandId: null,
+        contextVersion: 1,
         creditsRemaining: 96,
         creditsUsed: 4,
         message: {
@@ -218,6 +229,13 @@ describe('useAgentChatStream', () => {
     expect(state.activeThreadId).toBe('thread-fallback');
     expect(state.messages.at(-1)?.content).toBe('Here are your analytics.');
     expect(state.stream.isStreaming).toBe(false);
+    expect(state.threads[0]).toEqual(
+      expect.objectContaining({
+        brandId: null,
+        contextVersion: 1,
+        id: 'thread-fallback',
+      }),
+    );
   });
 
   it('uses the runtime default model for streaming sends when no override is supplied', async () => {

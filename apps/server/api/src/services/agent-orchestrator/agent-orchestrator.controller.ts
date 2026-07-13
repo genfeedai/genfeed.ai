@@ -7,11 +7,9 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
-import {
-  AgentOrchestratorService,
-  type AgentPageContext,
-} from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AGENT_MODEL_TURN_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
+import type { AgentPageContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -35,7 +33,9 @@ interface AgentChatAttachment {
 }
 
 interface AgentChatBody {
+  brandId?: string | null;
   content: string;
+  expectedContextVersion?: number;
   pageContext?: AgentPageContext;
   planModeEnabled?: boolean;
   threadId?: string;
@@ -159,7 +159,9 @@ export class AgentOrchestratorController {
 
     return {
       attachments: body.attachments,
+      brandId: body.brandId,
       content: body.content,
+      expectedContextVersion: body.expectedContextVersion,
       model: body.model,
       pageContext: body.pageContext,
       planModeEnabled: body.planModeEnabled,

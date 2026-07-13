@@ -853,6 +853,7 @@ model Brand {
   agentRuns                  AgentRun[]
   agentMemories              AgentMemory[]
   agentMessages              AgentMessage[]
+  agentThreads               AgentThread[]
   socialConversations        SocialConversation[]
   socialMessages             SocialMessage[]
   agentStrategyOpportunities AgentStrategyOpportunity[]
@@ -1903,6 +1904,10 @@ model Post {
   workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id])
   agentRunId          String?
   agentRun            AgentRun?          @relation("post_agent_run", fields: [agentRunId], references: [id])
+  agentThreadId       String?
+  agentThread         AgentThread?       @relation("post_agent_thread_scope", fields: [agentThreadId], references: [id])
+  agentContextVersion Int?
+  agentContextSource  String?
   agentStrategyId     String?
   agentStrategy       AgentStrategy?     @relation("post_agent_strategy", fields: [agentStrategyId], references: [id])
 
@@ -1987,6 +1992,7 @@ model Post {
   @@index([variantId])
   @@index([generationId])
   @@index([agentRunId])
+  @@index([agentThreadId])
   @@index([agentStrategyId])
   @@index([isDeleted, parentId, scheduledDate, status])
   @@index([isDeleted, organizationId, status])
@@ -2586,21 +2592,32 @@ model AgentThread {
   user           User         @relation(fields: [userId], references: [id])
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
+  brandId        String?
+  brand           Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   title          String?
   status         String?      @default("active")
   config         Json         @default("{}")
+  contextVersion Int          @default(1)
+  scopeChangeProvenance Json  @default("[]")
+  isLegacyBrandFallbackEligible Boolean @default(false)
+  legacyBrandFallbackCount Int @default(0)
+  legacyBrandFallbackLastUsedAt DateTime?
+  legacyBrandFallbackLastSource String?
+  legacyBrandFallbackLastBrandId String?
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   messages      AgentMessage[]
   runs          AgentRun[]
+  posts         Post[]                @relation("post_agent_thread_scope")
   events        AgentThreadEvent[]
   snapshots     AgentThreadSnapshot[]
   contextStates ThreadContextState[]
   tasks         Task[]                @relation("task_planning_thread")
 
   @@index([organizationId, isDeleted, updatedAt(sort: Desc)])
+  @@index([organizationId, brandId, isDeleted, updatedAt(sort: Desc)], map: "agent_threads_org_brand_deleted_updated_at_idx")
   @@map("agent_threads")
 }
 

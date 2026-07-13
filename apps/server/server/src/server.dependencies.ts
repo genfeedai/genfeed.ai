@@ -142,12 +142,15 @@ export interface ServerPostRecord {
 
 export interface ServerPrisma {
   $queryRaw<T = unknown>(query: Prisma.Sql): Promise<T>;
+  agentMessage: PrismaClient['agentMessage'];
+  agentThread: PrismaClient['agentThread'];
   adBulkUploadJob: PrismaClient['adBulkUploadJob'];
   adCreativeMapping: PrismaClient['adCreativeMapping'];
   adOptimizationAuditLog: PrismaClient['adOptimizationAuditLog'];
   adOptimizationConfig: PrismaClient['adOptimizationConfig'];
   adOptimizationRecommendation: PrismaClient['adOptimizationRecommendation'];
   adPerformance: PrismaClient['adPerformance'];
+  brand: PrismaClient['brand'];
   contentPerformance: {
     create(args: unknown): Promise<unknown>;
     findFirst(

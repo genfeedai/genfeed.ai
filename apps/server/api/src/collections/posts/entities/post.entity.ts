@@ -28,6 +28,9 @@ export class PostEntity extends BaseEntity {
   declare readonly brand: string;
   declare readonly organization: string;
   declare readonly children?: string[];
+  declare readonly agentContextSource?: string;
+  declare readonly agentContextVersion?: number;
+  declare readonly agentThreadId?: string;
 
   declare readonly externalId: string;
   declare readonly externalShortcode?: string;

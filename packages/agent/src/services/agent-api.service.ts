@@ -10,6 +10,7 @@ import type {
   AgentThreadSnapshot,
   CreateThreadPayload,
   SendMessagePayload,
+  UpdateAgentThreadContextPayload,
 } from '@genfeedai/agent/models/agent-chat.model';
 import {
   type AgentApiError,
@@ -19,6 +20,7 @@ import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.se
 import { AgentThreadStatus } from '@genfeedai/enums';
 import type {
   AgentContentMentionsResponse,
+  AgentScopePayload,
   AgentTeamMentionsResponse,
   AgentContentMentionItem as ContentMentionItem,
   IModel,
@@ -307,6 +309,19 @@ export class AgentApiService extends AgentBaseApiService {
     );
   }
 
+  updateThreadContextEffect(
+    threadId: string,
+    payload: UpdateAgentThreadContextPayload,
+    signal?: AbortSignal,
+  ): Effect.Effect<AgentThread, AgentApiError> {
+    return this.fetchResourceEffect<AgentThread>(
+      `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/context`,
+      { body: JSON.stringify(payload), method: 'PATCH', signal },
+      'Failed to update thread context',
+      'Failed to deserialize thread context',
+    );
+  }
+
   getInstallReadinessEffect(
     signal?: AbortSignal,
   ): Effect.Effect<AgentInstallReadiness, AgentApiError> {
@@ -334,6 +349,7 @@ export class AgentApiService extends AgentBaseApiService {
     requestId: string,
     answer: string,
     signal?: AbortSignal,
+    scope?: AgentScopePayload,
   ): Effect.Effect<
     {
       answer: string | null;
@@ -352,7 +368,11 @@ export class AgentApiService extends AgentBaseApiService {
       threadId: string;
     }>(
       `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/input-requests/${requestId}/responses`,
-      { body: JSON.stringify({ answer }), method: 'POST', signal },
+      {
+        body: JSON.stringify({ answer, ...(scope ?? {}) }),
+        method: 'POST',
+        signal,
+      },
       'Failed to respond to input request',
     );
   }
@@ -362,11 +382,12 @@ export class AgentApiService extends AgentBaseApiService {
     action: string,
     payload?: Record<string, unknown>,
     signal?: AbortSignal,
+    scope?: AgentScopePayload,
   ): Effect.Effect<AgentChatResponse, AgentApiError> {
     return this.fetchJsonEffect<AgentChatResponse>(
       `${this.config.baseUrl}${AGENT_THREADS_ENDPOINT}/${threadId}/ui-actions`,
       {
-        body: JSON.stringify({ action, payload }),
+        body: JSON.stringify({ action, payload, ...(scope ?? {}) }),
         method: 'POST',
         signal,
       },

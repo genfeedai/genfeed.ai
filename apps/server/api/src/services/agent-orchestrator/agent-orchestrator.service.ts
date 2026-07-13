@@ -43,12 +43,32 @@ import {
 } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
+import type {
+  AgentChatAttachment,
+  AgentChatContext,
+  AgentChatRequest,
+  AgentChatResult,
+  AgentThreadUiActionRequest,
+  ThreadResolutionResult,
+  ToolCallSummary,
+} from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   type AgentGenerationPriority,
   ResolvedAgentExecutionPolicy,
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
+import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
+import {
+  buildAgentRoutingMetadata,
+  resolveAgentRoutingPlugins,
+  resolveAgentRoutingPolicy,
+} from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
+import {
+  buildAgentScopeMetadata,
+  recordAgentRunScope,
+  withAgentScopeResult,
+} from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
@@ -76,8 +96,14 @@ import {
   type AgentUIBlock,
   type AgentUIBlocksEvent,
   type AgentUiAction,
+  toAgentScopeMetadata,
+  type ValidatedAgentScope,
 } from '@genfeedai/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
+import {
+  AgentScopeContextService,
+  type PreparedAgentScope,
+} from '@genfeedai/server';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -90,131 +116,12 @@ import {
 } from '@nestjs/common';
 import { Effect } from 'effect';
 
-const EXPLICIT_WEB_SEARCH_PATTERN =
-  /\b(browse|find online|google|internet|look up online|online research|search (?:the )?(?:internet|online|web)|web search)\b/i;
-const LIVE_DATA_KEYWORDS = [
-  'breaking',
-  'current',
-  'latest',
-  'live data',
-  'news today',
-  'recent',
-  'right now',
-  'today',
-  'up to date',
-] as const;
-const LIVE_DATA_TOPIC_KEYWORDS = [
-  'algorithm',
-  'announcement',
-  'competitor',
-  'creator economy',
-  'market',
-  'news',
-  'pricing',
-  'release',
-  'trend',
-  'trending',
-  'update',
-] as const;
-
-type AgentRoutingPolicyReason =
-  | 'default'
-  | 'explicit-web-search'
-  | 'fresh-live-data';
-
-interface AgentRoutingPolicy {
-  plugins?: OpenRouterPlugin[];
-  reason: AgentRoutingPolicyReason;
-}
-
-interface ThreadResolutionResult {
-  seedTitle: string;
-  threadId: string;
-}
-
 const PAID_SUBSCRIPTION_TIERS = new Set<string>([
   SubscriptionTier.PRO,
   SubscriptionTier.SCALE,
   SubscriptionTier.ENTERPRISE,
 ]);
 
-export interface AgentChatAttachment {
-  ingredientId: string;
-  url: string;
-  kind?: string;
-  name?: string;
-}
-
-export interface AgentPageContext {
-  contentFormat?: string;
-  draftBody?: string;
-  draftInstructions?: string;
-  draftSummary?: string;
-  draftTitle?: string;
-  draftType?: string;
-  postAuthor?: string;
-  postContent?: string;
-  route?: string;
-  selectedText?: string;
-  url?: string;
-}
-
-export interface AgentChatRequest {
-  agentType?: AgentType;
-  attachments?: AgentChatAttachment[];
-  content: string;
-  pageContext?: AgentPageContext;
-  planModeEnabled?: boolean;
-  threadId?: string;
-  model?: string;
-  source?: 'agent' | 'proactive' | 'onboarding';
-  systemPromptOverride?: string;
-}
-
-export interface AgentChatContext {
-  authToken?: string;
-  /** Campaign ID — when set, enables campaign coordination features */
-  campaignId?: string;
-  generationPriority?: string;
-  organizationId: string;
-  /** Resolved runtime skills for tool set augmentation */
-  resolvedSkills?: ResolvedRuntimeSkill[];
-  /** When set, tool call progress is tracked against this agent-runs record */
-  runId?: string;
-  /** Strategy ID — enables content attribution on created posts/content */
-  strategyId?: string;
-  userId: string;
-}
-
-export interface ToolCallSummary {
-  creditsUsed: number;
-  durationMs: number;
-  error?: string;
-  parameters?: Record<string, unknown>;
-  resultSummary?: string;
-  status: 'completed' | 'failed';
-  toolName: string;
-}
-
-export interface AgentChatResult {
-  threadId: string;
-  creditsRemaining: number;
-  creditsUsed: number;
-  message: {
-    content: string;
-    metadata: Record<string, unknown>;
-    role: string;
-  };
-  toolCalls: ToolCallSummary[];
-}
-
-export interface AgentThreadUiActionRequest {
-  action: string;
-  payload?: Record<string, unknown>;
-  threadId: string;
-}
-
-const MAX_PAGE_CONTEXT_FIELD_LENGTH = 4_000;
 const RESULT_SUMMARY_MAX_LENGTH = 500;
 
 // During live token streaming, cancellation cannot be checked per token
@@ -236,49 +143,6 @@ class StreamCancelledError extends Error {
     super('agent stream cancelled');
     this.name = 'StreamCancelledError';
   }
-}
-
-function clampPageContextField(value?: string): string | null {
-  const normalized = value?.replace(/\s+/g, ' ').trim();
-
-  if (!normalized) {
-    return null;
-  }
-
-  if (normalized.length <= MAX_PAGE_CONTEXT_FIELD_LENGTH) {
-    return normalized;
-  }
-
-  return `${normalized.slice(0, MAX_PAGE_CONTEXT_FIELD_LENGTH)}...`;
-}
-
-function buildPageContextPrompt(pageContext?: AgentPageContext): string {
-  if (!pageContext) {
-    return '';
-  }
-
-  const fields = [
-    ['Route', pageContext.route || pageContext.url],
-    ['Draft type', pageContext.draftType],
-    ['Format', pageContext.contentFormat],
-    ['Title', pageContext.draftTitle],
-    ['Summary', pageContext.draftSummary],
-    ['Instructions', pageContext.draftInstructions],
-    ['Selected text', pageContext.selectedText],
-    ['Draft body', pageContext.draftBody || pageContext.postContent],
-  ]
-    .map(([label, value]) => {
-      const clamped = clampPageContextField(value);
-      return clamped ? `- ${label}: ${clamped}` : null;
-    })
-    .filter(Boolean)
-    .join('\n');
-
-  if (!fields) {
-    return '';
-  }
-
-  return `\n\n## Current Page Context\nThe user is working in a visible Genfeed surface. Use this context when answering, especially for writing co-pilot requests. Propose edits, structure, or next actions against the current draft instead of starting from scratch unless asked.\n${fields}`;
 }
 
 function summarizeToolResult(result: {
@@ -348,6 +212,7 @@ export class AgentOrchestratorService {
     private readonly loggerService: LoggerService,
     private readonly llmDispatcher: LlmDispatcherService,
     private readonly agentThreadsService: AgentThreadsService,
+    private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMemoriesService: AgentMemoriesService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly contextAssemblyService: AgentContextAssemblyService,
@@ -412,9 +277,6 @@ export class AgentOrchestratorService {
       if (resolved.model !== request.model) {
         request = { ...request, model: resolved.model };
       }
-      // Attach resolved skills to context for tool set augmentation
-      context = { ...context, resolvedSkills: resolved.resolvedSkills };
-
       const model = request.model || DEFAULT_AGENT_CHAT_MODEL;
 
       // Brand interview turns are free — the engine charges 10 credits once via
@@ -438,8 +300,35 @@ export class AgentOrchestratorService {
       const threadResolution = await this.resolveOrCreateThreadId(
         request,
         context,
+        resolved.preparedScope,
       );
-      const { seedTitle, threadId } = threadResolution;
+      const { isCreated, seedTitle, threadId } = threadResolution;
+      const scope = isCreated
+        ? await this.agentScopeContextService.resolveCreatedThreadScope({
+            brandId: resolved.preparedScope.initialBrandId,
+            organizationId: context.organizationId,
+            threadId,
+            userId: context.userId,
+          })
+        : resolved.preparedScope.existingScope;
+
+      if (!scope) {
+        throw new InternalServerErrorException(
+          'Unable to resolve server-authoritative agent scope.',
+        );
+      }
+
+      const policy: ResolvedAgentExecutionPolicy = {
+        ...resolved.policy,
+        brandId: scope.brandId,
+        scope,
+      };
+      context = {
+        ...context,
+        resolvedSkills: resolved.resolvedSkills,
+        scope,
+      };
+      await recordAgentRunScope(this.agentRunsService, context);
       await this.recordProfileSnapshot(threadId, context, request.agentType);
       await this.threadEventRecorder.recordThreadTurnRequested({
         content: request.content,
@@ -452,10 +341,14 @@ export class AgentOrchestratorService {
 
       // Save user message
       await this.agentMessagesService.addMessage({
+        brandId: scope.brandId,
         content: request.content,
-        metadata: request.attachments?.length
-          ? { attachments: request.attachments }
-          : undefined,
+        metadata: {
+          agentScope: toAgentScopeMetadata(scope),
+          ...(request.attachments?.length
+            ? { attachments: request.attachments }
+            : {}),
+        },
         organizationId: context.organizationId,
         role: AgentMessageRole.USER,
         room: threadId,
@@ -474,7 +367,7 @@ export class AgentOrchestratorService {
       });
 
       if (planModeResponse) {
-        return planModeResponse;
+        return withAgentScopeResult(planModeResponse, scope);
       }
 
       const deterministicResponse = await this.tryHandleRecurringTaskDraftTurn({
@@ -486,15 +379,15 @@ export class AgentOrchestratorService {
       });
 
       if (deterministicResponse) {
-        return deterministicResponse;
+        return withAgentScopeResult(deterministicResponse, scope);
       }
 
-      return await this.runInThreadLane(threadId, async () => {
-        return await this.executeSynchronousChatLoop({
+      const result = await this.runInThreadLane(threadId, async () => {
+        return this.executeSynchronousChatLoop({
           context,
           generationPriority,
           model,
-          policy: resolved.policy,
+          policy,
           request,
           resolvedMemories,
           seedTitle,
@@ -503,6 +396,7 @@ export class AgentOrchestratorService {
           turnCost,
         });
       });
+      return withAgentScopeResult(result, scope);
     } catch (error: unknown) {
       if (error instanceof Error && error.name.includes('ValidationError')) {
         this.loggerService.error(
@@ -549,6 +443,38 @@ export class AgentOrchestratorService {
       throw new BadRequestException('Thread not found or inaccessible.');
     }
 
+    const orgSettings = await this.organizationSettingsService.findOne({
+      isDeleted: false,
+      organization: context.organizationId,
+    });
+    const { policy: basePolicy } = resolveEffectiveAgentExecutionConfig({
+      organizationSettings: orgSettings,
+    });
+    const preparedScope = await this.agentScopeContextService.prepareForTurn({
+      expectedContextVersion: request.expectedContextVersion,
+      organizationId: context.organizationId,
+      policyBrandId: basePolicy.brandId,
+      requestedBrandId: request.brandId,
+      threadId,
+      userId: context.userId,
+    });
+    const scope = preparedScope.existingScope;
+    if (!scope) {
+      throw new InternalServerErrorException(
+        'Unable to resolve server-authoritative agent scope.',
+      );
+    }
+    await this.agentScopeContextService.assertConsequentialBoundary(
+      scope,
+      'tool',
+    );
+    context = {
+      ...context,
+      generationPriority: basePolicy.generationPriority,
+      scope,
+    };
+    await recordAgentRunScope(this.agentRunsService, context);
+
     const model = await this.resolveThreadUiActionModel(
       threadId,
       context.organizationId,
@@ -575,47 +501,54 @@ export class AgentOrchestratorService {
       });
 
       try {
+        let result: AgentChatResult;
         switch (request.action) {
           case 'approve_plan':
-            return await this.executeApprovedPlanAction({
+            result = await this.executeApprovedPlanAction({
               context,
               model,
               payload: request.payload,
               threadId,
             });
+            break;
           case 'revise_plan':
-            return await this.executeRevisedPlanAction({
+            result = await this.executeRevisedPlanAction({
               context,
               model,
               payload: request.payload,
               threadId,
             });
+            break;
           case 'confirm_install_official_workflow':
-            return await this.executeConfirmedInstallOfficialWorkflowAction({
+            result = await this.executeConfirmedInstallOfficialWorkflowAction({
               context,
               model,
               payload: request.payload,
               threadId,
             });
+            break;
           case 'confirm_save_brand_voice_profile':
-            return await this.executeConfirmedSaveBrandVoiceProfileAction({
+            result = await this.executeConfirmedSaveBrandVoiceProfileAction({
               context,
               model,
               payload: request.payload,
               threadId,
             });
+            break;
           case 'confirm_publish_post':
-            return await this.executeConfirmedPublishPostAction({
+            result = await this.executeConfirmedPublishPostAction({
               context,
               model,
               payload: request.payload,
               threadId,
             });
+            break;
           default:
             throw new BadRequestException(
               `Unsupported thread UI action: ${request.action}`,
             );
         }
+        return withAgentScopeResult(result, scope);
       } catch (error: unknown) {
         await this.threadEventRecorder.recordRunFailed({
           context,
@@ -803,7 +736,8 @@ export class AgentOrchestratorService {
               uiActions: allUiActions,
             });
           const assistantMetadata = {
-            ...this.buildRoutingMetadata({
+            ...buildAgentScopeMetadata(context),
+            ...buildAgentRoutingMetadata({
               model,
               prompt: request.content,
               source: request.source,
@@ -824,6 +758,7 @@ export class AgentOrchestratorService {
           };
 
           await this.agentMessagesService.addMessage({
+            brandId: context.scope?.brandId,
             content,
             metadata: {
               creditsRemaining,
@@ -1075,6 +1010,7 @@ export class AgentOrchestratorService {
               thinkingModel: policy.thinkingModelOverride ?? model,
               threadId,
               userId: context.userId,
+              validatedScope: policy.scope,
             },
           );
           const durationMs = Date.now() - startTime;
@@ -1185,7 +1121,13 @@ export class AgentOrchestratorService {
   async chatStream(
     request: AgentChatRequest,
     context: AgentChatContext,
-  ): Promise<{ threadId: string; runId: string; startedAt: string }> {
+  ): Promise<{
+    brandId?: string;
+    contextVersion: number;
+    threadId: string;
+    runId: string;
+    startedAt: string;
+  }> {
     // Look up user's generation priority setting
     const userSettings = await this.settingsService.findOne({
       isDeleted: false,
@@ -1226,15 +1168,39 @@ export class AgentOrchestratorService {
     const threadResolution = await this.resolveOrCreateThreadId(
       request,
       context,
+      resolved.preparedScope,
     );
-    const { seedTitle, threadId } = threadResolution;
+    const { isCreated, seedTitle, threadId } = threadResolution;
+    const scope = isCreated
+      ? await this.agentScopeContextService.resolveCreatedThreadScope({
+          brandId: resolved.preparedScope.initialBrandId,
+          organizationId: context.organizationId,
+          threadId,
+          userId: context.userId,
+        })
+      : resolved.preparedScope.existingScope;
+
+    if (!scope) {
+      throw new InternalServerErrorException(
+        'Unable to resolve server-authoritative agent scope.',
+      );
+    }
+
+    const policy: ResolvedAgentExecutionPolicy = {
+      ...resolved.policy,
+      brandId: scope.brandId,
+      scope,
+    };
+    const scopeMetadata = toAgentScopeMetadata(scope);
 
     const createdRun = await this.agentRunsService.create({
+      brand: scope.brandId,
       label: request.content.slice(0, 120),
       metadata: {
+        agentScope: scopeMetadata,
         model,
         requestedModel: model,
-        ...this.buildRoutingMetadata({
+        ...buildAgentRoutingMetadata({
           model,
           prompt: request.content,
           source: request.source,
@@ -1259,6 +1225,7 @@ export class AgentOrchestratorService {
       ...context,
       resolvedSkills: resolved.resolvedSkills,
       runId,
+      scope,
     };
     await this.recordProfileSnapshot(
       threadId,
@@ -1285,10 +1252,14 @@ export class AgentOrchestratorService {
 
     // Save user message
     await this.agentMessagesService.addMessage({
+      brandId: scope.brandId,
       content: request.content,
-      metadata: request.attachments?.length
-        ? { attachments: request.attachments }
-        : undefined,
+      metadata: {
+        agentScope: scopeMetadata,
+        ...(request.attachments?.length
+          ? { attachments: request.attachments }
+          : {}),
+      },
       organizationId: context.organizationId,
       role: AgentMessageRole.USER,
       room: threadId,
@@ -1308,14 +1279,20 @@ export class AgentOrchestratorService {
     });
 
     if (handledPlanMode) {
-      return { runId, startedAt, threadId };
+      return {
+        brandId: scope.brandId,
+        contextVersion: scope.contextVersion,
+        runId,
+        startedAt,
+        threadId,
+      };
     }
 
     const handledDeterministically =
       (await this.tryHandleBatchGenerationTurnStream({
         context: streamContext,
         model,
-        policy: resolved.policy,
+        policy,
         requestContent: request.content,
         seedTitle,
         startedAt,
@@ -1331,7 +1308,13 @@ export class AgentOrchestratorService {
       }));
 
     if (handledDeterministically) {
-      return { runId, startedAt, threadId };
+      return {
+        brandId: scope.brandId,
+        contextVersion: scope.contextVersion,
+        runId,
+        startedAt,
+        threadId,
+      };
     }
 
     // Fire-and-forget streaming
@@ -1342,7 +1325,7 @@ export class AgentOrchestratorService {
         systemPromptOverride,
         model,
         turnCost,
-        resolved.policy,
+        policy,
         generationPriority,
         resolvedMemories,
         request.agentType,
@@ -1361,7 +1344,13 @@ export class AgentOrchestratorService {
       );
     });
 
-    return { runId, startedAt, threadId };
+    return {
+      brandId: scope.brandId,
+      contextVersion: scope.contextVersion,
+      runId,
+      startedAt,
+      threadId,
+    };
   }
 
   private async runStreamLoop(
@@ -1636,9 +1625,11 @@ export class AgentOrchestratorService {
 
           // Save assistant message to DB
           await this.agentMessagesService.addMessage({
+            brandId: context.scope?.brandId,
             content,
             metadata: {
-              ...this.buildRoutingMetadata({
+              ...buildAgentScopeMetadata(context),
+              ...buildAgentRoutingMetadata({
                 model,
                 prompt: latestUserMessage,
                 source,
@@ -1946,6 +1937,7 @@ export class AgentOrchestratorService {
               thinkingModel: resolvedPolicy.thinkingModelOverride ?? undefined,
               threadId,
               userId: context.userId,
+              validatedScope: resolvedPolicy.scope,
             },
           );
 
@@ -2124,30 +2116,28 @@ export class AgentOrchestratorService {
   private async resolveOrCreateThreadId(
     request: AgentChatRequest,
     context: AgentChatContext,
+    preparedScope: PreparedAgentScope,
   ): Promise<ThreadResolutionResult> {
-    const existingThreadId = await this.findAccessibleThreadId(
-      request.threadId,
-      context.organizationId,
-      context.userId,
-    );
-
-    if (existingThreadId) {
+    if (preparedScope.existingScope) {
       return {
+        isCreated: false,
         seedTitle: '',
-        threadId: existingThreadId,
+        threadId: preparedScope.existingScope.threadId,
       };
     }
 
     const seedTitle = this.buildSeedThreadTitle(request.content);
 
     const thread = await this.agentThreadsService.create({
-      organization: context.organizationId,
+      ...preparedScope.initialScopeFields,
+      organizationId: context.organizationId,
       planModeEnabled: request.planModeEnabled ?? false,
       source: request.source || 'agent',
       title: seedTitle,
-      user: context.userId,
+      userId: context.userId,
     } as Record<string, unknown>);
     return {
+      isCreated: true,
       seedTitle,
       threadId: String(thread.id),
     };
@@ -2386,6 +2376,7 @@ export class AgentOrchestratorService {
     fieldId?: string;
     organizationId: string;
     runId?: string;
+    scope: ValidatedAgentScope;
     threadId: string;
     userId: string;
   }): Promise<void> {
@@ -2413,8 +2404,10 @@ export class AgentOrchestratorService {
     const context: AgentChatContext = {
       organizationId: params.organizationId,
       runId: params.runId ?? binding?.runId,
+      scope: params.scope,
       userId: params.userId,
     };
+    await recordAgentRunScope(this.agentRunsService, context);
 
     const assistantResponse = await this.processRecurringTaskDraft({
       context,
@@ -2433,8 +2426,10 @@ export class AgentOrchestratorService {
       );
 
     await this.agentMessagesService.addMessage({
+      brandId: context.scope?.brandId,
       content: assistantResponse.content,
       metadata: {
+        ...buildAgentScopeMetadata(context),
         ...assistantResponse.metadata,
         creditsRemaining,
       },
@@ -2486,12 +2481,14 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
+      ...buildAgentScopeMetadata(params.context),
       ...assistantResponse.metadata,
       creditsRemaining,
       totalCreditsUsed: assistantResponse.creditsUsed,
     };
 
     await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
       content: assistantResponse.content,
       metadata: assistantMetadata,
       organizationId: params.context.organizationId,
@@ -2689,7 +2686,8 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
-      ...this.buildRoutingMetadata({
+      ...buildAgentScopeMetadata(params.context),
+      ...buildAgentRoutingMetadata({
         model: params.model,
         prompt: params.request.content,
         source: params.request.source,
@@ -2705,6 +2703,7 @@ export class AgentOrchestratorService {
       'I drafted a plan and paused here for your approval. Review it, then approve or request changes.';
 
     await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
       content,
       metadata: {
         creditsRemaining,
@@ -2816,6 +2815,7 @@ export class AgentOrchestratorService {
         thinkingModel: params.policy.thinkingModelOverride ?? undefined,
         threadId: params.threadId,
         userId: params.context.userId,
+        validatedScope: params.policy.scope,
       },
     );
 
@@ -2893,6 +2893,7 @@ export class AgentOrchestratorService {
         uiActions: result.nextActions ?? [],
       });
     const assistantMetadata = {
+      ...buildAgentScopeMetadata(params.context),
       creditsRemaining,
       ...this.buildResolvedModelMetadata(params.model),
       reviewRequired: result.requiresConfirmation ?? false,
@@ -2905,6 +2906,7 @@ export class AgentOrchestratorService {
     };
 
     await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
       content: fullContent,
       metadata: assistantMetadata,
       organizationId: params.context.organizationId,
@@ -2981,12 +2983,14 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
+      ...buildAgentScopeMetadata(params.context),
       ...assistantResponse.metadata,
       creditsRemaining,
       totalCreditsUsed: assistantResponse.creditsUsed,
     };
 
     await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
       content: assistantResponse.content,
       metadata: assistantMetadata,
       organizationId: params.context.organizationId,
@@ -3106,8 +3110,10 @@ export class AgentOrchestratorService {
         timezone: params.draft.timezone,
       },
       {
+        brandId: params.context.scope?.brandId,
         organizationId: params.context.organizationId,
         runId: params.context.runId,
+        validatedScope: params.context.scope,
         threadId: params.threadId,
         userId: params.context.userId,
       },
@@ -3569,6 +3575,7 @@ export class AgentOrchestratorService {
   ): Promise<{
     model: string | undefined;
     policy: ResolvedAgentExecutionPolicy;
+    preparedScope: PreparedAgentScope;
     resolvedSkills: ResolvedRuntimeSkill[];
     systemPrompt: string | undefined;
     memories: AgentMemoryDocument[];
@@ -3587,10 +3594,24 @@ export class AgentOrchestratorService {
       isDeleted: false,
       organization: context.organizationId,
     });
-    const { policy, strategyModel } = resolveEffectiveAgentExecutionConfig({
-      organizationSettings: orgSettings,
-      strategy,
+    const { policy: basePolicy, strategyModel } =
+      resolveEffectiveAgentExecutionConfig({
+        organizationSettings: orgSettings,
+        strategy,
+      });
+    const preparedScope = await this.agentScopeContextService.prepareForTurn({
+      expectedContextVersion: request.expectedContextVersion,
+      organizationId: context.organizationId,
+      policyBrandId: basePolicy.brandId,
+      requestedBrandId: request.brandId,
+      threadId: request.threadId,
+      userId: context.userId,
     });
+    const policy: ResolvedAgentExecutionPolicy = {
+      ...basePolicy,
+      brandId:
+        preparedScope.existingScope?.brandId ?? preparedScope.initialBrandId,
+    };
 
     let thread: {
       systemPrompt?: string;
@@ -3670,6 +3691,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt: ONBOARDING_SYSTEM_PROMPT,
       };
@@ -3680,6 +3702,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt: BRAND_INTERVIEW_SYSTEM_PROMPT,
       };
@@ -3697,6 +3720,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(brandContext?.defaultModel),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt: prompt,
       };
@@ -3714,6 +3738,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(brandContext?.defaultModel),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt: prompt,
       };
@@ -3739,6 +3764,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(brandContext.defaultModel),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt,
       };
@@ -3764,6 +3790,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(),
         policy,
+        preparedScope,
         resolvedSkills,
         systemPrompt,
       };
@@ -3773,6 +3800,7 @@ export class AgentOrchestratorService {
       memories,
       model: resolveModel(),
       policy,
+      preparedScope,
       resolvedSkills,
       systemPrompt: agentTypeConfig?.systemPromptSuffix
         ? basePrompt
@@ -4155,6 +4183,8 @@ export class AgentOrchestratorService {
         strategyId: params.context.strategyId,
         threadId: params.threadId,
         userId: params.context.userId,
+        brandId: params.context.scope?.brandId,
+        validatedScope: params.context.scope,
       },
     );
     const durationMs = Date.now() - startTime;
@@ -4224,6 +4254,8 @@ export class AgentOrchestratorService {
         strategyId: params.context.strategyId,
         threadId: params.threadId,
         userId: params.context.userId,
+        brandId: params.context.scope?.brandId,
+        validatedScope: params.context.scope,
       },
     );
     const durationMs = Date.now() - startTime;
@@ -4309,6 +4341,8 @@ export class AgentOrchestratorService {
         strategyId: params.context.strategyId,
         threadId: params.threadId,
         userId: params.context.userId,
+        brandId: params.context.scope?.brandId,
+        validatedScope: params.context.scope,
       },
     );
     const durationMs = Date.now() - startTime;
@@ -4411,7 +4445,7 @@ export class AgentOrchestratorService {
       policy: {
         allowAdvancedOverrides: false,
         autonomyMode: AgentAutonomyMode.SUPERVISED,
-        brandId: undefined,
+        brandId: params.context.scope?.brandId,
         creditGovernance: {
           useOrganizationPool: true,
         },
@@ -4420,6 +4454,7 @@ export class AgentOrchestratorService {
         platform: undefined,
         qualityTier: 'balanced',
         reviewModelOverride: undefined,
+        scope: params.context.scope,
         thinkingModelOverride: undefined,
       } as ResolvedAgentExecutionPolicy,
       request,
@@ -4988,6 +5023,7 @@ export class AgentOrchestratorService {
         params.context.organizationId,
       );
     const assistantMetadata = {
+      ...buildAgentScopeMetadata(params.context),
       isFallbackContent: normalizedContent.isFallback,
       ...this.buildResolvedModelMetadata(params.model),
       reviewRequired: params.result.requiresConfirmation ?? false,
@@ -5001,6 +5037,7 @@ export class AgentOrchestratorService {
     };
 
     await this.agentMessagesService.addMessage({
+      brandId: params.context.scope?.brandId,
       content: normalizedContent.content,
       metadata: {
         creditsRemaining,
@@ -5066,12 +5103,12 @@ export class AgentOrchestratorService {
     tool_choice: 'auto';
     tools: OpenRouterTool[];
   } {
-    const routingPolicy = this.resolveRoutingPolicy({
+    const routingPolicy = resolveAgentRoutingPolicy({
       model: params.model,
       prompt: params.prompt,
       source: params.source,
     });
-    const plugins = this.resolveRoutingPlugins(routingPolicy);
+    const plugins = resolveAgentRoutingPlugins(routingPolicy);
     const titleInstruction = params.seedTitle?.trim()
       ? [
           {
@@ -5106,12 +5143,12 @@ export class AgentOrchestratorService {
     plugins?: OpenRouterPlugin[];
     temperature: number;
   } {
-    const routingPolicy = this.resolveRoutingPolicy({
+    const routingPolicy = resolveAgentRoutingPolicy({
       model: params.model,
       prompt: params.prompt,
       source: params.source,
     });
-    const plugins = this.resolveRoutingPlugins(routingPolicy);
+    const plugins = resolveAgentRoutingPlugins(routingPolicy);
     const planInstruction = {
       content:
         'Plan mode is enabled. Do not call tools or execute work. Respond with valid JSON only: {"title":"optional thread title","summary":"one short summary sentence","explanation":"brief rationale","content":"markdown plan","steps":[{"step":"...", "status":"pending"}]}. Keep the plan concise and execution-ready.',
@@ -5189,85 +5226,6 @@ export class AgentOrchestratorService {
       },
       summary,
       title,
-    };
-  }
-
-  private resolveRoutingPolicy(params: {
-    model: string;
-    prompt: string;
-    source?: AgentChatRequest['source'];
-  }): AgentRoutingPolicy {
-    if (params.model !== DEFAULT_AGENT_CHAT_MODEL) {
-      return { reason: 'default' };
-    }
-
-    if (params.source === 'onboarding') {
-      return { reason: 'default' };
-    }
-
-    if (this.isExplicitWebSearchPrompt(params.prompt)) {
-      return {
-        plugins: [{ id: 'web' }],
-        reason: 'explicit-web-search',
-      };
-    }
-
-    if (this.isFreshLiveDataPrompt(params.prompt)) {
-      return {
-        plugins: [{ id: 'web' }],
-        reason: 'fresh-live-data',
-      };
-    }
-
-    return { reason: 'default' };
-  }
-
-  private resolveRoutingPlugins(
-    policy: AgentRoutingPolicy,
-  ): OpenRouterPlugin[] | undefined {
-    if (policy.reason === 'default') {
-      return undefined;
-    }
-
-    return policy.plugins;
-  }
-
-  private isExplicitWebSearchPrompt(prompt: string): boolean {
-    return EXPLICIT_WEB_SEARCH_PATTERN.test(prompt);
-  }
-
-  private isFreshLiveDataPrompt(prompt: string): boolean {
-    const normalizedPrompt = prompt.toLowerCase();
-    const hasFreshnessCue = LIVE_DATA_KEYWORDS.some((keyword) =>
-      normalizedPrompt.includes(keyword),
-    );
-
-    if (!hasFreshnessCue) {
-      return false;
-    }
-
-    return LIVE_DATA_TOPIC_KEYWORDS.some((keyword) =>
-      normalizedPrompt.includes(keyword),
-    );
-  }
-
-  private buildRoutingMetadata(params: {
-    model: string;
-    prompt: string;
-    source?: AgentChatRequest['source'];
-  }): Partial<{
-    routingPolicy: AgentRoutingPolicyReason;
-    webSearchEnabled: boolean;
-  }> {
-    const policy = this.resolveRoutingPolicy(params);
-
-    if (policy.reason === 'default') {
-      return {};
-    }
-
-    return {
-      routingPolicy: policy.reason,
-      webSearchEnabled: true,
     };
   }
 

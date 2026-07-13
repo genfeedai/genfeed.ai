@@ -59,6 +59,7 @@ import {
   VoiceCloneStatus,
   VoiceProvider,
   VoteEntityModel,
+  WorkflowExecutionTrigger,
   WorkflowTrigger,
 } from '@genfeedai/enums';
 import type {
@@ -74,8 +75,9 @@ import type {
   KPIGridBlock,
   TableBlock,
   TopPostsBlock,
+  ValidatedAgentScope,
 } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentToolName, toAgentScopeMetadata } from '@genfeedai/interfaces';
 import type {
   AdsChannel,
   AdsResearchFilters,
@@ -86,6 +88,7 @@ import {
   serializeAgentBrand,
   serializeAgentBrands,
 } from '@genfeedai/serializers';
+import { AgentScopeContextService } from '@genfeedai/server';
 import {
   type CanonicalToolDefinition,
   getToolsForRole,
@@ -132,6 +135,8 @@ export interface ToolExecutionContext {
   strategyId?: string;
   /** Keep batch generation attached to the current live run and stream item previews */
   streamBatchToUser?: boolean;
+  /** Server-validated immutable organization + mutable brand/version scope. */
+  validatedScope?: ValidatedAgentScope;
 }
 
 interface DashboardHydrationState {
@@ -182,6 +187,35 @@ type RecurringTaskContentType = 'image' | 'video' | 'post' | 'newsletter';
 type ToolCatalogSurface = 'agent' | 'mcp' | 'cli' | 'all';
 
 const LIVESTREAM_BOT_CATEGORY = 'livestream_chat';
+const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
+  AgentToolName.ANALYZE_PERFORMANCE,
+  AgentToolName.CHECK_GOAL_PROGRESS,
+  AgentToolName.CHECK_ONBOARDING_STATUS,
+  AgentToolName.CREATE_BRAND,
+  AgentToolName.GET_AD_RESEARCH_DETAIL,
+  AgentToolName.GET_ANALYTICS,
+  AgentToolName.GET_APPROVAL_SUMMARY,
+  AgentToolName.GET_CONNECTION_STATUS,
+  AgentToolName.GET_CONTENT_CALENDAR,
+  AgentToolName.GET_CREDITS_BALANCE,
+  AgentToolName.GET_DASHBOARD_LAYOUT,
+  AgentToolName.GET_TOP_INGREDIENTS,
+  AgentToolName.GET_TRENDS,
+  AgentToolName.GET_WORKFLOW_INPUTS,
+  AgentToolName.GET_WORKFLOW_RUN,
+  AgentToolName.INSPECT_WORKFLOW,
+  AgentToolName.LIST_ADS_RESEARCH,
+  AgentToolName.LIST_AGENT_RUNS,
+  AgentToolName.LIST_BRANDS,
+  AgentToolName.LIST_GENFEED_TOOLS,
+  AgentToolName.LIST_POSTS,
+  AgentToolName.LIST_REVIEW_QUEUE,
+  AgentToolName.LIST_WORKFLOW_RUNS,
+  AgentToolName.LIST_WORKFLOWS,
+  AgentToolName.PRESENT_PAYMENT_OPTIONS,
+  AgentToolName.RENDER_DASHBOARD,
+  AgentToolName.RESOLVE_HANDLE,
+]);
 const TOOL_CATALOG_SURFACES = ['agent', 'mcp', 'cli'] as const;
 const TOOL_CATALOG_CATEGORIES: ToolCategory[] = [
   'ads',
@@ -402,6 +436,8 @@ export class AgentToolExecutorService {
     private readonly adsResearchService: AdsResearchService | undefined,
     @Optional()
     private readonly brandInterviewService: BrandInterviewService | undefined,
+    @Optional()
+    private readonly agentScopeContextService?: AgentScopeContextService,
   ) {
     this.apiBaseUrl =
       this.configService.get('API_BASE_URL') || 'http://localhost:3010';
@@ -717,6 +753,20 @@ export class AgentToolExecutorService {
     const startTime = Date.now();
 
     try {
+      if (context.threadId) {
+        if (!context.validatedScope || !this.agentScopeContextService) {
+          throw new Error(
+            'Validated agent scope is required for thread tool execution.',
+          );
+        }
+
+        await this.agentScopeContextService.assertConsequentialBoundary(
+          context.validatedScope,
+          'tool',
+        );
+        this.assertToolBrandScope(toolName, parameters, context);
+      }
+
       const result = await this.dispatch(toolName, parameters, context);
       const scopedResult = await this.routeRewriteService.scopeToolResultHrefs(
         result,
@@ -755,6 +805,36 @@ export class AgentToolExecutorService {
 
     const prototype = Object.getPrototypeOf(value);
     return prototype === Object.prototype || prototype === null;
+  }
+
+  private assertToolBrandScope(
+    toolName: AgentToolName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+  ): void {
+    const scope = context.validatedScope;
+    if (!scope) {
+      throw new Error('Validated agent scope is required for tool execution.');
+    }
+
+    const parameterBrandId = this.readOptionalString(parameters.brandId);
+    if (parameterBrandId && parameterBrandId !== scope.brandId) {
+      throw new Error(
+        'Tool brand parameters must match the validated thread brand scope.',
+      );
+    }
+
+    if (context.brandId && context.brandId !== scope.brandId) {
+      throw new Error(
+        'Tool execution context disagrees with the validated thread brand scope.',
+      );
+    }
+
+    if (!scope.brandId && !BRANDLESS_AGENT_TOOLS.has(toolName)) {
+      throw new Error(
+        `An explicit thread brand context is required for ${toolName}.`,
+      );
+    }
   }
 
   private readResponseEnvelopeString(
@@ -3247,6 +3327,12 @@ export class AgentToolExecutorService {
         };
       }
 
+      this.assertResourceScope(
+        ctx,
+        this.readOptionalString(post.brand),
+        'selected post',
+      );
+
       const summary =
         await this.postAnalyticsService.getPostAnalyticsSummary(postId);
       const metrics = this.buildMetricItems([
@@ -3291,6 +3377,12 @@ export class AgentToolExecutorService {
           success: false,
         };
       }
+
+      this.assertResourceScope(
+        ctx,
+        this.readOptionalString(ingredient.brand),
+        'selected content',
+      );
 
       const publishedPost = await this.resolveLatestPublishedPostForIngredient(
         contentId,
@@ -4040,6 +4132,50 @@ export class AgentToolExecutorService {
   // WRITE TOOLS (credits deducted by agent orchestrator)
   // ──────────────────────────────────────────────
 
+  private async assertPublishingScope(
+    ctx: ToolExecutionContext,
+    resourceBrandId: string | undefined,
+    resourceLabel: string,
+  ): Promise<void> {
+    if (!ctx.validatedScope || !this.agentScopeContextService) {
+      throw new Error(
+        'Validated agent scope is required before publishing side effects.',
+      );
+    }
+
+    await this.agentScopeContextService.assertConsequentialBoundary(
+      ctx.validatedScope,
+      'publish',
+    );
+    this.agentScopeContextService.assertResourceBrand(
+      ctx.validatedScope,
+      resourceBrandId,
+      resourceLabel,
+    );
+  }
+
+  private assertResourceScope(
+    ctx: ToolExecutionContext,
+    resourceBrandId: string | undefined,
+    resourceLabel: string,
+  ): void {
+    if (!ctx.threadId) {
+      return;
+    }
+
+    if (!ctx.validatedScope || !this.agentScopeContextService) {
+      throw new Error(
+        'Validated agent scope is required for scoped resource access.',
+      );
+    }
+
+    this.agentScopeContextService.assertResourceBrand(
+      ctx.validatedScope,
+      resourceBrandId,
+      resourceLabel,
+    );
+  }
+
   private async createPost(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -4098,6 +4234,12 @@ export class AgentToolExecutorService {
         };
       }
 
+      await this.assertPublishingScope(
+        ctx,
+        this.readOptionalString(ingredient.brand),
+        'selected content',
+      );
+
       if (platforms.length === 0) {
         return {
           creditsUsed: 0,
@@ -4136,6 +4278,9 @@ export class AgentToolExecutorService {
         const post = await this.postsService.create({
           ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
           ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
+          agentContextSource: ctx.validatedScope?.source,
+          agentContextVersion: ctx.validatedScope?.contextVersion,
+          agentThreadId: ctx.validatedScope?.threadId,
           brand: String(ingredient.brand),
           category: this.mapIngredientToPostCategory(ingredient.category),
           credential: String(credential.id),
@@ -4198,9 +4343,19 @@ export class AgentToolExecutorService {
       };
     }
 
+    await this.assertPublishingScope(
+      ctx,
+      ctx.validatedScope?.brandId,
+      'post creation',
+    );
+
     const post = await this.postsService.create({
       ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
       ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
+      agentContextSource: ctx.validatedScope?.source,
+      agentContextVersion: ctx.validatedScope?.contextVersion,
+      agentThreadId: ctx.validatedScope?.threadId,
+      brand: ctx.validatedScope?.brandId,
       description: params.content as string,
       label: ((params.content as string) || '').substring(0, 100),
       organization: ctx.organizationId,
@@ -4240,7 +4395,16 @@ export class AgentToolExecutorService {
       };
     }
 
+    await this.assertPublishingScope(
+      ctx,
+      this.readOptionalString((post as { brand?: unknown }).brand),
+      'scheduled post',
+    );
+
     await this.postsService.patch(postId, {
+      agentContextSource: ctx.validatedScope?.source,
+      agentContextVersion: ctx.validatedScope?.contextVersion,
+      agentThreadId: ctx.validatedScope?.threadId,
       scheduledDate: new Date(scheduledAt),
       status: PostStatus.SCHEDULED,
     } as never);
@@ -5447,12 +5611,22 @@ export class AgentToolExecutorService {
       };
     }
 
-    const result = await this.workflowExecutorService.executeManualWorkflow(
-      workflowId,
-      ctx.userId,
-      ctx.organizationId,
-      inputValues,
-    );
+    const result = ctx.validatedScope
+      ? await this.workflowExecutorService.executeManualWorkflow(
+          workflowId,
+          ctx.userId,
+          ctx.organizationId,
+          inputValues,
+          { agentScope: toAgentScopeMetadata(ctx.validatedScope) },
+          WorkflowExecutionTrigger.MANUAL,
+          ctx.validatedScope,
+        )
+      : await this.workflowExecutorService.executeManualWorkflow(
+          workflowId,
+          ctx.userId,
+          ctx.organizationId,
+          inputValues,
+        );
 
     return {
       creditsUsed: 0,

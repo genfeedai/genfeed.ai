@@ -74,6 +74,39 @@ describe('AgentApiService', () => {
     });
   });
 
+  describe('updateThreadContext', () => {
+    it('sends the expected version for a compare-and-swap scope mutation', async () => {
+      const thread = {
+        brandId: 'brand-1',
+        contextVersion: 4,
+        id: 'c-1',
+        status: 'active',
+      };
+      mockJsonApiResource(thread, 'thread');
+      const service = makeService();
+
+      await expect(
+        Effect.runPromise(
+          service.updateThreadContextEffect('c-1', {
+            brandId: 'brand-1',
+            expectedContextVersion: 3,
+          }),
+        ),
+      ).resolves.toEqual(thread);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/agent/threads/c-1/context',
+        expect.objectContaining({
+          body: JSON.stringify({
+            brandId: 'brand-1',
+            expectedContextVersion: 3,
+          }),
+          method: 'PATCH',
+        }),
+      );
+    });
+  });
+
   describe('sendMessage', () => {
     it('sends message', async () => {
       const msg = { content: 'hi', id: 'm-1', role: 'user' };

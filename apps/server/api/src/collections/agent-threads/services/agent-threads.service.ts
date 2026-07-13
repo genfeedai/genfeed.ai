@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
@@ -127,13 +128,30 @@ export class AgentThreadsService extends BaseService<
     }
 
     const cloned = await this.create({
+      brandId: parent.brandId,
+      contextVersion: 1,
+      isLegacyBrandFallbackEligible: false,
       organizationId: parent.organizationId,
       parentThreadId: parent.id,
       source: parent.source,
       systemPrompt: parent.systemPrompt,
+      scopeChangeProvenance: parent.brandId
+        ? [
+            {
+              acceptedAt: new Date().toISOString(),
+              actorUserId: userId,
+              brandId: parent.brandId,
+              fromContextVersion: 0,
+              id: randomUUID(),
+              previousBrandId: null,
+              source: 'thread_created',
+              toContextVersion: 1,
+            },
+          ]
+        : [],
       title: parent.title ? `${parent.title} (branch)` : 'Branched thread',
       userId,
-    } as Record<string, unknown>);
+    });
 
     await this.agentMessagesService.copyMessages(
       threadId,

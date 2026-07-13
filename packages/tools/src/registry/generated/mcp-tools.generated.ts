@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1038 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1039 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -2589,6 +2589,41 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         }
       },
       "required": [
+        "threadId"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "agent_threads"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "Compare-and-swap the thread brand context (PATCH /agent/threads/{threadId}/context)",
+    "name": "agent_threads__update_thread_context",
+    "parameters": {
+      "properties": {
+        "brandId": {
+          "nullable": true,
+          "type": "string"
+        },
+        "expectedContextVersion": {
+          "minimum": 1,
+          "type": "number"
+        },
+        "threadId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "expectedContextVersion",
         "threadId"
       ],
       "type": "object"

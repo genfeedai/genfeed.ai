@@ -103,6 +103,7 @@ export type {
   AgentWorkEventPayload,
   CreateThreadPayload,
   SendMessagePayload,
+  UpdateAgentThreadContextPayload,
 } from '@genfeedai/agent/models/agent-chat.model';
 export {
   AgentWorkEventStatus,

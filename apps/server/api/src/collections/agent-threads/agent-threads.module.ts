@@ -8,15 +8,21 @@ import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messa
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersModule } from '@api/collections/users/users.module';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AgentScopeContextService, SERVER_TOKENS } from '@genfeedai/server';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [AgentThreadsController],
-  exports: [AgentThreadsService],
+  exports: [AgentScopeContextService, AgentThreadsService],
   imports: [
     forwardRef(() => AgentMessagesModule),
     forwardRef(() => UsersModule),
   ],
-  providers: [AgentThreadsService],
+  providers: [
+    AgentScopeContextService,
+    AgentThreadsService,
+    { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
+  ],
 })
 export class AgentThreadsModule {}

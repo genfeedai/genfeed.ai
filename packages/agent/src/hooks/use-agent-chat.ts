@@ -72,11 +72,16 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
       try {
         const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
         const requestPageContext = toAgentRequestPageContext(pageContext);
+        const currentThread = useAgentChatStore
+          .getState()
+          .threads.find((item) => item.id === activeThreadId);
         const response = await runAgentApiEffect(
           apiService.chatEffect(
             {
               attachments: sendOptions?.attachments,
+              brandId: currentThread?.brandId ?? null,
               content,
+              expectedContextVersion: currentThread?.contextVersion,
               model: resolvedModel,
               pageContext: requestPageContext,
               planModeEnabled: sendOptions?.planModeEnabled,
@@ -95,6 +100,8 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
           .getState()
           .threads.find((item) => item.id === response.threadId);
         upsertThread({
+          brandId: response.brandId,
+          contextVersion: response.contextVersion,
           createdAt: existingThread?.createdAt ?? now,
           id: response.threadId,
           planModeEnabled:

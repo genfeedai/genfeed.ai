@@ -273,7 +273,13 @@ type StoreState = {
     createdAt: string;
     updatedAt: string;
   };
-  threads: Array<{ id: string; source?: string; title?: string }>;
+  threads: Array<{
+    brandId?: string | null;
+    contextVersion?: number;
+    id: string;
+    source?: string;
+    title?: string;
+  }>;
   error: string | null;
   isGenerating: boolean;
   messages: AgentChatMessageType[];
@@ -479,6 +485,7 @@ describe('AgentChatContainer', () => {
       }),
       respondToUiAction: vi.fn(),
     });
+    storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
 
     render(<AgentChatContainer apiService={apiService as never} isStreaming />);
 
@@ -489,6 +496,8 @@ describe('AgentChatContainer', () => {
         'thread-1',
         'input-1',
         'Use the hybrid prompt bar',
+        undefined,
+        { brandId: null, expectedContextVersion: 1 },
       );
     });
 
@@ -952,6 +961,7 @@ describe('AgentChatContainer', () => {
   it('submits workflow confirmation through the UI action endpoint', async () => {
     const apiService = createApiService({
       respondToUiAction: vi.fn().mockResolvedValue({
+        contextVersion: 1,
         creditsRemaining: 48,
         creditsUsed: 0,
         message: {
@@ -979,6 +989,7 @@ describe('AgentChatContainer', () => {
     });
 
     storeState.pendingInputRequest = null;
+    storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
     storeState.messages = [
       buildAssistantMessage({
         content: 'Install this workflow?',
@@ -1011,6 +1022,8 @@ describe('AgentChatContainer', () => {
         'thread-1',
         'confirm_install_official_workflow',
         { sourceId: 'template-1' },
+        undefined,
+        { brandId: null, expectedContextVersion: 1 },
       );
     });
 

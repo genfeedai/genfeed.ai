@@ -1,3 +1,9 @@
+export {
+  AgentScopeContextService,
+  type MutateAgentScopeParams,
+  type PrepareAgentScopeParams,
+  type PreparedAgentScope,
+} from './agent-context/agent-scope-context.service';
 export { AnalyticsSocialJobService } from './analytics/services/analytics-social-job.service';
 export { AnalyticsTwitterJobService } from './analytics/services/analytics-twitter-job.service';
 export { AnalyticsYouTubeJobService } from './analytics/services/analytics-youtube-job.service';

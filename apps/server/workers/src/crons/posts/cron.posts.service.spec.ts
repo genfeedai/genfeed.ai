@@ -7,7 +7,10 @@ import { PublisherFactoryService } from '@api/services/integrations/publishers/p
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
-import { PostPublishQueueService } from '@genfeedai/server';
+import {
+  AgentScopeContextService,
+  PostPublishQueueService,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
@@ -25,6 +28,10 @@ describe('CronPostsService', () => {
   };
   let quotaService: { checkQuota: ReturnType<typeof vi.fn> };
   let loggerService: vi.Mocked<LoggerService>;
+  let agentScopeContextService: {
+    assertConsequentialBoundary: ReturnType<typeof vi.fn>;
+    assertResourceBrand: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     activitiesService = {
@@ -46,6 +53,10 @@ describe('CronPostsService', () => {
     quotaService = {
       checkQuota: vi.fn(),
     };
+    agentScopeContextService = {
+      assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
+      assertResourceBrand: vi.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -61,6 +72,10 @@ describe('CronPostsService', () => {
         {
           provide: ActivitiesService,
           useValue: activitiesService,
+        },
+        {
+          provide: AgentScopeContextService,
+          useValue: agentScopeContextService,
         },
         {
           provide: CredentialsService,
@@ -170,6 +185,59 @@ describe('CronPostsService', () => {
       source: 'scheduled_sweep',
     });
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+  });
+
+  it('marks stale durable agent scope as a terminal publish failure', async () => {
+    const post = {
+      agentContextSource: 'explicit',
+      agentContextVersion: 2,
+      agentThreadId: 'thread-1',
+      brand: 'brand-1',
+      children: [],
+      credential: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organization: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    agentScopeContextService.assertConsequentialBoundary.mockRejectedValue(
+      new Error('Agent context is stale.'),
+    );
+
+    const result = await service.processQueuedPost({
+      enqueuedAt: '2026-07-07T10:00:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Agent context is stale.',
+        status: PostStatus.FAILED,
+        success: false,
+      }),
+    );
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+    expect(postsService.patch).toHaveBeenCalledWith('post-1', {
+      lastAttemptAt: expect.any(Date),
+      status: PostStatus.FAILED,
+    });
+    expect(
+      publishEventWebhookService.emitLegacyPostFailed,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorMessage: 'Agent context is stale.',
+        post,
+      }),
+    );
   });
 
   it('emits publish webhooks after a queued scheduled post publishes', async () => {

@@ -273,7 +273,7 @@ export interface AgentUiAction {
   creditsUsed?: number;
   audioUrl?: string;
   cloneProgress?: number;
-  brandId?: string;
+  brandId?: string | null;
   recommendedVoiceId?: string;
   canUpload?: boolean;
   canUseExisting?: boolean;
@@ -318,6 +318,7 @@ export interface AgentChatMessage {
 
 export interface AgentThread {
   id: string;
+  contextVersion: number;
   isPinned?: boolean;
   planModeEnabled?: boolean;
   requestedModel?: string;
@@ -325,7 +326,7 @@ export interface AgentThread {
   title?: string;
   systemPrompt?: string;
   platform?: string;
-  brandId?: string;
+  brandId?: string | null;
   source?: string;
   status: AgentThreadStatus;
   lastMessage?: string;
@@ -476,6 +477,8 @@ export interface AgentToolCallSummary {
 
 export interface AgentChatPayload {
   threadId?: string;
+  brandId?: string | null;
+  expectedContextVersion?: number;
   content: string;
   model?: string;
   source?: 'agent' | 'proactive' | 'onboarding';
@@ -490,6 +493,8 @@ export interface AgentChatPayload {
 
 export interface AgentChatResponse {
   threadId: string;
+  brandId?: string | null;
+  contextVersion: number;
   message: {
     role: string;
     content: string;
@@ -539,8 +544,15 @@ export interface AgentRunSummary {
 
 export interface AgentChatStreamResponse {
   threadId: string;
+  brandId?: string | null;
+  contextVersion: number;
   runId: string;
   startedAt: string;
+}
+
+export interface UpdateAgentThreadContextPayload {
+  brandId?: string | null;
+  expectedContextVersion: number;
 }
 
 export interface AgentStreamTokenPayload {

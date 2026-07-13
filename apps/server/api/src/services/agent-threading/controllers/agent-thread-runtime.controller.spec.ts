@@ -68,6 +68,20 @@ describe('Threading AgentThreadRuntimeController', () => {
           }),
         ),
       } as never as AgentThreadEngineService,
+      {
+        assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
+        prepareForTurn: vi.fn().mockResolvedValue({
+          existingScope: {
+            contextVersion: 1,
+            isLegacyFallback: false,
+            isVersionExplicit: true,
+            organizationId,
+            source: 'explicit',
+            threadId,
+            userId,
+          },
+        }),
+      } as never,
       {} as never,
       {} as never,
       usersService as never as UsersService,

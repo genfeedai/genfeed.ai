@@ -1,5 +1,5 @@
-import type { AgentChatContext } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
+import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { Effect } from 'effect';
 

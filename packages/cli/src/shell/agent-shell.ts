@@ -36,6 +36,8 @@ interface AgentShellOptions {
 }
 
 interface AgentShellState {
+  brandId?: string | null;
+  contextVersion?: number;
   isStreamingAssistant: boolean;
   lastSequence: number;
   model?: string;
@@ -145,7 +147,9 @@ async function attachThread(
   threadId: string,
   contextLabel: string
 ): Promise<void> {
-  const snapshot = await getThreadSnapshot(threadId);
+  const [thread, snapshot] = await Promise.all([getThread(threadId), getThreadSnapshot(threadId)]);
+  state.brandId = thread.brandId;
+  state.contextVersion = thread.contextVersion;
   state.threadId = threadId;
   state.lastSequence = snapshot.lastSequence ?? 0;
   state.pendingInputRequest = snapshot.pendingInputRequests.at(-1) ?? null;
@@ -282,13 +286,17 @@ async function tailThreadRun(state: AgentShellState): Promise<void> {
 
 async function sendAgentTurn(state: AgentShellState, content: string): Promise<void> {
   const response = await startAgentChatStream({
+    brandId: state.brandId ?? null,
     content,
+    expectedContextVersion: state.contextVersion,
     model: state.model,
     source: 'agent',
     threadId: state.threadId,
   });
   const threadChanged = response.threadId !== state.threadId;
   state.threadId = response.threadId;
+  state.brandId = response.brandId;
+  state.contextVersion = response.contextVersion;
   state.pendingInputRequest = null;
   state.isStreamingAssistant = false;
   await setLastAgentThreadId(response.threadId, await getOrganizationId());
@@ -308,7 +316,10 @@ async function submitPendingInput(state: AgentShellState, answer: string): Promi
     return;
   }
 
-  await respondToInputRequest(state.threadId, request.requestId, answer);
+  await respondToInputRequest(state.threadId, request.requestId, answer, {
+    brandId: state.brandId ?? null,
+    expectedContextVersion: state.contextVersion,
+  });
   state.pendingInputRequest = null;
   print(chalk.dim('Input submitted.'));
   await tailThreadRun(state);
@@ -328,6 +339,8 @@ async function handleSlashCommand(state: AgentShellState, input: string): Promis
       await listThreadsInline();
       return true;
     case 'new':
+      state.brandId = undefined;
+      state.contextVersion = undefined;
       state.threadId = undefined;
       state.lastSequence = 0;
       state.pendingInputRequest = null;
@@ -379,6 +392,8 @@ export async function runAgentShell(options: AgentShellOptions = {}): Promise<vo
       await attachThread(state, persistedThreadId, 'Resuming thread');
     } catch (error) {
       print(formatWarning(`Could not restore thread ${persistedThreadId}: ${String(error)}`));
+      state.brandId = undefined;
+      state.contextVersion = undefined;
       state.threadId = undefined;
       state.lastSequence = 0;
       state.pendingInputRequest = null;

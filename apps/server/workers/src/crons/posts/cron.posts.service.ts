@@ -27,8 +27,12 @@ import {
   PostStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
+import type { AgentScopeSource } from '@genfeedai/interfaces';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
-import { PostPublishQueueService } from '@genfeedai/server';
+import {
+  AgentScopeContextService,
+  PostPublishQueueService,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -70,6 +74,7 @@ export class CronPostsService {
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly postPublishQueueService: PostPublishQueueService,
+    private readonly agentScopeContextService: AgentScopeContextService,
   ) {}
 
   /**
@@ -145,6 +150,11 @@ export class CronPostsService {
     post: PostEntity,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    try {
+      await this.assertAgentPublishingScope(post);
+    } catch (error: unknown) {
+      return this.handleTerminalPublishValidationFailure(post, error);
+    }
     const result = await this.publishSinglePost(post);
 
     if (result.success) {
@@ -169,6 +179,82 @@ export class CronPostsService {
     }
 
     return result;
+  }
+
+  private async handleTerminalPublishValidationFailure(
+    post: PostEntity,
+    error: unknown,
+  ): Promise<PublishResult> {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Agent scope validation failed';
+
+    this.logger.error('Agent scope validation rejected queued publishing', {
+      error: errorMessage,
+      postId: post.id,
+    });
+    await this.attemptRetry(post, false, errorMessage);
+    this.emitPublishFailedWebhook(post, errorMessage);
+
+    return this.createFailedResult('', errorMessage);
+  }
+
+  private async assertAgentPublishingScope(post: PostEntity): Promise<void> {
+    const threadId = this.readPostString(post, ['agentThreadId']);
+    if (!threadId) {
+      return;
+    }
+
+    const record = post as unknown as Record<string, unknown>;
+    const contextVersion = record.agentContextVersion;
+    const source = record.agentContextSource;
+    const organizationId = this.readPostString(post, [
+      'organizationId',
+      'organization',
+    ]);
+    const userId = this.readPostString(post, ['userId', 'user']);
+
+    if (
+      typeof contextVersion !== 'number' ||
+      !this.isAgentScopeSource(source) ||
+      !organizationId ||
+      !userId
+    ) {
+      throw new Error(
+        `Post ${post.id.toString()} has an incomplete durable agent scope.`,
+      );
+    }
+
+    const brandId = this.readPostString(post, ['brandId', 'brand']);
+    const scope = {
+      brandId,
+      contextVersion,
+      isLegacyFallback: source.startsWith('legacy_'),
+      isVersionExplicit: true,
+      organizationId,
+      source,
+      threadId,
+      userId,
+    };
+
+    await this.agentScopeContextService.assertConsequentialBoundary(
+      scope,
+      'publish',
+    );
+    this.agentScopeContextService.assertResourceBrand(
+      scope,
+      brandId,
+      'queued post',
+    );
+  }
+
+  private isAgentScopeSource(value: unknown): value is AgentScopeSource {
+    return (
+      value === 'explicit' ||
+      value === 'thread_created' ||
+      value === 'legacy_execution_policy' ||
+      value === 'legacy_message_history' ||
+      value === 'legacy_organization_only'
+    );
   }
 
   private async findQueuedPostForPublish(
@@ -499,6 +585,7 @@ export class CronPostsService {
 
     // Max retries reached - mark parent and children as failed
     await this.postsService.patch(post.id.toString(), {
+      lastAttemptAt: new Date(),
       status: PostStatus.FAILED,
     });
     await this.failChildren(post, 'Parent post failed');
@@ -683,6 +770,13 @@ export class CronPostsService {
       const ingredients = post.ingredients || [];
 
       const postData = {
+        ...(post.agentThreadId
+          ? {
+              agentContextSource: post.agentContextSource,
+              agentContextVersion: post.agentContextVersion,
+              agentThreadId: post.agentThreadId,
+            }
+          : {}),
         brand: this.readPostString(post, ['brandId', 'brand']) ?? '',
         category: (post.category as PostCategory) || PostCategory.VIDEO,
         credential:
@@ -758,6 +852,13 @@ export class CronPostsService {
           .map((ingredient) => String(ingredient));
 
         const childData = {
+          ...(originalParent.agentThreadId
+            ? {
+                agentContextSource: originalParent.agentContextSource,
+                agentContextVersion: originalParent.agentContextVersion,
+                agentThreadId: originalParent.agentThreadId,
+              }
+            : {}),
           brand:
             this.readPostString(originalParent, ['brandId', 'brand']) ?? '',
           category:

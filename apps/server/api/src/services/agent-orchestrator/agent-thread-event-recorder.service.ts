@@ -2,7 +2,7 @@ import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import type {
   AgentChatContext,
   AgentChatRequest,
-} from '@api/services/agent-orchestrator/agent-orchestrator.service';
+} from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   AgentThreadEngineService,
   type AppendAgentThreadEventParams,
@@ -11,6 +11,7 @@ import type {
   AgentDashboardOperation,
   AgentUIBlock,
 } from '@genfeedai/interfaces';
+import { toAgentScopeMetadata } from '@genfeedai/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 
@@ -37,6 +38,7 @@ export class AgentThreadEventRecorderService {
       this.appendThreadEventEffect({
         commandId: `turn-requested:${params.threadId}:${params.runId ?? Date.now()}`,
         metadata: {
+          ...this.scopeMetadata(params.context),
           source: params.source ?? 'agent',
         },
         organizationId: params.context.organizationId,
@@ -70,6 +72,7 @@ export class AgentThreadEventRecorderService {
       this.appendThreadEventEffect({
         commandId: `assistant-finalized:${params.threadId}:${params.runId ?? Date.now()}`,
         metadata: {
+          ...this.scopeMetadata(params.context),
           origin: 'agent-orchestrator',
         },
         organizationId: params.context.organizationId,
@@ -110,6 +113,7 @@ export class AgentThreadEventRecorderService {
       this.appendThreadEventEffect({
         commandId: `plan-upserted:${params.threadId}:${params.plan.id}:${params.runId ?? Date.now()}`,
         metadata: {
+          ...this.scopeMetadata(params.context),
           origin: 'agent-orchestrator',
         },
         organizationId: params.context.organizationId,
@@ -147,6 +151,7 @@ export class AgentThreadEventRecorderService {
       this.appendThreadEventEffect({
         commandId: `turn-started:${params.threadId}:${params.runId ?? Date.now()}`,
         metadata: {
+          ...this.scopeMetadata(params.context),
           origin: 'agent-orchestrator',
           source: params.source ?? 'agent',
         },
@@ -182,6 +187,7 @@ export class AgentThreadEventRecorderService {
       this.appendThreadEventEffect({
         commandId: `tool-started:${params.threadId}:${params.toolCallId ?? params.toolName}:${params.runId ?? Date.now()}`,
         metadata: {
+          ...this.scopeMetadata(params.context),
           origin: 'agent-orchestrator',
         },
         organizationId: params.context.organizationId,
@@ -216,6 +222,7 @@ export class AgentThreadEventRecorderService {
       this.appendThreadEventEffect({
         commandId: `tool-completed:${params.threadId}:${params.toolCallId ?? params.toolName}:${params.runId ?? Date.now()}`,
         metadata: {
+          ...this.scopeMetadata(params.context),
           origin: 'agent-orchestrator',
         },
         organizationId: params.context.organizationId,
@@ -250,6 +257,7 @@ export class AgentThreadEventRecorderService {
       this.appendThreadEventEffect({
         commandId: `ui-blocks:${params.threadId}:${params.runId ?? Date.now()}:${params.operation}`,
         metadata: {
+          ...this.scopeMetadata(params.context),
           origin: 'agent-orchestrator',
         },
         organizationId: params.context.organizationId,
@@ -280,6 +288,7 @@ export class AgentThreadEventRecorderService {
       this.appendThreadEventEffect({
         commandId: `run-completed:${params.threadId}:${params.runId ?? Date.now()}`,
         metadata: {
+          ...this.scopeMetadata(params.context),
           origin: 'agent-orchestrator',
         },
         organizationId: params.context.organizationId,
@@ -310,6 +319,7 @@ export class AgentThreadEventRecorderService {
       this.appendThreadEventEffect({
         commandId: `run-failed:${params.threadId}:${params.runId ?? Date.now()}`,
         metadata: {
+          ...this.scopeMetadata(params.context),
           origin: 'agent-orchestrator',
         },
         organizationId: params.context.organizationId,
@@ -336,5 +346,11 @@ export class AgentThreadEventRecorderService {
     return this.agentThreadEngineService
       .appendEventEffect(params)
       .pipe(Effect.asVoid);
+  }
+
+  private scopeMetadata(context: AgentChatContext): Record<string, unknown> {
+    return context.scope
+      ? { agentScope: toAgentScopeMetadata(context.scope) }
+      : {};
   }
 }

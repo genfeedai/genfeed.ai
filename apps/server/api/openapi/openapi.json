@@ -10080,6 +10080,22 @@
         },
         "type": "object"
       },
+      "UpdateAgentThreadContextDto": {
+        "properties": {
+          "brandId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "expectedContextVersion": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "expectedContextVersion"
+        ],
+        "type": "object"
+      },
       "UpdateAgentWorkflowStateDto": {
         "properties": {},
         "type": "object"
@@ -17595,6 +17611,40 @@
           }
         },
         "summary": "Branch an existing thread",
+        "tags": [
+          "Agent Threads"
+        ]
+      }
+    },
+    "/agent/threads/{threadId}/context": {
+      "patch": {
+        "operationId": "AgentThreadsController.updateThreadContext",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "threadId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAgentThreadContextDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Compare-and-swap the thread brand context",
         "tags": [
           "Agent Threads"
         ]

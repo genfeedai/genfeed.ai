@@ -21,6 +21,7 @@ import { AgentThreadEngineService } from '@api/services/agent-threading/services
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { AgentAutonomyMode, AgentType } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
+import { AgentScopeContextService } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -125,6 +126,60 @@ describe('AgentOrchestratorService', () => {
         planModeEnabled: false,
       }),
       updateThreadMetadata: vi.fn().mockResolvedValue({ id: CONVERSATION_ID }),
+    };
+    const agentScopeContextServiceMock = {
+      assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
+      prepareForTurn: vi.fn(
+        async (params: {
+          organizationId: string;
+          policyBrandId?: string;
+          requestedBrandId?: string | null;
+          threadId?: string;
+          userId: string;
+        }) => {
+          const brandId = params.requestedBrandId ?? params.policyBrandId;
+          return params.threadId
+            ? {
+                existingScope: {
+                  brandId: brandId ?? undefined,
+                  contextVersion: 1,
+                  isLegacyFallback: false,
+                  isVersionExplicit: true,
+                  organizationId: params.organizationId,
+                  source: 'explicit',
+                  threadId: params.threadId,
+                  userId: params.userId,
+                },
+                initialScopeFields: {},
+              }
+            : {
+                initialBrandId: brandId ?? undefined,
+                initialScopeFields: {
+                  brandId: brandId ?? undefined,
+                  contextVersion: 1,
+                  isLegacyBrandFallbackEligible: false,
+                  scopeChangeProvenance: [],
+                },
+              };
+        },
+      ),
+      resolveCreatedThreadScope: vi.fn(
+        async (params: {
+          brandId?: string;
+          organizationId: string;
+          threadId: string;
+          userId: string;
+        }) => ({
+          brandId: params.brandId,
+          contextVersion: 1,
+          isLegacyFallback: false,
+          isVersionExplicit: true,
+          organizationId: params.organizationId,
+          source: 'thread_created',
+          threadId: params.threadId,
+          userId: params.userId,
+        }),
+      ),
     };
     const brandsServiceMock = {
       findOne: vi.fn().mockResolvedValue(null),
@@ -293,6 +348,7 @@ describe('AgentOrchestratorService', () => {
             LoggerService,
             LlmDispatcherService,
             AgentThreadsService,
+            AgentScopeContextService,
             AgentMemoriesService,
             AgentMessagesService,
             AgentContextAssemblyService,
@@ -316,6 +372,7 @@ describe('AgentOrchestratorService', () => {
             loggerService: LoggerService,
             llmDispatcherService: LlmDispatcherService,
             agentConversationsSvc: AgentThreadsService,
+            agentScopeContextSvc: AgentScopeContextService,
             agentMemoriesSvc: AgentMemoriesService,
             agentMessagesSvc: AgentMessagesService,
             contextAssemblySvc: AgentContextAssemblyService,
@@ -338,6 +395,7 @@ describe('AgentOrchestratorService', () => {
               loggerService,
               llmDispatcherService,
               agentConversationsSvc,
+              agentScopeContextSvc,
               agentMemoriesSvc,
               agentMessagesSvc,
               contextAssemblySvc,
@@ -390,6 +448,10 @@ describe('AgentOrchestratorService', () => {
         {
           provide: AgentThreadsService,
           useValue: agentThreadsServiceMock,
+        },
+        {
+          provide: AgentScopeContextService,
+          useValue: agentScopeContextServiceMock,
         },
         {
           provide: BrandsService,
@@ -832,6 +894,17 @@ describe('AgentOrchestratorService', () => {
       expect.objectContaining({
         actualModel: 'anthropic/claude-sonnet-4-5-20250929',
         requestedModel: 'openrouter/auto',
+      }),
+    );
+    expect(agentRunsService.mergeMetadata).toHaveBeenCalledWith(
+      RUN_ID,
+      ORG_ID,
+      expect.objectContaining({
+        agentScope: expect.objectContaining({
+          contextVersion: 1,
+          organizationId: ORG_ID,
+          source: 'thread_created',
+        }),
       }),
     );
   });

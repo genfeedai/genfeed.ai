@@ -10,6 +10,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { AgentThreadSerializer } from '@genfeedai/serializers';
+import { AgentScopeContextService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -29,6 +30,7 @@ import type { Request } from 'express';
 export class AgentThreadRuntimeController {
   constructor(
     private readonly agentThreadEngineService: AgentThreadEngineService,
+    private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly usersService: UsersService,
@@ -119,12 +121,32 @@ export class AgentThreadRuntimeController {
   async respondToInputRequest(
     @Param('threadId') threadId: string,
     @Param('requestId') requestId: string,
-    @Body() body: { answer: string },
+    @Body()
+    body: {
+      answer: string;
+      brandId?: string | null;
+      expectedContextVersion?: number;
+    },
     @CurrentUser() user: User,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveMongoUserId(user);
+      const preparedScope = await this.agentScopeContextService.prepareForTurn({
+        expectedContextVersion: body.expectedContextVersion,
+        organizationId,
+        requestedBrandId: body.brandId,
+        threadId,
+        userId,
+      });
+      const scope = preparedScope.existingScope;
+      if (!scope) {
+        throw new UnauthorizedException('Agent thread scope is unavailable.');
+      }
+      await this.agentScopeContextService.assertConsequentialBoundary(
+        scope,
+        'workflow',
+      );
       const inputRequest = await runEffectPromise(
         this.resolveInputRequestEffect({
           answer: body.answer,
@@ -148,6 +170,7 @@ export class AgentThreadRuntimeController {
             : undefined,
         threadId,
         userId,
+        scope,
       });
 
       return {
@@ -171,7 +194,13 @@ export class AgentThreadRuntimeController {
   @ApiOperation({ summary: 'Execute a thread UI action' })
   async respondToUiAction(
     @Param('threadId') threadId: string,
-    @Body() body: { action: string; payload?: Record<string, unknown> },
+    @Body()
+    body: {
+      action: string;
+      brandId?: string | null;
+      expectedContextVersion?: number;
+      payload?: Record<string, unknown>;
+    },
     @CurrentUser() user: User,
   ) {
     try {
@@ -181,6 +210,8 @@ export class AgentThreadRuntimeController {
       return await this.agentOrchestratorService.handleThreadUiAction(
         {
           action: body.action,
+          brandId: body.brandId,
+          expectedContextVersion: body.expectedContextVersion,
           payload: body.payload,
           threadId,
         },

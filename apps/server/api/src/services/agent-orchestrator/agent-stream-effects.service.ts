@@ -1,10 +1,10 @@
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { fromPromiseEffect } from '@api/helpers/utils/effect/effect.util';
+import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type {
   AgentChatContext,
   ToolCallSummary,
-} from '@api/services/agent-orchestrator/agent-orchestrator.service';
-import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+} from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   type AgentDashboardOperation,
   type AgentUIBlocksEvent,

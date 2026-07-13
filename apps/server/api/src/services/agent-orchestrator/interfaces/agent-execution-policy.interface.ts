@@ -1,4 +1,5 @@
 import type { AgentAutonomyMode } from '@genfeedai/enums';
+import type { ValidatedAgentScope } from '@genfeedai/interfaces';
 
 export type AgentQualityTier = 'budget' | 'balanced' | 'high_quality';
 export type AgentGenerationPriority = 'quality' | 'balanced' | 'cost';
@@ -18,4 +19,5 @@ export interface ResolvedAgentExecutionPolicy {
   };
   brandId?: string;
   platform?: string;
+  scope?: ValidatedAgentScope;
 }

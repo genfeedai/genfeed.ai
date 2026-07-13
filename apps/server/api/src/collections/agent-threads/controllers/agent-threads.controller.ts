@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -14,6 +15,7 @@ import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
 } from '@genfeedai/serializers';
+import { AgentScopeContextService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -35,6 +37,7 @@ import type { Request } from 'express';
 export class AgentThreadsController {
   constructor(
     private readonly agentThreadsService: AgentThreadsService,
+    private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
@@ -144,21 +147,56 @@ export class AgentThreadsController {
   @ApiOperation({ summary: 'Create a new agent thread' })
   async createThread(
     @Req() req: Request,
-    @Body() body: { title?: string; source?: string },
+    @Body() body: { brandId?: string | null; title?: string; source?: string },
     @CurrentUser() user: User,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
+      const preparedScope = await this.agentScopeContextService.prepareForTurn({
+        organizationId,
+        requestedBrandId: body.brandId,
+        userId: dbUserId,
+      });
       const thread = await this.agentThreadsService.create({
+        ...preparedScope.initialScopeFields,
         organizationId,
         source: body.source || 'web',
         title: body.title,
         userId: dbUserId,
-      } as Record<string, unknown>);
+      });
       return serializeSingle(req, AgentThreadSerializer, thread);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'createThread');
+    }
+  }
+
+  @Patch(':threadId/context')
+  @ApiOperation({ summary: 'Compare-and-swap the thread brand context' })
+  async updateThreadContext(
+    @Req() req: Request,
+    @Param('threadId') threadId: string,
+    @Body() body: UpdateAgentThreadContextDto,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const organizationId = this.resolveOrganizationId(user);
+      const userId = await this.resolveMongoUserId(user);
+      const updated = await this.agentScopeContextService.mutateBrandScope({
+        brandId: body.brandId,
+        expectedContextVersion: body.expectedContextVersion,
+        organizationId,
+        threadId,
+        userId,
+      });
+
+      return serializeSingle(req, AgentThreadSerializer, updated);
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'updateThreadContext',
+      );
     }
   }
 

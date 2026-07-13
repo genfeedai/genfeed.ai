@@ -31,6 +31,9 @@ import {
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/enums';
+import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import { toAgentScopeMetadata } from '@genfeedai/interfaces';
+import { AgentScopeContextService } from '@genfeedai/server';
 import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -74,6 +77,8 @@ export class WorkflowExecutorService {
     private readonly websocketService?: NotificationsPublisherService,
     @Optional()
     private readonly reviewGateNotifier?: ReviewGateNotificationService,
+    @Optional()
+    private readonly agentScopeContextService?: AgentScopeContextService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -195,7 +200,20 @@ export class WorkflowExecutorService {
     inputValues: Record<string, unknown> = {},
     metadata?: Record<string, unknown>,
     trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
+    agentScope?: ValidatedAgentScope,
   ): Promise<WorkflowExecutionResult> {
+    if (agentScope) {
+      if (!this.agentScopeContextService) {
+        throw new Error(
+          'Agent scope validator is unavailable for workflow execution.',
+        );
+      }
+      await this.agentScopeContextService.assertConsequentialBoundary(
+        agentScope,
+        'workflow',
+      );
+    }
+
     const workflowDoc = await findOrThrow(
       this.prisma.workflow,
       {
@@ -206,12 +224,22 @@ export class WorkflowExecutorService {
       workflowId,
     );
 
+    if (agentScope) {
+      this.agentScopeContextService?.assertResourceBrand(
+        agentScope,
+        workflowDoc.brandId,
+        'workflow',
+      );
+    }
+
     return this.executeManualWorkflowDocument(
       workflowDoc,
       userId,
       organizationId,
       inputValues,
-      metadata,
+      agentScope
+        ? { ...metadata, agentScope: toAgentScopeMetadata(agentScope) }
+        : metadata,
       trigger,
     );
   }
@@ -361,6 +389,27 @@ export class WorkflowExecutorService {
     );
     const existingExecution =
       await this.executionsService.getRuntimeState(executionId);
+    const resumedAgentScope = this.readPersistedAgentScope(
+      existingExecution?.metadata,
+      triggerEvent.userId,
+      jobData.organizationId,
+    );
+    if (resumedAgentScope) {
+      if (!this.agentScopeContextService) {
+        throw new Error(
+          'Agent scope validator is unavailable for delayed workflow execution.',
+        );
+      }
+      await this.agentScopeContextService.assertConsequentialBoundary(
+        resumedAgentScope,
+        'workflow',
+      );
+      this.agentScopeContextService.assertResourceBrand(
+        resumedAgentScope,
+        workflowDoc.brandId,
+        'workflow',
+      );
+    }
     const resumedCompletedNodeIds = new Set(Object.keys(nodeOutputCache));
     const resumedSkippedNodeIds = new Set<string>();
 
@@ -673,5 +722,52 @@ export class WorkflowExecutorService {
 
       throw error;
     }
+  }
+
+  private readPersistedAgentScope(
+    metadata: Record<string, unknown> | undefined,
+    userId: string,
+    organizationId: string,
+  ): ValidatedAgentScope | undefined {
+    const value = metadata?.agentScope;
+    if (value === undefined) {
+      return undefined;
+    }
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('Delayed workflow has invalid durable agent scope.');
+    }
+
+    const scope = value as Record<string, unknown>;
+    const source = scope.source;
+    const brandId = scope.brandId;
+    if (
+      typeof scope.threadId !== 'string' ||
+      typeof scope.contextVersion !== 'number' ||
+      !Number.isInteger(scope.contextVersion) ||
+      scope.contextVersion < 1 ||
+      scope.organizationId !== organizationId ||
+      typeof scope.isLegacyFallback !== 'boolean' ||
+      (brandId !== undefined && typeof brandId !== 'string') ||
+      (source !== 'explicit' &&
+        source !== 'thread_created' &&
+        source !== 'legacy_execution_policy' &&
+        source !== 'legacy_message_history' &&
+        source !== 'legacy_organization_only')
+    ) {
+      throw new Error('Delayed workflow has invalid durable agent scope.');
+    }
+
+    return {
+      brandId: typeof brandId === 'string' ? brandId : undefined,
+      contextVersion: scope.contextVersion,
+      isLegacyFallback: scope.isLegacyFallback,
+      isVersionExplicit: true,
+      organizationId,
+      provenanceId:
+        typeof scope.provenanceId === 'string' ? scope.provenanceId : undefined,
+      source,
+      threadId: scope.threadId,
+      userId,
+    };
   }
 }
