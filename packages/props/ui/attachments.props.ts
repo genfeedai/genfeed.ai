@@ -5,7 +5,7 @@ export interface AttachmentItem {
   ingredientId?: string;
   url?: string;
   previewUrl: string;
-  file: File;
+  file?: File;
   name: string;
   kind: 'image' | 'video' | 'audio';
   status: 'pending' | 'uploading' | 'completed' | 'failed';
@@ -21,9 +21,11 @@ export interface ChatAttachment {
 }
 
 export interface UseAttachmentsOptions {
+  acceptedTypes?: string[];
+  initialAttachments?: AttachmentItem[];
   maxFiles?: number;
   maxFileSizeMb?: number;
-  acceptedTypes?: string[];
+  onAttachmentsChange?: (attachments: AttachmentItem[]) => void;
   onUpload: (
     file: File,
     onProgress?: (pct: number) => void,

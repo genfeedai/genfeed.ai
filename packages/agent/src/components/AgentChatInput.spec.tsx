@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storeState = {
@@ -41,6 +41,7 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 }));
 
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
+import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
 
 describe('AgentChatInput', () => {
   beforeEach(() => {
@@ -62,11 +63,12 @@ describe('AgentChatInput', () => {
     expect(screen.getByLabelText('Stop agent')).toBeTruthy();
   });
 
-  it('keeps plan mode and file picker controls out of the composer', () => {
+  it('keeps plan mode out and exposes the compact attachment control', () => {
     render(<AgentChatInput onSend={vi.fn()} addFiles={vi.fn()} />);
 
     expect(screen.queryByText(/Plan mode/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Attach image')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Attach files')).toBeInTheDocument();
+    expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
   });
 
   it('adds pasted image files to the prompt attachments', () => {
@@ -110,5 +112,63 @@ describe('AgentChatInput', () => {
     expect(screen.getByAltText('image.png')).toBeInTheDocument();
     fireEvent.click(removeButton);
     expect(removeAttachment).toHaveBeenCalledWith('attachment-1');
+  });
+
+  it('presents interrupted attachment recovery without pretending it can upload', () => {
+    render(
+      <AgentChatInput
+        attachments={[
+          {
+            error: 'Upload was interrupted. Reattach this file to retry.',
+            id: 'attachment-1',
+            kind: 'video',
+            name: 'draft.mp4',
+            previewUrl: '',
+            status: 'failed',
+          },
+        ]}
+        onSend={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText('draft.mp4: failed')).toBeInTheDocument();
+    expect(screen.getByText('Reattach')).toBeInTheDocument();
+  });
+
+  it('dispatches a selected trusted action without clearing or sending the draft', async () => {
+    const dispatchAction = vi.fn(() => ({
+      message: 'Opened Publish. Explicit approval is still required.',
+      status: 'dispatched' as const,
+    }));
+    const onSend = vi.fn();
+
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Conversation"
+        dispatchAction={dispatchAction}
+        draftScopeKey="acme:thread-1:3"
+        portalTarget={null}
+        shellState="conversation"
+      >
+        <AgentChatInput onSend={onSend} />
+      </ConversationComposerShellProvider>,
+    );
+
+    fireEvent.click(screen.getByLabelText('Open composer actions'));
+    fireEvent.click(screen.getByRole('button', { name: /\/publish/i }));
+    fireEvent.click(await screen.findByLabelText('Send message'));
+
+    await waitFor(() => {
+      expect(dispatchAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: expect.objectContaining({ name: 'publish' }),
+        }),
+      );
+    });
+    expect(onSend).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox')).toHaveTextContent('/publish');
+    expect(
+      screen.getByText('Opened Publish. Explicit approval is still required.'),
+    ).toBeInTheDocument();
   });
 });

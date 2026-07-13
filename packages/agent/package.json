@@ -22,6 +22,7 @@
     "@xterm/xterm": "6.0.0",
     "effect": "3.21.4",
     "lucide-react": "1.23.0",
+    "react-icons": "5.7.0",
     "react-markdown": "10.1.0",
     "remark-gfm": "4.0.1",
     "socket.io-client": "4.8.3",
@@ -108,7 +109,8 @@
   "private": true,
   "type": "module",
   "peerDependencies": {
-    "react": ">=18"
+    "react": ">=18",
+    "react-dom": ">=18"
   },
   "scripts": {
     "test": "vitest run --config vitest.config.ts",

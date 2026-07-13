@@ -29,6 +29,11 @@ export {
 } from '@genfeedai/agent/components/blocks';
 export { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRunCard';
 export {
+  type ConversationComposerShellContextValue,
+  ConversationComposerShellProvider,
+  useConversationComposerShell,
+} from '@genfeedai/agent/components/ConversationComposerShellContext';
+export {
   type AgentSetupConnection,
   type AgentSetupStatus,
   useAgentSetupStatus,
