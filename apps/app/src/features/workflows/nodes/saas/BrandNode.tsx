@@ -55,8 +55,13 @@ function BrandNodeComponent(props: NodeProps): React.JSX.Element {
       updateNodeData(id, {
         brandId,
         resolvedBrandId: brandId,
+        resolvedColors: null,
+        resolvedFonts: null,
+        resolvedHandle: null,
         resolvedLabel: selectedBrand?.label ?? null,
         resolvedLogoUrl: selectedBrand?.logoUrl ?? null,
+        resolvedModels: null,
+        resolvedVoice: null,
       });
     },
     [brands, id, updateNodeData],
