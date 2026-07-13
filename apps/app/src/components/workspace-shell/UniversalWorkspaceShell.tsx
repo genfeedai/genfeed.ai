@@ -8,6 +8,7 @@ import {
   type ConversationComposerDispatchResult,
   ConversationComposerShellProvider,
   getConversationComposerAction,
+  runAgentApiEffect,
   useAgentChatStore,
 } from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
@@ -60,6 +61,10 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
+import {
+  useWorkspaceSurfaceAdapter,
+  WorkspaceSurfaceAdapterProvider,
+} from './WorkspaceSurfaceAdapterContext';
 
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
@@ -73,7 +78,7 @@ type UniversalWorkspaceShellProps = {
 
 type UniversalWorkspaceShellContentProps = Pick<
   UniversalWorkspaceShellProps,
-  'children' | 'composerScopeControls'
+  'agentApiService' | 'children' | 'composerScopeControls'
 >;
 
 function clampInspectorWidth(width: number): number {
@@ -93,6 +98,7 @@ function requireWorkspaceShellLocation(
 }
 
 function UniversalWorkspaceShellContent({
+  agentApiService,
   children,
   composerScopeControls,
 }: UniversalWorkspaceShellContentProps) {
@@ -103,12 +109,17 @@ function UniversalWorkspaceShellContent({
   const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const threads = useAgentChatStore((state) => state.threads);
+  const updateThread = useAgentChatStore((state) => state.updateThread);
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
   const [composerPortalTarget, setComposerPortalTarget] =
     useState<HTMLElement | null>(null);
+  const [surfaceScopeStatus, setSurfaceScopeStatus] = useState<
+    'error' | 'ready' | 'syncing'
+  >('ready');
   const primaryRegionRef = useRef<HTMLElement>(null);
+  const previousActiveThreadIdRef = useRef(activeThreadId);
   const previousPathnameRef = useRef<string | null>(null);
   const previousStateRef = useRef<WorkspaceShellState | null>(null);
   const pendingTransitionRef = useRef<
@@ -175,13 +186,67 @@ function UniversalWorkspaceShellContent({
     () => threads.find((thread) => thread.id === effectiveThreadId) ?? null,
     [effectiveThreadId, threads],
   );
+  const registeredSurfaceAdapter = useWorkspaceSurfaceAdapter();
+  const activeSurfaceAdapter =
+    registeredSurfaceAdapter?.surfaceKey === surfaceKey
+      ? registeredSurfaceAdapter
+      : null;
+  const surfaceBrandId = activeSurfaceAdapter?.scope.brandId;
+  const isSurfaceScopeAligned = Boolean(
+    !activeThread || !surfaceBrandId || activeThread.brandId === surfaceBrandId,
+  );
+  const surfaceReferences = isSurfaceScopeAligned
+    ? activeSurfaceAdapter?.references
+    : undefined;
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
   const composerContextLabel =
-    state === 'conversation'
+    activeSurfaceAdapter?.contextLabel ??
+    (state === 'conversation'
       ? 'Conversation'
       : state === 'overlay'
         ? 'Overlay · conversation connected'
-        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`;
+        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`);
+
+  useEffect(() => {
+    if (!activeThread || !surfaceBrandId) {
+      setSurfaceScopeStatus('ready');
+      return;
+    }
+    if (activeThread.brandId === surfaceBrandId) {
+      setSurfaceScopeStatus('ready');
+      return;
+    }
+
+    const abortController = new AbortController();
+    setSurfaceScopeStatus('syncing');
+    runAgentApiEffect(
+      agentApiService.updateThreadContextEffect(
+        activeThread.id,
+        {
+          brandId: surfaceBrandId,
+          expectedContextVersion: activeThread.contextVersion,
+        },
+        abortController.signal,
+      ),
+    )
+      .then((thread) => {
+        if (abortController.signal.aborted) {
+          return;
+        }
+        updateThread(activeThread.id, {
+          brandId: thread.brandId,
+          contextVersion: thread.contextVersion,
+        });
+        setSurfaceScopeStatus('ready');
+      })
+      .catch(() => {
+        if (!abortController.signal.aborted) {
+          setSurfaceScopeStatus('error');
+        }
+      });
+
+    return () => abortController.abort();
+  }, [activeThread, agentApiService, surfaceBrandId, updateThread]);
 
   useLayoutEffect(() => {
     if (!isUnthreadedConversation) {
@@ -251,6 +316,27 @@ function UniversalWorkspaceShellContent({
     routeScope,
     threadId,
   ]);
+
+  useEffect(() => {
+    const previousActiveThreadId = previousActiveThreadIdRef.current;
+    previousActiveThreadIdRef.current = activeThreadId;
+
+    if (
+      baseState !== 'canvas' ||
+      !isCanonical ||
+      threadId ||
+      !activeThreadId ||
+      activeThreadId === previousActiveThreadId
+    ) {
+      return;
+    }
+
+    replace(
+      buildWorkspaceShellHref(currentHref, {
+        threadId: activeThreadId,
+      }),
+    );
+  }, [activeThreadId, baseState, currentHref, isCanonical, replace, threadId]);
 
   useEffect(() => {
     const previousState = previousStateRef.current;
@@ -456,9 +542,13 @@ function UniversalWorkspaceShellContent({
         <div>
           <p className="text-sm font-medium text-foreground">Context</p>
           <p className="text-xs text-muted-foreground">
-            {effectiveThreadId
-              ? 'Conversation connected'
-              : 'No conversation selected'}
+            {surfaceScopeStatus === 'syncing'
+              ? 'Synchronizing surface brand…'
+              : surfaceScopeStatus === 'error'
+                ? 'Surface brand synchronization failed'
+                : effectiveThreadId
+                  ? 'Conversation connected'
+                  : 'No conversation selected'}
           </p>
         </div>
         <Button
@@ -472,15 +562,19 @@ function UniversalWorkspaceShellContent({
         />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <div className="gen-shell-empty-state p-4">
-          <p className="text-sm font-medium text-foreground">
-            Registered {surfaceKey} adapter slot
-          </p>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Product-owned context adapters land here without changing their
-            canonical route or granting execution authority.
-          </p>
-        </div>
+        {activeSurfaceAdapter ? (
+          activeSurfaceAdapter.renderInspector()
+        ) : (
+          <div className="gen-shell-empty-state p-4">
+            <p className="text-sm font-medium text-foreground">
+              Registered {surfaceKey} adapter slot
+            </p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Product-owned context adapters land here without changing their
+              canonical route or granting execution authority.
+            </p>
+          </div>
+        )}
         <Button
           icon={<HiOutlineEye className="size-4" />}
           onClick={handleOpenOverlay}
@@ -503,6 +597,8 @@ function UniversalWorkspaceShellContent({
 
   return (
     <ConversationComposerShellProvider
+      artifactReferences={surfaceReferences}
+      brandId={isSurfaceScopeAligned ? surfaceBrandId : undefined}
       contextLabel={composerContextLabel}
       dispatchAction={handleComposerAction}
       draftScopeKey={draftScopeKey}
@@ -700,11 +796,14 @@ export default function UniversalWorkspaceShell({
 }: UniversalWorkspaceShellProps) {
   return (
     <AgentWorkspaceLayoutClient agentApiService={agentApiService}>
-      <UniversalWorkspaceShellContent
-        composerScopeControls={composerScopeControls}
-      >
-        {children}
-      </UniversalWorkspaceShellContent>
+      <WorkspaceSurfaceAdapterProvider>
+        <UniversalWorkspaceShellContent
+          agentApiService={agentApiService}
+          composerScopeControls={composerScopeControls}
+        >
+          {children}
+        </UniversalWorkspaceShellContent>
+      </WorkspaceSurfaceAdapterProvider>
     </AgentWorkspaceLayoutClient>
   );
 }

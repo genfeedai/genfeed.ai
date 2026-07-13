@@ -244,6 +244,42 @@ describe('AgentApiService', () => {
       );
     });
 
+    it('serializes typed canonical references on a thread turn', async () => {
+      mockOk({
+        message: { content: 'hi', role: 'assistant' },
+        threadId: 'c-1',
+      });
+      const service = makeService();
+      const artifactReference = {
+        brandId: 'brand-1',
+        kind: 'ingredient' as const,
+        organizationId: 'org-1',
+        recordId: 'ingredient-1',
+        serializer: 'ingredient' as const,
+      };
+
+      await Effect.runPromise(
+        service.chatEffect({
+          artifactReferences: [artifactReference],
+          brandId: 'brand-1',
+          content: 'Use this asset',
+          threadId: 'c-1',
+        }),
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/agent/threads/c-1/turns',
+        expect.objectContaining({
+          body: JSON.stringify({
+            artifactReferences: [artifactReference],
+            brandId: 'brand-1',
+            content: 'Use this asset',
+          }),
+          method: 'POST',
+        }),
+      );
+    });
+
     it('throws on error', async () => {
       mockError(500);
       const service = makeService();

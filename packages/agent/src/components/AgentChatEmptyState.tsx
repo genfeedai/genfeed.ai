@@ -2,6 +2,7 @@ import {
   AgentChatInput,
   type ExtractedMention,
 } from '@genfeedai/agent/components/AgentChatInput';
+import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type {
   AttachmentItem,
@@ -34,7 +35,7 @@ type AgentChatEmptyStateProps = {
     content: string,
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
-    options?: { planModeEnabled?: boolean },
+    options?: ConversationComposerSendOptions,
   ) => void;
   onStop: () => void;
   placeholder?: string;

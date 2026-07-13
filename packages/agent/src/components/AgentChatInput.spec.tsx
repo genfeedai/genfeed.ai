@@ -4,7 +4,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const storeState = {
   activeThreadId: null as string | null,
   clearComposerSeed: vi.fn(),
-  composerSeed: null,
+  composerSeed: null as {
+    content: string;
+    nonce: number;
+    threadId: string | null;
+  } | null,
   draftPlanModeEnabled: false,
   setDraftPlanModeEnabled: vi.fn((enabled: boolean) => {
     storeState.draftPlanModeEnabled = enabled;
@@ -48,6 +52,7 @@ describe('AgentChatInput', () => {
     vi.clearAllMocks();
     storeState.activeThreadId = null;
     storeState.draftPlanModeEnabled = false;
+    storeState.composerSeed = null;
     storeState.threads = [];
   });
 
@@ -170,5 +175,62 @@ describe('AgentChatInput', () => {
     expect(
       screen.getByText('Opened Publish. Explicit approval is still required.'),
     ).toBeInTheDocument();
+  });
+
+  it('shows and sends the selected surface artifact as a typed reference', async () => {
+    const onSend = vi.fn();
+    storeState.composerSeed = {
+      content: 'Discuss this selected visual',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(
+      <ConversationComposerShellProvider
+        artifactReferences={[
+          {
+            label: 'Launch visual · v3',
+            reference: {
+              brandId: 'brand-1',
+              kind: 'ingredient',
+              organizationId: 'organization-1',
+              recordId: 'ingredient-v3',
+              serializer: 'ingredient',
+            },
+          },
+        ]}
+        brandId="brand-1"
+        contextLabel="Studio · Image"
+        draftScopeKey="acme:thread-1:3"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatInput onSend={onSend} />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(screen.getByText('Launch visual · v3')).toBeInTheDocument();
+    fireEvent.click(await screen.findByLabelText('Send message'));
+
+    await waitFor(() => {
+      expect(onSend).toHaveBeenCalledWith(
+        'Discuss this selected visual',
+        undefined,
+        undefined,
+        {
+          artifactReferences: [
+            {
+              brandId: 'brand-1',
+              kind: 'ingredient',
+              organizationId: 'organization-1',
+              recordId: 'ingredient-v3',
+              serializer: 'ingredient',
+            },
+          ],
+          brandId: 'brand-1',
+          planModeEnabled: false,
+        },
+      );
+    });
   });
 });

@@ -9,6 +9,7 @@ import type {
   AgentProposedPlan,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
+import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import type {
@@ -43,7 +44,7 @@ type AgentChatPromptBarProps = {
     content: string,
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
-    options?: { planModeEnabled?: boolean },
+    options?: ConversationComposerSendOptions,
   ) => void;
   onStop: () => void;
   activeWorkEvent: AgentWorkEvent | null;

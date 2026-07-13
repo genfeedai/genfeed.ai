@@ -15,7 +15,7 @@ import {
 export interface AgentChatReferenceItem {
   id: string;
   label: string;
-  type: 'brand' | 'content' | 'credential' | 'team';
+  type: 'asset' | 'brand' | 'content' | 'credential' | 'team';
 }
 
 type AgentChatInputAttachmentTrayProps = {

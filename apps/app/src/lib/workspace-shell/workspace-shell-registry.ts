@@ -30,6 +30,7 @@ export type {
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
 type RouteGroupConfig = {
+  readonly adapterStatus?: WorkspaceShellRouteRegistration['adapter']['status'];
   readonly fallback: string;
   readonly mode: WorkspaceShellRouteMode;
   readonly scope: WorkspaceShellScopeRequirement;
@@ -104,7 +105,7 @@ function freezeRouteRegistration(
     accessPolicy: ACCESS_POLICY_BY_SCOPE[config.scope],
     adapter: Object.freeze({
       key: config.surfaceKey,
-      status: ADAPTER_STATUS_BY_MODE[config.mode],
+      status: config.adapterStatus ?? ADAPTER_STATUS_BY_MODE[config.mode],
     }),
     allowedShellModes: Object.freeze([config.mode] as const),
     availability: AVAILABILITY_BY_MODE[config.mode],
@@ -220,7 +221,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   }),
   ...registerRoutes(['/:orgSlug/~/studio', '/:orgSlug/~/studio/:type'], {
     fallback: '/:orgSlug/~/studio',
-    mode: 'canvas',
+    mode: 'dedicated',
     scope: 'organization',
     surfaceKey: 'studio',
     switcherItems: ['studio'],
@@ -370,15 +371,28 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/studio/:type',
       '/:orgSlug/:brandSlug/studio/:type/:id',
+    ],
+    {
+      adapterStatus: 'ready',
+      fallback: '/:orgSlug/:brandSlug/studio/image',
+      mode: 'canvas',
+      scope: 'brand',
+      surfaceKey: 'studio',
+      switcherItems: ['studio'],
+      telemetryClass: 'product',
+    },
+  ),
+  ...registerRoutes(
+    [
       '/:orgSlug/:brandSlug/studio/batch',
       '/:orgSlug/:brandSlug/studio/clips',
       '/:orgSlug/:brandSlug/studio/fastlane',
     ],
     {
       fallback: '/:orgSlug/:brandSlug/studio/image',
-      mode: 'canvas',
+      mode: 'dedicated',
       scope: 'brand',
-      surfaceKey: 'studio',
+      surfaceKey: 'studio-specialized',
       switcherItems: ['studio'],
       telemetryClass: 'product',
     },

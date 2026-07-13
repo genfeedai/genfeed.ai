@@ -36,6 +36,7 @@ describe('AgentOrchestratorService', () => {
   let service: AgentOrchestratorService;
   let configService: vi.Mocked<ConfigService>;
   let llmDispatcher: vi.Mocked<LlmDispatcherService>;
+  let agentMessagesService: vi.Mocked<AgentMessagesService>;
   let agentThreadsService: vi.Mocked<AgentThreadsService>;
   let organizationsService: vi.Mocked<OrganizationsService>;
   let organizationSettingsService: vi.Mocked<OrganizationSettingsService>;
@@ -511,6 +512,7 @@ describe('AgentOrchestratorService', () => {
 
     service = module.get(AgentOrchestratorService);
     configService = module.get(ConfigService);
+    agentMessagesService = module.get(AgentMessagesService);
     agentThreadsService = module.get(AgentThreadsService);
     agentMemoriesService = module.get(AgentMemoriesService);
     llmDispatcher = module.get(LlmDispatcherService);
@@ -564,6 +566,49 @@ describe('AgentOrchestratorService', () => {
         model: 'google/gemini-2.5-flash',
         requestedModel: 'openrouter/auto',
       }),
+    );
+  });
+
+  it('authorizes, persists, and exposes selected canonical records to the model', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    const artifactReference = {
+      brandId: '67a123456789012345678905',
+      kind: 'ingredient' as const,
+      organizationId: ORG_ID,
+      recordId: '67a123456789012345678906',
+      serializer: 'ingredient' as const,
+    };
+
+    await service.chat(
+      {
+        artifactReferences: [artifactReference],
+        brandId: artifactReference.brandId,
+        content: 'Discuss the selected Studio asset',
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        artifactReferences: [artifactReference],
+        organizationId: ORG_ID,
+        role: 'user',
+      }),
+    );
+    expect(llmDispatcher.chatCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            content: expect.stringContaining(
+              `ingredient:${artifactReference.recordId}`,
+            ),
+            role: 'system',
+          }),
+        ]),
+      }),
+      ORG_ID,
     );
   });
 

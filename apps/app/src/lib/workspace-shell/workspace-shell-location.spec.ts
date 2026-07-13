@@ -42,7 +42,7 @@ describe('workspace shell URL restoration', () => {
     '/acme/moonrise/overview/activities',
     '/acme/moonrise/posts/calendar',
     '/acme/moonrise/research/discovery',
-    '/acme/moonrise/studio/fastlane',
+    '/acme/moonrise/studio/image',
     '/acme/moonrise/tasks/task-1',
     '/acme/moonrise/workflows/templates',
     '/acme/moonrise/workspace/inbox/all',
@@ -194,6 +194,13 @@ describe('workspace shell URL restoration', () => {
   });
 
   it('returns null for dedicated and unknown routes', () => {
+    expect(
+      restoreWorkspaceShellLocation({
+        normalizedPathname: '/studio/fastlane',
+        pathname: '/acme/moonrise/studio/fastlane',
+        searchParams: new URLSearchParams({ thread: 'thread-1' }),
+      }),
+    ).toBeNull();
     expect(
       restoreWorkspaceShellLocation({
         normalizedPathname: '/agent/journey',

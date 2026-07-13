@@ -33,6 +33,7 @@ import {
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { AgentThreadStatus } from '@genfeedai/enums';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useRef } from 'react';
@@ -44,10 +45,12 @@ interface UseAgentChatStreamOptions {
 }
 
 interface SendStreamMessageOptions {
+  artifactReferences?: AgentArtifactReference[];
   forceNewThread?: boolean;
   source?: 'agent' | 'proactive' | 'onboarding';
   signal?: AbortSignal;
   attachments?: ChatAttachment[];
+  brandId?: string;
   planModeEnabled?: boolean;
 }
 
@@ -380,8 +383,9 @@ export function useAgentChatStream(
         const response = await runAgentApiEffect(
           apiService.chatEffect(
             {
+              artifactReferences: sendOptions?.artifactReferences,
               attachments: sendOptions?.attachments,
-              brandId: currentThread?.brandId ?? null,
+              brandId: sendOptions?.brandId ?? currentThread?.brandId ?? null,
               content,
               expectedContextVersion: currentThread?.contextVersion,
               model: resolvedModel,
@@ -632,9 +636,18 @@ export function useAgentChatStream(
         content,
         createdAt: new Date().toISOString(),
         id: `user-${Date.now()}`,
-        metadata: sendOptions?.attachments?.length
-          ? { attachments: sendOptions.attachments }
-          : undefined,
+        metadata:
+          sendOptions?.attachments?.length ||
+          sendOptions?.artifactReferences?.length
+            ? {
+                ...(sendOptions.attachments?.length
+                  ? { attachments: sendOptions.attachments }
+                  : {}),
+                ...(sendOptions.artifactReferences?.length
+                  ? { artifactReferences: sendOptions.artifactReferences }
+                  : {}),
+              }
+            : undefined,
         role: 'user',
         threadId: currentActiveThreadId ?? '',
       };
@@ -1018,8 +1031,9 @@ export function useAgentChatStream(
         const response = await runAgentApiEffect(
           apiService.chatStreamEffect(
             {
+              artifactReferences: sendOptions?.artifactReferences,
               attachments: sendOptions?.attachments,
-              brandId: currentThread?.brandId ?? null,
+              brandId: sendOptions?.brandId ?? currentThread?.brandId ?? null,
               content,
               expectedContextVersion: currentThread?.contextVersion,
               model: resolvedModel,

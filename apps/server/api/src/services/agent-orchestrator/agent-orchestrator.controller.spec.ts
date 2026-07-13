@@ -171,6 +171,43 @@ describe('AgentOrchestratorController', () => {
       );
     });
 
+    it('preserves typed canonical artifact references for server authorization', async () => {
+      const user = {
+        id: 'authProvider_000',
+        publicMetadata: { organization: 'org', user: 'usr' },
+      } as unknown as User;
+      usersService.findOne.mockResolvedValue({
+        id: '507f191e810c19729de860ea',
+      });
+      service.chat.mockResolvedValue({} as never);
+      const artifactReference = {
+        brandId: 'brand-1',
+        kind: 'ingredient' as const,
+        organizationId: '507f191e810c19729de860ea',
+        recordId: 'ingredient-1',
+        serializer: 'ingredient' as const,
+      };
+
+      await controller.createTurn(
+        {
+          artifactReferences: [artifactReference],
+          content: 'Use the selected asset',
+          source: 'agent',
+          threadId: 'conv-reference',
+        },
+        user,
+        'Bearer t',
+      );
+
+      expect(service.chat).toHaveBeenCalledWith(
+        expect.objectContaining({
+          artifactReferences: [artifactReference],
+          threadId: 'conv-reference',
+        }),
+        expect.any(Object),
+      );
+    });
+
     it('starts a thread-scoped turn using the route thread id', async () => {
       const user = {
         id: 'authProvider_000',

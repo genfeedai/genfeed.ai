@@ -15,7 +15,11 @@ import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions'
 import { useCredentialMentions } from '@genfeedai/agent/hooks/use-credential-mentions';
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import { useTeamMentions } from '@genfeedai/agent/hooks/use-team-mentions';
-import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
+import type {
+  ConversationComposerActionName,
+  ConversationComposerArtifactReference,
+  ConversationComposerSendOptions,
+} from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
@@ -48,6 +52,9 @@ import {
 } from 'react';
 import tippy, { type Instance } from 'tippy.js';
 import type { ExtractedMention } from './AgentChatInput';
+
+const EMPTY_SURFACE_ARTIFACT_REFERENCES: readonly ConversationComposerArtifactReference[] =
+  [];
 
 // ---------------------------------------------------------------------------
 // Pure helpers (no JSX — safe in .ts file)
@@ -201,7 +208,7 @@ interface UseAgentChatInputParams {
     content: string,
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
-    options?: { planModeEnabled?: boolean },
+    options?: ConversationComposerSendOptions,
   ) => void;
   onStop?: () => void | Promise<void>;
   disabled?: boolean;
@@ -235,6 +242,8 @@ export function useAgentChatInput({
   clearAllAttachments,
 }: UseAgentChatInputParams) {
   const composerShell = useConversationComposerShell();
+  const surfaceArtifactReferences =
+    composerShell?.artifactReferences ?? EMPTY_SURFACE_ARTIFACT_REFERENCES;
   const draftScopeKey = composerShell?.draftScopeKey ?? null;
   const restoredDraft = useMemo(
     () => readConversationComposerDraft(draftScopeKey),
@@ -268,6 +277,17 @@ export function useAgentChatInput({
           type: mention.type,
         }))
       : [],
+  );
+  const displayedReferences = useMemo<AgentChatReferenceItem[]>(
+    () => [
+      ...references,
+      ...surfaceArtifactReferences.map((item) => ({
+        id: item.reference.recordId,
+        label: item.label,
+        type: 'asset' as const,
+      })),
+    ],
+    [references, surfaceArtifactReferences],
   );
   const editorRef = useRef<Editor | null>(null);
 
@@ -533,7 +553,17 @@ export function useAgentChatInput({
       text,
       mentionData.length > 0 ? mentionData : undefined,
       completed && completed.length > 0 ? completed : undefined,
-      { planModeEnabled: false },
+      {
+        ...(surfaceArtifactReferences.length > 0
+          ? {
+              artifactReferences: surfaceArtifactReferences.map(
+                (item) => item.reference,
+              ),
+            }
+          : {}),
+        ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
+        planModeEnabled: false,
+      },
     );
     editor.commands.clearContent();
     clearAllAttachments?.();
@@ -547,6 +577,7 @@ export function useAgentChatInput({
     hasCompletedAttachments,
     getCompletedAttachments,
     clearAllAttachments,
+    surfaceArtifactReferences,
   ]);
 
   // Handle Enter after handleSend is stable so keyboard and click paths share
@@ -657,7 +688,7 @@ export function useAgentChatInput({
     isDragActive,
     isListening,
     isTranscribing,
-    references,
+    references: displayedReferences,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,

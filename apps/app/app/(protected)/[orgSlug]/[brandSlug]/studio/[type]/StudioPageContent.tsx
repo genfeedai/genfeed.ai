@@ -10,6 +10,7 @@ import StudioGenerateLayout from '@pages/studio/generate';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
+import StudioWorkspaceSurfaceAdapter from '../studio-workspace-surface-adapter';
 import GenerationFeatureGuard from './GenerationFeatureGuard';
 
 function StudioPageContentInner() {
@@ -60,6 +61,7 @@ function StudioPageContentInner() {
 
   return (
     <div className="flex h-full flex-col">
+      <StudioWorkspaceSurfaceAdapter mode={category} />
       <div className="min-h-0 flex-1">
         <GenerationFeatureGuard category={category}>
           <StudioGenerateLayout

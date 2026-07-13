@@ -346,6 +346,7 @@ export class AgentOrchestratorService {
 
       // Save user message
       await this.agentMessagesService.addMessage({
+        artifactReferences: request.artifactReferences,
         brandId: scope.brandId,
         content: request.content,
         metadata: {
@@ -1268,6 +1269,7 @@ export class AgentOrchestratorService {
 
     // Save user message
     await this.agentMessagesService.addMessage({
+      artifactReferences: request.artifactReferences,
       brandId: scope.brandId,
       content: request.content,
       metadata: {
@@ -3741,12 +3743,13 @@ export class AgentOrchestratorService {
       };
     }
 
+    const pageContextPrompt = buildPageContextPrompt(
+      request.pageContext,
+      request.artifactReferences,
+    );
+
     if (thread?.systemPrompt) {
-      const prompt = [
-        thread.systemPrompt,
-        skillPromptSuffix,
-        buildPageContextPrompt(request.pageContext),
-      ]
+      const prompt = [thread.systemPrompt, skillPromptSuffix, pageContextPrompt]
         .filter(Boolean)
         .join('\n\n');
       return {
@@ -3763,7 +3766,7 @@ export class AgentOrchestratorService {
       const prompt = [
         request.systemPromptOverride,
         skillPromptSuffix,
-        buildPageContextPrompt(request.pageContext),
+        pageContextPrompt,
       ]
         .filter(Boolean)
         .join('\n\n');
@@ -3785,7 +3788,7 @@ export class AgentOrchestratorService {
       AGENT_ORCHESTRATOR_SYSTEM_PROMPT +
       (typeSuffix || platformSuffix) +
       (skillPromptSuffix ? `\n\n${skillPromptSuffix}` : '') +
-      buildPageContextPrompt(request.pageContext);
+      pageContextPrompt;
 
     if (brandContext) {
       const systemPrompt = this.contextAssemblyService.buildSystemPrompt(

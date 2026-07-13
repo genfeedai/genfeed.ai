@@ -3,9 +3,12 @@ import type { IFormat, IIngredient } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { useCallback, useMemo, useState } from 'react';
+import { useBrand } from '../user/brand-context/brand-context';
 import { AssetSelectionContext } from './asset-selection.context';
+import { createCanonicalAssetSelection } from './canonical-asset-selection';
 
 export function AssetSelectionProvider({ children }: LayoutProps) {
+  const { brandId, organizationId } = useBrand();
   const [selectedIngredient, setSelectedAsset] = useState<IIngredient | null>(
     null,
   );
@@ -19,8 +22,20 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
   const [generatedAssetIds, setGeneratedAssetIds] = useState<string[]>([]);
   const [generationQueue, setGenerationQueue] = useState<IGenerationItem[]>([]);
 
-  const activeGenerations = generationQueue.filter((item) =>
-    item.status.includes(IngredientStatus.PROCESSING),
+  const activeGenerations = useMemo(
+    () =>
+      generationQueue.filter((item) =>
+        item.status.includes(IngredientStatus.PROCESSING),
+      ),
+    [generationQueue],
+  );
+  const selectedCanonicalAsset = useMemo(
+    () =>
+      createCanonicalAssetSelection(selectedIngredient, {
+        brandId,
+        organizationId,
+      }),
+    [brandId, organizationId, selectedIngredient],
   );
 
   const addToGenerationQueue = useCallback((item: IGenerationItem) => {
@@ -60,6 +75,7 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
       generationQueue,
       isGenerating,
       removeFromQueue,
+      selectedCanonicalAsset,
       selectedIngredient,
       setCurrentFormat,
       setGeneratedAssetId,
@@ -79,6 +95,7 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
       generationQueue,
       isGenerating,
       removeFromQueue,
+      selectedCanonicalAsset,
       selectedIngredient,
       updateGenerationStatus,
     ],
