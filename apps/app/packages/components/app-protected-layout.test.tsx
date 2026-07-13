@@ -341,6 +341,20 @@ vi.mock('next/dynamic', () => ({
       };
     }
 
+    if (source.includes('UniversalWorkspaceShell')) {
+      return function LazyUniversalWorkspaceShellStub({
+        children,
+      }: {
+        children: ReactNode;
+      }) {
+        universalShellSpy();
+        if (featureFlagState.shellThrows) {
+          throw new Error('workspace shell render failed');
+        }
+        return <div data-testid="universal-workspace-shell">{children}</div>;
+      };
+    }
+
     if (source.includes('CommandPalette')) {
       return function LazyCommandPaletteStub() {
         return <div data-testid="command-palette" />;
@@ -415,16 +429,6 @@ vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
     flagKey === 'conversation_shell'
       ? featureFlagState.conversationShell
       : true,
-}));
-
-vi.mock('@/components/workspace-shell/UniversalWorkspaceShell', () => ({
-  default: ({ children }: { children: ReactNode }) => {
-    universalShellSpy();
-    if (featureFlagState.shellThrows) {
-      throw new Error('workspace shell render failed');
-    }
-    return <div data-testid="universal-workspace-shell">{children}</div>;
-  },
 }));
 
 vi.mock('@providers/protected-providers/protected-providers', () => ({
