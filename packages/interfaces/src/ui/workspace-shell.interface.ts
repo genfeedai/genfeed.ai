@@ -43,11 +43,13 @@ export interface WorkspaceShellTypedReference {
 }
 
 export type WorkspaceShellOverlayKey =
+  | 'library-picker'
   | 'notifications'
   | 'shell-preview'
   | 'workflow-picker';
 
 export interface WorkspaceShellOverlayParameterMap {
+  readonly 'library-picker': Readonly<Record<string, never>>;
   readonly notifications: Readonly<Record<string, never>>;
   readonly 'shell-preview': {
     readonly reference: WorkspaceShellTypedReference | null;
@@ -100,7 +102,7 @@ export interface WorkspaceShellRestorationPolicy {
 
 export interface WorkspaceShellAdapterSeam {
   readonly key: string;
-  readonly status: 'dedicated-route' | 'placeholder';
+  readonly status: 'dedicated-route' | 'placeholder' | 'ready';
 }
 
 export interface WorkspaceShellRouteRegistration {
@@ -146,6 +148,7 @@ export interface WorkspaceShellOverlayRegistration {
   readonly safeFallback: 'same-canonical-url';
   readonly scope: 'organization';
   readonly telemetryClass:
+    | 'library_picker'
     | 'notifications'
     | 'shell_preview'
     | 'workflow_picker';

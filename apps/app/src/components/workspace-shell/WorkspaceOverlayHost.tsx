@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import LibraryPickerOverlay from '@/features/library-remix/LibraryPickerOverlay';
 
 function formatOverlayParameters(
   overlay: WorkspaceOverlayHostProps['overlay'],
@@ -30,9 +31,11 @@ export default function WorkspaceOverlayHost({
   fallbackFocusRef,
   isOpen,
   onDismiss,
+  onSelectLibraryReference,
   overlay,
   registration,
   returnFocusRef,
+  threadId,
 }: WorkspaceOverlayHostProps) {
   const isResolved = Boolean(
     overlay && registration && overlay.key === registration.key,
@@ -71,11 +74,17 @@ export default function WorkspaceOverlayHost({
               {registration.presentation.description}
             </DialogDescription>
           </DialogHeader>
-          {content ?? (
-            <div className="p-5 pb-2 text-sm text-muted-foreground">
-              {formatOverlayParameters(overlay)}
-            </div>
-          )}
+          {content ??
+            (overlay?.key === 'library-picker' && onSelectLibraryReference ? (
+              <LibraryPickerOverlay
+                onSelect={onSelectLibraryReference}
+                threadId={threadId}
+              />
+            ) : (
+              <div className="p-5 pb-2 text-sm text-muted-foreground">
+                {formatOverlayParameters(overlay)}
+              </div>
+            ))}
           <div
             className="border-t border-border p-3"
             data-testid="workspace-overlay-composer-slot"

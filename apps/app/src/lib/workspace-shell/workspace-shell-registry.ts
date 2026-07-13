@@ -667,6 +667,28 @@ export const PROTECTED_ROUTE_INVENTORY = Object.freeze([
 export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
   Object.freeze({
     accessPolicy: 'organization-member',
+    adapter: Object.freeze({ key: 'library-picker', status: 'ready' }),
+    allowedShellModes: Object.freeze(['overlay'] as const),
+    availability: 'conversation-shell',
+    canonicalUrl: null,
+    deployments: ALL_DEPLOYMENTS,
+    key: 'library-picker',
+    kind: 'overlay',
+    launchTarget: 'overlay',
+    parameterContract: Object.freeze({ kind: 'none' } as const),
+    presentation: Object.freeze({
+      description:
+        'Choose an authorized media source without leaving the active conversation.',
+      openAnnouncement: 'Library picker opened.',
+      title: 'Choose from Library',
+    }),
+    restoration: URL_RESTORATION_POLICY,
+    safeFallback: 'same-canonical-url',
+    scope: 'organization',
+    telemetryClass: 'library_picker',
+  }),
+  Object.freeze({
+    accessPolicy: 'organization-member',
     adapter: Object.freeze({ key: 'notifications', status: 'placeholder' }),
     allowedShellModes: Object.freeze(['overlay'] as const),
     availability: 'conversation-shell',

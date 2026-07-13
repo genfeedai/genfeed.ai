@@ -102,16 +102,32 @@ vi.mock('@genfeedai/agent', () => ({
         }
         type="button"
       />
+      <button
+        aria-label="Dispatch remix action"
+        onClick={() =>
+          dispatchAction({
+            action: {
+              isConsequentialProposal: false,
+              label: 'Remix',
+              name: 'remix',
+              requiredScope: 'brand',
+              route: '/posts/remix',
+            },
+            arguments: '',
+          })
+        }
+        type="button"
+      />
     </div>
   ),
   getConversationComposerAction: (name: string) => {
-    if (name === 'publish') {
+    if (name === 'publish' || name === 'remix') {
       return {
-        isConsequentialProposal: true,
-        label: 'Publish',
-        name: 'publish',
+        isConsequentialProposal: name === 'publish',
+        label: name === 'publish' ? 'Publish' : 'Remix',
+        name,
         requiredScope: 'brand',
-        route: '/posts/review',
+        route: name === 'publish' ? '/posts/review' : '/posts/remix',
       };
     }
     if (name === 'workflow') {
@@ -160,6 +176,42 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
     orgHref: (href: string) => `/acme/~${href}`,
     orgSlug: navigation.pathname.split('/').filter(Boolean)[0] ?? '',
   }),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+  }),
+}));
+
+vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
+  default: ({
+    onSelect,
+  }: {
+    onSelect: (reference: {
+      brandId: string;
+      kind: 'ingredient';
+      organizationId: string;
+      recordId: string;
+      serializer: 'ingredient';
+    }) => void;
+  }) => (
+    <button
+      onClick={() =>
+        onSelect({
+          brandId: 'brand-1',
+          kind: 'ingredient',
+          organizationId: 'org-1',
+          recordId: 'ingredient-1',
+          serializer: 'ingredient',
+        })
+      }
+      type="button"
+    >
+      Select Library source
+    </button>
+  ),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -257,6 +309,15 @@ vi.mock('@/features/workflows/workspace/WorkflowPickerOverlay', () => ({
       </button>
     </div>
   ),
+}));
+
+vi.mock('./use-conversation-scope-controls', () => ({
+  useConversationScopeControls: () => ({
+    contextLabel: 'Acme · Organization-wide',
+    inspectorScope: <div data-testid="workspace-effective-scope" />,
+    isConsequentiallyBlocked: false,
+    scopeControls: <span>Thread scope</span>,
+  }),
 }));
 
 import UniversalWorkspaceShell from './UniversalWorkspaceShell';
@@ -460,6 +521,47 @@ describe('UniversalWorkspaceShell', () => {
     expect(screen.queryByTestId('workspace-dialog')).not.toBeInTheDocument();
   });
 
+  it('dispatches Remix through the authorized no-parameter Library overlay', () => {
+    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.searchParams = new URLSearchParams({ thread: 'thread-1' });
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Workspace</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dispatch remix action' }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith(
+      '/acme/moonrise/workspace/overview?thread=thread-1&overlay=library-picker',
+    );
+  });
+
+  it('consumes a reauthorized Library reference into the canonical Remix route', () => {
+    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.searchParams = new URLSearchParams({
+      overlay: 'library-picker',
+      thread: 'thread-1',
+    });
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Workspace</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Select Library source' }),
+    );
+
+    expect(router.replace).toHaveBeenCalledWith(
+      '/acme/moonrise/posts/remix?sourceArtifact=ingredient%3Aingredient-1&thread=thread-1',
+    );
+  });
+
   it('exposes the optional scope-control composition slot without owning it', () => {
     render(
       <UniversalWorkspaceShell
@@ -471,6 +573,8 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(screen.getByText('Scoped controls')).toBeInTheDocument();
+    expect(screen.getByText('Thread scope')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-effective-scope')).toBeInTheDocument();
   });
 
   it('preserves an unauthorized brand action instead of widening org scope', () => {

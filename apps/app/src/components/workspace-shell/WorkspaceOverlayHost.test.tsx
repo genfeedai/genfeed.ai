@@ -5,6 +5,37 @@ import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { getWorkspaceShellOverlayRegistration } from '@/lib/workspace-shell/workspace-shell-registry';
 
+vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
+  default: ({
+    onSelect,
+    threadId,
+  }: {
+    onSelect: (reference: {
+      brandId: string;
+      kind: 'ingredient';
+      organizationId: string;
+      recordId: string;
+      serializer: 'ingredient';
+    }) => void;
+    threadId?: string | null;
+  }) => (
+    <button
+      type="button"
+      onClick={() =>
+        onSelect({
+          brandId: 'brand-1',
+          kind: 'ingredient',
+          organizationId: 'org-1',
+          recordId: 'ingredient-1',
+          serializer: 'ingredient',
+        })
+      }
+    >
+      Select Library source for {threadId}
+    </button>
+  ),
+}));
+
 vi.mock('@ui/primitives/dialog', () => ({
   Dialog: ({
     children,
@@ -185,5 +216,36 @@ describe('WorkspaceOverlayHost', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Authorized workflow choices')).toBeVisible();
     expect(screen.queryByText('No resource reference selected')).toBeNull();
+  });
+
+  it('renders the trusted Library adapter and returns the canonical reference', () => {
+    const onSelectLibraryReference = vi.fn();
+
+    render(
+      <WorkspaceOverlayHost
+        fallbackFocusRef={createRef<HTMLElement>()}
+        isOpen
+        onDismiss={vi.fn()}
+        onSelectLibraryReference={onSelectLibraryReference}
+        overlay={{ key: 'library-picker', parameters: {} }}
+        registration={getWorkspaceShellOverlayRegistration('library-picker')}
+        returnFocusRef={createRef<HTMLElement>()}
+        threadId="thread-1"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Select Library source for thread-1',
+      }),
+    );
+
+    expect(onSelectLibraryReference).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      kind: 'ingredient',
+      organizationId: 'org-1',
+      recordId: 'ingredient-1',
+      serializer: 'ingredient',
+    });
   });
 });

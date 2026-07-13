@@ -259,6 +259,7 @@ describe('AgentToolExecutorService', () => {
       }),
     };
     const batchGenerationService = {
+      approveItems: vi.fn(),
       createBatch: vi.fn().mockResolvedValue({
         id: '67a1234567890123456789ba',
         status: 'pending',
@@ -2174,6 +2175,31 @@ describe('AgentToolExecutorService', () => {
         type: 'completion_summary_card',
       }),
     ]);
+  });
+
+  it('never treats a model tool call as publish approval', async () => {
+    const { batchGenerationService, service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.BATCH_APPROVE_REJECT,
+      {
+        action: 'approve',
+        batchId: 'batch-1',
+        itemIds: ['item-1'],
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('cannot grant publish approval');
+    expect(batchGenerationService.approveItems).not.toHaveBeenCalled();
+    expect(result.nextActions?.[0]?.primaryCta).toEqual({
+      href: '/posts/review?batch=batch-1&filter=ready',
+      label: 'Review exact versions',
+    });
   });
 
   it('should create a workflow-backed recurring automation via create_workflow', async () => {

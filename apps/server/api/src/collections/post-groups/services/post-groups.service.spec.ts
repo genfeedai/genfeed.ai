@@ -1,4 +1,5 @@
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -46,6 +47,11 @@ type MockPostTarget = {
   publishedAt: Date | null;
   retryCount: number;
   reviewVersionPinId?: string | null;
+  publishApproval?: {
+    artifactVersionPinId: string;
+    id: string;
+    operationId: string;
+  } | null;
   scheduledDate: Date | null;
   targetAttachments: unknown;
   targetError: unknown;
@@ -63,6 +69,10 @@ type MockPostTarget = {
 describe('PostGroupsService', () => {
   let service: PostGroupsService;
   let postPublishQueueService: { enqueue: ReturnType<typeof vi.fn> };
+  let publishApprovalsService: {
+    createForCurrentPost: ReturnType<typeof vi.fn>;
+    markQueued: ReturnType<typeof vi.fn>;
+  };
   let prisma: {
     $transaction: ReturnType<typeof vi.fn>;
     brand: { findFirst: ReturnType<typeof vi.fn> };
@@ -131,6 +141,14 @@ describe('PostGroupsService', () => {
     postPublishQueueService = {
       enqueue: vi.fn().mockResolvedValue('target-1'),
     };
+    publishApprovalsService = {
+      createForCurrentPost: vi.fn().mockResolvedValue({
+        artifactVersionPinId: 'pin-1',
+        id: 'approval-1',
+        operationId: 'operation-1',
+      }),
+      markQueued: vi.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -151,6 +169,10 @@ describe('PostGroupsService', () => {
         {
           provide: PostPublishQueueService,
           useValue: postPublishQueueService,
+        },
+        {
+          provide: PublishApprovalsService,
+          useValue: publishApprovalsService,
         },
       ],
     }).compile();
@@ -304,15 +326,18 @@ describe('PostGroupsService', () => {
       }),
     );
     expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      operationId: 'operation-1',
       organizationId: 'org-1',
       postId: 'target-1',
       source: 'publish_now',
       userId: 'user-1',
+      versionPinId: 'pin-1',
     });
     expect(result.targets?.[0]?.id).toBe('target-1');
   });
 
-  it('queues a publish-now target with its durable review version pin', async () => {
+  it('queues a publish-now target with its bound approval operation', async () => {
     prisma.postGroup.findFirst.mockResolvedValue(
       makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
     );
@@ -320,7 +345,11 @@ describe('PostGroupsService', () => {
       makeTarget({
         groupId: 'group-1',
         id: 'target-1',
-        reviewVersionPinId: 'pin-1',
+        publishApproval: {
+          artifactVersionPinId: 'pin-1',
+          id: 'approval-1',
+          operationId: 'operation-1',
+        },
         targetExecutionState: TargetExecutionState.SCHEDULED,
       }),
     ]);
@@ -337,12 +366,19 @@ describe('PostGroupsService', () => {
     await service.publishNow('org-1', 'user-1', 'group-1');
 
     expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      operationId: 'operation-1',
       organizationId: 'org-1',
       postId: 'target-1',
       source: 'publish_now',
       userId: 'user-1',
       versionPinId: 'pin-1',
     });
+    expect(publishApprovalsService.markQueued).toHaveBeenCalledWith(
+      'approval-1',
+      'org-1',
+      'user-1',
+    );
   });
 
   it('pauses eligible targets and rolls the group up to paused', async () => {
@@ -415,6 +451,11 @@ function makeTarget(overrides: Partial<MockPostTarget> = {}): MockPostTarget {
     lastAttemptAt: null,
     order: 0,
     platform: CredentialPlatform.TWITTER,
+    publishApproval: {
+      artifactVersionPinId: 'pin-1',
+      id: 'approval-1',
+      operationId: 'operation-1',
+    },
     publishedAt: null,
     retryCount: 0,
     scheduledDate: null,

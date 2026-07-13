@@ -46,6 +46,9 @@ function createUnavailableLaunch(
 
 function encodeOverlayReference(
   overlay: WorkspaceShellOverlayRequest,
+  registration: NonNullable<
+    ReturnType<typeof getWorkspaceShellOverlayRegistration>
+  >,
 ): string | null | undefined {
   if (
     !overlay.parameters ||
@@ -55,7 +58,7 @@ function encodeOverlayReference(
     return undefined;
   }
 
-  if (overlay.key === 'notifications' || overlay.key === 'workflow-picker') {
+  if (registration.parameterContract.kind === 'none') {
     return Object.keys(overlay.parameters).length === 0 ? null : undefined;
   }
 
@@ -119,7 +122,7 @@ export function resolveWorkspaceOverlayLaunch({
     return createUnavailableLaunch(currentUrl);
   }
 
-  const encodedReference = encodeOverlayReference(overlay);
+  const encodedReference = encodeOverlayReference(overlay, registration);
   if (encodedReference === undefined) {
     return createUnavailableLaunch(currentUrl);
   }
