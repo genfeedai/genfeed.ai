@@ -20,7 +20,10 @@ import { AgentRuntimeSessionService } from '@api/services/agent-threading/servic
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { AgentAutonomyMode, AgentType } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+import {
+  type AgentArtifactReference,
+  AgentToolName,
+} from '@genfeedai/interfaces';
 import { AgentScopeContextService } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -44,6 +47,7 @@ describe('AgentOrchestratorService', () => {
   let agentStrategiesService: vi.Mocked<AgentStrategiesService>;
   let agentRunsService: vi.Mocked<AgentRunsService>;
   let agentMemoriesService: vi.Mocked<AgentMemoriesService>;
+  let agentMessagesService: vi.Mocked<AgentMessagesService>;
   let creditsUtilsService: vi.Mocked<CreditsUtilsService>;
   let toolExecutorService: vi.Mocked<AgentToolExecutorService>;
   let streamPublisher: vi.Mocked<AgentStreamPublisherService>;
@@ -513,6 +517,7 @@ describe('AgentOrchestratorService', () => {
     configService = module.get(ConfigService);
     agentThreadsService = module.get(AgentThreadsService);
     agentMemoriesService = module.get(AgentMemoriesService);
+    agentMessagesService = module.get(AgentMessagesService);
     llmDispatcher = module.get(LlmDispatcherService);
     creditsUtilsService = module.get(CreditsUtilsService);
     organizationsService = module.get(OrganizationsService);
@@ -563,6 +568,37 @@ describe('AgentOrchestratorService', () => {
         actualModel: 'google/gemini-2.5-flash',
         model: 'google/gemini-2.5-flash',
         requestedModel: 'openrouter/auto',
+      }),
+    );
+  });
+
+  it('persists selected artifact references on the scoped user message', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    const reference = {
+      brandId: 'brand-1',
+      kind: 'post',
+      organizationId: ORG_ID,
+      recordId: 'post-1',
+      serializer: 'post',
+    } satisfies AgentArtifactReference;
+
+    await service.chat(
+      {
+        artifactReferences: [reference],
+        brandId: 'brand-1',
+        content: 'Review the selected post',
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        artifactReferences: [reference],
+        brandId: 'brand-1',
+        organizationId: ORG_ID,
+        role: 'user',
       }),
     );
   });

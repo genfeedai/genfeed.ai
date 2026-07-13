@@ -10,6 +10,18 @@ import type {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useTrendContent } from '@hooks/data/trends/use-trend-content/use-trend-content';
 import {
+  useOptionalResearchWorkSurface,
+  useResearchPagination,
+  useRestoreResearchFinding,
+} from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
+import {
+  isSameResearchFindingReference,
+  toTrendContentFinding,
+  toTrendHashtagFinding,
+  toTrendSoundFinding,
+  toTrendVideoFinding,
+} from '@pages/research/work-surface/research-work-surface.types';
+import {
   SocialsNavigation,
   type SocialsNavigationBasePath,
 } from '@pages/trends/shared/socials-navigation';
@@ -40,6 +52,7 @@ export default function TrendsPlatformDetail({
   basePath?: SocialsNavigationBasePath;
 }) {
   const brandId = useBrandId();
+  const surface = useOptionalResearchWorkSurface();
   const label = getTrendPlatformLabel(platform);
   const relatedContent = PLATFORM_RELATED_CONTENT[platform];
   const unsupportedContentFeed = ![
@@ -125,6 +138,21 @@ export default function TrendsPlatformDetail({
 
     return 'Public references';
   }, [unsupportedContentFeed]);
+  const findings = useMemo(
+    () => [
+      ...items.map(toTrendContentFinding),
+      ...viralVideos.map(toTrendVideoFinding),
+      ...hashtags.map(toTrendHashtagFinding),
+      ...sounds.map(toTrendSoundFinding),
+    ],
+    [hashtags, items, sounds, viralVideos],
+  );
+  const { pageItems, pagination } = useResearchPagination(items);
+
+  useRestoreResearchFinding(
+    findings,
+    isLoading || isLoadingVideos || isLoadingHashtags || isLoadingSounds,
+  );
 
   const handleRefresh = async () => {
     await refreshTrendContent();
@@ -212,11 +240,27 @@ export default function TrendsPlatformDetail({
                 <div className="py-3 text-sm text-foreground/40">
                   Loading content feed…
                 </div>
-              ) : items.length > 0 ? (
+              ) : pageItems.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                  {items.map((item) => (
-                    <TrendContentCard key={item.id} item={item} />
-                  ))}
+                  {pageItems.map((item) => {
+                    const finding = toTrendContentFinding(item);
+                    return (
+                      <TrendContentCard
+                        key={item.id}
+                        finding={finding}
+                        isSelected={isSameResearchFindingReference(
+                          surface?.authorizedFinding?.reference ?? null,
+                          finding.reference,
+                        )}
+                        item={item}
+                        onSelect={
+                          surface?.isEmbedded
+                            ? surface.selectFinding
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="py-3 text-sm text-foreground/40">
@@ -224,6 +268,7 @@ export default function TrendsPlatformDetail({
                   right now.
                 </div>
               )}
+              {pagination ? <div className="pt-2">{pagination}</div> : null}
             </section>
 
             <TrendsPlatformRelatedSections
@@ -236,6 +281,8 @@ export default function TrendsPlatformDetail({
               showVideos={relatedContent.videos}
               sounds={sounds}
               viralVideos={viralVideos}
+              selectedReference={surface?.authorizedFinding?.reference ?? null}
+              onSelect={surface?.isEmbedded ? surface.selectFinding : undefined}
             />
           </div>
         ) : null}

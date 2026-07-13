@@ -135,6 +135,32 @@ describe('AgentChatInput', () => {
     expect(screen.getByText('Reattach')).toBeInTheDocument();
   });
 
+  it('renders an authorized typed surface reference without changing the draft', () => {
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Research"
+        draftScopeKey="acme:thread-1:3"
+        portalTarget={null}
+        references={[
+          {
+            authorization: 'authorized',
+            id: 'video-123',
+            kind: 'research-trend-video',
+            label: 'Three viral hook patterns',
+          },
+        ]}
+        shellState="canvas"
+      >
+        <AgentChatInput onSend={vi.fn()} />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(screen.getByText('Three viral hook patterns')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).not.toHaveTextContent(
+      'Three viral hook patterns',
+    );
+  });
+
   it('dispatches a selected trusted action without clearing or sending the draft', async () => {
     const dispatchAction = vi.fn(() => ({
       message: 'Opened Publish. Explicit approval is still required.',
@@ -170,5 +196,30 @@ describe('AgentChatInput', () => {
     expect(
       screen.getByText('Opened Publish. Explicit approval is still required.'),
     ).toBeInTheDocument();
+  });
+
+  it('exposes selected surface artifact references in the composer context', () => {
+    render(
+      <ConversationComposerShellProvider
+        artifactReferences={[
+          {
+            brandId: 'brand-1',
+            kind: 'post',
+            organizationId: 'org-1',
+            recordId: 'post-1',
+            serializer: 'post',
+          },
+        ]}
+        contextLabel="Brand Workspace overview"
+        draftScopeKey="acme:thread-1:3"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatInput onSend={vi.fn()} />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(screen.getByText('1 reference')).toBeInTheDocument();
+    expect(screen.getByText('^post:post-1')).toBeInTheDocument();
   });
 });

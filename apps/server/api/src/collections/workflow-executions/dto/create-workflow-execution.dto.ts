@@ -1,3 +1,4 @@
+import { WorkflowActionContextDto } from '@api/collections/workflows/dto/workflow-action-context.dto';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
@@ -7,7 +8,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
 
-export class CreateWorkflowExecutionDto {
+export class CreateWorkflowExecutionDto extends WorkflowActionContextDto {
   @IsEntityId()
   @ApiProperty({ description: 'Workflow ID to execute' })
   readonly workflow!: string;

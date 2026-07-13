@@ -45,7 +45,8 @@ export interface WorkspaceShellTypedReference {
 export type WorkspaceShellOverlayKey =
   | 'library-picker'
   | 'notifications'
-  | 'shell-preview';
+  | 'shell-preview'
+  | 'workflow-picker';
 
 export interface WorkspaceShellOverlayParameterMap {
   readonly 'library-picker': Readonly<Record<string, never>>;
@@ -53,6 +54,7 @@ export interface WorkspaceShellOverlayParameterMap {
   readonly 'shell-preview': {
     readonly reference: WorkspaceShellTypedReference | null;
   };
+  readonly 'workflow-picker': Readonly<Record<string, never>>;
 }
 
 export type WorkspaceShellOverlayRequest = {
@@ -100,7 +102,7 @@ export interface WorkspaceShellRestorationPolicy {
 
 export interface WorkspaceShellAdapterSeam {
   readonly key: string;
-  readonly status: 'dedicated-route' | 'placeholder' | 'ready';
+  readonly status: 'dedicated-route' | 'embedded' | 'placeholder' | 'ready';
 }
 
 export interface WorkspaceShellRouteRegistration {
@@ -145,7 +147,11 @@ export interface WorkspaceShellOverlayRegistration {
   readonly restoration: WorkspaceShellRestorationPolicy;
   readonly safeFallback: 'same-canonical-url';
   readonly scope: 'organization';
-  readonly telemetryClass: 'library_picker' | 'notifications' | 'shell_preview';
+  readonly telemetryClass:
+    | 'library_picker'
+    | 'notifications'
+    | 'shell_preview'
+    | 'workflow_picker';
 }
 
 export interface WorkspaceShellChromeRegistration {

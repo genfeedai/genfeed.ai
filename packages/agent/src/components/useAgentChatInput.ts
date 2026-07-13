@@ -15,7 +15,10 @@ import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions'
 import { useCredentialMentions } from '@genfeedai/agent/hooks/use-credential-mentions';
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import { useTeamMentions } from '@genfeedai/agent/hooks/use-team-mentions';
-import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
+import type {
+  ConversationComposerActionName,
+  ConversationComposerSendOptions,
+} from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
@@ -201,7 +204,7 @@ interface UseAgentChatInputParams {
     content: string,
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
-    options?: { planModeEnabled?: boolean },
+    options?: ConversationComposerSendOptions,
   ) => void;
   onStop?: () => void | Promise<void>;
   disabled?: boolean;
@@ -253,7 +256,9 @@ export function useAgentChatInput({
 
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(!restoredDraft.plainText.trim());
-  const [references, setReferences] = useState<AgentChatReferenceItem[]>(() =>
+  const [mentionReferences, setMentionReferences] = useState<
+    AgentChatReferenceItem[]
+  >(() =>
     restoredDraft.document
       ? extractMentions(restoredDraft.document).map((mention) => ({
           id: mention.id,
@@ -402,7 +407,7 @@ export function useAgentChatInput({
                 : `^${mention.contentTitle}`,
         type: mention.type,
       }));
-      setReferences(nextReferences);
+      setMentionReferences(nextReferences);
       writeConversationComposerDocument(
         draftScopeKey,
         document,
@@ -436,7 +441,7 @@ export function useAgentChatInput({
     const draft = readConversationComposerDraft(draftScopeKey);
     editor.commands.setContent(draft.document ?? '');
     setIsEmpty(!draft.plainText.trim());
-    setReferences(
+    setMentionReferences(
       draft.document
         ? extractMentions(draft.document).map((mention) => ({
             id: mention.id,
@@ -533,7 +538,12 @@ export function useAgentChatInput({
       text,
       mentionData.length > 0 ? mentionData : undefined,
       completed && completed.length > 0 ? completed : undefined,
-      { planModeEnabled: false },
+      {
+        artifactReferences: composerShell?.artifactReferences
+          ? [...composerShell.artifactReferences]
+          : undefined,
+        planModeEnabled: false,
+      },
     );
     editor.commands.clearContent();
     clearAllAttachments?.();
@@ -628,6 +638,34 @@ export function useAgentChatInput({
     [removeAttachment],
   );
 
+  const references = useMemo<AgentChatReferenceItem[]>(() => {
+    const referencesByKey = new Map<string, AgentChatReferenceItem>();
+
+    for (const reference of composerShell?.references ?? []) {
+      referencesByKey.set(`${reference.kind}:${reference.id}`, {
+        id: reference.id,
+        label: reference.label,
+        type: reference.kind,
+      });
+    }
+    for (const reference of mentionReferences) {
+      referencesByKey.set(`${reference.type}:${reference.id}`, reference);
+    }
+
+    return [...referencesByKey.values()];
+  }, [composerShell?.references, mentionReferences]);
+  const displayedReferences = useMemo<AgentChatReferenceItem[]>(
+    () => [
+      ...references,
+      ...(composerShell?.artifactReferences ?? []).map((reference) => ({
+        id: reference.recordId,
+        label: `^${reference.kind}:${reference.recordId}`,
+        type: 'content' as const,
+      })),
+    ],
+    [composerShell?.artifactReferences, references],
+  );
+
   const isDragActive = dragState?.isActive ?? false;
   const canSendMessage = !isEmpty || hasCompletedAttachments;
 
@@ -657,7 +695,7 @@ export function useAgentChatInput({
     isDragActive,
     isListening,
     isTranscribing,
-    references,
+    references: displayedReferences,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,

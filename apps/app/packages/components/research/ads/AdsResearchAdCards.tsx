@@ -40,6 +40,8 @@ export function AdGridCard({
   return (
     <Button
       type="button"
+      aria-pressed={isSelected}
+      ariaLabel={`${isSelected ? 'Selected' : 'Select'} ${item.title} for research context`}
       variant={ButtonVariant.UNSTYLED}
       onClick={() => onSelect(item)}
       className={cn(
@@ -131,11 +133,20 @@ export function AdTableRow({
 
   return (
     <TableRow
+      aria-label={`${isSelected ? 'Selected' : 'Select'} ${item.title} for research context`}
+      aria-selected={isSelected}
       className={cn(
         'cursor-pointer border-b border-white/[0.06] transition-colors hover:bg-white/[0.03]',
         isSelected && 'bg-primary/5',
       )}
       onClick={() => onSelect(item)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onSelect(item);
+        }
+      }}
+      tabIndex={0}
     >
       <TableCell className="px-4 py-3">
         <Badge variant="ghost">
