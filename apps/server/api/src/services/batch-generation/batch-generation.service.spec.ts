@@ -1,6 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -22,6 +23,10 @@ describe('BatchGenerationService approval version pins', () => {
     updateMany: ReturnType<typeof vi.fn>;
   };
   let service: BatchGenerationService;
+  let publishApprovalsService: {
+    createForCurrentPost: ReturnType<typeof vi.fn>;
+    toPublicInterface: ReturnType<typeof vi.fn>;
+  };
 
   const createBatchRecord = (items: unknown[]) => ({
     brandId: 'brand-1',
@@ -54,6 +59,13 @@ describe('BatchGenerationService approval version pins', () => {
     artifactReferenceService = {
       createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
     };
+    publishApprovalsService = {
+      createForCurrentPost: vi.fn().mockResolvedValue({
+        artifactVersionPinId: 'pin-1',
+        id: 'approval-1',
+      }),
+      toPublicInterface: vi.fn((value) => value),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -73,6 +85,10 @@ describe('BatchGenerationService approval version pins', () => {
           },
         },
         { provide: PostsService, useValue: {} },
+        {
+          provide: PublishApprovalsService,
+          useValue: publishApprovalsService,
+        },
         {
           provide: PrismaService,
           useValue: {
@@ -107,16 +123,15 @@ describe('BatchGenerationService approval version pins', () => {
       'canonical-user-1',
     );
 
-    expect(
-      artifactReferenceService.createOrReuseVersionPin,
-    ).toHaveBeenCalledWith({
-      createdByUserId: 'canonical-user-1',
-      reference: {
-        brandId: 'brand-1',
-        kind: 'post',
-        organizationId: 'org-1',
-        recordId: 'post-1',
-        serializer: 'post',
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith({
+      actorUserId: 'canonical-user-1',
+      mode: 'scheduled',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      provenance: {
+        batchId: 'batch-1',
+        reviewItemId: 'item-1',
+        surface: 'review-queue',
       },
     });
     expect(postDelegate.updateMany).toHaveBeenCalledWith({
@@ -149,8 +164,7 @@ describe('BatchGenerationService approval version pins', () => {
       expect.objectContaining({ versionPinId: 'pin-1' }),
     );
     expect(
-      artifactReferenceService.createOrReuseVersionPin.mock
-        .invocationCallOrder[0],
+      publishApprovalsService.createForCurrentPost.mock.invocationCallOrder[0],
     ).toBeLessThan(postDelegate.updateMany.mock.invocationCallOrder[0] ?? 0);
   });
 
@@ -165,7 +179,7 @@ describe('BatchGenerationService approval version pins', () => {
         },
       ]),
     );
-    artifactReferenceService.createOrReuseVersionPin.mockRejectedValue(
+    publishApprovalsService.createForCurrentPost.mockRejectedValue(
       new Error('Canonical Post changed.'),
     );
 

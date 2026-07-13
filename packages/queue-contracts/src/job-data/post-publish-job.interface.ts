@@ -8,7 +8,9 @@
 export const POST_PUBLISH_JOB_NAME = 'publish-post';
 
 export interface PostPublishJobData {
+  approvalId?: string;
   enqueuedAt: string;
+  operationId?: string;
   organizationId: string;
   postId: string;
   source: 'publish_now' | 'scheduled_sweep';

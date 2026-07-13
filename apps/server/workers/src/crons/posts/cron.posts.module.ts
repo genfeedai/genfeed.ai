@@ -2,6 +2,7 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
@@ -24,6 +25,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => CredentialsModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
+    PublishApprovalsModule,
     forwardRef(() => WebhookClientModule),
     PublishersModule,
     PrismaModule,

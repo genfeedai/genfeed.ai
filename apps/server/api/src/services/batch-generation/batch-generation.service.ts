@@ -1,6 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
@@ -20,6 +21,7 @@ import {
 } from '@genfeedai/enums';
 import type {
   IBatchSummary,
+  IPublishApproval,
   ManualReviewBatchItem,
 } from '@genfeedai/interfaces';
 import type { Batch } from '@genfeedai/prisma';
@@ -65,6 +67,7 @@ interface BatchItemFull extends BatchItem {
   sourceWorkflowName?: string;
   createdAt?: string;
   versionPinId?: string;
+  publishApproval?: IPublishApproval;
 }
 
 type BatchConfig = {
@@ -148,6 +151,7 @@ export class BatchGenerationService {
     private readonly contentGeneratorService: ContentGeneratorService,
     private readonly cacheService: CacheService,
     private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
+    private readonly publishApprovalsService: PublishApprovalsService,
   ) {}
 
   private cloneBatchItems(items: Batch['items']): BatchItemFull[] {
@@ -796,20 +800,39 @@ export class BatchGenerationService {
       ),
     ];
     const versionPinIds = new Map<string, string>();
+    const publishApprovals = new Map<string, IPublishApproval>();
 
     for (const postId of selectedPostIds) {
-      const versionPin =
-        await this.agentArtifactReferenceService.createOrReuseVersionPin({
-          createdByUserId,
-          reference: {
-            ...(batchRecord.brandId ? { brandId: batchRecord.brandId } : {}),
-            kind: 'post',
+      const item = batchItems.find((candidate) => candidate.postId === postId);
+      if (item?.scheduledDate) {
+        const approval =
+          await this.publishApprovalsService.createForCurrentPost({
+            actorUserId: createdByUserId,
+            mode: 'scheduled',
             organizationId: orgId,
-            recordId: postId,
-            serializer: 'post',
-          },
-        });
-      versionPinIds.set(postId, versionPin.id);
+            postId,
+            provenance: {
+              batchId,
+              reviewItemId: item._id,
+              surface: 'review-queue',
+            },
+          });
+        publishApprovals.set(postId, approval);
+        versionPinIds.set(postId, approval.artifactVersionPinId);
+      } else {
+        const versionPin =
+          await this.agentArtifactReferenceService.createOrReuseVersionPin({
+            createdByUserId,
+            reference: {
+              ...(batchRecord.brandId ? { brandId: batchRecord.brandId } : {}),
+              kind: 'post',
+              organizationId: orgId,
+              recordId: postId,
+              serializer: 'post',
+            },
+          });
+        versionPinIds.set(postId, versionPin.id);
+      }
     }
 
     const postIdsToSchedule: string[] = [];
@@ -823,6 +846,9 @@ export class BatchGenerationService {
           ? versionPinIds.get(item.postId)
           : undefined;
         item.reviewDecision = 'approved';
+        item.publishApproval = item.postId
+          ? publishApprovals.get(item.postId)
+          : undefined;
         item.reviewFeedback = undefined;
         item.versionPinId = versionPinId;
         item.reviewedAt = reviewedAt;
@@ -892,6 +918,7 @@ export class BatchGenerationService {
     itemIds: string[],
     orgId: string,
     feedback?: string,
+    actorUserId?: string,
   ): Promise<IBatchSummary> {
     const batchRecord = await findOrThrow(
       this.prisma.batch,
@@ -937,6 +964,16 @@ export class BatchGenerationService {
           organizationId: orgId,
         },
       });
+      await Promise.all(
+        postIdsToReject.map((postId) =>
+          this.publishApprovalsService.invalidatePost(
+            orgId,
+            postId,
+            'The review item was rejected.',
+            actorUserId,
+          ),
+        ),
+      );
     }
 
     const updatedBatch = (await this.prisma.batch.update({
@@ -958,6 +995,7 @@ export class BatchGenerationService {
     itemIds: string[],
     orgId: string,
     feedback?: string,
+    actorUserId?: string,
   ): Promise<IBatchSummary> {
     const batchRecord = await findOrThrow(
       this.prisma.batch,
@@ -1004,6 +1042,16 @@ export class BatchGenerationService {
           organizationId: orgId,
         },
       });
+      await Promise.all(
+        postIdsToKeepAsDraft.map((postId) =>
+          this.publishApprovalsService.invalidatePost(
+            orgId,
+            postId,
+            'Changes were requested for the approved version.',
+            actorUserId,
+          ),
+        ),
+      );
     }
 
     const updatedBatch = (await this.prisma.batch.update({
@@ -1191,6 +1239,7 @@ export class BatchGenerationService {
               reviewedAt: true,
               reviewFeedback: true,
               reviewVersionPinId: true,
+              publishApproval: true,
               status: true,
               url: true,
             },
@@ -1321,6 +1370,13 @@ export class BatchGenerationService {
           })),
           reviewedAt: item.reviewedAt,
           reviewFeedback: item.reviewFeedback,
+          publishApproval:
+            item.publishApproval ??
+            (linkedPost?.publishApproval
+              ? this.publishApprovalsService.toPublicInterface(
+                  linkedPost.publishApproval,
+                )
+              : undefined),
           scheduledDate: item.scheduledDate,
           sourceActionId: item.sourceActionId,
           sourceWorkflowId: item.sourceWorkflowId,
