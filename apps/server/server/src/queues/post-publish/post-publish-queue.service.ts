@@ -25,7 +25,7 @@ export class PostPublishQueueService {
       ...data,
       enqueuedAt: new Date().toISOString(),
     };
-    const jobId = data.postId;
+    const jobId = data.operationId ?? data.postId;
     if (!this.queue) {
       this.logger.warn(`${this.logContext} queue unavailable`, {
         jobId,
@@ -59,6 +59,7 @@ export class PostPublishQueueService {
     this.logger.log(`${this.logContext} queued post publish`, {
       jobId: job.id,
       organizationId: data.organizationId,
+      operationId: data.operationId,
       postId: data.postId,
       source: data.source,
     });

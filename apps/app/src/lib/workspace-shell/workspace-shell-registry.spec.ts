@@ -129,6 +129,14 @@ describe('workspace shell trusted registry', () => {
   });
 
   it('keeps notifications and deployment-specific dock chrome explicit', () => {
+    expect(
+      getWorkspaceShellOverlayRegistration('library-picker'),
+    ).toMatchObject({
+      adapter: { key: 'library-picker', status: 'ready' },
+      parameterContract: { kind: 'none' },
+      presentation: { title: 'Choose from Library' },
+      telemetryClass: 'library_picker',
+    });
     expect(getWorkspaceShellOverlayRegistration('notifications')).toMatchObject(
       {
         allowedShellModes: ['overlay'],

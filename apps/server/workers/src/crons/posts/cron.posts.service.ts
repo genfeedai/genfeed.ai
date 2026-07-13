@@ -5,6 +5,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
@@ -77,6 +78,7 @@ export class CronPostsService {
     private readonly postPublishQueueService: PostPublishQueueService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
+    private readonly publishApprovalsService: PublishApprovalsService,
   ) {}
 
   /**
@@ -120,7 +122,7 @@ export class CronPostsService {
       return { reason: 'not_eligible', skipped: true };
     }
 
-    return this.publishPostWithSideEffects(post, data.versionPinId);
+    return this.publishPostWithSideEffects(post, data);
   }
 
   private async enqueuePostPublishJobs(posts: PostEntity[]): Promise<void> {
@@ -139,13 +141,26 @@ export class CronPostsService {
           return;
         }
 
+        const approval = post.publishApproval;
+        if (approval) {
+          await this.publishApprovalsService.markQueued(
+            approval.id,
+            organizationId,
+          );
+        }
         await this.postPublishQueueService.enqueue({
+          ...(approval
+            ? {
+                approvalId: approval.id,
+                operationId: approval.operationId,
+                versionPinId: approval.artifactVersionPinId,
+              }
+            : post.reviewVersionPinId
+              ? { versionPinId: post.reviewVersionPinId }
+              : {}),
           organizationId,
           postId: post.id.toString(),
           source: 'scheduled_sweep',
-          ...(post.reviewVersionPinId
-            ? { versionPinId: post.reviewVersionPinId }
-            : {}),
         });
       }),
     );
@@ -153,16 +168,44 @@ export class CronPostsService {
 
   private async publishPostWithSideEffects(
     post: PostEntity,
-    queuedVersionPinId?: string,
+    job: PostPublishJobData,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
+      if (!job.approvalId || !job.operationId || !job.versionPinId) {
+        throw new Error(
+          'Publish execution requires an explicit version-bound approval identity.',
+        );
+      }
       await this.assertAgentPublishingScope(post);
-      await this.assertPublishVersionPin(post, queuedVersionPinId);
+      const claim = await this.publishApprovalsService.claimForExecution({
+        approvalId: job.approvalId,
+        operationId: job.operationId,
+        organizationId: job.organizationId,
+        postId: job.postId,
+        versionPinId: job.versionPinId,
+      });
+      if (claim.alreadyPublished) {
+        return {
+          externalId: this.readPostString(post, ['externalId']) ?? null,
+          platform: post.platform,
+          status: PostStatus.PUBLIC,
+          success: true,
+          url: this.readPostString(post, ['url']) ?? '',
+        };
+      }
+      await this.assertPublishVersionPin(post, job.versionPinId);
     } catch (error: unknown) {
       return this.handleTerminalPublishValidationFailure(post, error);
     }
     const result = await this.publishSinglePost(post);
+
+    await this.publishApprovalsService.completeExecution(
+      job.approvalId,
+      job.organizationId,
+      result.success,
+      result.error,
+    );
 
     if (result.success) {
       await this.activitiesService.create(
@@ -356,6 +399,13 @@ export class CronPostsService {
             },
           },
           ingredients: true,
+          publishApproval: {
+            select: {
+              artifactVersionPinId: true,
+              id: true,
+              operationId: true,
+            },
+          },
         },
         where: {
           ...(filter.postId ? { id: filter.postId } : {}),

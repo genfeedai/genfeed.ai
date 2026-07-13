@@ -82,6 +82,7 @@ import { PresetsModule } from '@api/collections/presets/presets.module';
 import { ProfilesModule } from '@api/collections/profiles/profiles.module';
 import { ProjectsModule } from '@api/collections/projects/projects.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
+import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { RunsModule } from '@api/collections/runs/runs.module';
 import { SchedulesModule } from '@api/collections/schedules/schedules.module';
@@ -320,6 +321,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     PersonasModule,
     PostGroupsModule,
     PostsModule,
+    PublishApprovalsModule,
     PresetsModule,
     ProfilesModule,
     ProjectsModule,

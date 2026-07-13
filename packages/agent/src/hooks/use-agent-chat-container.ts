@@ -188,6 +188,28 @@ export function useAgentChatContainer({
     onUpload: (file, onProgress) =>
       runAgentApiEffect(apiService.uploadAttachmentEffect(file, onProgress)),
   });
+  const previousDraftScopeKeyRef = useRef(draftScopeKey);
+  useEffect(() => {
+    const previousDraftScopeKey = previousDraftScopeKeyRef.current;
+    if (previousDraftScopeKey === draftScopeKey) {
+      return;
+    }
+
+    previousDraftScopeKeyRef.current = draftScopeKey;
+    const previousVersionSeparator = previousDraftScopeKey?.lastIndexOf(':');
+    const nextVersionSeparator = draftScopeKey?.lastIndexOf(':');
+    const isSameThreadScope =
+      previousVersionSeparator !== undefined &&
+      previousVersionSeparator >= 0 &&
+      nextVersionSeparator !== undefined &&
+      nextVersionSeparator >= 0 &&
+      previousDraftScopeKey?.slice(0, previousVersionSeparator) ===
+        draftScopeKey?.slice(0, nextVersionSeparator);
+
+    if (isSameThreadScope) {
+      clearAllAttachments();
+    }
+  }, [clearAllAttachments, draftScopeKey]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);

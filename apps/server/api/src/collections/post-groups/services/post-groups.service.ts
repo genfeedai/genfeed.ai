@@ -1,3 +1,4 @@
+import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -35,7 +36,11 @@ import type {
 import { Prisma } from '@genfeedai/prisma';
 import { PostPublishQueueService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import type { ZodError } from 'zod';
 
 type SchedulerTx = Prisma.TransactionClient;
@@ -118,6 +123,7 @@ export class PostGroupsService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly postPublishQueueService: PostPublishQueueService,
+    private readonly publishApprovalsService: PublishApprovalsService,
   ) {}
 
   async create(
@@ -134,6 +140,9 @@ export class PostGroupsService {
         input.idempotencyKey,
       );
       if (existing) {
+        if (existing.status === ReleaseStatus.SCHEDULED) {
+          await this.approveReleaseTargets(existing, userId, 'scheduled');
+        }
         return existing;
       }
     }
@@ -141,7 +150,7 @@ export class PostGroupsService {
     const status = this.resolveCreateStatus(input);
     const scheduledAt = this.toDate(input.scheduledDate);
 
-    return this.prisma.$transaction(async (tx) => {
+    const release = await this.prisma.$transaction(async (tx) => {
       const credentials = await this.resolveCredentials(
         tx,
         organizationId,
@@ -248,6 +257,11 @@ export class PostGroupsService {
 
       return this.toReleaseGroup(group, targets);
     });
+
+    if (release.status === ReleaseStatus.SCHEDULED) {
+      await this.approveReleaseTargets(release, userId, 'scheduled');
+    }
+    return release;
   }
 
   async getOne(
@@ -275,7 +289,7 @@ export class PostGroupsService {
   ): Promise<IReleaseGroup> {
     const input = this.parseUpdateInput(body);
 
-    return this.prisma.$transaction(async (tx) => {
+    const release = await this.prisma.$transaction(async (tx) => {
       const existing = await this.getGroupOrThrow(tx, organizationId, groupId);
       const nextStatus = input.status ?? existing.status;
       const transition =
@@ -344,6 +358,22 @@ export class PostGroupsService {
       const targets = await this.getTargets(tx, organizationId, existing.id);
       return this.toReleaseGroup(updated, targets);
     });
+    if (
+      input.attachments !== undefined ||
+      input.baseContent !== undefined ||
+      input.brandId !== undefined ||
+      input.media !== undefined ||
+      input.recurrence !== undefined ||
+      input.scheduledDate !== undefined ||
+      input.timezone !== undefined
+    ) {
+      await this.invalidateReleaseApprovals(
+        release,
+        userId,
+        'Release content, brand, destinations, or protected schedule intent changed.',
+      );
+    }
+    return release;
   }
 
   async updateTarget(
@@ -355,7 +385,7 @@ export class PostGroupsService {
   ): Promise<IReleaseGroup> {
     const input = this.parseTargetInput(body);
 
-    return this.prisma.$transaction(async (tx) => {
+    const release = await this.prisma.$transaction(async (tx) => {
       const group = await this.getGroupOrThrow(tx, organizationId, groupId);
       const existing = await this.getTargetOrThrow(
         tx,
@@ -446,6 +476,19 @@ export class PostGroupsService {
 
       return this.recalculateAndHydrate(tx, organizationId, group.id, userId);
     });
+    if (
+      input.scheduledDate !== undefined ||
+      input.settings !== undefined ||
+      input.timezone !== undefined
+    ) {
+      await this.publishApprovalsService.invalidatePost(
+        organizationId,
+        targetId,
+        'Channel destination settings or protected schedule intent changed.',
+        userId,
+      );
+    }
+    return release;
   }
 
   cancel(
@@ -536,6 +579,7 @@ export class PostGroupsService {
       return this.recalculateAndHydrate(tx, organizationId, group.id, userId);
     });
 
+    await this.approveReleaseTargets(release, userId, 'immediate');
     await this.enqueueReleaseTargets(release, userId);
     return release;
   }
@@ -554,7 +598,13 @@ export class PostGroupsService {
     const durableTargets = await this.prisma.post.findMany({
       select: {
         id: true,
-        reviewVersionPinId: true,
+        publishApproval: {
+          select: {
+            artifactVersionPinId: true,
+            id: true,
+            operationId: true,
+          },
+        },
       },
       where: {
         id: { in: targets.map((target) => target.id) },
@@ -562,22 +612,76 @@ export class PostGroupsService {
         organizationId: release.organizationId,
       },
     });
-    const versionPinIds = new Map(
-      durableTargets.map((target) => [target.id, target.reviewVersionPinId]),
+    const approvals = new Map(
+      durableTargets.map((target) => [target.id, target.publishApproval]),
     );
 
     await Promise.all(
-      targets.map((target) => {
-        const versionPinId = versionPinIds.get(target.id);
+      targets.map(async (target) => {
+        const approval = approvals.get(target.id);
+        if (!approval) {
+          throw new ConflictException(
+            `Target ${target.id} has no version-bound publish approval.`,
+          );
+        }
+        await this.publishApprovalsService.markQueued(
+          approval.id,
+          release.organizationId,
+          userId,
+        );
         return this.postPublishQueueService.enqueue({
+          approvalId: approval.id,
+          operationId: approval.operationId,
           organizationId: release.organizationId,
           postId: target.id,
           source: 'publish_now',
           userId,
-          ...(versionPinId ? { versionPinId } : {}),
+          versionPinId: approval.artifactVersionPinId,
         });
       }),
     );
+  }
+
+  private async approveReleaseTargets(
+    release: IReleaseGroup,
+    userId: string,
+    mode: 'immediate' | 'scheduled',
+  ): Promise<void> {
+    try {
+      await Promise.all(
+        (release.targets ?? []).map((target) =>
+          this.publishApprovalsService.createForCurrentPost({
+            actorUserId: userId,
+            mode,
+            organizationId: release.organizationId,
+            postId: target.id,
+            provenance: {
+              releaseId: release.id,
+              surface: 'post-groups',
+            },
+          }),
+        ),
+      );
+    } catch (error: unknown) {
+      await this.prisma.$transaction([
+        this.prisma.post.updateMany({
+          data: {
+            status: TargetExecutionState.PAUSED,
+            targetExecutionState: TargetExecutionState.PAUSED,
+          },
+          where: {
+            groupId: release.id,
+            isDeleted: false,
+            organizationId: release.organizationId,
+          },
+        }),
+        this.prisma.postGroup.update({
+          data: { status: ReleaseStatus.PAUSED },
+          where: { id: release.id },
+        }),
+      ]);
+      throw error;
+    }
   }
 
   private async transitionGroupTargets(
@@ -589,7 +693,7 @@ export class PostGroupsService {
       GROUP_ACTION_STATES,
     ) as TargetExecutionState[],
   ): Promise<IReleaseGroup> {
-    return this.prisma.$transaction(async (tx) => {
+    const release = await this.prisma.$transaction(async (tx) => {
       const group = await this.getGroupOrThrow(tx, organizationId, groupId);
       await tx.post.updateMany({
         data: {
@@ -606,6 +710,31 @@ export class PostGroupsService {
 
       return this.recalculateAndHydrate(tx, organizationId, group.id, userId);
     });
+    if (nextState === TargetExecutionState.CANCELLED) {
+      await this.invalidateReleaseApprovals(
+        release,
+        userId,
+        'The scheduled release was cancelled.',
+      );
+    }
+    return release;
+  }
+
+  private async invalidateReleaseApprovals(
+    release: IReleaseGroup,
+    userId: string,
+    reason: string,
+  ): Promise<void> {
+    await Promise.all(
+      (release.targets ?? []).map((target) =>
+        this.publishApprovalsService.invalidatePost(
+          release.organizationId,
+          target.id,
+          reason,
+          userId,
+        ),
+      ),
+    );
   }
 
   private async recalculateAndHydrate(

@@ -2,6 +2,7 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
+import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -24,6 +25,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => HarnessProfilesModule),
     forwardRef(() => LoggerModule),
     forwardRef(() => PostsModule),
+    PublishApprovalsModule,
   ],
   providers: [
     AgentArtifactReferenceService,

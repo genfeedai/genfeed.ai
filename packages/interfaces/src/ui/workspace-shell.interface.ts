@@ -42,9 +42,13 @@ export interface WorkspaceShellTypedReference {
   readonly kind: WorkspaceShellReferenceKind;
 }
 
-export type WorkspaceShellOverlayKey = 'notifications' | 'shell-preview';
+export type WorkspaceShellOverlayKey =
+  | 'library-picker'
+  | 'notifications'
+  | 'shell-preview';
 
 export interface WorkspaceShellOverlayParameterMap {
+  readonly 'library-picker': Readonly<Record<string, never>>;
   readonly notifications: Readonly<Record<string, never>>;
   readonly 'shell-preview': {
     readonly reference: WorkspaceShellTypedReference | null;
@@ -141,7 +145,7 @@ export interface WorkspaceShellOverlayRegistration {
   readonly restoration: WorkspaceShellRestorationPolicy;
   readonly safeFallback: 'same-canonical-url';
   readonly scope: 'organization';
-  readonly telemetryClass: 'notifications' | 'shell_preview';
+  readonly telemetryClass: 'library_picker' | 'notifications' | 'shell_preview';
 }
 
 export interface WorkspaceShellChromeRegistration {

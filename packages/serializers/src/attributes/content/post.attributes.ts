@@ -34,6 +34,8 @@ export const postAttributes = createEntityAttributes([
   'reviewItemId',
   'reviewDecision',
   'reviewVersionPinId',
+  'publishApprovalId',
+  'publishApproval',
   'reviewFeedback',
   'reviewedAt',
   'reviewEvents',
