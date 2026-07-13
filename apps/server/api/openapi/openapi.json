@@ -17808,6 +17808,38 @@
         ]
       }
     },
+    "/agent/threads/{threadId}/messages/{messageId}/artifact-references": {
+      "get": {
+        "operationId": "AgentThreadsController.resolveMessageArtifactReferences",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "threadId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Resolve canonical artifact references for a thread message",
+        "tags": [
+          "Agent Threads"
+        ]
+      }
+    },
     "/agent/threads/{threadId}/snapshot": {
       "get": {
         "operationId": "AgentThreadRuntimeController.getSnapshot",

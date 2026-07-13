@@ -342,6 +342,11 @@
       "path": "/agent/threads"
     },
     {
+      "method": "get",
+      "operationId": "AgentThreadsController.resolveMessageArtifactReferences",
+      "path": "/agent/threads/{threadId}/messages/{messageId}/artifact-references"
+    },
+    {
       "method": "patch",
       "operationId": "AgentThreadsController.updateThread",
       "path": "/agent/threads/{threadId}"

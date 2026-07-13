@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1039 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1040 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -2564,6 +2564,36 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
       },
       "required": [
         "status"
+      ],
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "agent_threads"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
+    "description": "Resolve canonical artifact references for a thread message (GET /agent/threads/{threadId}/messages/{messageId}/artifact-references)",
+    "name": "agent_threads__resolve_message_artifact_references",
+    "parameters": {
+      "properties": {
+        "messageId": {
+          "type": "string"
+        },
+        "threadId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "messageId",
+        "threadId"
       ],
       "type": "object"
     },
