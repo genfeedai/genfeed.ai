@@ -15,7 +15,10 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
-import type { PersistedConversationComposerAttachment } from '@genfeedai/agent/models/conversation-composer.model';
+import type {
+  ConversationComposerSendOptions,
+  PersistedConversationComposerAttachment,
+} from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -305,9 +308,7 @@ export function useAgentChatContainer({
       content: string,
       _mentions?: ExtractedMention[],
       attachments?: ChatAttachment[],
-      options?: {
-        planModeEnabled?: boolean;
-      },
+      options?: ConversationComposerSendOptions,
     ) => {
       if (isReadOnly) {
         setError('Archived threads are read-only.');
@@ -315,6 +316,7 @@ export function useAgentChatContainer({
       }
       followLatestTurn('smooth');
       sendMessage(content, {
+        artifactReferences: options?.artifactReferences,
         attachments,
         planModeEnabled: options?.planModeEnabled ?? false,
       });
