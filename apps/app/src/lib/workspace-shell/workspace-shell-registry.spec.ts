@@ -152,6 +152,12 @@ describe('workspace shell trusted registry', () => {
     );
   });
 
+  it('marks Analytics canvases ready for the product-owned adapter', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/analytics/posts')?.adapter,
+    ).toEqual({ key: 'analytics', status: 'ready' });
+  });
+
   it('registers Research as an embedded adapter with its canonical fallback', () => {
     const route = resolveWorkspaceShellRoute(
       '/acme/moonrise/research/ads/google',

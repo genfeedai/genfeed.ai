@@ -1,6 +1,6 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
+import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { AnalyticsMetric, ButtonVariant, PageScope } from '@genfeedai/enums';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
@@ -18,8 +18,14 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { buildAgentPromptHref } from '@utils/url/desktop-loop-url.util';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { HiOutlineChartBar, HiSquares2X2 } from 'react-icons/hi2';
 
 interface PostsListItem {
@@ -57,21 +63,42 @@ type PlatformFilterValue = (typeof PLATFORM_OPTIONS)[number]['value'];
 
 export default function AnalyticsPostsList() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [search, setSearch] = useState('');
-  const [metric, setMetric] = useState<
-    AnalyticsMetric.VIEWS | AnalyticsMetric.ENGAGEMENT | AnalyticsMetric.LIKES
-  >(AnalyticsMetric.VIEWS);
-  const [platform, setPlatform] = useState<PlatformFilterValue>('all');
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const focusedPostId = searchParams.get('postId')?.trim() || '';
+  const urlFocusedPostId = searchParams.get('postId')?.trim() || '';
+  const [localFocusedPostId, setLocalFocusedPostId] = useState<
+    string | null | undefined
+  >(undefined);
+  const { filters, setFilter } = useAnalyticsContext();
+  const focusedPostId =
+    (localFocusedPostId === undefined
+      ? (filters.postId ?? urlFocusedPostId)
+      : localFocusedPostId) ?? '';
+  const search = filters.query ?? focusedPostId;
+  const metric = (filters.metric ?? AnalyticsMetric.VIEWS) as
+    | AnalyticsMetric.VIEWS
+    | AnalyticsMetric.ENGAGEMENT
+    | AnalyticsMetric.LIKES;
+  const platform = (filters.platform ?? 'all') as PlatformFilterValue;
 
   useEffect(() => {
-    if (!focusedPostId) {
-      return;
-    }
-    setSearch(focusedPostId);
-  }, [focusedPostId]);
+    setLocalFocusedPostId(urlFocusedPostId || null);
+  }, [urlFocusedPostId]);
+
+  const setFocusedPost = useCallback(
+    (postId?: string) => {
+      setLocalFocusedPostId(postId ?? null);
+      const nextSearchParams = new URLSearchParams(searchParams.toString());
+      if (postId) {
+        nextSearchParams.set('postId', postId);
+      } else {
+        nextSearchParams.delete('postId');
+      }
+      const query = nextSearchParams.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    },
+    [pathname, router, searchParams],
+  );
 
   const { isLoading, topPosts } = useTopPosts({
     limit: 50,
@@ -187,7 +214,7 @@ export default function AnalyticsPostsList() {
             <Button
               label="Clear Focus"
               variant={ButtonVariant.OUTLINE}
-              onClick={() => router.push(APP_ROUTES.ANALYTICS.POSTS)}
+              onClick={() => setFocusedPost()}
             />
           ) : null}
           <Button
@@ -204,25 +231,22 @@ export default function AnalyticsPostsList() {
             }
           />
           <Input
+            aria-label="Search posts"
             type="text"
             placeholder="Search posts..."
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => setFilter('query', event.target.value)}
             className="w-full sm:w-64"
           />
 
           <Select
             value={metric}
-            onValueChange={(value) =>
-              setMetric(
-                value as
-                  | AnalyticsMetric.VIEWS
-                  | AnalyticsMetric.ENGAGEMENT
-                  | AnalyticsMetric.LIKES,
-              )
-            }
+            onValueChange={(value) => setFilter('metric', value)}
           >
-            <SelectTrigger className="w-full sm:w-36">
+            <SelectTrigger
+              aria-label="Sort post analytics by metric"
+              className="w-full sm:w-36"
+            >
               <SelectValue placeholder="Metric" />
             </SelectTrigger>
             <SelectContent>
@@ -236,9 +260,14 @@ export default function AnalyticsPostsList() {
 
           <Select
             value={platform}
-            onValueChange={(value) => setPlatform(value as PlatformFilterValue)}
+            onValueChange={(value) =>
+              setFilter('platform', value === 'all' ? undefined : value)
+            }
           >
-            <SelectTrigger className="w-full sm:w-36">
+            <SelectTrigger
+              aria-label="Filter post analytics by platform"
+              className="w-full sm:w-36"
+            >
               {renderPlatformOption(selectedPlatformOption)}
             </SelectTrigger>
             <SelectContent>
@@ -265,13 +294,13 @@ export default function AnalyticsPostsList() {
         columns={columns}
         emptyLabel="No posts found for this period"
         getRowKey={(item) => item.postId}
-        onRowClick={(item) => setSelectedPostId(item.postId)}
+        onRowClick={(item) => setFocusedPost(item.postId)}
       />
 
       <PostDetailOverlay
-        postId={selectedPostId}
+        postId={focusedPostId || null}
         scope={PageScope.ANALYTICS}
-        onClose={() => setSelectedPostId(null)}
+        onClose={() => setFocusedPost()}
       />
     </Container>
   );

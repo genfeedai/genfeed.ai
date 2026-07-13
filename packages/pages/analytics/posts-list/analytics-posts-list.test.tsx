@@ -1,10 +1,20 @@
+import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
 import AnalyticsPostsList from '@pages/analytics/posts-list/analytics-posts-list';
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
+const replaceMock = vi.fn();
 const useTopPostsMock = vi.fn();
+
+function renderPostsList() {
+  return render(
+    <AnalyticsProvider>
+      <AnalyticsPostsList />
+    </AnalyticsProvider>,
+  );
+}
 
 vi.mock('@hooks/data/analytics/use-top-posts/use-top-posts', () => ({
   useTopPosts: (...args: unknown[]) => useTopPostsMock(...args),
@@ -13,10 +23,10 @@ vi.mock('@hooks/data/analytics/use-top-posts/use-top-posts', () => ({
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
     push: pushMock,
+    replace: replaceMock,
   })),
-  useSearchParams: vi.fn(() => ({
-    get: vi.fn(() => null),
-  })),
+  usePathname: vi.fn(() => '/acme/moonrise/analytics/posts'),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
 vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
@@ -29,6 +39,7 @@ vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
 describe('AnalyticsPostsList', () => {
   beforeEach(() => {
     pushMock.mockReset();
+    replaceMock.mockReset();
     useTopPostsMock.mockReset();
     useTopPostsMock.mockReturnValue({
       isLoading: false,
@@ -37,7 +48,7 @@ describe('AnalyticsPostsList', () => {
   });
 
   it('renders the consolidated filter controls with shared field styling', () => {
-    render(<AnalyticsPostsList />);
+    renderPostsList();
 
     const searchInput = screen.getByPlaceholderText('Search posts...');
     expect(searchInput).toHaveClass('rounded-lg');
@@ -69,7 +80,7 @@ describe('AnalyticsPostsList', () => {
       ],
     });
 
-    render(<AnalyticsPostsList />);
+    renderPostsList();
 
     fireEvent.click(screen.getByText('Untitled Post'));
 

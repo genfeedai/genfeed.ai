@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { HiArrowRight, HiOutlineBuildingOffice2 } from 'react-icons/hi2';
 
@@ -40,17 +40,26 @@ export default function AnalyticsBrandsList({
 }: AnalyticsBrandsListProps) {
   const { isSignedIn } = useAuthIdentity();
   const router = useRouter();
-  const { dateRange, refreshTrigger } = useAnalyticsContext();
+  const searchParams = useSearchParams();
+  const { dateRange, filters, refreshTrigger, setFilter } =
+    useAnalyticsContext();
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
 
   const [brandsData, setBrandsData] = useState<IBrandWithStats[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<
-    AnalyticsMetric.ENGAGEMENT | AnalyticsMetric.VIEWS | AnalyticsMetric.POSTS
-  >(AnalyticsMetric.ENGAGEMENT);
+  const searchTerm = filters.query ?? '';
+  const sortBy = (filters.sort ?? AnalyticsMetric.ENGAGEMENT) as
+    | AnalyticsMetric.ENGAGEMENT
+    | AnalyticsMetric.VIEWS
+    | AnalyticsMetric.POSTS;
+  const buildDetailHref = (brandId: string): string => {
+    const query = searchParams.toString();
+    return query
+      ? `${basePath}/brands/${brandId}?${query}`
+      : `${basePath}/brands/${brandId}`;
+  };
 
   useEffect(() => {
     // Refresh nonce from analytics context: force refetch when refresh button is pressed
@@ -104,25 +113,22 @@ export default function AnalyticsBrandsList({
       right={
         <div className="flex items-center gap-2">
           <Input
+            aria-label="Search brands"
             type="text"
             placeholder="Search brands..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => setFilter('query', e.target.value)}
             className="w-full sm:w-64"
           />
 
           <Select
             value={sortBy}
-            onValueChange={(value) =>
-              setSortBy(
-                value as
-                  | AnalyticsMetric.ENGAGEMENT
-                  | AnalyticsMetric.VIEWS
-                  | AnalyticsMetric.POSTS,
-              )
-            }
+            onValueChange={(value) => setFilter('sort', value)}
           >
-            <SelectTrigger className="w-full sm:w-44">
+            <SelectTrigger
+              aria-label="Sort brand analytics"
+              className="w-full sm:w-44"
+            >
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -149,7 +155,7 @@ export default function AnalyticsBrandsList({
               searchTerm ? 'No brands match your search' : 'No brands found'
             }
             getRowKey={(brand) => brand.id}
-            onRowClick={(brand) => router.push(`/analytics/brands/${brand.id}`)}
+            onRowClick={(brand) => router.push(buildDetailHref(brand.id))}
             columns={[
               {
                 header: 'Brand',
@@ -259,8 +265,7 @@ export default function AnalyticsBrandsList({
             actions={[
               {
                 icon: <HiArrowRight className="size-4" />,
-                onClick: (brand) =>
-                  router.push(`${basePath}/brands/${brand.id}`),
+                onClick: (brand) => router.push(buildDetailHref(brand.id)),
                 tooltip: 'View Brand Details',
               },
             ]}
