@@ -1,3 +1,4 @@
+import type { ConversationComposerContextReferenceKind } from '@genfeedai/agent/models/conversation-composer.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -15,7 +16,13 @@ import {
 export interface AgentChatReferenceItem {
   id: string;
   label: string;
-  type: 'asset' | 'brand' | 'content' | 'credential' | 'team';
+  type:
+    | 'asset'
+    | 'brand'
+    | 'content'
+    | 'credential'
+    | 'team'
+    | ConversationComposerContextReferenceKind;
 }
 
 type AgentChatInputAttachmentTrayProps = {

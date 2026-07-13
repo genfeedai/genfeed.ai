@@ -32,6 +32,7 @@ export * from '@serializers/attributes/content/performance-summary.attributes';
 export * from '@serializers/attributes/content/persona.attributes';
 export * from '@serializers/attributes/content/post.attributes';
 export * from '@serializers/attributes/content/presigned-upload.attributes';
+export * from '@serializers/attributes/content/publish-approval.attributes';
 export * from '@serializers/attributes/content/recurrence-rule.attributes';
 export * from '@serializers/attributes/content/release-attachment.attributes';
 export * from '@serializers/attributes/content/release-group.attributes';

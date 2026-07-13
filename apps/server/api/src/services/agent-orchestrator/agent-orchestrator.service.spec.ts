@@ -20,7 +20,10 @@ import { AgentRuntimeSessionService } from '@api/services/agent-threading/servic
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { AgentAutonomyMode, AgentType } from '@genfeedai/enums';
-import { AgentToolName } from '@genfeedai/interfaces';
+import {
+  type AgentArtifactReference,
+  AgentToolName,
+} from '@genfeedai/interfaces';
 import { AgentScopeContextService } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -609,6 +612,37 @@ describe('AgentOrchestratorService', () => {
         ]),
       }),
       ORG_ID,
+    );
+  });
+
+  it('persists selected artifact references on the scoped user message', async () => {
+    organizationsService.findOne.mockResolvedValue({
+      onboardingCompleted: true,
+    } as never);
+    const reference = {
+      brandId: 'brand-1',
+      kind: 'post',
+      organizationId: ORG_ID,
+      recordId: 'post-1',
+      serializer: 'post',
+    } satisfies AgentArtifactReference;
+
+    await service.chat(
+      {
+        artifactReferences: [reference],
+        brandId: 'brand-1',
+        content: 'Review the selected post',
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        artifactReferences: [reference],
+        brandId: 'brand-1',
+        organizationId: ORG_ID,
+        role: 'user',
+      }),
     );
   });
 

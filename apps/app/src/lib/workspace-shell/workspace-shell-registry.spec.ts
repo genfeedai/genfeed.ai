@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(206);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(207);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(206);
+    ).toBe(207);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -117,6 +117,36 @@ describe('workspace shell trusted registry', () => {
     ).toBeNull();
   });
 
+  it('registers organization and brand Workspace overviews independently', () => {
+    expect(resolveWorkspaceShellRoute('/acme/~/overview')).toMatchObject({
+      adapter: {
+        key: 'organization-workspace-overview',
+        status: 'embedded',
+      },
+      safeFallback: '/:orgSlug/~/overview',
+      scope: 'organization',
+      surfaceKey: 'organization-overview',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/workspace/overview'),
+    ).toMatchObject({
+      adapter: {
+        key: 'brand-workspace-overview',
+        status: 'embedded',
+      },
+      safeFallback: '/:orgSlug/:brandSlug/workspace/overview',
+      scope: 'brand',
+      surfaceKey: 'workspace-overview',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/analytics/overview')?.adapter.status,
+    ).toBe('placeholder');
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/workspace/inbox/all')?.adapter
+        .status,
+    ).toBe('placeholder');
+  });
+
   it('does not treat reserved application prefixes as scoped routes', () => {
     expect(resolveWorkspaceShellRoute('/settings/~/overview')).toBeNull();
     expect(resolveWorkspaceShellRoute('/settings/example/posts')).toBeNull();
@@ -139,6 +169,14 @@ describe('workspace shell trusted registry', () => {
   });
 
   it('keeps notifications and deployment-specific dock chrome explicit', () => {
+    expect(
+      getWorkspaceShellOverlayRegistration('library-picker'),
+    ).toMatchObject({
+      adapter: { key: 'library-picker', status: 'ready' },
+      parameterContract: { kind: 'none' },
+      presentation: { title: 'Choose from Library' },
+      telemetryClass: 'library_picker',
+    });
     expect(getWorkspaceShellOverlayRegistration('notifications')).toMatchObject(
       {
         allowedShellModes: ['overlay'],
@@ -158,6 +196,13 @@ describe('workspace shell trusted registry', () => {
         presentation: { title: 'Temporary workspace overlay' },
       },
     );
+    expect(
+      getWorkspaceShellOverlayRegistration('workflow-picker'),
+    ).toMatchObject({
+      parameterContract: { kind: 'none' },
+      presentation: { title: 'Choose a workflow' },
+      telemetryClass: 'workflow_picker',
+    });
     expect(
       WORKSPACE_SHELL_AUXILIARY_REGISTRY.find(
         (registration) => registration.key === 'terminal-dock',

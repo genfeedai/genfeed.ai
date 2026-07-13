@@ -5,6 +5,7 @@ import {
   WorkflowExecutionQueryDto,
 } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -50,6 +51,7 @@ import type { Request } from 'express';
 export class WorkflowExecutionsController {
   constructor(
     private readonly workflowExecutionsService: WorkflowExecutionsService,
+    private readonly workflowExecutionAuthorizationService: WorkflowExecutionAuthorizationService,
     private readonly workflowExecutorService: WorkflowExecutorService,
   ) {}
 
@@ -171,6 +173,14 @@ export class WorkflowExecutionsController {
     @Body() dto: CreateWorkflowExecutionDto,
   ) {
     const publicMetadata = getPublicMetadata(user);
+    const scope = await this.workflowExecutionAuthorizationService.authorize({
+      expectedContextVersion: dto.expectedContextVersion,
+      organizationId: publicMetadata.organization,
+      requestedBrandId: publicMetadata.brand || undefined,
+      threadId: dto.threadId,
+      userId: publicMetadata.user,
+      workflowId: dto.workflow.toString(),
+    });
     const result = await this.workflowExecutorService.executeManualWorkflow(
       dto.workflow.toString(),
       publicMetadata.user,
@@ -178,6 +188,7 @@ export class WorkflowExecutionsController {
       dto.inputValues ?? {},
       dto.metadata,
       dto.trigger,
+      scope,
     );
     const execution = await this.workflowExecutionsService.findOne({
       _id: result.executionId,

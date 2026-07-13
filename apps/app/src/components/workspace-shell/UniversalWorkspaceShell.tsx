@@ -2,6 +2,7 @@
 
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
 import { AgentWorkspacePageShell } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspacePageShell';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type AgentApiService,
   type ConversationComposerActionInvocation,
@@ -13,6 +14,10 @@ import {
 } from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type {
+  AgentArtifactReference,
+  WorkspaceShellOverlayRequest,
+} from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
@@ -37,11 +42,17 @@ import {
 } from 'react';
 import {
   HiOutlineArrowLeft,
+  HiOutlineBolt,
   HiOutlineChatBubbleLeftRight,
   HiOutlineEye,
   HiOutlineSquares2X2,
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
+import { buildLibraryRemixIntentHref } from '@/features/library-remix/library-remix-reference';
+import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
+import { WorkflowPickerOverlay } from '@/features/workflows/workspace/WorkflowPickerOverlay';
+import { WorkflowSurfaceInspector } from '@/features/workflows/workspace/WorkflowSurfaceInspector';
+import { resolveWorkflowSurfaceRoute } from '@/features/workflows/workspace/workflow-surface-routing';
 import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
@@ -54,14 +65,20 @@ import {
   type WorkspaceShellLocation,
   type WorkspaceShellState,
 } from '@/lib/workspace-shell/workspace-shell-location';
-import { getWorkspaceShellOverlayRegistration } from '@/lib/workspace-shell/workspace-shell-registry';
+import {
+  getWorkspaceShellOverlayRegistration,
+  resolveWorkspaceShellRoute,
+} from '@/lib/workspace-shell/workspace-shell-registry';
 import {
   captureWorkspaceShellRestorationFailure,
   captureWorkspaceShellTransition,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
+import { useConversationScopeControls } from './use-conversation-scope-controls';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
+import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
 import {
+  useActiveWorkspaceSurfaceAdapter,
   useWorkspaceSurfaceAdapter,
   WorkspaceSurfaceAdapterProvider,
 } from './WorkspaceSurfaceAdapterContext';
@@ -106,10 +123,13 @@ function UniversalWorkspaceShellContent({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { back, push, replace } = useRouter();
+  const { brandId, organizationId } = useBrand();
   const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const threads = useAgentChatStore((state) => state.threads);
   const updateThread = useAgentChatStore((state) => state.updateThread);
+  const seedComposer = useAgentChatStore((state) => state.seedComposer);
+  const activeWorkspaceSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
@@ -164,6 +184,17 @@ function UniversalWorkspaceShellContent({
     () => (overlay ? getWorkspaceShellOverlayRegistration(overlay.key) : null),
     [overlay],
   );
+  const routeRegistration = useMemo(
+    () => resolveWorkspaceShellRoute(normalizedPathname),
+    [normalizedPathname],
+  );
+  const resolvedSurfaceAdapter =
+    routeRegistration?.adapter.status === 'embedded' &&
+    activeWorkspaceSurfaceAdapter?.registration.key ===
+      routeRegistration.adapter.key &&
+    activeWorkspaceSurfaceAdapter.registration.scope === routeRegistration.scope
+      ? activeWorkspaceSurfaceAdapter
+      : null;
   const canonicalSearchParamsString = canonicalSearchParams.toString();
   const isUnthreadedConversation =
     baseState === 'conversation' &&
@@ -187,25 +218,42 @@ function UniversalWorkspaceShellContent({
     [effectiveThreadId, threads],
   );
   const registeredSurfaceAdapter = useWorkspaceSurfaceAdapter();
-  const activeSurfaceAdapter =
+  const productSurfaceAdapter =
     registeredSurfaceAdapter?.surfaceKey === surfaceKey
       ? registeredSurfaceAdapter
       : null;
-  const surfaceBrandId = activeSurfaceAdapter?.scope.brandId;
+  const surfaceBrandId = productSurfaceAdapter?.scope.brandId;
   const isSurfaceScopeAligned = Boolean(
     !activeThread || !surfaceBrandId || activeThread.brandId === surfaceBrandId,
   );
   const surfaceReferences = isSurfaceScopeAligned
-    ? activeSurfaceAdapter?.references
+    ? productSurfaceAdapter?.references
     : undefined;
+  const workflowSurfaceRoute = useMemo(
+    () =>
+      resolveWorkflowSurfaceRoute(
+        rawPathname,
+        new URLSearchParams(searchParamsString),
+      ),
+    [rawPathname, searchParamsString],
+  );
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
-  const composerContextLabel =
-    activeSurfaceAdapter?.contextLabel ??
-    (state === 'conversation'
+  const shellContextLabel =
+    state === 'conversation'
       ? 'Conversation'
       : state === 'overlay'
         ? 'Overlay · conversation connected'
-        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`);
+        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`;
+  const conversationScope = useConversationScopeControls({
+    activeThread,
+    apiService: agentApiService,
+    currentDraftScopeKey: draftScopeKey,
+    pathname: rawPathname,
+    searchParams: new URLSearchParams(searchParamsString),
+  });
+  const composerContextLabel =
+    productSurfaceAdapter?.contextLabel ??
+    `${conversationScope.contextLabel} · ${shellContextLabel}`;
 
   useEffect(() => {
     if (!activeThread || !surfaceBrandId) {
@@ -372,13 +420,28 @@ function UniversalWorkspaceShellContent({
   }, [normalizedPathname, state]);
 
   const handleOpenCanvas = useCallback(() => {
+    const launch = resolveWorkspaceSurfaceLaunch({
+      currentHref,
+      destinationHref: brandSlug
+        ? href(APP_ROUTES.WORKSPACE.OVERVIEW)
+        : orgHref('/overview'),
+      threadId: effectiveThreadId ?? activeThreadId,
+    });
+    if (launch.history !== 'push' || launch.mode !== 'canvas') {
+      return;
+    }
+
     pendingTransitionRef.current = 'canvas_launch';
-    push(
-      buildWorkspaceShellHref(orgHref(APP_ROUTES.WORKSPACE.OVERVIEW), {
-        threadId: effectiveThreadId ?? activeThreadId,
-      }),
-    );
-  }, [activeThreadId, effectiveThreadId, orgHref, push]);
+    push(launch.href);
+  }, [
+    activeThreadId,
+    brandSlug,
+    currentHref,
+    effectiveThreadId,
+    href,
+    orgHref,
+    push,
+  ]);
 
   const handleReturnToConversation = useCallback(() => {
     pendingTransitionRef.current = 'conversation_return';
@@ -392,33 +455,50 @@ function UniversalWorkspaceShellContent({
     );
   }, [activeThreadId, effectiveThreadId, orgHref, push]);
 
+  const launchWorkspaceOverlay = useCallback(
+    (overlayRequest: WorkspaceShellOverlayRequest): boolean => {
+      const launch = resolveWorkspaceOverlayLaunch({
+        currentHref,
+        invocation: 'user',
+        overlay: overlayRequest,
+      });
+      if (launch.history === 'none') {
+        return false;
+      }
+
+      pendingTransitionRef.current = 'overlay_open';
+      overlayReturnFocusRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      hasOverlayReturnFocusRef.current = Boolean(overlayReturnFocusRef.current);
+      if (launch.history === 'replace') {
+        replace(launch.href);
+        return true;
+      }
+
+      isOwnedOverlayEntryRef.current = true;
+      push(launch.href);
+      return true;
+    },
+    [currentHref, push, replace],
+  );
+
   const handleOpenOverlay = useCallback(() => {
-    const launch = resolveWorkspaceOverlayLaunch({
-      currentHref,
-      invocation: 'user',
-      overlay: {
-        key: 'shell-preview',
-        parameters: { reference: null },
-      },
+    launchWorkspaceOverlay({
+      key: 'shell-preview',
+      parameters: { reference: null },
     });
-    if (launch.history === 'none') {
-      return;
-    }
+  }, [launchWorkspaceOverlay]);
 
-    pendingTransitionRef.current = 'overlay_open';
-    overlayReturnFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    hasOverlayReturnFocusRef.current = Boolean(overlayReturnFocusRef.current);
-    if (launch.history === 'replace') {
-      replace(launch.href);
-      return;
-    }
-
-    isOwnedOverlayEntryRef.current = true;
-    push(launch.href);
-  }, [currentHref, push, replace]);
+  const handleOpenWorkflowPicker = useCallback(
+    (): boolean =>
+      launchWorkspaceOverlay({
+        key: 'workflow-picker',
+        parameters: {},
+      }),
+    [launchWorkspaceOverlay],
+  );
 
   const handleComposerAction = useCallback(
     (
@@ -427,6 +507,13 @@ function UniversalWorkspaceShellContent({
       const trustedAction = getConversationComposerAction(
         invocation.action.name,
       );
+      if (conversationScope.isConsequentiallyBlocked) {
+        return {
+          message:
+            'Synchronize the server-authoritative conversation scope before opening consequential actions. Your draft is unchanged.',
+          status: 'unauthorized',
+        };
+      }
       if (
         !trustedAction ||
         trustedAction.route !== invocation.action.route ||
@@ -439,11 +526,51 @@ function UniversalWorkspaceShellContent({
         };
       }
 
+      if (trustedAction.name === 'workflow') {
+        if (!activeThread?.brandId) {
+          return {
+            message:
+              '/workflow needs an active thread brand. Select a brand through the scoped controls; your draft has been preserved.',
+            status: 'unauthorized',
+          };
+        }
+
+        return handleOpenWorkflowPicker()
+          ? {
+              message:
+                'Opened the authorized workflow picker. Choose a workflow to attach it or open its focused editor.',
+              status: 'dispatched',
+            }
+          : {
+              message:
+                'The workflow picker is unavailable. Your draft and references are unchanged.',
+              status: 'unavailable',
+            };
+      }
+
       if (trustedAction.requiredScope === 'brand' && !brandSlug) {
         return {
           message: `/${trustedAction.name} needs an explicit brand route. Select a brand through the scoped controls; your draft has been preserved.`,
           status: 'unauthorized',
         };
+      }
+
+      if (trustedAction.name === 'remix') {
+        const didOpen = launchWorkspaceOverlay({
+          key: 'library-picker',
+          parameters: {},
+        });
+        return didOpen
+          ? {
+              message:
+                'Opened the authorized Library picker. Your draft and active thread are preserved.',
+              status: 'dispatched',
+            }
+          : {
+              message:
+                'The Library picker is unavailable. Your draft and references are unchanged.',
+              status: 'unavailable',
+            };
       }
 
       const destination =
@@ -475,12 +602,53 @@ function UniversalWorkspaceShellContent({
     },
     [
       activeThreadId,
+      activeThread?.brandId,
       brandSlug,
+      conversationScope.isConsequentiallyBlocked,
       currentHref,
       effectiveThreadId,
       href,
+      handleOpenWorkflowPicker,
+      launchWorkspaceOverlay,
       orgHref,
       push,
+    ],
+  );
+
+  const handleSelectLibraryReference = useCallback(
+    (reference: AgentArtifactReference) => {
+      if (
+        (reference.kind !== 'asset' && reference.kind !== 'ingredient') ||
+        reference.organizationId !== organizationId ||
+        reference.brandId !== brandId
+      ) {
+        return;
+      }
+
+      const destinationHref = buildLibraryRemixIntentHref(
+        href(APP_ROUTES.POSTS.REMIX),
+        reference,
+      );
+      const launch = resolveWorkspaceSurfaceLaunch({
+        currentHref,
+        destinationHref,
+        threadId: effectiveThreadId ?? activeThreadId,
+      });
+      if (launch.history !== 'push' || launch.mode !== 'canvas') {
+        return;
+      }
+
+      pendingTransitionRef.current = 'canvas_launch';
+      replace(launch.href);
+    },
+    [
+      activeThreadId,
+      brandId,
+      currentHref,
+      effectiveThreadId,
+      href,
+      organizationId,
+      replace,
     ],
   );
 
@@ -498,6 +666,37 @@ function UniversalWorkspaceShellContent({
       ),
     );
   }, [back, rawPathname, replace, searchParamsString]);
+
+  const openWorkflowCanvas = useCallback(
+    (workflow?: WorkflowSummary) => {
+      const destinationHref = href(
+        workflow ? `/workflows/${workflow._id}` : '/workflows',
+      );
+      const launch = resolveWorkspaceSurfaceLaunch({
+        currentHref,
+        destinationHref,
+        threadId: effectiveThreadId ?? activeThreadId,
+      });
+      if (launch.history !== 'push' || launch.mode !== 'canvas') {
+        return;
+      }
+
+      pendingTransitionRef.current = 'canvas_launch';
+      push(launch.href);
+    },
+    [activeThreadId, currentHref, effectiveThreadId, href, push],
+  );
+
+  const handleAttachWorkflow = useCallback(
+    (workflow: WorkflowSummary) => {
+      seedComposer(
+        `Use the deterministic workflow “${workflow.name}” (workflow ID: ${workflow._id}) for this request: `,
+        effectiveThreadId ?? activeThreadId,
+      );
+      handleDismissOverlay();
+    },
+    [activeThreadId, effectiveThreadId, handleDismissOverlay, seedComposer],
+  );
 
   const handleInspectorResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -562,19 +761,50 @@ function UniversalWorkspaceShellContent({
         />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        {activeSurfaceAdapter ? (
-          activeSurfaceAdapter.renderInspector()
+        {conversationScope.inspectorScope}
+        {productSurfaceAdapter ? (
+          productSurfaceAdapter.renderInspector()
+        ) : surfaceKey === 'workflows' ? (
+          <WorkflowSurfaceInspector
+            contextVersion={activeThread?.contextVersion}
+            pathname={rawPathname}
+            searchParams={new URLSearchParams(searchParamsString)}
+            threadId={effectiveThreadId}
+          />
         ) : (
-          <div className="gen-shell-empty-state p-4">
+          <div
+            className="gen-shell-empty-state p-4"
+            data-testid={
+              resolvedSurfaceAdapter
+                ? 'workspace-surface-adapter-inspector'
+                : undefined
+            }
+          >
             <p className="text-sm font-medium text-foreground">
-              Registered {surfaceKey} adapter slot
+              {resolvedSurfaceAdapter
+                ? resolvedSurfaceAdapter.registration.title
+                : `Registered ${surfaceKey} adapter slot`}
             </p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Product-owned context adapters land here without changing their
-              canonical route or granting execution authority.
+              {resolvedSurfaceAdapter
+                ? resolvedSurfaceAdapter.registration.description
+                : 'Product-owned context adapters land here without changing their canonical route or granting execution authority.'}
             </p>
+            {resolvedSurfaceAdapter ? (
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                Full management remains available on this canonical route.
+              </p>
+            ) : null}
           </div>
         )}
+        <Button
+          icon={<HiOutlineBolt className="size-4" />}
+          onClick={handleOpenWorkflowPicker}
+          variant={ButtonVariant.OUTLINE}
+          withWrapper={false}
+        >
+          Choose workflow
+        </Button>
         <Button
           icon={<HiOutlineEye className="size-4" />}
           onClick={handleOpenOverlay}
@@ -597,13 +827,25 @@ function UniversalWorkspaceShellContent({
 
   return (
     <ConversationComposerShellProvider
-      artifactReferences={surfaceReferences}
-      brandId={isSurfaceScopeAligned ? surfaceBrandId : undefined}
+      artifactReferences={
+        surfaceReferences ?? resolvedSurfaceAdapter?.artifactReferences
+      }
+      brandId={
+        isSurfaceScopeAligned
+          ? (surfaceBrandId ?? resolvedSurfaceAdapter?.brandId)
+          : undefined
+      }
       contextLabel={composerContextLabel}
       dispatchAction={handleComposerAction}
       draftScopeKey={draftScopeKey}
+      isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
       portalTarget={composerPortalTarget}
-      scopeControls={composerScopeControls}
+      scopeControls={
+        <>
+          {conversationScope.scopeControls}
+          {composerScopeControls}
+        </>
+      }
       shellState={state}
     >
       <div
@@ -682,7 +924,10 @@ function UniversalWorkspaceShellContent({
               aria-hidden={baseState !== 'canvas'}
               aria-label="Primary workspace canvas"
               className={cn(
-                'gen-workspace-shell-region-emphasis h-full min-w-0 overflow-auto bg-background pb-48 shadow-border md:pb-56',
+                'gen-workspace-shell-region-emphasis h-full min-w-0 bg-background shadow-border',
+                workflowSurfaceRoute.isGraphCanvas
+                  ? 'overflow-hidden'
+                  : 'overflow-auto pb-48 md:pb-56',
                 baseState !== 'canvas' && 'hidden',
               )}
               data-testid="workspace-canvas-layout"
@@ -710,7 +955,13 @@ function UniversalWorkspaceShellContent({
                   Context
                 </Button>
               </div>
-              {baseState === 'canvas' ? children : null}
+              {baseState === 'canvas' ? (
+                <WorkspaceShellActionsProvider
+                  openOverlay={launchWorkspaceOverlay}
+                >
+                  {children}
+                </WorkspaceShellActionsProvider>
+              ) : null}
             </section>
 
             {state !== 'overlay' ? (
@@ -777,12 +1028,24 @@ function UniversalWorkspaceShellContent({
 
         <WorkspaceOverlayHost
           composerPortalRef={setComposerPortalTarget}
+          content={
+            overlay?.key === 'workflow-picker' ? (
+              <WorkflowPickerOverlay
+                activeBrandId={activeThread?.brandId}
+                onAttachWorkflow={handleAttachWorkflow}
+                onOpenLibrary={() => openWorkflowCanvas()}
+                onOpenWorkflow={openWorkflowCanvas}
+              />
+            ) : undefined
+          }
           fallbackFocusRef={primaryRegionRef}
           isOpen={state === 'overlay'}
           onDismiss={handleDismissOverlay}
+          onSelectLibraryReference={handleSelectLibraryReference}
           overlay={overlay}
           registration={overlayRegistration}
           returnFocusRef={overlayReturnFocusRef}
+          threadId={effectiveThreadId ?? activeThreadId}
         />
       </div>
     </ConversationComposerShellProvider>

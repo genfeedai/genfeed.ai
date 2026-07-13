@@ -80,6 +80,25 @@ describe('workspace shell URL restoration', () => {
     });
   });
 
+  it('restores the workflow picker and canonical organization run URL', () => {
+    expect(
+      restoreWorkspaceShellLocation({
+        normalizedPathname: '/workflows/executions/run-1',
+        pathname: '/acme/~/workflows/executions/run-1',
+        searchParams: new URLSearchParams({
+          overlay: 'workflow-picker',
+          thread: 'thread-1',
+        }),
+      }),
+    ).toMatchObject({
+      baseState: 'canvas',
+      overlay: { key: 'workflow-picker', parameters: {} },
+      routeKey: 'route:/:orgSlug/~/workflows/executions/:id',
+      state: 'overlay',
+      threadId: 'thread-1',
+    });
+  });
+
   it('removes invalid overlay state without changing scope or opaque queries', () => {
     const restored = restoreWorkspaceShellLocation({
       normalizedPathname: '/posts/calendar',
@@ -161,6 +180,24 @@ describe('workspace shell URL restoration', () => {
       overlay: null,
       restorationFailure: 'invalid_overlay_reference',
       state: 'conversation',
+    });
+  });
+
+  it('restores the no-parameter Library picker over the exact base route', () => {
+    expect(
+      restoreWorkspaceShellLocation({
+        normalizedPathname: '/posts/remix',
+        pathname: '/acme/moonrise/posts/remix',
+        searchParams: new URLSearchParams({
+          overlay: 'library-picker',
+          thread: 'thread-1',
+        }),
+      }),
+    ).toMatchObject({
+      baseState: 'canvas',
+      overlay: { key: 'library-picker', parameters: {} },
+      state: 'overlay',
+      threadId: 'thread-1',
     });
   });
 

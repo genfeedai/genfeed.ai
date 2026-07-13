@@ -7,7 +7,31 @@ const SHELL_PREVIEW_OVERLAY = {
   parameters: { reference: null },
 } as const satisfies WorkspaceShellOverlayRequest;
 
+const LIBRARY_PICKER_OVERLAY = {
+  key: 'library-picker',
+  parameters: {},
+} as const satisfies WorkspaceShellOverlayRequest;
+
 describe('workspace overlay launcher', () => {
+  it('opens the parameter-free workflow picker through the trusted host', () => {
+    const overlay = {
+      key: 'workflow-picker',
+      parameters: {},
+    } as const satisfies WorkspaceShellOverlayRequest;
+
+    expect(
+      resolveWorkspaceOverlayLaunch({
+        currentHref: '/acme/moonrise/workflows?thread=thread-1',
+        invocation: 'user',
+        overlay,
+      }),
+    ).toMatchObject({
+      history: 'push',
+      href: '/acme/moonrise/workflows?thread=thread-1&overlay=workflow-picker',
+      overlay,
+    });
+  });
+
   it('pushes one trusted overlay over the complete underlying URL', () => {
     expect(
       resolveWorkspaceOverlayLaunch({
@@ -21,6 +45,21 @@ describe('workspace overlay launcher', () => {
       history: 'push',
       href: '/acme/moonrise/library/images?folder=launch&thread=thread-1&overlay=shell-preview#asset-grid',
       overlay: SHELL_PREVIEW_OVERLAY,
+    });
+  });
+
+  it('opens the no-parameter Library picker without encoding selection authority', () => {
+    expect(
+      resolveWorkspaceOverlayLaunch({
+        currentHref: '/acme/~/agent/thread-1',
+        invocation: 'user',
+        overlay: LIBRARY_PICKER_OVERLAY,
+      }),
+    ).toEqual({
+      announcement: 'Library picker opened.',
+      history: 'push',
+      href: '/acme/~/agent/thread-1?overlay=library-picker',
+      overlay: LIBRARY_PICKER_OVERLAY,
     });
   });
 

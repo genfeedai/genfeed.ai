@@ -6,6 +6,7 @@ import {
   ResumeExecutionDto,
   SubmitApprovalDto,
 } from '@api/collections/workflows/dto/execute-workflow.dto';
+import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -53,6 +54,7 @@ export class WorkflowExecutionController {
   constructor(
     private readonly workflowsService: WorkflowsService,
     private readonly workflowRunControlService: WorkflowRunControlService,
+    private readonly workflowExecutionAuthorizationService: WorkflowExecutionAuthorizationService,
     private readonly workflowExecutorService: WorkflowExecutorService,
     readonly _loggerService: LoggerService,
   ) {}
@@ -95,11 +97,19 @@ export class WorkflowExecutionController {
   async resumeExecution(
     @Param('workflowId') workflowId: string,
     @Param('runId') runId: string,
-    @Body() _dto: ResumeExecutionDto,
+    @Body() dto: ResumeExecutionDto,
     @CurrentUser() user: User,
   ): Promise<{ data: { runId: string; status: string; message: string } }> {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
+      await this.workflowExecutionAuthorizationService.authorize({
+        expectedContextVersion: dto.expectedContextVersion,
+        organizationId: publicMetadata.organization,
+        requestedBrandId: publicMetadata.brand || undefined,
+        threadId: dto.threadId,
+        userId: publicMetadata.user,
+        workflowId,
+      });
       const result = await this.workflowRunControlService.resumeFromFailed(
         workflowId,
         runId,
@@ -169,6 +179,14 @@ export class WorkflowExecutionController {
   }> {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
+      await this.workflowExecutionAuthorizationService.authorize({
+        expectedContextVersion: dto.expectedContextVersion,
+        organizationId: publicMetadata.organization,
+        requestedBrandId: publicMetadata.brand || undefined,
+        threadId: dto.threadId,
+        userId: publicMetadata.user,
+        workflowId,
+      });
       const result =
         await this.workflowExecutorService.submitReviewGateApproval(
           workflowId,

@@ -233,4 +233,29 @@ describe('AgentChatInput', () => {
       );
     });
   });
+
+  it('exposes selected surface artifact references in the composer context', () => {
+    render(
+      <ConversationComposerShellProvider
+        artifactReferences={[
+          {
+            brandId: 'brand-1',
+            kind: 'post',
+            organizationId: 'org-1',
+            recordId: 'post-1',
+            serializer: 'post',
+          },
+        ]}
+        contextLabel="Brand Workspace overview"
+        draftScopeKey="acme:thread-1:3"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatInput onSend={vi.fn()} />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(screen.getByText('1 reference')).toBeInTheDocument();
+    expect(screen.getByText('^post:post-1')).toBeInTheDocument();
+  });
 });

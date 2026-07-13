@@ -10,6 +10,7 @@ import type {
   ITag,
   IUser,
 } from '../index';
+import type { IPublishApproval } from '../publisher/publish-approval.interface';
 import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 
 export interface IPost extends IBaseEntity {
@@ -34,6 +35,8 @@ export interface IPost extends IBaseEntity {
   publishedAt?: string;
   retryCount?: number;
   reviewVersionPinId?: string | null;
+  publishApprovalId?: string | null;
+  publishApproval?: IPublishApproval | null;
   analytics?: IPostAnalyticsSummary;
   totalViews?: number;
   totalLikes?: number;

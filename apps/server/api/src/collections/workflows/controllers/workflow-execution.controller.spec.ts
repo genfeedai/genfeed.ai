@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
+import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -39,6 +40,10 @@ describe('WorkflowExecutionController', () => {
     submitReviewGateApproval: vi.fn(),
   };
 
+  const mockWorkflowExecutionAuthorizationService = {
+    authorize: vi.fn().mockResolvedValue(undefined),
+  };
+
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -54,6 +59,10 @@ describe('WorkflowExecutionController', () => {
         {
           provide: WorkflowRunControlService,
           useValue: mockWorkflowRunControlService,
+        },
+        {
+          provide: WorkflowExecutionAuthorizationService,
+          useValue: mockWorkflowExecutionAuthorizationService,
         },
         {
           provide: WorkflowExecutorService,
@@ -147,6 +156,43 @@ describe('WorkflowExecutionController', () => {
     });
   });
 
+  describe('resumeExecution', () => {
+    it('authorizes the connected thread before resuming a failed run', async () => {
+      mockWorkflowRunControlService.resumeFromFailed.mockResolvedValue({
+        message: 'Partial execution started',
+        runId: 'exec-2',
+        status: 'pending',
+      });
+
+      const result = await controller.resumeExecution(
+        '507f1f77bcf86cd799439014',
+        'exec-1',
+        { expectedContextVersion: 4, threadId: 'thread-1' },
+        mockUser,
+      );
+
+      expect(
+        mockWorkflowExecutionAuthorizationService.authorize,
+      ).toHaveBeenCalledWith({
+        expectedContextVersion: 4,
+        organizationId: mockUser.publicMetadata.organization,
+        requestedBrandId: undefined,
+        threadId: 'thread-1',
+        userId: mockUser.publicMetadata.user,
+        workflowId: '507f1f77bcf86cd799439014',
+      });
+      expect(
+        mockWorkflowRunControlService.resumeFromFailed,
+      ).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439014',
+        'exec-1',
+        mockUser.publicMetadata.user,
+        mockUser.publicMetadata.organization,
+      );
+      expect(result.data.runId).toBe('exec-2');
+    });
+  });
+
   describe('submitApproval', () => {
     it('should submit a review gate approval for the current org', async () => {
       mockWorkflowExecutorService.submitReviewGateApproval.mockResolvedValue({
@@ -175,6 +221,16 @@ describe('WorkflowExecutionController', () => {
         true,
         undefined,
       );
+      expect(
+        mockWorkflowExecutionAuthorizationService.authorize,
+      ).toHaveBeenCalledWith({
+        expectedContextVersion: undefined,
+        organizationId: mockUser.publicMetadata.organization,
+        requestedBrandId: undefined,
+        threadId: undefined,
+        userId: mockUser.publicMetadata.user,
+        workflowId: '507f1f77bcf86cd799439014',
+      });
       expect(result).toEqual({
         data: {
           approvedAt: '2026-01-01T00:00:00.000Z',

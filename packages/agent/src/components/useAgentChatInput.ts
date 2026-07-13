@@ -28,6 +28,7 @@ import {
   writeConversationComposerDocument,
   writeConversationComposerFocusIntent,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -53,8 +54,23 @@ import {
 import tippy, { type Instance } from 'tippy.js';
 import type { ExtractedMention } from './AgentChatInput';
 
-const EMPTY_SURFACE_ARTIFACT_REFERENCES: readonly ConversationComposerArtifactReference[] =
-  [];
+const EMPTY_SURFACE_ARTIFACT_REFERENCES: readonly (
+  | AgentArtifactReference
+  | ConversationComposerArtifactReference
+)[] = [];
+
+function normalizeSurfaceArtifactReference(
+  item: AgentArtifactReference | ConversationComposerArtifactReference,
+): ConversationComposerArtifactReference {
+  if ('reference' in item) {
+    return item;
+  }
+
+  return {
+    label: `^${item.kind}:${item.recordId}`,
+    reference: item,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Pure helpers (no JSX — safe in .ts file)
@@ -278,17 +294,31 @@ export function useAgentChatInput({
         }))
       : [],
   );
-  const displayedReferences = useMemo<AgentChatReferenceItem[]>(
-    () => [
-      ...references,
-      ...surfaceArtifactReferences.map((item) => ({
-        id: item.reference.recordId,
-        label: item.label,
+  const displayedReferences = useMemo<AgentChatReferenceItem[]>(() => {
+    const referencesByKey = new Map<string, AgentChatReferenceItem>();
+
+    for (const reference of composerShell?.references ?? []) {
+      referencesByKey.set(`${reference.kind}:${reference.id}`, {
+        id: reference.id,
+        label: reference.label,
+        type: reference.kind,
+      });
+    }
+    for (const reference of references) {
+      referencesByKey.set(`${reference.type}:${reference.id}`, reference);
+    }
+    for (const item of surfaceArtifactReferences) {
+      const normalizedItem = normalizeSurfaceArtifactReference(item);
+      const reference = {
+        id: normalizedItem.reference.recordId,
+        label: normalizedItem.label,
         type: 'asset' as const,
-      })),
-    ],
-    [references, surfaceArtifactReferences],
-  );
+      };
+      referencesByKey.set(`${reference.type}:${reference.id}`, reference);
+    }
+
+    return [...referencesByKey.values()];
+  }, [composerShell?.references, references, surfaceArtifactReferences]);
   const editorRef = useRef<Editor | null>(null);
 
   const hasAttachments = attachments.length > 0;
@@ -557,7 +587,7 @@ export function useAgentChatInput({
         ...(surfaceArtifactReferences.length > 0
           ? {
               artifactReferences: surfaceArtifactReferences.map(
-                (item) => item.reference,
+                (item) => normalizeSurfaceArtifactReference(item).reference,
               ),
             }
           : {}),

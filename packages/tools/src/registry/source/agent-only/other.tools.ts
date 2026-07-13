@@ -134,13 +134,13 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Approve or reject items in a batch. Approved items get scheduled for publishing. Rejected items are marked for regeneration.',
+      'Reject items in a batch. Approval is intentionally unavailable to model tools and requires the authenticated version-bound review control.',
     name: 'batch_approve_reject',
     parameters: {
       properties: {
         action: {
           description: 'Action to perform on selected items',
-          enum: ['approve', 'reject'],
+          enum: ['reject'],
           type: 'string',
         },
         batchId: {

@@ -6,12 +6,6 @@ export interface ConversationComposerArtifactReference {
   reference: AgentArtifactReference;
 }
 
-export interface ConversationComposerSendOptions {
-  artifactReferences?: AgentArtifactReference[];
-  brandId?: string;
-  planModeEnabled?: boolean;
-}
-
 export type ConversationComposerActionName =
   | 'analyze'
   | 'create'
@@ -23,6 +17,24 @@ export type ConversationComposerActionName =
   | 'workflow';
 
 export type ConversationComposerScope = 'brand' | 'organization';
+
+export type ConversationComposerContextReferenceKind =
+  | 'research-ad-connected-google'
+  | 'research-ad-connected-meta'
+  | 'research-ad-public-google'
+  | 'research-ad-public-meta'
+  | 'research-source-post'
+  | 'research-trend-content'
+  | 'research-trend-hashtag'
+  | 'research-trend-sound'
+  | 'research-trend-video';
+
+export interface ConversationComposerContextReference {
+  authorization: 'authorized';
+  id: string;
+  kind: ConversationComposerContextReferenceKind;
+  label: string;
+}
 
 export interface ConversationComposerActionDefinition {
   description: string;
@@ -46,6 +58,12 @@ export interface ConversationComposerDispatchResult {
 export interface ConversationComposerActionInvocation {
   action: ConversationComposerActionDefinition;
   arguments: string;
+}
+
+export interface ConversationComposerSendOptions {
+  artifactReferences?: AgentArtifactReference[];
+  brandId?: string;
+  planModeEnabled?: boolean;
 }
 
 export interface UnknownConversationComposerCommand {

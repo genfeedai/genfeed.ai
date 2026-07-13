@@ -5,6 +5,7 @@ import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import ExecutionDetailPage from '@/features/workflows/pages/executions/ExecutionDetailPage';
 import WorkflowExecutionsPage from '@/features/workflows/pages/executions/WorkflowExecutionsPage';
 import WorkflowLibraryPage from '@/features/workflows/pages/library/WorkflowLibraryPage';
 import WorkflowTemplatesPage from '@/features/workflows/pages/templates/WorkflowTemplatesPage';
@@ -108,6 +109,15 @@ function OrgWorkflowsPage({
   }
 
   if (section === 'executions') {
+    const executionId = segments?.[1];
+    if (executionId) {
+      return (
+        <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+          <ExecutionDetailPage executionId={executionId} />
+        </Suspense>
+      );
+    }
+
     return (
       <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
         <WorkflowExecutionsPage />

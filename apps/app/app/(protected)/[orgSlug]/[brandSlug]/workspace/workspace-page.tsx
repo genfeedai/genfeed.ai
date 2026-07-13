@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
@@ -16,8 +17,10 @@ import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
-import { Suspense, startTransition, useMemo } from 'react';
+import { Suspense, startTransition, useEffect, useMemo } from 'react';
 import { HiOutlineSquares2X2 } from 'react-icons/hi2';
+import { useWorkspaceSurfaceSelection } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
+import { getWorkspaceOverviewArtifactReferences } from '@/features/workspace-overview/workspace-overview-artifact-references';
 import { useWorkspacePageContent } from './use-workspace-page-content';
 import { WorkspaceDashboard } from './workspace-dashboard';
 import { workspaceInboxTableColumns } from './workspace-inbox-columns';
@@ -64,7 +67,9 @@ function WorkspacePageContentContent({
   initialTimeSeriesData,
   section = 'overview',
 }: WorkspacePageContentProps) {
+  const { brandId, organizationId } = useBrand();
   const { href } = useOrgUrl();
+  const surfaceSelection = useWorkspaceSurfaceSelection();
   const { trends: trendItems, isLoading: isTrendsLoading } = useTrends();
   const {
     activityItems,
@@ -109,6 +114,25 @@ function WorkspacePageContentContent({
     initialTimeSeriesData,
     section,
   });
+  const selectedArtifactReferences = useMemo(
+    () =>
+      getWorkspaceOverviewArtifactReferences(selectedTask, {
+        brandId,
+        organizationId,
+      }),
+    [brandId, organizationId, selectedTask],
+  );
+
+  useEffect(() => {
+    if (!surfaceSelection || !isOverviewSection) {
+      return;
+    }
+
+    surfaceSelection.setArtifactReferences(selectedArtifactReferences);
+    return () => {
+      surfaceSelection.setArtifactReferences([]);
+    };
+  }, [isOverviewSection, selectedArtifactReferences, surfaceSelection]);
 
   const workspaceHeaderActions = useMemo(
     () => (

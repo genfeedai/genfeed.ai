@@ -1,6 +1,7 @@
 import type {
   ResolvedWorkspaceShellRoute,
   WorkspaceShellAccessPolicy,
+  WorkspaceShellAdapterSeam,
   WorkspaceShellAuxiliaryRegistration,
   WorkspaceShellDeployment,
   WorkspaceShellOverlayRegistration,
@@ -31,6 +32,7 @@ export type {
 
 type RouteGroupConfig = {
   readonly adapterStatus?: WorkspaceShellRouteRegistration['adapter']['status'];
+  readonly adapter?: WorkspaceShellAdapterSeam;
   readonly fallback: string;
   readonly mode: WorkspaceShellRouteMode;
   readonly scope: WorkspaceShellScopeRequirement;
@@ -103,10 +105,12 @@ function freezeRouteRegistration(
 ): WorkspaceShellRouteRegistration {
   return Object.freeze({
     accessPolicy: ACCESS_POLICY_BY_SCOPE[config.scope],
-    adapter: Object.freeze({
-      key: config.surfaceKey,
-      status: config.adapterStatus ?? ADAPTER_STATUS_BY_MODE[config.mode],
-    }),
+    adapter: Object.freeze(
+      config.adapter ?? {
+        key: config.surfaceKey,
+        status: config.adapterStatus ?? ADAPTER_STATUS_BY_MODE[config.mode],
+      },
+    ),
     allowedShellModes: Object.freeze([config.mode] as const),
     availability: AVAILABILITY_BY_MODE[config.mode],
     canonicalUrl,
@@ -151,17 +155,32 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
 ] as const;
 
 const ORGANIZATION_ROUTE_REGISTRATIONS = [
-  ...registerRoutes(
-    ['/:orgSlug', '/:orgSlug/~/overview', '/:orgSlug/~/analytics/overview'],
-    {
-      fallback: '/:orgSlug/~/overview',
-      mode: 'canvas',
-      scope: 'organization',
-      surfaceKey: 'organization-overview',
-      switcherItems: ['workspace', 'messages', 'research'],
-      telemetryClass: 'product',
+  ...registerRoutes(['/:orgSlug/~/overview'], {
+    adapter: {
+      key: 'organization-workspace-overview',
+      status: 'embedded',
     },
-  ),
+    fallback: '/:orgSlug/~/overview',
+    mode: 'canvas',
+    scope: 'organization',
+    surfaceKey: 'organization-overview',
+    switcherItems: ['workspace', 'messages', 'research'],
+    telemetryClass: 'product',
+  }),
+  ...registerRoutes(['/:orgSlug'], {
+    fallback: '/:orgSlug/~/overview',
+    mode: 'canvas',
+    scope: 'organization',
+    surfaceKey: 'organization-landing',
+    telemetryClass: 'product',
+  }),
+  ...registerRoutes(['/:orgSlug/~/analytics/overview'], {
+    fallback: '/:orgSlug/~/overview',
+    mode: 'canvas',
+    scope: 'organization',
+    surfaceKey: 'analytics',
+    telemetryClass: 'product',
+  }),
   ...registerRoutes(
     ['/:orgSlug/~/agent', '/:orgSlug/~/agent/new', '/:orgSlug/~/agent/:id'],
     {
@@ -263,6 +282,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/workflows/library',
       '/:orgSlug/~/workflows/templates',
       '/:orgSlug/~/workflows/executions',
+      '/:orgSlug/~/workflows/executions/:id',
       '/:orgSlug/~/workflows/new',
       '/:orgSlug/~/workflows/:id',
     ],
@@ -296,6 +316,22 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/workspace',
       '/:orgSlug/:brandSlug/workspace/overview',
+    ],
+    {
+      adapter: {
+        key: 'brand-workspace-overview',
+        status: 'embedded',
+      },
+      fallback: '/:orgSlug/:brandSlug/workspace/overview',
+      mode: 'canvas',
+      scope: 'brand',
+      surfaceKey: 'workspace-overview',
+      switcherItems: ['workspace'],
+      telemetryClass: 'product',
+    },
+  ),
+  ...registerRoutes(
+    [
       '/:orgSlug/:brandSlug/workspace/inbox/:view',
       '/:orgSlug/:brandSlug/workspace/activity',
       '/:orgSlug/:brandSlug/tasks',
@@ -665,9 +701,9 @@ const ADMIN_ROUTE_REGISTRATIONS = registerRoutes(ADMIN_ROUTE_PATTERNS, {
 });
 
 /**
- * Canonical application-owned inventory for the 206 protected route patterns
- * accepted in ADR-CONVERSATION-SHELL-CONTRACTS v1.0.0. The two intentional hard
- * cuts (`/:orgSlug/~/workspace/*` and
+ * Canonical application-owned inventory for the protected route patterns
+ * accepted in ADR-CONVERSATION-SHELL-CONTRACTS v1.0.0 plus routes added after
+ * its 206-route snapshot. The two intentional hard cuts (`/:orgSlug/~/workspace/*` and
  * `/:orgSlug/~/settings/organization/*`) are deliberately absent.
  */
 export const PROTECTED_ROUTE_INVENTORY = Object.freeze([
@@ -678,6 +714,28 @@ export const PROTECTED_ROUTE_INVENTORY = Object.freeze([
 ]);
 
 export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
+  Object.freeze({
+    accessPolicy: 'organization-member',
+    adapter: Object.freeze({ key: 'library-picker', status: 'ready' }),
+    allowedShellModes: Object.freeze(['overlay'] as const),
+    availability: 'conversation-shell',
+    canonicalUrl: null,
+    deployments: ALL_DEPLOYMENTS,
+    key: 'library-picker',
+    kind: 'overlay',
+    launchTarget: 'overlay',
+    parameterContract: Object.freeze({ kind: 'none' } as const),
+    presentation: Object.freeze({
+      description:
+        'Choose an authorized media source without leaving the active conversation.',
+      openAnnouncement: 'Library picker opened.',
+      title: 'Choose from Library',
+    }),
+    restoration: URL_RESTORATION_POLICY,
+    safeFallback: 'same-canonical-url',
+    scope: 'organization',
+    telemetryClass: 'library_picker',
+  }),
   Object.freeze({
     accessPolicy: 'organization-member',
     adapter: Object.freeze({ key: 'notifications', status: 'placeholder' }),
@@ -725,6 +783,28 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
     safeFallback: 'same-canonical-url',
     scope: 'organization',
     telemetryClass: 'shell_preview',
+  }),
+  Object.freeze({
+    accessPolicy: 'organization-member',
+    adapter: Object.freeze({ key: 'workflow-picker', status: 'placeholder' }),
+    allowedShellModes: Object.freeze(['overlay'] as const),
+    availability: 'conversation-shell',
+    canonicalUrl: null,
+    deployments: ALL_DEPLOYMENTS,
+    key: 'workflow-picker',
+    kind: 'overlay',
+    launchTarget: 'overlay',
+    parameterContract: Object.freeze({ kind: 'none' } as const),
+    presentation: Object.freeze({
+      description:
+        'Choose an authorized deterministic workflow without leaving the active conversation or canvas.',
+      openAnnouncement: 'Workflow picker opened.',
+      title: 'Choose a workflow',
+    }),
+    restoration: URL_RESTORATION_POLICY,
+    safeFallback: 'same-canonical-url',
+    scope: 'organization',
+    telemetryClass: 'workflow_picker',
   }),
   Object.freeze({
     accessPolicy: 'organization-member',

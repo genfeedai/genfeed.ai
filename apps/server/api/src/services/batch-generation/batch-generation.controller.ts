@@ -191,6 +191,7 @@ export class BatchGenerationController {
           dto.itemIds,
           organization,
           dto.feedback,
+          userId,
         );
       } else {
         data = await this.batchGenerationService.rejectItems(
@@ -198,6 +199,7 @@ export class BatchGenerationController {
           dto.itemIds,
           organization,
           dto.feedback,
+          userId,
         );
       }
       return serializeSingle(req, BatchSerializer, data);

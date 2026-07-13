@@ -121,9 +121,15 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         onSend={onSend}
-        disabled={isBusy || isReadOnly}
+        disabled={
+          isBusy || isReadOnly || composerShell?.isConsequentiallyBlocked
+        }
         placeholder={
-          isReadOnly ? 'Archived threads are read-only' : placeholder
+          isReadOnly
+            ? 'Archived threads are read-only'
+            : composerShell?.isConsequentiallyBlocked
+              ? 'Synchronize the conversation scope before continuing'
+              : placeholder
         }
         onStop={onStop}
         apiService={apiService}
