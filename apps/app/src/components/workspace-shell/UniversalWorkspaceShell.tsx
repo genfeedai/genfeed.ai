@@ -59,11 +59,11 @@ import {
   type WorkspaceShellLocation,
   type WorkspaceShellState,
 } from '@/lib/workspace-shell/workspace-shell-location';
-import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 import {
   captureWorkspaceShellRestorationFailure,
   captureWorkspaceShellTransition,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
+import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
@@ -135,10 +135,11 @@ function UniversalWorkspaceShellContent({
       requireWorkspaceShellLocation(
         restoreWorkspaceShellLocation({
           normalizedPathname,
+          pathname: rawPathname,
           searchParams: new URLSearchParams(searchParamsString),
         }),
       ),
-    [normalizedPathname, searchParamsString],
+    [normalizedPathname, rawPathname, searchParamsString],
   );
 
   const {
@@ -147,7 +148,9 @@ function UniversalWorkspaceShellContent({
     isCanonical,
     overlayReference,
     restorationFailure,
+    safeFallbackHref,
     state,
+    surfaceKey,
     threadId,
   } = shellLocation;
   const canonicalSearchParamsString = canonicalSearchParams.toString();
@@ -205,16 +208,16 @@ function UniversalWorkspaceShellContent({
     }
     replace(
       restorationFailure === 'invalid_thread'
-        ? orgHref(APP_ROUTES.AGENT.ROOT)
+        ? safeFallbackHref
         : canonicalHref,
     );
   }, [
     canonicalSearchParamsString,
     isCanonical,
-    orgHref,
     rawPathname,
     replace,
     restorationFailure,
+    safeFallbackHref,
   ]);
 
   useEffect(() => {
@@ -337,15 +340,6 @@ function UniversalWorkspaceShellContent({
         };
       }
 
-      const registeredSurface = resolveWorkspaceShellRoute(trustedAction.route);
-      if (registeredSurface?.mode !== 'canvas') {
-        return {
-          message:
-            'That product surface is unavailable. Your draft and references are unchanged.',
-          status: 'unavailable',
-        };
-      }
-
       if (trustedAction.requiredScope === 'brand' && !brandSlug) {
         return {
           message: `/${trustedAction.name} needs an explicit brand route. Select a brand through the scoped controls; your draft has been preserved.`,
@@ -353,16 +347,25 @@ function UniversalWorkspaceShellContent({
         };
       }
 
-      pendingTransitionRef.current = 'canvas_launch';
       const destination =
         trustedAction.requiredScope === 'brand'
           ? href(trustedAction.route)
           : orgHref(trustedAction.route);
-      push(
-        buildWorkspaceShellHref(destination, {
-          threadId: effectiveThreadId ?? activeThreadId,
-        }),
-      );
+      const launch = resolveWorkspaceSurfaceLaunch({
+        currentHref,
+        destinationHref: destination,
+        threadId: effectiveThreadId ?? activeThreadId,
+      });
+      if (launch.history !== 'push' || launch.mode !== 'canvas') {
+        return {
+          message:
+            'That product surface is unavailable. Your draft and references are unchanged.',
+          status: 'unavailable',
+        };
+      }
+
+      pendingTransitionRef.current = 'canvas_launch';
+      push(launch.href);
 
       return {
         message: trustedAction.isConsequentialProposal
@@ -371,7 +374,15 @@ function UniversalWorkspaceShellContent({
         status: 'dispatched',
       };
     },
-    [activeThreadId, brandSlug, effectiveThreadId, href, orgHref, push],
+    [
+      activeThreadId,
+      brandSlug,
+      currentHref,
+      effectiveThreadId,
+      href,
+      orgHref,
+      push,
+    ],
   );
 
   const handleDismissOverlay = useCallback(() => {
@@ -450,7 +461,7 @@ function UniversalWorkspaceShellContent({
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         <div className="gen-shell-empty-state p-4">
           <p className="text-sm font-medium text-foreground">
-            Registered inspector slot
+            Registered {surfaceKey} adapter slot
           </p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
             Product-owned context adapters land here without changing their
@@ -489,10 +500,11 @@ function UniversalWorkspaceShellContent({
       <div
         className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-black p-2"
         data-shell-state={state}
+        data-workspace-surface={surfaceKey}
         data-testid="universal-workspace-shell"
       >
         <div aria-live="polite" className="sr-only" role="status">
-          Workspace state: {state}
+          Workspace mode: {state}. Active surface: {surfaceKey}.
         </div>
 
         <div

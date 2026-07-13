@@ -234,6 +234,13 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByTestId('persistent-agent-conversation'),
     ).toHaveTextContent('thread-1');
+    expect(screen.getByTestId('universal-workspace-shell')).toHaveAttribute(
+      'data-workspace-surface',
+      'agent-conversation',
+    );
+    expect(
+      screen.getByTestId('universal-workspace-shell').parentElement,
+    ).toHaveAttribute('data-draft-scope', 'acme:thread-1:3');
     expect(screen.getByLabelText('Context inspector')).toBeInTheDocument();
     expect(screen.queryByTestId('canonical-canvas')).not.toBeInTheDocument();
 
@@ -253,6 +260,13 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByTestId('persistent-agent-conversation'),
     ).toHaveTextContent('thread-1');
+    expect(screen.getByTestId('universal-workspace-shell')).toHaveAttribute(
+      'data-workspace-surface',
+      'workspace',
+    );
+    expect(
+      screen.getByTestId('universal-workspace-shell').parentElement,
+    ).toHaveAttribute('data-draft-scope', 'acme:thread-1:3');
     expect(pageShellMount).toHaveBeenCalledTimes(1);
     expect(router.replace).toHaveBeenCalledWith(
       '/acme/moonrise/workspace/overview?thread=thread-1',

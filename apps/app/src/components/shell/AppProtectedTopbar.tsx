@@ -36,7 +36,10 @@ import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndic
 import {
   appendSearchParamsToHref,
   getBrandSwitchHref,
+  pickOperatorTaskContextSearchParams,
 } from '@/lib/navigation/operator-shell';
+import { useConversationShellEnabled } from '@/lib/workspace-shell/use-conversation-shell';
+import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 
 const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,
@@ -119,6 +122,7 @@ function AppProtectedTopbarContent({
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { push } = useRouter();
+  const isConversationShellEnabled = useConversationShellEnabled();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
@@ -204,6 +208,32 @@ function AppProtectedTopbarContent({
 
   const taskId = searchParams.get('taskId');
   const taskTitle = searchParams.get('taskTitle');
+  const currentHref = appendSearchParamsToHref(
+    pathname,
+    new URLSearchParams(searchParams.toString()),
+  );
+  const preservedTaskSearch = pickOperatorTaskContextSearchParams(
+    new URLSearchParams(searchParams.toString()),
+  ).toString();
+  const resolveAppSwitcherNavigation = useCallback(
+    (destinationHref: string) => {
+      if (!isConversationShellEnabled) {
+        return { href: destinationHref };
+      }
+
+      const launch = resolveWorkspaceSurfaceLaunch({
+        currentHref,
+        destinationHref,
+        threadId: searchParams.get('thread'),
+      });
+
+      return {
+        announcement: launch.announcement,
+        href: launch.href,
+      };
+    },
+    [currentHref, isConversationShellEnabled, searchParams],
+  );
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
   const isAdminChrome = chrome === 'admin';
   const shouldRenderAgentToggle = Boolean(onAgentToggle) && !isSaaS();
@@ -337,6 +367,8 @@ function AppProtectedTopbarContent({
                 brandAwareSlug={brandAwareAppSlug}
                 brandSlug={effectiveBrandSlug}
                 isAssetGateLocked={isAssetGateLocked}
+                preservedSearch={preservedTaskSearch || undefined}
+                resolveNavigation={resolveAppSwitcherNavigation}
                 showAdmin={isAdminChrome || isSuperAdmin}
               />
             ) : null}
