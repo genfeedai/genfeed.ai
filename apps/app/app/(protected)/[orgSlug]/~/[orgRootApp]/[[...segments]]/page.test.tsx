@@ -60,6 +60,12 @@ vi.mock('@/features/workflows/pages/executions/WorkflowExecutionsPage', () => ({
   default: () => <div data-testid="workflow-executions-page" />,
 }));
 
+vi.mock('@/features/workflows/pages/executions/ExecutionDetailPage', () => ({
+  default: ({ executionId }: { executionId: string }) => (
+    <div data-execution-id={executionId} data-testid="execution-detail-page" />
+  ),
+}));
+
 vi.mock('@/features/workflows/pages/library/WorkflowLibraryPage', () => ({
   default: () => <div data-testid="workflow-library-page" />,
 }));
@@ -291,6 +297,23 @@ describe('OrgRootAppPage', () => {
     render(executionsElement);
 
     expect(screen.getByTestId('workflow-executions-page')).toBeInTheDocument();
+  });
+
+  it('restores an org workflow execution detail route', async () => {
+    const element = await OrgRootAppPage({
+      params: Promise.resolve({
+        orgRootApp: 'workflows',
+        orgSlug: 'acme',
+        segments: ['executions', 'execution-1'],
+      }),
+    });
+
+    render(element);
+
+    expect(screen.getByTestId('execution-detail-page')).toHaveAttribute(
+      'data-execution-id',
+      'execution-1',
+    );
   });
 
   it('renders org workflow new and detail pages', async () => {

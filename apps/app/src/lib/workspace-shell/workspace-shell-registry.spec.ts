@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(206);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(207);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(206);
+    ).toBe(207);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -142,6 +142,13 @@ describe('workspace shell trusted registry', () => {
         presentation: { title: 'Temporary workspace overlay' },
       },
     );
+    expect(
+      getWorkspaceShellOverlayRegistration('workflow-picker'),
+    ).toMatchObject({
+      parameterContract: { kind: 'none' },
+      presentation: { title: 'Choose a workflow' },
+      telemetryClass: 'workflow_picker',
+    });
     expect(
       WORKSPACE_SHELL_AUXILIARY_REGISTRY.find(
         (registration) => registration.key === 'terminal-dock',

@@ -1,5 +1,6 @@
 'use client';
 
+import { useAgentChatStore } from '@genfeedai/agent';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
   buildWorkflowEtaSnapshot,
@@ -79,6 +80,10 @@ export default function WorkflowDetailPageClient({
     string | null
   >(null);
   const getWorkflowService = useAuthedService(createWorkflowApiService);
+  const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const activeThread = useAgentChatStore((state) =>
+    state.threads.find((thread) => thread.id === state.activeThreadId),
+  );
 
   const {
     isLoading,
@@ -210,8 +215,10 @@ export default function WorkflowDetailPageClient({
         }
 
         const execution = await service.execute(runnableWorkflowId, {
+          expectedContextVersion: activeThread?.contextVersion,
           inputValues,
           metadata: { source: 'workflow-editor-run-panel' },
+          threadId: activeThreadId ?? undefined,
         });
         setActiveExecutionId(execution._id);
         setShowRunPanel(false);
@@ -225,7 +232,14 @@ export default function WorkflowDetailPageClient({
         setIsRunning(false);
       }
     },
-    [currentWorkflowId, getWorkflowService, saveInputDefaults, workflowId],
+    [
+      activeThread?.contextVersion,
+      activeThreadId,
+      currentWorkflowId,
+      getWorkflowService,
+      saveInputDefaults,
+      workflowId,
+    ],
   );
 
   const handleRunButtonClick = useCallback(() => {
@@ -251,7 +265,7 @@ export default function WorkflowDetailPageClient({
   return (
     <WorkflowUIProvider config={workflowUiConfig}>
       <ReactFlowProvider>
-        <div className="workflow-scope workflow-editor-shell flex h-screen flex-col bg-[var(--background)] text-[var(--foreground)]">
+        <div className="workflow-scope workflow-editor-shell flex h-full min-h-[32rem] flex-col bg-[var(--background)] text-[var(--foreground)]">
           {cloudError && (
             <div className="border-b border-[var(--destructive)]/20 bg-[var(--destructive)]/10 px-4 py-2 text-xs text-[var(--destructive)]">
               {cloudError}

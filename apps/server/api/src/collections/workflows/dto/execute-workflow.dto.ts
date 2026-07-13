@@ -1,3 +1,4 @@
+import { WorkflowActionContextDto } from '@api/collections/workflows/dto/workflow-action-context.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -43,7 +44,7 @@ export class ExecutePartialDto {
 /**
  * DTO for resuming workflow from a failed run
  */
-export class ResumeExecutionDto {
+export class ResumeExecutionDto extends WorkflowActionContextDto {
   @IsBoolean()
   @IsOptional()
   @ApiProperty({
@@ -57,7 +58,7 @@ export class ResumeExecutionDto {
 /**
  * DTO for approving or rejecting a review-gate pause
  */
-export class SubmitApprovalDto {
+export class SubmitApprovalDto extends WorkflowActionContextDto {
   @IsString()
   @ApiProperty({
     description: 'Review gate node ID awaiting approval',

@@ -26,6 +26,7 @@ function formatOverlayParameters(
  */
 export default function WorkspaceOverlayHost({
   composerPortalRef,
+  content,
   fallbackFocusRef,
   isOpen,
   onDismiss,
@@ -70,9 +71,11 @@ export default function WorkspaceOverlayHost({
               {registration.presentation.description}
             </DialogDescription>
           </DialogHeader>
-          <div className="p-5 pb-2 text-sm text-muted-foreground">
-            {formatOverlayParameters(overlay)}
-          </div>
+          {content ?? (
+            <div className="p-5 pb-2 text-sm text-muted-foreground">
+              {formatOverlayParameters(overlay)}
+            </div>
+          )}
           <div
             className="border-t border-border p-3"
             data-testid="workspace-overlay-composer-slot"

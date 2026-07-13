@@ -100,6 +100,11 @@ export interface WorkflowInterfaceSchema {
   outputs: Record<string, WorkflowInterfaceField>;
 }
 
+export interface WorkflowTriggerScope {
+  expectedContextVersion: number;
+  threadId: string;
+}
+
 export interface ManualReviewBatchPayload {
   brandId: string;
   items: Array<{
@@ -589,12 +594,14 @@ export class AgentApiService extends AgentBaseApiService {
     workflowId: string,
     inputValues?: Record<string, unknown>,
     signal?: AbortSignal,
+    scope?: WorkflowTriggerScope,
   ): Effect.Effect<{ id: string; status: string }, AgentApiError> {
     return this.fetchJsonEffect<{ id: string; status: string }>(
       `${this.config.baseUrl}/workflow-executions`,
       {
         body: JSON.stringify({
           inputValues: inputValues ?? {},
+          ...(scope ?? {}),
           workflow: workflowId,
         }),
         method: 'POST',

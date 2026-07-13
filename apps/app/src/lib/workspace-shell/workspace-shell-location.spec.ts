@@ -80,6 +80,25 @@ describe('workspace shell URL restoration', () => {
     });
   });
 
+  it('restores the workflow picker and canonical organization run URL', () => {
+    expect(
+      restoreWorkspaceShellLocation({
+        normalizedPathname: '/workflows/executions/run-1',
+        pathname: '/acme/~/workflows/executions/run-1',
+        searchParams: new URLSearchParams({
+          overlay: 'workflow-picker',
+          thread: 'thread-1',
+        }),
+      }),
+    ).toMatchObject({
+      baseState: 'canvas',
+      overlay: { key: 'workflow-picker', parameters: {} },
+      routeKey: 'route:/:orgSlug/~/workflows/executions/:id',
+      state: 'overlay',
+      threadId: 'thread-1',
+    });
+  });
+
   it('removes invalid overlay state without changing scope or opaque queries', () => {
     const restored = restoreWorkspaceShellLocation({
       normalizedPathname: '/posts/calendar',

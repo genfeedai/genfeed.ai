@@ -77,6 +77,10 @@ function createOverlayRequest(
         key: 'shell-preview',
         parameters: { reference },
       };
+    case 'workflow-picker':
+      return reference
+        ? null
+        : { key: 'workflow-picker', parameters: Object.freeze({}) };
   }
 }
 

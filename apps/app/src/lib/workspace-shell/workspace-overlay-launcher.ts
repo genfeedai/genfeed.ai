@@ -55,7 +55,7 @@ function encodeOverlayReference(
     return undefined;
   }
 
-  if (overlay.key === 'notifications') {
+  if (overlay.key === 'notifications' || overlay.key === 'workflow-picker') {
     return Object.keys(overlay.parameters).length === 0 ? null : undefined;
   }
 

@@ -2,10 +2,11 @@ import type {
   WorkspaceShellOverlayRegistration,
   WorkspaceShellOverlayRequest,
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
-import type { Ref, RefObject } from 'react';
+import type { ReactNode, Ref, RefObject } from 'react';
 
 export interface WorkspaceOverlayHostProps {
   readonly composerPortalRef?: Ref<HTMLDivElement>;
+  readonly content?: ReactNode;
   readonly fallbackFocusRef: RefObject<HTMLElement | null>;
   readonly isOpen: boolean;
   readonly onDismiss: () => void;
