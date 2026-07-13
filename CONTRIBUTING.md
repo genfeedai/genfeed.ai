@@ -143,7 +143,7 @@ request, list exactly what you ran and any checks left to CI.
 ## Pull-request expectations
 
 - Keep the patch single-purpose and split unrelated work.
-- Link the issue with `Fixes #123` or `Refs #123`.
+- Link the issue with `Closes #123` only when this PR fully resolves it; use `Refs #123` otherwise. A closing keyword takes effect when the PR merges into the default branch.
 - Explain user-visible behavior and repository-boundary effects.
 - Include focused verification commands and results.
 - Call out generated files, migrations, configuration changes, and external
