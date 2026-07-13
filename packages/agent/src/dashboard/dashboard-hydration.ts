@@ -42,6 +42,33 @@ const KPI_CATALOG_BY_KEY = new Map<string, DashboardKpiDefinition>(
   DASHBOARD_KPI_CATALOG.map((definition) => [definition.key, definition]),
 );
 
+/**
+ * Phase-1 persistence coverage gate.
+ *
+ * `hydrateLayout` refills a persisted (snapshot-free) block from whatever
+ * `DashboardHydrationData` the render call site supplies. Today the only
+ * production call site — `WorkspaceOverviewContent`
+ * (apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/overview/content.tsx)
+ * — builds its bundle as `{ analytics }` only; it does not fetch
+ * `timeSeriesData`/`platformComparisonData`/`brandLeaderboard`/
+ * `organizationLeaderboard`/`topPosts` (those live behind the separate
+ * `analytics/trends` page's own hooks). `metric_card`/`kpi_grid` resolve
+ * entirely from `analytics`, so they hydrate correctly. `chart`/`table`/
+ * `top_posts` would resolve to `undefined` from `resolveCollection` forever
+ * and keep their empty placeholder — a block that renders empty for the life
+ * of the layout.
+ *
+ * Until the render call site is wired with those data sources, reject these
+ * block types at persistence time (see `sanitizeBlock`) instead of silently
+ * accepting a document that can never fully hydrate. Remove an entry here
+ * once its data source is wired into `WorkspaceOverviewContent`'s bundle.
+ */
+const UNHYDRATABLE_PERSISTED_BLOCK_TYPES = new Set<AgentUIBlockType>([
+  'chart',
+  'table',
+  'top_posts',
+]);
+
 export interface SanitizeLayoutResult {
   document: PersistedDashboardLayoutDocument;
   issues: DashboardValidationIssue[];
@@ -135,28 +162,43 @@ function sanitizeBlock(
         ),
       };
     case 'chart':
-      if (!isResolvableSourceKey('chart', block.sourceKey)) {
+      if (
+        UNHYDRATABLE_PERSISTED_BLOCK_TYPES.has('chart') ||
+        !isResolvableSourceKey('chart', block.sourceKey)
+      ) {
         issues.push({
           code: 'invalid_props',
-          message: 'chart must reference a known analytics sourceKey',
+          message: UNHYDRATABLE_PERSISTED_BLOCK_TYPES.has('chart')
+            ? 'chart blocks cannot be persisted yet — the workspace overview render call site does not fetch time-series/platform-comparison data, so a saved chart would render empty forever'
+            : 'chart must reference a known analytics sourceKey',
           path: `${path}.sourceKey`,
         });
       }
       return { ...block, data: [] };
     case 'table':
-      if (!isResolvableSourceKey('table', block.sourceKey)) {
+      if (
+        UNHYDRATABLE_PERSISTED_BLOCK_TYPES.has('table') ||
+        !isResolvableSourceKey('table', block.sourceKey)
+      ) {
         issues.push({
           code: 'invalid_props',
-          message: 'table must reference a known analytics sourceKey',
+          message: UNHYDRATABLE_PERSISTED_BLOCK_TYPES.has('table')
+            ? 'table blocks cannot be persisted yet — the workspace overview render call site does not fetch leaderboard/platform-comparison data, so a saved table would render empty forever'
+            : 'table must reference a known analytics sourceKey',
           path: `${path}.sourceKey`,
         });
       }
       return { ...block, rows: [] };
     case 'top_posts':
-      if (!isResolvableSourceKey('top_posts', block.sourceKey)) {
+      if (
+        UNHYDRATABLE_PERSISTED_BLOCK_TYPES.has('top_posts') ||
+        !isResolvableSourceKey('top_posts', block.sourceKey)
+      ) {
         issues.push({
           code: 'invalid_props',
-          message: 'top_posts must reference a known analytics sourceKey',
+          message: UNHYDRATABLE_PERSISTED_BLOCK_TYPES.has('top_posts')
+            ? 'top_posts blocks cannot be persisted yet — the workspace overview render call site does not fetch top-post data, so a saved top_posts block would render empty forever'
+            : 'top_posts must reference a known analytics sourceKey',
           path: `${path}.sourceKey`,
         });
       }

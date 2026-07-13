@@ -7,8 +7,21 @@ import {
 import type { AgentUIBlock } from '@genfeedai/interfaces';
 import { describe, expect, it } from 'vitest';
 
-const validLayout: AgentUIBlock[] = [
+// metric_card/kpi_grid + presentational blocks are fully hydratable from the
+// `{ analytics }`-only bundle WorkspaceOverviewContent supplies today, so
+// they're the only types `sanitizeLayoutForPersistence` currently accepts.
+const persistableLayout: AgentUIBlock[] = [
   { id: 'posts', sourceKey: 'totalPosts', type: 'metric_card', value: 42 },
+  { id: 'header', text: 'Overview', type: 'section_header' },
+];
+
+// chart/table/top_posts are rejected at persistence time (phase-1 gate in
+// dashboard-hydration.ts) because no render call site fetches their backing
+// collections yet — see `UNHYDRATABLE_PERSISTED_BLOCK_TYPES`. They're still
+// exercised here directly against `hydrateLayout`/`parseLayoutInput` (which
+// don't go through the persistence gate) to prove hydration itself still
+// works once a full bundle is available.
+const unhydratablePersistedBlocks: AgentUIBlock[] = [
   {
     chartType: 'line',
     data: [{ date: 'd1', value: 5 }],
@@ -29,7 +42,12 @@ const validLayout: AgentUIBlock[] = [
     sourceKey: 'topPosts',
     type: 'top_posts',
   },
-  { id: 'header', text: 'Overview', type: 'section_header' },
+];
+
+const validLayout: AgentUIBlock[] = [
+  persistableLayout[0],
+  ...unhydratablePersistedBlocks,
+  persistableLayout[1],
 ];
 
 const bundle: DashboardHydrationData = {
@@ -48,16 +66,14 @@ describe('dashboard hydration seam', () => {
   });
 
   it('strips embedded snapshots but keeps sourceKey + presentational content', () => {
-    const { document, issues } = sanitizeLayoutForPersistence(validLayout);
+    const { document, issues } =
+      sanitizeLayoutForPersistence(persistableLayout);
 
     expect(issues).toEqual([]);
     expect(document.version).toBe('genfeed.dashboard.openui.v1');
 
-    const [metric, chart, table, top, header] = document.blocks;
+    const [metric, header] = document.blocks;
     expect(metric).toMatchObject({ sourceKey: 'totalPosts', value: '' });
-    expect(chart).toMatchObject({ data: [], sourceKey: 'timeSeries' });
-    expect(table).toMatchObject({ rows: [], sourceKey: 'brandLeaderboard' });
-    expect(top).toMatchObject({ posts: [], sourceKey: 'topPosts' });
     // presentational block persisted verbatim
     expect(header).toMatchObject({ text: 'Overview', type: 'section_header' });
   });
@@ -72,6 +88,23 @@ describe('dashboard hydration seam', () => {
       code: 'invalid_props',
       path: 'blocks[0].sourceKey',
     });
+  });
+
+  it('rejects chart/table/top_posts persistence even with a resolvable sourceKey (phase-1 hydration gate)', () => {
+    const { issues } = sanitizeLayoutForPersistence(
+      unhydratablePersistedBlocks,
+    );
+
+    expect(issues).toHaveLength(3);
+    expect(issues.map((issue) => issue.path)).toEqual([
+      'blocks[0].sourceKey',
+      'blocks[1].sourceKey',
+      'blocks[2].sourceKey',
+    ]);
+    for (const issue of issues) {
+      expect(issue.code).toBe('invalid_props');
+      expect(issue.message).toContain('cannot be persisted yet');
+    }
   });
 
   it('surfaces parser issues for a structurally invalid document', () => {
