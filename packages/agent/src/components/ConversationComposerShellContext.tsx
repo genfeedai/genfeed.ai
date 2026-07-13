@@ -21,6 +21,7 @@ export interface ConversationComposerShellContextValue {
     | ConversationComposerDispatchResult
     | Promise<ConversationComposerDispatchResult>;
   draftScopeKey: string | null;
+  isConsequentiallyBlocked?: boolean;
   portalTarget: HTMLElement | null;
   references?: readonly ConversationComposerContextReference[];
   scopeControls?: ReactNode;
@@ -40,6 +41,7 @@ export function ConversationComposerShellProvider({
   contextLabel,
   dispatchAction,
   draftScopeKey,
+  isConsequentiallyBlocked,
   portalTarget,
   references,
   scopeControls,
@@ -50,6 +52,7 @@ export function ConversationComposerShellProvider({
       contextLabel,
       dispatchAction,
       draftScopeKey,
+      isConsequentiallyBlocked,
       portalTarget,
       references,
       scopeControls,
@@ -59,6 +62,7 @@ export function ConversationComposerShellProvider({
       contextLabel,
       dispatchAction,
       draftScopeKey,
+      isConsequentiallyBlocked,
       portalTarget,
       references,
       scopeControls,

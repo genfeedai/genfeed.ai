@@ -1,6 +1,6 @@
 export const TOOL_LABELS: Record<string, string> = {
   ai_action: 'AI Action',
-  batch_approve_reject: 'Batch Approve/Reject',
+  batch_approve_reject: 'Batch Review Action',
   check_onboarding_status: 'Check Onboarding',
   complete_campaign: 'Complete Campaign',
   complete_onboarding: 'Complete Onboarding',
