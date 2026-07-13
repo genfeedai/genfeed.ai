@@ -244,6 +244,38 @@ describe('StripeSubscriptionWebhookHandler', () => {
       ).not.toHaveBeenCalled();
     });
 
+    it('keeps deletion successful when lifecycle recording fails', async () => {
+      subscriptionsService.findOne.mockResolvedValue(dbSubscription);
+      subscriptionsService.patch.mockResolvedValue(dbSubscription);
+      usersService.findOne.mockResolvedValue({ id: 'user_1' });
+      lifecycleEmailService.recordSubscriptionLapsed.mockRejectedValueOnce(
+        new Error('lifecycle unavailable'),
+      );
+
+      await handler.handleSubscriptionDeleted(stripeSubscription(), 'test');
+
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'lifecycle email subscription-lapsed recording skipped',
+        ),
+        {
+          error: 'lifecycle unavailable',
+          subscriptionId: 'sub_stripe_1',
+        },
+      );
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('subscription deleted successfully'),
+        {
+          organizationId: 'org_1',
+          stripeSubscriptionId: 'sub_stripe_1',
+        },
+      );
+      expect(loggerService.error).not.toHaveBeenCalledWith(
+        expect.stringContaining('failed to handle subscription deleted'),
+        expect.anything(),
+      );
+    });
+
     it('warns when the subscription is unknown', async () => {
       subscriptionsService.findOne.mockResolvedValue(null);
 
