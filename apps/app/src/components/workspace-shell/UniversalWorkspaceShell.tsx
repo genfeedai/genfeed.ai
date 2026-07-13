@@ -117,7 +117,7 @@ function UniversalWorkspaceShellContent({
     () => normalizeProtectedPathname(rawPathname),
     [rawPathname],
   );
-  const location = useMemo(
+  const shellLocation = useMemo(
     () =>
       requireWorkspaceShellLocation(
         restoreWorkspaceShellLocation({
@@ -128,7 +128,16 @@ function UniversalWorkspaceShellContent({
     [normalizedPathname, searchParamsString],
   );
 
-  const { baseState, state, threadId } = location;
+  const {
+    baseState,
+    canonicalSearchParams,
+    isCanonical,
+    overlayReference,
+    restorationFailure,
+    state,
+    threadId,
+  } = shellLocation;
+  const canonicalSearchParamsString = canonicalSearchParams.toString();
   const isUnthreadedConversation =
     baseState === 'conversation' &&
     (normalizedPathname === APP_ROUTES.AGENT.ROOT ||
@@ -159,23 +168,30 @@ function UniversalWorkspaceShellContent({
   }, [isUnthreadedConversation]);
 
   useEffect(() => {
-    if (location.isCanonical) {
+    if (isCanonical) {
       return;
     }
 
     const canonicalHref = appendSearchParamsToHref(
       rawPathname,
-      location.canonicalSearchParams,
+      new URLSearchParams(canonicalSearchParamsString),
     );
-    if (location.restorationFailure) {
-      captureWorkspaceShellRestorationFailure(location.restorationFailure);
+    if (restorationFailure) {
+      captureWorkspaceShellRestorationFailure(restorationFailure);
     }
     replace(
-      location.restorationFailure === 'invalid_thread'
+      restorationFailure === 'invalid_thread'
         ? orgHref(APP_ROUTES.AGENT.ROOT)
         : canonicalHref,
     );
-  }, [location, orgHref, rawPathname, replace]);
+  }, [
+    canonicalSearchParamsString,
+    isCanonical,
+    orgHref,
+    rawPathname,
+    replace,
+    restorationFailure,
+  ]);
 
   useEffect(() => {
     const hasScopeChanged = previousRouteScopeRef.current !== routeScope;
@@ -192,7 +208,7 @@ function UniversalWorkspaceShellContent({
       retainedThreadIdRef.current = null;
       return;
     }
-    if (!hasScopeChanged && effectiveThreadId && location.isCanonical) {
+    if (!hasScopeChanged && effectiveThreadId && isCanonical) {
       replace(
         buildWorkspaceShellHref(currentHref, {
           threadId: effectiveThreadId,
@@ -203,7 +219,7 @@ function UniversalWorkspaceShellContent({
     baseState,
     currentHref,
     effectiveThreadId,
-    location.isCanonical,
+    isCanonical,
     replace,
     routeScope,
     threadId,
@@ -563,8 +579,8 @@ function UniversalWorkspaceShellContent({
             </DialogDescription>
           </DialogHeader>
           <div className="p-5 text-sm text-muted-foreground">
-            {location.overlayReference
-              ? `${location.overlayReference.kind} reference selected`
+            {overlayReference
+              ? `${overlayReference.kind} reference selected`
               : 'No resource reference selected'}
           </div>
         </DialogContent>
