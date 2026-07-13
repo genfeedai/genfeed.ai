@@ -40,6 +40,38 @@ function getApproveLabel(item: ReviewPanelItem): string {
   return 'Approve and schedule';
 }
 
+function getResolvedDecisionStatus(item: ReviewPanelItem): {
+  className: string;
+  label: string;
+} {
+  if (isApproved(item)) {
+    return {
+      className: 'border border-success/25 bg-success/10 text-success',
+      label: 'This item has already been approved.',
+    };
+  }
+
+  if (isChangesRequested(item)) {
+    return {
+      className: 'border border-warning/25 bg-warning/10 text-warning',
+      label: 'Changes were requested for this item.',
+    };
+  }
+
+  if (item.reviewDecision === 'rejected') {
+    return {
+      className:
+        'border border-destructive/25 bg-destructive/10 text-destructive',
+      label: 'This item was rejected.',
+    };
+  }
+
+  return {
+    className: 'text-foreground/55',
+    label: 'This item is not currently actionable.',
+  };
+}
+
 export default function ReviewDecisionPanel({
   feedback,
   isActioning,
@@ -68,7 +100,7 @@ export default function ReviewDecisionPanel({
             value={feedback}
             onChange={(event) => setFeedback(event.target.value)}
             placeholder="Add revision guidance or rejection context"
-            className="min-h-28 w-full rounded-xl border border-white/10 bg-muted/40 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-white/20"
+            className="min-h-28 w-full rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-border-strong"
           />
         </span>
 
@@ -79,7 +111,7 @@ export default function ReviewDecisionPanel({
               withWrapper={false}
               isDisabled={isActioning}
               onClick={() => onApprove(item.id)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500/15 px-4 py-3 text-sm font-medium text-emerald-400 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             >
               <HiCheck className="size-4" />
               {getApproveLabel(item)}
@@ -89,7 +121,7 @@ export default function ReviewDecisionPanel({
               withWrapper={false}
               isDisabled={isActioning}
               onClick={() => onRequestChanges(item.id, feedback)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500/15 px-4 py-3 text-sm font-medium text-amber-300 transition-colors hover:bg-amber-500/25 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-warning/25 bg-warning/10 px-4 py-3 text-sm font-medium text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
             >
               <HiSparkles className="size-4" />
               Request changes
@@ -99,7 +131,7 @@ export default function ReviewDecisionPanel({
               withWrapper={false}
               isDisabled={isActioning}
               onClick={() => onReject(item.id, feedback)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-500/15 px-4 py-3 text-sm font-medium text-rose-400 transition-colors hover:bg-rose-500/25 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
             >
               <HiXMark className="size-4" />
               Reject and remove
@@ -107,16 +139,10 @@ export default function ReviewDecisionPanel({
           </>
         ) : (
           <InsetSurface
-            className="px-4 py-3 text-sm text-foreground/55"
+            className={`px-4 py-3 text-sm ${getResolvedDecisionStatus(item).className}`}
             density="compact"
           >
-            {isApproved(item)
-              ? 'This item has already been approved.'
-              : isChangesRequested(item)
-                ? 'Changes were requested for this item.'
-                : item.reviewDecision === 'rejected'
-                  ? 'This item was rejected.'
-                  : 'This item is not currently actionable.'}
+            {getResolvedDecisionStatus(item).label}
           </InsetSurface>
         )}
 
@@ -125,7 +151,7 @@ export default function ReviewDecisionPanel({
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={() => onToggleSelect(item.id)}
-            className="rounded-xl border border-white/10 bg-muted/30 px-4 py-3 text-sm font-medium text-foreground/75 transition-colors hover:border-white/20 hover:bg-muted/60"
+            className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-foreground/75 transition-colors hover:border-border-strong hover:bg-muted/60"
           >
             {isSelected
               ? 'Remove from bulk selection'
