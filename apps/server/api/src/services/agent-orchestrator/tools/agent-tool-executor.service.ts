@@ -3372,7 +3372,7 @@ export class AgentToolExecutorService {
         };
       }
 
-      await this.assertPublishingScope(
+      this.assertResourceScope(
         ctx,
         this.readOptionalString(ingredient.brand),
         'selected content',
@@ -4148,6 +4148,28 @@ export class AgentToolExecutorService {
     );
   }
 
+  private assertResourceScope(
+    ctx: ToolExecutionContext,
+    resourceBrandId: string | undefined,
+    resourceLabel: string,
+  ): void {
+    if (!ctx.threadId) {
+      return;
+    }
+
+    if (!ctx.validatedScope || !this.agentScopeContextService) {
+      throw new Error(
+        'Validated agent scope is required for scoped resource access.',
+      );
+    }
+
+    this.agentScopeContextService.assertResourceBrand(
+      ctx.validatedScope,
+      resourceBrandId,
+      resourceLabel,
+    );
+  }
+
   private async createPost(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -4205,6 +4227,12 @@ export class AgentToolExecutorService {
           success: false,
         };
       }
+
+      await this.assertPublishingScope(
+        ctx,
+        this.readOptionalString(ingredient.brand),
+        'selected content',
+      );
 
       if (platforms.length === 0) {
         return {
@@ -4265,11 +4293,6 @@ export class AgentToolExecutorService {
         postIds.push(String((post as { id: string }).id));
 
         if (platform === CredentialPlatform.YOUTUBE) {
-          await this.assertPublishingScope(
-            ctx,
-            this.readOptionalString(ingredient.brand),
-            'YouTube post',
-          );
           await this.postsService.handleYoutubePost(post as never);
         }
       }

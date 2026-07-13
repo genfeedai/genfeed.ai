@@ -10,7 +10,10 @@ import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
-import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import {
+  AgentToolExecutorService,
+  type ToolExecutionContext,
+} from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PostStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -18,6 +21,23 @@ import { Effect } from 'effect';
 import { of } from 'rxjs';
 
 describe('AgentToolExecutorService', () => {
+  const scopedContext = (brandId: string): ToolExecutionContext => ({
+    brandId,
+    organizationId: '67a123456789012345678901',
+    threadId: '67a123456789012345678999',
+    userId: '67a123456789012345678902',
+    validatedScope: {
+      brandId,
+      contextVersion: 3,
+      isLegacyFallback: false,
+      isVersionExplicit: true,
+      organizationId: '67a123456789012345678901',
+      source: 'explicit',
+      threadId: '67a123456789012345678999',
+      userId: '67a123456789012345678902',
+    },
+  });
+
   const createService = () => {
     const recurringWorkflowId = 'test-object-id';
     const loggerService = {
@@ -1107,10 +1127,9 @@ describe('AgentToolExecutorService', () => {
         platforms: ['linkedin', 'youtube'],
       },
       {
-        organizationId: '67a123456789012345678901',
+        ...scopedContext('67a123456789012345678941'),
         runId: '67a123456789012345678946',
         strategyId: '67a123456789012345678947',
-        userId: '67a123456789012345678902',
       },
     );
 
@@ -1123,6 +1142,32 @@ describe('AgentToolExecutorService', () => {
       createdPlatforms: ['linkedin', 'youtube'],
       totalCreated: 2,
     });
+  });
+
+  it('rejects stale publishing scope before creating post records', async () => {
+    const { agentScopeContextService, postsService, service } = createService();
+    agentScopeContextService.assertConsequentialBoundary.mockRejectedValue(
+      new Error('Agent context is stale.'),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.CREATE_POST,
+      {
+        caption: 'Must not publish',
+        confirmed: true,
+        contentId: '67a123456789012345678940',
+        platforms: ['linkedin'],
+      },
+      scopedContext('67a123456789012345678941'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Agent context is stale.',
+        success: false,
+      }),
+    );
+    expect(postsService.create).not.toHaveBeenCalled();
   });
 
   it('returns a post analytics snapshot for the latest related published post', async () => {
