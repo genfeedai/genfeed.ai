@@ -18,7 +18,8 @@ const EXPLICIT_RESULT_ID_KEYS = {
   { many: string; one: string }
 >;
 
-export interface AgentArtifactCompletionMetadata {
+export interface AgentArtifactCompletionMetadata
+  extends Record<string, unknown> {
   artifactReferences?: AgentArtifactReference[];
   artifactVersionPinIds?: string[];
 }
