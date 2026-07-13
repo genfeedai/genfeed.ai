@@ -667,8 +667,8 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
   Object.freeze({
     accessPolicy: 'organization-member',
     adapter: Object.freeze({ key: 'notifications', status: 'placeholder' }),
-    allowedReferenceKinds: Object.freeze([]),
-    allowedShellModes: Object.freeze(['overlay']),
+    allowedReferenceKinds: Object.freeze([] as const),
+    allowedShellModes: Object.freeze(['overlay'] as const),
     availability: 'conversation-shell',
     canonicalUrl: null,
     deployments: ALL_DEPLOYMENTS,
@@ -683,8 +683,8 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
   Object.freeze({
     accessPolicy: 'organization-member',
     adapter: Object.freeze({ key: 'shell-preview', status: 'placeholder' }),
-    allowedReferenceKinds: Object.freeze(['asset', 'post']),
-    allowedShellModes: Object.freeze(['overlay']),
+    allowedReferenceKinds: Object.freeze(['asset', 'post'] as const),
+    allowedShellModes: Object.freeze(['overlay'] as const),
     availability: 'conversation-shell',
     canonicalUrl: null,
     deployments: ALL_DEPLOYMENTS,
@@ -699,10 +699,10 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
   Object.freeze({
     accessPolicy: 'organization-member',
     adapter: Object.freeze({ key: 'terminal-dock', status: 'dedicated-route' }),
-    allowedShellModes: Object.freeze(['dedicated']),
+    allowedShellModes: Object.freeze(['dedicated'] as const),
     availability: 'legacy-shell',
     canonicalUrl: null,
-    deployments: Object.freeze(['self-hosted-web', 'desktop']),
+    deployments: Object.freeze(['self-hosted-web', 'desktop'] as const),
     key: 'terminal-dock',
     kind: 'chrome',
     launchTarget: 'dedicated-route',
@@ -851,11 +851,10 @@ export function getWorkspaceShellOverlayRegistration(
   key: string,
 ): WorkspaceShellOverlayRegistration | null {
   const registration = WORKSPACE_SHELL_AUXILIARY_REGISTRY.find(
-    (candidate): candidate is WorkspaceShellOverlayRegistration =>
-      candidate.kind === 'overlay' && candidate.key === key,
+    (candidate) => candidate.kind === 'overlay' && candidate.key === key,
   );
 
-  return registration ?? null;
+  return registration?.kind === 'overlay' ? registration : null;
 }
 
 function interpolateCanonicalPattern(
