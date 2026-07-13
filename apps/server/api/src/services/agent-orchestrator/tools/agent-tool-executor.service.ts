@@ -6933,12 +6933,26 @@ export class AgentToolExecutorService {
     }
 
     if (action === 'approve') {
-      await this.batchGenerationService.approveItems(
-        batchId,
-        itemIds,
-        ctx.organizationId,
-        ctx.userId,
-      );
+      return {
+        creditsUsed: 0,
+        error:
+          'Model and conversation actions cannot grant publish approval. Use the typed review control.',
+        nextActions: [
+          {
+            id: `review-queue-approval-${batchId}`,
+            primaryCta: {
+              href: `/posts/review?batch=${batchId}&filter=ready`,
+              label: 'Review exact versions',
+            },
+            status: 'pending',
+            summaryText:
+              'Approval requires the authenticated version-bound review control.',
+            title: 'Publish approval required',
+            type: 'completion_summary_card',
+          },
+        ],
+        success: false,
+      };
     } else {
       await this.batchGenerationService.rejectItems(
         batchId,
