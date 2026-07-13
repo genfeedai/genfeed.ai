@@ -1,5 +1,6 @@
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { AgentArtifactReferenceService } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,6 +19,10 @@ describe('AgentRunsService', () => {
     log: vi.fn(),
     warn: vi.fn(),
   };
+  const artifactReferenceService = {
+    resolveReference: vi.fn(),
+    resolveVersionPin: vi.fn(),
+  };
 
   let service: AgentRunsService;
 
@@ -31,10 +36,23 @@ describe('AgentRunsService', () => {
     agentRun.findMany.mockResolvedValue([]);
     agentRun.update.mockResolvedValue({ id: 'run-1' });
     agentRun.updateMany.mockResolvedValue({ count: 1 });
+    artifactReferenceService.resolveReference.mockImplementation((reference) =>
+      Promise.resolve({ reference }),
+    );
+    artifactReferenceService.resolveVersionPin.mockResolvedValue({
+      reference: {
+        brandId: 'brand-1',
+        kind: 'post',
+        organizationId: 'org-1',
+        recordId: 'post-from-pin',
+        serializer: 'post',
+      },
+    });
 
     service = new AgentRunsService(
       { agentRun } as unknown as PrismaService,
       logger as unknown as LoggerService,
+      artifactReferenceService as unknown as AgentArtifactReferenceService,
     );
   });
 
@@ -153,6 +171,183 @@ describe('AgentRunsService', () => {
         trigger: 'manual' as never,
       } as never),
     ).rejects.toThrow('User context is required');
+  });
+
+  it('persists authorized message-equivalent references and pins on create', async () => {
+    await service.create({
+      brand: 'brand-1',
+      label: 'Artifact run',
+      metadata: {
+        artifactReferences: [
+          {
+            kind: 'post',
+            organizationId: 'foreign-org',
+            recordId: 'post-1',
+            serializer: 'asset',
+          },
+        ],
+        artifactVersionPinIds: ['pin-1'],
+      },
+      organization: 'org-1',
+      trigger: 'manual' as never,
+      user: 'user-1',
+    });
+
+    expect(artifactReferenceService.resolveReference).toHaveBeenCalledWith(
+      {
+        brandId: 'brand-1',
+        kind: 'post',
+        organizationId: 'org-1',
+        recordId: 'post-1',
+        serializer: 'post',
+      },
+      { brandId: 'brand-1', organizationId: 'org-1' },
+    );
+    expect(agentRun.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        artifactReferences: [
+          {
+            brandId: 'brand-1',
+            kind: 'post',
+            organizationId: 'org-1',
+            recordId: 'post-1',
+            serializer: 'post',
+          },
+          {
+            brandId: 'brand-1',
+            kind: 'post',
+            organizationId: 'org-1',
+            recordId: 'post-from-pin',
+            serializer: 'post',
+          },
+        ],
+        artifactVersionPinIds: ['pin-1'],
+      }),
+    });
+  });
+
+  it('authorizes explicit references from patch metadata in persisted run scope', async () => {
+    agentRun.findFirst.mockResolvedValue({
+      artifactReferences: [
+        {
+          brandId: 'brand-1',
+          kind: 'post',
+          organizationId: 'org-1',
+          recordId: 'post-existing',
+          serializer: 'post',
+        },
+      ],
+      artifactVersionPinIds: ['pin-1'],
+      brandId: 'brand-1',
+      id: 'run-1',
+      organizationId: 'org-1',
+    });
+
+    await service.patch('run-1', {
+      metadata: {
+        artifactReferences: [
+          {
+            kind: 'ingredient',
+            organizationId: 'foreign-org',
+            recordId: 'ingredient-1',
+            serializer: 'post',
+          },
+        ],
+      },
+    });
+
+    expect(agentRun.findFirst).toHaveBeenCalledWith({
+      select: {
+        artifactReferences: true,
+        artifactVersionPinIds: true,
+        brandId: true,
+        id: true,
+        organizationId: true,
+      },
+      where: { id: 'run-1', isDeleted: false },
+    });
+    expect(agentRun.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        artifactReferences: expect.arrayContaining([
+          {
+            brandId: 'brand-1',
+            kind: 'post',
+            organizationId: 'org-1',
+            recordId: 'post-existing',
+            serializer: 'post',
+          },
+          {
+            brandId: 'brand-1',
+            kind: 'ingredient',
+            organizationId: 'org-1',
+            recordId: 'ingredient-1',
+            serializer: 'ingredient',
+          },
+          {
+            brandId: 'brand-1',
+            kind: 'post',
+            organizationId: 'org-1',
+            recordId: 'post-from-pin',
+            serializer: 'post',
+          },
+        ]),
+        artifactVersionPinIds: ['pin-1'],
+      }),
+      where: { id: 'run-1' },
+    });
+  });
+
+  it('merges newly authorized references with references already on the run', async () => {
+    agentRun.findFirst.mockResolvedValue({
+      artifactReferences: [
+        {
+          brandId: 'brand-1',
+          kind: 'post',
+          organizationId: 'org-1',
+          recordId: 'post-1',
+          serializer: 'post',
+        },
+      ],
+      artifactVersionPinIds: ['pin-1'],
+      brandId: 'brand-1',
+      id: 'run-1',
+      metadata: { existing: true },
+      organizationId: 'org-1',
+    });
+
+    await service.mergeMetadata('run-1', 'org-1', {
+      artifactReferences: [
+        {
+          kind: 'ingredient',
+          organizationId: 'org-1',
+          recordId: 'ingredient-1',
+          serializer: 'ingredient',
+        },
+      ],
+      source: 'completion',
+    });
+
+    expect(agentRun.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        artifactReferences: expect.arrayContaining([
+          expect.objectContaining({ kind: 'post', recordId: 'post-1' }),
+          expect.objectContaining({
+            kind: 'ingredient',
+            recordId: 'ingredient-1',
+          }),
+          expect.objectContaining({
+            kind: 'post',
+            recordId: 'post-from-pin',
+          }),
+        ]),
+        artifactVersionPinIds: ['pin-1'],
+        metadata: expect.objectContaining({
+          existing: true,
+          source: 'completion',
+        }),
+      }),
+      where: { id: 'run-1' },
+    });
   });
 
   it('records tool calls on the durable JSON column with an ISO timestamp', async () => {

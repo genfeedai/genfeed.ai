@@ -8,6 +8,12 @@ import { ThreadRunsController } from '@api/collections/agent-runs/controllers/th
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  AgentArtifactReferenceService,
+  SERVER_TOKENS,
+} from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
@@ -17,6 +23,11 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentThreadingModule),
     forwardRef(() => QueuesModule),
   ],
-  providers: [AgentRunsService],
+  providers: [
+    AgentArtifactReferenceService,
+    AgentRunsService,
+    { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
+    { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
+  ],
 })
 export class AgentRunsModule {}

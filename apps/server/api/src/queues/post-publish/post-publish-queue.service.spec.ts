@@ -70,6 +70,25 @@ describe('PostPublishQueueService', () => {
     );
   });
 
+  it('carries an immutable version-pin identifier to the worker', async () => {
+    await service.enqueue({
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+      versionPinId: 'pin-1',
+    });
+
+    expect(queue.add).toHaveBeenCalledWith(
+      POST_PUBLISH_JOB_NAME,
+      expect.objectContaining({
+        organizationId: 'org-1',
+        postId: 'post-1',
+        versionPinId: 'pin-1',
+      }),
+      expect.objectContaining({ jobId: 'post-1' }),
+    );
+  });
+
   it('does not enqueue a duplicate active job', async () => {
     queue.getJob.mockResolvedValue(makeJob('active'));
 

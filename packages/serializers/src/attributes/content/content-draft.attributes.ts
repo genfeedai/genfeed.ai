@@ -14,4 +14,5 @@ export const contentDraftAttributes = createEntityAttributes([
   'confidence',
   'generatedBy',
   'approvedBy',
+  'approvedVersionPinId',
 ]);

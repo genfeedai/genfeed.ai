@@ -13,6 +13,7 @@ import type { CreateNewsletterDto } from '@api/collections/newsletters/dto/creat
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AgentArtifactReferenceService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -33,6 +34,7 @@ const NEWSLETTER_WRITE_FIELDS = new Set([
   'angle',
   'approvedAt',
   'approvedByUserId',
+  'approvedVersionPinId',
   'brandId',
   'content',
   'contextNewsletterIds',
@@ -69,10 +71,15 @@ function expectPrismaValidKeys(data: Record<string, unknown>): void {
 describe('NewslettersService (Prisma schema reconciliation)', () => {
   let service: NewslettersService;
   let delegate: MockDelegate;
+  let agentArtifactReferenceService: {
+    assertVersionPinCurrent: ReturnType<typeof vi.fn>;
+    createOrReuseVersionPin: ReturnType<typeof vi.fn>;
+  };
 
   const existingNewsletter = {
     approvedAt: null,
     approvedByUserId: null,
+    approvedVersionPinId: null,
     brandId: ctx.brandId,
     content: 'Body',
     id: 'newsletter-1',
@@ -91,6 +98,10 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue(existingNewsletter),
     };
+    agentArtifactReferenceService = {
+      assertVersionPinCurrent: vi.fn(),
+      createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -102,6 +113,10 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
         },
         { provide: OpenRouterService, useValue: { chatCompletion: vi.fn() } },
         { provide: BrandsService, useValue: { findOne: vi.fn() } },
+        {
+          provide: AgentArtifactReferenceService,
+          useValue: agentArtifactReferenceService,
+        },
       ],
     }).compile();
 
@@ -139,7 +154,20 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
     expectPrismaValidKeys(data);
     expect(data.status).toBe('approved');
     expect(data.approvedByUserId).toBe(ctx.userId);
+    expect(data.approvedVersionPinId).toBe('pin-1');
     expect(data.approvedByUser).toBeUndefined();
+    expect(
+      agentArtifactReferenceService.createOrReuseVersionPin,
+    ).toHaveBeenCalledWith({
+      createdByUserId: ctx.userId,
+      reference: {
+        brandId: ctx.brandId,
+        kind: 'newsletter',
+        organizationId: ctx.organizationId,
+        recordId: 'newsletter-1',
+        serializer: 'newsletter',
+      },
+    });
   });
 
   it('publishScoped patches publishedByUserId/publishedAt with a valid status', async () => {
@@ -148,9 +176,44 @@ describe('NewslettersService (Prisma schema reconciliation)', () => {
     const { data } = delegate.update.mock.calls[0][0];
     expectPrismaValidKeys(data);
     expect(data.status).toBe('published');
+    expect(data.approvedVersionPinId).toBe('pin-1');
     expect(data.publishedByUserId).toBe(ctx.userId);
     expect(data.publishedAt).toBeInstanceOf(Date);
     expect(data.publishedByUser).toBeUndefined();
+  });
+
+  it('publishScoped verifies and reuses the approved newsletter pin', async () => {
+    delegate.findFirst.mockResolvedValue({
+      ...existingNewsletter,
+      approvedVersionPinId: 'approved-pin',
+    });
+    agentArtifactReferenceService.assertVersionPinCurrent.mockResolvedValue({
+      reference: {
+        brandId: ctx.brandId,
+        kind: 'newsletter',
+        organizationId: ctx.organizationId,
+        recordId: 'newsletter-1',
+        serializer: 'newsletter',
+      },
+    });
+
+    await service.publishScoped('newsletter-1', ctx);
+
+    expect(
+      agentArtifactReferenceService.assertVersionPinCurrent,
+    ).toHaveBeenCalledWith({
+      pinId: 'approved-pin',
+      readContext: {
+        brandId: ctx.brandId,
+        organizationId: ctx.organizationId,
+      },
+    });
+    expect(
+      agentArtifactReferenceService.createOrReuseVersionPin,
+    ).not.toHaveBeenCalled();
+    expect(delegate.update.mock.calls[0][0].data.approvedVersionPinId).toBe(
+      'approved-pin',
+    );
   });
 
   it('updateScoped writes the archived status', async () => {

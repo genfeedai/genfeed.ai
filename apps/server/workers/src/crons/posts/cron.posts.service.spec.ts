@@ -8,6 +8,7 @@ import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import {
+  AgentArtifactReferenceService,
   AgentScopeContextService,
   PostPublishQueueService,
 } from '@genfeedai/server';
@@ -31,6 +32,9 @@ describe('CronPostsService', () => {
   let agentScopeContextService: {
     assertConsequentialBoundary: ReturnType<typeof vi.fn>;
     assertResourceBrand: ReturnType<typeof vi.fn>;
+  };
+  let agentArtifactReferenceService: {
+    assertVersionPinCurrent: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -57,6 +61,17 @@ describe('CronPostsService', () => {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
       assertResourceBrand: vi.fn(),
     };
+    agentArtifactReferenceService = {
+      assertVersionPinCurrent: vi.fn().mockResolvedValue({
+        reference: {
+          brandId: 'brand-1',
+          kind: 'post',
+          organizationId: 'org-1',
+          recordId: 'post-1',
+          serializer: 'post',
+        },
+      }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -72,6 +87,10 @@ describe('CronPostsService', () => {
         {
           provide: ActivitiesService,
           useValue: activitiesService,
+        },
+        {
+          provide: AgentArtifactReferenceService,
+          useValue: agentArtifactReferenceService,
         },
         {
           provide: AgentScopeContextService,
@@ -185,6 +204,151 @@ describe('CronPostsService', () => {
       source: 'scheduled_sweep',
     });
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+  });
+
+  it('queues the durable review version pin with a scheduled post', async () => {
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [
+        {
+          brand: 'brand-1',
+          id: 'post-1',
+          organization: 'org-1',
+          reviewVersionPinId: 'pin-1',
+        },
+      ],
+      total: 1,
+    } as never);
+
+    await service.publishScheduledPosts();
+
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+      versionPinId: 'pin-1',
+    });
+  });
+
+  it('validates a queued pin against the same canonical Post before publishing', async () => {
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      reviewVersionPinId: 'pin-1',
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue(null);
+
+    await service.processQueuedPost({
+      enqueuedAt: '2026-07-07T10:00:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+      versionPinId: 'pin-1',
+    });
+
+    expect(
+      agentArtifactReferenceService.assertVersionPinCurrent,
+    ).toHaveBeenCalledWith({
+      pinId: 'pin-1',
+      readContext: {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      },
+    });
+    expect(
+      agentArtifactReferenceService.assertVersionPinCurrent.mock
+        .invocationCallOrder[0],
+    ).toBeLessThan(postsService.patch.mock.invocationCallOrder[0] ?? 0);
+  });
+
+  it('fails closed on a stale version pin before PROCESSING or provider side effects', async () => {
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      reviewVersionPinId: 'pin-1',
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    agentArtifactReferenceService.assertVersionPinCurrent.mockRejectedValue(
+      new Error('Canonical Post digest no longer matches pin.'),
+    );
+
+    const result = await service.processQueuedPost({
+      enqueuedAt: '2026-07-07T10:00:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+      versionPinId: 'pin-1',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Canonical Post digest no longer matches pin.',
+        success: false,
+      }),
+    );
+    expect(postsService.patch).not.toHaveBeenCalledWith(
+      'post-1',
+      expect.objectContaining({ status: PostStatus.PROCESSING }),
+    );
+    expect(credentialsService.findOne).not.toHaveBeenCalled();
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+  });
+
+  it('rejects a queued pin when the durable Post pin was removed', async () => {
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+
+    const result = await service.processQueuedPost({
+      enqueuedAt: '2026-07-07T10:00:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+      versionPinId: 'pin-1',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: expect.stringContaining('has no durable review pin'),
+        success: false,
+      }),
+    );
+    expect(
+      agentArtifactReferenceService.assertVersionPinCurrent,
+    ).not.toHaveBeenCalled();
+    expect(credentialsService.findOne).not.toHaveBeenCalled();
   });
 
   it('marks stale durable agent scope as a terminal publish failure', async () => {

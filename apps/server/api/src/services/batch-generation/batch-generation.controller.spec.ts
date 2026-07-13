@@ -181,6 +181,27 @@ describe('BatchGenerationController', () => {
   });
 
   describe('itemAction', () => {
+    it('passes the canonical user id when approving items', async () => {
+      service.approveItems.mockResolvedValue({ id: 'batch-1' } as never);
+
+      await controller.itemAction(
+        mockReq,
+        'batch-1',
+        {
+          action: 'approve',
+          itemIds: ['item-1'],
+        } as never,
+        {} as never,
+      );
+
+      expect(service.approveItems).toHaveBeenCalledWith(
+        'batch-1',
+        ['item-1'],
+        'test-object-id',
+        'test-object-id',
+      );
+    });
+
     it('routes request_changes actions to the requestChanges service method', async () => {
       service.requestChanges.mockResolvedValue({ id: 'batch-1' } as never);
 

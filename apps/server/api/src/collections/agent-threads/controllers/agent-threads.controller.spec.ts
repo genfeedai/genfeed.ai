@@ -28,6 +28,7 @@ describe('AgentThreadsController', () => {
     findOne: ReturnType<typeof vi.fn>;
     getMessagesByRoom: ReturnType<typeof vi.fn>;
     getRecentMessages: ReturnType<typeof vi.fn>;
+    resolveMessageArtifactReferences: ReturnType<typeof vi.fn>;
   };
   let scopeService: {
     mutateBrandScope: ReturnType<typeof vi.fn>;
@@ -57,6 +58,7 @@ describe('AgentThreadsController', () => {
       findOne: vi.fn(),
       getMessagesByRoom: vi.fn().mockResolvedValue([]),
       getRecentMessages: vi.fn().mockResolvedValue([]),
+      resolveMessageArtifactReferences: vi.fn().mockResolvedValue([]),
     };
     scopeService = {
       mutateBrandScope: vi.fn(),
@@ -226,6 +228,42 @@ describe('AgentThreadsController', () => {
         isDeleted: false,
         organization: 'org_current',
         room: 'thread-id',
+      });
+    });
+  });
+
+  describe('resolveMessageArtifactReferences', () => {
+    it('resolves references through the organization-scoped message seam', async () => {
+      const resolved = [
+        {
+          reference: {
+            brandId: 'brand-1',
+            kind: 'post',
+            organizationId: 'org_current',
+            recordId: 'post-1',
+            serializer: 'post',
+          },
+          serialized: { id: 'post-1' },
+          source: 'canonical',
+        },
+      ];
+      messagesService.resolveMessageArtifactReferences.mockResolvedValue(
+        resolved,
+      );
+
+      await expect(
+        controller.resolveMessageArtifactReferences(
+          'thread-id',
+          'message-id',
+          mockUser,
+        ),
+      ).resolves.toEqual({ data: resolved });
+
+      expect(
+        messagesService.resolveMessageArtifactReferences,
+      ).toHaveBeenCalledWith('thread-id', 'message-id', 'org_current', {
+        client: 'api',
+        deployment: 'server',
       });
     });
   });

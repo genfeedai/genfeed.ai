@@ -8,6 +8,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { ContentDraftStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { AgentArtifactReferenceService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -22,6 +23,7 @@ export class ContentDraftsService extends BaseService<
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly trendReferenceCorpusService: TrendReferenceCorpusService,
+    private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
   ) {
     super(prisma, 'contentDraft', logger);
   }
@@ -129,17 +131,23 @@ export class ContentDraftsService extends BaseService<
     organizationId: string,
     userId: string,
   ): Promise<ContentDraftDocument> {
-    await findOrThrow(
+    const existing = await findOrThrow(
       this.delegate,
       { where: { id, isDeleted: false, organizationId } },
       'ContentDraft',
       id,
     );
+    const versionPin = await this.createVersionPin(
+      existing as Record<string, unknown>,
+      organizationId,
+      userId,
+    );
 
     const updated = await this.delegate.update({
       where: { id },
       data: {
-        approvedBy: userId,
+        approvedById: userId,
+        approvedVersionPinId: versionPin.id,
         status: ContentDraftStatus.APPROVED,
       },
     });
@@ -189,19 +197,55 @@ export class ContentDraftsService extends BaseService<
       return { modifiedCount: 0 };
     }
 
-    const result = (await this.delegate.updateMany({
+    const drafts = (await this.delegate.findMany({
       where: {
         id: { in: ids },
         isDeleted: false,
         organizationId,
       },
-      data: {
-        approvedBy: userId,
-        status: ContentDraftStatus.APPROVED,
-      },
-    })) as { count: number };
+    })) as Array<Record<string, unknown>>;
 
-    return { modifiedCount: result.count };
+    const pinnedDrafts = await Promise.all(
+      drafts.map(async (draft) => ({
+        draft,
+        versionPin: await this.createVersionPin(draft, organizationId, userId),
+      })),
+    );
+
+    await Promise.all(
+      pinnedDrafts.map(({ draft, versionPin }) =>
+        this.delegate.update({
+          where: { id: draft.id as string },
+          data: {
+            approvedById: userId,
+            approvedVersionPinId: versionPin.id,
+            status: ContentDraftStatus.APPROVED,
+          },
+        }),
+      ),
+    );
+
+    return { modifiedCount: pinnedDrafts.length };
+  }
+
+  private createVersionPin(
+    draft: Record<string, unknown>,
+    organizationId: string,
+    userId: string,
+  ) {
+    const brandId =
+      typeof draft.brandId === 'string' ? draft.brandId : undefined;
+
+    return this.agentArtifactReferenceService.createOrReuseVersionPin({
+      createdByUserId: userId,
+      reference: {
+        ...(brandId ? { brandId } : {}),
+        kind: 'content-draft',
+        organizationId,
+        recordId: draft.id as string,
+        serializer: 'content-draft',
+      },
+    });
   }
 
   /**

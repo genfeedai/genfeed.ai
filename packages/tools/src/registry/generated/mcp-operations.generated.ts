@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1039 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1040 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -1013,6 +1013,20 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
       "status"
     ],
     "toolName": "agent_threads__list_threads"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "AgentThreadsController.resolveMessageArtifactReferences",
+    "path": "/agent/threads/{threadId}/messages/{messageId}/artifact-references",
+    "pathParams": [
+      "messageId",
+      "threadId"
+    ],
+    "queryParams": [],
+    "toolName": "agent_threads__resolve_message_artifact_references"
   },
   {
     "bodyFields": [],

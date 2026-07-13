@@ -13,4 +13,5 @@ export interface PostPublishJobData {
   postId: string;
   source: 'publish_now' | 'scheduled_sweep';
   userId?: string;
+  versionPinId?: string;
 }

@@ -74,6 +74,7 @@ export class PostEntity extends BaseEntity {
   declare readonly reviewItemId?: string;
   declare readonly reviewDecision?: 'approved' | 'rejected' | 'request_changes';
   declare readonly reviewFeedback?: string;
+  declare readonly reviewVersionPinId?: string;
   declare readonly reviewedAt?: Date;
   declare readonly reviewEvents?: Array<{
     decision: 'approved' | 'rejected' | 'request_changes';

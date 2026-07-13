@@ -10,9 +10,11 @@ import type { TrendReferenceCorpusService } from '@api/collections/trends/servic
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentDraftStatus } from '@genfeedai/enums';
+import type { AgentArtifactReferenceService } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockDelegate = {
+  findMany: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 };
@@ -20,8 +22,12 @@ type MockDelegate = {
 describe('ContentDraftsService.update', () => {
   let service: ContentDraftsService;
   let delegate: MockDelegate;
+  let agentArtifactReferenceService: {
+    createOrReuseVersionPin: ReturnType<typeof vi.fn>;
+  };
 
   const existing = {
+    brandId: 'brand-1',
     id: 'draft-1',
     isDeleted: false,
     metadata: { source: 'engine' },
@@ -29,7 +35,11 @@ describe('ContentDraftsService.update', () => {
   };
 
   beforeEach(() => {
+    agentArtifactReferenceService = {
+      createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
+    };
     delegate = {
+      findMany: vi.fn().mockResolvedValue([]),
       findFirst: vi.fn().mockResolvedValue(existing),
       update: vi
         .fn()
@@ -47,6 +57,7 @@ describe('ContentDraftsService.update', () => {
       {
         recordDraftRemixLineage: vi.fn(),
       } as unknown as TrendReferenceCorpusService,
+      agentArtifactReferenceService as unknown as AgentArtifactReferenceService,
     );
   });
 
@@ -65,8 +76,24 @@ describe('ContentDraftsService.update', () => {
     );
 
     expect(delegate.update).toHaveBeenCalledWith({
-      data: { approvedBy: 'user-1', status: ContentDraftStatus.APPROVED },
+      data: {
+        approvedById: 'user-1',
+        approvedVersionPinId: 'pin-1',
+        status: ContentDraftStatus.APPROVED,
+      },
       where: { id: 'draft-1' },
+    });
+    expect(
+      agentArtifactReferenceService.createOrReuseVersionPin,
+    ).toHaveBeenCalledWith({
+      createdByUserId: 'user-1',
+      reference: {
+        brandId: 'brand-1',
+        kind: 'content-draft',
+        organizationId: 'org-1',
+        recordId: 'draft-1',
+        serializer: 'content-draft',
+      },
     });
   });
 
@@ -110,9 +137,58 @@ describe('ContentDraftsService.update', () => {
       where: { id: 'draft-1' },
     });
     expect(delegate.update).toHaveBeenCalledWith({
-      data: { approvedBy: 'user-1', status: ContentDraftStatus.APPROVED },
+      data: {
+        approvedById: 'user-1',
+        approvedVersionPinId: 'pin-1',
+        status: ContentDraftStatus.APPROVED,
+      },
       where: { id: 'draft-1' },
     });
+  });
+
+  it('bulk approves each authorized draft against its own immutable pin', async () => {
+    delegate.findMany.mockResolvedValue([
+      existing,
+      { ...existing, brandId: 'brand-2', id: 'draft-2' },
+    ]);
+    agentArtifactReferenceService.createOrReuseVersionPin
+      .mockResolvedValueOnce({ id: 'pin-1' })
+      .mockResolvedValueOnce({ id: 'pin-2' });
+
+    const result = await service.bulkApprove(
+      ['draft-1', 'draft-2'],
+      'org-1',
+      'user-1',
+    );
+
+    expect(delegate.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['draft-1', 'draft-2'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(
+      agentArtifactReferenceService.createOrReuseVersionPin,
+    ).toHaveBeenNthCalledWith(2, {
+      createdByUserId: 'user-1',
+      reference: {
+        brandId: 'brand-2',
+        kind: 'content-draft',
+        organizationId: 'org-1',
+        recordId: 'draft-2',
+        serializer: 'content-draft',
+      },
+    });
+    expect(delegate.update).toHaveBeenNthCalledWith(2, {
+      data: {
+        approvedById: 'user-1',
+        approvedVersionPinId: 'pin-2',
+        status: ContentDraftStatus.APPROVED,
+      },
+      where: { id: 'draft-2' },
+    });
+    expect(result).toEqual({ modifiedCount: 2 });
   });
 
   it('returns the existing draft without writing when nothing changes', async () => {
@@ -141,6 +217,7 @@ describe('ContentDraftsService — findOrThrow tenant scoping', () => {
   function buildService(rows: Row[]): {
     service: ContentDraftsService;
     delegate: {
+      findMany: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
@@ -152,6 +229,7 @@ describe('ContentDraftsService — findOrThrow tenant scoping', () => {
       (where.isDeleted === undefined || where.isDeleted === row.isDeleted);
 
     const delegate = {
+      findMany: vi.fn().mockResolvedValue(rows),
       findFirst: vi.fn(({ where }: { where: Record<string, unknown> }) =>
         Promise.resolve(rows.find((row) => matches(where, row)) ?? null),
       ),
@@ -175,6 +253,9 @@ describe('ContentDraftsService — findOrThrow tenant scoping', () => {
       {
         recordDraftRemixLineage: vi.fn(),
       } as unknown as TrendReferenceCorpusService,
+      {
+        createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
+      } as unknown as AgentArtifactReferenceService,
     );
 
     return { delegate, service };
@@ -191,7 +272,11 @@ describe('ContentDraftsService — findOrThrow tenant scoping', () => {
       where: { id: 'draft-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(delegate.update).toHaveBeenCalledWith({
-      data: { approvedBy: 'user-1', status: ContentDraftStatus.APPROVED },
+      data: {
+        approvedById: 'user-1',
+        approvedVersionPinId: 'pin-1',
+        status: ContentDraftStatus.APPROVED,
+      },
       where: { id: 'draft-1' },
     });
   });

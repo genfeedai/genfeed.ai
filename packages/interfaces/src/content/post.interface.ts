@@ -33,6 +33,7 @@ export interface IPost extends IBaseEntity {
   publicationDate: string;
   publishedAt?: string;
   retryCount?: number;
+  reviewVersionPinId?: string | null;
   analytics?: IPostAnalyticsSummary;
   totalViews?: number;
   totalLikes?: number;

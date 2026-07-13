@@ -57,7 +57,9 @@ export interface SecondOrderCascadeTarget {
  *
  * Excluded on purpose (see KNOWN_EXCLUDED): `Member` (its brand link is
  * `lastUsedBrandId`, a per-user UI pointer — the member row belongs to its own org
- * and must NOT move).
+ * and must NOT move) and `ContentVersionPin` (an immutable authorization snapshot;
+ * a brand move deliberately invalidates the old approval instead of rewriting its
+ * historical tenant scope).
  *
  * Non-standard field names are hand-mapped: `Asset` (parentBrandId/parentOrgId),
  * `ContextBase` (sourceBrandId), `Lead` (proactiveBrandId → proactiveOrganizationId,
@@ -596,7 +598,10 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
  * asserts every schema model with a brand+org key is either a first-order target or
  * listed here — so a new one can't slip through unreviewed.
  */
-export const KNOWN_EXCLUDED_MODELS: readonly string[] = ['Member'];
+export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
+  'ContentVersionPin',
+  'Member',
+];
 
 /**
  * Physical tables the orphan auditor's "unknown table" scan should ignore, because
@@ -608,4 +613,7 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = ['Member'];
  * `workflows` is covered by FIRST_ORDER_TARGETS; execution and batch history follow it
  * via SECOND_ORDER_TARGETS.
  */
-export const AUDITOR_IGNORED_TABLES: readonly string[] = ['members'];
+export const AUDITOR_IGNORED_TABLES: readonly string[] = [
+  'content_version_pins',
+  'members',
+];

@@ -616,6 +616,7 @@ model User {
   warmupAccountsCustomer   WarmupAccount[]           @relation("warmup_account_customer")
   lifecycleEmailPreference LifecycleEmailPreference?
   lifecycleEmailDeliveries LifecycleEmailDelivery[]
+  contentVersionPins       ContentVersionPin[]
 
   @@index([isDefault])
   @@index([appSource])
@@ -759,6 +760,7 @@ model Organization {
   dashboardLayouts              DashboardLayout[]              @relation("org_dashboard_layout")
   brandInterviews               BrandInterview[]
   warmupAccounts                WarmupAccount[]
+  contentVersionPins            ContentVersionPin[]
 
   @@index([isDefault])
   @@index([category])
@@ -894,6 +896,7 @@ model Brand {
   dashboardLayouts           DashboardLayout[]          @relation("brand_dashboard_layout")
   brandInterviews            BrandInterview[]
   warmupAccounts             WarmupAccount[]
+  contentVersionPins         ContentVersionPin[]
 
   @@index([isDefault])
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
@@ -1798,6 +1801,36 @@ model Asset {
   @@map("assets")
 }
 
+/// Immutable identity of the exact canonical-record state reviewed or used by
+/// a consequential action. This references canonical records polymorphically;
+/// it does not duplicate their content or lifecycle state.
+model ContentVersionPin {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand            Brand?      @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  createdByUserId  String
+  createdByUser    User         @relation(fields: [createdByUserId], references: [id])
+  recordKind       String
+  recordId         String
+  recordVersion    String?
+  contentDigest    String
+  idempotencyKey   String
+  provenance       Json         @default("{}")
+  createdAt        DateTime     @default(now())
+
+  reviewedContentDrafts ContentDraft[]
+  reviewedNewsletters   Newsletter[]
+  reviewedPosts         Post[]
+
+  @@unique([organizationId, idempotencyKey], map: "content_version_pins_org_idempotency_key")
+  @@unique([id, organizationId], map: "content_version_pins_id_organization_key")
+  @@index([organizationId, brandId, createdAt(sort: Desc)], map: "content_version_pins_org_brand_created_at_idx")
+  @@index([organizationId, recordKind, recordId, createdAt(sort: Desc)], map: "content_version_pins_record_lookup_idx")
+  @@map("content_version_pins")
+}
+
 model Link {
   id        String       @id @default(cuid())
   mongoId   String?      @unique
@@ -1957,6 +1990,8 @@ model Post {
   reviewBatchId         String?
   reviewItemId          String?
   reviewDecision        ReviewDecision?
+  reviewVersionPinId    String?
+  reviewVersionPin      ContentVersionPin? @relation(fields: [reviewVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   reviewFeedback        String?
   reviewedAt            DateTime?
   reviewEvents          Json            @default("[]")
@@ -1994,6 +2029,7 @@ model Post {
   @@index([agentRunId])
   @@index([agentThreadId])
   @@index([agentStrategyId])
+  @@index([reviewVersionPinId], map: "posts_reviewVersionPinId_idx")
   @@index([isDeleted, parentId, scheduledDate, status])
   @@index([isDeleted, organizationId, status])
   @@index([brandId, isDeleted, status])
@@ -2431,6 +2467,8 @@ model Newsletter {
   agentRun             AgentRun?    @relation(fields: [agentRunId], references: [id])
   approvedByUserId     String?
   approvedByUser       User?        @relation("newsletter_approved_by", fields: [approvedByUserId], references: [id])
+  approvedVersionPinId String?
+  approvedVersionPin   ContentVersionPin? @relation(fields: [approvedVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   publishedByUserId    String?
   publishedByUser      User?        @relation("newsletter_published_by", fields: [publishedByUserId], references: [id])
   label                String
@@ -2454,6 +2492,7 @@ model Newsletter {
   contextOf          Newsletter[] @relation("newsletter_context")
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([approvedVersionPinId], map: "newsletters_approvedVersionPinId_idx")
   @@map("newsletters")
 }
 
@@ -2637,6 +2676,13 @@ model AgentMessage {
   toolCalls      Json?
   toolResults    Json?
   metadata       Json?
+  artifactReferences                  Json      @default("[]")
+  artifactVersionPinIds               String[]  @default([])
+  isLegacyArtifactReferenceEligible   Boolean   @default(false)
+  artifactReferenceEligibleReadCount  Int       @default(0)
+  legacyArtifactReferenceReadCount    Int       @default(0)
+  legacyArtifactReferenceLastUsedAt   DateTime?
+  legacyArtifactReferenceLastSource   String?
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -2798,6 +2844,8 @@ model AgentRun {
   creditBudget Int?
   creditsUsed  Int     @default(0)
   durationMs   Int?
+  artifactReferences  Json     @default("[]")
+  artifactVersionPinIds String[] @default([])
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "agent_runs_org_brand_deleted_created_at_idx")
@@ -3621,6 +3669,8 @@ model ContentDraft {
   contentRun     ContentRun?  @relation(fields: [contentRunId], references: [id])
   approvedById   String?
   approvedBy     User?        @relation("content_draft_approved_by", fields: [approvedById], references: [id])
+  approvedVersionPinId String?
+  approvedVersionPin   ContentVersionPin? @relation(fields: [approvedVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
   status         String       @default("draft")
   data           Json         @default("{}")
@@ -3644,6 +3694,7 @@ model ContentDraft {
   trendRemixLineages TrendRemixLineage[]
 
   @@index([organizationId, brandId, isDeleted])
+  @@index([approvedVersionPinId], map: "content_drafts_approvedVersionPinId_idx")
   @@map("content_drafts")
 }
 
