@@ -100,6 +100,73 @@ export default function ReviewDetailPanelAside({
         </DefinitionList>
       </InsetSurface>
 
+      <InsetSurface className="p-5" tone="contrast">
+        <h3 className="text-sm font-medium text-foreground">
+          Version-bound publish approval
+        </h3>
+        <p className="mt-1 text-sm text-foreground/55">
+          Chat and model text never authorize publishing. This typed decision
+          locks the exact version, destination, timing, actor, and policy.
+        </p>
+        <DefinitionList className="mt-4 text-sm">
+          <div className="flex items-start justify-between gap-4">
+            <DefinitionTerm>Version</DefinitionTerm>
+            <DefinitionDetail variant="value">
+              {item.publishApproval?.artifactVersionPinId ??
+                item.versionPinId ??
+                'Pinned on approval'}
+            </DefinitionDetail>
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <DefinitionTerm>Destination</DefinitionTerm>
+            <DefinitionDetail variant="value">
+              {item.publishApproval?.destinations
+                .map((destination) => destination.platform)
+                .join(', ') ??
+                item.platform ??
+                'Not selected'}
+            </DefinitionDetail>
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <DefinitionTerm>Timing</DefinitionTerm>
+            <DefinitionDetail variant="value">
+              {item.publishApproval?.scheduleIntent.kind === 'scheduled'
+                ? formattedScheduledDate
+                : item.publishApproval?.scheduleIntent.kind === 'immediate'
+                  ? 'Publish now'
+                  : (formattedScheduledDate ?? 'Requires publish confirmation')}
+            </DefinitionDetail>
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <DefinitionTerm>Policy</DefinitionTerm>
+            <DefinitionDetail variant="value">
+              {item.publishApproval
+                ? `${item.publishApproval.policy.id} v${item.publishApproval.policy.version}`
+                : 'version-bound-publish-v1'}
+            </DefinitionDetail>
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <DefinitionTerm>Provenance</DefinitionTerm>
+            <DefinitionDetail variant="value">
+              {item.sourceWorkflowName ??
+                item.sourceActionId ??
+                'Manual review control'}
+            </DefinitionDetail>
+          </div>
+          <div className="flex items-start justify-between gap-4">
+            <DefinitionTerm>Status</DefinitionTerm>
+            <DefinitionDetail variant="value">
+              {item.publishApproval?.status ?? 'Awaiting typed approval'}
+            </DefinitionDetail>
+          </div>
+        </DefinitionList>
+        {item.publishApproval?.invalidationReason && (
+          <p className="mt-4 text-sm text-warning">
+            {item.publishApproval.invalidationReason}
+          </p>
+        )}
+      </InsetSurface>
+
       <ReviewLineagePanel item={item} />
 
       {(item.gateOverallScore !== undefined ||

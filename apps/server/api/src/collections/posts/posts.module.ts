@@ -18,6 +18,7 @@ import { AnalyticsAggregationService } from '@api/collections/posts/services/ana
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -52,6 +53,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => PromptBuilderModule),
+    PublishApprovalsModule,
     forwardRef(() => QuotaModule),
     forwardRef(() => ReplicateModule),
     forwardRef(() => SeoModule),

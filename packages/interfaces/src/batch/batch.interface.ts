@@ -4,6 +4,7 @@ import type {
   ContentFormat,
   ReferenceImageCategory,
 } from '@genfeedai/enums';
+import type { IPublishApproval } from '../publisher/publish-approval.interface';
 
 export type BatchItemFormat = ContentFormat | 'article' | 'newsletter' | 'post';
 
@@ -70,6 +71,7 @@ export interface IBatchItem {
     versionPinId?: string;
   }>;
   versionPinId?: string;
+  publishApproval?: IPublishApproval;
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;

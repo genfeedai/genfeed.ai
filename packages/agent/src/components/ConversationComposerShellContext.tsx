@@ -22,6 +22,7 @@ export interface ConversationComposerShellContextValue {
     | ConversationComposerDispatchResult
     | Promise<ConversationComposerDispatchResult>;
   draftScopeKey: string | null;
+  isConsequentiallyBlocked?: boolean;
   portalTarget: HTMLElement | null;
   scopeControls?: ReactNode;
   shellState: 'canvas' | 'conversation' | 'overlay';
@@ -41,6 +42,7 @@ export function ConversationComposerShellProvider({
   contextLabel,
   dispatchAction,
   draftScopeKey,
+  isConsequentiallyBlocked,
   portalTarget,
   scopeControls,
   shellState,
@@ -51,6 +53,7 @@ export function ConversationComposerShellProvider({
       contextLabel,
       dispatchAction,
       draftScopeKey,
+      isConsequentiallyBlocked,
       portalTarget,
       scopeControls,
       shellState,
@@ -60,6 +63,7 @@ export function ConversationComposerShellProvider({
       contextLabel,
       dispatchAction,
       draftScopeKey,
+      isConsequentiallyBlocked,
       portalTarget,
       scopeControls,
       shellState,

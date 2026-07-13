@@ -89,6 +89,29 @@ describe('PostPublishQueueService', () => {
     );
   });
 
+  it('uses the approval operation identity for duplicate prevention', async () => {
+    queue.add.mockResolvedValue({ id: 'operation-1' });
+
+    await service.enqueue({
+      approvalId: 'approval-1',
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'publish_now',
+      versionPinId: 'pin-1',
+    });
+
+    expect(queue.getJob).toHaveBeenCalledWith('operation-1');
+    expect(queue.add).toHaveBeenCalledWith(
+      POST_PUBLISH_JOB_NAME,
+      expect.objectContaining({
+        approvalId: 'approval-1',
+        operationId: 'operation-1',
+      }),
+      expect.objectContaining({ jobId: 'operation-1' }),
+    );
+  });
+
   it('does not enqueue a duplicate active job', async () => {
     queue.getJob.mockResolvedValue(makeJob('active'));
 

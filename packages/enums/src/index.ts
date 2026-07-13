@@ -75,6 +75,7 @@ export * from './platform-role.enum';
 export * from './post.enum';
 export * from './priority.enum';
 export * from './prompt.enum';
+export * from './publish-approval.enum';
 export * from './publish-status.enum';
 export * from './reference.enum';
 export * from './replicate.enum';

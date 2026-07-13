@@ -321,6 +321,7 @@ export interface AgentChatMessage {
 export interface AgentThread {
   id: string;
   contextVersion: number;
+  organizationId?: string;
   isPinned?: boolean;
   planModeEnabled?: boolean;
   requestedModel?: string;

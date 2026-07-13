@@ -6,6 +6,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -31,6 +32,24 @@ const PRISMA_POST_STATUS = {
   PUBLIC: 'PUBLIC',
   SCHEDULED: 'SCHEDULED',
 } as const;
+const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<keyof UpdatePostDto>([
+  'category',
+  'credential',
+  'description',
+  'ingredients',
+  'isRepeat',
+  'isShareToFeedSelected',
+  'label',
+  'maxRepeats',
+  'parent',
+  'publishIntent',
+  'repeatDaysOfWeek',
+  'repeatEndDate',
+  'repeatFrequency',
+  'repeatInterval',
+  'scheduledDate',
+  'timezone',
+]);
 
 type ContentMentionPostRecord = {
   category: string;
@@ -61,6 +80,8 @@ export class PostsService extends BaseService<
     @Optional()
     private readonly organizationSettingsService?: OrganizationSettingsService,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
+    @Optional()
+    private readonly publishApprovalsService?: PublishApprovalsService,
   ) {
     super(prisma, 'post', logger, undefined, cacheService);
   }
@@ -247,6 +268,21 @@ export class PostsService extends BaseService<
     const normalizedStatus =
       typeof dto.status === 'string' ? dto.status.toLowerCase() : undefined;
     const isPublishingPost = normalizedStatus === PostStatus.PUBLIC;
+    const changesApprovalScope = Object.keys(dto).some((key) =>
+      PUBLISH_APPROVAL_MATERIAL_FIELDS.has(key as keyof UpdatePostDto),
+    );
+    const approvalContext = changesApprovalScope
+      ? await this.prisma.post.findFirst({
+          select: { organizationId: true, publishApprovalId: true },
+          where: { id, isDeleted: false },
+        })
+      : null;
+    if (approvalContext?.publishApprovalId && this.publishApprovalsService) {
+      await this.publishApprovalsService.assertPostMutable(
+        approvalContext.organizationId,
+        id,
+      );
+    }
     let currentPost: PostDocument | null = null;
 
     if (normalizedStatus === PostStatus.SCHEDULED || isPublishingPost) {
@@ -321,6 +357,14 @@ export class PostsService extends BaseService<
     }
 
     const updatedPost = await super.patch(id, normalizedDto, populate);
+
+    if (approvalContext?.publishApprovalId && this.publishApprovalsService) {
+      await this.publishApprovalsService.invalidatePost(
+        approvalContext.organizationId,
+        id,
+        'Canonical Post material or protected schedule intent changed.',
+      );
+    }
 
     if (
       isPublishingPost &&
