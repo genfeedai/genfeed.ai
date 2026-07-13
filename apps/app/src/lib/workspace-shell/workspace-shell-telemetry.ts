@@ -26,7 +26,12 @@ export function captureWorkspaceShellFallback(
 }
 
 export function captureWorkspaceShellRestorationFailure(
-  reason: 'invalid_overlay' | 'invalid_overlay_reference' | 'invalid_thread',
+  reason:
+    | 'invalid_overlay'
+    | 'invalid_overlay_reference'
+    | 'invalid_thread'
+    | 'stale_overlay_reference'
+    | 'unauthorized_overlay_reference',
 ): void {
   captureAnalyticsEvent(
     ANALYTICS_EVENTS.CONVERSATION_SHELL_RESTORATION_FAILURE,

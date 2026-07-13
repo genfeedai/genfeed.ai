@@ -57,11 +57,12 @@ describe('workspace shell URL restoration', () => {
     ).toMatchObject({ baseState: 'canvas', state: 'canvas' });
   });
 
-  it('restores an allowlisted overlay with an existing-model reference', () => {
+  it('restores an allowlisted overlay with an authorized canonical reference', () => {
     expect(
       restoreWorkspaceShellLocation({
         normalizedPathname: '/library/images',
         pathname: '/acme/moonrise/library/images',
+        resolveOverlayReferenceAccess: () => 'authorized',
         searchParams: new URLSearchParams({
           overlay: 'shell-preview',
           overlayRef: 'asset:asset-123',
@@ -70,8 +71,10 @@ describe('workspace shell URL restoration', () => {
       }),
     ).toMatchObject({
       baseState: 'canvas',
-      overlayKey: 'shell-preview',
-      overlayReference: { id: 'asset-123', kind: 'asset' },
+      overlay: {
+        key: 'shell-preview',
+        parameters: { reference: { id: 'asset-123', kind: 'asset' } },
+      },
       state: 'overlay',
       threadId: 'thread-1',
     });
@@ -114,6 +117,51 @@ describe('workspace shell URL restoration', () => {
       state: 'canvas',
     });
     expect(restored?.canonicalSearchParams.toString()).toBe('');
+  });
+
+  it.each([
+    [undefined, 'unauthorized_overlay_reference'],
+    [() => 'unauthorized' as const, 'unauthorized_overlay_reference'],
+    [() => 'stale' as const, 'stale_overlay_reference'],
+  ])('fails %s reference access back to the exact underlying URL', (resolveOverlayReferenceAccess, restorationFailure) => {
+    const restored = restoreWorkspaceShellLocation({
+      normalizedPathname: '/library/images',
+      pathname: '/acme/moonrise/library/images',
+      resolveOverlayReferenceAccess,
+      searchParams: new URLSearchParams({
+        folder: 'launch',
+        overlay: 'shell-preview',
+        overlayRef: 'asset:asset-123',
+        thread: 'thread-1',
+      }),
+    });
+
+    expect(restored).toMatchObject({
+      overlay: null,
+      restorationFailure,
+      state: 'canvas',
+      threadId: 'thread-1',
+    });
+    expect(restored?.canonicalSearchParams.toString()).toBe(
+      'folder=launch&thread=thread-1',
+    );
+  });
+
+  it('rejects parameters on an overlay registered without parameters', () => {
+    expect(
+      restoreWorkspaceShellLocation({
+        normalizedPathname: '/agent/thread-1',
+        pathname: '/acme/~/agent/thread-1',
+        searchParams: new URLSearchParams({
+          overlay: 'notifications',
+          overlayRef: 'asset:asset-123',
+        }),
+      }),
+    ).toMatchObject({
+      overlay: null,
+      restorationFailure: 'invalid_overlay_reference',
+      state: 'conversation',
+    });
   });
 
   it('marks malformed conversation thread routes for safe canonical fallback', () => {
@@ -179,7 +227,10 @@ describe('workspace shell URL restoration', () => {
   it('builds registered transitions and direct-link overlay dismissal URLs', () => {
     expect(
       buildWorkspaceShellHref('/acme/~/overview?filter=active', {
-        overlayKey: 'shell-preview',
+        overlay: {
+          key: 'shell-preview',
+          parameters: { reference: null },
+        },
         threadId: 'thread-1',
       }),
     ).toBe(

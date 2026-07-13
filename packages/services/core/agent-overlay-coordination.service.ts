@@ -1,59 +1,111 @@
 export const AGENT_PANEL_OPEN_KEY = 'genfeed-agent-panel-open';
-export const AGENT_PANEL_STATE_CHANGED_EVENT =
-  'genfeed:agent-panel-state-changed';
-export const ENTITY_OVERLAY_OPENED_EVENT = 'genfeed:entity-overlay-opened';
-export const ENTITY_OVERLAY_CLOSED_EVENT = 'genfeed:entity-overlay-closed';
-export const ENTITY_OVERLAY_OPEN_AGENT_REQUESTED_EVENT =
-  'genfeed:entity-overlay-open-agent-requested';
 export const AGENT_PANEL_DESKTOP_MEDIA_QUERY = '(min-width: 1024px)';
 
-export interface AgentPanelStateChangedDetail {
-  isOpen: boolean;
+export interface AgentOverlayCoordinationState {
+  readonly activeEntityOverlayIds: readonly string[];
+  readonly agentOpenRequestVersion: number;
+  readonly isAgentPanelOpen: boolean;
 }
 
-export interface EntityOverlayVisibilityDetail {
-  overlayId: string;
-}
+type AgentOverlayCoordinationListener = () => void;
 
-function dispatchWindowEvent<TDetail>(
-  eventName: string,
-  detail: TDetail,
-): void {
-  if (typeof window === 'undefined') {
+const listeners = new Set<AgentOverlayCoordinationListener>();
+
+const SERVER_STATE: AgentOverlayCoordinationState = Object.freeze({
+  activeEntityOverlayIds: Object.freeze([]),
+  agentOpenRequestVersion: 0,
+  isAgentPanelOpen: false,
+});
+
+let state: AgentOverlayCoordinationState = SERVER_STATE;
+
+function publishState(nextState: AgentOverlayCoordinationState): void {
+  if (nextState === state) {
     return;
   }
 
-  window.dispatchEvent(new CustomEvent<TDetail>(eventName, { detail }));
+  state = Object.freeze({
+    ...nextState,
+    activeEntityOverlayIds: Object.freeze([
+      ...nextState.activeEntityOverlayIds,
+    ]),
+  });
+  for (const listener of listeners) {
+    listener();
+  }
 }
 
-export function dispatchAgentPanelStateChanged(isOpen: boolean): void {
-  dispatchWindowEvent<AgentPanelStateChangedDetail>(
-    AGENT_PANEL_STATE_CHANGED_EVENT,
-    { isOpen },
-  );
+export function getAgentOverlayCoordinationState(): AgentOverlayCoordinationState {
+  return state;
 }
 
-export function dispatchEntityOverlayOpened(overlayId: string): void {
-  dispatchWindowEvent<EntityOverlayVisibilityDetail>(
-    ENTITY_OVERLAY_OPENED_EVENT,
-    { overlayId },
-  );
+export function getServerAgentOverlayCoordinationState(): AgentOverlayCoordinationState {
+  return SERVER_STATE;
 }
 
-export function dispatchEntityOverlayClosed(overlayId: string): void {
-  dispatchWindowEvent<EntityOverlayVisibilityDetail>(
-    ENTITY_OVERLAY_CLOSED_EVENT,
-    { overlayId },
-  );
+export function subscribeAgentOverlayCoordination(
+  listener: AgentOverlayCoordinationListener,
+): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
 
-export function dispatchEntityOverlayOpenAgentRequested(
-  overlayId: string,
-): void {
-  dispatchWindowEvent<EntityOverlayVisibilityDetail>(
-    ENTITY_OVERLAY_OPEN_AGENT_REQUESTED_EVENT,
-    { overlayId },
-  );
+export function notifyEntityOverlayOpened(overlayId: string): void {
+  if (!overlayId || state.activeEntityOverlayIds.includes(overlayId)) {
+    return;
+  }
+
+  publishState({
+    ...state,
+    activeEntityOverlayIds: [...state.activeEntityOverlayIds, overlayId],
+  });
+}
+
+export function notifyEntityOverlayClosed(overlayId: string): void {
+  if (!state.activeEntityOverlayIds.includes(overlayId)) {
+    return;
+  }
+
+  publishState({
+    ...state,
+    activeEntityOverlayIds: state.activeEntityOverlayIds.filter(
+      (activeOverlayId) => activeOverlayId !== overlayId,
+    ),
+  });
+}
+
+export function requestAgentFromEntityOverlay(overlayId: string): void {
+  if (!overlayId || !state.activeEntityOverlayIds.includes(overlayId)) {
+    return;
+  }
+
+  publishState({
+    ...state,
+    agentOpenRequestVersion: state.agentOpenRequestVersion + 1,
+  });
+}
+
+export function setCoordinatedAgentPanelOpen(isOpen: boolean): void {
+  if (state.isAgentPanelOpen === isOpen) {
+    return;
+  }
+
+  publishState({ ...state, isAgentPanelOpen: isOpen });
+}
+
+export function subscribeDesktopAgentViewport(
+  listener: () => void,
+): () => void {
+  if (
+    typeof window === 'undefined' ||
+    typeof window.matchMedia !== 'function'
+  ) {
+    return () => undefined;
+  }
+
+  const mediaQuery = window.matchMedia(AGENT_PANEL_DESKTOP_MEDIA_QUERY);
+  mediaQuery.addEventListener('change', listener);
+  return () => mediaQuery.removeEventListener('change', listener);
 }
 
 export function isDesktopAgentViewport(): boolean {
@@ -65,18 +117,4 @@ export function isDesktopAgentViewport(): boolean {
   }
 
   return window.matchMedia(AGENT_PANEL_DESKTOP_MEDIA_QUERY).matches;
-}
-
-export function getStoredAgentPanelOpenState(): boolean | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const stored = window.localStorage.getItem(AGENT_PANEL_OPEN_KEY);
-
-  if (stored === null) {
-    return null;
-  }
-
-  return stored === 'true';
 }

@@ -202,7 +202,6 @@ describe('UniversalWorkspaceShell', () => {
     navigation.pathname = '/acme/moonrise/library/images';
     navigation.searchParams = new URLSearchParams({
       overlay: 'shell-preview',
-      overlayRef: 'asset:asset-1',
       thread: 'thread-1',
     });
 
@@ -217,7 +216,14 @@ describe('UniversalWorkspaceShell', () => {
       'overlay',
     );
     expect(screen.getByTestId('workspace-dialog')).toBeInTheDocument();
-    expect(screen.getByText('asset reference selected')).toBeInTheDocument();
+    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.getByLabelText('Context inspector')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('persistent-agent-conversation'),
+    ).toHaveTextContent('thread-1');
+    expect(
+      screen.getByText('No resource reference selected'),
+    ).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Dismiss workspace overlay' }),
@@ -261,6 +267,56 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.back).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets browser Back dismiss the overlay before the canvas', () => {
+    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.searchParams = new URLSearchParams({
+      overlay: 'shell-preview',
+      thread: 'thread-1',
+    });
+
+    const view = render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div data-testid="underlying-canvas">Workspace</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.getByTestId('workspace-dialog')).toBeInTheDocument();
+    expect(screen.getByTestId('underlying-canvas')).toBeInTheDocument();
+
+    navigation.searchParams = new URLSearchParams({ thread: 'thread-1' });
+    view.rerender(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div data-testid="underlying-canvas">Workspace</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.queryByTestId('workspace-dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('underlying-canvas')).toBeInTheDocument();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it('fails an unauthorized overlay reference to its underlying canvas', () => {
+    navigation.pathname = '/acme/moonrise/library/images';
+    navigation.searchParams = new URLSearchParams({
+      folder: 'launch',
+      overlay: 'shell-preview',
+      overlayRef: 'asset:asset-1',
+      thread: 'thread-1',
+    });
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Library</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.queryByTestId('workspace-dialog')).not.toBeInTheDocument();
+    expect(router.replace).toHaveBeenCalledWith(
+      '/acme/moonrise/library/images?folder=launch&thread=thread-1',
+    );
   });
 
   it('does not retain a conversation when the canonical organization changes', () => {

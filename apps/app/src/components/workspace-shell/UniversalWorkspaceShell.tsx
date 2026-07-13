@@ -9,13 +9,6 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@ui/primitives/dialog';
-import {
   Drawer,
   DrawerContent,
   DrawerDescription,
@@ -45,6 +38,7 @@ import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
+import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
 import {
   buildWorkspaceShellHref,
   removeWorkspaceShellOverlayParams,
@@ -52,10 +46,12 @@ import {
   type WorkspaceShellLocation,
   type WorkspaceShellState,
 } from '@/lib/workspace-shell/workspace-shell-location';
+import { getWorkspaceShellOverlayRegistration } from '@/lib/workspace-shell/workspace-shell-registry';
 import {
   captureWorkspaceShellRestorationFailure,
   captureWorkspaceShellTransition,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
+import WorkspaceOverlayHost from './WorkspaceOverlayHost';
 
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
@@ -133,13 +129,17 @@ function UniversalWorkspaceShellContent({
     baseState,
     canonicalSearchParams,
     isCanonical,
-    overlayReference,
+    overlay,
     restorationFailure,
     safeFallbackHref,
     state,
     surfaceKey,
     threadId,
   } = shellLocation;
+  const overlayRegistration = useMemo(
+    () => (overlay ? getWorkspaceShellOverlayRegistration(overlay.key) : null),
+    [overlay],
+  );
   const canonicalSearchParamsString = canonicalSearchParams.toString();
   const isUnthreadedConversation =
     baseState === 'conversation' &&
@@ -283,19 +283,32 @@ function UniversalWorkspaceShellContent({
   }, [activeThreadId, effectiveThreadId, orgHref, push]);
 
   const handleOpenOverlay = useCallback(() => {
+    const launch = resolveWorkspaceOverlayLaunch({
+      currentHref,
+      invocation: 'user',
+      overlay: {
+        key: 'shell-preview',
+        parameters: { reference: null },
+      },
+    });
+    if (launch.history === 'none') {
+      return;
+    }
+
     pendingTransitionRef.current = 'overlay_open';
-    isOwnedOverlayEntryRef.current = true;
     overlayReturnFocusRef.current =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
     hasOverlayReturnFocusRef.current = Boolean(overlayReturnFocusRef.current);
-    push(
-      buildWorkspaceShellHref(currentHref, {
-        overlayKey: 'shell-preview',
-      }),
-    );
-  }, [currentHref, push]);
+    if (launch.history === 'replace') {
+      replace(launch.href);
+      return;
+    }
+
+    isOwnedOverlayEntryRef.current = true;
+    push(launch.href);
+  }, [currentHref, push, replace]);
 
   const handleDismissOverlay = useCallback(() => {
     pendingTransitionRef.current = 'overlay_dismiss';
@@ -409,6 +422,9 @@ function UniversalWorkspaceShellContent({
     >
       <div aria-live="polite" className="sr-only" role="status">
         Workspace mode: {state}. Active surface: {surfaceKey}.
+        {state === 'overlay' && overlayRegistration
+          ? ` ${overlayRegistration.presentation.openAnnouncement}`
+          : null}
       </div>
 
       <div
@@ -553,42 +569,14 @@ function UniversalWorkspaceShellContent({
         </DrawerContent>
       </Drawer>
 
-      <Dialog
-        open={state === 'overlay'}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            handleDismissOverlay();
-          }
-        }}
-      >
-        <DialogContent
-          className="w-[min(92vw,42rem)] bg-background p-0 shadow-dialog"
-          data-workspace-shell-overlay="true"
-          onCloseAutoFocus={(event) => {
-            const returnFocusTarget = overlayReturnFocusRef.current;
-            if (!returnFocusTarget) {
-              return;
-            }
-
-            event.preventDefault();
-            returnFocusTarget.focus({ preventScroll: true });
-            overlayReturnFocusRef.current = null;
-          }}
-        >
-          <DialogHeader className="border-b border-border p-5 pr-12">
-            <DialogTitle>Temporary workspace overlay</DialogTitle>
-            <DialogDescription>
-              This trusted placeholder demonstrates restorable overlay state. It
-              does not mutate scope or approve an action.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="p-5 text-sm text-muted-foreground">
-            {overlayReference
-              ? `${overlayReference.kind} reference selected`
-              : 'No resource reference selected'}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <WorkspaceOverlayHost
+        fallbackFocusRef={primaryRegionRef}
+        isOpen={state === 'overlay'}
+        onDismiss={handleDismissOverlay}
+        overlay={overlay}
+        registration={overlayRegistration}
+        returnFocusRef={overlayReturnFocusRef}
+      />
     </div>
   );
 }

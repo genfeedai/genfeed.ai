@@ -1,15 +1,18 @@
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const setItemSpy = vi.fn();
+
 describe('useAgentChatStore overlay coordination', () => {
   beforeEach(() => {
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
       value: {
         getItem: vi.fn(),
-        setItem: vi.fn(),
+        setItem: setItemSpy,
       },
     });
+    setItemSpy.mockClear();
 
     useAgentChatStore.setState({
       isOpen: true,
@@ -33,6 +36,7 @@ describe('useAgentChatStore overlay coordination', () => {
     expect(useAgentChatStore.getState().isOpen).toBe(true);
     expect(useAgentChatStore.getState().overlayActiveIds).toEqual([]);
     expect(useAgentChatStore.getState().overlayAutoCollapsedAgent).toBe(false);
+    expect(setItemSpy).not.toHaveBeenCalled();
   });
 
   it('leaves the agent closed when it was already closed before the overlay', () => {

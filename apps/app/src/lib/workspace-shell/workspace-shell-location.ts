@@ -1,6 +1,10 @@
 import type {
   RestoreWorkspaceShellLocationParams,
   WorkspaceShellLocation,
+  WorkspaceShellOverlayReferenceAccessResolver,
+  WorkspaceShellOverlayRegistration,
+  WorkspaceShellOverlayRequest,
+  WorkspaceShellOverlayResolution,
   WorkspaceShellReferenceKind,
   WorkspaceShellTypedReference,
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
@@ -14,6 +18,8 @@ import {
 export type {
   RestoreWorkspaceShellLocationParams,
   WorkspaceShellLocation,
+  WorkspaceShellOverlayReferenceAccessResolver,
+  WorkspaceShellOverlayRequest,
   WorkspaceShellRestorationFailure,
   WorkspaceShellState,
   WorkspaceShellTypedReference,
@@ -57,6 +63,73 @@ function parseOverlayReference(
   return { id, kind };
 }
 
+function createOverlayRequest(
+  registration: WorkspaceShellOverlayRegistration,
+  reference: WorkspaceShellTypedReference | null,
+): WorkspaceShellOverlayRequest | null {
+  switch (registration.key) {
+    case 'notifications':
+      return reference
+        ? null
+        : { key: 'notifications', parameters: Object.freeze({}) };
+    case 'shell-preview':
+      return {
+        key: 'shell-preview',
+        parameters: { reference },
+      };
+  }
+}
+
+export function resolveWorkspaceShellOverlayRequest(
+  registration: WorkspaceShellOverlayRegistration,
+  encodedReference: string | null,
+  resolveReferenceAccess?: WorkspaceShellOverlayReferenceAccessResolver,
+): WorkspaceShellOverlayResolution {
+  if (registration.parameterContract.kind === 'none') {
+    return encodedReference
+      ? { failure: 'invalid_overlay_reference', overlay: null }
+      : {
+          failure: null,
+          overlay: createOverlayRequest(registration, null),
+        };
+  }
+
+  if (!encodedReference) {
+    return {
+      failure: null,
+      overlay: createOverlayRequest(registration, null),
+    };
+  }
+
+  const reference = parseOverlayReference(
+    encodedReference,
+    registration.parameterContract.allowedReferenceKinds,
+  );
+  if (!reference) {
+    return { failure: 'invalid_overlay_reference', overlay: null };
+  }
+
+  const access =
+    resolveReferenceAccess?.({
+      overlayKey: registration.key,
+      reference,
+    }) ?? 'unauthorized';
+  if (access !== 'authorized') {
+    return {
+      failure:
+        access === 'stale'
+          ? 'stale_overlay_reference'
+          : 'unauthorized_overlay_reference',
+      overlay: null,
+    };
+  }
+
+  return {
+    failure: null,
+    overlay: createOverlayRequest(registration, reference),
+  };
+}
+
 function extractConversationThreadId(pathname: string): string | null {
   const match = /^\/agent\/([^/]+)$/.exec(pathname);
   const candidate = match?.[1] ?? null;
@@ -67,6 +140,7 @@ function extractConversationThreadId(pathname: string): string | null {
 export function restoreWorkspaceShellLocation({
   normalizedPathname,
   pathname,
+  resolveOverlayReferenceAccess,
   searchParams,
 }: RestoreWorkspaceShellLocationParams): WorkspaceShellLocation | null {
   const route = resolveWorkspaceShellRoute(pathname);
@@ -96,8 +170,7 @@ export function restoreWorkspaceShellLocation({
       baseState: route.mode,
       canonicalSearchParams,
       isCanonical: false,
-      overlayKey: null,
-      overlayReference: null,
+      overlay: null,
       restorationFailure: 'invalid_thread',
       routeKey: route.key,
       safeFallbackHref,
@@ -135,8 +208,7 @@ export function restoreWorkspaceShellLocation({
         baseState: route.mode,
         canonicalSearchParams,
         isCanonical: false,
-        overlayKey: null,
-        overlayReference: null,
+        overlay: null,
         restorationFailure: 'invalid_overlay',
         routeKey: route.key,
         safeFallbackHref,
@@ -150,8 +222,7 @@ export function restoreWorkspaceShellLocation({
       baseState: route.mode,
       canonicalSearchParams,
       isCanonical,
-      overlayKey: null,
-      overlayReference: null,
+      overlay: null,
       restorationFailure: null,
       routeKey: route.key,
       safeFallbackHref,
@@ -161,11 +232,12 @@ export function restoreWorkspaceShellLocation({
     };
   }
 
-  const overlayReference = parseOverlayReference(
+  const overlayResolution = resolveWorkspaceShellOverlayRequest(
+    overlay,
     requestedOverlayReference,
-    overlay.allowedReferenceKinds,
+    resolveOverlayReferenceAccess,
   );
-  if (requestedOverlayReference && !overlayReference) {
+  if (overlayResolution.failure || !overlayResolution.overlay) {
     canonicalSearchParams.delete('overlay');
     canonicalSearchParams.delete('overlayRef');
 
@@ -173,9 +245,9 @@ export function restoreWorkspaceShellLocation({
       baseState: route.mode,
       canonicalSearchParams,
       isCanonical: false,
-      overlayKey: null,
-      overlayReference: null,
-      restorationFailure: 'invalid_overlay_reference',
+      overlay: null,
+      restorationFailure:
+        overlayResolution.failure ?? 'invalid_overlay_reference',
       routeKey: route.key,
       safeFallbackHref,
       state: route.mode,
@@ -188,8 +260,7 @@ export function restoreWorkspaceShellLocation({
     baseState: route.mode,
     canonicalSearchParams,
     isCanonical,
-    overlayKey: overlay.key,
-    overlayReference,
+    overlay: overlayResolution.overlay,
     restorationFailure: null,
     routeKey: route.key,
     safeFallbackHref,
@@ -202,8 +273,7 @@ export function restoreWorkspaceShellLocation({
 export function buildWorkspaceShellHref(
   href: string,
   params: {
-    readonly overlayKey?: string;
-    readonly overlayReference?: WorkspaceShellTypedReference;
+    readonly overlay?: WorkspaceShellOverlayRequest;
     readonly threadId?: string | null;
   },
 ): string {
@@ -212,14 +282,15 @@ export function buildWorkspaceShellHref(
   if (params.threadId) {
     shellSearchParams.set('thread', params.threadId);
   }
-  if (params.overlayKey) {
-    shellSearchParams.set('overlay', params.overlayKey);
+  if (params.overlay) {
+    shellSearchParams.set('overlay', params.overlay.key);
   }
-  if (params.overlayReference) {
-    shellSearchParams.set(
-      'overlayRef',
-      `${params.overlayReference.kind}:${params.overlayReference.id}`,
-    );
+  if (
+    params.overlay?.key === 'shell-preview' &&
+    params.overlay.parameters.reference
+  ) {
+    const { reference } = params.overlay.parameters;
+    shellSearchParams.set('overlayRef', `${reference.kind}:${reference.id}`);
   }
 
   return appendSearchParamsToHref(href, shellSearchParams);

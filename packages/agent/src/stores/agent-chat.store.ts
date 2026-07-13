@@ -382,8 +382,6 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         };
       }
 
-      persistPanelPreference(false);
-
       return {
         isOpen: false,
         overlayActiveIds: nextOverlayActiveIds,
@@ -435,10 +433,6 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         state.wasAgentOpenBeforeOverlay &&
         !state.userChangedAgentDuringOverlay &&
         !state.isOpen;
-
-      if (shouldRestoreAgent) {
-        persistPanelPreference(true);
-      }
 
       return {
         isOpen: shouldRestoreAgent ? true : state.isOpen,
