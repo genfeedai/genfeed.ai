@@ -6,9 +6,12 @@ import type {
   SocialMessageDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import type { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import type { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { PostStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
