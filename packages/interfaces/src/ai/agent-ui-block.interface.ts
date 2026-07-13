@@ -30,12 +30,24 @@ export interface AgentBlockHydrationState {
   status?: 'idle' | 'loading' | 'ready';
 }
 
+export type AgentBlockSourceParams = Record<
+  string,
+  string | number | boolean | null
+>;
+
 interface BaseBlock {
   hydration?: AgentBlockHydrationState;
   id: string;
   type: AgentUIBlockType;
   title?: string;
   width?: AgentUIBlockWidth;
+  /**
+   * Reference to a live data source resolved at render time (see the dashboard
+   * hydration seam). Persisted layouts store `sourceKey` instead of embedded
+   * data snapshots so they never go stale. Presentational blocks omit it.
+   */
+  sourceKey?: string;
+  sourceParams?: AgentBlockSourceParams;
 }
 
 export interface MetricCardBlock extends BaseBlock {
@@ -209,4 +221,14 @@ export interface AgentUIBlocksEvent {
   blocks?: AgentUIBlock[];
   blockIds?: string[];
   timestamp: string;
+}
+
+/**
+ * Sanitized, snapshot-free layout persisted per brand/page. Data-bearing blocks
+ * carry a `sourceKey` and empty-placeholder data; `hydrateLayout` refills them
+ * from live analytics at render time.
+ */
+export interface PersistedDashboardLayoutDocument {
+  version: 'genfeed.dashboard.openui.v1';
+  blocks: AgentUIBlock[];
 }

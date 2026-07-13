@@ -524,6 +524,10 @@ model User {
   onboardingCompletedAt    DateTime?
   onboardingType           OnboardingType?
   onboardingStepsCompleted String[]        @default([])
+  // First-asset unlock gate (cloud SaaS): per-user "explore anyway" escape hatch
+  // that permanently clears the locked nav/teaser state even before the org has
+  // generated its first asset. Org-level unlock signal lives on OrganizationSetting.
+  hasDismissedAssetGate    Boolean         @default(false)
   appSource                AppSource       @default(GENFEED)
   stripeCustomerId         String?
   // Active-organization pointer (epic #735, Phase C). Replaces the legacy auth provider
@@ -752,6 +756,7 @@ model Organization {
   creatorAnalyses               CreatorAnalysis[]
   mcpApprovals                  McpApproval[]
   moodBoards                    MoodBoard[]                    @relation("org_moodboard")
+  dashboardLayouts              DashboardLayout[]              @relation("org_dashboard_layout")
   brandInterviews               BrandInterview[]
   warmupAccounts                WarmupAccount[]
 
@@ -885,6 +890,7 @@ model Brand {
   schedules                  Schedule[]
   bookmarks                  Bookmark[]
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
+  dashboardLayouts           DashboardLayout[]          @relation("brand_dashboard_layout")
   brandInterviews            BrandInterview[]
   warmupAccounts             WarmupAccount[]
 
@@ -948,6 +954,23 @@ model MoodBoard {
 
   @@index([organizationId, isDeleted])
   @@map("mood_boards")
+}
+
+model DashboardLayout {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation("org_dashboard_layout", fields: [organizationId], references: [id])
+  brandId        String
+  brand          Brand        @relation("brand_dashboard_layout", fields: [brandId], references: [id])
+  pageKey        String
+  document       Json         @default("{}")
+  version        Int          @default(1)
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, brandId, pageKey])
+  @@map("dashboard_layouts")
 }
 
 model Member {
@@ -1210,6 +1233,10 @@ model OrganizationSetting {
   subscriptionTier              String?
   isByokEnabled                 Boolean           @default(false)
   hasEverHadCredits             Boolean           @default(false)
+  // First-asset unlock gate (cloud SaaS): flips true the first time this org
+  // completes a generation (Ingredient -> GENERATED). Durable org signal read by
+  // the auth bootstrap payload to unlock the main app nav sections.
+  hasGeneratedFirstAsset        Boolean           @default(false)
   onboardingJourneyMissions     Json              @default("[]")
   onboardingJourneyCompletedAt  DateTime?
   isAdvancedMode                Boolean           @default(false)

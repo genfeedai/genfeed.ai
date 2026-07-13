@@ -1245,6 +1245,22 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     enumFields: {},
   },
+  DashboardLayout: {
+    allFields: [
+      'brand',
+      'brandId',
+      'createdAt',
+      'document',
+      'id',
+      'isDeleted',
+      'organization',
+      'organizationId',
+      'pageKey',
+      'updatedAt',
+      'version',
+    ],
+    enumFields: {},
+  },
   DesktopAuthCode: {
     allFields: [
       'codeChallenge',
@@ -2115,6 +2131,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'defaultVoiceProvider',
       'defaultVoiceRef',
       'hasEverHadCredits',
+      'hasGeneratedFirstAsset',
       'id',
       'isAdvancedMode',
       'isAutoEvaluateEnabled',
@@ -3254,6 +3271,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'emailVerified',
       'firstName',
       'handle',
+      'hasDismissedAssetGate',
       'id',
       'isDefault',
       'isDeleted',

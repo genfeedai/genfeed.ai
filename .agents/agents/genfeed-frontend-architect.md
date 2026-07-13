@@ -229,8 +229,7 @@ export interface ButtonProps {
    ```
 
 4. **Testing:**
-   - NEVER run tests locally (CI/CD only)
-   - Write tests but push to GitHub for execution
+   - Write tests alongside the implementation and use CI results as execution evidence
 
 ## Shared Package Guidelines
 

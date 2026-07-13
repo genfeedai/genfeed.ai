@@ -1,7 +1,14 @@
+import type { ReactNode } from 'react';
 import { vi } from 'vitest';
 
 vi.mock('@genfeedai/agent', () => ({
   AgentFullPage: () => null,
+}));
+
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
 }));
 
 vi.mock('@genfeedai/auth-client/react', () => ({
@@ -28,13 +35,13 @@ vi.mock('../agent-workspace-context', () => ({
 }));
 
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import ChatOnboardingPage, * as PageModule from './page';
 
 runPageModuleTests('app/(protected)/agent/onboarding/page', PageModule);
 
 describe('ChatOnboardingPage', () => {
-  it('renders only the workspace shell container and no inline page content', () => {
+  it('renders the workspace shell container', () => {
     const { container } = render(<ChatOnboardingPage />);
     expect(container.firstChild).toHaveClass(
       'flex',
@@ -42,6 +49,13 @@ describe('ChatOnboardingPage', () => {
       'flex-1',
       'flex-col',
     );
-    expect(container.firstChild).toBeEmptyDOMElement();
+  });
+
+  it('offers a classic-wizard fallback link', () => {
+    render(<ChatOnboardingPage />);
+    const fallbackLink = screen.getByRole('link', {
+      name: /prefer a form\? use the classic setup/i,
+    });
+    expect(fallbackLink).toHaveAttribute('href', '/onboarding');
   });
 });

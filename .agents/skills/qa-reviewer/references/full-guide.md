@@ -33,7 +33,7 @@ List all changes made:
 
 **1.3 Check Critical Rules**
 
-For projects, ALWAYS verify against repo-level agent instructions (`AGENTS.md`, `CLAUDE.md`, `CODEX.md`, or equivalent) and the user's platform-level instruction file. These are the canonical sources for project rules and "never do" constraints. The harness loads them automatically; read them if you need to reference specific rules during review.
+For projects, ALWAYS verify against repo-level agent instructions (`AGENTS.md` and `CLAUDE.md`, or equivalent) and the user's platform-level instruction file. These are the canonical sources for project rules and "never do" constraints. The harness loads them automatically; read them if you need to reference specific rules during review.
 
 ### Phase 2: Requirement Verification
 
@@ -146,9 +146,8 @@ Violations to check:
 [ ] No inline interfaces
 [ ] No deletedAt (use isDeleted)
 [ ] No serializers in API repo
-[ ] No test execution locally
 [ ] Multi-tenancy enforced
-[ ] AGENTS.md/CLAUDE.md/CODEX.md not deleted
+[ ] AGENTS.md/CLAUDE.md not deleted
 [ ] .agents/ folders not deleted
 ```
 
@@ -262,7 +261,6 @@ CLAUDE.md rules checked:
 - No console.log violations
 - No `any` types added
 - No inline interfaces
-- No test execution locally
 - Multi-tenancy preserved
 - Mandatory files protected
 

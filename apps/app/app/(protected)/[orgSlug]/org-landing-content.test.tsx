@@ -129,6 +129,29 @@ describe('OrgLandingContent', () => {
     });
   });
 
+  it('routes incomplete cloud users to the agent onboarding surface', async () => {
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+    mocks.brandState.brands = [
+      {
+        id: 'brand_1',
+        label: 'Default Organization',
+        slug: 'default',
+        totalCredentials: 0,
+      },
+    ];
+
+    render(<OrgLandingContent />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+    });
+  });
+
   it('renders the project picker when multiple projects exist', () => {
     mocks.brandState.brands = [
       {

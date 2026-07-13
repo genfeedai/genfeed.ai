@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
+import {
+  buildDesktopAssetUrl,
+  DESKTOP_IPC_CHANNELS,
+  parseDesktopAssetUrl,
+} from '@genfeedai/desktop-contracts';
 import {
   buildWorkspaceAssetsDir,
   buildWorkspaceDraftsPath,
@@ -43,6 +47,27 @@ describe('desktop shared packages', () => {
   it('builds the workspace assets directory in a shared utility', () => {
     expect(buildWorkspaceAssetsDir('/tmp/workspace')).toBe(
       '/tmp/workspace/.genfeed/assets',
+    );
+  });
+
+  it('round-trips opaque desktop asset protocol URLs', () => {
+    const assetUrl = buildDesktopAssetUrl('asset_123-abc');
+
+    expect(assetUrl).toBe('genfeed-asset://local/asset_123-abc');
+    expect(parseDesktopAssetUrl(assetUrl)).toBe('asset_123-abc');
+  });
+
+  it('rejects malformed desktop asset protocol URLs', () => {
+    expect(parseDesktopAssetUrl('file:///tmp/private.png')).toBeNull();
+    expect(
+      parseDesktopAssetUrl('genfeed-asset://local/%2E%2E%2Fprivate.png'),
+    ).toBeNull();
+    expect(parseDesktopAssetUrl('genfeed-asset://remote/asset-1')).toBeNull();
+    expect(
+      parseDesktopAssetUrl('genfeed-asset://user@local/asset-1'),
+    ).toBeNull();
+    expect(() => buildDesktopAssetUrl('../private.png')).toThrow(
+      'Invalid desktop asset id.',
     );
   });
 

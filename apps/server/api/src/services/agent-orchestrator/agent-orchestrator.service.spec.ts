@@ -11,6 +11,7 @@ import { SettingsService } from '@api/collections/settings/services/settings.ser
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
@@ -226,6 +227,7 @@ describe('AgentOrchestratorService', () => {
     const agentRunsServiceMock = {
       complete: vi.fn().mockResolvedValue({ durationMs: 100 }),
       create: vi.fn().mockResolvedValue({ id: RUN_ID }),
+      fail: vi.fn().mockResolvedValue({}),
       isCancelled: vi.fn().mockResolvedValue(false),
       mergeMetadata: vi.fn().mockResolvedValue(undefined),
       patch: vi.fn().mockResolvedValue({}),
@@ -234,6 +236,12 @@ describe('AgentOrchestratorService', () => {
         .fn()
         .mockResolvedValue({ startedAt: new Date('2026-03-09T12:00:00.000Z') }),
     };
+    // Real service wired to the mocked publisher/runs deps so the moved
+    // publishStream* composite effects behave identically to pre-extraction.
+    const streamEffectsMock = new AgentStreamEffectsService(
+      streamPublisherMock as unknown as AgentStreamPublisherService,
+      agentRunsServiceMock as unknown as AgentRunsService,
+    );
     const agentRuntimeSessionServiceMock = {
       getBinding: vi.fn().mockResolvedValue(null),
       getBindingEffect: vi.fn((...args: unknown[]) =>
@@ -297,6 +305,7 @@ describe('AgentOrchestratorService', () => {
             SettingsService,
             AgentStrategiesService,
             AgentStreamPublisherService,
+            AgentStreamEffectsService,
             AgentRunsService,
             AgentThreadEngineService,
             AgentRuntimeSessionService,
@@ -319,6 +328,7 @@ describe('AgentOrchestratorService', () => {
             settingsSvc: SettingsService,
             agentStrategiesSvc: AgentStrategiesService,
             streamPublisherSvc: AgentStreamPublisherService,
+            streamEffectsSvc: AgentStreamEffectsService,
             agentRunsSvc: AgentRunsService,
             threadEngineSvc: AgentThreadEngineService,
             runtimeSessionSvc: AgentRuntimeSessionService,
@@ -340,6 +350,7 @@ describe('AgentOrchestratorService', () => {
               settingsSvc,
               agentStrategiesSvc,
               streamPublisherSvc,
+              streamEffectsSvc,
               agentRunsSvc,
               undefined,
               undefined,
@@ -412,6 +423,10 @@ describe('AgentOrchestratorService', () => {
         {
           provide: AgentStreamPublisherService,
           useValue: streamPublisherMock,
+        },
+        {
+          provide: AgentStreamEffectsService,
+          useValue: streamEffectsMock,
         },
         {
           provide: AgentRunsService,

@@ -1,5 +1,6 @@
 'use client';
 
+import { isSaaS } from '@genfeedai/config/deployment';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
@@ -10,8 +11,12 @@ import {
   type AccessBootstrapState,
   AuthService,
 } from '@genfeedai/services/auth/auth.service';
-import { loadClientProtectedBootstrap } from '@providers/protected-bootstrap/client-protected-bootstrap';
-import { useQuery } from '@tanstack/react-query';
+import { UsersService } from '@genfeedai/services/organization/users.service';
+import {
+  clearClientProtectedBootstrapCache,
+  loadClientProtectedBootstrap,
+} from '@providers/protected-bootstrap/client-protected-bootstrap';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, use, useCallback, useMemo } from 'react';
 
 export interface AccessStateContextValue {
@@ -24,6 +29,14 @@ export interface AccessStateContextValue {
   hasPaygCredits: boolean;
   canAccessApp: boolean;
   needsOnboarding: boolean;
+  /**
+   * First-asset unlock gate (cloud SaaS only). True while the org has not yet
+   * generated its first asset and this user has not dismissed the gate — the
+   * signal the nav/overlay use to render the locked/teaser state.
+   */
+  isAssetGateLocked: boolean;
+  /** Persist the per-user "explore anyway" escape hatch and unlock immediately. */
+  dismissAssetGate: () => Promise<void>;
 }
 
 const AccessStateContext = createContext<AccessStateContextValue | undefined>(
@@ -58,6 +71,10 @@ export function AccessStateProvider({
   const getAuthService = useAuthedService((token: string) =>
     AuthService.getInstance(token),
   );
+  const getUsersService = useAuthedService((token: string) =>
+    UsersService.getInstance(token),
+  );
+  const queryClient = useQueryClient();
   const initialDataUpdatedAt = useMemo(() => Date.now(), []);
 
   const shouldFetch =
@@ -70,6 +87,17 @@ export function AccessStateProvider({
     shouldFetch && effectiveUserId
       ? `protected-bootstrap:${effectiveUserId}:${effectiveOrgId || 'no-org'}`
       : undefined;
+
+  const accessStateQueryKey = useMemo(
+    () => [
+      'access-state',
+      brandId,
+      organizationId,
+      effectiveUserId,
+      effectiveOrgId,
+    ],
+    [brandId, organizationId, effectiveUserId, effectiveOrgId],
+  );
 
   const {
     data: accessState = null,
@@ -93,13 +121,7 @@ export function AccessStateProvider({
 
       return bootstrap?.accessState ?? null;
     },
-    queryKey: [
-      'access-state',
-      brandId,
-      organizationId,
-      effectiveUserId,
-      effectiveOrgId,
-    ],
+    queryKey: accessStateQueryKey,
     staleTime: ACCESS_STATE_CACHE_TTL_MS,
   });
 
@@ -114,15 +136,50 @@ export function AccessStateProvider({
   const needsOnboarding = accessState?.isOnboardingCompleted !== true;
   const canAccessApp = isSuperAdmin || isSubscribed || isByok;
 
+  // First-asset unlock gate. SaaS-only (isSaaS excludes cloud-connected Desktop);
+  // super-admins bypass. Fail-open: locked ONLY when both flags are explicitly
+  // false and access state is loaded — a still-loading or older cached payload
+  // missing these keys must render children, never flash the locked overlay.
+  const isAssetGateLocked =
+    isSaaS() &&
+    !isSuperAdmin &&
+    !isLoading &&
+    accessState != null &&
+    accessState.hasGeneratedFirstAsset === false &&
+    accessState.hasDismissedAssetGate === false;
+
   const refreshAccessState = useCallback(async () => {
     await refetch();
   }, [refetch]);
+
+  const dismissAssetGate = useCallback(async () => {
+    // Unlock the UI immediately, independent of the ~60s client bootstrap cache
+    // and the API's Redis cache TTL.
+    queryClient.setQueryData<AccessBootstrapState | null>(
+      accessStateQueryKey,
+      (previous) =>
+        previous ? { ...previous, hasDismissedAssetGate: true } : previous,
+    );
+
+    try {
+      const usersService = await getUsersService();
+      await usersService.dismissAssetGate();
+    } finally {
+      // Bust the stale client bootstrap snapshot so the reconciling refetch
+      // reads the server's now-updated (and Redis-invalidated) payload rather
+      // than re-serving the old locked one and clobbering the optimistic update.
+      clearClientProtectedBootstrapCache();
+      await refetch();
+    }
+  }, [accessStateQueryKey, getUsersService, queryClient, refetch]);
 
   const value = useMemo<AccessStateContextValue>(
     () => ({
       accessState,
       canAccessApp,
+      dismissAssetGate,
       hasPaygCredits,
+      isAssetGateLocked,
       isByok,
       isLoading,
       isSubscribed,
@@ -133,7 +190,9 @@ export function AccessStateProvider({
     [
       accessState,
       canAccessApp,
+      dismissAssetGate,
       hasPaygCredits,
+      isAssetGateLocked,
       isByok,
       isLoading,
       isSubscribed,

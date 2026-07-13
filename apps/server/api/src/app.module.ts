@@ -39,6 +39,7 @@ import { CredentialsModule } from '@api/collections/credentials/credentials.modu
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CronJobsModule } from '@api/collections/cron-jobs/cron-jobs.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
+import { DashboardLayoutsModule } from '@api/collections/dashboard-layouts/dashboard-layouts.module';
 import { DistributionsModule } from '@api/collections/distributions/distributions.module';
 import { EditorProjectsModule } from '@api/collections/editor-projects/editor-projects.module';
 import { ElementsBlacklistsModule } from '@api/collections/elements/blacklists/blacklists.module';
@@ -278,6 +279,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     CreativePatternsModule,
     CredentialsModule,
     CreditsModule,
+    DashboardLayoutsModule,
     DistributionsModule,
     CustomersModule,
     ElementsBlacklistsModule,

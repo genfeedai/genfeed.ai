@@ -332,7 +332,9 @@ describe('AuthBootstrapService', () => {
       access: {
         brandId,
         creditsBalance: 125,
+        hasDismissedAssetGate: false,
         hasEverHadCredits: true,
+        hasGeneratedFirstAsset: false,
         isOnboardingCompleted: true,
         isSuperAdmin: false,
         organizationId,

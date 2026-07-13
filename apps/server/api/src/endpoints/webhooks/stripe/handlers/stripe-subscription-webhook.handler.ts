@@ -268,11 +268,21 @@ export class StripeSubscriptionWebhookHandler {
         await this.supportService.invalidateUserCaches(userId);
       }
 
-      await this.lifecycleEmailService.recordSubscriptionLapsed({
-        organizationId: String(existingSubscription.organization),
-        subscriptionId: subscription.id,
-        userId: String(existingSubscription.user),
-      });
+      try {
+        await this.lifecycleEmailService.recordSubscriptionLapsed({
+          organizationId: String(existingSubscription.organization),
+          subscriptionId: subscription.id,
+          userId: String(existingSubscription.user),
+        });
+      } catch (error: unknown) {
+        this.loggerService.warn(
+          `${url} lifecycle email subscription-lapsed recording skipped`,
+          {
+            error: error instanceof Error ? error.message : error,
+            subscriptionId: subscription.id,
+          },
+        );
+      }
 
       this.loggerService.log(`${url} subscription deleted successfully`, {
         organizationId: existingSubscription.organization,

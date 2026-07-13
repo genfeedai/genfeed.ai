@@ -8,7 +8,10 @@ import { HiCheck, HiSparkles } from 'react-icons/hi2';
 
 interface BrandCreateCardProps {
   action: AgentUiAction;
-  onCreate?: (payload: { name: string; description: string }) => void;
+  onCreate?: (payload: {
+    name: string;
+    description: string;
+  }) => void | Promise<void>;
 }
 
 export function BrandCreateCard({
@@ -18,14 +21,26 @@ export function BrandCreateCard({
   const [name, setName] = useState(action.brandName ?? '');
   const [description, setDescription] = useState(action.brandDescription ?? '');
   const [isCreated, setIsCreated] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCreate = useCallback(() => {
-    if (!name.trim()) {
+  const handleCreate = useCallback(async () => {
+    if (!name.trim() || isCreating) {
       return;
     }
-    onCreate?.({ description, name });
-    setIsCreated(true);
-  }, [name, description, onCreate]);
+
+    setError(null);
+    setIsCreating(true);
+    try {
+      await onCreate?.({ description, name });
+      setIsCreated(true);
+    } catch {
+      // Keep the form editable so the user can retry after a failed create.
+      setError('Could not create brand. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
+  }, [name, description, isCreating, onCreate]);
 
   if (isCreated) {
     return (
@@ -90,15 +105,22 @@ export function BrandCreateCard({
         />
       </div>
 
+      {error && (
+        <p className="mb-3 text-xs text-red-600 dark:text-red-400" role="alert">
+          {error}
+        </p>
+      )}
+
       {/* Create button */}
       <Button
         variant={ButtonVariant.DEFAULT}
         onClick={handleCreate}
-        isDisabled={!name.trim()}
+        isDisabled={!name.trim() || isCreating}
+        isLoading={isCreating}
         icon={<HiSparkles className="size-4" />}
         className="w-full justify-center"
       >
-        Create Brand
+        {isCreating ? 'Creating…' : 'Create Brand'}
       </Button>
     </div>
   );

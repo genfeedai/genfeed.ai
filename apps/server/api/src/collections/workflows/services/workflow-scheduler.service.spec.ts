@@ -263,6 +263,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
       where: {
         id: 'wf-1',
         isDeleted: false,
+        isScheduleEnabled: true,
         status: WorkflowStatus.ACTIVE,
       },
     });
@@ -279,7 +280,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     );
   });
 
-  it('skips scheduled node execution when required input defaults are missing', async () => {
+  it('disables and unschedules workflows when required input defaults are missing', async () => {
     const prisma = createMockPrisma();
     prisma.workflow.findFirst.mockResolvedValue({
       id: 'wf-1',
@@ -299,14 +300,22 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
       executeManualWorkflow: vi.fn().mockResolvedValue({}),
       executeManualWorkflowDocument: vi.fn().mockResolvedValue({}),
     };
-    const { logger, service } = createService({
+    const { logger, queueService, service } = createService({
       prisma,
       workflowExecutorService,
     });
 
     await service.executeScheduledWorkflow('wf-1');
 
-    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(prisma.workflow.update).toHaveBeenCalledWith({
+      data: { isScheduleEnabled: false },
+      where: {
+        id: 'wf-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(queueService.removeWorkflowScheduler).toHaveBeenCalledWith('wf-1');
     expect(
       workflowExecutorService.executeManualWorkflowDocument,
     ).not.toHaveBeenCalled();

@@ -5,6 +5,7 @@ import {
   buildTaskLaunchHref,
   getBrandSwitchHref,
   getCurrentBrandScopedPath,
+  isAssetGateSectionPath,
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
 } from './operator-shell';
@@ -36,6 +37,43 @@ describe('operator-shell helpers', () => {
     expect(getCurrentBrandScopedPath('/acme/~/overview')).toBe(
       '/workspace/overview',
     );
+  });
+
+  it('gates the first-asset unlock sections (and their aliases) only', () => {
+    // Gated sections + Workspace/Workflows aliases (Codex review: /tasks,
+    // /orchestration must be gated too).
+    for (const gated of [
+      '/workspace',
+      '/workspace/overview',
+      '/overview',
+      '/tasks',
+      '/library',
+      '/library/ingredients',
+      '/analytics',
+      '/analytics/overview',
+      '/workflows',
+      '/orchestration',
+      '/posts/calendar',
+    ]) {
+      expect(isAssetGateSectionPath(gated)).toBe(true);
+    }
+
+    // Never gated: agent, settings, studio, research, publish base, messages,
+    // admin — and a look-alike prefix must not false-match.
+    for (const open of [
+      '/agent',
+      '/agent/new',
+      '/settings',
+      '/settings/organization',
+      '/studio/image',
+      '/research/discovery',
+      '/posts',
+      '/messages',
+      '/admin',
+      '/analytics-preview',
+    ]) {
+      expect(isAssetGateSectionPath(open)).toBe(false);
+    }
   });
 
   it('keeps org-scoped app surfaces when switching brands', () => {

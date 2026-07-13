@@ -2,8 +2,11 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { isCloudDeployment } from '@genfeedai/config/deployment';
 import {
+  APP_ROUTES,
   createBrandAppRoute,
+  createOrganizationAppRoute,
   getResumeStep,
   ONBOARDING_STEPS,
 } from '@genfeedai/constants';
@@ -56,9 +59,18 @@ export default function ProtectedRootResolver() {
       ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
 
     if (!hasCompletedOnboarding) {
-      const resumeStep = getResumeStep(completedSteps);
       setStatusMessage('Opening onboarding...');
-      replace(`/onboarding/${resumeStep}`);
+      const agentOrgSlug =
+        getBrandOrganizationSlug(selectedBrand) ||
+        getBrandOrganizationSlug(brands[0]);
+      replace(
+        isCloudDeployment() && agentOrgSlug
+          ? createOrganizationAppRoute(
+              agentOrgSlug,
+              APP_ROUTES.AGENT.ONBOARDING,
+            )
+          : `/onboarding/${getResumeStep(completedSteps)}`,
+      );
       return;
     }
 

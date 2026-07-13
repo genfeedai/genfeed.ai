@@ -7,9 +7,17 @@ import {
   parseSelectedCredits,
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import {
+  isCloudDeployment,
+  isSelfHostedDeployment,
+} from '@genfeedai/config/deployment';
 import { isEEEnabled } from '@genfeedai/config/license';
-import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createOrganizationAppRoute,
+  getResumeStep,
+  ONBOARDING_STEPS,
+} from '@genfeedai/constants';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
@@ -52,7 +60,10 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const proactiveLeadId = authUser?.publicMetadata?.proactiveLeadId;
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
 
-  const resolveOnboardingHref = useCallback(async (): Promise<string> => {
+  // Base href for post-checkout returns. Kept byte-identical to the #1421
+  // handoff (wizard resume step) so the Stripe success/cancel round-trip is
+  // unchanged — the revenue path is exactly where #1421 regressed.
+  const resolveCheckoutReturnHref = useCallback(async (): Promise<string> => {
     if (proactiveLeadId) {
       return '/onboarding/proactive';
     }
@@ -96,6 +107,63 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
     return onboardingHref;
   }, [currentUser, getToken, proactiveLeadId]);
+
+  // Resolve the active organization slug so we can build the org-scoped agent
+  // onboarding route. Falls back to null so callers can degrade to the wizard.
+  const resolveActiveOrgSlug = useCallback(async (): Promise<string | null> => {
+    const token = await resolveAuthToken(getToken);
+    if (!token) {
+      return null;
+    }
+
+    const organizations = await OrganizationsService.getInstance(token)
+      .getMyOrganizations()
+      .catch((error) => {
+        logger.error(
+          'Failed to resolve organizations for agent onboarding routing',
+          error,
+        );
+        return [];
+      });
+
+    const activeOrganization =
+      organizations.find((organization) => organization.isActive) ??
+      organizations[0];
+
+    return activeOrganization?.slug ?? null;
+  }, [getToken]);
+
+  // Default first-run destination. Agent-first onboarding is the cloud SaaS
+  // default; self-hosted/desktop keep the form wizard because the agent
+  // onboarding surface needs the managed orchestrator to run.
+  const resolveOnboardingHref = useCallback(async (): Promise<string> => {
+    if (proactiveLeadId) {
+      return '/onboarding/proactive';
+    }
+
+    const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
+    const hasCompletedAllOnboardingSteps =
+      currentUser?.isOnboardingCompleted === true ||
+      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
+
+    if (hasCompletedAllOnboardingSteps) {
+      return '/';
+    }
+
+    const wizardHref = buildOnboardingResumeHref(
+      getResumeStep(completedSteps),
+      localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
+    );
+
+    if (!isCloudDeployment()) {
+      return wizardHref;
+    }
+
+    const orgSlug = await resolveActiveOrgSlug();
+    return orgSlug
+      ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
+      : wizardHref;
+  }, [currentUser, proactiveLeadId, resolveActiveOrgSlug]);
 
   useEffect(() => {
     if (isLoading || !currentUser || !hasAuthUser || calledRef.current) {
@@ -201,7 +269,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         }
 
         try {
-          const onboardingHref = await resolveOnboardingHref();
+          const onboardingHref = await resolveCheckoutReturnHref();
           const successPath = appendCheckoutReturnParams(
             onboardingHref,
             'plan-checkout',
@@ -308,7 +376,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         }
 
         try {
-          const onboardingHref = await resolveOnboardingHref();
+          const onboardingHref = await resolveCheckoutReturnHref();
           const successPath = appendCheckoutReturnParams(
             onboardingHref,
             'credits-checkout',
@@ -385,6 +453,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     requestedBrandNameParam,
     requestedCreditsParam,
     requestedPlanParam,
+    resolveCheckoutReturnHref,
     resolveOnboardingHref,
   ]);
 

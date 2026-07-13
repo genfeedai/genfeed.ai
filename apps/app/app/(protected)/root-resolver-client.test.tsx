@@ -141,4 +141,23 @@ describe('ProtectedRootResolver', () => {
       expect(mocks.replace).toHaveBeenCalledWith('/onboarding');
     });
   });
+
+  it('routes incomplete cloud users to the agent onboarding surface', async () => {
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: ['brand'],
+    };
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      slug: 'default',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+    });
+  });
 });

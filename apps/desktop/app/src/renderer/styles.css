@@ -1516,6 +1516,29 @@ textarea {
   gap: 10px;
 }
 
+.asset-preview {
+  align-items: center;
+  aspect-ratio: 16 / 9;
+  background: var(--tertiary);
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.asset-preview-image {
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.asset-preview-unavailable {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 12px;
+  text-align: center;
+}
+
 .ingredient-header {
   align-items: center;
   display: flex;

@@ -17,4 +17,6 @@ export interface IUser extends IBaseEntity {
   onboardingCompletedAt?: Date;
   onboardingType?: OnboardingType;
   onboardingStepsCompleted?: string[];
+  // First-asset unlock gate: per-user "explore anyway" escape hatch.
+  hasDismissedAssetGate?: boolean;
 }

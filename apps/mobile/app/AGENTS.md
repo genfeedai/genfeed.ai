@@ -2,6 +2,12 @@
 
 React Native + Expo app for Genfeed.ai. TypeScript + NativeWind (Tailwind CSS).
 
+## Key Entry Points
+
+- Routes live in `app/` and use Expo Router's file-based routing.
+- Shared types come from the monorepo `packages/` workspaces.
+- Styling uses NativeWind.
+
 ## Project Documentation
 
 **Start here:** `../../../.agents/README.md`

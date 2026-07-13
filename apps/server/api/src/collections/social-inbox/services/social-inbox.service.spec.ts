@@ -1,5 +1,5 @@
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 
 type StoreConversation = {
   id: string;
@@ -92,6 +92,7 @@ type PrismaMock = {
     findFirst: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
   };
 };
 
@@ -264,6 +265,19 @@ function createContext(): TestContext {
           ),
         ),
       create: vi.fn().mockImplementation(({ data }) => {
+        if (
+          data.idempotencyKey &&
+          messages.some(
+            (item) =>
+              item.organizationId === data.organizationId &&
+              item.idempotencyKey === data.idempotencyKey,
+          )
+        ) {
+          throw Object.assign(new Error('Unique constraint violation'), {
+            code: 'P2002',
+          });
+        }
+
         const now = new Date();
         const message: StoreMessage = {
           actionProvenance: data.actionProvenance ?? {},
@@ -319,6 +333,13 @@ function createContext(): TestContext {
         }
         Object.assign(message, data);
         return Promise.resolve(message);
+      }),
+      updateMany: vi.fn().mockImplementation(({ data, where }) => {
+        const matched = messages.filter((item) => matchesWhere(item, where));
+        for (const message of matched) {
+          Object.assign(message, data, { updatedAt: new Date() });
+        }
+        return Promise.resolve({ count: matched.length });
       }),
     },
   };
@@ -430,6 +451,170 @@ describe('SocialInboxService', () => {
     });
     expect(first.workflowRunId).toBe('workflow-run-1');
     expect(first.status).toBe('sent');
+  });
+
+  it('claims a reply idempotency key before concurrent provider calls', async () => {
+    const { instagramService, messages, service } = createContext();
+    const inbound = await service.ingestInboundMessage({
+      body: 'Inbound',
+      brandId: 'brand-1',
+      conversationType: 'comment',
+      externalConversationId: 'thread-1',
+      externalMessageId: 'comment-1',
+      externalParentId: 'comment-1',
+      organizationId: 'org-1',
+      participantExternalId: 'author-1',
+      platform: 'instagram',
+    });
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    const input = {
+      idempotencyKey: 'concurrent-reply',
+      text: 'Thanks for the comment',
+    };
+
+    const results = await Promise.all([
+      service
+        .postReply(scope, inbound.conversationId, input)
+        .catch((error: unknown) => error),
+      service
+        .postReply(scope, inbound.conversationId, input)
+        .catch((error: unknown) => error),
+    ]);
+
+    expect(instagramService.replyToComment).toHaveBeenCalledTimes(1);
+    expect(
+      messages.filter(
+        (message) => message.idempotencyKey === input.idempotencyKey,
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        conversationId: inbound.conversationId,
+        organizationId: scope.organizationId,
+        status: 'sent',
+      }),
+    ]);
+    expect(
+      results.every(
+        (result) =>
+          result instanceof ConflictException ||
+          (typeof result === 'object' && result !== null && 'id' in result),
+      ),
+    ).toBe(true);
+  });
+
+  it('claims a DM idempotency key before concurrent provider calls', async () => {
+    const { instagramService, messages, service } = createContext();
+    const inbound = await service.ingestInboundMessage({
+      body: 'Inbound',
+      brandId: 'brand-1',
+      conversationType: 'dm',
+      externalConversationId: 'thread-1',
+      externalMessageId: 'message-1',
+      organizationId: 'org-1',
+      participantExternalId: 'author-1',
+      platform: 'instagram',
+    });
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    const input = {
+      idempotencyKey: 'concurrent-dm',
+      recipientId: 'author-1',
+      text: 'Following up',
+    };
+
+    const results = await Promise.all([
+      service
+        .sendDm(scope, inbound.conversationId, input)
+        .catch((error: unknown) => error),
+      service
+        .sendDm(scope, inbound.conversationId, input)
+        .catch((error: unknown) => error),
+    ]);
+
+    expect(instagramService.sendCommentReplyDm).toHaveBeenCalledTimes(1);
+    expect(
+      messages.filter(
+        (message) => message.idempotencyKey === input.idempotencyKey,
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        conversationId: inbound.conversationId,
+        organizationId: scope.organizationId,
+        status: 'sent',
+      }),
+    ]);
+    expect(
+      results.every(
+        (result) =>
+          result instanceof ConflictException ||
+          (typeof result === 'object' && result !== null && 'id' in result),
+      ),
+    ).toBe(true);
+  });
+
+  it('reclaims a failed reply reservation and retries the provider once', async () => {
+    const { instagramService, messages, service } = createContext();
+    const inbound = await service.ingestInboundMessage({
+      body: 'Inbound',
+      brandId: 'brand-1',
+      conversationType: 'comment',
+      externalConversationId: 'thread-1',
+      externalMessageId: 'comment-1',
+      externalParentId: 'comment-1',
+      organizationId: 'org-1',
+      participantExternalId: 'author-1',
+      platform: 'instagram',
+    });
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    const input = {
+      idempotencyKey: 'retry-reply',
+      text: 'Thanks for the comment',
+    };
+    instagramService.replyToComment
+      .mockRejectedValueOnce(new Error('provider unavailable'))
+      .mockResolvedValueOnce({ commentId: 'ig-reply-retried' });
+
+    await expect(
+      service.postReply(scope, inbound.conversationId, input),
+    ).rejects.toThrow('provider unavailable');
+    expect(messages).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          failureReason: 'provider unavailable',
+          idempotencyKey: input.idempotencyKey,
+          status: 'failed',
+        }),
+      ]),
+    );
+
+    const retried = await service.postReply(
+      scope,
+      inbound.conversationId,
+      input,
+    );
+
+    expect(instagramService.replyToComment).toHaveBeenCalledTimes(2);
+    expect(
+      messages.filter(
+        (message) => message.idempotencyKey === input.idempotencyKey,
+      ),
+    ).toHaveLength(1);
+    expect(retried).toMatchObject({
+      externalMessageId: 'ig-reply-retried',
+      failureReason: null,
+      status: 'sent',
+    });
   });
 
   it('queues comment trigger workflows when the inbound message has a user owner', async () => {

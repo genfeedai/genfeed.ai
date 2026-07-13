@@ -194,8 +194,7 @@ async findAll() {
 
 3. **Testing:**
    - Create/update .http files alongside controllers
-   - NEVER run tests locally (CI/CD only)
-   - Write tests but push to GitHub for execution
+   - Write tests alongside the implementation and use CI results as execution evidence
 
 4. **Error Handling:**
    - Use NestJS exceptions (NotFoundException, BadRequestException)

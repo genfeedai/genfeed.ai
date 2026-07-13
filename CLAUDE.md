@@ -6,7 +6,7 @@
 @.agents/memory/context/project-style-guide.md
 @.agents/memory/context/skills-architecture.md
 
-TypeScript monorepo: 7 app workspaces, 11 backend service workspaces, 43 shared packages.
+TypeScript monorepo: 7 app workspaces, 12 backend service workspaces, 43 shared packages.
 Stack: Next.js + NestJS + PostgreSQL (Prisma) + Redis + BullMQ
 
 ## Git Workflow
@@ -20,17 +20,6 @@ Stack: Next.js + NestJS + PostgreSQL (Prisma) + Redis + BullMQ
 - **Hotfix**: `hotfix/xxx` off `master` → fix → PR to `master`
 - **Releases** are cut from `master` (semver tag + GitHub release via `/release`); `staging`/`production` are deploy environments driven by CI/tags, not branches
 - **bun.lock is `merge=binary`** — on conflicts: `rm bun.lock && bun install`
-
-### Pre-Push Checklist (MANDATORY)
-
-```bash
-bunx biome check --write .
-bunx turbo lint
-bun type-check
-bun run test --filter=@genfeedai/[changed-package]
-```
-
-If ANY step fails, fix it before pushing.
 
 ## Commands
 

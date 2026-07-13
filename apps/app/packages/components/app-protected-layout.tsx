@@ -20,8 +20,8 @@ import { usePathname } from 'next/navigation';
 import { type ReactNode, Suspense, useCallback, useMemo } from 'react';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
-
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
+import AssetGateGuard from './asset-gate-guard';
 import {
   isProtectedEditorCanvasRoute,
   isProtectedWorkspaceRoute,
@@ -160,6 +160,7 @@ function AppLayoutWithDynamicMenu({
     setConversationActions,
     handleNavigate,
     handleNavigateToBilling,
+    handleOAuthConnect,
     handleOpenCommandPalette,
     isLowCreditsBannerEnabled,
     isDesktopShell,
@@ -263,6 +264,7 @@ function AppLayoutWithDynamicMenu({
         authReady={isAuthReadyForAgentPanel}
         isActive={isAgentOpen}
         onNavigateToBilling={handleNavigateToBilling}
+        onOAuthConnect={handleOAuthConnect}
       />
     );
 
@@ -358,7 +360,9 @@ function AppProtectedLayoutContent({
       includePromptBarProvider={!isEditorCanvasRoute && !isWorkspaceRoute}
     >
       <AppLayoutWithDynamicMenu initialBootstrap={initialBootstrap}>
-        <OnboardingGuard>{children}</OnboardingGuard>
+        <OnboardingGuard>
+          <AssetGateGuard>{children}</AssetGateGuard>
+        </OnboardingGuard>
       </AppLayoutWithDynamicMenu>
     </ProtectedProviders>
   );

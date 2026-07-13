@@ -6,6 +6,27 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": ["-c", "cd apps/website && bun run dev"],
       "port": 3002
+    },
+    {
+      "name": "app",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd apps/app && bun run dev"],
+      "port": 3000
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "bunx turbo run dev --filter=@genfeedai/api"],
+      "port": 3010
+    },
+    {
+      "name": "notifications",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "bunx turbo run dev --filter=@genfeedai/notifications"
+      ],
+      "port": 3011
     }
   ]
 }
