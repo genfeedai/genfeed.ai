@@ -12,6 +12,7 @@ const mockPathname = vi.hoisted(() => ({
 const mockAccessState = vi.hoisted(() => ({
   isSuperAdmin: false,
 }));
+const mockConversationShell = vi.hoisted(() => ({ enabled: false }));
 const originalLocation = window.location;
 
 vi.mock('@genfeedai/enums', () => ({
@@ -68,6 +69,10 @@ vi.mock(
     useAccessState: () => mockAccessState,
   }),
 );
+
+vi.mock('@/lib/workspace-shell/use-conversation-shell', () => ({
+  useConversationShellEnabled: () => mockConversationShell.enabled,
+}));
 
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
@@ -129,6 +134,11 @@ vi.mock('@ui/shell/app-switcher/AppSwitcher', () => ({
     brandSlug?: string;
     currentApp?: string;
     orgSlug: string;
+    preservedSearch?: string;
+    resolveNavigation?: (href: string) => {
+      announcement?: string;
+      href: string;
+    };
     showAdmin?: boolean;
     variant?: string;
   }) => {
@@ -177,6 +187,7 @@ describe('AppProtectedTopbar', () => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace/overview';
     mockAccessState.isSuperAdmin = false;
+    mockConversationShell.enabled = false;
     appSwitcherSpy.mockClear();
     brandSwitcherSpy.mockClear();
     mockPush.mockClear();
@@ -330,6 +341,43 @@ describe('AppProtectedTopbar', () => {
         showAdmin: false,
       }),
     );
+  });
+
+  it('launches switcher destinations through the trusted shell resolver', () => {
+    mockConversationShell.enabled = true;
+    mockSearchParams = new URLSearchParams([
+      ['taskId', 'task-1'],
+      ['taskSource', 'workspace'],
+      ['thread', 'thread-1'],
+    ]);
+
+    render(
+      <AppProtectedTopbar
+        orgSlug="acme"
+        brandSlug="brand"
+        currentApp="agent"
+      />,
+    );
+
+    const switcherProps = appSwitcherSpy.mock.lastCall?.[0] as {
+      preservedSearch?: string;
+      resolveNavigation?: (href: string) => {
+        announcement?: string;
+        href: string;
+      };
+    };
+
+    expect(switcherProps.preservedSearch).toBe(
+      'taskId=task-1&taskSource=workspace',
+    );
+    expect(
+      switcherProps.resolveNavigation?.(
+        '/acme/brand/analytics/overview?taskId=task-1',
+      ),
+    ).toEqual({
+      announcement: 'Opening analytics in canvas mode.',
+      href: '/acme/brand/analytics/overview?taskId=task-1&thread=thread-1',
+    });
   });
 
   it('renders the cloud sync indicator beside the terminal dock control', () => {

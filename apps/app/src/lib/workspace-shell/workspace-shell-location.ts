@@ -1,7 +1,8 @@
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 import {
+  getWorkspaceShellOverlayRegistration,
   resolveWorkspaceShellRoute,
-  WORKSPACE_SHELL_OVERLAY_REGISTRY,
+  resolveWorkspaceShellSafeFallback,
   type WorkspaceShellBaseState,
   type WorkspaceShellReferenceKind,
 } from './workspace-shell-registry';
@@ -32,12 +33,15 @@ export type WorkspaceShellLocation = {
   readonly overlayReference: WorkspaceShellTypedReference | null;
   readonly restorationFailure: WorkspaceShellRestorationFailure | null;
   readonly routeKey: string;
+  readonly safeFallbackHref: string;
   readonly state: WorkspaceShellState;
+  readonly surfaceKey: string;
   readonly threadId: string | null;
 };
 
 type RestoreWorkspaceShellLocationParams = {
   readonly normalizedPathname: string;
+  readonly pathname: string;
   readonly searchParams: URLSearchParams;
 };
 
@@ -82,14 +86,16 @@ function extractConversationThreadId(pathname: string): string | null {
 
 export function restoreWorkspaceShellLocation({
   normalizedPathname,
+  pathname,
   searchParams,
 }: RestoreWorkspaceShellLocationParams): WorkspaceShellLocation | null {
-  const route = resolveWorkspaceShellRoute(normalizedPathname);
+  const route = resolveWorkspaceShellRoute(pathname);
   if (!route || route.mode === 'dedicated') {
     return null;
   }
 
   const canonicalSearchParams = new URLSearchParams(searchParams);
+  const safeFallbackHref = resolveWorkspaceShellSafeFallback(route);
   const requestedThreadId = searchParams.get('thread');
   const threadId =
     route.mode === 'conversation'
@@ -114,7 +120,9 @@ export function restoreWorkspaceShellLocation({
       overlayReference: null,
       restorationFailure: 'invalid_thread',
       routeKey: route.key,
+      safeFallbackHref,
       state: route.mode,
+      surfaceKey: route.surfaceKey,
       threadId: null,
     };
   }
@@ -135,7 +143,7 @@ export function restoreWorkspaceShellLocation({
   const overlayKey = searchParams.get('overlay');
   const requestedOverlayReference = searchParams.get('overlayRef');
   const overlay = overlayKey
-    ? WORKSPACE_SHELL_OVERLAY_REGISTRY.get(overlayKey)
+    ? getWorkspaceShellOverlayRegistration(overlayKey)
     : null;
 
   if (!overlay) {
@@ -151,7 +159,9 @@ export function restoreWorkspaceShellLocation({
         overlayReference: null,
         restorationFailure: 'invalid_overlay',
         routeKey: route.key,
+        safeFallbackHref,
         state: route.mode,
+        surfaceKey: route.surfaceKey,
         threadId,
       };
     }
@@ -164,7 +174,9 @@ export function restoreWorkspaceShellLocation({
       overlayReference: null,
       restorationFailure: null,
       routeKey: route.key,
+      safeFallbackHref,
       state: route.mode,
+      surfaceKey: route.surfaceKey,
       threadId,
     };
   }
@@ -185,7 +197,9 @@ export function restoreWorkspaceShellLocation({
       overlayReference: null,
       restorationFailure: 'invalid_overlay_reference',
       routeKey: route.key,
+      safeFallbackHref,
       state: route.mode,
+      surfaceKey: route.surfaceKey,
       threadId,
     };
   }
@@ -198,7 +212,9 @@ export function restoreWorkspaceShellLocation({
     overlayReference,
     restorationFailure: null,
     routeKey: route.key,
+    safeFallbackHref,
     state: 'overlay',
+    surfaceKey: route.surfaceKey,
     threadId,
   };
 }

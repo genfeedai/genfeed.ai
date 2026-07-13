@@ -707,7 +707,7 @@ describe('AppProtectedLayout', () => {
 
   it('mounts the flagged universal shell without the legacy terminal dock', async () => {
     featureFlagState.conversationShell = true;
-    mockPathname.value = '/studio/image';
+    mockPathname.value = '/org-123/brand-123/studio/image';
 
     render(
       <AppProtectedLayout>
@@ -734,7 +734,7 @@ describe('AppProtectedLayout', () => {
   it('restores the exact legacy dock when the flagged shell fails to render', () => {
     featureFlagState.conversationShell = true;
     featureFlagState.shellThrows = true;
-    mockPathname.value = '/studio/image';
+    mockPathname.value = '/org-123/brand-123/studio/image';
     const consoleError = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);

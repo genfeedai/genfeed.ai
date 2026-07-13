@@ -122,10 +122,11 @@ function UniversalWorkspaceShellContent({
       requireWorkspaceShellLocation(
         restoreWorkspaceShellLocation({
           normalizedPathname,
+          pathname: rawPathname,
           searchParams: new URLSearchParams(searchParamsString),
         }),
       ),
-    [normalizedPathname, searchParamsString],
+    [normalizedPathname, rawPathname, searchParamsString],
   );
 
   const {
@@ -134,7 +135,9 @@ function UniversalWorkspaceShellContent({
     isCanonical,
     overlayReference,
     restorationFailure,
+    safeFallbackHref,
     state,
+    surfaceKey,
     threadId,
   } = shellLocation;
   const canonicalSearchParamsString = canonicalSearchParams.toString();
@@ -181,16 +184,16 @@ function UniversalWorkspaceShellContent({
     }
     replace(
       restorationFailure === 'invalid_thread'
-        ? orgHref(APP_ROUTES.AGENT.ROOT)
+        ? safeFallbackHref
         : canonicalHref,
     );
   }, [
     canonicalSearchParamsString,
     isCanonical,
-    orgHref,
     rawPathname,
     replace,
     restorationFailure,
+    safeFallbackHref,
   ]);
 
   useEffect(() => {
@@ -370,7 +373,7 @@ function UniversalWorkspaceShellContent({
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         <div className="gen-shell-empty-state p-4">
           <p className="text-sm font-medium text-foreground">
-            Registered inspector slot
+            Registered {surfaceKey} adapter slot
           </p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
             Product-owned context adapters land here without changing their
@@ -401,10 +404,11 @@ function UniversalWorkspaceShellContent({
     <div
       className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-black p-2"
       data-shell-state={state}
+      data-workspace-surface={surfaceKey}
       data-testid="universal-workspace-shell"
     >
       <div aria-live="polite" className="sr-only" role="status">
-        Workspace state: {state}
+        Workspace mode: {state}. Active surface: {surfaceKey}.
       </div>
 
       <div
