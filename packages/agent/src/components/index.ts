@@ -13,6 +13,7 @@ export { AgentModelSelector } from '@genfeedai/agent/components/AgentModelSelect
 export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 export { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';
 export { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
+export { AgentSetupPanel } from '@genfeedai/agent/components/AgentSetupPanel';
 export { AgentSidebar } from '@genfeedai/agent/components/AgentSidebar';
 export { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
 export { AgentStrategyConfig } from '@genfeedai/agent/components/AgentStrategyConfig';
@@ -27,3 +28,8 @@ export {
   DynamicTable,
 } from '@genfeedai/agent/components/blocks';
 export { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRunCard';
+export {
+  type AgentSetupConnection,
+  type AgentSetupStatus,
+  useAgentSetupStatus,
+} from '@genfeedai/agent/components/useAgentSetupStatus';

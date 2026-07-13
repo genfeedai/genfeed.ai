@@ -1,5 +1,7 @@
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
+import { AgentSetupPanel } from '@genfeedai/agent/components/AgentSetupPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
+import type { AgentSetupStatus } from '@genfeedai/agent/components/useAgentSetupStatus';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
   Drawer,
@@ -17,6 +19,11 @@ type AgentFullPageMobileDrawersProps = {
   hasThreadOutputs: boolean;
   mobileOutputsOpen: boolean;
   onMobileOutputsOpenChange: (open: boolean) => void;
+  showSetupPanel: boolean;
+  mobileSetupOpen: boolean;
+  onMobileSetupOpenChange: (open: boolean) => void;
+  agentSetup: AgentSetupStatus;
+  onOAuthConnect?: (platform: string) => void;
 };
 
 export function AgentFullPageMobileDrawers({
@@ -27,6 +34,11 @@ export function AgentFullPageMobileDrawers({
   hasThreadOutputs,
   mobileOutputsOpen,
   onMobileOutputsOpenChange,
+  showSetupPanel,
+  mobileSetupOpen,
+  onMobileSetupOpenChange,
+  agentSetup,
+  onOAuthConnect,
 }: AgentFullPageMobileDrawersProps): ReactElement {
   return (
     <>
@@ -57,6 +69,25 @@ export function AgentFullPageMobileDrawers({
             </DrawerHeader>
             <div className="min-h-0 overflow-y-auto pb-6">
               <AgentOutputsPanel className="h-full" />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : null}
+
+      {showSetupPanel ? (
+        <Drawer open={mobileSetupOpen} onOpenChange={onMobileSetupOpenChange}>
+          <DrawerContent className="max-h-[85vh]">
+            <DrawerHeader>
+              <DrawerTitle>Finish setting up</DrawerTitle>
+            </DrawerHeader>
+            <div className="min-h-0 overflow-y-auto pb-6">
+              <AgentSetupPanel
+                className="h-full"
+                brand={agentSetup.brand}
+                connectedConnections={agentSetup.connectedConnections}
+                connectedPlatformsCount={agentSetup.connectedPlatformsCount}
+                onOAuthConnect={onOAuthConnect}
+              />
             </div>
           </DrawerContent>
         </Drawer>

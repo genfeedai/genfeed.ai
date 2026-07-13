@@ -172,6 +172,25 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => {
   return { useAgentChatStore };
 });
 
+const setupStatusState = {
+  brand: undefined,
+  completenessScore: null,
+  connectedConnections: [],
+  connectedPlatformsCount: 0,
+  hasConnectedChannels: false,
+  isBrandComplete: false,
+  isSetupComplete: false,
+  showSetupPanel: false,
+};
+
+vi.mock('@genfeedai/agent/components/useAgentSetupStatus', () => ({
+  useAgentSetupStatus: () => setupStatusState,
+}));
+
+vi.mock('@genfeedai/agent/components/AgentSetupPanel', () => ({
+  AgentSetupPanel: () => <div>agent-setup-panel</div>,
+}));
+
 let AgentFullPage: typeof import('@genfeedai/agent/components/AgentFullPage').AgentFullPage;
 
 const EFFECT_METHOD_MAP = {
@@ -261,6 +280,7 @@ describe('AgentFullPage', () => {
     storeState.pageContext = null;
     storeState.setPendingInputRequest.mockReset();
     storeState.setRunStartedAt.mockReset();
+    setupStatusState.showSetupPanel = false;
   });
 
   it('loads thread messages under React Strict Mode', async () => {
@@ -717,5 +737,48 @@ describe('AgentFullPage', () => {
     expect(storeState.setActiveThread).not.toHaveBeenCalled();
     expect(storeState.setDraftPlanModeEnabled).not.toHaveBeenCalled();
     expect(storeState.setLatestProposedPlan).not.toHaveBeenCalled();
+  });
+
+  it('renders the setup panel in the right pane when setup is incomplete and there are no outputs', () => {
+    setupStatusState.showSetupPanel = true;
+    storeState.messages = [];
+
+    render(<AgentFullPage apiService={createApiService() as never} />);
+
+    expect(screen.getAllByText('agent-setup-panel').length).toBeGreaterThan(0);
+    expect(screen.queryByText('agent-outputs-panel')).not.toBeInTheDocument();
+    // The chat container drops out of wide layout to make room for the panel.
+    expect(screen.getByText('standard-layout')).toBeInTheDocument();
+  });
+
+  it('does not render the setup panel once setup is complete', () => {
+    setupStatusState.showSetupPanel = false;
+    storeState.messages = [];
+
+    render(<AgentFullPage apiService={createApiService() as never} />);
+
+    expect(screen.queryByText('agent-setup-panel')).not.toBeInTheDocument();
+    expect(screen.getByText('wide-layout')).toBeInTheDocument();
+  });
+
+  it('prioritizes thread outputs over the setup panel when both apply', () => {
+    setupStatusState.showSetupPanel = true;
+    storeState.messages = [
+      {
+        content: 'Generated a video',
+        createdAt: '2026-03-26T10:00:00.000Z',
+        id: 'msg-output',
+        metadata: { mediaUrl: 'https://cdn/output.mp4' } as never,
+        role: 'assistant',
+        threadId: 'thread-1',
+      },
+    ];
+
+    render(<AgentFullPage apiService={createApiService() as never} />);
+
+    expect(screen.getAllByText('agent-outputs-panel').length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.queryByText('agent-setup-panel')).not.toBeInTheDocument();
   });
 });

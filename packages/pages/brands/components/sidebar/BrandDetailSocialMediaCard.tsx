@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  CredentialPlatform,
-} from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { AccountHealthSummary } from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -14,6 +10,10 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import Card from '@ui/card/Card';
+import {
+  OAUTH_CONNECT_PLATFORMS,
+  type OAuthConnectPlatform,
+} from '@ui/constants/oauth-connect-platforms';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
@@ -26,95 +26,6 @@ import {
 } from '@ui/primitives/dialog';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  FaFacebook,
-  FaInstagram,
-  FaLinkedin,
-  FaMastodon,
-  FaPinterest,
-  FaReddit,
-  FaShopify,
-  FaSnapchat,
-  FaStar,
-  FaThreads,
-  FaTiktok,
-  FaWordpress,
-  FaXTwitter,
-  FaYoutube,
-} from 'react-icons/fa6';
-
-const OAUTH_PLATFORMS = [
-  {
-    icon: <FaXTwitter className="mr-1.5 size-3.5" />,
-    label: 'Twitter',
-    platform: CredentialPlatform.TWITTER,
-  },
-  {
-    icon: <FaTiktok className="mr-1.5 size-3.5" />,
-    label: 'TikTok',
-    platform: CredentialPlatform.TIKTOK,
-  },
-  {
-    icon: <FaYoutube className="mr-1.5 size-3.5" />,
-    label: 'YouTube',
-    platform: CredentialPlatform.YOUTUBE,
-  },
-  {
-    icon: <FaInstagram className="mr-1.5 size-3.5" />,
-    label: 'Instagram',
-    platform: CredentialPlatform.INSTAGRAM,
-  },
-  {
-    icon: <FaStar className="mr-1.5 size-3.5" />,
-    label: 'Fanvue',
-    platform: CredentialPlatform.FANVUE,
-  },
-  {
-    icon: <FaFacebook className="mr-1.5 size-3.5" />,
-    label: 'Facebook',
-    platform: CredentialPlatform.FACEBOOK,
-  },
-  {
-    icon: <FaLinkedin className="mr-1.5 size-3.5" />,
-    label: 'LinkedIn',
-    platform: CredentialPlatform.LINKEDIN,
-  },
-  {
-    icon: <FaPinterest className="mr-1.5 size-3.5" />,
-    label: 'Pinterest',
-    platform: CredentialPlatform.PINTEREST,
-  },
-  {
-    icon: <FaReddit className="mr-1.5 size-3.5" />,
-    label: 'Reddit',
-    platform: CredentialPlatform.REDDIT,
-  },
-  {
-    icon: <FaThreads className="mr-1.5 size-3.5" />,
-    label: 'Threads',
-    platform: CredentialPlatform.THREADS,
-  },
-  {
-    icon: <FaWordpress className="mr-1.5 size-3.5" />,
-    label: 'WordPress',
-    platform: CredentialPlatform.WORDPRESS,
-  },
-  {
-    icon: <FaSnapchat className="mr-1.5 size-3.5" />,
-    label: 'Snapchat',
-    platform: CredentialPlatform.SNAPCHAT,
-  },
-  {
-    icon: <FaMastodon className="mr-1.5 size-3.5" />,
-    label: 'Mastodon',
-    platform: CredentialPlatform.MASTODON,
-  },
-  {
-    icon: <FaShopify className="mr-1.5 size-3.5" />,
-    label: 'Shopify',
-    platform: CredentialPlatform.SHOPIFY,
-  },
-];
 
 const STATE_LABELS: Record<AccountHealthSummary['state'], string> = {
   healthy: 'Healthy',
@@ -252,7 +163,10 @@ export default function BrandDetailSocialMediaCard({
   );
 
   const unconnectedPlatforms = useMemo(
-    () => OAUTH_PLATFORMS.filter((p) => !connectedPlatforms.has(p.platform)),
+    () =>
+      OAUTH_CONNECT_PLATFORMS.filter(
+        (p) => !connectedPlatforms.has(p.platform),
+      ),
     [connectedPlatforms],
   );
   const connectionHealth = useMemo(
@@ -361,7 +275,7 @@ export default function BrandDetailSocialMediaCard({
     }
   };
 
-  const renderConnectButton = (item: (typeof OAUTH_PLATFORMS)[number]) => {
+  const renderConnectButton = (item: OAuthConnectPlatform) => {
     return (
       <Button
         key={item.platform}
@@ -506,7 +420,7 @@ export default function BrandDetailSocialMediaCard({
                 Connect your social media accounts to display them here.
               </p>
               <div className="flex flex-wrap gap-2">
-                {OAUTH_PLATFORMS.map(renderConnectButton)}
+                {OAUTH_CONNECT_PLATFORMS.map(renderConnectButton)}
               </div>
             </div>
           )}
