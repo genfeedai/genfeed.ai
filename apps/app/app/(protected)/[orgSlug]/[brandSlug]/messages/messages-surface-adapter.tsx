@@ -10,7 +10,7 @@ import { Button } from '@ui/primitives/button';
 import { usePathname } from 'next/navigation';
 import { type ReactNode, useEffect, useMemo } from 'react';
 import { HiOutlineLink, HiOutlineShieldCheck } from 'react-icons/hi2';
-import { useWorkspaceSurfaceAdapter } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
+import { useRegisterWorkspaceSurfacePresentationAdapter } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { getSocialInboxReferenceKey } from './messages-surface.helpers';
 
 interface MessagesSurfaceAdapterParams {
@@ -150,7 +150,7 @@ export function useMessagesSurfaceAdapter({
     [inspector, references.length],
   );
 
-  useWorkspaceSurfaceAdapter(adapter);
+  useRegisterWorkspaceSurfacePresentationAdapter(adapter);
 
   useEffect(() => {
     const current = useAgentChatStore.getState().pageContext;

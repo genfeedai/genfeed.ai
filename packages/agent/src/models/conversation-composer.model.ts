@@ -1,6 +1,11 @@
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { JSONContent } from '@tiptap/core';
 
+export interface ConversationComposerArtifactReference {
+  label: string;
+  reference: AgentArtifactReference;
+}
+
 export type ConversationComposerActionName =
   | 'analyze'
   | 'create'
@@ -57,6 +62,7 @@ export interface ConversationComposerActionInvocation {
 
 export interface ConversationComposerSendOptions {
   artifactReferences?: AgentArtifactReference[];
+  brandId?: string;
   planModeEnabled?: boolean;
 }
 

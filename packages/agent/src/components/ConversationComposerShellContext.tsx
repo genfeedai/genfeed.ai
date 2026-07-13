@@ -2,6 +2,7 @@
 
 import type {
   ConversationComposerActionInvocation,
+  ConversationComposerArtifactReference,
   ConversationComposerContextReference,
   ConversationComposerDispatchResult,
 } from '@genfeedai/agent/models/conversation-composer.model';
@@ -15,7 +16,11 @@ import {
 } from 'react';
 
 export interface ConversationComposerShellContextValue {
-  artifactReferences?: readonly AgentArtifactReference[];
+  artifactReferences?: readonly (
+    | AgentArtifactReference
+    | ConversationComposerArtifactReference
+  )[];
+  brandId?: string;
   contextLabel: string;
   dispatchAction?: (
     invocation: ConversationComposerActionInvocation,
@@ -40,6 +45,7 @@ const ConversationComposerShellContext =
 
 export function ConversationComposerShellProvider({
   artifactReferences,
+  brandId,
   children,
   contextLabel,
   dispatchAction,
@@ -53,6 +59,7 @@ export function ConversationComposerShellProvider({
   const value = useMemo<ConversationComposerShellContextValue>(
     () => ({
       artifactReferences,
+      brandId,
       contextLabel,
       dispatchAction,
       draftScopeKey,
@@ -64,6 +71,7 @@ export function ConversationComposerShellProvider({
     }),
     [
       artifactReferences,
+      brandId,
       contextLabel,
       dispatchAction,
       draftScopeKey,

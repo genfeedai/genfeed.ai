@@ -151,9 +151,19 @@ export function AgentChatContainer({
 
   const handleSuggestionSend = useCallback(
     (prompt: string) => {
-      handleSend(prompt, undefined, undefined, { planModeEnabled: false });
+      handleSend(prompt, undefined, undefined, {
+        ...(composerShell?.artifactReferences?.length
+          ? {
+              artifactReferences: composerShell.artifactReferences.map(
+                (item) => item.reference,
+              ),
+            }
+          : {}),
+        ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
+        planModeEnabled: false,
+      });
     },
-    [handleSend],
+    [composerShell?.artifactReferences, composerShell?.brandId, handleSend],
   );
 
   const promptBarSuggestions = suggestedActions?.length ? (

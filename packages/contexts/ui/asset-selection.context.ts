@@ -11,6 +11,7 @@ export const AssetSelectionContext = createContext<IAssetSelectionContextType>({
   generationQueue: [],
   isGenerating: false,
   removeFromQueue: () => {},
+  selectedCanonicalAsset: null,
   selectedIngredient: null,
   setCurrentFormat: () => {},
   setGeneratedAssetId: () => {},

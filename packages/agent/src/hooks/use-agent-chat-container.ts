@@ -340,6 +340,7 @@ export function useAgentChatContainer({
       sendMessage(content, {
         artifactReferences: options?.artifactReferences,
         attachments,
+        ...(options?.brandId ? { brandId: options.brandId } : {}),
         planModeEnabled: options?.planModeEnabled ?? false,
       });
     },

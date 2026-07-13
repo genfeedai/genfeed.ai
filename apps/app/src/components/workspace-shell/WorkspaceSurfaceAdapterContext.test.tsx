@@ -1,15 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { type ReactElement, useEffect } from 'react';
+import { type ReactElement, useEffect, useMemo } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useActiveWorkspaceSurfaceAdapter,
   useActiveWorkspaceSurfacePresentationAdapter,
+  useRegisterWorkspaceSurfaceAdapter,
+  useRegisterWorkspaceSurfacePresentationAdapter,
   useWorkspaceSurfaceAdapter,
   useWorkspaceSurfaceSelection,
-  type WorkspaceSurfaceAdapter,
   WorkspaceSurfaceAdapterProvider,
   WorkspaceSurfaceAdapterRegistration,
   type WorkspaceSurfaceAdapterRegistration as WorkspaceSurfaceAdapterRegistrationContract,
+  type WorkspaceSurfacePresentationAdapter,
 } from './WorkspaceSurfaceAdapterContext';
 
 const scope = vi.hoisted(() => ({
@@ -31,7 +33,7 @@ const REGISTRATION = Object.freeze({
   title: 'Brand Workspace overview',
 } as const satisfies WorkspaceSurfaceAdapterRegistrationContract);
 
-const messagesAdapter: WorkspaceSurfaceAdapter = {
+const messagesAdapter: WorkspaceSurfacePresentationAdapter = {
   contextLabel: 'Canvas · Messages',
   inspector: <div>Messages inspector</div>,
   surfaceKey: 'messages',
@@ -58,7 +60,7 @@ function PresentationAdapterProbe(): ReactElement {
 }
 
 function PresentationAdapterRegistration(): null {
-  useWorkspaceSurfaceAdapter(messagesAdapter);
+  useRegisterWorkspaceSurfacePresentationAdapter(messagesAdapter);
   return null;
 }
 
@@ -92,6 +94,34 @@ function SelectionProbe(): null {
   }, [selection]);
 
   return null;
+}
+
+function ProductRegistration(): null {
+  const registration = useMemo(
+    () => ({
+      contextLabel: 'Studio · Image · v3',
+      references: [],
+      renderInspector: () => <p>Studio inspector</p>,
+      scope: {
+        brandId: 'brand-1',
+        organizationId: 'organization-1',
+      },
+      surfaceKey: 'studio',
+    }),
+    [],
+  );
+  useRegisterWorkspaceSurfaceAdapter(registration);
+  return null;
+}
+
+function ProductAdapterProbe(): ReactElement {
+  const registration = useWorkspaceSurfaceAdapter();
+  return (
+    <div>
+      <span>{registration?.contextLabel ?? 'No adapter'}</span>
+      {registration?.renderInspector()}
+    </div>
+  );
 }
 
 describe('WorkspaceSurfaceAdapterContext', () => {
@@ -160,5 +190,30 @@ describe('WorkspaceSurfaceAdapterContext', () => {
         'none',
       );
     });
+  });
+
+  it('exposes one product-owned adapter to the shell and clears it on unmount', () => {
+    const { rerender } = render(
+      <WorkspaceSurfaceAdapterProvider>
+        <ProductRegistration />
+        <ProductAdapterProbe />
+      </WorkspaceSurfaceAdapterProvider>,
+    );
+
+    expect(screen.getByText('Studio · Image · v3')).toBeInTheDocument();
+    expect(screen.getByText('Studio inspector')).toBeInTheDocument();
+
+    rerender(
+      <WorkspaceSurfaceAdapterProvider>
+        <ProductAdapterProbe />
+      </WorkspaceSurfaceAdapterProvider>,
+    );
+
+    expect(screen.getByText('No adapter')).toBeInTheDocument();
+  });
+
+  it('keeps product registration safe outside the shell provider', () => {
+    render(<ProductRegistration />);
+    expect(screen.queryByText('Studio inspector')).toBeNull();
   });
 });

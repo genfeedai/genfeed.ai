@@ -17,6 +17,7 @@ import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input'
 import { useTeamMentions } from '@genfeedai/agent/hooks/use-team-mentions';
 import type {
   ConversationComposerActionName,
+  ConversationComposerArtifactReference,
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -27,6 +28,7 @@ import {
   writeConversationComposerDocument,
   writeConversationComposerFocusIntent,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -51,6 +53,24 @@ import {
 } from 'react';
 import tippy, { type Instance } from 'tippy.js';
 import type { ExtractedMention } from './AgentChatInput';
+
+const EMPTY_SURFACE_ARTIFACT_REFERENCES: readonly (
+  | AgentArtifactReference
+  | ConversationComposerArtifactReference
+)[] = [];
+
+function normalizeSurfaceArtifactReference(
+  item: AgentArtifactReference | ConversationComposerArtifactReference,
+): ConversationComposerArtifactReference {
+  if ('reference' in item) {
+    return item;
+  }
+
+  return {
+    label: `^${item.kind}:${item.recordId}`,
+    reference: item,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Pure helpers (no JSX — safe in .ts file)
@@ -238,6 +258,8 @@ export function useAgentChatInput({
   clearAllAttachments,
 }: UseAgentChatInputParams) {
   const composerShell = useConversationComposerShell();
+  const surfaceArtifactReferences =
+    composerShell?.artifactReferences ?? EMPTY_SURFACE_ARTIFACT_REFERENCES;
   const draftScopeKey = composerShell?.draftScopeKey ?? null;
   const restoredDraft = useMemo(
     () => readConversationComposerDraft(draftScopeKey),
@@ -539,9 +561,14 @@ export function useAgentChatInput({
       mentionData.length > 0 ? mentionData : undefined,
       completed && completed.length > 0 ? completed : undefined,
       {
-        artifactReferences: composerShell?.artifactReferences
-          ? [...composerShell.artifactReferences]
-          : undefined,
+        ...(surfaceArtifactReferences.length > 0
+          ? {
+              artifactReferences: surfaceArtifactReferences.map(
+                (item) => normalizeSurfaceArtifactReference(item).reference,
+              ),
+            }
+          : {}),
+        ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
         planModeEnabled: false,
       },
     );
@@ -557,6 +584,7 @@ export function useAgentChatInput({
     hasCompletedAttachments,
     getCompletedAttachments,
     clearAllAttachments,
+    surfaceArtifactReferences,
   ]);
 
   // Handle Enter after handleSend is stable so keyboard and click paths share
@@ -657,13 +685,16 @@ export function useAgentChatInput({
   const displayedReferences = useMemo<AgentChatReferenceItem[]>(
     () => [
       ...references,
-      ...(composerShell?.artifactReferences ?? []).map((reference) => ({
-        id: reference.recordId,
-        label: `^${reference.kind}:${reference.recordId}`,
-        type: 'content' as const,
-      })),
+      ...surfaceArtifactReferences.map((item) => {
+        const normalizedItem = normalizeSurfaceArtifactReference(item);
+        return {
+          id: normalizedItem.reference.recordId,
+          label: normalizedItem.label,
+          type: 'asset' as const,
+        };
+      }),
     ],
-    [composerShell?.artifactReferences, references],
+    [references, surfaceArtifactReferences],
   );
 
   const isDragActive = dragState?.isActive ?? false;
