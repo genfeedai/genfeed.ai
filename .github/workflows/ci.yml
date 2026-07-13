@@ -198,7 +198,7 @@ jobs:
           CHANGED_FILES="$(git diff --name-only --diff-filter=ACMR "$BASE" HEAD)"
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
 
-          if printf '%s\n' "$CHANGED_FILES" | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflow-ui|agent))/' >/dev/null; then
+          if printf '%s\n' "$CHANGED_FILES" | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflows|agent))/' >/dev/null; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -220,7 +220,7 @@ jobs:
           if [ -n "$BASE" ]; then
             CHANGED_FILES="${RUNNER_TEMP:-/tmp}/react-doctor-changed-files.txt"
             git diff --name-only --diff-filter=ACMR "$BASE" HEAD \
-              | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflow-ui|agent))/' \
+              | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflows|agent))/' \
               > "$CHANGED_FILES" || true
 
             if [ ! -s "$CHANGED_FILES" ]; then

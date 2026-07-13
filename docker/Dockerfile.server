@@ -152,7 +152,7 @@ RUN set -e; \
     bun --filter @genfeedai/helpers build; \
     bun --filter @genfeedai/integrations build; \
     bun --filter @genfeedai/serializers build; \
-    bun --filter @genfeedai/workflows build
+    bun --filter @genfeedai/workflows build:server
 
 # --- Layer 2: Service source code (changes most frequently) ---
 COPY apps/server/ apps/server/

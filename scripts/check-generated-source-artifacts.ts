@@ -17,7 +17,7 @@ const DECLARATION_ALLOWLIST = [
   /^apps\/server\/api\/src\/types\/[^/]+\.d\.ts$/u,
   /^packages\/api-types\/src\/generated\/[^/]+\.d\.ts$/u,
   /^packages\/ui\/src\/css\.d\.ts$/u,
-  /^packages\/workflow-ui\/src\/css\.d\.ts$/u,
+  /^packages\/workflows\/src\/ui\/css\.d\.ts$/u,
 ];
 
 function git(args: string[]): string {

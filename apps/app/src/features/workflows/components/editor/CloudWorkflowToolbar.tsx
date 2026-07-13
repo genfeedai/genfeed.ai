@@ -1,13 +1,13 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { usePaneActions } from '@genfeedai/workflow-ui/hooks';
+import { usePaneActions } from '@genfeedai/workflows/ui/hooks';
 import {
   selectIsDirty,
   selectWorkflowName,
   useWorkflowStore,
-} from '@genfeedai/workflow-ui/stores';
-import { SaveIndicator, Toolbar } from '@genfeedai/workflow-ui/toolbar';
+} from '@genfeedai/workflows/ui/stores';
+import { SaveIndicator, Toolbar } from '@genfeedai/workflows/ui/toolbar';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import type { KeyboardEvent, ReactNode } from 'react';

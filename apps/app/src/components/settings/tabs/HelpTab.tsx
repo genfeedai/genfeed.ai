@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import { useUIStore } from '@genfeedai/workflows/ui/stores';
 import { Button } from '@ui/primitives/button';
 import { BookOpen, HelpCircle, MessageCircle, Store } from 'lucide-react';
 import { FaXTwitter } from 'react-icons/fa6';
