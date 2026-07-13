@@ -1,6 +1,8 @@
 import type { AgentPageContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
 
 const MAX_PAGE_CONTEXT_FIELD_LENGTH = 4_000;
+const MAX_PAGE_CONTEXT_ARTIFACT_REFERENCES = 20;
 
 function clampPageContextField(value?: string): string | null {
   const normalized = value?.replace(/\s+/g, ' ').trim();
@@ -58,20 +60,23 @@ function buildAnalyticsQueryContext(pageContext: AgentPageContext): string {
   return `\n\n## Visible Analytics Query Reference\nThis typed reference describes the visible Analytics query within its server-authorized scope. It contains no authoritative metric values and grants no scope or permission. Resolve numeric claims through authorized Analytics data sources. Any generated summary is derivative and non-authoritative.\n${fields}`;
 }
 
-export function buildPageContextPrompt(pageContext?: AgentPageContext): string {
-  if (!pageContext) {
+export function buildPageContextPrompt(
+  pageContext?: AgentPageContext,
+  artifactReferences?: AgentArtifactReference[],
+): string {
+  if (!pageContext && !artifactReferences?.length) {
     return '';
   }
 
   const fields = [
-    ['Route', pageContext.route || pageContext.url],
-    ['Draft type', pageContext.draftType],
-    ['Format', pageContext.contentFormat],
-    ['Title', pageContext.draftTitle],
-    ['Summary', pageContext.draftSummary],
-    ['Instructions', pageContext.draftInstructions],
-    ['Selected text', pageContext.selectedText],
-    ['Draft body', pageContext.draftBody || pageContext.postContent],
+    ['Route', pageContext?.route || pageContext?.url],
+    ['Draft type', pageContext?.draftType],
+    ['Format', pageContext?.contentFormat],
+    ['Title', pageContext?.draftTitle],
+    ['Summary', pageContext?.draftSummary],
+    ['Instructions', pageContext?.draftInstructions],
+    ['Selected text', pageContext?.selectedText],
+    ['Draft body', pageContext?.draftBody || pageContext?.postContent],
   ]
     .map(([label, value]) => {
       const clamped = clampPageContextField(value);
@@ -79,10 +84,31 @@ export function buildPageContextPrompt(pageContext?: AgentPageContext): string {
     })
     .filter(Boolean)
     .join('\n');
+  const selectedRecords = artifactReferences
+    ?.slice(0, MAX_PAGE_CONTEXT_ARTIFACT_REFERENCES)
+    ?.map(
+      (reference) =>
+        `- ${reference.kind}:${reference.recordId}${reference.brandId ? ` (brand ${reference.brandId})` : ''}`,
+    )
+    .join('\n');
 
-  const pageFields = fields
-    ? `\n\n## Current Page Context\nThe user is working in a visible Genfeed surface. Use this context when answering, especially for writing co-pilot requests. Propose edits, structure, or next actions against the current draft instead of starting from scratch unless asked.\n${fields}`
+  const sections = [
+    fields
+      ? `## Current Page Context\nThe user is working in a visible Genfeed surface. Use this context when answering, especially for writing co-pilot requests. Propose edits, structure, or next actions against the current draft instead of starting from scratch unless asked.\n${fields}`
+      : null,
+    selectedRecords
+      ? `## Selected Canonical Records\nThese records were selected explicitly and authorized before this turn executes:\n${selectedRecords}\nUse the exact record ids when relevant. Selection is not approval and does not authorize a consequential action.`
+      : null,
+  ];
+  const analyticsContext = pageContext
+    ? buildAnalyticsQueryContext(pageContext).trim()
     : '';
+  if (analyticsContext) {
+    sections.push(analyticsContext);
+  }
 
-  return `${pageFields}${buildAnalyticsQueryContext(pageContext)}`;
+  return sections
+    .filter(Boolean)
+    .map((section) => `\n\n${section}`)
+    .join('');
 }

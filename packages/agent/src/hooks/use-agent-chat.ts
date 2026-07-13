@@ -22,6 +22,7 @@ interface SendMessageOptions {
   source?: 'agent' | 'proactive' | 'onboarding';
   signal?: AbortSignal;
   attachments?: ChatAttachment[];
+  brandId?: string;
   planModeEnabled?: boolean;
 }
 
@@ -91,7 +92,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
             {
               artifactReferences: sendOptions?.artifactReferences,
               attachments: sendOptions?.attachments,
-              brandId: currentThread?.brandId ?? null,
+              brandId: sendOptions?.brandId ?? currentThread?.brandId ?? null,
               content,
               expectedContextVersion: currentThread?.contextVersion,
               model: resolvedModel,

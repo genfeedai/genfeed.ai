@@ -82,9 +82,9 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/posts/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
     ['/:orgSlug/:brandSlug/orchestration/skills', 'canvas'],
-    ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
-    ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
-    ['/:orgSlug/:brandSlug/studio/fastlane', 'canvas'],
+    ['/:orgSlug/:brandSlug/studio/batch', 'dedicated'],
+    ['/:orgSlug/:brandSlug/studio/clips', 'dedicated'],
+    ['/:orgSlug/:brandSlug/studio/fastlane', 'dedicated'],
     ['/:orgSlug/:brandSlug/settings/publishing', 'dedicated'],
     ['/:orgSlug/~/settings/billing', 'dedicated'],
     ['/admin/administration/users', 'dedicated'],
@@ -92,6 +92,22 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute(materializeRoutePattern(pattern))?.mode,
     ).toBe(mode);
+  });
+
+  it('activates the Studio adapter only for generation and canonical asset editing', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/image')?.adapter,
+    ).toEqual({ key: 'studio', status: 'ready' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/image/ingredient-1')
+        ?.adapter,
+    ).toEqual({ key: 'studio', status: 'ready' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/fastlane'),
+    ).toMatchObject({
+      adapter: { key: 'studio-specialized', status: 'dedicated-route' },
+      mode: 'dedicated',
+    });
   });
 
   it('keeps the two accepted hard-cut families outside the registry', () => {

@@ -1,8 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { type ReactElement, useEffect } from 'react';
+import { type ReactElement, useEffect, useMemo } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useActiveWorkspaceSurfaceAdapter,
+  useRegisterWorkspaceSurfaceAdapter,
+  useWorkspaceSurfaceAdapter,
   useWorkspaceSurfaceSelection,
   WorkspaceSurfaceAdapterProvider,
   WorkspaceSurfaceAdapterRegistration,
@@ -71,6 +73,34 @@ function SelectionProbe(): null {
   return null;
 }
 
+function ProductRegistration(): null {
+  const registration = useMemo(
+    () => ({
+      contextLabel: 'Studio · Image · v3',
+      references: [],
+      renderInspector: () => <p>Studio inspector</p>,
+      scope: {
+        brandId: 'brand-1',
+        organizationId: 'organization-1',
+      },
+      surfaceKey: 'studio',
+    }),
+    [],
+  );
+  useRegisterWorkspaceSurfaceAdapter(registration);
+  return null;
+}
+
+function ProductAdapterProbe(): ReactElement {
+  const registration = useWorkspaceSurfaceAdapter();
+  return (
+    <div>
+      <span>{registration?.contextLabel ?? 'No adapter'}</span>
+      {registration?.renderInspector()}
+    </div>
+  );
+}
+
 describe('WorkspaceSurfaceAdapterContext', () => {
   beforeEach(() => {
     scope.brandId = 'brand-1';
@@ -110,5 +140,30 @@ describe('WorkspaceSurfaceAdapterContext', () => {
     expect(
       screen.getByText('Canonical dashboard remains rendered'),
     ).toBeInTheDocument();
+  });
+
+  it('exposes one product-owned adapter to the shell and clears it on unmount', () => {
+    const { rerender } = render(
+      <WorkspaceSurfaceAdapterProvider>
+        <ProductRegistration />
+        <ProductAdapterProbe />
+      </WorkspaceSurfaceAdapterProvider>,
+    );
+
+    expect(screen.getByText('Studio · Image · v3')).toBeInTheDocument();
+    expect(screen.getByText('Studio inspector')).toBeInTheDocument();
+
+    rerender(
+      <WorkspaceSurfaceAdapterProvider>
+        <ProductAdapterProbe />
+      </WorkspaceSurfaceAdapterProvider>,
+    );
+
+    expect(screen.getByText('No adapter')).toBeInTheDocument();
+  });
+
+  it('keeps product registration safe outside the shell provider', () => {
+    render(<ProductRegistration />);
+    expect(screen.queryByText('Studio inspector')).toBeNull();
   });
 });

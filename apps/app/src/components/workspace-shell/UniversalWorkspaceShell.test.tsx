@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { type ReactNode, useEffect, useMemo } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+import { useRegisterWorkspaceSurfaceAdapter } from './WorkspaceSurfaceAdapterContext';
 
 const navigation = vi.hoisted(() => ({
   pathname: '/acme/~/agent/thread-1',
@@ -22,21 +23,31 @@ const agentState = vi.hoisted(() => ({
       id: 'thread-1',
     },
   ],
+  updateThread: vi.fn(),
 }));
 const agentActions = vi.hoisted(() => ({
   resetActiveConversationState: vi.fn(),
   setActiveThread: vi.fn(),
 }));
 const pageShellMount = vi.hoisted(() => vi.fn());
-const agentApiService = {} as never;
+const updateThreadContextEffect = vi.hoisted(() => vi.fn());
+const agentApiService = {
+  updateThreadContextEffect,
+} as never;
 
 vi.mock('@genfeedai/agent', () => ({
   ConversationComposerShellProvider: ({
+    artifactReferences,
+    brandId,
     children,
     dispatchAction,
     draftScopeKey,
     scopeControls,
   }: {
+    artifactReferences?: ReadonlyArray<{
+      reference: { recordId: string };
+    }>;
+    brandId?: string;
     children: ReactNode;
     dispatchAction: (invocation: {
       action: {
@@ -51,7 +62,13 @@ vi.mock('@genfeedai/agent', () => ({
     draftScopeKey: string;
     scopeControls?: ReactNode;
   }) => (
-    <div data-draft-scope={draftScopeKey}>
+    <div
+      data-composer-brand={brandId}
+      data-composer-references={artifactReferences
+        ?.map((item) => item.reference.recordId)
+        .join(',')}
+      data-draft-scope={draftScopeKey}
+    >
       {children}
       {scopeControls}
       <button
@@ -141,6 +158,7 @@ vi.mock('@genfeedai/agent', () => ({
     }
     return null;
   },
+  runAgentApiEffect: (effect: Promise<unknown>) => effect,
   useAgentChatStore: Object.assign(
     (selector: (state: typeof agentState) => unknown) => selector(agentState),
     {
@@ -349,6 +367,23 @@ describe('UniversalWorkspaceShell', () => {
     navigation.pathname = '/acme/~/agent/thread-1';
     navigation.searchParams = new URLSearchParams();
     agentState.activeThreadId = 'thread-1';
+    agentState.threads[0].brandId = 'brand-1';
+    agentState.threads[0].contextVersion = 3;
+    agentState.updateThread.mockClear();
+    agentState.updateThread.mockImplementation(
+      (
+        _threadId: string,
+        patch: { brandId?: string; contextVersion?: number },
+      ) => {
+        Object.assign(agentState.threads[0], patch);
+      },
+    );
+    updateThreadContextEffect.mockReset();
+    updateThreadContextEffect.mockResolvedValue({
+      brandId: 'brand-studio',
+      contextVersion: 4,
+      id: 'thread-1',
+    });
     pageShellMount.mockClear();
     agentActions.resetActiveConversationState.mockClear();
     agentActions.setActiveThread.mockClear();
@@ -356,6 +391,90 @@ describe('UniversalWorkspaceShell', () => {
     router.back.mockClear();
     router.push.mockClear();
     router.replace.mockClear();
+  });
+
+  it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
+    navigation.pathname = '/acme/moonrise/studio/image';
+    navigation.searchParams = new URLSearchParams({ thread: 'thread-1' });
+    agentState.threads[0].brandId = 'brand-previous';
+
+    function StudioSurface() {
+      useRegisterWorkspaceSurfaceAdapter({
+        contextLabel: 'Studio · Image · Launch visual',
+        references: [
+          {
+            label: 'Launch visual · v2',
+            reference: {
+              brandId: 'brand-studio',
+              kind: 'ingredient',
+              organizationId: 'org-acme',
+              recordId: 'ingredient-1',
+              serializer: 'ingredient',
+            },
+          },
+        ],
+        renderInspector: () => <p>Studio inspector</p>,
+        scope: {
+          brandId: 'brand-studio',
+          organizationId: 'org-acme',
+        },
+        surfaceKey: 'studio',
+      });
+      return <div>Studio canvas</div>;
+    }
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <StudioSurface />
+      </UniversalWorkspaceShell>,
+    );
+
+    await waitFor(() =>
+      expect(updateThreadContextEffect).toHaveBeenCalledWith(
+        'thread-1',
+        {
+          brandId: 'brand-studio',
+          expectedContextVersion: 3,
+        },
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() =>
+      expect(agentState.updateThread).toHaveBeenCalledWith('thread-1', {
+        brandId: 'brand-studio',
+        contextVersion: 4,
+      }),
+    );
+    expect(screen.getAllByText('Studio inspector')).not.toHaveLength(0);
+    expect(
+      screen.getByText('Studio canvas').closest('[data-composer-brand]'),
+    ).toHaveAttribute('data-composer-brand', 'brand-studio');
+    expect(
+      screen.getByText('Studio canvas').closest('[data-composer-references]'),
+    ).toHaveAttribute('data-composer-references', 'ingredient-1');
+  });
+
+  it('persists a conversation created from Studio into the canonical reload URL', () => {
+    navigation.pathname = '/acme/moonrise/studio/image';
+    navigation.searchParams = new URLSearchParams();
+    agentState.activeThreadId = null;
+
+    const view = render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Studio canvas</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    agentState.activeThreadId = 'thread-created-in-studio';
+    view.rerender(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Studio canvas</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(router.replace).toHaveBeenCalledWith(
+      '/acme/moonrise/studio/image?thread=thread-created-in-studio',
+    );
   });
 
   it('keeps the active conversation mounted while a registered canvas opens', () => {

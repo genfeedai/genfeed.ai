@@ -33,6 +33,26 @@ export interface ActiveWorkspaceSurfaceAdapter {
   readonly registration: WorkspaceSurfaceAdapterRegistration;
 }
 
+export interface WorkspaceSurfaceComposerReference {
+  readonly label: string;
+  readonly reference: AgentArtifactReference;
+}
+
+export interface ProductWorkspaceSurfaceAdapter {
+  readonly contextLabel: string;
+  readonly references: readonly WorkspaceSurfaceComposerReference[];
+  readonly renderInspector: () => ReactNode;
+  readonly scope: {
+    readonly brandId?: string;
+    readonly organizationId: string;
+  };
+  readonly surfaceKey: string;
+}
+
+type ProductWorkspaceSurfaceAdapterRegistrar = (
+  registration: ProductWorkspaceSurfaceAdapter,
+) => () => void;
+
 interface WorkspaceSurfaceAdapterContextValue {
   readonly activeAdapter: ActiveWorkspaceSurfaceAdapter | null;
   readonly activateAdapter: (
@@ -68,6 +88,12 @@ const WorkspaceSurfaceAdapterContext =
 
 const WorkspaceSurfaceSelectionContext =
   createContext<WorkspaceSurfaceSelectionContextValue | null>(null);
+
+const ProductWorkspaceSurfaceAdapterContext =
+  createContext<ProductWorkspaceSurfaceAdapter | null>(null);
+
+const ProductWorkspaceSurfaceAdapterRegistrarContext =
+  createContext<ProductWorkspaceSurfaceAdapterRegistrar | null>(null);
 
 function areScopesEqual(
   adapter: ActiveWorkspaceSurfaceAdapter,
@@ -111,6 +137,21 @@ export function WorkspaceSurfaceAdapterProvider({
 }: WorkspaceSurfaceAdapterProviderProps): ReactElement {
   const [activeAdapter, setActiveAdapter] =
     useState<ActiveWorkspaceSurfaceAdapter | null>(null);
+  const [productAdapter, setProductAdapter] =
+    useState<ProductWorkspaceSurfaceAdapter | null>(null);
+
+  const registerProductAdapter = useCallback(
+    (registration: ProductWorkspaceSurfaceAdapter) => {
+      setProductAdapter(registration);
+
+      return () => {
+        setProductAdapter((current) =>
+          current === registration ? null : current,
+        );
+      };
+    },
+    [],
+  );
 
   const activateAdapter = useCallback(
     (
@@ -170,9 +211,15 @@ export function WorkspaceSurfaceAdapterProvider({
   );
 
   return (
-    <WorkspaceSurfaceAdapterContext.Provider value={value}>
-      {children}
-    </WorkspaceSurfaceAdapterContext.Provider>
+    <ProductWorkspaceSurfaceAdapterRegistrarContext.Provider
+      value={registerProductAdapter}
+    >
+      <ProductWorkspaceSurfaceAdapterContext.Provider value={productAdapter}>
+        <WorkspaceSurfaceAdapterContext.Provider value={value}>
+          {children}
+        </WorkspaceSurfaceAdapterContext.Provider>
+      </ProductWorkspaceSurfaceAdapterContext.Provider>
+    </ProductWorkspaceSurfaceAdapterRegistrarContext.Provider>
   );
 }
 
@@ -233,4 +280,26 @@ export function useActiveWorkspaceSurfaceAdapter(): ActiveWorkspaceSurfaceAdapte
 
 export function useWorkspaceSurfaceSelection(): WorkspaceSurfaceSelectionContextValue | null {
   return useContext(WorkspaceSurfaceSelectionContext);
+}
+
+export function useWorkspaceSurfaceAdapter(): ProductWorkspaceSurfaceAdapter | null {
+  return useContext(ProductWorkspaceSurfaceAdapterContext);
+}
+
+/**
+ * Product routes register only while mounted inside the universal shell. In the
+ * legacy routed experience the hook intentionally becomes a no-op.
+ */
+export function useRegisterWorkspaceSurfaceAdapter(
+  registration: ProductWorkspaceSurfaceAdapter,
+): void {
+  const register = useContext(ProductWorkspaceSurfaceAdapterRegistrarContext);
+
+  useLayoutEffect(() => {
+    if (!register) {
+      return;
+    }
+
+    return register(registration);
+  }, [register, registration]);
 }

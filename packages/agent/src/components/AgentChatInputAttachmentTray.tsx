@@ -17,6 +17,7 @@ export interface AgentChatReferenceItem {
   id: string;
   label: string;
   type:
+    | 'asset'
     | 'brand'
     | 'content'
     | 'credential'

@@ -22,9 +22,10 @@ import {
 } from '@ui/primitives/select';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { HiCheck, HiClock } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import StudioWorkspaceSurfaceAdapter from '../../studio-workspace-surface-adapter';
 import StudioEditDetailAssetPreview from './StudioEditDetailAssetPreview';
 import StudioEditDetailHeader from './StudioEditDetailHeader';
 import StudioEditDetailVersionHistory from './StudioEditDetailVersionHistory';
@@ -44,7 +45,6 @@ interface StatusBadgeConfig {
   icon?: ReactNode;
   label: string;
 }
-
 const STATUS_BADGE_CONFIG: Partial<
   Record<IngredientStatus, StatusBadgeConfig>
 > = {
@@ -105,10 +105,24 @@ export default function StudioEditDetail({
   const ambientColor = useDominantColor(
     selectedIngredient?.ingredientUrl ?? selectedIngredient?.thumbnailUrl,
   );
+  const inspectorVersions = useMemo(
+    () => [...processingAssets.values(), ...results],
+    [processingAssets, results],
+  );
+  const surfaceAdapter = (
+    <StudioWorkspaceSurfaceAdapter
+      error={loadError}
+      isLoading={isLoading}
+      isProcessing={isProcessing}
+      mode={`edit ${categoryType}`}
+      versions={inspectorVersions}
+    />
+  );
 
   if (loadError && !isLoading) {
     return (
       <div className="flex flex-col h-screen items-center justify-center">
+        {surfaceAdapter}
         <div className="text-center max-w-md mx-auto p-8 bg-background shadow-lg">
           <h2 className="text-2xl font-semibold text-error mb-4">
             Error Loading Ingredient
@@ -131,6 +145,7 @@ export default function StudioEditDetail({
 
   return (
     <div className="flex flex-col h-screen">
+      {surfaceAdapter}
       <StudioEditDetailHeader
         categoryLabel={CATEGORY_LABELS[categoryType] ?? 'Media'}
         selectedIngredient={selectedIngredient}

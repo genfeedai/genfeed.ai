@@ -137,6 +137,7 @@ export type {
   ConversationComposerActionDefinition,
   ConversationComposerActionInvocation,
   ConversationComposerActionName,
+  ConversationComposerArtifactReference,
   ConversationComposerContextReference,
   ConversationComposerContextReferenceKind,
   ConversationComposerDispatchResult,
