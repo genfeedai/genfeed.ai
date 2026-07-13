@@ -154,17 +154,32 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
 ] as const;
 
 const ORGANIZATION_ROUTE_REGISTRATIONS = [
-  ...registerRoutes(
-    ['/:orgSlug', '/:orgSlug/~/overview', '/:orgSlug/~/analytics/overview'],
-    {
-      fallback: '/:orgSlug/~/overview',
-      mode: 'canvas',
-      scope: 'organization',
-      surfaceKey: 'organization-overview',
-      switcherItems: ['workspace', 'messages', 'research'],
-      telemetryClass: 'product',
+  ...registerRoutes(['/:orgSlug/~/overview'], {
+    adapter: {
+      key: 'organization-workspace-overview',
+      status: 'embedded',
     },
-  ),
+    fallback: '/:orgSlug/~/overview',
+    mode: 'canvas',
+    scope: 'organization',
+    surfaceKey: 'organization-overview',
+    switcherItems: ['workspace', 'messages', 'research'],
+    telemetryClass: 'product',
+  }),
+  ...registerRoutes(['/:orgSlug'], {
+    fallback: '/:orgSlug/~/overview',
+    mode: 'canvas',
+    scope: 'organization',
+    surfaceKey: 'organization-landing',
+    telemetryClass: 'product',
+  }),
+  ...registerRoutes(['/:orgSlug/~/analytics/overview'], {
+    fallback: '/:orgSlug/~/overview',
+    mode: 'canvas',
+    scope: 'organization',
+    surfaceKey: 'analytics',
+    telemetryClass: 'product',
+  }),
   ...registerRoutes(
     ['/:orgSlug/~/agent', '/:orgSlug/~/agent/new', '/:orgSlug/~/agent/:id'],
     {
@@ -299,6 +314,22 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/workspace',
       '/:orgSlug/:brandSlug/workspace/overview',
+    ],
+    {
+      adapter: {
+        key: 'brand-workspace-overview',
+        status: 'embedded',
+      },
+      fallback: '/:orgSlug/:brandSlug/workspace/overview',
+      mode: 'canvas',
+      scope: 'brand',
+      surfaceKey: 'workspace-overview',
+      switcherItems: ['workspace'],
+      telemetryClass: 'product',
+    },
+  ),
+  ...registerRoutes(
+    [
       '/:orgSlug/:brandSlug/workspace/inbox/:view',
       '/:orgSlug/:brandSlug/workspace/activity',
       '/:orgSlug/:brandSlug/tasks',

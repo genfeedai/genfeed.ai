@@ -5,6 +5,7 @@ import type {
   ConversationComposerContextReference,
   ConversationComposerDispatchResult,
 } from '@genfeedai/agent/models/conversation-composer.model';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import {
   createContext,
   type ReactElement,
@@ -14,6 +15,7 @@ import {
 } from 'react';
 
 export interface ConversationComposerShellContextValue {
+  artifactReferences?: readonly AgentArtifactReference[];
   contextLabel: string;
   dispatchAction?: (
     invocation: ConversationComposerActionInvocation,
@@ -37,6 +39,7 @@ const ConversationComposerShellContext =
   createContext<ConversationComposerShellContextValue | null>(null);
 
 export function ConversationComposerShellProvider({
+  artifactReferences,
   children,
   contextLabel,
   dispatchAction,
@@ -49,6 +52,7 @@ export function ConversationComposerShellProvider({
 }: ConversationComposerShellProviderProps): ReactElement {
   const value = useMemo<ConversationComposerShellContextValue>(
     () => ({
+      artifactReferences,
       contextLabel,
       dispatchAction,
       draftScopeKey,
@@ -59,6 +63,7 @@ export function ConversationComposerShellProvider({
       shellState,
     }),
     [
+      artifactReferences,
       contextLabel,
       dispatchAction,
       draftScopeKey,

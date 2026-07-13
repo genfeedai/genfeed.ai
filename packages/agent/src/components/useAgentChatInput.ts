@@ -15,7 +15,10 @@ import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions'
 import { useCredentialMentions } from '@genfeedai/agent/hooks/use-credential-mentions';
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import { useTeamMentions } from '@genfeedai/agent/hooks/use-team-mentions';
-import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
+import type {
+  ConversationComposerActionName,
+  ConversationComposerSendOptions,
+} from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
@@ -201,7 +204,7 @@ interface UseAgentChatInputParams {
     content: string,
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
-    options?: { planModeEnabled?: boolean },
+    options?: ConversationComposerSendOptions,
   ) => void;
   onStop?: () => void | Promise<void>;
   disabled?: boolean;
@@ -535,7 +538,12 @@ export function useAgentChatInput({
       text,
       mentionData.length > 0 ? mentionData : undefined,
       completed && completed.length > 0 ? completed : undefined,
-      { planModeEnabled: false },
+      {
+        artifactReferences: composerShell?.artifactReferences
+          ? [...composerShell.artifactReferences]
+          : undefined,
+        planModeEnabled: false,
+      },
     );
     editor.commands.clearContent();
     clearAllAttachments?.();
@@ -646,6 +654,17 @@ export function useAgentChatInput({
 
     return [...referencesByKey.values()];
   }, [composerShell?.references, mentionReferences]);
+  const displayedReferences = useMemo<AgentChatReferenceItem[]>(
+    () => [
+      ...references,
+      ...(composerShell?.artifactReferences ?? []).map((reference) => ({
+        id: reference.recordId,
+        label: `^${reference.kind}:${reference.recordId}`,
+        type: 'content' as const,
+      })),
+    ],
+    [composerShell?.artifactReferences, references],
+  );
 
   const isDragActive = dragState?.isActive ?? false;
   const canSendMessage = !isEmpty || hasCompletedAttachments;
@@ -676,7 +695,7 @@ export function useAgentChatInput({
     isDragActive,
     isListening,
     isTranscribing,
-    references,
+    references: displayedReferences,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,

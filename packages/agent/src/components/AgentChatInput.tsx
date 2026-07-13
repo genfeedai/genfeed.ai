@@ -3,6 +3,7 @@ import { AgentChatInputStyles } from '@genfeedai/agent/components/AgentChatInput
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
 import { AgentComposerContextRail } from '@genfeedai/agent/components/AgentComposerContextRail';
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
+import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
@@ -33,9 +34,7 @@ interface AgentChatInputProps {
     content: string,
     mentions?: ExtractedMention[],
     attachments?: ChatAttachment[],
-    options?: {
-      planModeEnabled?: boolean;
-    },
+    options?: ConversationComposerSendOptions,
   ) => void;
   onStop?: () => void | Promise<void>;
   disabled?: boolean;
