@@ -3,7 +3,7 @@ import { PerformanceSummaryService } from '@api/collections/content-performance/
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
-import type { AnalyticsFeedbackOutput } from '@genfeedai/workflow-engine';
+import type { AnalyticsFeedbackOutput } from '@genfeedai/workflows/engine';
 import {
   createAnalyticsFeedbackExecutor,
   createBrandAssetExecutor,
@@ -16,7 +16,7 @@ import {
   type SeoRewriteResolver,
   type SeoScoreResolver,
   type WorkflowEngine,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 
 const FALLBACK_EXECUTOR_TYPES = [

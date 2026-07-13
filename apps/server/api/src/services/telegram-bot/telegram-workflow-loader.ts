@@ -22,7 +22,7 @@ import type {
 import type {
   ExecutableNode,
   ExecutableWorkflow,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 /**

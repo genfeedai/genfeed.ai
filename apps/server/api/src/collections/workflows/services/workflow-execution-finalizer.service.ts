@@ -2,7 +2,7 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/enums';
-import type { ExecutionRunResult } from '@genfeedai/workflow-engine';
+import type { ExecutionRunResult } from '@genfeedai/workflows/engine';
 
 type CompletedExecution = Awaited<
   ReturnType<WorkflowExecutionsService['completeExecution']>

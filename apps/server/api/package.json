@@ -20,7 +20,6 @@
     "@genfeedai/tools": "workspace:*",
     "@genfeedai/types": "workspace:*",
     "@genfeedai/utils": "workspace:*",
-    "@genfeedai/workflow-engine": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
     "@nestjs/event-emitter": "3.1.0",
     "@prisma/adapter-pg": "7.8.0",
@@ -39,6 +38,7 @@
     "jsonwebtoken": "9.0.3",
     "multer": "2.2.0",
     "openai": "6.45.0",
+    "recheck": "4.5.0",
     "rss": "1.2.2",
     "twitter-text": "3.1.0"
   },

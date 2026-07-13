@@ -159,8 +159,7 @@
       "@ui/forms/base/form-control/FormControl": [
         "../../packages/ui/src/primitives/field.tsx"
       ],
-      "@utils/*": ["../../packages/utils/*"],
-      "@workflow-engine/*": ["../../packages/workflow-engine/src/*"]
+      "@utils/*": ["../../packages/utils/*"]
     }
   },
   "exclude": [

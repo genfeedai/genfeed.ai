@@ -7,7 +7,7 @@ import type {
   ExecutableNode,
   ExecutableWorkflow,
   NodeExecutionResult,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 
 type ProgressTrackingOptions = {
   baselineEstimatedDurationMs?: number;

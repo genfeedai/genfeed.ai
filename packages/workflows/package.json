@@ -1,12 +1,15 @@
 {
   "dependencies": {
     "@genfeedai/enums": "workspace:*",
-    "@genfeedai/types": "workspace:*"
+    "@genfeedai/types": "workspace:*",
+    "recheck": "4.5.0",
+    "uuid": "14.0.1"
   },
   "devDependencies": {
     "@types/node": "26.1.1",
     "tsup": "8.5.1",
-    "typescript": "6.0.2"
+    "typescript": "6.0.2",
+    "vitest": "4.1.10"
   },
   "exports": {
     ".": {
@@ -16,6 +19,10 @@
     "./contracts": {
       "types": "./dist/contracts/index.d.ts",
       "default": "./dist/contracts/index.js"
+    },
+    "./engine": {
+      "types": "./dist/engine/index.d.ts",
+      "default": "./dist/engine/index.js"
     },
     "./generation": {
       "types": "./dist/generation/index.d.ts",
@@ -49,10 +56,10 @@
     "url": "git+https://github.com/genfeedai/genfeed.ai.git"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/contracts/index.ts src/generation/index.ts src/generation/comfyui/index.ts src/nodes/index.ts --format esm --dts --clean --sourcemap",
-    "dev": "tsup src/index.ts src/contracts/index.ts src/generation/index.ts src/generation/comfyui/index.ts src/nodes/index.ts --format esm --dts --watch --sourcemap",
+    "build": "tsup src/index.ts src/contracts/index.ts src/engine/index.ts src/generation/index.ts src/generation/comfyui/index.ts src/nodes/index.ts --format esm --dts --clean --sourcemap",
+    "dev": "tsup src/index.ts src/contracts/index.ts src/engine/index.ts src/generation/index.ts src/generation/comfyui/index.ts src/nodes/index.ts --format esm --dts --watch --sourcemap",
     "prepublishOnly": "bun run build",
-    "test": "bun test src"
+    "test": "vitest run"
   },
   "sideEffects": false,
   "type": "module",

@@ -5,7 +5,7 @@ import type {
   ExecutableNode,
   ExecutableWorkflow,
   NodeStatusChangeEvent,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { mapEngineNodeStatus } from './workflow-execution-status.util';

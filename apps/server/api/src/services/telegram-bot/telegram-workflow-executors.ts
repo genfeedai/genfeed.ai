@@ -17,7 +17,7 @@ import type {
   ExecutableNode,
   ExecutionContext,
   WorkflowEngine,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { FalService } from '@server/services/integrations/fal/services/fal.service';
 import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';

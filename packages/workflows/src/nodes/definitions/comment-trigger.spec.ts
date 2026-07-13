@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import {
   commentTriggerNodeDefinition,
   DEFAULT_COMMENT_TRIGGER_DATA,

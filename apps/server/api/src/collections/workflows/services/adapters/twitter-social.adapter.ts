@@ -9,11 +9,11 @@ import type {
   NewLikeChecker,
   NewRepostChecker,
   ReplyPublisher,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import {
   createSafeRegExp,
   SAFE_SUBJECT_MAX_LENGTH,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

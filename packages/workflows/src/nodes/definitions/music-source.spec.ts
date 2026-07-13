@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'bun:test';
 import { MusicSourceType } from '@genfeedai/enums';
+import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_MUSIC_SOURCE_DATA,
   musicSourceNodeDefinition,

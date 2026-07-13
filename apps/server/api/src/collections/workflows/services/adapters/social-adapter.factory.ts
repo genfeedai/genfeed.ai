@@ -10,7 +10,7 @@ import type {
   NewLikeChecker,
   NewRepostChecker,
   ReplyPublisher,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { Injectable } from '@nestjs/common';
 
 export type SocialPlatformKey = 'twitter' | 'instagram';

@@ -52,12 +52,6 @@
       "@genfeedai/types/*": ["../../../packages/types/src/*"],
       "@genfeedai/utils": ["../../../packages/utils/index.ts"],
       "@genfeedai/utils/*": ["../../../packages/utils/*"],
-      "@genfeedai/workflow-engine": [
-        "../../../packages/workflow-engine/src/index.ts"
-      ],
-      "@genfeedai/workflow-engine/*": [
-        "../../../packages/workflow-engine/src/*"
-      ],
       "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
       "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
       "@helpers/*": ["../../../packages/helpers/src/*"],
@@ -73,8 +67,7 @@
       "@twitch/*": ["../twitch/src/*"],
       "@videos/*": ["../videos/src/*"],
       "@voices/*": ["../voices/src/*"],
-      "@workers/*": ["./src/*"],
-      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"]
+      "@workers/*": ["./src/*"]
     },
     "target": "es2022",
     "types": ["node", "multer"],

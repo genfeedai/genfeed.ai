@@ -56,10 +56,6 @@
       "@genfeedai/ui/*": ["../../packages/ui/src/*"],
       "@genfeedai/utils": ["../../packages/utils/index.ts"],
       "@genfeedai/utils/*": ["../../packages/utils/*"],
-      "@genfeedai/workflow-engine": [
-        "../../packages/workflow-engine/src/index.ts"
-      ],
-      "@genfeedai/workflow-engine/*": ["../../packages/workflow-engine/src/*"],
       "@genfeedai/workflows": ["../../packages/workflows/src/index.ts"],
       "@genfeedai/workflows/*": ["../../packages/workflows/src/*"],
       "@helpers/*": ["../../packages/helpers/src/*"],
@@ -74,8 +70,7 @@
       "@ui/*": ["../../packages/ui/src/*"],
       "@videos/*": ["./videos/src/*"],
       "@voices/*": ["./voices/src/*"],
-      "@workers/*": ["./workers/src/*"],
-      "@workflow-engine/*": ["../../packages/workflow-engine/src/*"]
+      "@workers/*": ["./workers/src/*"]
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,

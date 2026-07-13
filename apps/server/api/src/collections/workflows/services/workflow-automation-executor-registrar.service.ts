@@ -13,7 +13,7 @@ import type { TrendNotificationCadence } from '@api/collections/workflows/templa
 import type {
   ExecutionContext,
   WorkflowEngine,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 
 export class WorkflowAutomationExecutorRegistrarService {
   constructor(

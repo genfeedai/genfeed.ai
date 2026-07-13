@@ -23,7 +23,7 @@ import {
   WorkflowExecutionSerializer,
   WorkflowSerializer,
 } from '@genfeedai/serializers';
-import type { CreditEstimate } from '@genfeedai/workflow-engine';
+import type { CreditEstimate } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

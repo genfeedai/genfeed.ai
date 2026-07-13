@@ -22,7 +22,7 @@ vi.mock('grammy', () => ({
 }));
 
 // Mock workflow engine
-vi.mock('@genfeedai/workflow-engine', () => ({
+vi.mock('@genfeedai/workflows/engine', () => ({
   createWorkflowEngine: vi.fn().mockReturnValue({
     execute: vi.fn().mockResolvedValue({
       completedAt: new Date(),

@@ -15,7 +15,7 @@ import type {
   ExecutableWorkflow,
   ExecutionRunResult,
   NodeExecutionResult,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 
 export class WorkflowNodeGraphRunnerService {
   constructor(

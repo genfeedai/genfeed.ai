@@ -12,7 +12,7 @@ import type {
   ExecutableEdge,
   ExecutableNode,
   ExecutableWorkflow,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 
 export interface WorkflowDocumentShape {
   brandId?: string | null;
