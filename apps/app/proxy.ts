@@ -464,6 +464,34 @@ async function shouldRedirectSignedInUserToOnboarding(
   return !ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
 }
 
+// Matches the org-scoped agent onboarding surface and its threaded children,
+// e.g. `/acme/~/agent/onboarding` and `/acme/~/agent/onboarding/<threadId>`.
+const AGENT_ONBOARDING_PATH_RE = /^\/[^/]+\/~\/agent\/onboarding(?:\/|$)/;
+
+function isAgentOnboardingPath(pathname: string): boolean {
+  return AGENT_ONBOARDING_PATH_RE.test(pathname);
+}
+
+// Resolve the org-scoped agent onboarding destination for an incomplete user.
+// Agent-first onboarding is the cloud default; callers fall back to the wizard
+// (`ONBOARDING_PATH`) when the workspace slug can't be resolved.
+async function resolveAgentOnboardingRedirect(
+  token: string,
+  cacheKey?: string | null,
+  req?: NextRequest,
+): Promise<{ cookieValue: string | null; path: string } | null> {
+  const resolution = await resolveActiveWorkspaceSlugs(token, cacheKey, req);
+  if (!resolution) {
+    return null;
+  }
+
+  const { cookieValue, slugs } = resolution;
+  return {
+    cookieValue,
+    path: `/${slugs.orgSlug}/~/agent/onboarding`,
+  };
+}
+
 type CanonicalResolution = {
   cookieValue: string | null;
   path: string;
@@ -610,6 +638,21 @@ async function redirectSignedInUserToDefaultRoute(
   cacheKey?: string | null,
 ): Promise<NextResponse | null> {
   if (await shouldRedirectSignedInUserToOnboarding(token)) {
+    if (isCloudDeployment()) {
+      const agentOnboarding = await resolveAgentOnboardingRedirect(
+        token,
+        cacheKey,
+        req,
+      );
+      if (agentOnboarding) {
+        const response = redirectDroppingSearch(req, agentOnboarding.path);
+        if (agentOnboarding.cookieValue) {
+          setSlugCookie(response, agentOnboarding.cookieValue);
+        }
+        return response;
+      }
+    }
+
     return redirectDroppingSearch(req, ONBOARDING_PATH);
   }
 
@@ -793,6 +836,30 @@ export async function proxy(req: NextRequest) {
     }
 
     if (await shouldRedirectSignedInUserToOnboarding(token)) {
+      // Self-hosted/desktop keep the form wizard; only cloud gets agent-first.
+      if (!isCloudDeployment()) {
+        return redirectPreservingSearch(req, ONBOARDING_PATH);
+      }
+
+      // The agent onboarding surface is itself a protected route — let it
+      // render instead of bouncing the user back to the wizard (redirect loop).
+      if (isAgentOnboardingPath(pathname)) {
+        return NextResponse.next();
+      }
+
+      const agentOnboarding = await resolveAgentOnboardingRedirect(
+        token,
+        sessionCookie,
+        req,
+      );
+      if (agentOnboarding) {
+        const response = redirectPreservingSearch(req, agentOnboarding.path);
+        if (agentOnboarding.cookieValue) {
+          setSlugCookie(response, agentOnboarding.cookieValue);
+        }
+        return response;
+      }
+
       return redirectPreservingSearch(req, ONBOARDING_PATH);
     }
 

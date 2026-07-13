@@ -263,6 +263,87 @@ describe('proxy', () => {
     );
   });
 
+  describe('agent-first onboarding (cloud)', () => {
+    const mockIncompleteUser = () =>
+      fetchMock.mockImplementation(async (input: string | URL) => {
+        const url = String(input);
+
+        if (url.endsWith('/auth/token')) {
+          return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+            status: 200,
+          });
+        }
+
+        if (url.endsWith('/auth/bootstrap')) {
+          return new Response(
+            JSON.stringify({
+              access: { brandId: 'brand_1', isOnboardingCompleted: false },
+              brands: [{ id: 'brand_1', slug: 'default' }],
+              currentUser: {
+                id: 'user_1',
+                isOnboardingCompleted: false,
+                onboardingStepsCompleted: [],
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.endsWith('/organizations/mine')) {
+          return new Response(
+            JSON.stringify([{ isActive: true, slug: 'acme' }]),
+            { status: 200 },
+          );
+        }
+
+        return new Response('not found', { status: 404 });
+      });
+
+    it('redirects an incomplete cloud user on a protected route to the agent onboarding surface', async () => {
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+      mockIncompleteUser();
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedInRequest('/acme/default/workspace/overview'),
+        {} as never,
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/acme/~/agent/onboarding',
+      );
+    });
+
+    it('lets an incomplete cloud user stay on the agent onboarding surface (no redirect loop)', async () => {
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+      mockIncompleteUser();
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedInRequest('/acme/~/agent/onboarding'),
+        {} as never,
+      );
+
+      expect(response.headers.get('location')).toBeNull();
+    });
+
+    it('keeps self-hosted incomplete users on the classic wizard', async () => {
+      mockIncompleteUser();
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedInRequest('/acme/default/workspace/overview'),
+        {} as never,
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/onboarding',
+      );
+    });
+  });
+
   it('keeps completed users on workspace routing even when their only brand is seeded', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
