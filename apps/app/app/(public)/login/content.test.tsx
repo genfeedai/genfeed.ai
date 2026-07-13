@@ -59,10 +59,12 @@ describe('LoginPage', () => {
       'compact',
     );
     expect(
-      screen.getByRole('heading', { name: 'Welcome Back' }),
+      screen.getByRole('heading', { name: 'Welcome back' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('textbox', { name: /^Email/ })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Google' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Continue with Google' }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Sign in with GitHub' }),
     ).toBeNull();
@@ -103,7 +105,9 @@ describe('LoginPage', () => {
   it('starts Google sign-in with the default callback URL', async () => {
     render(<LoginPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Continue with Google' }),
+    );
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
@@ -118,7 +122,9 @@ describe('LoginPage', () => {
 
     render(<LoginPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Continue with Google' }),
+    );
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({

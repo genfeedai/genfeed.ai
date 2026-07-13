@@ -6,8 +6,6 @@ import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { ArrowLeft, MailCheck } from 'lucide-react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   type ChangeEvent,
@@ -20,13 +18,16 @@ import {
   getAuthFlowHref,
   toAbsoluteAuthCallbackURL,
 } from '../auth-callback-url';
+import {
+  AUTH_PRIMARY_BUTTON_CLASS_NAME,
+  AuthBackLink,
+  AuthCheckEmail,
+  AuthHeading,
+} from '../auth-ui';
 
 const subscribe = () => () => {};
 const getSnapshot = () => true;
 const getServerSnapshot = () => false;
-
-const AUTH_BUTTON_CLASS_NAME =
-  'h-10 w-full justify-center text-[15px] font-medium tracking-normal';
 
 export default function ForgotPasswordContent() {
   const searchParams = useSearchParams();
@@ -78,43 +79,28 @@ export default function ForgotPasswordContent() {
   if (isEmailSent) {
     return (
       <AuthFormLayout logoSize="compact">
-        <div className="w-full max-w-sm space-y-4 text-center">
-          <MailCheck
-            className="mx-auto size-8 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <h1 className="text-2xl font-semibold tracking-normal">
-            Check your email
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            If an account exists for <strong>{email}</strong>, we&apos;ll send a
-            password reset link.
-          </p>
-          <Button
-            asChild
-            variant={ButtonVariant.OUTLINE}
-            className="h-10 w-full justify-center gap-3 rounded-md border-border bg-background text-[15px] font-medium tracking-normal shadow-sm hover:bg-accent/50"
-            withWrapper={false}
-          >
-            <Link href={loginHref}>Back to sign in</Link>
-          </Button>
-        </div>
+        <AuthCheckEmail
+          title="Check your email"
+          description={
+            <>
+              If an account exists for <strong>{email}</strong>, we&apos;ll send
+              a password reset link.
+            </>
+          }
+          backHref={loginHref}
+          backLabel="Back to sign in"
+        />
       </AuthFormLayout>
     );
   }
 
   return (
     <AuthFormLayout logoSize="compact">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">
-            Reset your password
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Enter your account email and we&apos;ll send you a secure reset
-            link.
-          </p>
-        </div>
+      <div className="w-full space-y-6">
+        <AuthHeading
+          title="Reset your password"
+          description="Enter your account email and we'll send you a secure reset link."
+        />
 
         <form onSubmit={handlePasswordResetRequest} className="space-y-4">
           <Field label="Email" isRequired>
@@ -141,22 +127,14 @@ export default function ForgotPasswordContent() {
             variant={ButtonVariant.DEFAULT}
             isLoading={isSubmitting}
             isDisabled={!email || isSubmitting}
-            className={AUTH_BUTTON_CLASS_NAME}
+            className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
             Email me a reset link
           </Button>
         </form>
 
-        <div className="text-center">
-          <Link
-            href={loginHref}
-            className="inline-flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Back to sign in
-          </Link>
-        </div>
+        <AuthBackLink href={loginHref}>Back to sign in</AuthBackLink>
       </div>
     </AuthFormLayout>
   );
