@@ -5,6 +5,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { WorkflowExecutionsController } from '@api/collections/workflow-executions/controllers/workflow-executions.controller';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -34,6 +35,9 @@ describe('WorkflowExecutionsController', () => {
   const mockWorkflowExecutorService = {
     executeManualWorkflow: vi.fn(),
   };
+  const mockWorkflowExecutionAuthorizationService = {
+    authorize: vi.fn().mockResolvedValue(undefined),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -42,6 +46,10 @@ describe('WorkflowExecutionsController', () => {
         {
           provide: WorkflowExecutionsService,
           useValue: mockService,
+        },
+        {
+          provide: WorkflowExecutionAuthorizationService,
+          useValue: mockWorkflowExecutionAuthorizationService,
         },
         {
           provide: WorkflowExecutorService,
@@ -174,7 +182,18 @@ describe('WorkflowExecutionsController', () => {
         { prompt: 'hello' },
         { source: 'builder' },
         'api',
+        undefined,
       );
+      expect(
+        mockWorkflowExecutionAuthorizationService.authorize,
+      ).toHaveBeenCalledWith({
+        expectedContextVersion: undefined,
+        organizationId: '507f1f77bcf86cd799439011',
+        requestedBrandId: undefined,
+        threadId: undefined,
+        userId: 'user-123',
+        workflowId: 'wf-1',
+      });
       expect(mockService.findOne).toHaveBeenCalledWith({
         _id: 'exec-new',
         isDeleted: false,
@@ -182,6 +201,57 @@ describe('WorkflowExecutionsController', () => {
       });
       expect(mockService.createExecution).not.toHaveBeenCalled();
       expect(result).toEqual(mockExecution);
+    });
+
+    it('passes validated shell scope to the canonical workflow executor', async () => {
+      const scope = {
+        brandId: 'brand-1',
+        contextVersion: 4,
+        threadId: 'thread-1',
+      };
+      mockWorkflowExecutionAuthorizationService.authorize.mockResolvedValueOnce(
+        scope,
+      );
+      mockWorkflowExecutorService.executeManualWorkflow.mockResolvedValue({
+        executionId: 'exec-scoped',
+      });
+      mockService.findOne.mockResolvedValue({ _id: 'exec-scoped' });
+
+      await controller.create(mockRequest, mockUser, {
+        expectedContextVersion: 4,
+        threadId: 'thread-1',
+        workflow: 'wf-1',
+      } as never);
+
+      expect(
+        mockWorkflowExecutorService.executeManualWorkflow,
+      ).toHaveBeenCalledWith(
+        'wf-1',
+        'user-123',
+        '507f1f77bcf86cd799439011',
+        {},
+        undefined,
+        undefined,
+        scope,
+      );
+    });
+
+    it('rejects invalid shell authority before the workflow engine executes', async () => {
+      mockWorkflowExecutionAuthorizationService.authorize.mockRejectedValueOnce(
+        new BadRequestException('stale workflow context'),
+      );
+
+      await expect(
+        controller.create(mockRequest, mockUser, {
+          expectedContextVersion: 2,
+          threadId: 'thread-1',
+          workflow: 'wf-1',
+        } as never),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(
+        mockWorkflowExecutorService.executeManualWorkflow,
+      ).not.toHaveBeenCalled();
     });
   });
 

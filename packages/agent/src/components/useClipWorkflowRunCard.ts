@@ -1,6 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
@@ -103,6 +104,10 @@ export function useClipWorkflowRunCard({
   const [mergedVideoId, setMergedVideoId] = useState<string | null>(null);
   const [portraitVideoId, setPortraitVideoId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const activeThread = useAgentChatStore((state) =>
+    state.threads.find((thread) => thread.id === state.activeThreadId),
+  );
   const [steps, setSteps] = useState<Record<StepKey, StepStatus>>({
     generate_clip: 'pending',
     merge_clips: mergeGeneratedVideos ? 'pending' : 'skipped',
@@ -155,11 +160,23 @@ export function useClipWorkflowRunCard({
     };
 
     const execution = await runAgentApiEffect(
-      apiService.triggerWorkflowEffect(workflowId, inputValues),
+      apiService.triggerWorkflowEffect(
+        workflowId,
+        inputValues,
+        undefined,
+        activeThreadId && activeThread?.contextVersion !== undefined
+          ? {
+              expectedContextVersion: activeThread.contextVersion,
+              threadId: activeThreadId,
+            }
+          : undefined,
+      ),
     );
     setWorkflowExecutionId(execution.id);
     setStep('trigger_workflow', 'completed');
   }, [
+    activeThread?.contextVersion,
+    activeThreadId,
     apiService,
     clipRun.inputValues,
     durationSeconds,

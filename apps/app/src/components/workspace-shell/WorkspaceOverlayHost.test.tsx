@@ -200,6 +200,24 @@ describe('WorkspaceOverlayHost', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('renders product-owned content inside the trusted host boundary', () => {
+    render(
+      <WorkspaceOverlayHost
+        content={<div>Authorized workflow choices</div>}
+        fallbackFocusRef={createRef<HTMLElement>()}
+        isOpen
+        onDismiss={vi.fn()}
+        overlay={{ key: 'workflow-picker', parameters: {} }}
+        registration={getWorkspaceShellOverlayRegistration('workflow-picker')}
+        returnFocusRef={createRef<HTMLElement>()}
+      />,
+    );
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Authorized workflow choices')).toBeVisible();
+    expect(screen.queryByText('No resource reference selected')).toBeNull();
+  });
+
   it('renders the trusted Library adapter and returns the canonical reference', () => {
     const onSelectLibraryReference = vi.fn();
 

@@ -136,8 +136,21 @@ export interface UpdateWorkflowInput {
 
 /** Options for executing a workflow */
 export interface ExecuteOptions {
+  expectedContextVersion?: number;
   inputValues?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+  threadId?: string;
+}
+
+export interface WorkflowActionContext {
+  expectedContextVersion: number;
+  threadId: string;
+}
+
+export interface ResumeExecutionResult {
+  message: string;
+  runId: string;
+  status: string;
 }
 
 /** Node-level result within an execution */
@@ -175,6 +188,7 @@ export interface ExecutionResult {
   workflow: string | { _id: string; label?: string; description?: string };
   status: string;
   trigger: string;
+  inputValues?: Record<string, unknown>;
   nodeResults: ExecutionNodeResult[];
   progress: number;
   startedAt?: string;
@@ -589,6 +603,12 @@ export class WorkflowApiService extends HTTPBaseService {
       const response = await this.instance.post<unknown>(execBaseURL, {
         inputValues: options?.inputValues ?? {},
         metadata: options?.metadata,
+        ...(options?.threadId && options.expectedContextVersion !== undefined
+          ? {
+              expectedContextVersion: options.expectedContextVersion,
+              threadId: options.threadId,
+            }
+          : {}),
         workflow: id,
       });
 
@@ -742,11 +762,17 @@ export class WorkflowApiService extends HTTPBaseService {
     nodeId: string,
     approved: boolean,
     rejectionReason?: string,
+    context?: WorkflowActionContext,
   ): Promise<ApprovalResponse> {
     try {
       const response = await this.instance.post<{ data: ApprovalResponse }>(
         `/${workflowId}/executions/${executionId}/approve`,
-        { approved, nodeId, rejectionReason },
+        {
+          approved,
+          ...(context ?? {}),
+          nodeId,
+          rejectionReason,
+        },
       );
       return response.data.data;
     } catch (error) {
@@ -754,6 +780,27 @@ export class WorkflowApiService extends HTTPBaseService {
         error,
         executionId,
         nodeId,
+        workflowId,
+      });
+      throw error;
+    }
+  }
+
+  /** Resume a failed workflow through the canonical deterministic run path. */
+  async resumeExecution(
+    workflowId: string,
+    executionId: string,
+    context?: WorkflowActionContext,
+  ): Promise<ResumeExecutionResult> {
+    try {
+      const response = await this.instance.post<{
+        data: ResumeExecutionResult;
+      }>(`/${workflowId}/execute/resume/${executionId}`, context ?? {});
+      return response.data.data;
+    } catch (error) {
+      logger.error('Failed to resume workflow execution', {
+        error,
+        executionId,
         workflowId,
       });
       throw error;

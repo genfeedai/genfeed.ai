@@ -281,6 +281,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/workflows/library',
       '/:orgSlug/~/workflows/templates',
       '/:orgSlug/~/workflows/executions',
+      '/:orgSlug/~/workflows/executions/:id',
       '/:orgSlug/~/workflows/new',
       '/:orgSlug/~/workflows/:id',
     ],
@@ -687,9 +688,9 @@ const ADMIN_ROUTE_REGISTRATIONS = registerRoutes(ADMIN_ROUTE_PATTERNS, {
 });
 
 /**
- * Canonical application-owned inventory for the 206 protected route patterns
- * accepted in ADR-CONVERSATION-SHELL-CONTRACTS v1.0.0. The two intentional hard
- * cuts (`/:orgSlug/~/workspace/*` and
+ * Canonical application-owned inventory for the protected route patterns
+ * accepted in ADR-CONVERSATION-SHELL-CONTRACTS v1.0.0 plus routes added after
+ * its 206-route snapshot. The two intentional hard cuts (`/:orgSlug/~/workspace/*` and
  * `/:orgSlug/~/settings/organization/*`) are deliberately absent.
  */
 export const PROTECTED_ROUTE_INVENTORY = Object.freeze([
@@ -769,6 +770,28 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
     safeFallback: 'same-canonical-url',
     scope: 'organization',
     telemetryClass: 'shell_preview',
+  }),
+  Object.freeze({
+    accessPolicy: 'organization-member',
+    adapter: Object.freeze({ key: 'workflow-picker', status: 'placeholder' }),
+    allowedShellModes: Object.freeze(['overlay'] as const),
+    availability: 'conversation-shell',
+    canonicalUrl: null,
+    deployments: ALL_DEPLOYMENTS,
+    key: 'workflow-picker',
+    kind: 'overlay',
+    launchTarget: 'overlay',
+    parameterContract: Object.freeze({ kind: 'none' } as const),
+    presentation: Object.freeze({
+      description:
+        'Choose an authorized deterministic workflow without leaving the active conversation or canvas.',
+      openAnnouncement: 'Workflow picker opened.',
+      title: 'Choose a workflow',
+    }),
+    restoration: URL_RESTORATION_POLICY,
+    safeFallback: 'same-canonical-url',
+    scope: 'organization',
+    telemetryClass: 'workflow_picker',
   }),
   Object.freeze({
     accessPolicy: 'organization-member',

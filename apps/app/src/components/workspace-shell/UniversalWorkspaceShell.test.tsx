@@ -14,8 +14,10 @@ const router = vi.hoisted(() => ({
 }));
 const agentState = vi.hoisted(() => ({
   activeThreadId: 'thread-1' as string | null,
+  seedComposer: vi.fn(),
   threads: [
     {
+      brandId: 'brand-1',
       contextVersion: 3,
       id: 'thread-1',
     },
@@ -69,6 +71,22 @@ vi.mock('@genfeedai/agent', () => ({
         type="button"
       />
       <button
+        aria-label="Dispatch workflow action"
+        onClick={() =>
+          dispatchAction({
+            action: {
+              isConsequentialProposal: false,
+              label: 'Workflow',
+              name: 'workflow',
+              requiredScope: 'brand',
+              route: '/workflows',
+            },
+            arguments: '',
+          })
+        }
+        type="button"
+      />
+      <button
         aria-label="Dispatch forged publish action"
         onClick={() =>
           dispatchAction({
@@ -102,16 +120,27 @@ vi.mock('@genfeedai/agent', () => ({
       />
     </div>
   ),
-  getConversationComposerAction: (name: string) =>
-    name === 'publish' || name === 'remix'
-      ? {
-          isConsequentialProposal: name === 'publish',
-          label: name === 'publish' ? 'Publish' : 'Remix',
-          name,
-          requiredScope: 'brand',
-          route: name === 'publish' ? '/posts/review' : '/posts/remix',
-        }
-      : null,
+  getConversationComposerAction: (name: string) => {
+    if (name === 'publish' || name === 'remix') {
+      return {
+        isConsequentialProposal: name === 'publish',
+        label: name === 'publish' ? 'Publish' : 'Remix',
+        name,
+        requiredScope: 'brand',
+        route: name === 'publish' ? '/posts/review' : '/posts/remix',
+      };
+    }
+    if (name === 'workflow') {
+      return {
+        isConsequentialProposal: false,
+        label: 'Workflow',
+        name: 'workflow',
+        requiredScope: 'brand',
+        route: '/workflows',
+      };
+    }
+    return null;
+  },
   useAgentChatStore: Object.assign(
     (selector: (state: typeof agentState) => unknown) => selector(agentState),
     {
@@ -258,6 +287,30 @@ vi.mock('@/lib/workspace-shell/workspace-shell-telemetry', () => ({
   captureWorkspaceShellTransition: vi.fn(),
 }));
 
+vi.mock('@/features/workflows/workspace/WorkflowSurfaceInspector', () => ({
+  WorkflowSurfaceInspector: () => <div>Workflow surface inspector</div>,
+}));
+
+vi.mock('@/features/workflows/workspace/WorkflowPickerOverlay', () => ({
+  WorkflowPickerOverlay: ({
+    onAttachWorkflow,
+  }: {
+    onAttachWorkflow: (workflow: { _id: string; name: string }) => void;
+  }) => (
+    <div>
+      <p>Authorized workflow picker</p>
+      <button
+        onClick={() =>
+          onAttachWorkflow({ _id: 'workflow-1', name: 'Launch brief' })
+        }
+        type="button"
+      >
+        Attach Launch brief
+      </button>
+    </div>
+  ),
+}));
+
 import { BrandWorkspaceOverviewSurfaceAdapter } from '@/features/workspace-overview/workspace-overview-surface-adapters';
 
 vi.mock('./use-conversation-scope-controls', () => ({
@@ -279,6 +332,7 @@ describe('UniversalWorkspaceShell', () => {
     pageShellMount.mockClear();
     agentActions.resetActiveConversationState.mockClear();
     agentActions.setActiveThread.mockClear();
+    agentState.seedComposer.mockClear();
     router.back.mockClear();
     router.push.mockClear();
     router.replace.mockClear();
@@ -464,6 +518,65 @@ describe('UniversalWorkspaceShell', () => {
     expect(router.push).toHaveBeenCalledWith(
       '/acme/moonrise/posts/review?thread=thread-1',
     );
+  });
+
+  it('opens and restores the trusted workflow picker without dialog graph UI', () => {
+    navigation.pathname = '/acme/~/workflows';
+    navigation.searchParams = new URLSearchParams({ thread: 'thread-1' });
+
+    const view = render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Workspace</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dispatch workflow action' }),
+    );
+    expect(router.push).toHaveBeenCalledWith(
+      '/acme/~/workflows?thread=thread-1&overlay=workflow-picker',
+    );
+
+    navigation.searchParams = new URLSearchParams({
+      overlay: 'workflow-picker',
+      thread: 'thread-1',
+    });
+    view.rerender(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Workspace</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.getByText('Authorized workflow picker')).toBeInTheDocument();
+    expect(screen.queryByText(/graph editor/i)).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Attach Launch brief' }),
+    );
+    expect(agentState.seedComposer).toHaveBeenCalledWith(
+      'Use the deterministic workflow “Launch brief” (workflow ID: workflow-1) for this request: ',
+      'thread-1',
+    );
+    expect(router.replace).toHaveBeenCalledWith(
+      '/acme/~/workflows?thread=thread-1',
+    );
+  });
+
+  it('gives canonical workflow editors focused canvas overflow ownership', () => {
+    navigation.pathname = '/acme/moonrise/workflows/workflow-1';
+    navigation.searchParams = new URLSearchParams({ thread: 'thread-1' });
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Workflow graph editor</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
+      'overflow-hidden',
+    );
+    expect(screen.getByText('Workflow graph editor')).toBeInTheDocument();
+    expect(screen.queryByTestId('workspace-dialog')).not.toBeInTheDocument();
   });
 
   it('dispatches Remix through the authorized no-parameter Library overlay', () => {

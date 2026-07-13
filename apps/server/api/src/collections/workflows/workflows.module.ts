@@ -38,6 +38,7 @@ import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/le
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
+import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
@@ -92,6 +93,7 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkflowTemplateSeederService,
     WorkflowWebhookService,
     WorkflowEngineAdapterService,
+    WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,
     WorkflowFormatConverterService,
@@ -159,6 +161,7 @@ import { forwardRef, Module } from '@nestjs/common';
     BatchWorkflowService,
     LegacyWorkflowStepRunner,
     WorkflowEngineAdapterService,
+    WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,
     WorkflowFormatConverterService,

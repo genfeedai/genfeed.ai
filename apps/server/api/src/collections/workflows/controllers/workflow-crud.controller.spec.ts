@@ -159,6 +159,25 @@ describe('WorkflowCrudController', () => {
       ]);
       expect(result).toBeDefined();
     });
+
+    it('should restrict the visible list to the requested brand', async () => {
+      const brandId = '507f1f77bcf86cd799439099';
+      mockWorkflowsService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      });
+
+      await controller.findAll(mockRequest, mockUser, { brandId });
+
+      const [aggregateArg] =
+        mockWorkflowsService.findAll.mock.calls[
+          mockWorkflowsService.findAll.mock.calls.length - 1
+        ];
+      expect(aggregateArg.where).toMatchObject({
+        brandId,
+        organization: mockUser.publicMetadata.organization,
+      });
+    });
   });
 
   describe('getStatistics', () => {

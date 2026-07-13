@@ -112,10 +112,12 @@ export class WorkflowCrudController {
     // `GET /workflows/referencable` route (#1354).
     const where = query.referencable
       ? {
+          ...(query.brandId ? { brandId: query.brandId } : {}),
           isDeleted,
           organization: publicMetadata.organization,
         }
       : {
+          ...(query.brandId ? { brandId: query.brandId } : {}),
           isDeleted,
           organization: publicMetadata.organization,
           OR: [

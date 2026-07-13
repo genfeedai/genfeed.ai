@@ -13,6 +13,25 @@ const LIBRARY_PICKER_OVERLAY = {
 } as const satisfies WorkspaceShellOverlayRequest;
 
 describe('workspace overlay launcher', () => {
+  it('opens the parameter-free workflow picker through the trusted host', () => {
+    const overlay = {
+      key: 'workflow-picker',
+      parameters: {},
+    } as const satisfies WorkspaceShellOverlayRequest;
+
+    expect(
+      resolveWorkspaceOverlayLaunch({
+        currentHref: '/acme/moonrise/workflows?thread=thread-1',
+        invocation: 'user',
+        overlay,
+      }),
+    ).toMatchObject({
+      history: 'push',
+      href: '/acme/moonrise/workflows?thread=thread-1&overlay=workflow-picker',
+      overlay,
+    });
+  });
+
   it('pushes one trusted overlay over the complete underlying URL', () => {
     expect(
       resolveWorkspaceOverlayLaunch({
