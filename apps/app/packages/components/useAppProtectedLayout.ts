@@ -43,12 +43,11 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useMenuItems } from '@hooks/ui/use-menu-items';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import {
-  dispatchAgentPanelStateChanged,
-  ENTITY_OVERLAY_CLOSED_EVENT,
-  ENTITY_OVERLAY_OPEN_AGENT_REQUESTED_EVENT,
-  ENTITY_OVERLAY_OPENED_EVENT,
-  type EntityOverlayVisibilityDetail,
+  getAgentOverlayCoordinationState,
   isDesktopAgentViewport,
+  setCoordinatedAgentPanelOpen,
+  subscribeAgentOverlayCoordination,
+  subscribeDesktopAgentViewport,
 } from '@services/core/agent-overlay-coordination.service';
 import {
   useParams,
@@ -294,62 +293,67 @@ export function useAppProtectedLayout(
   }, [setIsOpen, shouldMountAgentPanel]);
 
   useEffect(() => {
-    if (!shouldMountAgentPanel) {
-      return;
-    }
-
-    dispatchAgentPanelStateChanged(isAgentOpen);
+    setCoordinatedAgentPanelOpen(shouldMountAgentPanel && isAgentOpen);
   }, [isAgentOpen, shouldMountAgentPanel]);
+
+  useEffect(
+    () => () => {
+      setCoordinatedAgentPanelOpen(false);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!shouldMountAgentPanel || typeof window === 'undefined') {
       return undefined;
     }
 
-    const handleOverlayOpened = (event: Event): void => {
-      if (!isDesktopAgentViewport()) {
-        return;
+    const handledOverlayIds = new Set<string>();
+    let handledAgentRequestVersion =
+      getAgentOverlayCoordinationState().agentOpenRequestVersion;
+    const syncOverlayCoordination = (): void => {
+      const coordination = getAgentOverlayCoordinationState();
+      const activeOverlayIds = new Set(coordination.activeEntityOverlayIds);
+      const shouldCoordinateOverlays = isDesktopAgentViewport();
+
+      if (shouldCoordinateOverlays) {
+        for (const overlayId of activeOverlayIds) {
+          if (!handledOverlayIds.has(overlayId)) {
+            beginOverlaySession(overlayId);
+            handledOverlayIds.add(overlayId);
+          }
+        }
       }
 
-      beginOverlaySession(
-        (event as CustomEvent<EntityOverlayVisibilityDetail>).detail.overlayId,
-      );
-    };
-
-    const handleOverlayClosed = (event: Event): void => {
-      endOverlaySession(
-        (event as CustomEvent<EntityOverlayVisibilityDetail>).detail.overlayId,
-      );
-    };
-
-    const handleOpenAgentRequested = (): void => {
-      if (!isDesktopAgentViewport()) {
-        return;
+      for (const overlayId of handledOverlayIds) {
+        if (!shouldCoordinateOverlays || !activeOverlayIds.has(overlayId)) {
+          endOverlaySession(overlayId);
+          handledOverlayIds.delete(overlayId);
+        }
       }
 
-      setIsOpen(true);
+      if (handledAgentRequestVersion !== coordination.agentOpenRequestVersion) {
+        handledAgentRequestVersion = coordination.agentOpenRequestVersion;
+        if (shouldCoordinateOverlays) {
+          setIsOpen(true);
+        }
+      }
     };
 
-    window.addEventListener(ENTITY_OVERLAY_OPENED_EVENT, handleOverlayOpened);
-    window.addEventListener(ENTITY_OVERLAY_CLOSED_EVENT, handleOverlayClosed);
-    window.addEventListener(
-      ENTITY_OVERLAY_OPEN_AGENT_REQUESTED_EVENT,
-      handleOpenAgentRequested,
+    const unsubscribe = subscribeAgentOverlayCoordination(
+      syncOverlayCoordination,
     );
+    const unsubscribeDesktopViewport = subscribeDesktopAgentViewport(
+      syncOverlayCoordination,
+    );
+    syncOverlayCoordination();
 
     return () => {
-      window.removeEventListener(
-        ENTITY_OVERLAY_OPENED_EVENT,
-        handleOverlayOpened,
-      );
-      window.removeEventListener(
-        ENTITY_OVERLAY_CLOSED_EVENT,
-        handleOverlayClosed,
-      );
-      window.removeEventListener(
-        ENTITY_OVERLAY_OPEN_AGENT_REQUESTED_EVENT,
-        handleOpenAgentRequested,
-      );
+      unsubscribe();
+      unsubscribeDesktopViewport();
+      for (const overlayId of handledOverlayIds) {
+        endOverlaySession(overlayId);
+      }
     };
   }, [
     beginOverlaySession,

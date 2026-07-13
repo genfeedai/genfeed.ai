@@ -667,7 +667,6 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
   Object.freeze({
     accessPolicy: 'organization-member',
     adapter: Object.freeze({ key: 'notifications', status: 'placeholder' }),
-    allowedReferenceKinds: Object.freeze([] as const),
     allowedShellModes: Object.freeze(['overlay'] as const),
     availability: 'conversation-shell',
     canonicalUrl: null,
@@ -675,6 +674,13 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
     key: 'notifications',
     kind: 'overlay',
     launchTarget: 'overlay',
+    parameterContract: Object.freeze({ kind: 'none' } as const),
+    presentation: Object.freeze({
+      description:
+        'Review workspace notifications without leaving the active conversation or canvas.',
+      openAnnouncement: 'Notifications overlay opened.',
+      title: 'Notifications',
+    }),
     restoration: URL_RESTORATION_POLICY,
     safeFallback: 'same-canonical-url',
     scope: 'organization',
@@ -683,7 +689,6 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
   Object.freeze({
     accessPolicy: 'organization-member',
     adapter: Object.freeze({ key: 'shell-preview', status: 'placeholder' }),
-    allowedReferenceKinds: Object.freeze(['asset', 'post'] as const),
     allowedShellModes: Object.freeze(['overlay'] as const),
     availability: 'conversation-shell',
     canonicalUrl: null,
@@ -691,6 +696,17 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
     key: 'shell-preview',
     kind: 'overlay',
     launchTarget: 'overlay',
+    parameterContract: Object.freeze({
+      allowedReferenceKinds: Object.freeze(['asset', 'post'] as const),
+      kind: 'optional-reference',
+      referenceAccess: 'server-authorized',
+    } as const),
+    presentation: Object.freeze({
+      description:
+        'This trusted placeholder demonstrates restorable overlay state without mutating scope or approving an action.',
+      openAnnouncement: 'Temporary workspace overlay opened.',
+      title: 'Temporary workspace overlay',
+    }),
     restoration: URL_RESTORATION_POLICY,
     safeFallback: 'same-canonical-url',
     scope: 'organization',

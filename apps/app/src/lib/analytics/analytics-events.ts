@@ -82,7 +82,9 @@ export type ConversationShellFallbackReason =
   | 'invalid_overlay_reference'
   | 'invalid_thread'
   | 'registry_miss'
-  | 'render_error';
+  | 'render_error'
+  | 'stale_overlay_reference'
+  | 'unauthorized_overlay_reference';
 
 /**
  * Property shape for each event. Keys map 1:1 to {@link ANALYTICS_EVENTS} values.
@@ -104,7 +106,11 @@ export interface AnalyticsEventProperties {
   [ANALYTICS_EVENTS.CONVERSATION_SHELL_RESTORATION_FAILURE]: {
     readonly reason: Extract<
       ConversationShellFallbackReason,
-      'invalid_overlay' | 'invalid_overlay_reference' | 'invalid_thread'
+      | 'invalid_overlay'
+      | 'invalid_overlay_reference'
+      | 'invalid_thread'
+      | 'stale_overlay_reference'
+      | 'unauthorized_overlay_reference'
     >;
   };
   [ANALYTICS_EVENTS.SIGNUP_STARTED]: {

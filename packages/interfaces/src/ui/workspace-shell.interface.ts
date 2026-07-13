@@ -37,6 +37,57 @@ export type WorkspaceShellLaunchTarget =
 
 export type WorkspaceShellReferenceKind = 'asset' | 'post';
 
+export interface WorkspaceShellTypedReference {
+  readonly id: string;
+  readonly kind: WorkspaceShellReferenceKind;
+}
+
+export type WorkspaceShellOverlayKey = 'notifications' | 'shell-preview';
+
+export interface WorkspaceShellOverlayParameterMap {
+  readonly notifications: Readonly<Record<string, never>>;
+  readonly 'shell-preview': {
+    readonly reference: WorkspaceShellTypedReference | null;
+  };
+}
+
+export type WorkspaceShellOverlayRequest = {
+  readonly [Key in WorkspaceShellOverlayKey]: {
+    readonly key: Key;
+    readonly parameters: WorkspaceShellOverlayParameterMap[Key];
+  };
+}[WorkspaceShellOverlayKey];
+
+export type WorkspaceShellOverlayReferenceAccess =
+  | 'authorized'
+  | 'stale'
+  | 'unauthorized';
+
+export interface WorkspaceShellOverlayReferenceAccessRequest {
+  readonly overlayKey: WorkspaceShellOverlayKey;
+  readonly reference: WorkspaceShellTypedReference;
+}
+
+export type WorkspaceShellOverlayReferenceAccessResolver = (
+  request: WorkspaceShellOverlayReferenceAccessRequest,
+) => WorkspaceShellOverlayReferenceAccess;
+
+export type WorkspaceShellOverlayParameterContract =
+  | {
+      readonly kind: 'none';
+    }
+  | {
+      readonly allowedReferenceKinds: readonly WorkspaceShellReferenceKind[];
+      readonly kind: 'optional-reference';
+      readonly referenceAccess: 'server-authorized';
+    };
+
+export interface WorkspaceShellOverlayPresentation {
+  readonly description: string;
+  readonly openAnnouncement: string;
+  readonly title: string;
+}
+
 export interface WorkspaceShellRestorationPolicy {
   readonly history: 'canonical-url';
   readonly invalidShellParams: 'replace';
@@ -78,14 +129,15 @@ export interface ResolvedWorkspaceShellRoute
 export interface WorkspaceShellOverlayRegistration {
   readonly accessPolicy: 'organization-member';
   readonly adapter: WorkspaceShellAdapterSeam;
-  readonly allowedReferenceKinds: readonly WorkspaceShellReferenceKind[];
   readonly allowedShellModes: readonly ['overlay'];
   readonly availability: 'conversation-shell';
   readonly canonicalUrl: null;
   readonly deployments: readonly WorkspaceShellDeployment[];
-  readonly key: string;
+  readonly key: WorkspaceShellOverlayKey;
   readonly kind: 'overlay';
   readonly launchTarget: 'overlay';
+  readonly parameterContract: WorkspaceShellOverlayParameterContract;
+  readonly presentation: WorkspaceShellOverlayPresentation;
   readonly restoration: WorkspaceShellRestorationPolicy;
   readonly safeFallback: 'same-canonical-url';
   readonly scope: 'organization';
@@ -127,22 +179,18 @@ export interface ResolveWorkspaceSurfaceLaunchParams {
   readonly threadId?: string | null;
 }
 
-export interface WorkspaceShellTypedReference {
-  readonly id: string;
-  readonly kind: WorkspaceShellReferenceKind;
-}
-
 export type WorkspaceShellRestorationFailure =
   | 'invalid_overlay'
   | 'invalid_overlay_reference'
+  | 'stale_overlay_reference'
+  | 'unauthorized_overlay_reference'
   | 'invalid_thread';
 
 export interface WorkspaceShellLocation {
   readonly baseState: WorkspaceShellBaseState;
   readonly canonicalSearchParams: URLSearchParams;
   readonly isCanonical: boolean;
-  readonly overlayKey: string | null;
-  readonly overlayReference: WorkspaceShellTypedReference | null;
+  readonly overlay: WorkspaceShellOverlayRequest | null;
   readonly restorationFailure: WorkspaceShellRestorationFailure | null;
   readonly routeKey: string;
   readonly safeFallbackHref: string;
@@ -154,5 +202,32 @@ export interface WorkspaceShellLocation {
 export interface RestoreWorkspaceShellLocationParams {
   readonly normalizedPathname: string;
   readonly pathname: string;
+  readonly resolveOverlayReferenceAccess?: WorkspaceShellOverlayReferenceAccessResolver;
   readonly searchParams: URLSearchParams;
+}
+
+export interface WorkspaceShellOverlayResolution {
+  readonly failure: Extract<
+    WorkspaceShellRestorationFailure,
+    | 'invalid_overlay_reference'
+    | 'stale_overlay_reference'
+    | 'unauthorized_overlay_reference'
+  > | null;
+  readonly overlay: WorkspaceShellOverlayRequest | null;
+}
+
+export type WorkspaceShellOverlayInvocation = 'model' | 'user';
+
+export interface ResolveWorkspaceOverlayLaunchParams {
+  readonly currentHref: string;
+  readonly invocation: WorkspaceShellOverlayInvocation;
+  readonly overlay: WorkspaceShellOverlayRequest;
+  readonly resolveOverlayReferenceAccess?: WorkspaceShellOverlayReferenceAccessResolver;
+}
+
+export interface WorkspaceOverlayLaunch {
+  readonly announcement: string;
+  readonly history: 'none' | 'push' | 'replace';
+  readonly href: string;
+  readonly overlay: WorkspaceShellOverlayRequest | null;
 }

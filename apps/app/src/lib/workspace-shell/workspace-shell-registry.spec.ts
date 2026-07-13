@@ -128,6 +128,18 @@ describe('workspace shell trusted registry', () => {
         allowedShellModes: ['overlay'],
         canonicalUrl: null,
         kind: 'overlay',
+        parameterContract: { kind: 'none' },
+        presentation: { title: 'Notifications' },
+      },
+    );
+    expect(getWorkspaceShellOverlayRegistration('shell-preview')).toMatchObject(
+      {
+        parameterContract: {
+          allowedReferenceKinds: ['asset', 'post'],
+          kind: 'optional-reference',
+          referenceAccess: 'server-authorized',
+        },
+        presentation: { title: 'Temporary workspace overlay' },
       },
     );
     expect(

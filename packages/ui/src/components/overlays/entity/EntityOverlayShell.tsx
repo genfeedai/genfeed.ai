@@ -10,13 +10,13 @@ import {
 } from '@genfeedai/helpers/ui/modal/modal.helper';
 import {
   AGENT_PANEL_DESKTOP_MEDIA_QUERY,
-  AGENT_PANEL_STATE_CHANGED_EVENT,
-  type AgentPanelStateChangedDetail,
-  dispatchEntityOverlayClosed,
-  dispatchEntityOverlayOpenAgentRequested,
-  dispatchEntityOverlayOpened,
-  getStoredAgentPanelOpenState,
+  getAgentOverlayCoordinationState,
+  getServerAgentOverlayCoordinationState,
   isDesktopAgentViewport,
+  notifyEntityOverlayClosed,
+  notifyEntityOverlayOpened,
+  requestAgentFromEntityOverlay,
+  subscribeAgentOverlayCoordination,
 } from '@genfeedai/services/core/agent-overlay-coordination.service';
 import { Button } from '@ui/primitives/button';
 import {
@@ -92,16 +92,21 @@ export default function EntityOverlayShell({
   );
   const getSnapshot = useCallback(() => isModalOpen(id), [id]);
   const isOpen = useSyncExternalStore(subscribe, getSnapshot, () => false);
+  const overlayCoordinationState = useSyncExternalStore(
+    subscribeAgentOverlayCoordination,
+    getAgentOverlayCoordinationState,
+    getServerAgentOverlayCoordinationState,
+  );
 
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const previousOpenRef = useRef(isOpen);
   const overlaySessionOpenRef = useRef(false);
-  const [canOpenAgent, setCanOpenAgent] = useState<boolean>(() => {
-    const storedAgentState = getStoredAgentPanelOpenState();
-
-    return isDesktopAgentViewport() && storedAgentState !== true;
-  });
+  const [isDesktopViewport, setIsDesktopViewport] = useState(
+    isDesktopAgentViewport,
+  );
+  const canOpenAgent =
+    isDesktopViewport && !overlayCoordinationState.isAgentPanelOpen;
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -126,12 +131,12 @@ export default function EntityOverlayShell({
   useEffect(() => {
     if (isOpen && !overlaySessionOpenRef.current) {
       overlaySessionOpenRef.current = true;
-      dispatchEntityOverlayOpened(id);
+      notifyEntityOverlayOpened(id);
     }
 
     if (!isOpen && overlaySessionOpenRef.current) {
       overlaySessionOpenRef.current = false;
-      dispatchEntityOverlayClosed(id);
+      notifyEntityOverlayClosed(id);
     }
   }, [id, isOpen]);
 
@@ -141,38 +146,21 @@ export default function EntityOverlayShell({
     }
 
     const mediaQuery = window.matchMedia(AGENT_PANEL_DESKTOP_MEDIA_QUERY);
-    const syncAgentActionAvailability = (): void => {
-      const storedAgentState = getStoredAgentPanelOpenState();
+    const syncDesktopViewport = (): void =>
+      setIsDesktopViewport(mediaQuery.matches);
 
-      setCanOpenAgent(mediaQuery.matches && storedAgentState !== true);
-    };
-    const handleAgentStateChanged = (event: Event): void => {
-      setCanOpenAgent(
-        mediaQuery.matches &&
-          !(event as CustomEvent<AgentPanelStateChangedDetail>).detail.isOpen,
-      );
-    };
-
-    syncAgentActionAvailability();
-    mediaQuery.addEventListener('change', syncAgentActionAvailability);
-    window.addEventListener(
-      AGENT_PANEL_STATE_CHANGED_EVENT,
-      handleAgentStateChanged,
-    );
+    syncDesktopViewport();
+    mediaQuery.addEventListener('change', syncDesktopViewport);
 
     return () => {
-      mediaQuery.removeEventListener('change', syncAgentActionAvailability);
-      window.removeEventListener(
-        AGENT_PANEL_STATE_CHANGED_EVENT,
-        handleAgentStateChanged,
-      );
+      mediaQuery.removeEventListener('change', syncDesktopViewport);
     };
   }, []);
 
   useEffect(() => {
     return () => {
       if (overlaySessionOpenRef.current) {
-        dispatchEntityOverlayClosed(id);
+        notifyEntityOverlayClosed(id);
         overlaySessionOpenRef.current = false;
       }
     };
@@ -227,9 +215,7 @@ export default function EntityOverlayShell({
                       <Button
                         label="Open agent"
                         variant={ButtonVariant.SECONDARY}
-                        onClick={() =>
-                          dispatchEntityOverlayOpenAgentRequested(id)
-                        }
+                        onClick={() => requestAgentFromEntityOverlay(id)}
                       />
                     ) : null}
                     {actions}

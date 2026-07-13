@@ -1,6 +1,8 @@
 import {
-  ENTITY_OVERLAY_CLOSED_EVENT,
-  ENTITY_OVERLAY_OPENED_EVENT,
+  notifyEntityOverlayClosed,
+  notifyEntityOverlayOpened,
+  requestAgentFromEntityOverlay,
+  setCoordinatedAgentPanelOpen,
 } from '@services/core/agent-overlay-coordination.service';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { type ReactNode, useEffect } from 'react';
@@ -504,7 +506,6 @@ vi.mock('@services/core/agent-overlay-coordination.service', async () => {
 
   return {
     ...actual,
-    dispatchAgentPanelStateChanged: vi.fn(),
     isDesktopAgentViewport: vi.fn(() => true),
   };
 });
@@ -534,6 +535,8 @@ describe('AppProtectedLayout', () => {
     setIsOpenSpy.mockClear();
     toggleOpenSpy.mockClear();
     universalShellSpy.mockClear();
+    notifyEntityOverlayClosed('ingredient-overlay');
+    setCoordinatedAgentPanelOpen(false);
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
     Object.defineProperty(window, 'location', {
@@ -1185,26 +1188,32 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('syncs overlay visibility events for the embedded workspace rail', () => {
+  it('syncs typed overlay visibility state for the embedded workspace rail', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
       </AppProtectedLayout>,
     );
 
-    window.dispatchEvent(
-      new CustomEvent(ENTITY_OVERLAY_OPENED_EVENT, {
-        detail: { overlayId: 'ingredient-overlay' },
-      }),
-    );
-    window.dispatchEvent(
-      new CustomEvent(ENTITY_OVERLAY_CLOSED_EVENT, {
-        detail: { overlayId: 'ingredient-overlay' },
-      }),
-    );
+    notifyEntityOverlayOpened('ingredient-overlay');
+    notifyEntityOverlayClosed('ingredient-overlay');
 
     expect(beginOverlaySessionSpy).toHaveBeenCalledWith('ingredient-overlay');
     expect(endOverlaySessionSpy).toHaveBeenCalledWith('ingredient-overlay');
+  });
+
+  it('handles typed open-agent requests from active entity inspection', () => {
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    notifyEntityOverlayOpened('ingredient-overlay');
+    requestAgentFromEntityOverlay('ingredient-overlay');
+
+    expect(setIsOpenSpy).toHaveBeenCalledWith(true);
+    notifyEntityOverlayClosed('ingredient-overlay');
   });
 
   it('skips editor-only providers and streak bridge on editor canvas routes', () => {
