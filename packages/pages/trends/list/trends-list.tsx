@@ -5,6 +5,18 @@ import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { ITrendVideo } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useTrendContent } from '@hooks/data/trends/use-trend-content/use-trend-content';
+import {
+  useOptionalResearchWorkSurface,
+  useResearchPagination,
+  useResearchQueryState,
+  useRestoreResearchFinding,
+} from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
+import {
+  type AuthorizedResearchFinding,
+  isSameResearchFindingReference,
+  toTrendContentFinding,
+  toTrendVideoFinding,
+} from '@pages/research/work-surface/research-work-surface.types';
 import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import TrendContentCard from '@pages/trends/shared/trend-content-card';
 import type { TrendsSummary } from '@props/trends/trends-page.props';
@@ -26,7 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
-import { type ChangeEvent, type ReactNode, useMemo, useState } from 'react';
+import { type ChangeEvent, type ReactNode, useMemo } from 'react';
 import {
   HiOutlineArrowTrendingUp,
   HiOutlineFilm,
@@ -34,7 +46,17 @@ import {
   HiOutlineSparkles,
 } from 'react-icons/hi2';
 
-function ViralVideoCard({ video }: { video: ITrendVideo }) {
+function ViralVideoCard({
+  finding,
+  isSelected,
+  onSelect,
+  video,
+}: {
+  finding: AuthorizedResearchFinding;
+  isSelected: boolean;
+  onSelect?: (finding: AuthorizedResearchFinding) => void;
+  video: ITrendVideo;
+}) {
   return (
     <Card bodyClassName="p-4">
       <div className="space-y-2">
@@ -46,6 +68,15 @@ function ViralVideoCard({ video }: { video: ITrendVideo }) {
           {video.creatorHandle ? <span>@{video.creatorHandle}</span> : null}
           <span>Score {Math.round(video.viralScore)}</span>
         </div>
+        {onSelect ? (
+          <Button
+            aria-pressed={isSelected}
+            label={isSelected ? 'Selected for context' : 'Use as context'}
+            onClick={() => onSelect(finding)}
+            size={ButtonSize.SM}
+            variant={isSelected ? ButtonVariant.SECONDARY : ButtonVariant.GHOST}
+          />
+        ) : null}
       </div>
     </Card>
   );
@@ -290,7 +321,8 @@ function ViralVideosEmptyState({ isLoading }: { isLoading: boolean }) {
 
 export default function TrendsList() {
   const brandId = useBrandId();
-  const [search, setSearch] = useState('');
+  const surface = useOptionalResearchWorkSurface();
+  const [search, setSearch] = useResearchQueryState();
   const {
     error,
     isLoading,
@@ -336,12 +368,24 @@ export default function TrendsList() {
         .some((value) => value?.toLowerCase().includes(query)),
     );
   }, [items, search]);
+  const findings = useMemo(
+    () => [
+      ...filteredItems.map(toTrendContentFinding),
+      ...viralVideos.map(toTrendVideoFinding),
+    ],
+    [filteredItems, viralVideos],
+  );
+  const { pageItems, pagination } = useResearchPagination(filteredItems);
+  const currentError = error || videosError;
+
+  useRestoreResearchFinding(
+    findings,
+    isLoading || isLoadingVideos || Boolean(currentError),
+  );
 
   const handleRefresh = async () => {
     await Promise.all([refreshTrendContent(), refetchVideos()]);
   };
-
-  const currentError = error || videosError;
 
   return (
     <>
@@ -442,11 +486,28 @@ export default function TrendsList() {
                 />
               ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {filteredItems.map((item) => (
-                    <TrendContentCard key={item.id} item={item} />
-                  ))}
+                  {pageItems.map((item) => {
+                    const finding = toTrendContentFinding(item);
+                    return (
+                      <TrendContentCard
+                        key={item.id}
+                        finding={finding}
+                        isSelected={isSameResearchFindingReference(
+                          surface?.authorizedFinding?.reference ?? null,
+                          finding.reference,
+                        )}
+                        item={item}
+                        onSelect={
+                          surface?.isEmbedded
+                            ? surface.selectFinding
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
                 </div>
               )}
+              {pagination ? <div className="pt-2">{pagination}</div> : null}
             </section>
 
             <section className="space-y-4">
@@ -468,9 +529,25 @@ export default function TrendsList() {
                 <ViralVideosEmptyState isLoading={isLoadingVideos} />
               ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {viralVideos.map((video: ITrendVideo) => (
-                    <ViralVideoCard key={video.id} video={video} />
-                  ))}
+                  {viralVideos.map((video: ITrendVideo) => {
+                    const finding = toTrendVideoFinding(video);
+                    return (
+                      <ViralVideoCard
+                        key={video.id}
+                        finding={finding}
+                        isSelected={isSameResearchFindingReference(
+                          surface?.authorizedFinding?.reference ?? null,
+                          finding.reference,
+                        )}
+                        onSelect={
+                          surface?.isEmbedded
+                            ? surface.selectFinding
+                            : undefined
+                        }
+                        video={video}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </section>

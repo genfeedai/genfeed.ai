@@ -48,6 +48,10 @@ import {
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
 import { buildLibraryRemixIntentHref } from '@/features/library-remix/library-remix-reference';
+import {
+  type ResearchWorkspaceSurfaceAdapterRegistration,
+  ResearchWorkspaceSurfaceAdapterRegistrationContext,
+} from '@/features/research/work-surface/research-workspace-surface-adapter-context';
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 import { WorkflowPickerOverlay } from '@/features/workflows/workspace/WorkflowPickerOverlay';
 import { WorkflowSurfaceInspector } from '@/features/workflows/workspace/WorkflowSurfaceInspector';
@@ -128,12 +132,16 @@ function UniversalWorkspaceShellContent({
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const threads = useAgentChatStore((state) => state.threads);
   const seedComposer = useAgentChatStore((state) => state.seedComposer);
-  const activeSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
+  const activeWorkspaceSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
   const [composerPortalTarget, setComposerPortalTarget] =
     useState<HTMLElement | null>(null);
+  const [researchSurfaceAdapter, setResearchSurfaceAdapter] = useState<{
+    readonly registration: ResearchWorkspaceSurfaceAdapterRegistration;
+    readonly token: symbol;
+  } | null>(null);
   const primaryRegionRef = useRef<HTMLElement>(null);
   const previousPathnameRef = useRef<string | null>(null);
   const previousStateRef = useRef<WorkspaceShellState | null>(null);
@@ -183,11 +191,12 @@ function UniversalWorkspaceShellContent({
     () => resolveWorkspaceShellRoute(normalizedPathname),
     [normalizedPathname],
   );
-  const resolvedSurfaceAdapter =
+  const resolvedWorkspaceSurfaceAdapter =
     routeRegistration?.adapter.status === 'embedded' &&
-    activeSurfaceAdapter?.registration.key === routeRegistration.adapter.key &&
-    activeSurfaceAdapter.registration.scope === routeRegistration.scope
-      ? activeSurfaceAdapter
+    activeWorkspaceSurfaceAdapter?.registration.key ===
+      routeRegistration.adapter.key &&
+    activeWorkspaceSurfaceAdapter.registration.scope === routeRegistration.scope
+      ? activeWorkspaceSurfaceAdapter
       : null;
   const canonicalSearchParamsString = canonicalSearchParams.toString();
   const isUnthreadedConversation =
@@ -226,6 +235,28 @@ function UniversalWorkspaceShellContent({
       : state === 'overlay'
         ? 'Overlay · conversation connected'
         : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`;
+  const activeResearchSurfaceAdapter =
+    researchSurfaceAdapter?.registration.surfaceKey === surfaceKey
+      ? researchSurfaceAdapter.registration
+      : null;
+
+  const registerSurfaceAdapter = useCallback(
+    (registration: ResearchWorkspaceSurfaceAdapterRegistration) => {
+      if (registration.surfaceKey !== surfaceKey) {
+        return () => undefined;
+      }
+
+      const token = Symbol(registration.surfaceKey);
+      setResearchSurfaceAdapter({ registration, token });
+
+      return () => {
+        setResearchSurfaceAdapter((current) =>
+          current?.token === token ? null : current,
+        );
+      };
+    },
+    [surfaceKey],
+  );
   const conversationScope = useConversationScopeControls({
     activeThread,
     apiService: agentApiService,
@@ -683,26 +714,28 @@ function UniversalWorkspaceShellContent({
             searchParams={new URLSearchParams(searchParamsString)}
             threadId={effectiveThreadId}
           />
+        ) : activeResearchSurfaceAdapter ? (
+          activeResearchSurfaceAdapter.inspectorContent
         ) : (
           <div
             className="gen-shell-empty-state p-4"
             data-testid={
-              resolvedSurfaceAdapter
+              resolvedWorkspaceSurfaceAdapter
                 ? 'workspace-surface-adapter-inspector'
                 : undefined
             }
           >
             <p className="text-sm font-medium text-foreground">
-              {resolvedSurfaceAdapter
-                ? resolvedSurfaceAdapter.registration.title
+              {resolvedWorkspaceSurfaceAdapter
+                ? resolvedWorkspaceSurfaceAdapter.registration.title
                 : `Registered ${surfaceKey} adapter slot`}
             </p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {resolvedSurfaceAdapter
-                ? resolvedSurfaceAdapter.registration.description
+              {resolvedWorkspaceSurfaceAdapter
+                ? resolvedWorkspaceSurfaceAdapter.registration.description
                 : 'Product-owned context adapters land here without changing their canonical route or granting execution authority.'}
             </p>
-            {resolvedSurfaceAdapter ? (
+            {resolvedWorkspaceSurfaceAdapter ? (
               <p className="mt-3 text-xs leading-5 text-muted-foreground">
                 Full management remains available on this canonical route.
               </p>
@@ -739,12 +772,13 @@ function UniversalWorkspaceShellContent({
 
   return (
     <ConversationComposerShellProvider
-      artifactReferences={resolvedSurfaceAdapter?.artifactReferences}
+      artifactReferences={resolvedWorkspaceSurfaceAdapter?.artifactReferences}
       contextLabel={composerContextLabel}
       dispatchAction={handleComposerAction}
       draftScopeKey={draftScopeKey}
       isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
       portalTarget={composerPortalTarget}
+      references={activeResearchSurfaceAdapter?.references}
       scopeControls={
         <>
           {conversationScope.scopeControls}
@@ -860,13 +894,17 @@ function UniversalWorkspaceShellContent({
                   Context
                 </Button>
               </div>
-              {baseState === 'canvas' ? (
-                <WorkspaceShellActionsProvider
-                  openOverlay={launchWorkspaceOverlay}
-                >
-                  {children}
-                </WorkspaceShellActionsProvider>
-              ) : null}
+              <ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider
+                value={registerSurfaceAdapter}
+              >
+                {baseState === 'canvas' ? (
+                  <WorkspaceShellActionsProvider
+                    openOverlay={launchWorkspaceOverlay}
+                  >
+                    {children}
+                  </WorkspaceShellActionsProvider>
+                ) : null}
+              </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
             </section>
 
             {state !== 'overlay' ? (

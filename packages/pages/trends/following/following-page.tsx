@@ -18,6 +18,18 @@ import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
+import {
+  useOptionalResearchWorkSurface,
+  useResearchPagination,
+  useResearchQueryState,
+  useResearchSearchParamState,
+  useRestoreResearchFinding,
+} from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
+import {
+  type AuthorizedResearchFinding,
+  isSameResearchFindingReference,
+  toSourcePostFinding,
+} from '@pages/research/work-surface/research-work-surface.types';
 import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import type {
   TrendItem,
@@ -89,11 +101,16 @@ const PLATFORM_OPTIONS = [
 
 export default function FollowingPage() {
   const brandId = useBrandId();
+  const surface = useOptionalResearchWorkSurface();
   const router = useRouter();
   const queryClient = useQueryClient();
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
-  const [platform, setPlatform] = useState<string>('all');
-  const [search, setSearch] = useState('');
+  const [platform, setPlatform] = useResearchSearchParamState<string>({
+    allowedValues: ['all', ...PLATFORM_OPTIONS.map((option) => option.value)],
+    defaultValue: 'all',
+    key: 'platform',
+  });
+  const [search, setSearch] = useResearchQueryState();
   const [newPlatform, setNewPlatform] = useState<SocialSourcePlatform>(
     SocialSourcePlatform.TWITTER,
   );
@@ -130,6 +147,13 @@ export default function FollowingPage() {
   });
   const isInitialFetch =
     isFetching && data.posts.length === 0 && data.sources.length === 0;
+  const findings = useMemo(
+    () => data.posts.map(toSourcePostFinding),
+    [data.posts],
+  );
+  const { pageItems, pagination } = useResearchPagination(data.posts);
+
+  useRestoreResearchFinding(findings, isInitialFetch || isError);
 
   const refreshFeed = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['social-sources-feed'] });
@@ -425,19 +449,35 @@ export default function FollowingPage() {
               </div>
             </Card>
 
-            {data.posts.length ? (
-              <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-                {data.posts.map((post) => (
-                  <SourcePostCard
-                    key={post.id}
-                    busyId={busyId}
-                    post={post}
-                    onCreateDraft={createDraft}
-                    onOpenAgent={openAgent}
-                    onOpenRemix={openRemix}
-                  />
-                ))}
-              </div>
+            {pageItems.length ? (
+              <>
+                <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+                  {pageItems.map((post) => {
+                    const finding = toSourcePostFinding(post);
+                    return (
+                      <SourcePostCard
+                        key={post.id}
+                        busyId={busyId}
+                        finding={finding}
+                        isSelected={isSameResearchFindingReference(
+                          surface?.authorizedFinding?.reference ?? null,
+                          finding.reference,
+                        )}
+                        post={post}
+                        onCreateDraft={createDraft}
+                        onOpenAgent={openAgent}
+                        onOpenRemix={openRemix}
+                        onSelect={
+                          surface?.isEmbedded
+                            ? surface.selectFinding
+                            : undefined
+                        }
+                      />
+                    );
+                  })}
+                </div>
+                {pagination ? <div>{pagination}</div> : null}
+              </>
             ) : (
               <Card bodyClassName="p-10">
                 <div className="mx-auto flex max-w-md flex-col items-center text-center">
@@ -518,18 +558,24 @@ function SourceRow({
 
 function SourcePostCard({
   busyId,
+  finding,
+  isSelected = false,
   onCreateDraft,
   onOpenAgent,
   onOpenRemix,
+  onSelect,
   post,
 }: {
   busyId: string | null;
+  finding?: AuthorizedResearchFinding;
+  isSelected?: boolean;
   onCreateDraft: (
     post: ISourcePost,
     actionType: SourcePostActionType,
   ) => Promise<void>;
   onOpenAgent: (post: ISourcePost) => void;
   onOpenRemix: (post: ISourcePost) => void;
+  onSelect?: (finding: AuthorizedResearchFinding) => void;
   post: ISourcePost;
 }) {
   const title = post.text?.trim() || `${post.platform} source post`;
@@ -577,6 +623,16 @@ function SourcePostCard({
         </p>
         <MetricStrip post={post} />
         <div className="flex flex-wrap gap-2">
+          {finding && onSelect ? (
+            <Button
+              aria-pressed={isSelected}
+              label={isSelected ? 'Selected for context' : 'Use as context'}
+              onClick={() => onSelect(finding)}
+              variant={
+                isSelected ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+              }
+            />
+          ) : null}
           {post.platform === SocialSourcePlatform.TWITTER ? (
             <>
               <Button

@@ -9,6 +9,7 @@ import {
   ViewType,
 } from '@genfeedai/enums';
 import type { AdsResearchPlatform } from '@genfeedai/interfaces';
+import { useResearchPagination } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
@@ -91,6 +92,7 @@ export default function AdsResearchPageClient({
     viewType,
     setViewType,
   } = useAdsResearchPageClient(initialPlatform);
+  const { pageItems, pagination } = useResearchPagination(allAds);
 
   return (
     <Container
@@ -282,7 +284,7 @@ export default function AdsResearchPageClient({
       {/* Card Grid / Table */}
       {viewType === ViewType.GRID ? (
         <AdsResearchAdGrid
-          ads={allAds}
+          ads={[...pageItems]}
           isLoading={isLoading}
           metric={metric}
           search={search}
@@ -291,13 +293,14 @@ export default function AdsResearchPageClient({
         />
       ) : (
         <AdsResearchAdTable
-          ads={allAds}
+          ads={[...pageItems]}
           metric={metric}
           search={search}
           selectedKey={selectedKey}
           onSelect={handleSelectAd}
         />
       )}
+      {pagination ? <div className="mt-5">{pagination}</div> : null}
 
       {/* Slide-over Detail Sidebar */}
       {selectedAd && (
