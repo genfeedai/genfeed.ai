@@ -184,6 +184,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
         where: {
           id: workflowId,
           isDeleted: false,
+          isScheduleEnabled: true,
           // Canonical workflow status is the lowercase enum value ('active');
           // the column is a drifted String (see schema). Must match what
           // createWorkflow / the executor persist, or scheduled rows never load.
@@ -222,8 +223,18 @@ export class WorkflowSchedulerService implements OnModuleInit {
       );
 
       if (missingRequiredInputs.length > 0) {
+        await this.prisma.workflow.update({
+          data: { isScheduleEnabled: false },
+          where: {
+            id: workflowId,
+            isDeleted: false,
+            organizationId: wOrgId,
+          },
+        });
+        await this.unscheduleWorkflow(workflowId);
+
         this.logger.warn(
-          `Scheduled workflow ${workflowId} skipped because required input defaults are missing: ${missingRequiredInputs.join(', ')}`,
+          `Scheduled workflow ${workflowId} disabled because required input defaults are missing: ${missingRequiredInputs.join(', ')}`,
           'WorkflowSchedulerService',
         );
         return;

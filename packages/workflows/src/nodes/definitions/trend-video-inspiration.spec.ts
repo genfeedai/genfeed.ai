@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_TREND_VIDEO_INSPIRATION_DATA,
   trendVideoInspirationNodeDefinition,

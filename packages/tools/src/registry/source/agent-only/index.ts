@@ -3,6 +3,7 @@ import { AGENT_AGENT_CONTROL_TOOLS } from './agent-control.tools.js';
 import { AGENT_ANALYTICS_TOOLS } from './analytics.tools.js';
 import { AGENT_CAMPAIGN_TOOLS } from './campaign.tools.js';
 import { AGENT_CONTENT_TOOLS } from './content.tools.js';
+import { AGENT_DASHBOARD_LAYOUT_TOOLS } from './dashboard-layout.tools.js';
 import { AGENT_GENERATION_TOOLS } from './generation.tools.js';
 import { AGENT_IDENTITY_TOOLS } from './identity.tools.js';
 import { AGENT_ONBOARDING_TOOLS } from './onboarding.tools.js';
@@ -25,6 +26,7 @@ export const AGENT_ONLY_TOOLS: SourceTool[] = [
   ...AGENT_PROACTIVE_TOOLS,
   ...AGENT_IDENTITY_TOOLS,
   ...AGENT_UI_TOOLS,
+  ...AGENT_DASHBOARD_LAYOUT_TOOLS,
   ...AGENT_AGENT_CONTROL_TOOLS,
   ...AGENT_WORKFLOW_TOOLS,
 ];

@@ -26,8 +26,7 @@
       "@commands/*": ["./src/commands/*"],
       "@services/*": ["./src/services/*"],
       "@types/*": ["./src/types/*"],
-      "@views/*": ["./src/views/*"],
-      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"]
+      "@views/*": ["./src/views/*"]
     },
     "resolveJsonModule": true,
     "rootDir": "./src",

@@ -15,7 +15,7 @@ import {
   type ReplyPublisher,
   SendDmExecutor,
   type WorkflowEngine,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 
 export class WorkflowSocialExecutorRegistrarService {

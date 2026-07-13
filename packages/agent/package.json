@@ -62,6 +62,10 @@
       "types": "./src/dashboard/index.ts",
       "default": "./src/dashboard/index.ts"
     },
+    "./dashboard/*": {
+      "types": "./src/dashboard/*",
+      "default": "./src/dashboard/*"
+    },
     "./hooks": {
       "types": "./src/hooks/index.ts",
       "default": "./src/hooks/index.ts"

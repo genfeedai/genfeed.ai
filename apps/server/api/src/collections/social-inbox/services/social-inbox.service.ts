@@ -1,19 +1,24 @@
-import {
-  type SocialConversation,
-  type SocialConversationAvailability,
-  type SocialConversationDocument,
-  type SocialMessage,
-  type SocialMessageDocument,
+import type {
+  SocialConversation,
+  SocialConversationAvailability,
+  SocialConversationDocument,
+  SocialMessage,
+  SocialMessageDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
-import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import type { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import type { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { PostStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 export interface SocialInboxScope {
   organizationId: string;
@@ -93,6 +98,13 @@ export type SocialInboxPage<T> = {
 };
 
 type JsonRecord = Record<string, unknown>;
+type OutboundAction = 'post_reply' | 'send_dm';
+type OutboundMessageType = 'dm' | 'reply';
+type OutboundPublishResult = { messageId: string; url?: string };
+type OutboundReservation = {
+  isClaimed: boolean;
+  message: SocialMessageDocument;
+};
 
 const SUPPORTED_PLATFORMS = new Set(['youtube', 'instagram']);
 const DEFAULT_PAGE_SIZE = 25;
@@ -423,63 +435,16 @@ export class SocialInboxService {
       );
     }
 
-    const existing = await this.findByIdempotency(
-      scope.organizationId,
-      input.idempotencyKey,
-    );
-    if (existing) {
-      return existing;
-    }
-
     const body = this.sanitizeBody(input.text);
-    const external = await this.publishReply(conversation, body);
-    const now = new Date();
-
-    const message = await this.prisma.socialMessage.create({
-      data: {
-        actionProvenance: this.buildActionProvenance({
-          action: 'post_reply',
-          conversation,
-          input,
-          scope,
-          status: 'sent',
-        }) as Prisma.InputJsonValue,
-        agentRunId: input.agentRunId,
-        body,
-        brandId: conversation.brandId,
-        conversationId: conversation.id,
-        credentialId: conversation.credentialId,
-        direction: 'outbound',
-        externalMessageId: external.messageId,
-        externalParentMessageId: conversation.externalParentId,
-        idempotencyKey: input.idempotencyKey,
-        messageType: 'reply',
-        organizationId: conversation.organizationId,
-        platform: conversation.platform,
-        postId: conversation.postId,
-        sourceUrl: external.url,
-        status: 'sent',
-        userId: scope.userId,
-        workflowRunId: input.workflowRunId,
-      },
-    });
-
-    await this.prisma.socialConversation.update({
-      data: {
-        automationState:
-          input.workflowRunId || input.agentRunId ? 'automated' : 'manual',
-        latestMessageAt: now,
-        latestMessageText: this.clamp(body, 500),
-        lastOutboundAt: now,
-        needsReview: false,
-        status: 'open',
-        unreadCount: 0,
-        updatedAt: now,
-      },
-      where: { id: conversation.id },
-    });
-
-    return this.toMessageDocument(message);
+    return await this.executeOutboundAction(
+      'post_reply',
+      'reply',
+      conversation,
+      scope,
+      input,
+      body,
+      () => this.publishReply(conversation, body),
+    );
   }
 
   async sendDm(
@@ -495,64 +460,20 @@ export class SocialInboxService {
       );
     }
 
-    const existing = await this.findByIdempotency(
-      scope.organizationId,
-      input.idempotencyKey,
-    );
-    if (existing) {
-      return existing;
-    }
-
     const body = this.sanitizeBody(input.text);
-    const external = await this.publishDm(conversation, {
-      recipientId: input.recipientId,
-      text: body,
-    });
-    const now = new Date();
-
-    const message = await this.prisma.socialMessage.create({
-      data: {
-        actionProvenance: this.buildActionProvenance({
-          action: 'send_dm',
-          conversation,
-          input,
-          scope,
-          status: 'sent',
-        }) as Prisma.InputJsonValue,
-        agentRunId: input.agentRunId,
-        body,
-        brandId: conversation.brandId,
-        conversationId: conversation.id,
-        credentialId: conversation.credentialId,
-        direction: 'outbound',
-        externalMessageId: external.messageId,
-        idempotencyKey: input.idempotencyKey,
-        messageType: 'dm',
-        organizationId: conversation.organizationId,
-        platform: conversation.platform,
-        postId: conversation.postId,
-        status: 'sent',
-        userId: scope.userId,
-        workflowRunId: input.workflowRunId,
-      },
-    });
-
-    await this.prisma.socialConversation.update({
-      data: {
-        automationState:
-          input.workflowRunId || input.agentRunId ? 'automated' : 'manual',
-        latestMessageAt: now,
-        latestMessageText: this.clamp(body, 500),
-        lastOutboundAt: now,
-        needsReview: false,
-        status: 'open',
-        unreadCount: 0,
-        updatedAt: now,
-      },
-      where: { id: conversation.id },
-    });
-
-    return this.toMessageDocument(message);
+    return await this.executeOutboundAction(
+      'send_dm',
+      'dm',
+      conversation,
+      scope,
+      input,
+      body,
+      () =>
+        this.publishDm(conversation, {
+          recipientId: input.recipientId,
+          text: body,
+        }),
+    );
   }
 
   async updateConversation(
@@ -1002,11 +923,31 @@ export class SocialInboxService {
         if (finalized.count === 0) {
           return;
         }
-        await transaction.socialConversation.update({
+
+        // Reload the conversation inside the transaction — the row captured
+        // before the async queueTriggerEvent() call may be stale, and
+        // merging from that snapshot risks clobbering a concurrent
+        // conversation update.
+        const freshConversation =
+          await transaction.socialConversation.findFirst({
+            where: {
+              id: conversation.id,
+              isDeleted: false,
+              organizationId: input.organizationId,
+            },
+          });
+        if (!freshConversation) {
+          return;
+        }
+
+        // updateMany (not update) so a conversation that no longer matches
+        // the scope filter is a no-op instead of throwing P2025 and
+        // aborting ingestion after the message row was already finalized.
+        await transaction.socialConversation.updateMany({
           data: {
             automationState: 'failed',
             metadata: {
-              ...this.asRecord(conversation.metadata),
+              ...this.asRecord(freshConversation.metadata),
               workflowTriggerError: errorMessage,
               workflowTriggerFailedAt: new Date().toISOString(),
             } as Prisma.InputJsonValue,
@@ -1022,7 +963,6 @@ export class SocialInboxService {
     }
 
     const queuedAt = new Date();
-    const conversationMetadata = this.asRecord(conversation.metadata);
     await this.prisma.$transaction(async (transaction) => {
       const finalized = await transaction.socialMessage.updateMany({
         data: {
@@ -1043,15 +983,35 @@ export class SocialInboxService {
       if (finalized.count === 0) {
         return;
       }
-      await transaction.socialConversation.update({
+
+      // Reload the conversation inside the transaction for the same reason
+      // as the failure branch above: `conversation` was captured before the
+      // async queueTriggerEvent() call, so deriving automationState/metadata
+      // from it here could overwrite a concurrent conversation update.
+      const freshConversation = await transaction.socialConversation.findFirst({
+        where: {
+          id: conversation.id,
+          isDeleted: false,
+          organizationId: input.organizationId,
+        },
+      });
+      if (!freshConversation) {
+        return;
+      }
+      const freshMetadata = this.asRecord(freshConversation.metadata);
+
+      // updateMany (not update) so a conversation that no longer matches the
+      // scope filter is a no-op instead of throwing P2025 and aborting
+      // ingestion after the job was already queued and the message finalized.
+      await transaction.socialConversation.updateMany({
         data: {
           automationState:
-            conversation.automationState === 'failed' &&
-            typeof conversationMetadata.workflowTriggerFailedAt === 'string'
+            freshConversation.automationState === 'failed' &&
+            typeof freshMetadata.workflowTriggerFailedAt === 'string'
               ? 'manual'
-              : conversation.automationState,
+              : freshConversation.automationState,
           metadata: {
-            ...conversationMetadata,
+            ...freshMetadata,
             lastWorkflowTriggerJobId: queuedJobId,
             lastWorkflowTriggeredAt: queuedAt.toISOString(),
             workflowTriggerError: null,
@@ -1224,19 +1184,321 @@ export class SocialInboxService {
     return where;
   }
 
-  private async findByIdempotency(
-    organizationId: string,
-    idempotencyKey?: string,
-  ): Promise<SocialMessageDocument | null> {
-    if (!idempotencyKey) {
-      return null;
+  private async executeOutboundAction(
+    action: OutboundAction,
+    messageType: OutboundMessageType,
+    conversation: SocialConversationDocument,
+    scope: SocialInboxScope,
+    input: SocialActionInput,
+    body: string,
+    publish: () => Promise<OutboundPublishResult>,
+  ): Promise<SocialMessageDocument> {
+    const reservation = await this.reserveOutboundAction(
+      action,
+      messageType,
+      conversation,
+      scope,
+      input,
+      body,
+    );
+
+    if (!reservation.isClaimed) {
+      return reservation.message;
     }
 
-    const existing = await this.prisma.socialMessage.findFirst({
-      where: { idempotencyKey, organizationId },
+    let external: OutboundPublishResult;
+    try {
+      external = await publish();
+    } catch (error: unknown) {
+      await this.failOutboundAction(
+        reservation.message.id,
+        action,
+        conversation,
+        scope,
+        input,
+        error,
+      );
+      throw error;
+    }
+
+    const now = new Date();
+    const finalized = await this.prisma.socialMessage.updateMany({
+      data: {
+        actionProvenance: this.buildActionProvenance({
+          action,
+          conversation,
+          input,
+          scope,
+          status: 'sent',
+        }) as Prisma.InputJsonValue,
+        externalMessageId: external.messageId,
+        failureReason: null,
+        sourceUrl: external.url,
+        status: 'sent',
+      },
+      where: {
+        conversationId: conversation.id,
+        id: reservation.message.id,
+        isDeleted: false,
+        organizationId: scope.organizationId,
+        status: 'pending',
+      },
     });
 
-    return existing ? this.toMessageDocument(existing) : null;
+    if (finalized.count !== 1) {
+      throw new ConflictException('Social action reservation was lost');
+    }
+
+    await this.prisma.socialConversation.update({
+      data: {
+        automationState:
+          input.workflowRunId || input.agentRunId ? 'automated' : 'manual',
+        latestMessageAt: now,
+        latestMessageText: this.clamp(body, 500),
+        lastOutboundAt: now,
+        needsReview: false,
+        status: 'open',
+        unreadCount: 0,
+        updatedAt: now,
+      },
+      where: {
+        id: conversation.id,
+        organizationId: scope.organizationId,
+      },
+    });
+
+    const message = await this.prisma.socialMessage.findFirst({
+      where: {
+        conversationId: conversation.id,
+        id: reservation.message.id,
+        isDeleted: false,
+        organizationId: scope.organizationId,
+      },
+    });
+    if (!message) {
+      throw new ConflictException('Finalized social action was not found');
+    }
+
+    return this.toMessageDocument(message);
+  }
+
+  private async reserveOutboundAction(
+    action: OutboundAction,
+    messageType: OutboundMessageType,
+    conversation: SocialConversationDocument,
+    scope: SocialInboxScope,
+    input: SocialActionInput,
+    body: string,
+  ): Promise<OutboundReservation> {
+    if (input.idempotencyKey) {
+      const existing = await this.prisma.socialMessage.findFirst({
+        where: {
+          idempotencyKey: input.idempotencyKey,
+          isDeleted: false,
+          organizationId: scope.organizationId,
+        },
+      });
+      if (existing) {
+        return await this.claimExistingOutboundAction(
+          existing,
+          action,
+          messageType,
+          conversation,
+          scope,
+          input,
+          body,
+        );
+      }
+    }
+
+    try {
+      const created = await this.prisma.socialMessage.create({
+        data: {
+          actionProvenance: this.buildActionProvenance({
+            action,
+            conversation,
+            input,
+            scope,
+            status: 'pending',
+          }) as Prisma.InputJsonValue,
+          agentRunId: input.agentRunId,
+          body,
+          brandId: conversation.brandId,
+          conversationId: conversation.id,
+          credentialId: conversation.credentialId,
+          direction: 'outbound',
+          externalParentMessageId:
+            messageType === 'reply' ? conversation.externalParentId : undefined,
+          idempotencyKey: input.idempotencyKey,
+          messageType,
+          organizationId: conversation.organizationId,
+          platform: conversation.platform,
+          postId: conversation.postId,
+          status: 'pending',
+          userId: scope.userId,
+          workflowRunId: input.workflowRunId,
+        },
+      });
+
+      return { isClaimed: true, message: this.toMessageDocument(created) };
+    } catch (error: unknown) {
+      if (
+        !input.idempotencyKey ||
+        (error as { code?: string })?.code !== 'P2002'
+      ) {
+        throw error;
+      }
+
+      const winner = await this.prisma.socialMessage.findFirst({
+        where: {
+          idempotencyKey: input.idempotencyKey,
+          isDeleted: false,
+          organizationId: scope.organizationId,
+        },
+      });
+      if (!winner) {
+        throw error;
+      }
+
+      return await this.claimExistingOutboundAction(
+        winner,
+        action,
+        messageType,
+        conversation,
+        scope,
+        input,
+        body,
+      );
+    }
+  }
+
+  private async claimExistingOutboundAction(
+    existing: SocialMessage,
+    action: OutboundAction,
+    messageType: OutboundMessageType,
+    conversation: SocialConversationDocument,
+    scope: SocialInboxScope,
+    input: SocialActionInput,
+    body: string,
+  ): Promise<OutboundReservation> {
+    if (
+      existing.conversationId !== conversation.id ||
+      existing.messageType !== messageType ||
+      existing.body !== body
+    ) {
+      throw new BadRequestException(
+        'Idempotency key is already used by another social action',
+      );
+    }
+
+    if (existing.status === 'sent') {
+      return {
+        isClaimed: false,
+        message: this.toMessageDocument(existing),
+      };
+    }
+
+    if (existing.status === 'pending') {
+      throw new ConflictException('Social action is already in progress');
+    }
+
+    if (existing.status !== 'failed') {
+      throw new ConflictException(
+        `Social action cannot be retried from status ${existing.status}`,
+      );
+    }
+
+    const claimed = await this.prisma.socialMessage.updateMany({
+      data: {
+        actionProvenance: this.buildActionProvenance({
+          action,
+          conversation,
+          input,
+          scope,
+          status: 'pending',
+        }) as Prisma.InputJsonValue,
+        failureReason: null,
+        status: 'pending',
+      },
+      where: {
+        conversationId: conversation.id,
+        id: existing.id,
+        isDeleted: false,
+        organizationId: scope.organizationId,
+        status: 'failed',
+      },
+    });
+
+    if (claimed.count !== 1) {
+      const current = await this.prisma.socialMessage.findFirst({
+        where: {
+          conversationId: conversation.id,
+          id: existing.id,
+          isDeleted: false,
+          organizationId: scope.organizationId,
+        },
+      });
+      if (current?.status === 'sent') {
+        return {
+          isClaimed: false,
+          message: this.toMessageDocument(current),
+        };
+      }
+      throw new ConflictException('Social action retry is already in progress');
+    }
+
+    const reservation = await this.prisma.socialMessage.findFirst({
+      where: {
+        conversationId: conversation.id,
+        id: existing.id,
+        isDeleted: false,
+        organizationId: scope.organizationId,
+        status: 'pending',
+      },
+    });
+    if (!reservation) {
+      throw new ConflictException('Social action reservation was not found');
+    }
+
+    return {
+      isClaimed: true,
+      message: this.toMessageDocument(reservation),
+    };
+  }
+
+  private async failOutboundAction(
+    messageId: string,
+    action: OutboundAction,
+    conversation: SocialConversationDocument,
+    scope: SocialInboxScope,
+    input: SocialActionInput,
+    error: unknown,
+  ): Promise<void> {
+    const reason = this.clamp(
+      error instanceof Error ? error.message : String(error),
+      1000,
+    );
+
+    await this.prisma.socialMessage.updateMany({
+      data: {
+        actionProvenance: this.buildActionProvenance({
+          action,
+          conversation,
+          input,
+          scope,
+          status: 'failed',
+        }) as Prisma.InputJsonValue,
+        failureReason: reason ?? 'Provider publish failed',
+        status: 'failed',
+      },
+      where: {
+        conversationId: conversation.id,
+        id: messageId,
+        isDeleted: false,
+        organizationId: scope.organizationId,
+        status: 'pending',
+      },
+    });
   }
 
   private async getDraftMessage(

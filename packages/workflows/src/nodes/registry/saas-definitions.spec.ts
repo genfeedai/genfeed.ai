@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { isSaaSNode, SAAS_NODE_DEFINITIONS } from './saas-definitions';
 
 describe('SAAS_NODE_DEFINITIONS', () => {

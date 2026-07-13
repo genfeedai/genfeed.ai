@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1035 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1038 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -4890,6 +4890,49 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     ],
     "queryParams": [],
     "toolName": "cron_jobs__runs"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "get",
+    "operationId": "DashboardLayoutsController.findForPage",
+    "path": "/dashboard-layouts",
+    "pathParams": [],
+    "queryParams": [
+      "brand",
+      "pageKey"
+    ],
+    "toolName": "dashboard_layouts__find_for_page"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "delete",
+    "operationId": "DashboardLayoutsController.remove",
+    "path": "/dashboard-layouts/{id}",
+    "pathParams": [
+      "id"
+    ],
+    "queryParams": [],
+    "toolName": "dashboard_layouts__remove"
+  },
+  {
+    "bodyFields": [
+      "brandId",
+      "document",
+      "pageKey",
+      "version"
+    ],
+    "bodyRequired": true,
+    "bodyStyle": "properties",
+    "method": "put",
+    "operationId": "DashboardLayoutsController.upsert",
+    "path": "/dashboard-layouts",
+    "pathParams": [],
+    "queryParams": [],
+    "toolName": "dashboard_layouts__upsert"
   },
   {
     "bodyFields": [],

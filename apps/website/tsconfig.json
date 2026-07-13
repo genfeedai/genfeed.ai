@@ -73,8 +73,7 @@
       ],
       "@utils/*": ["../../packages/utils/*"],
       "@web-components/*": ["./packages/components/*"],
-      "@website/*": ["./app/*"],
-      "@workflow-engine/*": ["../../packages/workflow-engine/src/*"]
+      "@website/*": ["./app/*"]
     }
   },
   "exclude": [

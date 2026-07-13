@@ -17,7 +17,7 @@ import {
   TextToSpeechExecutor,
   UpscaleExecutor,
   type WorkflowEngine,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ElevenLabsService } from '@server/services/integrations/elevenlabs/services/elevenlabs.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';

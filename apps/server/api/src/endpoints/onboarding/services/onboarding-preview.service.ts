@@ -21,7 +21,7 @@ const ONBOARDING_PREVIEW_CREDIT_COST = 5;
  *
  * Owns the onboarding preview-generation pipeline: brand fetch → credit
  * check → prompt build → ComfyUI generation → S3 upload → credit deduction
- * → brand patch.
+ * → response.
  */
 @Injectable()
 export class OnboardingPreviewService {
@@ -147,19 +147,14 @@ export class OnboardingPreviewService {
           type: FileInputType.BUFFER,
         });
 
-        // 6. Deduct credits
+        // Preview assets are response-only; keep the credit deduction as the
+        // final awaited side effect so no later persistence write can fail.
         await this.creditsUtilsService.deductCreditsFromOrganization(
           organizationId,
           userId,
           ONBOARDING_PREVIEW_CREDIT_COST,
           'Onboarding preview image',
         );
-
-        // 7. Save preview URL to brand
-        await this.brandsService.patch(brand.id, {
-          // @ts-expect-error onboardingPreviewUrl is valid
-          onboardingPreviewUrl: publicUrl,
-        });
 
         this.loggerService.log(`${caller} completed`, {
           brandId: dto.brandId,

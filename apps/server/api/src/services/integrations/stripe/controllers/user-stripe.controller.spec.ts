@@ -63,6 +63,11 @@ describe('UserStripeController', () => {
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
   };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
+  let loggerService: {
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
   let lifecycleEmailService: {
     recordCheckoutStarted: ReturnType<typeof vi.fn>;
   };
@@ -125,6 +130,11 @@ describe('UserStripeController', () => {
     lifecycleEmailService = {
       recordCheckoutStarted: vi.fn().mockResolvedValue(undefined),
     };
+    loggerService = {
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserStripeController],
@@ -137,10 +147,7 @@ describe('UserStripeController', () => {
         },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
         { provide: OrganizationsService, useValue: organizationsService },
-        {
-          provide: LoggerService,
-          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
-        },
+        { provide: LoggerService, useValue: loggerService },
         { provide: LifecycleEmailService, useValue: lifecycleEmailService },
       ],
     })
@@ -181,6 +188,33 @@ describe('UserStripeController', () => {
         source: 'user-checkout',
         userId: dbUserId,
       });
+    });
+
+    it('returns the created session when lifecycle recording fails', async () => {
+      lifecycleEmailService.recordCheckoutStarted.mockRejectedValueOnce(
+        new Error('lifecycle unavailable'),
+      );
+
+      const result = await controller.createCheckoutSession(
+        mockUser,
+        dto,
+        mockRequest,
+      );
+
+      expect(result).toEqual({
+        id: 'cs_user_1',
+        url: 'https://checkout.stripe.com/pay',
+      });
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'lifecycle email checkout-started recording skipped',
+        ),
+        {
+          checkoutSessionId: 'cs_user_1',
+          error: 'lifecycle unavailable',
+        },
+      );
+      expect(loggerService.error).not.toHaveBeenCalled();
     });
 
     it('should create stripe customer if user has no stripeCustomerId', async () => {

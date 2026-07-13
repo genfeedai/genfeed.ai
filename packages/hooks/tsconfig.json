@@ -35,7 +35,6 @@
       "@genfeedai/ui": ["../ui/src/index.ts"],
       "@genfeedai/ui/*": ["../ui/src/*", "../ui/src/components/*"],
       "@genfeedai/utils/*": ["../utils/*"],
-      "@genfeedai/workflow-engine/*": ["../workflow-engine/src/*"],
       "@helpers": ["../helpers/src/index.ts"],
       "@helpers/*": ["../helpers/src/*"],
       "@hooks/*": ["./*"],
@@ -51,8 +50,7 @@
       "@ui": ["../ui/src", "../ui/src/components"],
       "@ui-constants/*": ["../ui/src/components/constants/*"],
       "@ui/*": ["../ui/src/*", "../ui/src/components/*"],
-      "@utils/*": ["../utils/*"],
-      "@workflow-engine/*": ["../workflow-engine/src/*"]
+      "@utils/*": ["../utils/*"]
     }
   },
   "exclude": [

@@ -10,7 +10,7 @@ import {
   HookGeneratorExecutor,
   PromptConstructorExecutor,
   type WorkflowEngine,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 
 const POST_GEN_MODEL = 'openai/gpt-4o-mini';
 const POST_GEN_TEMPERATURE = 0.6;

@@ -153,27 +153,6 @@ export default defineConfig({
         ),
       },
       {
-        find: '@genfeedai/workflow-engine',
-        replacement: path.resolve(
-          serviceDir,
-          '../../../packages/workflow-engine/src',
-        ),
-      },
-      {
-        find: /^@genfeedai\/workflow-engine\/(.*)$/,
-        replacement: path.resolve(
-          serviceDir,
-          '../../../packages/workflow-engine/src/$1',
-        ),
-      },
-      {
-        find: /^@workflow-engine\/(.*)$/,
-        replacement: path.resolve(
-          serviceDir,
-          '../../../packages/workflow-engine/src/$1',
-        ),
-      },
-      {
         find: '@genfeedai/workflows',
         replacement: path.resolve(
           serviceDir,

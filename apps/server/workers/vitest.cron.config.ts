@@ -164,27 +164,6 @@ export default defineConfig({
         ),
       },
       {
-        find: '@genfeedai/workflow-engine',
-        replacement: path.resolve(
-          serviceDir,
-          '../../../packages/workflow-engine/src/index.ts',
-        ),
-      },
-      {
-        find: /^@genfeedai\/workflow-engine\/(.*)$/,
-        replacement: path.resolve(
-          serviceDir,
-          '../../../packages/workflow-engine/src/$1',
-        ),
-      },
-      {
-        find: /^@workflow-engine\/(.*)$/,
-        replacement: path.resolve(
-          serviceDir,
-          '../../../packages/workflow-engine/src/$1',
-        ),
-      },
-      {
         find: '@genfeedai/integrations',
         replacement: path.resolve(
           serviceDir,
@@ -203,20 +182,6 @@ export default defineConfig({
         replacement: path.resolve(
           serviceDir,
           '../../../packages/serializers/src/$1',
-        ),
-      },
-      {
-        find: '@genfeedai/workflow-engine',
-        replacement: path.resolve(
-          serviceDir,
-          '../../../packages/workflow-engine/src',
-        ),
-      },
-      {
-        find: /^@genfeedai\/workflow-engine\/(.*)$/,
-        replacement: path.resolve(
-          serviceDir,
-          '../../../packages/workflow-engine/src/$1',
         ),
       },
       {
@@ -245,13 +210,6 @@ export default defineConfig({
         replacement: path.resolve(
           serviceDir,
           '../../../packages/serializers/src/$1',
-        ),
-      },
-      {
-        find: /^@workflow-engine\/(.*)$/,
-        replacement: path.resolve(
-          serviceDir,
-          '../../../packages/workflow-engine/src/$1',
         ),
       },
       {

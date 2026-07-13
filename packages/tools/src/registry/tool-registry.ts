@@ -51,6 +51,8 @@ function inferCategory(name: string): ToolCategory {
   if (
     name.startsWith('prepare_') ||
     name === 'render_dashboard' ||
+    name === 'save_dashboard_layout' ||
+    name === 'get_dashboard_layout' ||
     name.includes('ingredient')
   )
     return 'ui';

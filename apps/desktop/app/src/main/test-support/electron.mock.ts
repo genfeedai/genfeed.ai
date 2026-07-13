@@ -28,7 +28,18 @@ export const electronMockState = {
   },
   protocol: {
     handledSchemes: [] as string[],
+    handlers: new Map<
+      string,
+      (request: Request) => Promise<Response> | Response
+    >(),
     privilegedSchemes: [] as string[],
+  },
+  net: {
+    fetchRequests: [] as string[],
+    response: new Response(new Uint8Array([1, 2, 3]), {
+      headers: { 'Content-Type': 'application/octet-stream' },
+      status: 200,
+    }),
   },
   safeStorage: {
     decryptString: (buffer: Buffer) => buffer.toString('utf8'),
@@ -64,7 +75,13 @@ export const resetElectronMockState = (): void => {
   };
   electronMockState.menu.applicationMenu = null;
   electronMockState.protocol.handledSchemes = [];
+  electronMockState.protocol.handlers.clear();
   electronMockState.protocol.privilegedSchemes = [];
+  electronMockState.net.fetchRequests = [];
+  electronMockState.net.response = new Response(new Uint8Array([1, 2, 3]), {
+    headers: { 'Content-Type': 'application/octet-stream' },
+    status: 200,
+  });
   electronMockState.shell.externalUrls = [];
   electronMockState.shell.revealedPaths = [];
   electronMockState.shortcuts.registered = [];
@@ -132,13 +149,23 @@ mock.module('electron', () => ({
   },
   safeStorage: electronMockState.safeStorage,
   protocol: {
-    handle: (scheme: string) => {
+    handle: (
+      scheme: string,
+      handler: (request: Request) => Promise<Response> | Response,
+    ) => {
       electronMockState.protocol.handledSchemes.push(scheme);
+      electronMockState.protocol.handlers.set(scheme, handler);
     },
     registerSchemesAsPrivileged: (schemes: Array<{ scheme: string }>) => {
       electronMockState.protocol.privilegedSchemes.push(
         ...schemes.map(({ scheme }) => scheme),
       );
+    },
+  },
+  net: {
+    fetch: async (targetUrl: string) => {
+      electronMockState.net.fetchRequests.push(targetUrl);
+      return electronMockState.net.response;
     },
   },
   shell: {

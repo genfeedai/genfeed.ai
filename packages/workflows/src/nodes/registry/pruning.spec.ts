@@ -8,7 +8,7 @@
  * - The retained SaaS node types must remain present.
  */
 
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { isCoreNode, NODE_DEFINITIONS } from './merged-registry';
 import { isSaaSNode, SAAS_NODE_DEFINITIONS } from './saas-definitions';
 

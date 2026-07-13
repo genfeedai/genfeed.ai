@@ -77,6 +77,12 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'dashboardLayout',
+    table: 'dashboard_layouts',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'warmupAccount',
     table: 'warmup_accounts',
     brandField: 'brandId',

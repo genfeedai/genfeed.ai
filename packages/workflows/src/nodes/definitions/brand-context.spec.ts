@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { DEFAULT_BRAND_CONTEXT_DATA } from './brand-context';
 
 describe('brand-context node', () => {

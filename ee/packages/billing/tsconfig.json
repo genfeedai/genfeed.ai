@@ -49,17 +49,13 @@
         "../../../packages/integrations/src/index.ts"
       ],
       "@genfeedai/integrations/*": ["../../../packages/integrations/src/*"],
-      "@genfeedai/workflow-engine": [
-        "../../../packages/workflow-engine/src/index.ts"
-      ],
       "@genfeedai/workflows": ["../../../packages/workflows/src/index.ts"],
       "@genfeedai/workflows/*": ["../../../packages/workflows/src/*"],
       "@files/*": ["../../../apps/server/files/src/*"],
       "@helpers/*": ["../../../packages/helpers/src/*"],
       "@libs/*": ["../../../packages/libs/*"],
       "@serializers/*": ["../../../packages/serializers/src/*"],
-      "@server/*": ["../../../apps/server/server/src/*"],
-      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"]
+      "@server/*": ["../../../apps/server/server/src/*"]
     },
     "skipLibCheck": true,
     "strict": true,

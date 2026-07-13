@@ -3,7 +3,7 @@ import type {
   CommentChecker,
   CommentTriggerOutput,
   ReplyPublisher,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

@@ -19,7 +19,7 @@ import type {
   ExecutableWorkflow,
   ExecutionRunResult,
   NodeExecutionResult,
-} from '@genfeedai/workflow-engine';
+} from '@genfeedai/workflows/engine';
 import { BadRequestException } from '@nestjs/common';
 
 /** Actor recorded on automatic (timeout sweep) approvals/rejections. */
