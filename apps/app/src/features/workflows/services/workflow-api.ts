@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { WorkflowLifecycle } from '@genfeedai/enums';
-import type { NodeGroup } from '@genfeedai/workflow-ui';
+import type { NodeGroup } from '@genfeedai/workflows/ui';
 import {
   deserializeCollection,
   deserializeResource,

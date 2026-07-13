@@ -8,7 +8,7 @@ import {
 import {
   selectUpdateNodeData,
   useWorkflowStore,
-} from '@genfeedai/workflow-ui/stores';
+} from '@genfeedai/workflows/ui/stores';
 import { Button } from '@ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
