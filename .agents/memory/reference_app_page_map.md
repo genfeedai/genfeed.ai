@@ -6,7 +6,12 @@ type: reference
 
 # App Page Map
 
-Last audited: 2026-07-08.
+Last audited: 2026-07-13.
+
+Conversation-shell parity baseline: 206 canonical protected route patterns plus
+two intentional hard-cut families. This file is the exact denominator owned by
+`architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md`; the app switcher is only a
+discovery subset.
 
 Source of truth:
 
@@ -197,6 +202,7 @@ Messages:
 Research:
 
 - `/:orgSlug/:brandSlug/research/discovery`
+- `/:orgSlug/:brandSlug/research/following`
 - `/:orgSlug/:brandSlug/research/socials`
 - `/:orgSlug/:brandSlug/research/ads`
 - `/:orgSlug/:brandSlug/research/ads/google`
@@ -238,6 +244,7 @@ Publish/posts:
 - `/:orgSlug/:brandSlug/posts/:id`
 - `/:orgSlug/:brandSlug/posts/analytics`
 - `/:orgSlug/:brandSlug/posts/calendar`
+- `/:orgSlug/:brandSlug/posts/composer`
 - `/:orgSlug/:brandSlug/posts/newsletters`
 - `/:orgSlug/:brandSlug/posts/published`
 - `/:orgSlug/:brandSlug/posts/remix`
