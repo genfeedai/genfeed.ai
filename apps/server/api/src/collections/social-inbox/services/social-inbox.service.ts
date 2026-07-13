@@ -97,6 +97,7 @@ type JsonRecord = Record<string, unknown>;
 const SUPPORTED_PLATFORMS = new Set(['youtube', 'instagram']);
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
+const WORKFLOW_TRIGGER_CLAIM_TIMEOUT_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class SocialInboxService {
@@ -216,6 +217,7 @@ export class SocialInboxService {
     });
 
     if (existing) {
+      await this.queueCommentTrigger(input, existing, conversation);
       return this.toMessageDocument(existing);
     }
 
@@ -243,6 +245,10 @@ export class SocialInboxService {
           sourceUrl: this.clamp(input.sourceContentUrl, 2048),
           status: 'received',
           userId: input.userId,
+          workflowTriggerStatus:
+            this.workflowExecutionQueueService && input.userId
+              ? 'pending'
+              : undefined,
         },
       });
     } catch (error) {
@@ -263,6 +269,7 @@ export class SocialInboxService {
       if (!winner) {
         throw error;
       }
+      await this.queueCommentTrigger(input, winner, conversation);
       return this.toMessageDocument(winner);
     }
 
@@ -898,7 +905,44 @@ export class SocialInboxService {
     message: SocialMessage,
     conversation: SocialConversationDocument,
   ): Promise<void> {
-    if (!this.workflowExecutionQueueService || !input.userId) {
+    const userId = input.userId ?? message.userId ?? undefined;
+    if (!this.workflowExecutionQueueService || !userId) {
+      return;
+    }
+
+    const attemptedAt = new Date();
+    const staleClaimBefore = new Date(
+      attemptedAt.getTime() - WORKFLOW_TRIGGER_CLAIM_TIMEOUT_MS,
+    );
+    const jobId = [
+      'social-comment-trigger',
+      input.organizationId,
+      message.id,
+    ].join('-');
+    const claim = await this.prisma.socialMessage.updateMany({
+      data: {
+        workflowTriggerAttemptedAt: attemptedAt,
+        workflowTriggerError: null,
+        workflowTriggerJobId: jobId,
+        workflowTriggerStatus: 'enqueueing',
+      },
+      where: {
+        conversationId: conversation.id,
+        id: message.id,
+        isDeleted: false,
+        organizationId: input.organizationId,
+        OR: [
+          { workflowTriggerStatus: null },
+          { workflowTriggerStatus: { in: ['pending', 'failed'] } },
+          {
+            workflowTriggerAttemptedAt: { lt: staleClaimBefore },
+            workflowTriggerStatus: 'enqueueing',
+          },
+        ],
+      },
+    });
+
+    if (claim.count === 0) {
       return;
     }
 
@@ -925,39 +969,102 @@ export class SocialInboxService {
       text: message.body,
     };
 
+    let queuedJobId: string;
     try {
-      const jobId = await this.workflowExecutionQueueService.queueTriggerEvent({
-        data: triggerData,
-        organizationId: input.organizationId,
-        platform: conversation.platform,
-        type: 'commentTrigger',
-        userId: input.userId,
-      });
-
-      await this.prisma.socialConversation.update({
-        data: {
-          metadata: {
-            ...this.asRecord(conversation.metadata),
-            lastWorkflowTriggerJobId: jobId,
-            lastWorkflowTriggeredAt: new Date().toISOString(),
-          } as Prisma.InputJsonValue,
+      queuedJobId = await this.workflowExecutionQueueService.queueTriggerEvent(
+        {
+          data: triggerData,
+          organizationId: input.organizationId,
+          platform: conversation.platform,
+          type: 'commentTrigger',
+          userId,
         },
-        where: { id: conversation.id },
-      });
+        { jobId },
+      );
     } catch (error: unknown) {
-      await this.prisma.socialConversation.update({
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      await this.prisma.$transaction(async (transaction) => {
+        const finalized = await transaction.socialMessage.updateMany({
+          data: {
+            workflowTriggerError: errorMessage,
+            workflowTriggerStatus: 'failed',
+          },
+          where: {
+            conversationId: conversation.id,
+            id: message.id,
+            isDeleted: false,
+            organizationId: input.organizationId,
+            workflowTriggerAttemptedAt: attemptedAt,
+            workflowTriggerStatus: 'enqueueing',
+          },
+        });
+        if (finalized.count === 0) {
+          return;
+        }
+        await transaction.socialConversation.update({
+          data: {
+            automationState: 'failed',
+            metadata: {
+              ...this.asRecord(conversation.metadata),
+              workflowTriggerError: errorMessage,
+              workflowTriggerFailedAt: new Date().toISOString(),
+            } as Prisma.InputJsonValue,
+          },
+          where: {
+            id: conversation.id,
+            isDeleted: false,
+            organizationId: input.organizationId,
+          },
+        });
+      });
+      return;
+    }
+
+    const queuedAt = new Date();
+    const conversationMetadata = this.asRecord(conversation.metadata);
+    await this.prisma.$transaction(async (transaction) => {
+      const finalized = await transaction.socialMessage.updateMany({
         data: {
-          automationState: 'failed',
+          workflowTriggerError: null,
+          workflowTriggerJobId: queuedJobId,
+          workflowTriggerQueuedAt: queuedAt,
+          workflowTriggerStatus: 'queued',
+        },
+        where: {
+          conversationId: conversation.id,
+          id: message.id,
+          isDeleted: false,
+          organizationId: input.organizationId,
+          workflowTriggerAttemptedAt: attemptedAt,
+          workflowTriggerStatus: 'enqueueing',
+        },
+      });
+      if (finalized.count === 0) {
+        return;
+      }
+      await transaction.socialConversation.update({
+        data: {
+          automationState:
+            conversation.automationState === 'failed' &&
+            typeof conversationMetadata.workflowTriggerFailedAt === 'string'
+              ? 'manual'
+              : conversation.automationState,
           metadata: {
-            ...this.asRecord(conversation.metadata),
-            workflowTriggerError:
-              error instanceof Error ? error.message : String(error),
-            workflowTriggerFailedAt: new Date().toISOString(),
+            ...conversationMetadata,
+            lastWorkflowTriggerJobId: queuedJobId,
+            lastWorkflowTriggeredAt: queuedAt.toISOString(),
+            workflowTriggerError: null,
+            workflowTriggerFailedAt: null,
           } as Prisma.InputJsonValue,
         },
-        where: { id: conversation.id },
+        where: {
+          id: conversation.id,
+          isDeleted: false,
+          organizationId: input.organizationId,
+        },
       });
-    }
+    });
   }
 
   private async publishDm(

@@ -27,6 +27,10 @@ export interface WorkflowSchedulerUpsertInput {
   timezone: string;
 }
 
+export interface WorkflowTriggerQueueOptions {
+  jobId?: string;
+}
+
 /**
  * Minimal workflow-row shape needed to decide whether its BullMQ job
  * scheduler should exist (upsert) or not (remove).
@@ -80,7 +84,10 @@ export class WorkflowExecutionQueueService {
    * Queue a trigger event for processing.
    * The processor will find matching workflows and execute them.
    */
-  async queueTriggerEvent(event: TriggerEvent): Promise<string> {
+  async queueTriggerEvent(
+    event: TriggerEvent,
+    options: WorkflowTriggerQueueOptions = {},
+  ): Promise<string> {
     const job = await this.executionQueue.add(
       'trigger',
       {
@@ -89,6 +96,7 @@ export class WorkflowExecutionQueueService {
       },
       {
         attempts: 1, // Triggers should not auto-retry at queue level
+        ...(options.jobId ? { jobId: options.jobId } : {}),
         removeOnComplete: 200,
         removeOnFail: 100,
       },

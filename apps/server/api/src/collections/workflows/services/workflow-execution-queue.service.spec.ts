@@ -98,6 +98,20 @@ describe('WorkflowExecutionQueueService', () => {
         }),
       );
     });
+
+    it('should use a caller-provided job id to deduplicate trigger retries', async () => {
+      await service.queueTriggerEvent(createTriggerEvent(), {
+        jobId: 'social-comment-trigger-org-1-message-1',
+      });
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'trigger',
+        expect.anything(),
+        expect.objectContaining({
+          jobId: 'social-comment-trigger-org-1-message-1',
+        }),
+      );
+    });
   });
 
   describe('queueDelayedResume', () => {

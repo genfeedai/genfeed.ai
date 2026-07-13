@@ -68,6 +68,11 @@ type StoreMessage = {
   idempotencyKey: string | null;
   workflowRunId: string | null;
   agentRunId: string | null;
+  workflowTriggerStatus: string | null;
+  workflowTriggerJobId: string | null;
+  workflowTriggerError: string | null;
+  workflowTriggerAttemptedAt: Date | null;
+  workflowTriggerQueuedAt: Date | null;
   actionProvenance: Record<string, unknown>;
   failureReason: string | null;
   metadata: Record<string, unknown>;
@@ -77,6 +82,7 @@ type StoreMessage = {
 };
 
 type PrismaMock = {
+  $transaction: ReturnType<typeof vi.fn>;
   credential: { findMany: ReturnType<typeof vi.fn> };
   post: { findMany: ReturnType<typeof vi.fn> };
   socialConversation: {
@@ -92,6 +98,7 @@ type PrismaMock = {
     findFirst: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
   };
 };
 
@@ -142,6 +149,9 @@ function matchesWhere<T extends Record<string, unknown>>(
       if ('gt' in operator) {
         return Number(item[key]) > Number(operator.gt);
       }
+      if ('lt' in operator) {
+        return Number(item[key]) < Number(operator.lt);
+      }
       if ('in' in operator && Array.isArray(operator.in)) {
         return operator.in.includes(item[key]);
       }
@@ -166,6 +176,7 @@ function createContext(): TestContext {
   let messageCounter = 0;
 
   const prisma = {
+    $transaction: vi.fn(),
     credential: {
       findMany: vi.fn().mockResolvedValue([]),
     },
@@ -296,6 +307,11 @@ function createContext(): TestContext {
           updatedAt: data.updatedAt ?? now,
           userId: data.userId ?? null,
           workflowRunId: data.workflowRunId ?? null,
+          workflowTriggerAttemptedAt: data.workflowTriggerAttemptedAt ?? null,
+          workflowTriggerError: data.workflowTriggerError ?? null,
+          workflowTriggerJobId: data.workflowTriggerJobId ?? null,
+          workflowTriggerQueuedAt: data.workflowTriggerQueuedAt ?? null,
+          workflowTriggerStatus: data.workflowTriggerStatus ?? null,
         };
         messages.push(message);
         return Promise.resolve(message);
@@ -320,8 +336,19 @@ function createContext(): TestContext {
         Object.assign(message, data);
         return Promise.resolve(message);
       }),
+      updateMany: vi.fn().mockImplementation(({ data, where }) => {
+        const matches = messages.filter((item) => matchesWhere(item, where));
+        for (const message of matches) {
+          Object.assign(message, data);
+        }
+        return Promise.resolve({ count: matches.length });
+      }),
     },
   };
+  prisma.$transaction.mockImplementation(
+    (transaction: (client: PrismaMock) => Promise<unknown>) =>
+      transaction(prisma as unknown as PrismaMock),
+  );
 
   const youtubeService = {
     listVideoComments: vi.fn(),
@@ -452,29 +479,107 @@ describe('SocialInboxService', () => {
       userId: 'user-1',
     });
 
-    expect(queueService.queueTriggerEvent).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        authorId: 'author-1',
-        authorUsername: '@taylor',
-        brandId: 'brand-1',
-        commentId: 'comment-1',
-        conversationId: message.conversationId,
-        contentId: 'video-1',
-        contentUrl: 'https://youtube.com/watch?v=video-1',
-        credentialId: 'credential-1',
-        messageId: message.id,
-        parentId: 'comment-1',
+    expect(queueService.queueTriggerEvent).toHaveBeenCalledWith(
+      {
+        data: expect.objectContaining({
+          authorId: 'author-1',
+          authorUsername: '@taylor',
+          brandId: 'brand-1',
+          commentId: 'comment-1',
+          conversationId: message.conversationId,
+          contentId: 'video-1',
+          contentUrl: 'https://youtube.com/watch?v=video-1',
+          credentialId: 'credential-1',
+          messageId: message.id,
+          parentId: 'comment-1',
+          platform: 'youtube',
+          postId: 'comment-1',
+          text: 'Need help with pricing',
+        }),
+        organizationId: 'org-1',
         platform: 'youtube',
-        postId: 'comment-1',
-        text: 'Need help with pricing',
-      }),
-      organizationId: 'org-1',
-      platform: 'youtube',
-      type: 'commentTrigger',
-      userId: 'user-1',
-    });
+        type: 'commentTrigger',
+        userId: 'user-1',
+      },
+      {
+        jobId: `social-comment-trigger-org-1-${message.id}`,
+      },
+    );
     expect(conversations[0].metadata).toMatchObject({
       lastWorkflowTriggerJobId: 'workflow-job-1',
+    });
+  });
+
+  it('repairs a failed comment trigger once across concurrent re-ingestion', async () => {
+    const { conversations, messages, prisma, queueService, service } =
+      createContext();
+    const input = {
+      body: 'Need help with pricing',
+      brandId: 'brand-1',
+      conversationType: 'comment',
+      credentialId: 'credential-1',
+      externalConversationId: 'thread-1',
+      externalMessageId: 'comment-1',
+      externalParentId: 'comment-1',
+      organizationId: 'org-1',
+      participantExternalId: 'author-1',
+      platform: 'youtube',
+      sourceContentId: 'video-1',
+      userId: 'user-1',
+    };
+    queueService.queueTriggerEvent
+      .mockRejectedValueOnce(new Error('redis unavailable'))
+      .mockResolvedValue('workflow-job-retry');
+
+    const inbound = await service.ingestInboundMessage(input);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0]).toMatchObject({
+      workflowTriggerError: 'redis unavailable',
+      workflowTriggerStatus: 'failed',
+    });
+    expect(conversations[0].automationState).toBe('failed');
+
+    const [firstRetry, secondRetry] = await Promise.all([
+      service.ingestInboundMessage(input),
+      service.ingestInboundMessage(input),
+    ]);
+
+    expect(firstRetry.id).toBe(inbound.id);
+    expect(secondRetry.id).toBe(inbound.id);
+    expect(messages).toHaveLength(1);
+    expect(queueService.queueTriggerEvent).toHaveBeenCalledTimes(2);
+    expect(queueService.queueTriggerEvent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        type: 'commentTrigger',
+        userId: 'user-1',
+      }),
+      {
+        jobId: `social-comment-trigger-org-1-${inbound.id}`,
+      },
+    );
+    expect(messages[0]).toMatchObject({
+      workflowTriggerError: null,
+      workflowTriggerJobId: 'workflow-job-retry',
+      workflowTriggerQueuedAt: expect.any(Date),
+      workflowTriggerStatus: 'queued',
+    });
+    for (const call of prisma.socialMessage.updateMany.mock.calls) {
+      expect(call[0].where).toMatchObject({
+        conversationId: inbound.conversationId,
+        id: inbound.id,
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+    }
+    expect(conversations[0]).toMatchObject({
+      automationState: 'manual',
+      metadata: expect.objectContaining({
+        lastWorkflowTriggerJobId: 'workflow-job-retry',
+        workflowTriggerError: null,
+        workflowTriggerFailedAt: null,
+      }),
     });
   });
 
