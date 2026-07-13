@@ -184,6 +184,36 @@ describe('useAgentChatStream', () => {
     );
   });
 
+  it('sends selected canonical artifact references with a streaming turn', async () => {
+    const chatStream = vi.fn().mockResolvedValue({
+      brandId: 'brand-1',
+      contextVersion: 1,
+      runId: 'run-reference',
+      startedAt: '2026-07-13T00:00:00.000Z',
+      threadId: 'thread-reference',
+    });
+    const apiService = createApiService({ chatStream });
+    const reference = {
+      brandId: 'brand-1',
+      kind: 'post' as const,
+      organizationId: 'org-1',
+      recordId: 'post-1',
+      serializer: 'post' as const,
+    };
+    const { result } = renderHook(() => useAgentChatStream({ apiService }));
+
+    await act(async () => {
+      await result.current.sendMessage('Review this post', {
+        artifactReferences: [reference],
+      });
+    });
+
+    expect(chatStream).toHaveBeenCalledWith(
+      expect.objectContaining({ artifactReferences: [reference] }),
+      expect.any(AbortSignal),
+    );
+  });
+
   it('falls back to non-streaming chat when the socket is not ready', async () => {
     socketReady = false;
     socketConnected = false;

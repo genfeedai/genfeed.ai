@@ -7,6 +7,7 @@ import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-con
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { AgentThreadStatus } from '@genfeedai/enums';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useCallback, useRef } from 'react';
 
@@ -17,6 +18,7 @@ interface UseAgentChatOptions {
 }
 
 interface SendMessageOptions {
+  artifactReferences?: AgentArtifactReference[];
   source?: 'agent' | 'proactive' | 'onboarding';
   signal?: AbortSignal;
   attachments?: ChatAttachment[];
@@ -53,9 +55,18 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
         content,
         createdAt: new Date().toISOString(),
         id: `user-${Date.now()}`,
-        metadata: sendOptions?.attachments?.length
-          ? { attachments: sendOptions.attachments }
-          : undefined,
+        metadata:
+          sendOptions?.attachments?.length ||
+          sendOptions?.artifactReferences?.length
+            ? {
+                ...(sendOptions.attachments?.length
+                  ? { attachments: sendOptions.attachments }
+                  : {}),
+                ...(sendOptions.artifactReferences?.length
+                  ? { artifactReferences: sendOptions.artifactReferences }
+                  : {}),
+              }
+            : undefined,
         role: 'user',
         threadId: activeThreadId ?? '',
       };
@@ -78,6 +89,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
         const response = await runAgentApiEffect(
           apiService.chatEffect(
             {
+              artifactReferences: sendOptions?.artifactReferences,
               attachments: sendOptions?.attachments,
               brandId: currentThread?.brandId ?? null,
               content,

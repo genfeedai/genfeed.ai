@@ -2,6 +2,7 @@ import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-ac
 import type { ClipRunCardState } from '@genfeedai/agent/models/clip-run-card.model';
 import type { AgentThreadStatus } from '@genfeedai/enums';
 import type {
+  AgentArtifactReference,
   AgentClipRunIdentity,
   AgentDashboardOperation,
   AgentUIBlock,
@@ -10,6 +11,7 @@ import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
 
 export interface AgentChatMessageMetadata {
+  artifactReferences?: AgentArtifactReference[];
   generatedContent?: string;
   isFallbackContent?: boolean;
   model?: string;
@@ -477,6 +479,7 @@ export interface AgentToolCallSummary {
 }
 
 export interface AgentChatPayload {
+  artifactReferences?: AgentArtifactReference[];
   threadId?: string;
   brandId?: string | null;
   expectedContextVersion?: number;

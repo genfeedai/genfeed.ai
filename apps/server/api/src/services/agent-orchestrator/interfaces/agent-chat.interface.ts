@@ -1,5 +1,8 @@
 import type { AgentType } from '@genfeedai/enums';
-import type { ValidatedAgentScope } from '@genfeedai/interfaces';
+import type {
+  AgentArtifactReference,
+  ValidatedAgentScope,
+} from '@genfeedai/interfaces';
 import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 
 export interface AgentChatAttachment {
@@ -25,6 +28,7 @@ export interface AgentPageContext {
 
 export interface AgentChatRequest {
   agentType?: AgentType;
+  artifactReferences?: AgentArtifactReference[];
   attachments?: AgentChatAttachment[];
   brandId?: string | null;
   content: string;

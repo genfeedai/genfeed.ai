@@ -101,6 +101,36 @@ describe('workspace shell trusted registry', () => {
     ).toBeNull();
   });
 
+  it('registers organization and brand Workspace overviews independently', () => {
+    expect(resolveWorkspaceShellRoute('/acme/~/overview')).toMatchObject({
+      adapter: {
+        key: 'organization-workspace-overview',
+        status: 'embedded',
+      },
+      safeFallback: '/:orgSlug/~/overview',
+      scope: 'organization',
+      surfaceKey: 'organization-overview',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/workspace/overview'),
+    ).toMatchObject({
+      adapter: {
+        key: 'brand-workspace-overview',
+        status: 'embedded',
+      },
+      safeFallback: '/:orgSlug/:brandSlug/workspace/overview',
+      scope: 'brand',
+      surfaceKey: 'workspace-overview',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/analytics/overview')?.adapter.status,
+    ).toBe('placeholder');
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/workspace/inbox/all')?.adapter
+        .status,
+    ).toBe('placeholder');
+  });
+
   it('does not treat reserved application prefixes as scoped routes', () => {
     expect(resolveWorkspaceShellRoute('/settings/~/overview')).toBeNull();
     expect(resolveWorkspaceShellRoute('/settings/example/posts')).toBeNull();
