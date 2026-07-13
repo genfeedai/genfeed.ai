@@ -165,6 +165,35 @@ describe('UsersController', () => {
     });
   });
 
+  describe('updateMeAssetGate', () => {
+    it('persists the escape hatch and invalidates the user access caches', async () => {
+      usersService.patch.mockResolvedValue({
+        hasDismissedAssetGate: true,
+        id: userId,
+      });
+
+      const result = await controller.updateMeAssetGate(mockRequest, mockUser, {
+        hasDismissedAssetGate: true,
+      });
+
+      expect(usersService.patch).toHaveBeenCalledWith(userId, {
+        hasDismissedAssetGate: true,
+      });
+      // invalidateUserAccessCaches busts all three per-user caches so the next
+      // /auth/bootstrap reflects the dismissal immediately.
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith(userId);
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        userId,
+      );
+      expect(
+        betterAuthIdentityCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith(userId);
+      expect(result).toBeDefined();
+    });
+  });
+
   describe('findMeSettings', () => {
     it('should return user settings', async () => {
       usersService.findOne.mockResolvedValue({

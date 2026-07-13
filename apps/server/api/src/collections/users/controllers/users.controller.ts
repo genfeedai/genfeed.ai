@@ -5,6 +5,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
 import { SettingEntity } from '@api/collections/settings/entities/setting.entity';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -62,6 +63,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
 
@@ -574,6 +576,36 @@ export class UsersController {
           _id: publicMetadata.user,
           isDeleted: false,
         });
+
+    return data
+      ? serializeSingle(request, UserSerializer, data)
+      : returnNotFound(this.constructorName, publicMetadata.user);
+  }
+
+  /**
+   * First-asset unlock gate — persist the per-user "explore anyway" escape hatch.
+   * Invalidates the access caches so the next `/auth/bootstrap` reflects the new
+   * `hasDismissedAssetGate` immediately (the payload is Redis-cached ~30s), which
+   * is what lets the client clear the locked nav/overlay without a stale window.
+   */
+  // Internal UI-only escape hatch — excluded from the OpenAPI surface (and thus
+  // the MCP tool/parity gates): it persists a client preference, not a public
+  // API operation, and keeping it out of the spec avoids a codegen churn.
+  @ApiExcludeEndpoint()
+  @Patch('me/asset-gate')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async updateMeAssetGate(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() updateAssetGateDto: UpdateAssetGateDto,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+
+    const data = await this.usersService.patch(publicMetadata.user, {
+      hasDismissedAssetGate: updateAssetGateDto.hasDismissedAssetGate,
+    } as Partial<UpdateUserDto>);
+
+    await this.invalidateUserAccessCaches(publicMetadata.user);
 
     return data
       ? serializeSingle(request, UserSerializer, data)

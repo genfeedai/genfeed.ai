@@ -121,7 +121,7 @@ function AppProtectedTopbarContent({
   const { push } = useRouter();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
-  const { isSuperAdmin } = useAccessState();
+  const { isAssetGateLocked, isSuperAdmin } = useAccessState();
   // Route props are authoritative; only fall back to useOrgUrl when the shell is
   // rendered without route context. On org-level `/:org/~/...` pages
   // effectiveBrandSlug stays undefined so the app switcher links into org-scoped
@@ -336,6 +336,7 @@ function AppProtectedTopbarContent({
                 orgSlug={effectiveOrgSlug}
                 brandAwareSlug={brandAwareAppSlug}
                 brandSlug={effectiveBrandSlug}
+                isAssetGateLocked={isAssetGateLocked}
                 showAdmin={isAdminChrome || isSuperAdmin}
               />
             ) : null}

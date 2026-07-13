@@ -20,6 +20,9 @@ export interface AccessBootstrapState {
   subscriptionTier: string;
   hasEverHadCredits: boolean;
   creditsBalance: number;
+  // First-asset unlock gate flags (see AccessBootstrapStatePayload on the API).
+  hasGeneratedFirstAsset: boolean;
+  hasDismissedAssetGate: boolean;
 }
 
 export interface ProtectedAppBootstrapPayload {

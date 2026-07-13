@@ -59,6 +59,36 @@ export function normalizeProtectedPathname(rawPathname: string): string {
   return rawPathname;
 }
 
+/**
+ * First-asset unlock gate — the main app sections that are soft-locked until the
+ * org generates its first asset. Values are normalized app-relative prefixes
+ * (post-{@link normalizeProtectedPathname}), so pass a normalized pathname.
+ *
+ * Covers the five product sections plus their canonical route aliases: Workspace
+ * (`/workspace`, `/overview`, `/tasks`), Library, Analytics, Workflows
+ * (`/workflows`, `/orchestration`), and the Calendar (`/posts/calendar`). The
+ * agent, settings, studio, compose, research, publish, messages, and admin
+ * surfaces are intentionally NOT gated.
+ */
+const ASSET_GATE_SECTION_PREFIXES = [
+  '/workspace',
+  '/overview',
+  '/tasks',
+  '/library',
+  '/analytics',
+  '/workflows',
+  '/orchestration',
+  '/posts/calendar',
+] as const;
+
+export function isAssetGateSectionPath(normalizedPathname: string): boolean {
+  return ASSET_GATE_SECTION_PREFIXES.some(
+    (prefix) =>
+      normalizedPathname === prefix ||
+      normalizedPathname.startsWith(`${prefix}/`),
+  );
+}
+
 export function getCurrentBrandScopedPath(pathname: string): string {
   const parts = pathname.split('/').filter(Boolean);
 

@@ -265,7 +265,10 @@ export class AuthBootstrapService {
       access: {
         brandId: resolvedBrandId,
         creditsBalance,
+        hasDismissedAssetGate: dbUser?.hasDismissedAssetGate === true,
         hasEverHadCredits: organizationSettings?.hasEverHadCredits === true,
+        hasGeneratedFirstAsset:
+          organizationSettings?.hasGeneratedFirstAsset === true,
         isOnboardingCompleted: dbUser?.isOnboardingCompleted === true,
         isSuperAdmin,
         organizationId,

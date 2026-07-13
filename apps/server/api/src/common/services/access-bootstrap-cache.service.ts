@@ -24,6 +24,9 @@ export interface AccessBootstrapStatePayload {
   subscriptionTier: string;
   hasEverHadCredits: boolean;
   creditsBalance: number;
+  // First-asset unlock gate flags surfaced to the client without an extra request.
+  hasGeneratedFirstAsset: boolean;
+  hasDismissedAssetGate: boolean;
 }
 
 export interface AccessBootstrapCachePayload {
