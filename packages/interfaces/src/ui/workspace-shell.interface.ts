@@ -102,7 +102,7 @@ export interface WorkspaceShellRestorationPolicy {
 
 export interface WorkspaceShellAdapterSeam {
   readonly key: string;
-  readonly status: 'dedicated-route' | 'placeholder' | 'ready';
+  readonly status: 'dedicated-route' | 'embedded' | 'placeholder' | 'ready';
 }
 
 export interface WorkspaceShellRouteRegistration {

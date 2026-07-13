@@ -1,6 +1,7 @@
 import type {
   ResolvedWorkspaceShellRoute,
   WorkspaceShellAccessPolicy,
+  WorkspaceShellAdapterSeam,
   WorkspaceShellAuxiliaryRegistration,
   WorkspaceShellDeployment,
   WorkspaceShellOverlayRegistration,
@@ -30,6 +31,7 @@ export type {
 } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 
 type RouteGroupConfig = {
+  readonly adapter?: WorkspaceShellAdapterSeam;
   readonly fallback: string;
   readonly mode: WorkspaceShellRouteMode;
   readonly scope: WorkspaceShellScopeRequirement;
@@ -102,10 +104,12 @@ function freezeRouteRegistration(
 ): WorkspaceShellRouteRegistration {
   return Object.freeze({
     accessPolicy: ACCESS_POLICY_BY_SCOPE[config.scope],
-    adapter: Object.freeze({
-      key: config.surfaceKey,
-      status: ADAPTER_STATUS_BY_MODE[config.mode],
-    }),
+    adapter: Object.freeze(
+      config.adapter ?? {
+        key: config.surfaceKey,
+        status: ADAPTER_STATUS_BY_MODE[config.mode],
+      },
+    ),
     allowedShellModes: Object.freeze([config.mode] as const),
     availability: AVAILABILITY_BY_MODE[config.mode],
     canonicalUrl,
@@ -150,17 +154,32 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
 ] as const;
 
 const ORGANIZATION_ROUTE_REGISTRATIONS = [
-  ...registerRoutes(
-    ['/:orgSlug', '/:orgSlug/~/overview', '/:orgSlug/~/analytics/overview'],
-    {
-      fallback: '/:orgSlug/~/overview',
-      mode: 'canvas',
-      scope: 'organization',
-      surfaceKey: 'organization-overview',
-      switcherItems: ['workspace', 'messages', 'research'],
-      telemetryClass: 'product',
+  ...registerRoutes(['/:orgSlug/~/overview'], {
+    adapter: {
+      key: 'organization-workspace-overview',
+      status: 'embedded',
     },
-  ),
+    fallback: '/:orgSlug/~/overview',
+    mode: 'canvas',
+    scope: 'organization',
+    surfaceKey: 'organization-overview',
+    switcherItems: ['workspace', 'messages', 'research'],
+    telemetryClass: 'product',
+  }),
+  ...registerRoutes(['/:orgSlug'], {
+    fallback: '/:orgSlug/~/overview',
+    mode: 'canvas',
+    scope: 'organization',
+    surfaceKey: 'organization-landing',
+    telemetryClass: 'product',
+  }),
+  ...registerRoutes(['/:orgSlug/~/analytics/overview'], {
+    fallback: '/:orgSlug/~/overview',
+    mode: 'canvas',
+    scope: 'organization',
+    surfaceKey: 'analytics',
+    telemetryClass: 'product',
+  }),
   ...registerRoutes(
     ['/:orgSlug/~/agent', '/:orgSlug/~/agent/new', '/:orgSlug/~/agent/:id'],
     {
@@ -296,6 +315,22 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/workspace',
       '/:orgSlug/:brandSlug/workspace/overview',
+    ],
+    {
+      adapter: {
+        key: 'brand-workspace-overview',
+        status: 'embedded',
+      },
+      fallback: '/:orgSlug/:brandSlug/workspace/overview',
+      mode: 'canvas',
+      scope: 'brand',
+      surfaceKey: 'workspace-overview',
+      switcherItems: ['workspace'],
+      telemetryClass: 'product',
+    },
+  ),
+  ...registerRoutes(
+    [
       '/:orgSlug/:brandSlug/workspace/inbox/:view',
       '/:orgSlug/:brandSlug/workspace/activity',
       '/:orgSlug/:brandSlug/tasks',

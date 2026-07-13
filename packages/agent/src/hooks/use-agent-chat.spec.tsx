@@ -162,4 +162,40 @@ describe('useAgentChat', () => {
     expect(payload?.pageContext).not.toHaveProperty('suggestedActions');
     expect(() => JSON.stringify(payload)).not.toThrow();
   });
+
+  it('sends selected canonical artifact references with the turn', async () => {
+    const chat = vi.fn().mockResolvedValue({
+      contextVersion: 1,
+      creditsRemaining: 95,
+      creditsUsed: 5,
+      message: { content: 'Reviewed', metadata: {}, role: 'assistant' },
+      threadId: 'thread-reference',
+      toolCalls: [],
+    });
+    const apiService = {
+      chat,
+      chatEffect: vi.fn((...args: Parameters<typeof chat>) =>
+        Effect.promise(() => chat(...args)),
+      ),
+    } as unknown as AgentApiService;
+    const reference = {
+      brandId: 'brand-1',
+      kind: 'post' as const,
+      organizationId: 'org-1',
+      recordId: 'post-1',
+      serializer: 'post' as const,
+    };
+    const { result } = renderHook(() => useAgentChat({ apiService }));
+
+    await act(async () => {
+      await result.current.sendMessage('Review this post', {
+        artifactReferences: [reference],
+      });
+    });
+
+    expect(chat).toHaveBeenCalledWith(
+      expect.objectContaining({ artifactReferences: [reference] }),
+      expect.any(AbortSignal),
+    );
+  });
 });

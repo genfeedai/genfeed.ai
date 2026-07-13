@@ -346,6 +346,7 @@ export class AgentOrchestratorService {
 
       // Save user message
       await this.agentMessagesService.addMessage({
+        artifactReferences: request.artifactReferences,
         brandId: scope.brandId,
         content: request.content,
         metadata: {
@@ -1268,6 +1269,7 @@ export class AgentOrchestratorService {
 
     // Save user message
     await this.agentMessagesService.addMessage({
+      artifactReferences: request.artifactReferences,
       brandId: scope.brandId,
       content: request.content,
       metadata: {

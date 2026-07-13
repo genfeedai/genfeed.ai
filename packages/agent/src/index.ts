@@ -140,6 +140,7 @@ export type {
   ConversationComposerDispatchResult,
   ConversationComposerDispatchStatus,
   ConversationComposerScope,
+  ConversationComposerSendOptions,
   ParsedConversationComposerCommand,
   PersistedConversationComposerAttachment,
   PersistedConversationComposerDraft,

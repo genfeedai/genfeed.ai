@@ -311,6 +311,8 @@ vi.mock('@/features/workflows/workspace/WorkflowPickerOverlay', () => ({
   ),
 }));
 
+import { BrandWorkspaceOverviewSurfaceAdapter } from '@/features/workspace-overview/workspace-overview-surface-adapters';
+
 vi.mock('./use-conversation-scope-controls', () => ({
   useConversationScopeControls: () => ({
     contextLabel: 'Acme · Organization-wide',
@@ -377,13 +379,69 @@ describe('UniversalWorkspaceShell', () => {
     ).toHaveTextContent('thread-1');
     expect(screen.getByTestId('universal-workspace-shell')).toHaveAttribute(
       'data-workspace-surface',
-      'workspace',
+      'workspace-overview',
     );
     expect(
       screen.getByTestId('universal-workspace-shell').parentElement,
     ).toHaveAttribute('data-draft-scope', 'acme:thread-1:3');
     expect(pageShellMount).toHaveBeenCalledTimes(1);
     expect(router.replace).toHaveBeenCalledWith(
+      '/acme/moonrise/workspace/overview?thread=thread-1',
+    );
+  });
+
+  it('mounts the brand overview registration in the harness inspector', async () => {
+    navigation.pathname = '/acme/moonrise/workspace/overview';
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <BrandWorkspaceOverviewSurfaceAdapter>
+          <div data-testid="canonical-brand-overview">Workspace overview</div>
+        </BrandWorkspaceOverviewSurfaceAdapter>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(
+      await screen.findByTestId('workspace-surface-adapter-inspector'),
+    ).toHaveTextContent('Brand Workspace overview');
+    expect(screen.getByTestId('canonical-brand-overview')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Registered workspace-overview adapter slot'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('launches the organization overview from organization conversation scope', () => {
+    navigation.pathname = '/acme/~/agent/thread-1';
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Conversation</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open workspace canvas' }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith(
+      '/acme/~/overview?thread=thread-1',
+    );
+  });
+
+  it('launches the brand overview from brand conversation scope', () => {
+    navigation.pathname = '/acme/moonrise/agent/thread-1';
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Conversation</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open workspace canvas' }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith(
       '/acme/moonrise/workspace/overview?thread=thread-1',
     );
   });

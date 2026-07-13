@@ -64,7 +64,10 @@ import {
   type WorkspaceShellLocation,
   type WorkspaceShellState,
 } from '@/lib/workspace-shell/workspace-shell-location';
-import { getWorkspaceShellOverlayRegistration } from '@/lib/workspace-shell/workspace-shell-registry';
+import {
+  getWorkspaceShellOverlayRegistration,
+  resolveWorkspaceShellRoute,
+} from '@/lib/workspace-shell/workspace-shell-registry';
 import {
   captureWorkspaceShellRestorationFailure,
   captureWorkspaceShellTransition,
@@ -73,6 +76,10 @@ import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-s
 import { useConversationScopeControls } from './use-conversation-scope-controls';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
 import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
+import {
+  useActiveWorkspaceSurfaceAdapter,
+  WorkspaceSurfaceAdapterProvider,
+} from './WorkspaceSurfaceAdapterContext';
 
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
@@ -121,6 +128,7 @@ function UniversalWorkspaceShellContent({
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const threads = useAgentChatStore((state) => state.threads);
   const seedComposer = useAgentChatStore((state) => state.seedComposer);
+  const activeSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
@@ -171,6 +179,16 @@ function UniversalWorkspaceShellContent({
     () => (overlay ? getWorkspaceShellOverlayRegistration(overlay.key) : null),
     [overlay],
   );
+  const routeRegistration = useMemo(
+    () => resolveWorkspaceShellRoute(normalizedPathname),
+    [normalizedPathname],
+  );
+  const resolvedSurfaceAdapter =
+    routeRegistration?.adapter.status === 'embedded' &&
+    activeSurfaceAdapter?.registration.key === routeRegistration.adapter.key &&
+    activeSurfaceAdapter.registration.scope === routeRegistration.scope
+      ? activeSurfaceAdapter
+      : null;
   const canonicalSearchParamsString = canonicalSearchParams.toString();
   const isUnthreadedConversation =
     baseState === 'conversation' &&
@@ -320,13 +338,28 @@ function UniversalWorkspaceShellContent({
   }, [normalizedPathname, state]);
 
   const handleOpenCanvas = useCallback(() => {
+    const launch = resolveWorkspaceSurfaceLaunch({
+      currentHref,
+      destinationHref: brandSlug
+        ? href(APP_ROUTES.WORKSPACE.OVERVIEW)
+        : orgHref('/overview'),
+      threadId: effectiveThreadId ?? activeThreadId,
+    });
+    if (launch.history !== 'push' || launch.mode !== 'canvas') {
+      return;
+    }
+
     pendingTransitionRef.current = 'canvas_launch';
-    push(
-      buildWorkspaceShellHref(orgHref(APP_ROUTES.WORKSPACE.OVERVIEW), {
-        threadId: effectiveThreadId ?? activeThreadId,
-      }),
-    );
-  }, [activeThreadId, effectiveThreadId, orgHref, push]);
+    push(launch.href);
+  }, [
+    activeThreadId,
+    brandSlug,
+    currentHref,
+    effectiveThreadId,
+    href,
+    orgHref,
+    push,
+  ]);
 
   const handleReturnToConversation = useCallback(() => {
     pendingTransitionRef.current = 'conversation_return';
@@ -651,14 +684,29 @@ function UniversalWorkspaceShellContent({
             threadId={effectiveThreadId}
           />
         ) : (
-          <div className="gen-shell-empty-state p-4">
+          <div
+            className="gen-shell-empty-state p-4"
+            data-testid={
+              resolvedSurfaceAdapter
+                ? 'workspace-surface-adapter-inspector'
+                : undefined
+            }
+          >
             <p className="text-sm font-medium text-foreground">
-              Registered {surfaceKey} adapter slot
+              {resolvedSurfaceAdapter
+                ? resolvedSurfaceAdapter.registration.title
+                : `Registered ${surfaceKey} adapter slot`}
             </p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Product-owned context adapters land here without changing their
-              canonical route or granting execution authority.
+              {resolvedSurfaceAdapter
+                ? resolvedSurfaceAdapter.registration.description
+                : 'Product-owned context adapters land here without changing their canonical route or granting execution authority.'}
             </p>
+            {resolvedSurfaceAdapter ? (
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                Full management remains available on this canonical route.
+              </p>
+            ) : null}
           </div>
         )}
         <Button
@@ -691,6 +739,7 @@ function UniversalWorkspaceShellContent({
 
   return (
     <ConversationComposerShellProvider
+      artifactReferences={resolvedSurfaceAdapter?.artifactReferences}
       contextLabel={composerContextLabel}
       dispatchAction={handleComposerAction}
       draftScopeKey={draftScopeKey}
@@ -915,12 +964,14 @@ export default function UniversalWorkspaceShell({
 }: UniversalWorkspaceShellProps) {
   return (
     <AgentWorkspaceLayoutClient agentApiService={agentApiService}>
-      <UniversalWorkspaceShellContent
-        agentApiService={agentApiService}
-        composerScopeControls={composerScopeControls}
-      >
-        {children}
-      </UniversalWorkspaceShellContent>
+      <WorkspaceSurfaceAdapterProvider>
+        <UniversalWorkspaceShellContent
+          agentApiService={agentApiService}
+          composerScopeControls={composerScopeControls}
+        >
+          {children}
+        </UniversalWorkspaceShellContent>
+      </WorkspaceSurfaceAdapterProvider>
     </AgentWorkspaceLayoutClient>
   );
 }
