@@ -33,6 +33,7 @@ import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
@@ -101,6 +102,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentMemoryGoalsToolHandler,
     AgentOrchestratorService,
     AgentRouteRewriteService,
+    AgentStreamEffectsService,
     AgentThreadEventRecorderService,
     AgentToolExecutorService,
     {
