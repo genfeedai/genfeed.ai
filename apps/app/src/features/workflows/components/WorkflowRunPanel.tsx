@@ -232,15 +232,15 @@ export function WorkflowRunPanel({
                 )}
 
                 {variable.type === 'boolean' ? (
-                  <label className="flex items-center gap-2 border border-border px-3 py-2 text-sm text-foreground">
+                  <div className="flex items-center gap-2 border border-border px-3 py-2 text-sm text-foreground">
                     <Checkbox
+                      id={`workflow-run-${variable.key}`}
                       isChecked={value === true}
                       onChange={(event) =>
                         setFieldValue(variable.key, event.target.checked)
                       }
                     />
-                    <span>{variable.label}</span>
-                  </label>
+                  </div>
                 ) : variable.type === 'select' && selectOptions.length > 0 ? (
                   <Select
                     value={typeof value === 'string' ? value : ''}
