@@ -3,6 +3,7 @@
 import { AgentFullPage } from '@genfeedai/agent';
 import { isEEEnabled } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
+import { useAgentBrandCreate } from '@genfeedai/hooks/agent/use-agent-brand-create';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -28,6 +29,7 @@ export function AgentWorkspacePageShell({
     completeOnboardingFlow,
     isOnboarding,
   } = useAgentWorkspace();
+  const handleBrandCreate = useAgentBrandCreate();
 
   const handleCreateFollowUpTasks = useCallback(
     async (taskId: string) => {
@@ -65,6 +67,7 @@ export function AgentWorkspacePageShell({
           );
         }}
         onOAuthConnect={handleOAuthConnect}
+        onBrandCreate={handleBrandCreate}
         onOnboardingCompleted={completeOnboardingFlow}
         onSelectCreditPack={(pack) => {
           push(

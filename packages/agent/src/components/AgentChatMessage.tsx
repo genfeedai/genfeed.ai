@@ -22,6 +22,10 @@ interface AgentChatMessageProps {
   onRetry?: (message: AgentChatMessageType) => void | Promise<void>;
   onRegenerate?: (message: AgentChatMessageType) => void | Promise<void>;
   onOAuthConnect?: (platform: string) => void;
+  onBrandCreate?: (payload: {
+    name: string;
+    description: string;
+  }) => void | Promise<void>;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;
@@ -73,6 +77,7 @@ export function AgentChatMessage({
   onRetry,
   onRegenerate,
   onOAuthConnect,
+  onBrandCreate,
   onSelectCreditPack,
   onSelectIngredient,
   onUiAction,
@@ -320,6 +325,7 @@ export function AgentChatMessage({
             apiService={apiService}
             onCopy={onCopy}
             onOAuthConnect={onOAuthConnect}
+            onBrandCreate={onBrandCreate}
             onRetry={onRetry ? () => onRetry(message) : undefined}
             onSelectCreditPack={onSelectCreditPack}
             onSelectIngredient={onSelectIngredient}
@@ -335,6 +341,7 @@ export function AgentChatMessage({
               apiService={apiService}
               onCopy={onCopy}
               onOAuthConnect={onOAuthConnect}
+              onBrandCreate={onBrandCreate}
               onRetry={onRetry ? () => onRetry(message) : undefined}
               onSelectCreditPack={onSelectCreditPack}
               onSelectIngredient={onSelectIngredient}

@@ -26,6 +26,10 @@ type AgentChatTimelineProps = {
   onRetry: (message: AgentChatMessageType) => Promise<void>;
   onRegenerate?: (message: AgentChatMessageType) => void | Promise<void>;
   onOAuthConnect?: (platform: string) => void;
+  onBrandCreate?: (payload: {
+    name: string;
+    description: string;
+  }) => void | Promise<void>;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;
@@ -51,6 +55,7 @@ export function AgentChatTimeline({
   onRetry,
   onRegenerate,
   onOAuthConnect,
+  onBrandCreate,
   onSelectCreditPack,
   onSelectIngredient,
   onUiAction,
@@ -74,6 +79,7 @@ export function AgentChatTimeline({
                 onRetry={onRetry}
                 onRegenerate={onRegenerate}
                 onOAuthConnect={onOAuthConnect}
+                onBrandCreate={onBrandCreate}
                 onSelectCreditPack={onSelectCreditPack}
                 onSelectIngredient={onSelectIngredient}
                 onUiAction={onUiAction}
@@ -96,6 +102,7 @@ export function AgentChatTimeline({
             apiService={apiService}
             onCopy={onCopy}
             onOAuthConnect={onOAuthConnect}
+            onBrandCreate={onBrandCreate}
             onSelectCreditPack={onSelectCreditPack}
             onSelectIngredient={onSelectIngredient}
             onUiAction={onUiAction}

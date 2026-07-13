@@ -33,6 +33,10 @@ interface AgentChatContainerProps {
   onCopy?: (content: string) => void | Promise<void>;
   onRegenerate?: (message: AgentChatMessageType) => void | Promise<void>;
   onOAuthConnect?: (platform: string) => void;
+  onBrandCreate?: (payload: {
+    name: string;
+    description: string;
+  }) => void | Promise<void>;
   onCreateFollowUpTasks?: (taskId: string) => Promise<{ createdCount: number }>;
   onSelectCreditPack?: (pack: {
     label: string;
@@ -62,6 +66,7 @@ export function AgentChatContainer({
   onCopy,
   onRegenerate,
   onOAuthConnect,
+  onBrandCreate,
   onCreateFollowUpTasks,
   onSelectCreditPack,
   onSelectIngredient,
@@ -280,6 +285,7 @@ export function AgentChatContainer({
                   onRetry={handleRetry}
                   onRegenerate={onRegenerate}
                   onOAuthConnect={onOAuthConnect}
+                  onBrandCreate={onBrandCreate}
                   onSelectCreditPack={onSelectCreditPack}
                   onSelectIngredient={handleIngredientSelect}
                   onUiAction={handleUiAction}

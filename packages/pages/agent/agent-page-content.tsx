@@ -3,6 +3,7 @@
 import { AgentApiService, AgentFullPage } from '@genfeedai/agent';
 import { isEEEnabled } from '@genfeedai/config/license';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import { useAgentBrandCreate } from '@hooks/agent/use-agent-brand-create';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -26,6 +27,7 @@ export default function AgentPageContent({
   const { getToken } = useAuthIdentity();
   const userRole = useUserRole();
   const { orgHref } = useOrgUrl();
+  const handleBrandCreate = useAgentBrandCreate();
   const agentApiService = useMemo(
     () =>
       new AgentApiService({
@@ -61,6 +63,7 @@ export default function AgentPageContent({
         onboardingMode={onboardingMode}
         onOnboardingCompleted={onOnboardingCompleted}
         onOAuthConnect={onOAuthConnect}
+        onBrandCreate={handleBrandCreate}
         onSelectCreditPack={handleSelectCreditPack}
         onNavigateToBilling={handleNavigateToBilling}
         threadId={threadId}

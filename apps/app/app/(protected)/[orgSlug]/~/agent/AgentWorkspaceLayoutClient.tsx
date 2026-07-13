@@ -1,27 +1,20 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentApiService,
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
+import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import {
   getPlaywrightAuthState,
   resolveAuthToken,
 } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { logger } from '@services/core/logger.service';
-import { ServicesService } from '@services/external/services.service';
 import { UsersService } from '@services/organization/users.service';
-import {
-  useParams,
-  usePathname,
-  useRouter,
-  useSearchParams,
-} from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type PropsWithChildren,
   Suspense,
@@ -42,13 +35,11 @@ function AgentWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
     () => normalizeProtectedPathname(rawPathname),
     [rawPathname],
   );
-  const params = useParams<{ id?: string; threadId?: string }>();
   const { replace } = useRouter();
   const { orgHref } = useOrgUrl();
   const searchParams = useSearchParams();
   const { getToken, isLoaded } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
-  const { selectedBrand } = useBrand();
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const completedRef = useRef(false);
   const lastBootstrapKeyRef = useRef<string | null>(null);
@@ -64,12 +55,6 @@ function AgentWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
   const isUnthreadedRoute = isOnboardingEntryRoute || isStandardNewRoute;
   const prefillPrompt = searchParams.get('prompt')?.trim() || '';
   const effectiveIsLoaded = isLoaded || playwrightAuth?.isLoaded === true;
-  const threadId =
-    typeof params.threadId === 'string' && params.threadId.length > 0
-      ? params.threadId
-      : typeof params.id === 'string' && params.id.length > 0
-        ? params.id
-        : undefined;
 
   const agentApiService = useMemo(
     () =>
@@ -102,37 +87,7 @@ function AgentWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
     onOnboardingCompleted: completeOnboardingFlow,
   });
 
-  const handleOAuthConnect = useCallback(
-    async (platform: string) => {
-      try {
-        const token = await resolveAuthToken(getToken);
-        if (!token) {
-          return;
-        }
-
-        // Brand is optional for agent OAuth; uses active brand if available.
-        const service = new ServicesService(platform, token);
-        const credential = await service.postConnect({
-          ...(selectedBrand ? { brand: selectedBrand.id } : {}),
-        });
-        const returnTo = isOnboarding
-          ? threadId
-            ? orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${threadId}`)
-            : orgHref(APP_ROUTES.AGENT.ONBOARDING)
-          : threadId
-            ? orgHref(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
-            : orgHref(APP_ROUTES.AGENT.NEW);
-        const separator = credential.url.includes('?') ? '&' : '?';
-        window.open(
-          `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,
-          '_self',
-        );
-      } catch (error) {
-        logger.error('OAuth connect failed', error);
-      }
-    },
-    [getToken, isOnboarding, orgHref, selectedBrand, threadId],
-  );
+  const handleOAuthConnect = useAgentOAuthConnect({ isOnboarding });
 
   // Bootstrap the prefilled prompt only on unthreaded entry routes.
   useEffect(() => {
