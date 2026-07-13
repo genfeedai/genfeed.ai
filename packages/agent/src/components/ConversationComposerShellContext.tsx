@@ -2,6 +2,7 @@
 
 import type {
   ConversationComposerActionInvocation,
+  ConversationComposerContextReference,
   ConversationComposerDispatchResult,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
@@ -24,6 +25,7 @@ export interface ConversationComposerShellContextValue {
   draftScopeKey: string | null;
   isConsequentiallyBlocked?: boolean;
   portalTarget: HTMLElement | null;
+  references?: readonly ConversationComposerContextReference[];
   scopeControls?: ReactNode;
   shellState: 'canvas' | 'conversation' | 'overlay';
 }
@@ -44,6 +46,7 @@ export function ConversationComposerShellProvider({
   draftScopeKey,
   isConsequentiallyBlocked,
   portalTarget,
+  references,
   scopeControls,
   shellState,
 }: ConversationComposerShellProviderProps): ReactElement {
@@ -55,6 +58,7 @@ export function ConversationComposerShellProvider({
       draftScopeKey,
       isConsequentiallyBlocked,
       portalTarget,
+      references,
       scopeControls,
       shellState,
     }),
@@ -65,6 +69,7 @@ export function ConversationComposerShellProvider({
       draftScopeKey,
       isConsequentiallyBlocked,
       portalTarget,
+      references,
       scopeControls,
       shellState,
     ],

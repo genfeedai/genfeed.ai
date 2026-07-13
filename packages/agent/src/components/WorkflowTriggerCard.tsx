@@ -1,6 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
@@ -36,6 +37,10 @@ export function WorkflowTriggerCard({
   const [executionId, setExecutionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const activeThread = useAgentChatStore((state) =>
+    state.threads.find((thread) => thread.id === state.activeThreadId),
+  );
 
   const handleTrigger = useCallback(async () => {
     if (!selectedId) return;
@@ -48,7 +53,17 @@ export function WorkflowTriggerCard({
 
     try {
       const result = await runAgentApiEffect(
-        apiService.triggerWorkflowEffect(selectedId, {}, controller.signal),
+        apiService.triggerWorkflowEffect(
+          selectedId,
+          {},
+          controller.signal,
+          activeThreadId && activeThread?.contextVersion !== undefined
+            ? {
+                expectedContextVersion: activeThread.contextVersion,
+                threadId: activeThreadId,
+              }
+            : undefined,
+        ),
       );
       setExecutionId(result.id);
       setStatus('done');
@@ -59,7 +74,7 @@ export function WorkflowTriggerCard({
       );
       setStatus('error');
     }
-  }, [selectedId, apiService]);
+  }, [activeThread?.contextVersion, activeThreadId, apiService, selectedId]);
 
   const handleRetry = useCallback(() => {
     setStatus('idle');

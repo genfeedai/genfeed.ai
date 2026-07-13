@@ -1,4 +1,5 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsOptional } from 'class-validator';
@@ -12,6 +13,15 @@ import { IsBoolean, IsOptional } from 'class-validator';
  * RPC route (#1354).
  */
 export class WorkflowQueryDto extends BaseQueryDto {
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Restrict visible workflows to the active brand for an authorized picker.',
+    required: false,
+  })
+  readonly brandId?: string;
+
   @IsBoolean()
   @IsOptional()
   @Transform(({ value }) =>

@@ -13,6 +13,24 @@ export type ConversationComposerActionName =
 
 export type ConversationComposerScope = 'brand' | 'organization';
 
+export type ConversationComposerContextReferenceKind =
+  | 'research-ad-connected-google'
+  | 'research-ad-connected-meta'
+  | 'research-ad-public-google'
+  | 'research-ad-public-meta'
+  | 'research-source-post'
+  | 'research-trend-content'
+  | 'research-trend-hashtag'
+  | 'research-trend-sound'
+  | 'research-trend-video';
+
+export interface ConversationComposerContextReference {
+  authorization: 'authorized';
+  id: string;
+  kind: ConversationComposerContextReferenceKind;
+  label: string;
+}
+
 export interface ConversationComposerActionDefinition {
   description: string;
   isConsequentialProposal: boolean;
