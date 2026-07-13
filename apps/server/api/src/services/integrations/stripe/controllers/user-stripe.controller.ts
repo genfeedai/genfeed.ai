@@ -146,12 +146,22 @@ export class UserStripeController {
         userId: dbUser.id.toString(),
       });
 
-      await this.lifecycleEmailService.recordCheckoutStarted({
-        checkoutSessionId: session.id,
-        checkoutUrl: session.url,
-        source: 'user-checkout',
-        userId: dbUser.id.toString(),
-      });
+      try {
+        await this.lifecycleEmailService.recordCheckoutStarted({
+          checkoutSessionId: session.id,
+          checkoutUrl: session.url,
+          source: 'user-checkout',
+          userId: dbUser.id.toString(),
+        });
+      } catch (error: unknown) {
+        this.loggerService.warn(
+          `${url} lifecycle email checkout-started recording skipped`,
+          {
+            checkoutSessionId: session.id,
+            error: error instanceof Error ? error.message : error,
+          },
+        );
+      }
 
       return serializeSingle(request, StripeUrlSerializer, session);
     } catch (error: unknown) {
