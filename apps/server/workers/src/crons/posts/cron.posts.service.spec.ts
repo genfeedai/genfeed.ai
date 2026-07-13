@@ -2,6 +2,7 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
@@ -15,6 +16,12 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
+
+const APPROVAL_JOB_IDENTITY = {
+  approvalId: 'approval-1',
+  operationId: 'operation-1',
+  versionPinId: 'pin-1',
+} as const;
 
 describe('CronPostsService', () => {
   let service: CronPostsService;
@@ -35,6 +42,11 @@ describe('CronPostsService', () => {
   };
   let agentArtifactReferenceService: {
     assertVersionPinCurrent: ReturnType<typeof vi.fn>;
+  };
+  let publishApprovalsService: {
+    claimForExecution: ReturnType<typeof vi.fn>;
+    completeExecution: ReturnType<typeof vi.fn>;
+    markQueued: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -71,6 +83,11 @@ describe('CronPostsService', () => {
           serializer: 'post',
         },
       }),
+    };
+    publishApprovalsService = {
+      claimForExecution: vi.fn().mockResolvedValue({ alreadyPublished: false }),
+      completeExecution: vi.fn().mockResolvedValue(undefined),
+      markQueued: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -152,6 +169,10 @@ describe('CronPostsService', () => {
           provide: PostPublishQueueService,
           useValue: postPublishQueueService,
         },
+        {
+          provide: PublishApprovalsService,
+          useValue: publishApprovalsService,
+        },
       ],
     }).compile();
 
@@ -206,6 +227,37 @@ describe('CronPostsService', () => {
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
   });
 
+  it('fails closed before provider execution when a queued job has no explicit approval identity', async () => {
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [
+        {
+          brandId: 'brand-1',
+          credentialId: 'cred-1',
+          id: 'post-1',
+          organizationId: 'org-1',
+          status: PostStatus.SCHEDULED,
+        },
+      ],
+      total: 1,
+    } as never);
+
+    const result = await service.processQueuedPost({
+      enqueuedAt: '2026-07-07T10:00:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: expect.stringContaining('version-bound approval identity'),
+        success: false,
+      }),
+    );
+    expect(publishApprovalsService.claimForExecution).not.toHaveBeenCalled();
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+  });
+
   it('queues the durable review version pin with a scheduled post', async () => {
     postsService.findAll.mockResolvedValueOnce({
       docs: [
@@ -249,6 +301,7 @@ describe('CronPostsService', () => {
     credentialsService.findOne.mockResolvedValue(null);
 
     await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
       enqueuedAt: '2026-07-07T10:00:00.000Z',
       organizationId: 'org-1',
       postId: 'post-1',
@@ -293,6 +346,7 @@ describe('CronPostsService', () => {
     );
 
     const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
       enqueuedAt: '2026-07-07T10:00:00.000Z',
       organizationId: 'org-1',
       postId: 'post-1',
@@ -332,6 +386,7 @@ describe('CronPostsService', () => {
     } as never);
 
     const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
       enqueuedAt: '2026-07-07T10:00:00.000Z',
       organizationId: 'org-1',
       postId: 'post-1',
@@ -349,6 +404,93 @@ describe('CronPostsService', () => {
       agentArtifactReferenceService.assertVersionPinCurrent,
     ).not.toHaveBeenCalled();
     expect(credentialsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('claims the bound approval immediately before provider execution', async () => {
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      publishApprovalId: 'approval-1',
+      reviewVersionPinId: 'pin-1',
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue(null);
+
+    await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      approvalId: 'approval-1',
+      enqueuedAt: '2026-07-07T10:00:00.000Z',
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+      versionPinId: 'pin-1',
+    });
+
+    expect(publishApprovalsService.claimForExecution).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      versionPinId: 'pin-1',
+    });
+    expect(
+      publishApprovalsService.claimForExecution.mock.invocationCallOrder[0],
+    ).toBeLessThan(credentialsService.findOne.mock.invocationCallOrder[0] ?? 0);
+  });
+
+  it('blocks provider execution when approval revalidation fails', async () => {
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [
+        {
+          brandId: 'brand-1',
+          children: [],
+          credentialId: 'cred-1',
+          id: 'post-1',
+          ingredients: [],
+          organizationId: 'org-1',
+          publishApprovalId: 'approval-1',
+          reviewVersionPinId: 'pin-1',
+          scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+          status: PostStatus.SCHEDULED,
+          userId: 'user-1',
+        },
+      ],
+      total: 1,
+    } as never);
+    publishApprovalsService.claimForExecution.mockRejectedValue(
+      new Error('Publish approval scope no longer matches.'),
+    );
+
+    const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      approvalId: 'approval-1',
+      enqueuedAt: '2026-07-07T10:00:00.000Z',
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+      versionPinId: 'pin-1',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Publish approval scope no longer matches.',
+        success: false,
+      }),
+    );
+    expect(credentialsService.findOne).not.toHaveBeenCalled();
+    expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
   });
 
   it('marks stale durable agent scope as a terminal publish failure', async () => {
@@ -376,6 +518,7 @@ describe('CronPostsService', () => {
     );
 
     const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
       enqueuedAt: '2026-07-07T10:00:00.000Z',
       organizationId: 'org-1',
       postId: 'post-1',
@@ -443,6 +586,7 @@ describe('CronPostsService', () => {
     });
 
     await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
       enqueuedAt: '2026-07-07T09:55:00.000Z',
       organizationId: 'org-1',
       postId: 'post-1',
@@ -469,6 +613,7 @@ describe('CronPostsService', () => {
     } as never);
 
     const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
       enqueuedAt: '2026-07-07T09:55:00.000Z',
       organizationId: 'org-1',
       postId: 'post-1',
@@ -519,6 +664,7 @@ describe('CronPostsService', () => {
     });
 
     await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
       enqueuedAt: '2026-07-07T09:55:00.000Z',
       organizationId: 'org-1',
       postId: 'post-1',
@@ -592,6 +738,7 @@ describe('CronPostsService', () => {
     });
 
     const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
       enqueuedAt: '2026-07-07T09:55:00.000Z',
       organizationId: 'org-scalar-1',
       postId: 'post-1',

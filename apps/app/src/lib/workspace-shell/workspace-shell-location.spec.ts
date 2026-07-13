@@ -164,6 +164,24 @@ describe('workspace shell URL restoration', () => {
     });
   });
 
+  it('restores the no-parameter Library picker over the exact base route', () => {
+    expect(
+      restoreWorkspaceShellLocation({
+        normalizedPathname: '/posts/remix',
+        pathname: '/acme/moonrise/posts/remix',
+        searchParams: new URLSearchParams({
+          overlay: 'library-picker',
+          thread: 'thread-1',
+        }),
+      }),
+    ).toMatchObject({
+      baseState: 'canvas',
+      overlay: { key: 'library-picker', parameters: {} },
+      state: 'overlay',
+      threadId: 'thread-1',
+    });
+  });
+
   it('marks malformed conversation thread routes for safe canonical fallback', () => {
     expect(
       restoreWorkspaceShellLocation({

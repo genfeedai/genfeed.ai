@@ -6,6 +6,7 @@ export const agentThreadAttributes = createEntityAttributes([
   'contextVersion',
   'lastActivityAt',
   'lastAssistantPreview',
+  'organizationId',
   'pendingInputCount',
   'runStatus',
   'organization',

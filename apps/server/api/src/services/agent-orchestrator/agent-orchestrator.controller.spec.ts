@@ -5,6 +5,7 @@ import type { SocialInboxService } from '@api/collections/social-inbox/services/
 import type { UsersService } from '@api/collections/users/services/users.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 vi.mock('@genfeedai/tools', () => ({
@@ -110,6 +111,41 @@ describe('AgentOrchestratorController', () => {
         expect.objectContaining({
           authToken: 'token123',
           userId: expect.any(String),
+        }),
+      );
+    });
+
+    it('passes typed selected artifact references to the scoped turn', async () => {
+      const user = {
+        id: 'authProvider_123',
+        publicMetadata: { organization: 'org', user: 'usr' },
+      } as unknown as User;
+      const reference = {
+        brandId: 'brand-1',
+        kind: 'post',
+        organizationId: '507f191e810c19729de860ea',
+        recordId: 'post-1',
+        serializer: 'post',
+      } satisfies AgentArtifactReference;
+      usersService.findOne.mockResolvedValue({
+        id: '507f191e810c19729de860ea',
+      });
+      service.chat.mockResolvedValue({} as never);
+
+      await controller.createTurn(
+        {
+          artifactReferences: [reference],
+          content: 'Review the selected post',
+          threadId: 'conv-1',
+        },
+        user,
+        'Bearer token123',
+      );
+
+      expect(service.chat).toHaveBeenCalledWith(
+        expect.objectContaining({ artifactReferences: [reference] }),
+        expect.objectContaining({
+          organizationId: '507f191e810c19729de860ea',
         }),
       );
     });

@@ -68,6 +68,10 @@ function createOverlayRequest(
   reference: WorkspaceShellTypedReference | null,
 ): WorkspaceShellOverlayRequest | null {
   switch (registration.key) {
+    case 'library-picker':
+      return reference
+        ? null
+        : { key: 'library-picker', parameters: Object.freeze({}) };
     case 'notifications':
       return reference
         ? null

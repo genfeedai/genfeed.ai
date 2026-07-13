@@ -15,7 +15,10 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
-import type { PersistedConversationComposerAttachment } from '@genfeedai/agent/models/conversation-composer.model';
+import type {
+  ConversationComposerSendOptions,
+  PersistedConversationComposerAttachment,
+} from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -188,6 +191,28 @@ export function useAgentChatContainer({
     onUpload: (file, onProgress) =>
       runAgentApiEffect(apiService.uploadAttachmentEffect(file, onProgress)),
   });
+  const previousDraftScopeKeyRef = useRef(draftScopeKey);
+  useEffect(() => {
+    const previousDraftScopeKey = previousDraftScopeKeyRef.current;
+    if (previousDraftScopeKey === draftScopeKey) {
+      return;
+    }
+
+    previousDraftScopeKeyRef.current = draftScopeKey;
+    const previousVersionSeparator = previousDraftScopeKey?.lastIndexOf(':');
+    const nextVersionSeparator = draftScopeKey?.lastIndexOf(':');
+    const isSameThreadScope =
+      previousVersionSeparator !== undefined &&
+      previousVersionSeparator >= 0 &&
+      nextVersionSeparator !== undefined &&
+      nextVersionSeparator >= 0 &&
+      previousDraftScopeKey?.slice(0, previousVersionSeparator) ===
+        draftScopeKey?.slice(0, nextVersionSeparator);
+
+    if (isSameThreadScope) {
+      clearAllAttachments();
+    }
+  }, [clearAllAttachments, draftScopeKey]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -305,9 +330,7 @@ export function useAgentChatContainer({
       content: string,
       _mentions?: ExtractedMention[],
       attachments?: ChatAttachment[],
-      options?: {
-        planModeEnabled?: boolean;
-      },
+      options?: ConversationComposerSendOptions,
     ) => {
       if (isReadOnly) {
         setError('Archived threads are read-only.');
@@ -315,6 +338,7 @@ export function useAgentChatContainer({
       }
       followLatestTurn('smooth');
       sendMessage(content, {
+        artifactReferences: options?.artifactReferences,
         attachments,
         planModeEnabled: options?.planModeEnabled ?? false,
       });

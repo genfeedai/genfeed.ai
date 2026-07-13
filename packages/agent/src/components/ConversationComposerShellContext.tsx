@@ -4,6 +4,7 @@ import type {
   ConversationComposerActionInvocation,
   ConversationComposerDispatchResult,
 } from '@genfeedai/agent/models/conversation-composer.model';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import {
   createContext,
   type ReactElement,
@@ -13,6 +14,7 @@ import {
 } from 'react';
 
 export interface ConversationComposerShellContextValue {
+  artifactReferences?: readonly AgentArtifactReference[];
   contextLabel: string;
   dispatchAction?: (
     invocation: ConversationComposerActionInvocation,
@@ -20,6 +22,7 @@ export interface ConversationComposerShellContextValue {
     | ConversationComposerDispatchResult
     | Promise<ConversationComposerDispatchResult>;
   draftScopeKey: string | null;
+  isConsequentiallyBlocked?: boolean;
   portalTarget: HTMLElement | null;
   scopeControls?: ReactNode;
   shellState: 'canvas' | 'conversation' | 'overlay';
@@ -34,27 +37,33 @@ const ConversationComposerShellContext =
   createContext<ConversationComposerShellContextValue | null>(null);
 
 export function ConversationComposerShellProvider({
+  artifactReferences,
   children,
   contextLabel,
   dispatchAction,
   draftScopeKey,
+  isConsequentiallyBlocked,
   portalTarget,
   scopeControls,
   shellState,
 }: ConversationComposerShellProviderProps): ReactElement {
   const value = useMemo<ConversationComposerShellContextValue>(
     () => ({
+      artifactReferences,
       contextLabel,
       dispatchAction,
       draftScopeKey,
+      isConsequentiallyBlocked,
       portalTarget,
       scopeControls,
       shellState,
     }),
     [
+      artifactReferences,
       contextLabel,
       dispatchAction,
       draftScopeKey,
+      isConsequentiallyBlocked,
       portalTarget,
       scopeControls,
       shellState,

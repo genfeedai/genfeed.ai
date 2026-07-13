@@ -617,6 +617,7 @@ model User {
   lifecycleEmailPreference LifecycleEmailPreference?
   lifecycleEmailDeliveries LifecycleEmailDelivery[]
   contentVersionPins       ContentVersionPin[]
+  publishApprovals         PublishApproval[]
 
   @@index([isDefault])
   @@index([appSource])
@@ -761,6 +762,7 @@ model Organization {
   brandInterviews               BrandInterview[]
   warmupAccounts                WarmupAccount[]
   contentVersionPins            ContentVersionPin[]
+  publishApprovals              PublishApproval[]
 
   @@index([isDefault])
   @@index([category])
@@ -897,6 +899,7 @@ model Brand {
   brandInterviews            BrandInterview[]
   warmupAccounts             WarmupAccount[]
   contentVersionPins         ContentVersionPin[]
+  publishApprovals           PublishApproval[]
 
   @@index([isDefault])
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
@@ -1823,6 +1826,7 @@ model ContentVersionPin {
   reviewedContentDrafts ContentDraft[]
   reviewedNewsletters   Newsletter[]
   reviewedPosts         Post[]
+  publishApprovals      PublishApproval[]
 
   @@unique([organizationId, idempotencyKey], map: "content_version_pins_org_idempotency_key")
   @@unique([id, organizationId], map: "content_version_pins_id_organization_key")
@@ -1995,6 +1999,9 @@ model Post {
   reviewFeedback        String?
   reviewedAt            DateTime?
   reviewEvents          Json            @default("[]")
+  publishApprovalId     String?          @unique(map: "posts_publishApprovalId_key")
+  publishApproval       PublishApproval? @relation("active_publish_approval", fields: [publishApprovalId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  publishApprovals      PublishApproval[] @relation("post_publish_approvals")
   sourceActionId        String?
   sourceWorkflowId      String?
   sourceWorkflowName    String?
@@ -2042,6 +2049,45 @@ model Post {
   @@index([brandId, platform, isDeleted, createdAt(sort: Desc)], map: "posts_brand_platform_deleted_created_at_idx")
   @@index([organizationId, groupId, targetExecutionState, isDeleted], map: "posts_group_target_execution_idx")
   @@map("posts")
+}
+
+/// Explicit typed authority for publishing one exact canonical Post version.
+/// Mutable execution state lives here; immutable content identity remains in
+/// ContentVersionPin and provider execution remains in the existing worker.
+model PublishApproval {
+  id                   String            @id @default(cuid())
+  organizationId       String
+  organization         Organization      @relation(fields: [organizationId], references: [id])
+  brandId              String
+  brand                Brand             @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  postId               String
+  post                 Post              @relation("post_publish_approvals", fields: [postId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  activePost           Post?             @relation("active_publish_approval")
+  artifactVersionPinId String
+  artifactVersionPin   ContentVersionPin @relation(fields: [artifactVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  actorUserId          String
+  actorUser            User              @relation(fields: [actorUserId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  contextVersion       Int?
+  destinations         Json
+  scheduleIntent       Json
+  policy               Json
+  provenance           Json              @default("{}")
+  scopeDigest          String
+  operationId          String
+  status               String            @default("approved")
+  statusTransitions    Json              @default("[]")
+  invalidatedAt        DateTime?
+  invalidationReason   String?
+  executedAt           DateTime?
+  lastError            String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  @@unique([organizationId, operationId], map: "publish_approvals_org_operation_key")
+  @@unique([organizationId, postId, scopeDigest], map: "publish_approvals_org_post_scope_key")
+  @@index([organizationId, brandId, status, createdAt(sort: Desc)], map: "publish_approvals_scope_status_idx")
+  @@index([postId, status, createdAt(sort: Desc)], map: "publish_approvals_post_status_idx")
+  @@map("publish_approvals")
 }
 
 model PostGroup {

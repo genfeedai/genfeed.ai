@@ -2,6 +2,7 @@
 
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
 import { AgentWorkspacePageShell } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspacePageShell';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type AgentApiService,
   type ConversationComposerActionInvocation,
@@ -12,6 +13,10 @@ import {
 } from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type {
+  AgentArtifactReference,
+  WorkspaceShellOverlayRequest,
+} from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
@@ -41,6 +46,7 @@ import {
   HiOutlineSquares2X2,
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
+import { buildLibraryRemixIntentHref } from '@/features/library-remix/library-remix-reference';
 import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
@@ -53,15 +59,21 @@ import {
   type WorkspaceShellLocation,
   type WorkspaceShellState,
 } from '@/lib/workspace-shell/workspace-shell-location';
-import { getWorkspaceShellOverlayRegistration } from '@/lib/workspace-shell/workspace-shell-registry';
+import {
+  getWorkspaceShellOverlayRegistration,
+  resolveWorkspaceShellRoute,
+} from '@/lib/workspace-shell/workspace-shell-registry';
 import {
   captureWorkspaceShellRestorationFailure,
   captureWorkspaceShellTransition,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
+import { useConversationScopeControls } from './use-conversation-scope-controls';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
+import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
 import {
-  type WorkspaceSurfaceAdapter,
+  useActiveWorkspaceSurfaceAdapter,
+  useActiveWorkspaceSurfacePresentationAdapter,
   WorkspaceSurfaceAdapterProvider,
 } from './WorkspaceSurfaceAdapterContext';
 
@@ -78,7 +90,9 @@ type UniversalWorkspaceShellProps = {
 type UniversalWorkspaceShellContentProps = Pick<
   UniversalWorkspaceShellProps,
   'children' | 'composerScopeControls'
->;
+> & {
+  readonly agentApiService: AgentApiService;
+};
 
 function clampInspectorWidth(width: number): number {
   return Math.min(INSPECTOR_MAX_WIDTH, Math.max(INSPECTOR_MIN_WIDTH, width));
@@ -97,6 +111,7 @@ function requireWorkspaceShellLocation(
 }
 
 function UniversalWorkspaceShellContent({
+  agentApiService,
   children,
   composerScopeControls,
 }: UniversalWorkspaceShellContentProps) {
@@ -104,16 +119,18 @@ function UniversalWorkspaceShellContent({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { back, push, replace } = useRouter();
+  const { brandId, organizationId } = useBrand();
   const { brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const threads = useAgentChatStore((state) => state.threads);
+  const activeSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
+  const activeSurfacePresentationAdapter =
+    useActiveWorkspaceSurfacePresentationAdapter();
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
   const [composerPortalTarget, setComposerPortalTarget] =
     useState<HTMLElement | null>(null);
-  const [surfaceAdapter, setSurfaceAdapter] =
-    useState<WorkspaceSurfaceAdapter | null>(null);
   const primaryRegionRef = useRef<HTMLElement>(null);
   const previousPathnameRef = useRef<string | null>(null);
   const previousStateRef = useRef<WorkspaceShellState | null>(null);
@@ -159,6 +176,20 @@ function UniversalWorkspaceShellContent({
     () => (overlay ? getWorkspaceShellOverlayRegistration(overlay.key) : null),
     [overlay],
   );
+  const routeRegistration = useMemo(
+    () => resolveWorkspaceShellRoute(normalizedPathname),
+    [normalizedPathname],
+  );
+  const resolvedSurfaceAdapter =
+    routeRegistration?.adapter.status === 'embedded' &&
+    activeSurfaceAdapter?.registration.key === routeRegistration.adapter.key &&
+    activeSurfaceAdapter.registration.scope === routeRegistration.scope
+      ? activeSurfaceAdapter
+      : null;
+  const resolvedSurfacePresentationAdapter =
+    activeSurfacePresentationAdapter?.surfaceKey === surfaceKey
+      ? activeSurfacePresentationAdapter
+      : null;
   const canonicalSearchParamsString = canonicalSearchParams.toString();
   const isUnthreadedConversation =
     baseState === 'conversation' &&
@@ -182,20 +213,21 @@ function UniversalWorkspaceShellContent({
     [effectiveThreadId, threads],
   );
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
-  const composerContextLabel =
-    surfaceAdapter?.contextLabel ??
+  const shellContextLabel =
+    resolvedSurfacePresentationAdapter?.contextLabel ??
     (state === 'conversation'
       ? 'Conversation'
       : state === 'overlay'
         ? 'Overlay · conversation connected'
         : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`);
-
-  const handleSurfaceAdapterChange = useCallback(
-    (adapter: WorkspaceSurfaceAdapter | null) => {
-      setSurfaceAdapter((current) => (current === adapter ? current : adapter));
-    },
-    [],
-  );
+  const conversationScope = useConversationScopeControls({
+    activeThread,
+    apiService: agentApiService,
+    currentDraftScopeKey: draftScopeKey,
+    pathname: rawPathname,
+    searchParams: new URLSearchParams(searchParamsString),
+  });
+  const composerContextLabel = `${conversationScope.contextLabel} · ${shellContextLabel}`;
 
   useLayoutEffect(() => {
     if (!isUnthreadedConversation) {
@@ -300,13 +332,28 @@ function UniversalWorkspaceShellContent({
   }, [normalizedPathname, state]);
 
   const handleOpenCanvas = useCallback(() => {
+    const launch = resolveWorkspaceSurfaceLaunch({
+      currentHref,
+      destinationHref: brandSlug
+        ? href(APP_ROUTES.WORKSPACE.OVERVIEW)
+        : orgHref('/overview'),
+      threadId: effectiveThreadId ?? activeThreadId,
+    });
+    if (launch.history !== 'push' || launch.mode !== 'canvas') {
+      return;
+    }
+
     pendingTransitionRef.current = 'canvas_launch';
-    push(
-      buildWorkspaceShellHref(orgHref(APP_ROUTES.WORKSPACE.OVERVIEW), {
-        threadId: effectiveThreadId ?? activeThreadId,
-      }),
-    );
-  }, [activeThreadId, effectiveThreadId, orgHref, push]);
+    push(launch.href);
+  }, [
+    activeThreadId,
+    brandSlug,
+    currentHref,
+    effectiveThreadId,
+    href,
+    orgHref,
+    push,
+  ]);
 
   const handleReturnToConversation = useCallback(() => {
     pendingTransitionRef.current = 'conversation_return';
@@ -320,33 +367,41 @@ function UniversalWorkspaceShellContent({
     );
   }, [activeThreadId, effectiveThreadId, orgHref, push]);
 
+  const launchWorkspaceOverlay = useCallback(
+    (overlayRequest: WorkspaceShellOverlayRequest): boolean => {
+      const launch = resolveWorkspaceOverlayLaunch({
+        currentHref,
+        invocation: 'user',
+        overlay: overlayRequest,
+      });
+      if (launch.history === 'none') {
+        return false;
+      }
+
+      pendingTransitionRef.current = 'overlay_open';
+      overlayReturnFocusRef.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      hasOverlayReturnFocusRef.current = Boolean(overlayReturnFocusRef.current);
+      if (launch.history === 'replace') {
+        replace(launch.href);
+        return true;
+      }
+
+      isOwnedOverlayEntryRef.current = true;
+      push(launch.href);
+      return true;
+    },
+    [currentHref, push, replace],
+  );
+
   const handleOpenOverlay = useCallback(() => {
-    const launch = resolveWorkspaceOverlayLaunch({
-      currentHref,
-      invocation: 'user',
-      overlay: {
-        key: 'shell-preview',
-        parameters: { reference: null },
-      },
+    launchWorkspaceOverlay({
+      key: 'shell-preview',
+      parameters: { reference: null },
     });
-    if (launch.history === 'none') {
-      return;
-    }
-
-    pendingTransitionRef.current = 'overlay_open';
-    overlayReturnFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    hasOverlayReturnFocusRef.current = Boolean(overlayReturnFocusRef.current);
-    if (launch.history === 'replace') {
-      replace(launch.href);
-      return;
-    }
-
-    isOwnedOverlayEntryRef.current = true;
-    push(launch.href);
-  }, [currentHref, push, replace]);
+  }, [launchWorkspaceOverlay]);
 
   const handleComposerAction = useCallback(
     (
@@ -355,6 +410,13 @@ function UniversalWorkspaceShellContent({
       const trustedAction = getConversationComposerAction(
         invocation.action.name,
       );
+      if (conversationScope.isConsequentiallyBlocked) {
+        return {
+          message:
+            'Synchronize the server-authoritative conversation scope before opening consequential actions. Your draft is unchanged.',
+          status: 'unauthorized',
+        };
+      }
       if (
         !trustedAction ||
         trustedAction.route !== invocation.action.route ||
@@ -372,6 +434,24 @@ function UniversalWorkspaceShellContent({
           message: `/${trustedAction.name} needs an explicit brand route. Select a brand through the scoped controls; your draft has been preserved.`,
           status: 'unauthorized',
         };
+      }
+
+      if (trustedAction.name === 'remix') {
+        const didOpen = launchWorkspaceOverlay({
+          key: 'library-picker',
+          parameters: {},
+        });
+        return didOpen
+          ? {
+              message:
+                'Opened the authorized Library picker. Your draft and active thread are preserved.',
+              status: 'dispatched',
+            }
+          : {
+              message:
+                'The Library picker is unavailable. Your draft and references are unchanged.',
+              status: 'unavailable',
+            };
       }
 
       const destination =
@@ -404,11 +484,50 @@ function UniversalWorkspaceShellContent({
     [
       activeThreadId,
       brandSlug,
+      conversationScope.isConsequentiallyBlocked,
       currentHref,
       effectiveThreadId,
       href,
+      launchWorkspaceOverlay,
       orgHref,
       push,
+    ],
+  );
+
+  const handleSelectLibraryReference = useCallback(
+    (reference: AgentArtifactReference) => {
+      if (
+        (reference.kind !== 'asset' && reference.kind !== 'ingredient') ||
+        reference.organizationId !== organizationId ||
+        reference.brandId !== brandId
+      ) {
+        return;
+      }
+
+      const destinationHref = buildLibraryRemixIntentHref(
+        href(APP_ROUTES.POSTS.REMIX),
+        reference,
+      );
+      const launch = resolveWorkspaceSurfaceLaunch({
+        currentHref,
+        destinationHref,
+        threadId: effectiveThreadId ?? activeThreadId,
+      });
+      if (launch.history !== 'push' || launch.mode !== 'canvas') {
+        return;
+      }
+
+      pendingTransitionRef.current = 'canvas_launch';
+      replace(launch.href);
+    },
+    [
+      activeThreadId,
+      brandId,
+      currentHref,
+      effectiveThreadId,
+      href,
+      organizationId,
+      replace,
     ],
   );
 
@@ -486,15 +605,33 @@ function UniversalWorkspaceShellContent({
         />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        {surfaceAdapter?.inspector ?? (
-          <div className="gen-shell-empty-state p-4">
+        {conversationScope.inspectorScope}
+        {resolvedSurfacePresentationAdapter ? (
+          resolvedSurfacePresentationAdapter.inspector
+        ) : (
+          <div
+            className="gen-shell-empty-state p-4"
+            data-testid={
+              resolvedSurfaceAdapter
+                ? 'workspace-surface-adapter-inspector'
+                : undefined
+            }
+          >
             <p className="text-sm font-medium text-foreground">
-              Registered {surfaceKey} adapter slot
+              {resolvedSurfaceAdapter
+                ? resolvedSurfaceAdapter.registration.title
+                : `Registered ${surfaceKey} adapter slot`}
             </p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Product-owned context adapters land here without changing their
-              canonical route or granting execution authority.
+              {resolvedSurfaceAdapter
+                ? resolvedSurfaceAdapter.registration.description
+                : 'Product-owned context adapters land here without changing their canonical route or granting execution authority.'}
             </p>
+            {resolvedSurfaceAdapter ? (
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                Full management remains available on this canonical route.
+              </p>
+            ) : null}
           </div>
         )}
         <Button
@@ -519,11 +656,18 @@ function UniversalWorkspaceShellContent({
 
   return (
     <ConversationComposerShellProvider
+      artifactReferences={resolvedSurfaceAdapter?.artifactReferences}
       contextLabel={composerContextLabel}
       dispatchAction={handleComposerAction}
       draftScopeKey={draftScopeKey}
+      isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
       portalTarget={composerPortalTarget}
-      scopeControls={composerScopeControls}
+      scopeControls={
+        <>
+          {conversationScope.scopeControls}
+          {composerScopeControls}
+        </>
+      }
       shellState={state}
     >
       <div
@@ -631,12 +775,11 @@ function UniversalWorkspaceShellContent({
                 </Button>
               </div>
               {baseState === 'canvas' ? (
-                <WorkspaceSurfaceAdapterProvider
-                  activeSurfaceKey={surfaceKey}
-                  onAdapterChange={handleSurfaceAdapterChange}
+                <WorkspaceShellActionsProvider
+                  openOverlay={launchWorkspaceOverlay}
                 >
                   {children}
-                </WorkspaceSurfaceAdapterProvider>
+                </WorkspaceShellActionsProvider>
               ) : null}
             </section>
 
@@ -707,9 +850,11 @@ function UniversalWorkspaceShellContent({
           fallbackFocusRef={primaryRegionRef}
           isOpen={state === 'overlay'}
           onDismiss={handleDismissOverlay}
+          onSelectLibraryReference={handleSelectLibraryReference}
           overlay={overlay}
           registration={overlayRegistration}
           returnFocusRef={overlayReturnFocusRef}
+          threadId={effectiveThreadId ?? activeThreadId}
         />
       </div>
     </ConversationComposerShellProvider>
@@ -723,11 +868,14 @@ export default function UniversalWorkspaceShell({
 }: UniversalWorkspaceShellProps) {
   return (
     <AgentWorkspaceLayoutClient agentApiService={agentApiService}>
-      <UniversalWorkspaceShellContent
-        composerScopeControls={composerScopeControls}
-      >
-        {children}
-      </UniversalWorkspaceShellContent>
+      <WorkspaceSurfaceAdapterProvider>
+        <UniversalWorkspaceShellContent
+          agentApiService={agentApiService}
+          composerScopeControls={composerScopeControls}
+        >
+          {children}
+        </UniversalWorkspaceShellContent>
+      </WorkspaceSurfaceAdapterProvider>
     </AgentWorkspaceLayoutClient>
   );
 }
