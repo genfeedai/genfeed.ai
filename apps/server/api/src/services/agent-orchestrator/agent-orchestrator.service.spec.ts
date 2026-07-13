@@ -3017,6 +3017,14 @@ describe('AgentOrchestratorService', () => {
       }),
     ]);
     expect(response.message.metadata).toMatchObject({
+      artifactReferences: [
+        expect.objectContaining({
+          kind: 'post',
+          organizationId: ORG_ID,
+          recordId: 'post-1',
+          serializer: 'post',
+        }),
+      ],
       reviewRequired: false,
       uiActions: expect.arrayContaining([
         expect.objectContaining({

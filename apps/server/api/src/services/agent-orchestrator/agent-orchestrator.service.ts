@@ -58,6 +58,11 @@ import {
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
+import {
+  type AgentArtifactCompletionMetadata,
+  buildAgentArtifactCompletionMetadata,
+  mergeAgentArtifactCompletionMetadata,
+} from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
 import {
   buildAgentRoutingMetadata,
@@ -589,6 +594,7 @@ export class AgentOrchestratorService {
       turnCost,
     } = params;
     let totalCreditsUsed = 0;
+    const allArtifactMetadata: AgentArtifactCompletionMetadata[] = [];
     const allToolCalls: ToolCallSummary[] = [];
     const allUiActions: AgentUiAction[] = [];
     let highestRiskLevel: 'low' | 'medium' | 'high' = 'low';
@@ -735,7 +741,10 @@ export class AgentOrchestratorService {
               toolCalls: allToolCalls,
               uiActions: allUiActions,
             });
+          const artifactMetadata =
+            mergeAgentArtifactCompletionMetadata(allArtifactMetadata);
           const assistantMetadata = {
+            ...artifactMetadata,
             ...buildAgentScopeMetadata(context),
             ...buildAgentRoutingMetadata({
               model,
@@ -757,6 +766,7 @@ export class AgentOrchestratorService {
             ...(latestUiBlocks ? { uiBlocks: latestUiBlocks } : {}),
           };
 
+          await this.persistRunArtifactMetadata(context, artifactMetadata);
           await this.agentMessagesService.addMessage({
             brandId: context.scope?.brandId,
             content,
@@ -1014,6 +1024,12 @@ export class AgentOrchestratorService {
             },
           );
           const durationMs = Date.now() - startTime;
+          allArtifactMetadata.push(
+            buildAgentArtifactCompletionMetadata(result.data, {
+              brandId: context.scope?.brandId,
+              organizationId: context.organizationId,
+            }),
+          );
 
           if (result.nextActions?.length) {
             allUiActions.push(...result.nextActions);
@@ -1381,6 +1397,7 @@ export class AgentOrchestratorService {
       );
 
       let totalCreditsUsed = 0;
+      const allArtifactMetadata: AgentArtifactCompletionMetadata[] = [];
       const allToolCalls: ToolCallSummary[] = [];
       const allUiActions: AgentUiAction[] = [];
       const memoryEntriesForResponse =
@@ -1622,12 +1639,16 @@ export class AgentOrchestratorService {
               toolCalls: allToolCalls,
               uiActions: allUiActions,
             });
+          const artifactMetadata =
+            mergeAgentArtifactCompletionMetadata(allArtifactMetadata);
 
           // Save assistant message to DB
+          await this.persistRunArtifactMetadata(context, artifactMetadata);
           await this.agentMessagesService.addMessage({
             brandId: context.scope?.brandId,
             content,
             metadata: {
+              ...artifactMetadata,
               ...buildAgentScopeMetadata(context),
               ...buildAgentRoutingMetadata({
                 model,
@@ -1947,6 +1968,12 @@ export class AgentOrchestratorService {
           }
 
           const durationMs = Date.now() - startTime;
+          allArtifactMetadata.push(
+            buildAgentArtifactCompletionMetadata(result.data, {
+              brandId: context.scope?.brandId,
+              organizationId: context.organizationId,
+            }),
+          );
 
           if (result.nextActions?.length) {
             allUiActions.push(...result.nextActions);
@@ -2892,7 +2919,12 @@ export class AgentOrchestratorService {
         toolCalls: [{ status: summary.status, toolName }],
         uiActions: result.nextActions ?? [],
       });
+    const artifactMetadata = buildAgentArtifactCompletionMetadata(result.data, {
+      brandId: params.context.scope?.brandId,
+      organizationId: params.context.organizationId,
+    });
     const assistantMetadata = {
+      ...artifactMetadata,
       ...buildAgentScopeMetadata(params.context),
       creditsRemaining,
       ...this.buildResolvedModelMetadata(params.model),
@@ -2905,6 +2937,7 @@ export class AgentOrchestratorService {
       uiActions: enhancedUiActions.uiActions,
     };
 
+    await this.persistRunArtifactMetadata(params.context, artifactMetadata);
     await this.agentMessagesService.addMessage({
       brandId: params.context.scope?.brandId,
       content: fullContent,
@@ -5018,11 +5051,19 @@ export class AgentOrchestratorService {
       params.toolCalls,
       enhancedUiActions.uiActions,
     );
+    const artifactMetadata = buildAgentArtifactCompletionMetadata(
+      params.result.data,
+      {
+        brandId: params.context.scope?.brandId,
+        organizationId: params.context.organizationId,
+      },
+    );
     const creditsRemaining =
       await this.creditsUtilsService.getOrganizationCreditsBalance(
         params.context.organizationId,
       );
     const assistantMetadata = {
+      ...artifactMetadata,
       ...buildAgentScopeMetadata(params.context),
       isFallbackContent: normalizedContent.isFallback,
       ...this.buildResolvedModelMetadata(params.model),
@@ -5036,6 +5077,7 @@ export class AgentOrchestratorService {
       ...(latestUiBlocks ? { uiBlocks: latestUiBlocks } : {}),
     };
 
+    await this.persistRunArtifactMetadata(params.context, artifactMetadata);
     await this.agentMessagesService.addMessage({
       brandId: params.context.scope?.brandId,
       content: normalizedContent.content,
@@ -5274,6 +5316,25 @@ export class AgentOrchestratorService {
     }
 
     return trimmedResponseModel;
+  }
+
+  private async persistRunArtifactMetadata(
+    context: AgentChatContext,
+    metadata: AgentArtifactCompletionMetadata,
+  ): Promise<void> {
+    if (
+      !context.runId ||
+      (!metadata.artifactReferences?.length &&
+        !metadata.artifactVersionPinIds?.length)
+    ) {
+      return;
+    }
+
+    await this.agentRunsService.mergeMetadata(
+      context.runId,
+      context.organizationId,
+      metadata,
+    );
   }
 
   private async recordAgentResponseModel(params: {

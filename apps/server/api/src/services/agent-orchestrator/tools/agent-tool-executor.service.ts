@@ -6937,6 +6937,7 @@ export class AgentToolExecutorService {
         batchId,
         itemIds,
         ctx.organizationId,
+        ctx.userId,
       );
     } else {
       await this.batchGenerationService.rejectItems(

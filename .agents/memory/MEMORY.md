@@ -91,6 +91,7 @@
 
 ## Architecture Decisions
 
+- [Versioned Agent Artifacts](architecture/VERSIONED-AGENT-ARTIFACTS.md) — finite canonical references, immutable content pins, Desktop v1 exclusion, and the #1671 compatibility-removal gate for #1673
 - [Conversation Shell Contracts](architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md) — conversation/canvas/overlay state and history, scope precedence, protected-route parity, trusted surfaces, approval pins, multi-tab authority, fallback, rollout gates, and #1009/#1644 disposition for epic #1670
 - [Dynamic Scheduling](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via workflow engine
 - [PLG Boundary](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split

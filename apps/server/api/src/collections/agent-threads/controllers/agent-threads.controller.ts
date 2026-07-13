@@ -100,6 +100,35 @@ export class AgentThreadsController {
     }
   }
 
+  @Get(':threadId/messages/:messageId/artifact-references')
+  @ApiOperation({
+    summary: 'Resolve canonical artifact references for a thread message',
+  })
+  async resolveMessageArtifactReferences(
+    @Param('threadId') threadId: string,
+    @Param('messageId') messageId: string,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const organizationId = this.resolveOrganizationId(user);
+      const references =
+        await this.agentMessagesService.resolveMessageArtifactReferences(
+          threadId,
+          messageId,
+          organizationId,
+          { client: 'api', deployment: 'server' },
+        );
+
+      return { data: references };
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'resolveMessageArtifactReferences',
+      );
+    }
+  }
+
   @Get(':threadId/messages/:messageId')
   @ApiOperation({ summary: 'Get a single thread message' })
   async getMessage(

@@ -45,6 +45,7 @@ type MockPostTarget = {
   platform: string;
   publishedAt: Date | null;
   retryCount: number;
+  reviewVersionPinId?: string | null;
   scheduledDate: Date | null;
   targetAttachments: unknown;
   targetError: unknown;
@@ -309,6 +310,39 @@ describe('PostGroupsService', () => {
       userId: 'user-1',
     });
     expect(result.targets?.[0]?.id).toBe('target-1');
+  });
+
+  it('queues a publish-now target with its durable review version pin', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        reviewVersionPinId: 'pin-1',
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status ?? ReleaseStatus.SCHEDULED,
+          statusTransitions: data.statusTransitions ?? [],
+        }),
+      ),
+    );
+
+    await service.publishNow('org-1', 'user-1', 'group-1');
+
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      postId: 'target-1',
+      source: 'publish_now',
+      userId: 'user-1',
+      versionPinId: 'pin-1',
+    });
   });
 
   it('pauses eligible targets and rolls the group up to paused', async () => {

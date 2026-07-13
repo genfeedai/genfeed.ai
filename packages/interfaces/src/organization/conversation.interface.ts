@@ -1,3 +1,4 @@
+import type { AgentArtifactReference } from '../ai/agent-artifact-reference.interface';
 import type { IBaseEntity, IBrand, IOrganization, IUser } from '../index';
 
 export interface IConversation extends IBaseEntity {
@@ -18,6 +19,8 @@ export interface IConversationMessageMetadata {
 }
 
 export interface IConversationMessage extends IBaseEntity {
+  artifactReferences?: AgentArtifactReference[];
+  artifactVersionPinIds?: string[];
   conversation: IConversation;
   organization: IOrganization;
   user: IUser;

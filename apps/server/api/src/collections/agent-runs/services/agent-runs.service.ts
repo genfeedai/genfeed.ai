@@ -7,10 +7,15 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  authorizeAgentArtifactWrite,
+  hasAgentArtifactWriteInput,
+} from '@api/shared/utils/agent-artifact-reference-write.util';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import type { AgentRunJobData } from '@genfeedai/queue-contracts';
+import { AgentArtifactReferenceService } from '@genfeedai/server';
 import type {
   AgentRunStats,
   AgentRunStatsQueryParams,
@@ -126,6 +131,7 @@ export class AgentRunsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
   ) {
     super(prisma, 'agentRun', logger);
   }
@@ -155,9 +161,19 @@ export class AgentRunsService extends BaseService<
       });
     }
 
-    return super.create(
-      dto as unknown as CreateAgentRunDto,
-    ) as Promise<AgentRunDocument>;
+    const artifactWrite = await authorizeAgentArtifactWrite({
+      authorizer: this.agentArtifactReferenceService,
+      inputs: [dto],
+      readContext: {
+        ...(typeof dto.brandId === 'string' ? { brandId: dto.brandId } : {}),
+        organizationId,
+      },
+    });
+
+    return super.create({
+      ...dto,
+      ...artifactWrite,
+    } as unknown as CreateAgentRunDto) as Promise<AgentRunDocument>;
   }
 
   override async patch(
@@ -165,11 +181,45 @@ export class AgentRunsService extends BaseService<
     updateDto: Partial<UpdateAgentRunDto> | AgentRunWriteData,
     populate: AgentRunPopulateInput = [],
   ): Promise<AgentRunDocument> {
-    return super.patch(
-      id,
-      this.normalizeAgentRunWriteData(updateDto),
-      populate,
-    ) as Promise<AgentRunDocument>;
+    const normalized = this.normalizeAgentRunWriteData(updateDto);
+    if (hasAgentArtifactWriteInput(normalized)) {
+      const current = (await this.delegate.findFirst({
+        select: {
+          artifactReferences: true,
+          artifactVersionPinIds: true,
+          brandId: true,
+          id: true,
+          organizationId: true,
+        },
+        where: { id, isDeleted: false },
+      })) as AgentRunDocument | null;
+      if (!current) {
+        throw new NotFoundException({ message: 'Agent run not found' });
+      }
+
+      const organizationId = current.organizationId;
+      const persisted = current as AgentRunDocument & {
+        artifactReferences?: Prisma.JsonValue;
+        artifactVersionPinIds?: string[];
+      };
+      const artifactWrite = await authorizeAgentArtifactWrite({
+        authorizer: this.agentArtifactReferenceService,
+        inputs: [
+          {
+            artifactReferences: persisted.artifactReferences ?? [],
+            artifactVersionPinIds: persisted.artifactVersionPinIds ?? [],
+          },
+          normalized,
+        ],
+        readContext: {
+          ...(current.brandId ? { brandId: current.brandId } : {}),
+          organizationId,
+        },
+      });
+      Object.assign(normalized, artifactWrite);
+    }
+
+    return super.patch(id, normalized, populate) as Promise<AgentRunDocument>;
   }
 
   /**
@@ -293,9 +343,30 @@ export class AgentRunsService extends BaseService<
 
     const existingMetadata =
       (current.metadata as Record<string, unknown>) ?? {};
+    const artifactData = current as AgentRunDocument & {
+      artifactReferences?: Prisma.JsonValue;
+      artifactVersionPinIds?: string[];
+    };
+    const artifactWrite = hasAgentArtifactWriteInput({ metadata })
+      ? await authorizeAgentArtifactWrite({
+          authorizer: this.agentArtifactReferenceService,
+          inputs: [
+            {
+              artifactReferences: artifactData.artifactReferences ?? [],
+              artifactVersionPinIds: artifactData.artifactVersionPinIds ?? [],
+            },
+            { metadata },
+          ],
+          readContext: {
+            ...(current.brandId ? { brandId: current.brandId } : {}),
+            organizationId,
+          },
+        })
+      : {};
     await this.delegate.update({
       where: { id },
       data: {
+        ...artifactWrite,
         metadata: { ...existingMetadata, ...metadata },
       },
     });

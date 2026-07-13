@@ -1,6 +1,8 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const agentRunAttributes = createEntityAttributes([
+  'artifactReferences',
+  'artifactVersionPinIds',
   'brand',
   'completedAt',
   'creditBudget',

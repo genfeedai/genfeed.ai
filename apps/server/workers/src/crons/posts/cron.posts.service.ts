@@ -30,6 +30,7 @@ import {
 import type { AgentScopeSource } from '@genfeedai/interfaces';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
 import {
+  AgentArtifactReferenceService,
   AgentScopeContextService,
   PostPublishQueueService,
 } from '@genfeedai/server';
@@ -75,6 +76,7 @@ export class CronPostsService {
     private readonly publishEventWebhookService: PublishEventWebhookService,
     private readonly postPublishQueueService: PostPublishQueueService,
     private readonly agentScopeContextService: AgentScopeContextService,
+    private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
   ) {}
 
   /**
@@ -118,7 +120,7 @@ export class CronPostsService {
       return { reason: 'not_eligible', skipped: true };
     }
 
-    return this.publishPostWithSideEffects(post);
+    return this.publishPostWithSideEffects(post, data.versionPinId);
   }
 
   private async enqueuePostPublishJobs(posts: PostEntity[]): Promise<void> {
@@ -141,6 +143,9 @@ export class CronPostsService {
           organizationId,
           postId: post.id.toString(),
           source: 'scheduled_sweep',
+          ...(post.reviewVersionPinId
+            ? { versionPinId: post.reviewVersionPinId }
+            : {}),
         });
       }),
     );
@@ -148,10 +153,12 @@ export class CronPostsService {
 
   private async publishPostWithSideEffects(
     post: PostEntity,
+    queuedVersionPinId?: string,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       await this.assertAgentPublishingScope(post);
+      await this.assertPublishVersionPin(post, queuedVersionPinId);
     } catch (error: unknown) {
       return this.handleTerminalPublishValidationFailure(post, error);
     }
@@ -181,14 +188,73 @@ export class CronPostsService {
     return result;
   }
 
+  private async assertPublishVersionPin(
+    post: PostEntity,
+    queuedVersionPinId?: string,
+  ): Promise<void> {
+    const durableVersionPinId = this.readPostString(post, [
+      'reviewVersionPinId',
+    ]);
+
+    if (queuedVersionPinId && !durableVersionPinId) {
+      throw new Error(
+        `Queued version pin ${queuedVersionPinId} has no durable review pin on post ${post.id.toString()}.`,
+      );
+    }
+
+    if (
+      queuedVersionPinId &&
+      durableVersionPinId &&
+      queuedVersionPinId !== durableVersionPinId
+    ) {
+      throw new Error(
+        `Queued version pin ${queuedVersionPinId} does not match post ${post.id.toString()} review pin ${durableVersionPinId}.`,
+      );
+    }
+
+    const versionPinId = queuedVersionPinId ?? durableVersionPinId;
+    if (!versionPinId) {
+      return;
+    }
+
+    const organizationId = this.readPostString(post, [
+      'organizationId',
+      'organization',
+    ]);
+    if (!organizationId) {
+      throw new Error(
+        `Post ${post.id.toString()} is missing an organization for version-pin validation.`,
+      );
+    }
+
+    const brandId = this.readPostString(post, ['brandId', 'brand']);
+    const resolved =
+      await this.agentArtifactReferenceService.assertVersionPinCurrent({
+        pinId: versionPinId,
+        readContext: {
+          ...(brandId ? { brandId } : {}),
+          organizationId,
+        },
+      });
+
+    if (
+      resolved.reference.kind !== 'post' ||
+      resolved.reference.recordId !== post.id.toString()
+    ) {
+      throw new Error(
+        `Version pin ${versionPinId} does not reference post ${post.id.toString()}.`,
+      );
+    }
+  }
+
   private async handleTerminalPublishValidationFailure(
     post: PostEntity,
     error: unknown,
   ): Promise<PublishResult> {
     const errorMessage =
-      error instanceof Error ? error.message : 'Agent scope validation failed';
+      error instanceof Error ? error.message : 'Publish validation failed';
 
-    this.logger.error('Agent scope validation rejected queued publishing', {
+    this.logger.error('Durable validation rejected queued publishing', {
       error: errorMessage,
       postId: post.id,
     });

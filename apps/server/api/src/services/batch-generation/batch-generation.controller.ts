@@ -175,7 +175,7 @@ export class BatchGenerationController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const { organization, user: userId } = getPublicMetadata(user);
 
       let data: unknown;
       if (dto.action === BatchAction.APPROVE) {
@@ -183,6 +183,7 @@ export class BatchGenerationController {
           id,
           dto.itemIds,
           organization,
+          userId,
         );
       } else if (dto.action === BatchAction.REQUEST_CHANGES) {
         data = await this.batchGenerationService.requestChanges(

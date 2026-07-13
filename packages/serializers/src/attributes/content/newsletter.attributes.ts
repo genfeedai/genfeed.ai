@@ -15,6 +15,7 @@ export const newsletterAttributes = createEntityAttributes([
   'generationPrompt',
   'agentRunId',
   'approvedByUser',
+  'approvedVersionPinId',
   'publishedByUser',
   'approvedAt',
   'publishedAt',

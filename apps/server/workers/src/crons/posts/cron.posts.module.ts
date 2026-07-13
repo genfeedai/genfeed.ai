@@ -6,7 +6,12 @@ import { SystemWorkflowProvenanceService } from '@api/collections/workflows/serv
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
-import { AgentScopeContextService, SERVER_TOKENS } from '@genfeedai/server';
+import {
+  AgentArtifactReferenceService,
+  AgentScopeContextService,
+  SERVER_TOKENS,
+} from '@genfeedai/server';
+import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
@@ -27,9 +32,11 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
   ],
   exports: [CronPostsService],
   providers: [
+    AgentArtifactReferenceService,
     AgentScopeContextService,
     CronPostsService,
     SystemWorkflowProvenanceService,
+    { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
   ],
 })

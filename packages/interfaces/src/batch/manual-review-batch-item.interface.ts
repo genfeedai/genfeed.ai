@@ -10,6 +10,7 @@ export interface ManualReviewEvent {
   decision: 'approved' | 'rejected' | 'request_changes';
   feedback?: string;
   reviewedAt: Date;
+  versionPinId?: string;
 }
 
 export interface ManualReviewBatchItem {
@@ -34,4 +35,5 @@ export interface ManualReviewBatchItem {
   sourceWorkflowName?: string;
   status: BatchItemStatus;
   variantId?: string;
+  versionPinId?: string;
 }

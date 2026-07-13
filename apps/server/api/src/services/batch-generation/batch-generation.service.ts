@@ -23,6 +23,7 @@ import type {
   ManualReviewBatchItem,
 } from '@genfeedai/interfaces';
 import type { Batch } from '@genfeedai/prisma';
+import { AgentArtifactReferenceService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -47,6 +48,7 @@ interface BatchItemFull extends BatchItem {
     decision: 'approved' | 'rejected' | 'request_changes';
     feedback?: string;
     reviewedAt: string;
+    versionPinId?: string;
   }>;
   gateOverallScore?: number;
   gateReasons?: string[];
@@ -62,6 +64,7 @@ interface BatchItemFull extends BatchItem {
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
   createdAt?: string;
+  versionPinId?: string;
 }
 
 type BatchConfig = {
@@ -144,6 +147,7 @@ export class BatchGenerationService {
     private readonly postsService: PostsService,
     private readonly contentGeneratorService: ContentGeneratorService,
     private readonly cacheService: CacheService,
+    private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
   ) {}
 
   private cloneBatchItems(items: Batch['items']): BatchItemFull[] {
@@ -766,6 +770,7 @@ export class BatchGenerationService {
     batchId: string,
     itemIds: string[],
     orgId: string,
+    createdByUserId: string,
   ): Promise<IBatchSummary> {
     const batchRecord = await findOrThrow(
       this.prisma.batch,
@@ -775,45 +780,86 @@ export class BatchGenerationService {
     );
 
     const itemIdSet = new Set(itemIds);
-    const postIdsToSchedule: string[] = [];
-    const postIdsToUpdate: string[] = [];
     const reviewedAt = new Date().toISOString();
 
     const batchItems = this.cloneBatchItems(batchRecord.items);
+    const selectedPostIds = [
+      ...new Set(
+        batchItems
+          .filter(
+            (item) =>
+              itemIdSet.has(item._id) &&
+              item.status === BatchItemStatus.COMPLETED &&
+              Boolean(item.postId),
+          )
+          .flatMap((item) => (item.postId ? [item.postId] : [])),
+      ),
+    ];
+    const versionPinIds = new Map<string, string>();
+
+    for (const postId of selectedPostIds) {
+      const versionPin =
+        await this.agentArtifactReferenceService.createOrReuseVersionPin({
+          createdByUserId,
+          reference: {
+            ...(batchRecord.brandId ? { brandId: batchRecord.brandId } : {}),
+            kind: 'post',
+            organizationId: orgId,
+            recordId: postId,
+            serializer: 'post',
+          },
+        });
+      versionPinIds.set(postId, versionPin.id);
+    }
+
+    const postIdsToSchedule: string[] = [];
 
     for (const item of batchItems) {
       if (
         itemIdSet.has(item._id) &&
         item.status === BatchItemStatus.COMPLETED
       ) {
+        const versionPinId = item.postId
+          ? versionPinIds.get(item.postId)
+          : undefined;
         item.reviewDecision = 'approved';
         item.reviewFeedback = undefined;
+        item.versionPinId = versionPinId;
         item.reviewedAt = reviewedAt;
         item.reviewEvents = [
           ...(item.reviewEvents ?? []),
-          { decision: 'approved', reviewedAt },
+          {
+            decision: 'approved',
+            reviewedAt,
+            ...(versionPinId ? { versionPinId } : {}),
+          },
         ];
-        if (item.postId) {
-          postIdsToUpdate.push(item.postId);
-        }
         if (item.postId && item.scheduledDate) {
           postIdsToSchedule.push(item.postId);
         }
       }
     }
 
-    if (postIdsToUpdate.length > 0) {
-      await this.prisma.post.updateMany({
-        data: {
-          reviewDecision: 'APPROVED' as never,
-          reviewedAt: new Date(reviewedAt),
-        },
-        where: {
-          id: { in: postIdsToUpdate },
-          isDeleted: false,
-          organizationId: orgId,
-        },
-      });
+    const approvalUpdates = await Promise.all(
+      selectedPostIds.map((postId) =>
+        this.prisma.post.updateMany({
+          data: {
+            reviewDecision: 'APPROVED' as never,
+            reviewVersionPinId: versionPinIds.get(postId),
+            reviewedAt: new Date(reviewedAt),
+          },
+          where: {
+            id: postId,
+            isDeleted: false,
+            organizationId: orgId,
+          },
+        }),
+      ),
+    );
+    if (approvalUpdates.some((result) => result.count !== 1)) {
+      throw new Error(
+        'A canonical Post disappeared before approval completed.',
+      );
     }
 
     if (postIdsToSchedule.length > 0) {
@@ -1144,6 +1190,7 @@ export class BatchGenerationService {
               reviewDecision: true,
               reviewedAt: true,
               reviewFeedback: true,
+              reviewVersionPinId: true,
               status: true,
               url: true,
             },
@@ -1270,6 +1317,7 @@ export class BatchGenerationService {
             decision: event.decision,
             feedback: event.feedback,
             reviewedAt: event.reviewedAt,
+            versionPinId: event.versionPinId,
           })),
           reviewedAt: item.reviewedAt,
           reviewFeedback: item.reviewFeedback,
@@ -1278,6 +1326,8 @@ export class BatchGenerationService {
           sourceWorkflowId: item.sourceWorkflowId,
           sourceWorkflowName: item.sourceWorkflowName,
           status: item.status,
+          versionPinId:
+            item.versionPinId ?? linkedPost?.reviewVersionPinId ?? undefined,
         };
       }),
       pendingCount,

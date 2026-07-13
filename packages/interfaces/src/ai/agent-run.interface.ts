@@ -2,6 +2,7 @@ import type {
   AgentExecutionStatus,
   AgentExecutionTrigger,
 } from '@genfeedai/enums';
+import type { AgentArtifactReference } from './agent-artifact-reference.interface';
 
 export interface IAgentRunToolCall {
   toolName: string;
@@ -26,6 +27,8 @@ export interface IAgentRunStep {
 
 export interface IAgentRun {
   id: string;
+  artifactReferences?: AgentArtifactReference[];
+  artifactVersionPinIds?: string[];
   organization: string;
   user: string;
   brand?: string | null;

@@ -544,20 +544,39 @@ export class PostGroupsService {
     release: IReleaseGroup,
     userId: string,
   ): Promise<void> {
-    const targets = release.targets ?? [];
+    const targets = (release.targets ?? []).filter(
+      (target) => target.executionState === TargetExecutionState.SCHEDULED,
+    );
+    if (targets.length === 0) {
+      return;
+    }
+
+    const durableTargets = await this.prisma.post.findMany({
+      select: {
+        id: true,
+        reviewVersionPinId: true,
+      },
+      where: {
+        id: { in: targets.map((target) => target.id) },
+        isDeleted: false,
+        organizationId: release.organizationId,
+      },
+    });
+    const versionPinIds = new Map(
+      durableTargets.map((target) => [target.id, target.reviewVersionPinId]),
+    );
+
     await Promise.all(
-      targets
-        .filter(
-          (target) => target.executionState === TargetExecutionState.SCHEDULED,
-        )
-        .map((target) =>
-          this.postPublishQueueService.enqueue({
-            organizationId: release.organizationId,
-            postId: target.id,
-            source: 'publish_now',
-            userId,
-          }),
-        ),
+      targets.map((target) => {
+        const versionPinId = versionPinIds.get(target.id);
+        return this.postPublishQueueService.enqueue({
+          organizationId: release.organizationId,
+          postId: target.id,
+          source: 'publish_now',
+          userId,
+          ...(versionPinId ? { versionPinId } : {}),
+        });
+      }),
     );
   }
 

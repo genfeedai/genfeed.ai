@@ -1,5 +1,6 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentExecutionTrigger } from '@genfeedai/enums';
+import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
@@ -55,6 +56,18 @@ export class CreateAgentRunDto {
   @IsOptional()
   @IsObject()
   metadata?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ type: [Object] })
+  @IsOptional()
+  @IsArray()
+  @IsObject({ each: true })
+  artifactReferences?: AgentArtifactReference[];
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  artifactVersionPinIds?: string[];
 
   @ApiPropertyOptional({ type: [Object] })
   @IsOptional()

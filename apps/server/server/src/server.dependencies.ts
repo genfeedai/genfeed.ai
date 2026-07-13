@@ -144,6 +144,8 @@ export interface ServerPrisma {
   $queryRaw<T = unknown>(query: Prisma.Sql): Promise<T>;
   agentMessage: PrismaClient['agentMessage'];
   agentThread: PrismaClient['agentThread'];
+  article: PrismaClient['article'];
+  asset: PrismaClient['asset'];
   adBulkUploadJob: PrismaClient['adBulkUploadJob'];
   adCreativeMapping: PrismaClient['adCreativeMapping'];
   adOptimizationAuditLog: PrismaClient['adOptimizationAuditLog'];
@@ -151,6 +153,8 @@ export interface ServerPrisma {
   adOptimizationRecommendation: PrismaClient['adOptimizationRecommendation'];
   adPerformance: PrismaClient['adPerformance'];
   brand: PrismaClient['brand'];
+  contentDraft: PrismaClient['contentDraft'];
+  contentVersionPin: PrismaClient['contentVersionPin'];
   contentPerformance: {
     create(args: unknown): Promise<unknown>;
     findFirst(
@@ -195,10 +199,10 @@ export interface ServerPrisma {
       userId: string | null;
     } | null>;
   };
-  post: {
-    findFirst(args: unknown): Promise<{ id: string } | null>;
-    findMany(args: unknown): Promise<ServerPostRecord[]>;
-  };
+  ingredient: PrismaClient['ingredient'];
+  member: PrismaClient['member'];
+  newsletter: PrismaClient['newsletter'];
+  post: PrismaClient['post'];
   postAnalytics: {
     aggregate(args: unknown): Promise<{
       _avg: {

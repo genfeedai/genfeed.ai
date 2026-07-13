@@ -12,8 +12,13 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { Prisma } from '@genfeedai/prisma';
+import { AgentArtifactReferenceService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 type TenantContext = {
   organizationId: string;
@@ -39,6 +44,7 @@ export class NewslettersService extends BaseService<
     public readonly logger: LoggerService,
     private readonly openRouterService: OpenRouterService,
     private readonly brandsService: BrandsService,
+    private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
   ) {
     super(prisma, 'newsletter', logger);
   }
@@ -184,12 +190,14 @@ export class NewslettersService extends BaseService<
     ctx: TenantContext,
   ): Promise<NewsletterDocument> {
     await this.findOneScoped(id, ctx);
+    const versionPin = await this.createVersionPin(id, ctx);
 
     return await this.patch(
       id,
       {
         approvedAt: new Date(),
         approvedByUserId: ctx.userId,
+        approvedVersionPinId: versionPin.id,
         status: 'approved',
       },
       ['organization', 'brand', 'user'],
@@ -208,17 +216,57 @@ export class NewslettersService extends BaseService<
       );
     }
 
+    const existingVersionPinId = (
+      newsletter as unknown as { approvedVersionPinId?: string | null }
+    ).approvedVersionPinId;
+    let approvedVersionPinId: string;
+    if (existingVersionPinId) {
+      const resolved =
+        await this.agentArtifactReferenceService.assertVersionPinCurrent({
+          pinId: existingVersionPinId,
+          readContext: {
+            brandId: ctx.brandId,
+            organizationId: ctx.organizationId,
+          },
+        });
+      if (
+        resolved.reference.kind !== 'newsletter' ||
+        resolved.reference.recordId !== id
+      ) {
+        throw new ConflictException(
+          'The approved version pin does not target this newsletter.',
+        );
+      }
+      approvedVersionPinId = existingVersionPinId;
+    } else {
+      approvedVersionPinId = (await this.createVersionPin(id, ctx)).id;
+    }
+
     return await this.patch(
       id,
       {
         approvedAt: newsletter.approvedAt ?? new Date(),
         approvedByUserId: newsletter.approvedByUserId ?? ctx.userId,
+        approvedVersionPinId,
         publishedAt: new Date(),
         publishedByUserId: ctx.userId,
         status: 'published',
       },
       ['organization', 'brand', 'user'],
     );
+  }
+
+  private createVersionPin(id: string, ctx: TenantContext) {
+    return this.agentArtifactReferenceService.createOrReuseVersionPin({
+      createdByUserId: ctx.userId,
+      reference: {
+        brandId: ctx.brandId,
+        kind: 'newsletter',
+        organizationId: ctx.organizationId,
+        recordId: id,
+        serializer: 'newsletter',
+      },
+    });
   }
 
   async getContextPreview(

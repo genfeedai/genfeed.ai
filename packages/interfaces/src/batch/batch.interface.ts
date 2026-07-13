@@ -67,7 +67,9 @@ export interface IBatchItem {
     decision: 'approved' | 'rejected' | 'request_changes';
     feedback?: string;
     reviewedAt: string;
+    versionPinId?: string;
   }>;
+  versionPinId?: string;
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;

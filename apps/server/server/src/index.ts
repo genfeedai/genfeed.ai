@@ -1,4 +1,11 @@
 export {
+  AgentArtifactReferenceService,
+  type AgentArtifactReferenceTelemetryContext,
+  type AssertVersionPinCurrentParams,
+  type CreateOrReuseVersionPinParams,
+  type ResolveMessageArtifactReferencesParams,
+} from './agent-artifacts/agent-artifact-reference.service';
+export {
   AgentScopeContextService,
   type MutateAgentScopeParams,
   type PrepareAgentScopeParams,

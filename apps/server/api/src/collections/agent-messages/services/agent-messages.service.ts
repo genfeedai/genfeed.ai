@@ -1,8 +1,18 @@
 import type { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { authorizeAgentArtifactWrite } from '@api/shared/utils/agent-artifact-reference-write.util';
 import type { AgentMessageRole } from '@genfeedai/enums';
+import type {
+  AgentArtifactReference,
+  ResolvedAgentArtifactReference,
+} from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import {
+  AgentArtifactReferenceService,
+  type AgentArtifactReferenceTelemetryContext,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -24,6 +34,8 @@ export interface AddMessageDto {
     error?: string;
   }>;
   metadata?: Record<string, unknown>;
+  artifactReferences?: AgentArtifactReference[];
+  artifactVersionPinIds?: string[];
 }
 
 type AgentMessagePageOptions = {
@@ -36,6 +48,16 @@ const DEFAULT_AGENT_MESSAGE_LIMIT = 50;
 const MAX_AGENT_MESSAGE_LIMIT = 100;
 const DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT = 500;
 
+function dedupeArtifactReferences(
+  references: AgentArtifactReference[],
+): AgentArtifactReference[] {
+  const unique = new Map<string, AgentArtifactReference>();
+  for (const reference of references) {
+    unique.set(`${reference.kind}:${reference.recordId}`, reference);
+  }
+  return [...unique.values()];
+}
+
 @Injectable()
 export class AgentMessagesService extends BaseService<
   AgentMessageDocument,
@@ -46,17 +68,70 @@ export class AgentMessagesService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
   ) {
     super(prisma, 'agentMessage', logger);
   }
 
   async addMessage(dto: AddMessageDto): Promise<AgentMessageDocument> {
     const { room, ...rest } = dto;
+    const artifactWrite = await authorizeAgentArtifactWrite({
+      authorizer: this.agentArtifactReferenceService,
+      inputs: [dto],
+      readContext: {
+        ...(dto.brandId ? { brandId: dto.brandId } : {}),
+        organizationId: dto.organizationId,
+      },
+    });
+    const metadataReferences =
+      await this.agentArtifactReferenceService.resolveReferencesFromMetadata(
+        dto.metadata,
+        {
+          ...(dto.brandId ? { brandId: dto.brandId } : {}),
+          organizationId: dto.organizationId,
+        },
+      );
+
     return this.create({
       ...rest,
+      ...artifactWrite,
+      artifactReferences: dedupeArtifactReferences([
+        ...artifactWrite.artifactReferences,
+        ...metadataReferences,
+      ]),
       threadId: room,
       isDeleted: false,
+      isLegacyArtifactReferenceEligible: false,
     } as unknown as Partial<AgentMessageDocument>);
+  }
+
+  async resolveMessageArtifactReferences(
+    threadId: string,
+    messageId: string,
+    organizationId: string,
+    telemetry?: AgentArtifactReferenceTelemetryContext,
+  ): Promise<ResolvedAgentArtifactReference[]> {
+    const message = await this.delegate.findFirst({
+      select: { brandId: true, id: true },
+      where: {
+        id: messageId,
+        isDeleted: false,
+        organizationId,
+        threadId,
+      },
+    });
+    if (!message) {
+      throw new NotFoundException({ message: 'Agent message not found' });
+    }
+
+    return this.agentArtifactReferenceService.resolveMessageReferences({
+      messageId,
+      readContext: {
+        ...(message.brandId ? { brandId: message.brandId } : {}),
+        organizationId,
+      },
+      telemetry,
+    });
   }
 
   async getMessagesByRoom(
@@ -233,12 +308,43 @@ export class AgentMessagesService extends BaseService<
       }
 
       await Promise.all(
-        docs.map((doc) =>
-          this.delegate.create({
+        docs.map(async (doc) => {
+          const persisted = doc as AgentMessageDocument & {
+            artifactReferences?: Prisma.JsonValue;
+            artifactVersionPinIds?: string[];
+          };
+          const readContext = {
+            ...(doc.brandId ? { brandId: doc.brandId } : {}),
+            organizationId: doc.organizationId,
+          };
+          const [artifactWrite, metadataReferences] = await Promise.all([
+            authorizeAgentArtifactWrite({
+              authorizer: this.agentArtifactReferenceService,
+              inputs: [
+                {
+                  artifactReferences: persisted.artifactReferences ?? [],
+                  artifactVersionPinIds: persisted.artifactVersionPinIds ?? [],
+                },
+              ],
+              readContext,
+            }),
+            this.agentArtifactReferenceService.resolveReferencesFromMetadata(
+              doc.metadata,
+              readContext,
+            ),
+          ]);
+
+          return this.delegate.create({
             data: {
+              artifactReferences: dedupeArtifactReferences([
+                ...artifactWrite.artifactReferences,
+                ...metadataReferences,
+              ]),
+              artifactVersionPinIds: artifactWrite.artifactVersionPinIds,
               brandId: doc.brandId,
               content: doc.content,
               isDeleted: doc.isDeleted,
+              isLegacyArtifactReferenceEligible: false,
               metadata: doc.metadata,
               organizationId: doc.organizationId,
               role: doc.role,
@@ -246,8 +352,8 @@ export class AgentMessagesService extends BaseService<
               toolCalls: doc.toolCalls,
               userId: doc.userId,
             },
-          }),
-        ),
+          });
+        }),
       );
 
       if (docs.length < DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT) {
