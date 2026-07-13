@@ -87,6 +87,7 @@ import WorkspaceOverlayHost from './WorkspaceOverlayHost';
 import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
 import {
   useActiveWorkspaceSurfaceAdapter,
+  useActiveWorkspaceSurfacePresentationAdapter,
   useWorkspaceSurfaceAdapter,
   WorkspaceSurfaceAdapterProvider,
 } from './WorkspaceSurfaceAdapterContext';
@@ -139,6 +140,8 @@ function UniversalWorkspaceShellContent({
   const updateThread = useAgentChatStore((state) => state.updateThread);
   const seedComposer = useAgentChatStore((state) => state.seedComposer);
   const activeWorkspaceSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
+  const activeSurfacePresentationAdapter =
+    useActiveWorkspaceSurfacePresentationAdapter();
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
@@ -208,6 +211,10 @@ function UniversalWorkspaceShellContent({
     activeWorkspaceSurfaceAdapter.registration.scope === routeRegistration.scope
       ? activeWorkspaceSurfaceAdapter
       : null;
+  const resolvedSurfacePresentationAdapter =
+    activeSurfacePresentationAdapter?.surfaceKey === surfaceKey
+      ? activeSurfacePresentationAdapter
+      : null;
   const canonicalSearchParamsString = canonicalSearchParams.toString();
   const isUnthreadedConversation =
     baseState === 'conversation' &&
@@ -252,11 +259,12 @@ function UniversalWorkspaceShellContent({
   );
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
   const shellContextLabel =
-    state === 'conversation'
+    resolvedSurfacePresentationAdapter?.contextLabel ??
+    (state === 'conversation'
       ? 'Conversation'
       : state === 'overlay'
         ? 'Overlay · conversation connected'
-        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`;
+        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`);
   const activeResearchSurfaceAdapter =
     researchSurfaceAdapter?.registration.surfaceKey === surfaceKey
       ? researchSurfaceAdapter.registration
@@ -818,6 +826,8 @@ function UniversalWorkspaceShellContent({
           effectiveSurfaceAdapter.inspectorContent
         ) : activeResearchSurfaceAdapter ? (
           activeResearchSurfaceAdapter.inspectorContent
+        ) : resolvedSurfacePresentationAdapter ? (
+          resolvedSurfacePresentationAdapter.inspector
         ) : (
           <div
             className="gen-shell-empty-state p-4"
@@ -852,7 +862,8 @@ function UniversalWorkspaceShellContent({
         >
           Choose workflow
         </Button>
-        {effectiveSurfaceAdapter ? null : (
+        {effectiveSurfaceAdapter ||
+        resolvedSurfacePresentationAdapter ? null : (
           <Button
             icon={<HiOutlineEye className="size-4" />}
             onClick={handleOpenOverlay}

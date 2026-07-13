@@ -1,11 +1,15 @@
 'use client';
 
+import { useAgentChatStore } from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
+  IPaginatedResponse,
   SocialActionProvenance,
   SocialAutomationState,
   SocialConversationStatus,
+  SocialInboxReference,
   SocialPlatform,
 } from '@genfeedai/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
@@ -27,11 +31,14 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ChangeEvent,
+  startTransition,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -39,9 +46,36 @@ import {
   HiOutlineBolt,
   HiOutlineChatBubbleLeftRight,
   HiOutlineCheckCircle,
+  HiOutlineChevronLeft,
+  HiOutlineChevronRight,
   HiOutlineInboxStack,
+  HiOutlineLink,
   HiOutlinePaperAirplane,
 } from 'react-icons/hi2';
+import {
+  createMessagesIdempotencyKey,
+  createSocialConversationReference,
+  createSocialMessageReference,
+  getSocialInboxReferenceKey,
+  type MessagesActionKind,
+  toggleSocialInboxReference,
+} from './messages-surface.helpers';
+import { useMessagesSurfaceAdapter } from './messages-surface-adapter';
+import { captureMessagesSurfaceEvent } from './messages-surface-telemetry';
+import { useMessagesRealtime } from './use-messages-realtime';
+
+type PaginationState = Omit<IPaginatedResponse<unknown>, 'items'>;
+
+const EMPTY_PAGINATION: PaginationState = {
+  hasNext: false,
+  hasPrevious: false,
+  page: 1,
+  pageSize: 50,
+  total: 0,
+  totalPages: 1,
+};
+
+const SELECTED_CONVERSATION_PARAM = 'socialConversation';
 
 const PLATFORM_OPTIONS: Array<{
   label: string;
@@ -258,15 +292,20 @@ function PlatformPill({ platform }: { platform: string }) {
 
 function ConversationRow({
   conversation,
+  isDisabled,
   isSelected,
   onSelect,
 }: {
   conversation: SocialConversationModel;
+  isDisabled: boolean;
   isSelected: boolean;
   onSelect: (conversationId: string) => void;
 }) {
   return (
     <Button
+      aria-pressed={isSelected}
+      ariaLabel={`Open social conversation with ${getParticipantLabel(conversation)}`}
+      isDisabled={isDisabled}
       variant={ButtonVariant.UNSTYLED}
       className={cn(
         'block w-full border-b border-white/[0.06] px-4 py-3 text-left transition-colors',
@@ -300,14 +339,20 @@ function ConversationRow({
 
 function MessageBubble({
   busyAction,
+  canAttachReference,
+  isReferenced,
   message,
   onApproveDraft,
   onRejectDraft,
+  onToggleReference,
 }: {
   busyAction: string | null;
+  canAttachReference: boolean;
+  isReferenced: boolean;
   message: SocialMessageModel;
   onApproveDraft: (messageId: string) => void;
   onRejectDraft: (messageId: string) => void;
+  onToggleReference: (message: SocialMessageModel) => void;
 }) {
   const isOutbound = message.direction === 'outbound';
   const isDraft = isOutbound && message.status === 'draft';
@@ -351,6 +396,7 @@ function MessageBubble({
             <Button
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.SM}
+              isDisabled={Boolean(busyAction)}
               isLoading={busyAction === `approve:${message.id}`}
               onClick={() => onApproveDraft(message.id)}
             >
@@ -359,6 +405,7 @@ function MessageBubble({
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
+              isDisabled={Boolean(busyAction)}
               isLoading={busyAction === `reject:${message.id}`}
               onClick={() => onRejectDraft(message.id)}
             >
@@ -366,6 +413,23 @@ function MessageBubble({
             </Button>
           </div>
         ) : null}
+        <div className="mt-2 flex justify-end border-t border-white/[0.08] pt-2">
+          <Button
+            ariaLabel={
+              isReferenced
+                ? 'Remove message from agent context'
+                : 'Attach message to agent context'
+            }
+            icon={<HiOutlineLink className="size-3.5" />}
+            isDisabled={!canAttachReference}
+            onClick={() => onToggleReference(message)}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            {isReferenced ? 'Referenced' : 'Reference'}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -373,15 +437,30 @@ function MessageBubble({
 
 export default function MessagesPage() {
   const { href } = useOrgUrl();
+  const { organizationId: scopedOrganizationId } = useBrand();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchParamsString = searchParams.toString();
+  const { replace } = useRouter();
   const getMessagesService = useAuthedService((token: string) =>
     SocialMessagesService.getInstance(token),
+  );
+  const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  const activeThread = useAgentChatStore((state) =>
+    state.threads.find((thread) => thread.id === state.activeThreadId),
   );
 
   const [conversations, setConversations] = useState<SocialConversationModel[]>(
     [],
   );
   const [messages, setMessages] = useState<SocialMessageModel[]>([]);
+  const [references, setReferences] = useState<SocialInboxReference[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [conversationPage, setConversationPage] = useState(1);
+  const [messagePage, setMessagePage] = useState(1);
+  const [conversationPagination, setConversationPagination] =
+    useState(EMPTY_PAGINATION);
+  const [messagePagination, setMessagePagination] = useState(EMPTY_PAGINATION);
   const [platform, setPlatform] = useState<SocialPlatform | 'all'>('all');
   const [status, setStatus] = useState<SocialConversationStatus | 'all'>(
     'open',
@@ -409,10 +488,42 @@ export default function MessagesPage() {
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const actionInFlightRef = useRef<string | null>(null);
+  const draftRevisionRef = useRef(1);
+  const pendingIdempotencyKeysRef = useRef(new Map<string, string>());
+  const requestedConversationId =
+    searchParams.get(SELECTED_CONVERSATION_PARAM) ?? null;
+
+  const updateSelectedConversationParam = useCallback(
+    (conversationId: string | null) => {
+      const nextSearchParams = new URLSearchParams(searchParamsString);
+
+      if (conversationId) {
+        nextSearchParams.set(SELECTED_CONVERSATION_PARAM, conversationId);
+      } else {
+        nextSearchParams.delete(SELECTED_CONVERSATION_PARAM);
+      }
+
+      const queryString = nextSearchParams.toString();
+      replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, replace, searchParamsString],
+  );
+
+  const handleSelectConversation = useCallback(
+    (conversationId: string) => {
+      setSelectedId(conversationId);
+      updateSelectedConversationParam(conversationId);
+    },
+    [updateSelectedConversationParam],
+  );
 
   const query = useMemo(
     () => ({
       limit: 50,
+      page: conversationPage,
       ...(platform !== 'all' ? { platform } : {}),
       ...(status !== 'all' ? { status } : {}),
       ...(automationState !== 'all' ? { automationState } : {}),
@@ -427,6 +538,7 @@ export default function MessagesPage() {
     [
       assignedOwnerId,
       automationState,
+      conversationPage,
       credentialId,
       needsReviewOnly,
       platform,
@@ -443,6 +555,30 @@ export default function MessagesPage() {
         : null,
     [conversations, selectedId],
   );
+  const canAttachReferences = Boolean(
+    activeThreadId &&
+      activeThread?.brandId &&
+      selectedConversation?.brandId === activeThread.brandId,
+  );
+  const conversationReference = useMemo(
+    () =>
+      selectedConversation
+        ? createSocialConversationReference(selectedConversation)
+        : null,
+    [selectedConversation],
+  );
+  const isConversationReferenced = Boolean(
+    conversationReference &&
+      references.some(
+        (reference) =>
+          getSocialInboxReferenceKey(reference) ===
+          getSocialInboxReferenceKey(conversationReference),
+      ),
+  );
+  const organizationId =
+    scopedOrganizationId ||
+    selectedConversation?.organizationId ||
+    conversations[0]?.organizationId;
 
   const automationHref = useMemo(() => {
     if (!selectedConversation) {
@@ -473,13 +609,51 @@ export default function MessagesPage() {
 
       try {
         const service = await getMessagesService();
-        const nextConversations = await service.list(query);
+        const result = await service.listPage(query, signal);
+        if (signal?.aborted) {
+          return;
+        }
+
+        const { items, ...pagination } = result;
+        let nextConversations = items;
+
+        if (
+          requestedConversationId &&
+          !items.some(
+            (conversation) => conversation.id === requestedConversationId,
+          )
+        ) {
+          try {
+            const requestedConversation = await service.getConversation(
+              requestedConversationId,
+              signal,
+            );
+            nextConversations = [requestedConversation, ...items];
+          } catch (selectionError: unknown) {
+            if (isAbortLike(selectionError)) {
+              return;
+            }
+
+            updateSelectedConversationParam(null);
+          }
+        }
+
         if (signal?.aborted) {
           return;
         }
 
         setConversations(nextConversations);
+        setConversationPagination(pagination);
         setSelectedId((current) => {
+          if (
+            requestedConversationId &&
+            nextConversations.some(
+              (conversation) => conversation.id === requestedConversationId,
+            )
+          ) {
+            return requestedConversationId;
+          }
+
           if (
             current &&
             nextConversations.some(
@@ -501,7 +675,12 @@ export default function MessagesPage() {
         }
       }
     },
-    [getMessagesService, query],
+    [
+      getMessagesService,
+      query,
+      requestedConversationId,
+      updateSelectedConversationParam,
+    ],
   );
 
   useEffect(() => {
@@ -509,6 +688,13 @@ export default function MessagesPage() {
     void loadConversations(controller.signal);
     return () => controller.abort();
   }, [loadConversations]);
+
+  useEffect(() => {
+    setMessagePage(1);
+    setReferences((current) =>
+      current.filter((reference) => reference.conversationId === selectedId),
+    );
+  }, [selectedId]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -522,11 +708,17 @@ export default function MessagesPage() {
 
     getMessagesService()
       .then((service) =>
-        service.listMessages(selectedId, { limit: 100 }, controller.signal),
+        service.listMessagesPage(
+          selectedId,
+          { limit: 50, page: messagePage },
+          controller.signal,
+        ),
       )
-      .then((nextMessages) => {
+      .then((result) => {
         if (!controller.signal.aborted) {
+          const { items: nextMessages, ...pagination } = result;
           setMessages(nextMessages);
+          setMessagePagination(pagination);
         }
       })
       .catch((err: unknown) => {
@@ -541,24 +733,69 @@ export default function MessagesPage() {
       });
 
     return () => controller.abort();
-  }, [getMessagesService, selectedId]);
+  }, [getMessagesService, messagePage, selectedId]);
 
   const refreshSelectedThread = useCallback(async () => {
-    if (!selectedId) {
-      return;
-    }
-
     const service = await getMessagesService();
-    const [nextConversations, nextMessages] = await Promise.all([
-      service.list(query),
-      service.listMessages(selectedId, { limit: 100 }),
-    ]);
-    setConversations(nextConversations);
-    setMessages(nextMessages);
-  }, [getMessagesService, query, selectedId]);
+    const [conversationResult, selectedConversationResult, messageResult] =
+      await Promise.all([
+        service.listPage(query),
+        selectedId
+          ? service.getConversation(selectedId)
+          : Promise.resolve(null),
+        selectedId
+          ? service.listMessagesPage(selectedId, {
+              limit: 50,
+              page: messagePage,
+            })
+          : Promise.resolve(null),
+      ]);
+    const { items: nextConversations, ...nextConversationPagination } =
+      conversationResult;
+    const refreshedConversations = selectedConversationResult
+      ? [
+          selectedConversationResult,
+          ...nextConversations.filter(
+            (conversation) => conversation.id !== selectedConversationResult.id,
+          ),
+        ]
+      : nextConversations;
+
+    startTransition(() => {
+      setConversations(refreshedConversations);
+      setConversationPagination(nextConversationPagination);
+      if (messageResult) {
+        const { items: nextMessages, ...nextMessagePagination } = messageResult;
+        setMessages(nextMessages);
+        setMessagePagination(nextMessagePagination);
+      }
+    });
+  }, [getMessagesService, messagePage, query, selectedId]);
+
+  const connectionState = useMessagesRealtime({
+    onRefresh: refreshSelectedThread,
+    organizationId,
+  });
+
+  const refreshAfterAction = useCallback(async () => {
+    try {
+      await refreshSelectedThread();
+    } catch {
+      setNotice(
+        (current) =>
+          `${current ?? 'Action completed.'} Realtime refresh will reconcile the inbox.`,
+      );
+      captureMessagesSurfaceEvent({
+        action: 'realtime-refresh',
+        outcome: 'failed',
+      });
+    }
+  }, [refreshSelectedThread]);
 
   const handleDraftChange = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
+      draftRevisionRef.current += 1;
+      pendingIdempotencyKeysRef.current.clear();
       setDraft(event.target.value);
     },
     [],
@@ -566,6 +803,7 @@ export default function MessagesPage() {
 
   const handleSearchChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
+      setConversationPage(1);
       setSearch(event.target.value);
     },
     [],
@@ -577,13 +815,35 @@ export default function MessagesPage() {
         return;
       }
 
+      const actionKey = `${action}:${selectedId}`;
+      if (actionInFlightRef.current) {
+        captureMessagesSurfaceEvent({
+          action,
+          outcome: 'blocked',
+        });
+        return;
+      }
+      actionInFlightRef.current = actionKey;
+
       setBusyAction(action);
       setError(null);
       setNotice(null);
+      captureMessagesSurfaceEvent({ action, outcome: 'started' });
 
       try {
         const service = await getMessagesService();
-        const idempotencyKey = `messages:${selectedId}:${action}:${Date.now()}`;
+        const idempotencyCacheKey = `${selectedId}:${action}:${draftRevisionRef.current}`;
+        const idempotencyKey =
+          pendingIdempotencyKeysRef.current.get(idempotencyCacheKey) ??
+          createMessagesIdempotencyKey(
+            selectedId,
+            action,
+            draftRevisionRef.current,
+          );
+        pendingIdempotencyKeysRef.current.set(
+          idempotencyCacheKey,
+          idempotencyKey,
+        );
         const input = { idempotencyKey, text: draft.trim() };
 
         if (action === 'draft') {
@@ -601,14 +861,21 @@ export default function MessagesPage() {
         }
 
         setDraft('');
-        await refreshSelectedThread();
+        draftRevisionRef.current += 1;
+        pendingIdempotencyKeysRef.current.delete(idempotencyCacheKey);
+        await refreshAfterAction();
+        captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
       } catch (err: unknown) {
         setError(getErrorMessage(err));
+        captureMessagesSurfaceEvent({ action, outcome: 'failed' });
       } finally {
+        if (actionInFlightRef.current === actionKey) {
+          actionInFlightRef.current = null;
+        }
         setBusyAction(null);
       }
     },
-    [draft, getMessagesService, refreshSelectedThread, selectedId],
+    [draft, getMessagesService, refreshAfterAction, selectedId],
   );
 
   const handleStatusChange = useCallback(
@@ -617,16 +884,34 @@ export default function MessagesPage() {
         return;
       }
 
+      const action: MessagesActionKind = 'status';
+      const actionKey = `${action}:${selectedId}`;
+      if (actionInFlightRef.current) {
+        captureMessagesSurfaceEvent({ action, outcome: 'blocked' });
+        return;
+      }
+      actionInFlightRef.current = actionKey;
+
       setBusyAction('status');
       setError(null);
+      setNotice(null);
+      captureMessagesSurfaceEvent({ action, outcome: 'started' });
 
       try {
         const service = await getMessagesService();
         await service.updateStatus(selectedId, nextStatus);
+        setNotice(
+          `Conversation marked ${STATUS_LABELS[nextStatus] ?? nextStatus}.`,
+        );
         await loadConversations();
+        captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
       } catch (err: unknown) {
         setError(getErrorMessage(err));
+        captureMessagesSurfaceEvent({ action, outcome: 'failed' });
       } finally {
+        if (actionInFlightRef.current === actionKey) {
+          actionInFlightRef.current = null;
+        }
         setBusyAction(null);
       }
     },
@@ -634,9 +919,16 @@ export default function MessagesPage() {
   );
 
   const handleSyncYoutube = useCallback(async () => {
+    const action: MessagesActionKind = 'sync';
+    if (actionInFlightRef.current) {
+      captureMessagesSurfaceEvent({ action, outcome: 'blocked' });
+      return;
+    }
+    actionInFlightRef.current = action;
     setBusyAction('sync');
     setError(null);
     setNotice(null);
+    captureMessagesSurfaceEvent({ action, outcome: 'started' });
 
     try {
       const service = await getMessagesService();
@@ -645,9 +937,14 @@ export default function MessagesPage() {
         'YouTube sync started. New comments will appear here once the background job finishes.',
       );
       await loadConversations();
+      captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
     } catch (err: unknown) {
       setError(getErrorMessage(err));
+      captureMessagesSurfaceEvent({ action, outcome: 'failed' });
     } finally {
+      if (actionInFlightRef.current === action) {
+        actionInFlightRef.current = null;
+      }
       setBusyAction(null);
     }
   }, [getMessagesService, loadConversations]);
@@ -658,22 +955,36 @@ export default function MessagesPage() {
         return;
       }
 
+      const action: MessagesActionKind = 'approve';
+      const actionKey = `${action}:${messageId}`;
+      if (actionInFlightRef.current) {
+        captureMessagesSurfaceEvent({ action, outcome: 'blocked' });
+        return;
+      }
+      actionInFlightRef.current = actionKey;
+
       setBusyAction(`approve:${messageId}`);
       setError(null);
       setNotice(null);
+      captureMessagesSurfaceEvent({ action, outcome: 'started' });
 
       try {
         const service = await getMessagesService();
         await service.approveDraft(selectedId, messageId);
         setNotice('Draft approved and published.');
-        await refreshSelectedThread();
+        await refreshAfterAction();
+        captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
       } catch (err: unknown) {
         setError(getErrorMessage(err));
+        captureMessagesSurfaceEvent({ action, outcome: 'failed' });
       } finally {
+        if (actionInFlightRef.current === actionKey) {
+          actionInFlightRef.current = null;
+        }
         setBusyAction(null);
       }
     },
-    [getMessagesService, refreshSelectedThread, selectedId],
+    [getMessagesService, refreshAfterAction, selectedId],
   );
 
   const handleRejectDraft = useCallback(
@@ -682,23 +993,117 @@ export default function MessagesPage() {
         return;
       }
 
+      const action: MessagesActionKind = 'reject';
+      const actionKey = `${action}:${messageId}`;
+      if (actionInFlightRef.current) {
+        captureMessagesSurfaceEvent({ action, outcome: 'blocked' });
+        return;
+      }
+      actionInFlightRef.current = actionKey;
+
       setBusyAction(`reject:${messageId}`);
       setError(null);
       setNotice(null);
+      captureMessagesSurfaceEvent({ action, outcome: 'started' });
 
       try {
         const service = await getMessagesService();
         await service.rejectDraft(selectedId, messageId);
         setNotice('Draft rejected.');
-        await refreshSelectedThread();
+        await refreshAfterAction();
+        captureMessagesSurfaceEvent({ action, outcome: 'succeeded' });
       } catch (err: unknown) {
         setError(getErrorMessage(err));
+        captureMessagesSurfaceEvent({ action, outcome: 'failed' });
       } finally {
+        if (actionInFlightRef.current === actionKey) {
+          actionInFlightRef.current = null;
+        }
         setBusyAction(null);
       }
     },
-    [getMessagesService, refreshSelectedThread, selectedId],
+    [getMessagesService, refreshAfterAction, selectedId],
   );
+
+  useEffect(() => {
+    if (!canAttachReferences) {
+      setReferences([]);
+    }
+  }, [canAttachReferences]);
+
+  const handleToggleConversationReference = useCallback(() => {
+    if (!canAttachReferences || !conversationReference) {
+      captureMessagesSurfaceEvent({
+        action: 'attach-reference',
+        outcome: 'blocked',
+        referenceKind: 'social-conversation',
+      });
+      return;
+    }
+
+    setReferences((current) =>
+      toggleSocialInboxReference(current, conversationReference),
+    );
+    captureMessagesSurfaceEvent({
+      action: 'attach-reference',
+      outcome: 'succeeded',
+      referenceKind: 'social-conversation',
+    });
+  }, [canAttachReferences, conversationReference]);
+
+  const handleToggleMessageReference = useCallback(
+    (message: SocialMessageModel) => {
+      if (!canAttachReferences || !selectedConversation) {
+        captureMessagesSurfaceEvent({
+          action: 'attach-reference',
+          outcome: 'blocked',
+          referenceKind: 'social-message',
+        });
+        return;
+      }
+
+      const reference = createSocialMessageReference(
+        selectedConversation,
+        message,
+      );
+      if (!reference) {
+        captureMessagesSurfaceEvent({
+          action: 'attach-reference',
+          outcome: 'blocked',
+          referenceKind: 'social-message',
+        });
+        return;
+      }
+
+      setReferences((current) =>
+        toggleSocialInboxReference(current, reference),
+      );
+      captureMessagesSurfaceEvent({
+        action: 'attach-reference',
+        outcome: 'succeeded',
+        referenceKind: 'social-message',
+      });
+    },
+    [canAttachReferences, selectedConversation],
+  );
+
+  const isMessageReferenced = useCallback(
+    (message: SocialMessageModel) =>
+      references.some(
+        (reference) =>
+          reference.kind === 'social-message' &&
+          reference.messageId === message.id,
+      ),
+    [references],
+  );
+
+  useMessagesSurfaceAdapter({
+    canAttachReferences,
+    isConversationReferenced,
+    onToggleConversationReference: handleToggleConversationReference,
+    references,
+    selectedConversation,
+  });
 
   const availability = selectedConversation?.availability ?? {
     canPostReply: false,
@@ -721,11 +1126,19 @@ export default function MessagesPage() {
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             icon={<HiOutlineArrowPath className="size-4" />}
+            isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
             isLoading={busyAction === 'sync'}
             onClick={handleSyncYoutube}
           >
             Sync YouTube
           </Button>
+          <span
+            aria-live="polite"
+            className="text-xs capitalize text-white/38"
+            role="status"
+          >
+            Realtime: {connectionState}
+          </span>
         </div>
       </div>
 
@@ -737,9 +1150,10 @@ export default function MessagesPage() {
         />
         <Select
           value={platform}
-          onValueChange={(value) =>
-            setPlatform(value as SocialPlatform | 'all')
-          }
+          onValueChange={(value) => {
+            setConversationPage(1);
+            setPlatform(value as SocialPlatform | 'all');
+          }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Platform" />
@@ -754,9 +1168,10 @@ export default function MessagesPage() {
         </Select>
         <Select
           value={status}
-          onValueChange={(value) =>
-            setStatus(value as SocialConversationStatus | 'all')
-          }
+          onValueChange={(value) => {
+            setConversationPage(1);
+            setStatus(value as SocialConversationStatus | 'all');
+          }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Status" />
@@ -771,9 +1186,10 @@ export default function MessagesPage() {
         </Select>
         <Select
           value={automationState}
-          onValueChange={(value) =>
-            setAutomationState(value as SocialAutomationState | 'all')
-          }
+          onValueChange={(value) => {
+            setConversationPage(1);
+            setAutomationState(value as SocialAutomationState | 'all');
+          }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Automation" />
@@ -788,7 +1204,10 @@ export default function MessagesPage() {
         </Select>
         <Select
           value={unreadOnly ? 'unread' : 'all'}
-          onValueChange={(value) => setUnreadOnly(value === 'unread')}
+          onValueChange={(value) => {
+            setConversationPage(1);
+            setUnreadOnly(value === 'unread');
+          }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Unread" />
@@ -804,18 +1223,25 @@ export default function MessagesPage() {
         <Input
           placeholder="Credential/account ID"
           value={credentialId}
-          onChange={(event) => setCredentialId(event.target.value)}
+          onChange={(event) => {
+            setConversationPage(1);
+            setCredentialId(event.target.value);
+          }}
         />
         <Input
           placeholder="Assigned owner ID"
           value={assignedOwnerId}
-          onChange={(event) => setAssignedOwnerId(event.target.value)}
+          onChange={(event) => {
+            setAssignedOwnerId(event.target.value);
+            setConversationPage(1);
+          }}
         />
         <Select
           value={needsReviewOnly ? 'needs-review' : 'all'}
-          onValueChange={(value) =>
-            setNeedsReviewOnly(value === 'needs-review')
-          }
+          onValueChange={(value) => {
+            setConversationPage(1);
+            setNeedsReviewOnly(value === 'needs-review');
+          }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Review" />
@@ -828,12 +1254,19 @@ export default function MessagesPage() {
       </div>
 
       {error ? (
-        <div className="mb-4 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div
+          className="mb-4 rounded border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          role="alert"
+        >
           {error}
         </div>
       ) : null}
       {notice ? (
-        <div className="mb-4 rounded border border-success/20 bg-success/10 px-3 py-2 text-sm text-success">
+        <div
+          aria-live="polite"
+          className="mb-4 rounded border border-success/20 bg-success/10 px-3 py-2 text-sm text-success"
+          role="status"
+        >
           {notice}
         </div>
       ) : null}
@@ -846,7 +1279,7 @@ export default function MessagesPage() {
               Conversations
             </div>
             <span className="text-xs text-white/32">
-              {conversations.length}
+              {conversationPagination.total}
             </span>
           </div>
           <div className="max-h-[628px] overflow-y-auto">
@@ -866,13 +1299,42 @@ export default function MessagesPage() {
               conversations.map((conversation) => (
                 <ConversationRow
                   conversation={conversation}
+                  isDisabled={Boolean(busyAction)}
                   isSelected={conversation.id === selectedId}
                   key={conversation.id}
-                  onSelect={setSelectedId}
+                  onSelect={handleSelectConversation}
                 />
               ))
             )}
           </div>
+          {conversationPagination.totalPages > 1 ? (
+            <div className="flex items-center justify-between border-t border-white/[0.08] px-3 py-2">
+              <Button
+                ariaLabel="Previous conversations page"
+                icon={<HiOutlineChevronLeft className="size-4" />}
+                isDisabled={!conversationPagination.hasPrevious}
+                onClick={() =>
+                  setConversationPage((page) => Math.max(1, page - 1))
+                }
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+              <span className="text-xs text-white/38">
+                Page {conversationPagination.page} of{' '}
+                {conversationPagination.totalPages}
+              </span>
+              <Button
+                ariaLabel="Next conversations page"
+                icon={<HiOutlineChevronRight className="size-4" />}
+                isDisabled={!conversationPagination.hasNext}
+                onClick={() => setConversationPage((page) => page + 1)}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="flex min-w-0 flex-col">
@@ -893,6 +1355,9 @@ export default function MessagesPage() {
                     <h2 className="truncate text-base font-semibold text-white">
                       {getParticipantLabel(selectedConversation)}
                     </h2>
+                    <p className="mt-1 text-xs font-medium text-primary/70">
+                      Social conversation · separate from agent thread
+                    </p>
                     <p className="mt-1 truncate text-xs text-white/38">
                       {selectedConversation.sourceContentTitle ||
                         selectedConversation.sourceContentUrl ||
@@ -914,6 +1379,7 @@ export default function MessagesPage() {
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}
                       icon={<HiOutlineCheckCircle className="size-4" />}
+                      isDisabled={Boolean(busyAction)}
                       isLoading={busyAction === 'status'}
                       onClick={() => handleStatusChange('resolved')}
                     >
@@ -922,6 +1388,7 @@ export default function MessagesPage() {
                     <Button
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}
+                      isDisabled={Boolean(busyAction)}
                       isLoading={busyAction === 'status'}
                       onClick={() => handleStatusChange('open')}
                     >
@@ -930,6 +1397,7 @@ export default function MessagesPage() {
                     <Button
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}
+                      isDisabled={Boolean(busyAction)}
                       isLoading={busyAction === 'status'}
                       onClick={() => handleStatusChange('needs_review')}
                     >
@@ -950,17 +1418,58 @@ export default function MessagesPage() {
                   messages.map((message) => (
                     <MessageBubble
                       busyAction={busyAction}
+                      canAttachReference={canAttachReferences}
+                      isReferenced={isMessageReferenced(message)}
                       key={message.id}
                       message={message}
                       onApproveDraft={handleApproveDraft}
                       onRejectDraft={handleRejectDraft}
+                      onToggleReference={handleToggleMessageReference}
                     />
                   ))
                 )}
+                {messagePagination.totalPages > 1 ? (
+                  <div className="flex items-center justify-center gap-3 pt-3">
+                    <Button
+                      ariaLabel="Previous messages page"
+                      icon={<HiOutlineChevronLeft className="size-4" />}
+                      isDisabled={!messagePagination.hasPrevious}
+                      onClick={() =>
+                        setMessagePage((page) => Math.max(1, page - 1))
+                      }
+                      size={ButtonSize.ICON}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    />
+                    <span className="text-xs text-white/38">
+                      Messages page {messagePagination.page} of{' '}
+                      {messagePagination.totalPages}
+                    </span>
+                    <Button
+                      ariaLabel="Next messages page"
+                      icon={<HiOutlineChevronRight className="size-4" />}
+                      isDisabled={!messagePagination.hasNext}
+                      onClick={() => setMessagePage((page) => page + 1)}
+                      size={ButtonSize.ICON}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    />
+                  </div>
+                ) : null}
               </div>
 
               <div className="border-t border-white/[0.08] p-4">
+                <div className="mb-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/58">
+                    Social reply composer
+                  </p>
+                  <p className="mt-1 text-xs text-white/34">
+                    Uses the current social credential and never writes to agent
+                    thread history.
+                  </p>
+                </div>
                 <Textarea
+                  aria-label="Social reply or direct message"
                   className="min-h-24 w-full"
                   placeholder="Write a reply or DM"
                   rows={4}
@@ -977,7 +1486,7 @@ export default function MessagesPage() {
                     <Button
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}
-                      isDisabled={!draft.trim()}
+                      isDisabled={Boolean(busyAction) || !draft.trim()}
                       isLoading={busyAction === 'draft'}
                       onClick={() => handleAction('draft')}
                     >
@@ -987,7 +1496,11 @@ export default function MessagesPage() {
                       variant={ButtonVariant.DEFAULT}
                       size={ButtonSize.SM}
                       icon={<HiOutlinePaperAirplane className="size-4" />}
-                      isDisabled={!draft.trim() || !availability.canPostReply}
+                      isDisabled={
+                        Boolean(busyAction) ||
+                        !draft.trim() ||
+                        !availability.canPostReply
+                      }
                       isLoading={busyAction === 'reply'}
                       title={availability.postReplyReason}
                       onClick={() => handleAction('reply')}
@@ -997,7 +1510,11 @@ export default function MessagesPage() {
                     <Button
                       variant={ButtonVariant.GHOST}
                       size={ButtonSize.SM}
-                      isDisabled={!draft.trim() || !availability.canSendDm}
+                      isDisabled={
+                        Boolean(busyAction) ||
+                        !draft.trim() ||
+                        !availability.canSendDm
+                      }
                       isLoading={busyAction === 'dm'}
                       title={availability.sendDmReason}
                       onClick={() => handleAction('dm')}

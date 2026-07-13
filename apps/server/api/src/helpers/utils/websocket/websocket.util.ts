@@ -28,6 +28,11 @@ export const WebSocketPaths = {
   // Script events
   script: (scriptId: string) => `/scripts/${scriptId}`,
 
+  // Social inbox events
+  socialConversation: (conversationId: string) =>
+    `/social-inbox/conversations/${conversationId}`,
+  socialInbox: (organizationId: string) => `/social-inbox/${organizationId}`,
+
   // User events
   user: (userId: string) => `/users/${userId}`,
 

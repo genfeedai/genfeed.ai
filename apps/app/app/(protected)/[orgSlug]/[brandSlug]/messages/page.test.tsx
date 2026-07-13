@@ -12,9 +12,22 @@ assertSourceHasExport(
 const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
   href: vi.fn((path: string) => `/acme/demo${path}`),
-  list: vi.fn(),
-  listMessages: vi.fn(),
+  listMessagesPage: vi.fn(),
+  listPage: vi.fn(),
   postReply: vi.fn(),
+  replace: vi.fn(),
+}));
+
+vi.mock('@genfeedai/agent', () => ({
+  useAgentChatStore: (selector: (state: unknown) => unknown) =>
+    selector({
+      activeThreadId: 'agent-thread-1',
+      threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
+    }),
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ organizationId: 'org-1' }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -39,16 +52,22 @@ vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
 
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
+    'aria-pressed': ariaPressed,
+    ariaLabel,
     asChild,
     children,
     disabled,
+    icon,
     isDisabled,
     onClick,
     title,
   }: {
+    'aria-pressed'?: boolean;
+    ariaLabel?: string;
     asChild?: boolean;
     children?: ReactNode;
     disabled?: boolean;
+    icon?: ReactNode;
     isDisabled?: boolean;
     onClick?: () => void;
     title?: string;
@@ -57,11 +76,14 @@ vi.mock('@ui/primitives/button', () => ({
       (children ?? null)
     ) : (
       <button
+        aria-label={ariaLabel}
+        aria-pressed={ariaPressed}
         disabled={disabled || isDisabled}
         title={title}
         type="button"
         onClick={onClick}
       >
+        {icon}
         {children}
       </button>
     ),
@@ -113,6 +135,20 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/acme/demo/messages',
+  useRouter: () => ({ replace: mocks.replace }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock('./messages-surface-adapter', () => ({
+  useMessagesSurfaceAdapter: vi.fn(),
+}));
+
+vi.mock('./use-messages-realtime', () => ({
+  useMessagesRealtime: () => 'connected',
+}));
+
 const conversation = {
   automationState: 'manual',
   availability: {
@@ -129,6 +165,7 @@ const conversation = {
   latestMessageAt: '2026-07-02T08:00:00.000Z',
   latestMessageText: 'Need pricing help',
   needsReview: true,
+  organizationId: 'org-1',
   participantHandle: '@taylor',
   participantName: 'Taylor',
   platform: 'youtube',
@@ -186,16 +223,33 @@ describe('SocialMessagesPage', () => {
     mocks.getService.mockResolvedValue({
       approveDraft: vi.fn(),
       createDraft: vi.fn(),
-      list: mocks.list,
-      listMessages: mocks.listMessages,
+      getConversation: vi.fn(),
+      listMessagesPage: mocks.listMessagesPage,
+      listPage: mocks.listPage,
       postReply: mocks.postReply,
       rejectDraft: vi.fn(),
       sendDm: vi.fn(),
       syncYoutube: vi.fn(),
       updateStatus: vi.fn(),
     });
-    mocks.list.mockResolvedValue([conversation]);
-    mocks.listMessages.mockResolvedValue(messages);
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [conversation],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+    mocks.listMessagesPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: messages,
+      page: 1,
+      pageSize: 50,
+      total: messages.length,
+      totalPages: 1,
+    });
     mocks.postReply.mockResolvedValue({
       ...messages[1],
       body: 'Thanks for the detail.',
@@ -211,7 +265,10 @@ describe('SocialMessagesPage', () => {
       await screen.findByRole('heading', { name: 'Messages' }),
     ).toBeInTheDocument();
     await waitFor(() =>
-      expect(mocks.list).toHaveBeenCalledWith({ limit: 50, status: 'open' }),
+      expect(mocks.listPage).toHaveBeenCalledWith(
+        { limit: 50, page: 1, status: 'open' },
+        expect.any(AbortSignal),
+      ),
     );
 
     expect(screen.getAllByText('Taylor')).not.toHaveLength(0);
@@ -223,6 +280,17 @@ describe('SocialMessagesPage', () => {
     expect(screen.getByText('agent-run-1')).toBeInTheDocument();
     expect(screen.getByText('user-1')).toBeInTheDocument();
     expect(screen.getByText('Draft')).toBeInTheDocument();
+    expect(screen.getByText(/separate from agent thread/i)).toBeInTheDocument();
+    expect(screen.getByText('Social reply composer')).toBeInTheDocument();
+    const conversationButton = screen.getByRole('button', {
+      name: 'Open social conversation with Taylor',
+    });
+    expect(conversationButton).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(conversationButton);
+    expect(mocks.replace).toHaveBeenCalledWith(
+      '/acme/demo/messages?socialConversation=conversation-1',
+      { scroll: false },
+    );
 
     const automationLink = screen.getByRole('link', { name: /Automation/i });
     expect(automationLink).toHaveAttribute(
@@ -241,7 +309,9 @@ describe('SocialMessagesPage', () => {
     fireEvent.change(screen.getByPlaceholderText('Write a reply or DM'), {
       target: { value: 'Thanks for the detail.' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /^Reply$/ }));
+    const replyButton = screen.getByRole('button', { name: /^Reply$/ });
+    fireEvent.click(replyButton);
+    fireEvent.click(replyButton);
 
     await waitFor(() =>
       expect(mocks.postReply).toHaveBeenCalledWith(
@@ -254,6 +324,7 @@ describe('SocialMessagesPage', () => {
         }),
       ),
     );
+    expect(mocks.postReply).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('Reply posted.')).toBeInTheDocument();
   });
 });

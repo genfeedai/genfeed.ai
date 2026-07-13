@@ -21,6 +21,7 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
+import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
@@ -91,6 +92,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => SettingsModule),
+    forwardRef(() => SocialInboxModule),
     forwardRef(() => TrendsModule),
     forwardRef(() => UsersModule),
     forwardRef(() => VoicesModule),

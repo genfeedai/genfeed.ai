@@ -41,6 +41,10 @@ export function toAgentRequestPageContext(
   assign('selectedText', context.selectedText);
   assign('url', context.url);
 
+  if (context.socialReferences?.length) {
+    requestContext.socialReferences = context.socialReferences;
+  }
+
   if (context.analyticsQuery?.kind === 'analytics-query') {
     requestContext.analyticsQuery = context.analyticsQuery;
   }
