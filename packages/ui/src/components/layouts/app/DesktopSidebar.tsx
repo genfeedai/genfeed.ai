@@ -10,17 +10,21 @@ const SIDEBAR_TRANSITION_DURATION_MS = 300;
 const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 type DesktopSidebarProps = {
+  ariaLabel?: string;
   children: ReactNode;
   collapsedWidth?: number;
   isCollapsed: boolean;
+  isWorkspaceShell?: boolean;
   shellChromeVariant?: AppLayoutProps['shellChromeVariant'];
   width?: number;
 };
 
 export default function DesktopSidebar({
+  ariaLabel,
   children,
   collapsedWidth = SIDEBAR_COLLAPSED_WIDTH,
   isCollapsed,
+  isWorkspaceShell = false,
   shellChromeVariant = 'default',
   width = SIDEBAR_WIDTH,
 }: DesktopSidebarProps) {
@@ -28,9 +32,11 @@ export default function DesktopSidebar({
 
   return (
     <aside
+      aria-label={ariaLabel}
       data-testid="desktop-sidebar-rail"
       className={cn(
         'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
+        isWorkspaceShell && 'gen-workspace-shell-region',
         shellChromeVariant === 'transparent'
           ? 'bg-transparent'
           : 'bg-background',

@@ -307,6 +307,14 @@ Nine-step scale — the canonical source is `packages/ui/src/core/radius.ts`
 - `3xl` (16px) -- oversized media and promo surfaces
 - `full` (9999px) -- badges, pills, avatars, and circular controls
 
+Conversation workspace geometry uses semantic, locally scoped aliases from
+`packages/ui/web-tokens.css`: `--radius-workspace-shell` (8px),
+`--radius-workspace-shell-emphasis` (10px),
+`--radius-workspace-composer` (10px), and `--radius-workspace-overlay` (12px).
+These aliases apply only through the `[data-workspace-shell="true"]` and
+`[data-workspace-shell-overlay="true"]` scoped selectors; editorial cards continue
+to resolve through `--radius-card` and remain square.
+
 ### Shadows
 
 Elevated surfaces use inset box-shadow for containment instead of CSS border:

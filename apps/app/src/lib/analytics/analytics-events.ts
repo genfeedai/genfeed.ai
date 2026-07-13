@@ -21,6 +21,10 @@ export const ANALYTICS_EVENTS = {
   CONTENT_WRITE_BLANK_DRAFT_STARTED: 'content_write_blank_draft_started',
   CONTENT_WRITE_OPENED: 'content_write_opened',
   CONTENT_WRITE_PROMPT_GENERATED: 'content_write_prompt_generated',
+  CONVERSATION_SHELL_FALLBACK: 'conversation_shell_fallback',
+  CONVERSATION_SHELL_RESTORATION_FAILURE:
+    'conversation_shell_restoration_failure',
+  CONVERSATION_SHELL_TRANSITION: 'conversation_shell_transition',
   FIRST_CREDIT_PURCHASED: 'first_credit_purchase',
   FIRST_SUCCESSFUL_PUBLISH: 'first_successful_publish',
   GENERATION_COMPLETED: 'generation_completed',
@@ -61,6 +65,25 @@ export type PromptGeneratedSource = 'desktop-ipc' | 'desktop-ipc-fallback';
 /** Which studio editor surface was opened — the project index or the canvas. */
 export type StudioEditorSurface = 'canvas' | 'index';
 
+export type ConversationShellState = 'canvas' | 'conversation' | 'overlay';
+
+export type ConversationShellTransition =
+  | 'browser'
+  | 'canvas_change'
+  | 'canvas_launch'
+  | 'conversation_return'
+  | 'initial_restore'
+  | 'overlay_dismiss'
+  | 'overlay_open';
+
+export type ConversationShellFallbackReason =
+  | 'dedicated_route'
+  | 'invalid_overlay'
+  | 'invalid_overlay_reference'
+  | 'invalid_thread'
+  | 'registry_miss'
+  | 'render_error';
+
 /**
  * Property shape for each event. Keys map 1:1 to {@link ANALYTICS_EVENTS} values.
  * Every property is a bounded identifier — never free-text.
@@ -69,6 +92,20 @@ export interface AnalyticsEventProperties {
   [ANALYTICS_EVENTS.AGENT_THREAD_CREATED]: {
     /** Optional agent-type slug (e.g. the configured agent kind), never a title. */
     readonly agentType?: string;
+  };
+  [ANALYTICS_EVENTS.CONVERSATION_SHELL_TRANSITION]: {
+    readonly fromState: ConversationShellState;
+    readonly toState: ConversationShellState;
+    readonly transition: ConversationShellTransition;
+  };
+  [ANALYTICS_EVENTS.CONVERSATION_SHELL_FALLBACK]: {
+    readonly reason: ConversationShellFallbackReason;
+  };
+  [ANALYTICS_EVENTS.CONVERSATION_SHELL_RESTORATION_FAILURE]: {
+    readonly reason: Extract<
+      ConversationShellFallbackReason,
+      'invalid_overlay' | 'invalid_overlay_reference' | 'invalid_thread'
+    >;
   };
   [ANALYTICS_EVENTS.SIGNUP_STARTED]: {
     readonly hasCloudHandoff: boolean;

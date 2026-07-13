@@ -8,6 +8,7 @@ const sendMessage = vi.fn();
 const patchMe = vi.fn();
 const touchSession = vi.fn();
 const getToken = vi.fn();
+const useAgentChatStreamSpy = vi.fn();
 
 const navigationState = {
   params: {
@@ -61,9 +62,10 @@ vi.mock('@genfeedai/agent', () => ({
   ),
   useAgentChatStore: (selector: (state: typeof storeState) => unknown) =>
     selector(storeState),
-  useAgentChatStream: () => ({
-    sendMessage,
-  }),
+  useAgentChatStream: ({ apiService }: { apiService: unknown }) => {
+    useAgentChatStreamSpy(apiService);
+    return { sendMessage };
+  },
 }));
 
 vi.mock('@services/core/environment.service', () => ({
@@ -116,6 +118,21 @@ describe('AgentWorkspaceLayoutClient', () => {
     touchSession.mockReset();
     getToken.mockReset();
     getToken.mockResolvedValue('token');
+    useAgentChatStreamSpy.mockClear();
+  });
+
+  it('reuses a protected-shell agent service when one is provided', () => {
+    const providedAgentApiService = {};
+
+    render(
+      <AgentWorkspaceLayoutClient
+        agentApiService={providedAgentApiService as never}
+      >
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    expect(useAgentChatStreamSpy).toHaveBeenCalledWith(providedAgentApiService);
   });
 
   it('does not immediately redirect /agent/new back to the previously active thread', async () => {

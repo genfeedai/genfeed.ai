@@ -455,6 +455,22 @@ a {
 
 /* Shared operator-shell surfaces for docked tools, switchers, and prompt chrome */
 /* Uses inset box-shadow for containment (not CSS border) on panels/surfaces */
+[data-workspace-shell="true"] .gen-workspace-shell-region {
+  border-radius: var(--radius-workspace-shell);
+}
+
+[data-workspace-shell="true"] .gen-workspace-shell-region-emphasis {
+  border-radius: var(--radius-workspace-shell-emphasis);
+}
+
+[data-workspace-shell="true"] [data-prompt-layout-mode] {
+  border-radius: var(--radius-workspace-composer);
+}
+
+[data-workspace-shell-overlay="true"] {
+  border-radius: var(--radius-workspace-overlay);
+}
+
 .gen-shell-panel,
 .gen-shell-surface {
   border: none;

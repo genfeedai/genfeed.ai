@@ -12,14 +12,24 @@ import ProtectedProviders from '@providers/protected-providers/protected-provide
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBanner';
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
+import { ErrorBoundary } from '@ui/error/ErrorBoundary';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { type ReactNode, Suspense, useCallback, useMemo } from 'react';
+import {
+  cloneElement,
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+} from 'react';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
+import { openWorkspaceShellCircuit } from '@/lib/workspace-shell/use-conversation-shell';
+import { captureWorkspaceShellFallback } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AssetGateGuard from './asset-gate-guard';
 import {
@@ -74,6 +84,13 @@ const LazyAgentThreadList = dynamic<AgentThreadListProps>(
       </div>
     ),
     ssr: false,
+  },
+);
+
+const LazyUniversalWorkspaceShell = dynamic(
+  () => import('@/components/workspace-shell/UniversalWorkspaceShell'),
+  {
+    loading: () => <LazyLoadingFallback variant="grid" />,
   },
 );
 
@@ -144,6 +161,7 @@ function AppLayoutWithDynamicMenu({
     toggleAgent,
     threads,
     shouldMountAgentPanel,
+    shouldMountLegacyAgentPanel,
     adminMenuItems,
     analyticsMenuItems,
     composeMenuItems,
@@ -164,6 +182,9 @@ function AppLayoutWithDynamicMenu({
     handleOpenCommandPalette,
     isLowCreditsBannerEnabled,
     isDesktopShell,
+    isConversationShellEnabled,
+    isUniversalWorkspaceShell,
+    workspaceShellRoute,
   } = useAppProtectedLayout(initialBootstrap);
 
   const renderConversations = useCallback(
@@ -179,7 +200,10 @@ function AppLayoutWithDynamicMenu({
   );
 
   const menuComponent = useMemo(() => {
-    if (isFocusedOnboardingRoute || isEditorCanvasRoute || isMoodboardRoute) {
+    if (
+      !isUniversalWorkspaceShell &&
+      (isFocusedOnboardingRoute || isEditorCanvasRoute || isMoodboardRoute)
+    ) {
       return undefined;
     }
 
@@ -200,6 +224,7 @@ function AppLayoutWithDynamicMenu({
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
         isWorkflowsRoute={isWorkflowsRoute}
+        isUniversalWorkspaceShell={isUniversalWorkspaceShell}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         composeMenuItems={composeMenuItems}
@@ -237,6 +262,7 @@ function AppLayoutWithDynamicMenu({
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
+    isUniversalWorkspaceShell,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
@@ -251,22 +277,63 @@ function AppLayoutWithDynamicMenu({
   ]);
 
   const topbarComponent =
+    !isUniversalWorkspaceShell &&
+    (isEditorCanvasRoute || isFocusedOnboardingRoute || isMoodboardRoute)
+      ? undefined
+      : isAdminRoute
+        ? AdminAppProtectedTopbar
+        : AppProtectedTopbar;
+  const legacyMenuComponent = useMemo(() => {
+    if (isEditorCanvasRoute || isFocusedOnboardingRoute || isMoodboardRoute) {
+      return undefined;
+    }
+    if (!menuComponent) {
+      return undefined;
+    }
+
+    return cloneElement(menuComponent, {
+      isUniversalWorkspaceShell: false,
+    });
+  }, [
+    isEditorCanvasRoute,
+    isFocusedOnboardingRoute,
+    isMoodboardRoute,
+    menuComponent,
+  ]);
+  const legacyTopbarComponent =
     isEditorCanvasRoute || isFocusedOnboardingRoute || isMoodboardRoute
       ? undefined
       : isAdminRoute
         ? AdminAppProtectedTopbar
         : AppProtectedTopbar;
   const topbarChromeVariant = 'default';
-  const agentPanel =
-    !shouldMountAgentPanel || !agentApiService ? undefined : (
-      <LazyAgentPanel
-        apiService={agentApiService}
-        authReady={isAuthReadyForAgentPanel}
-        isActive={isAgentOpen}
-        onNavigateToBilling={handleNavigateToBilling}
-        onOAuthConnect={handleOAuthConnect}
-      />
+  const agentPanelContent = agentApiService ? (
+    <LazyAgentPanel
+      apiService={agentApiService}
+      authReady={isAuthReadyForAgentPanel}
+      isActive={isAgentOpen}
+      onNavigateToBilling={handleNavigateToBilling}
+      onOAuthConnect={handleOAuthConnect}
+    />
+  ) : undefined;
+  const agentPanel = shouldMountAgentPanel ? agentPanelContent : undefined;
+  const legacyAgentPanel = shouldMountLegacyAgentPanel
+    ? agentPanelContent
+    : undefined;
+
+  useEffect(() => {
+    if (!isConversationShellEnabled || isUniversalWorkspaceShell) {
+      return;
+    }
+
+    captureWorkspaceShellFallback(
+      workspaceShellRoute ? 'dedicated_route' : 'registry_miss',
     );
+  }, [
+    isConversationShellEnabled,
+    isUniversalWorkspaceShell,
+    workspaceShellRoute,
+  ]);
 
   const lowCreditsBanner =
     isEEEnabled() &&
@@ -282,8 +349,72 @@ function AppLayoutWithDynamicMenu({
       {lowCreditsBanner}
     </>
   );
+  const mainLayout = (
+    <AppLayout
+      bannerComponent={shellBanner}
+      brandSlug={brandSlug}
+      currentApp={currentApp}
+      menuComponent={menuComponent}
+      topbarComponent={topbarComponent}
+      shellChromeVariant={shellChromeVariant}
+      topbarChromeVariant={topbarChromeVariant}
+      hasSecondaryTopbar={hasSecondaryTopbar}
+      menuItems={isAdminRoute ? adminMenuItems : menuItems}
+      agentPanel={agentPanel}
+      isAgentCollapsed={!isAgentOpen}
+      onAgentToggle={shouldMountAgentPanel ? toggleAgent : undefined}
+      orgSlug={orgSlug}
+      isWorkspaceShell={isUniversalWorkspaceShell}
+    >
+      {isUniversalWorkspaceShell && agentApiService ? (
+        <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
+          {children}
+        </LazyUniversalWorkspaceShell>
+      ) : (
+        children
+      )}
+    </AppLayout>
+  );
+  const legacyFallbackLayout =
+    isEditorCanvasRoute || isMoodboardRoute ? (
+      <div className="min-h-screen overflow-hidden bg-background">
+        {shellBanner}
+        {children}
+      </div>
+    ) : (
+      <AppLayout
+        agentPanel={legacyAgentPanel}
+        bannerComponent={shellBanner}
+        brandSlug={brandSlug}
+        currentApp={currentApp}
+        hasSecondaryTopbar={hasSecondaryTopbar}
+        isAgentCollapsed={!isAgentOpen}
+        menuComponent={legacyMenuComponent}
+        menuItems={isAdminRoute ? adminMenuItems : menuItems}
+        onAgentToggle={shouldMountLegacyAgentPanel ? toggleAgent : undefined}
+        orgSlug={orgSlug}
+        shellChromeVariant={shellChromeVariant}
+        topbarChromeVariant={topbarChromeVariant}
+        topbarComponent={legacyTopbarComponent}
+      >
+        {children}
+      </AppLayout>
+    );
+  const guardedMainLayout = isUniversalWorkspaceShell ? (
+    <ErrorBoundary
+      fallback={legacyFallbackLayout}
+      onError={() => {
+        openWorkspaceShellCircuit();
+        captureWorkspaceShellFallback('render_error');
+      }}
+    >
+      {mainLayout}
+    </ErrorBoundary>
+  ) : (
+    mainLayout
+  );
 
-  if (isEditorCanvasRoute || isMoodboardRoute) {
+  if (!isUniversalWorkspaceShell && (isEditorCanvasRoute || isMoodboardRoute)) {
     return (
       <CommandPaletteProvider>
         <CommandPaletteInitializer />
@@ -303,8 +434,8 @@ function AppLayoutWithDynamicMenu({
       ) : null}
       <CommandPaletteProvider>
         {!isFocusedOnboardingRoute &&
-        !isEditorCanvasRoute &&
-        isConversationRoute ? (
+        (!isEditorCanvasRoute || isUniversalWorkspaceShell) &&
+        (isConversationRoute || isUniversalWorkspaceShell) ? (
           <AgentThreadCommandsBridge
             threads={threads}
             enabled
@@ -312,23 +443,7 @@ function AppLayoutWithDynamicMenu({
           />
         ) : null}
         <CommandPaletteInitializer />
-        <AppLayout
-          bannerComponent={shellBanner}
-          brandSlug={brandSlug}
-          currentApp={currentApp}
-          menuComponent={menuComponent}
-          topbarComponent={topbarComponent}
-          shellChromeVariant={shellChromeVariant}
-          topbarChromeVariant={topbarChromeVariant}
-          hasSecondaryTopbar={hasSecondaryTopbar}
-          menuItems={isAdminRoute ? adminMenuItems : menuItems}
-          agentPanel={agentPanel}
-          isAgentCollapsed={!isAgentOpen}
-          onAgentToggle={shouldMountAgentPanel ? toggleAgent : undefined}
-          orgSlug={orgSlug}
-        >
-          {children}
-        </AppLayout>
+        {guardedMainLayout}
         <LazyCommandPalette />
       </CommandPaletteProvider>
     </>

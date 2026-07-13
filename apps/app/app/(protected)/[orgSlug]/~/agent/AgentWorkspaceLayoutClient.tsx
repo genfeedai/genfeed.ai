@@ -29,7 +29,14 @@ import { AgentWorkspaceContext } from './agent-workspace-context';
 
 const UNSET_THREAD_BASELINE = Symbol('agent-new-route-baseline');
 
-function AgentWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
+type AgentWorkspaceLayoutClientProps = PropsWithChildren<{
+  readonly agentApiService?: AgentApiService;
+}>;
+
+function AgentWorkspaceLayoutClientContent({
+  agentApiService: providedAgentApiService,
+  children,
+}: AgentWorkspaceLayoutClientProps) {
   const rawPathname = usePathname();
   const pathname = useMemo(
     () => normalizeProtectedPathname(rawPathname),
@@ -58,11 +65,12 @@ function AgentWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
 
   const agentApiService = useMemo(
     () =>
+      providedAgentApiService ??
       new AgentApiService({
         baseUrl: process.env.NEXT_PUBLIC_API_ENDPOINT ?? '',
         getToken: async (options) => resolveAuthToken(getToken, options),
       }),
-    [getToken],
+    [getToken, providedAgentApiService],
   );
 
   const completeOnboardingFlow = useCallback(async () => {
@@ -193,10 +201,13 @@ function AgentWorkspaceLayoutClientContent({ children }: PropsWithChildren) {
   );
 }
 
-export function AgentWorkspaceLayoutClient({ children }: PropsWithChildren) {
+export function AgentWorkspaceLayoutClient({
+  agentApiService,
+  children,
+}: AgentWorkspaceLayoutClientProps) {
   return (
     <Suspense fallback={null}>
-      <AgentWorkspaceLayoutClientContent>
+      <AgentWorkspaceLayoutClientContent agentApiService={agentApiService}>
         {children}
       </AgentWorkspaceLayoutClientContent>
     </Suspense>

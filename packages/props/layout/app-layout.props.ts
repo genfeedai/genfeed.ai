@@ -29,4 +29,6 @@ export interface AppLayoutProps {
   orgSlug?: string;
   /** Brand slug for the AppSwitcher in the topbar */
   brandSlug?: string;
+  /** Enables geometry and landmarks scoped to the conversation workspace. */
+  isWorkspaceShell?: boolean;
 }
