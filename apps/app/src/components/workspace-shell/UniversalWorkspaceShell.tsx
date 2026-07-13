@@ -38,8 +38,8 @@ import {
   HiOutlineArrowLeft,
   HiOutlineChatBubbleLeftRight,
   HiOutlineEye,
-  HiOutlinePanelRight,
   HiOutlineSquares2X2,
+  HiOutlineViewColumns,
 } from 'react-icons/hi2';
 import {
   appendSearchParamsToHref,
@@ -344,7 +344,7 @@ function UniversalWorkspaceShellContent({
         <Button
           ariaLabel="Collapse context inspector"
           className="hidden size-7 xl:inline-flex"
-          icon={<HiOutlinePanelRight className="size-4" />}
+          icon={<HiOutlineViewColumns className="size-4" />}
           onClick={() => setIsInspectorOpen(false)}
           size={ButtonSize.ICON}
           variant={ButtonVariant.GHOST}
@@ -417,7 +417,7 @@ function UniversalWorkspaceShellContent({
               <div className="flex items-center gap-1">
                 <Button
                   className="xl:hidden"
-                  icon={<HiOutlinePanelRight className="size-4" />}
+                  icon={<HiOutlineViewColumns className="size-4" />}
                   onClick={() => setIsMobileInspectorOpen(true)}
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
@@ -471,7 +471,7 @@ function UniversalWorkspaceShellContent({
                 Conversation
               </Button>
               <Button
-                icon={<HiOutlinePanelRight className="size-4" />}
+                icon={<HiOutlineViewColumns className="size-4" />}
                 onClick={() => setIsMobileInspectorOpen(true)}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.GHOST}
@@ -509,7 +509,7 @@ function UniversalWorkspaceShellContent({
           <Button
             ariaLabel="Open context inspector"
             className="absolute right-4 top-4 z-10 hidden size-8 xl:inline-flex"
-            icon={<HiOutlinePanelRight className="size-4" />}
+            icon={<HiOutlineViewColumns className="size-4" />}
             onClick={() => setIsInspectorOpen(true)}
             size={ButtonSize.ICON}
             variant={ButtonVariant.OUTLINE}
