@@ -7,7 +7,7 @@ import {
 } from './report-curated-action-catalog';
 
 function catalog(entries: string): string {
-  return `export const CURATED_ACTION_CATALOG = [\n${entries}\n] as const;`;
+  return `export const CURATED_ACTION_CATALOG = [\n${entries},\n] as const;`;
 }
 
 describe('curated action catalog change reporter', () => {
