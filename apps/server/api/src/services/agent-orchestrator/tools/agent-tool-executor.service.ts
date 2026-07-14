@@ -73,6 +73,7 @@ import type {
   AgentUiAction,
   ChartBlock,
   IBrandAgentPrompting,
+  IBrandConversationStarter,
   IGeneratedBrandProfile,
   KPIGridBlock,
   TableBlock,
@@ -2142,7 +2143,7 @@ export class AgentToolExecutorService {
       : [];
     const conversationStarters = Array.isArray(record.conversationStarters)
       ? record.conversationStarters
-          .flatMap((entry) => {
+          .flatMap<IBrandConversationStarter>((entry) => {
             if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
               return [];
             }
