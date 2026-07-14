@@ -176,13 +176,12 @@ export async function authorizeAgentArtifactWrite(
 ): Promise<AuthorizedAgentArtifactWrite> {
   const referenceValues = collectField(params.inputs, 'artifactReferences');
   const pinValues = collectField(params.inputs, 'artifactVersionPinIds');
-  assertBounded(referenceValues, 'artifactReferences');
-  assertBounded(pinValues, 'artifactVersionPinIds');
-
-  const references = referenceValues.map((value) =>
-    rebuildReference(value, params.readContext),
+  const references = dedupeReferences(
+    referenceValues.map((value) => rebuildReference(value, params.readContext)),
   );
   const pinIds = readPinIds(pinValues);
+  assertBounded(references, 'artifactReferences');
+  assertBounded(pinIds, 'artifactVersionPinIds');
   const [resolvedReferences, resolvedPins] = await Promise.all([
     Promise.all(
       references.map((reference) =>
@@ -199,11 +198,14 @@ export async function authorizeAgentArtifactWrite(
     ),
   ]);
 
+  const artifactReferences = dedupeReferences([
+    ...resolvedReferences.map((resolved) => resolved.reference),
+    ...resolvedPins.map((resolved) => resolved.reference),
+  ]);
+  assertBounded(artifactReferences, 'artifactReferences');
+
   return {
-    artifactReferences: dedupeReferences([
-      ...resolvedReferences.map((resolved) => resolved.reference),
-      ...resolvedPins.map((resolved) => resolved.reference),
-    ]),
+    artifactReferences,
     artifactVersionPinIds: pinIds,
   };
 }

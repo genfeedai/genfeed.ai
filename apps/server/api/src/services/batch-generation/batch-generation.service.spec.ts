@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -23,6 +24,12 @@ describe('BatchGenerationService approval version pins', () => {
     updateMany: ReturnType<typeof vi.fn>;
   };
   let service: BatchGenerationService;
+  let prisma: {
+    $transaction: ReturnType<typeof vi.fn>;
+    batch: typeof batchDelegate;
+    post: typeof postDelegate;
+    postAnalytics: { findMany: ReturnType<typeof vi.fn> };
+  };
   let publishApprovalsService: {
     createForCurrentPost: ReturnType<typeof vi.fn>;
     toPublicInterface: ReturnType<typeof vi.fn>;
@@ -66,6 +73,14 @@ describe('BatchGenerationService approval version pins', () => {
       }),
       toPublicInterface: vi.fn((value) => value),
     };
+    prisma = {
+      $transaction: vi.fn((callback) =>
+        callback({ batch: batchDelegate, post: postDelegate }),
+      ),
+      batch: batchDelegate,
+      post: postDelegate,
+      postAnalytics: { findMany: vi.fn().mockResolvedValue([]) },
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -91,11 +106,7 @@ describe('BatchGenerationService approval version pins', () => {
         },
         {
           provide: PrismaService,
-          useValue: {
-            batch: batchDelegate,
-            post: postDelegate,
-            postAnalytics: { findMany: vi.fn().mockResolvedValue([]) },
-          },
+          useValue: prisma,
         },
       ],
     }).compile();
@@ -133,6 +144,10 @@ describe('BatchGenerationService approval version pins', () => {
         reviewItemId: 'item-1',
         surface: 'review-queue',
       },
+      transaction: expect.objectContaining({
+        batch: batchDelegate,
+        post: postDelegate,
+      }),
     });
     expect(postDelegate.updateMany).toHaveBeenCalledWith({
       data: {
@@ -189,6 +204,89 @@ describe('BatchGenerationService approval version pins', () => {
     ).rejects.toThrow('Canonical Post changed.');
 
     expect(postDelegate.updateMany).not.toHaveBeenCalled();
+    expect(batchDelegate.update).not.toHaveBeenCalled();
+  });
+
+  it('rolls back Post reference state when the batch approval write fails', async () => {
+    const item = {
+      _id: 'item-1',
+      format: ContentFormat.IMAGE,
+      postId: 'post-1',
+      status: BatchItemStatus.COMPLETED,
+    };
+    batchDelegate.findFirst.mockResolvedValue(createBatchRecord([item]));
+
+    const durableState = {
+      batchItems: [item],
+      postReviewDecision: null as string | null,
+      postVersionPinId: null as string | null,
+    };
+    const transactionPost = {
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        durableState.postReviewDecision = data.reviewDecision;
+        durableState.postVersionPinId = data.reviewVersionPinId;
+        return Promise.resolve({ count: 1 });
+      }),
+    };
+    const transactionBatch = {
+      update: vi.fn().mockRejectedValue(new Error('batch write failed')),
+    };
+    const transaction = {
+      batch: transactionBatch,
+      post: transactionPost,
+    };
+    prisma.$transaction.mockImplementationOnce(async (callback) => {
+      const originalState = { ...durableState };
+      try {
+        return await callback(transaction);
+      } catch (error: unknown) {
+        Object.assign(durableState, originalState);
+        throw error;
+      }
+    });
+
+    await expect(
+      service.approveItems('batch-1', ['item-1'], 'org-1', 'canonical-user-1'),
+    ).rejects.toThrow('batch write failed');
+
+    expect(durableState).toEqual({
+      batchItems: [item],
+      postReviewDecision: null,
+      postVersionPinId: null,
+    });
+    expect(
+      artifactReferenceService.createOrReuseVersionPin,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        transaction: expect.objectContaining(transaction),
+      }),
+    );
+    expect(postDelegate.updateMany).not.toHaveBeenCalled();
+    expect(batchDelegate.update).not.toHaveBeenCalled();
+  });
+
+  it('maps a missing canonical Post to the API NotFoundException convention', async () => {
+    batchDelegate.findFirst.mockResolvedValue(
+      createBatchRecord([
+        {
+          _id: 'item-1',
+          format: ContentFormat.IMAGE,
+          postId: 'post-1',
+          status: BatchItemStatus.COMPLETED,
+        },
+      ]),
+    );
+    postDelegate.updateMany.mockResolvedValueOnce({ count: 0 });
+
+    const error = await service
+      .approveItems('batch-1', ['item-1'], 'org-1', 'canonical-user-1')
+      .catch((cause: unknown) => cause);
+
+    expect(error).toBeInstanceOf(NotFoundException);
+    expect((error as NotFoundException).getResponse()).toEqual({
+      detail: 'A canonical Post disappeared before approval completed.',
+      title: 'Resource Not Found',
+    });
     expect(batchDelegate.update).not.toHaveBeenCalled();
   });
 

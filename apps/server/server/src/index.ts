@@ -1,6 +1,7 @@
 export {
   AgentArtifactReferenceService,
   type AgentArtifactReferenceTelemetryContext,
+  type AgentArtifactReferenceTransaction,
   type AssertVersionPinCurrentParams,
   type CreateOrReuseVersionPinParams,
   type ResolveMessageArtifactReferencesParams,
