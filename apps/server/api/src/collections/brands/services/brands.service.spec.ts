@@ -11,6 +11,8 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
+import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
+import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -86,14 +88,20 @@ describe('BrandsService', () => {
       prisma,
       loggerService,
       { invalidateByTags: vi.fn() } as unknown as CacheService,
-      brandScraperService as unknown as BrandScraperService,
       cacheInvalidationService as unknown as CacheInvalidationService,
-      filesClientService as unknown as FilesClientService,
       {} as unknown as BrandRelocationService,
       new BrandGenerationService(
         brandScraperService as unknown as BrandScraperService,
         llmDispatcher as unknown as LlmDispatcherService,
         loggerService,
+      ),
+      new BrandKitAssetsService(
+        prisma,
+        cacheInvalidationService as unknown as CacheInvalidationService,
+        filesClientService as unknown as FilesClientService,
+      ),
+      new BrandKitDraftService(
+        brandScraperService as unknown as BrandScraperService,
       ),
     );
   });
