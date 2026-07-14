@@ -35,7 +35,7 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import type { AgentArtifactReferenceService } from '@server/agent-artifacts/agent-artifact-reference.service';
+import { AgentArtifactReferenceService } from '@server/agent-artifacts/agent-artifact-reference.service';
 import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
 
 class PublishApprovalNotFoundException extends HttpException {
