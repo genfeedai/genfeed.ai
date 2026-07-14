@@ -3279,19 +3279,15 @@ describe('AgentOrchestratorService', () => {
       },
     );
 
-    // With turnCost = 0 the service checks credits with 0 (so it never blocks)
-    // and deducts 0 — the net effect is no credits billed for the turn.
+    // With turnCost = 0 the service checks credits with 0 (so it never blocks).
+    // settleAgentTurnCredits skips the deduct call entirely when the billed
+    // turn cost is 0 rather than issuing a zero-amount write — the net effect
+    // is still no credits billed for the turn.
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).toHaveBeenCalledWith(ORG_ID, 0);
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledWith(
-      ORG_ID,
-      USER_ID,
-      0,
-      expect.stringContaining('Agent chat turn'),
-      expect.anything(),
-    );
+    ).not.toHaveBeenCalled();
   });
 });
