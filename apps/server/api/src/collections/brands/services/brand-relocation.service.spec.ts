@@ -11,16 +11,12 @@ import {
   FIRST_ORDER_TARGETS,
   SECOND_ORDER_TARGETS,
 } from '@api/collections/brands/constants/brand-org-cascade.constants';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
-import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import type { CacheService } from '@api/services/cache/services/cache.service';
-import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
-import type { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 type Delegate = {
   count: ReturnType<typeof vi.fn>;
@@ -55,7 +51,7 @@ const EMPTY_RELOCATION_SUMMARY = {
   workflowsMoved: 0,
 };
 
-describe('BrandsService.relocateToOrganization', () => {
+describe('BrandRelocationService', () => {
   let delegates: Map<string, Delegate>;
   let queryRaw: ReturnType<typeof vi.fn>;
   let transactionSpy: ReturnType<typeof vi.fn>;
@@ -65,7 +61,7 @@ describe('BrandsService.relocateToOrganization', () => {
     invalidatePattern: ReturnType<typeof vi.fn>;
   };
   let prismaProxy: unknown;
-  let service: BrandsService;
+  let service: BrandRelocationService;
 
   const getDelegate = (name: string): Delegate => {
     const existing = delegates.get(name);
@@ -107,7 +103,7 @@ describe('BrandsService.relocateToOrganization', () => {
       },
     );
 
-    service = new BrandsService(
+    service = new BrandRelocationService(
       prismaProxy as unknown as PrismaService,
       {
         debug: vi.fn(),
@@ -115,11 +111,7 @@ describe('BrandsService.relocateToOrganization', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as unknown as LoggerService,
-      { invalidateByTags: vi.fn() } as unknown as CacheService,
-      {} as unknown as BrandScraperService,
-      {} as unknown as LlmDispatcherService,
       cacheInvalidationService as unknown as CacheInvalidationService,
-      {} as unknown as FilesClientService,
     );
   });
 
