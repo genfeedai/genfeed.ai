@@ -6,6 +6,10 @@ Twitter thread conversion, virality analysis, and public link sharing.
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { ArticlesController } from '@api/collections/articles/controllers/articles.controller';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
+import { ArticleInsightsService } from '@api/collections/articles/services/article-insights.service';
+import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
+import { ArticleTranscriptService } from '@api/collections/articles/services/article-transcript.service';
+import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
 import { BrandsModule } from '@api/collections/brands/brands.module';
@@ -58,6 +62,10 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     ArticleAnalyticsService,
+    ArticleInsightsService,
+    ArticleRemixService,
+    ArticleTranscriptService,
+    ArticleVersionService,
     ArticlesContentService,
     ArticlesService,
     CreditsGuard,
