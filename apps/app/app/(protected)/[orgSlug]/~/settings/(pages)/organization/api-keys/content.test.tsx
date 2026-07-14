@@ -90,6 +90,8 @@ vi.mock('@services/management/api-keys.service', () => ({
 
 vi.mock('react-icons/hi2', () => ({
   HiArrowPath: () => <span data-testid="hi-arrow-path" />,
+  HiChevronDown: () => <span data-testid="hi-chevron-down" />,
+  HiChevronRight: () => <span data-testid="hi-chevron-right" />,
   HiClipboardDocument: () => <span data-testid="hi-clipboard-document" />,
   HiPlus: () => <span data-testid="hi-plus" />,
   HiTrash: () => <span data-testid="hi-trash" />,
