@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/api-types": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/integrations": "workspace:*",

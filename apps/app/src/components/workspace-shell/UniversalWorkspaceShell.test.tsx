@@ -287,7 +287,8 @@ vi.mock('@ui/primitives/dialog', () => ({
 }));
 
 vi.mock('@ui/primitives/drawer', () => ({
-  Drawer: ({ children }: { children: ReactNode }) => <>{children}</>,
+  Drawer: ({ children, open }: { children: ReactNode; open?: boolean }) =>
+    open ? children : null,
   DrawerContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
@@ -680,7 +681,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('opens and restores the trusted workflow picker without dialog graph UI', () => {
-    navigation.pathname = '/acme/~/workflows';
+    navigation.pathname = '/acme/moonrise/workspace/overview';
     navigation.searchParams = new URLSearchParams({ thread: 'thread-1' });
 
     const view = render(
@@ -693,7 +694,7 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByRole('button', { name: 'Dispatch workflow action' }),
     );
     expect(router.push).toHaveBeenCalledWith(
-      '/acme/~/workflows?thread=thread-1&overlay=workflow-picker',
+      '/acme/moonrise/workspace/overview?thread=thread-1&overlay=workflow-picker',
     );
 
     navigation.searchParams = new URLSearchParams({
@@ -717,7 +718,7 @@ describe('UniversalWorkspaceShell', () => {
       'thread-1',
     );
     expect(router.replace).toHaveBeenCalledWith(
-      '/acme/~/workflows?thread=thread-1',
+      '/acme/moonrise/workspace/overview?thread=thread-1',
     );
   });
 
