@@ -8,6 +8,7 @@ import { TrendsModule } from '@api/collections/trends/trends.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
+import { CampaignWinnerExtractionService } from '@api/services/agent-campaign/campaign-winner-extraction.service';
 import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
 import { ContentRotationService } from '@api/services/agent-campaign/content-rotation.service';
 import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
@@ -25,6 +26,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   exports: [
     CampaignMemoryQueueService,
+    CampaignWinnerExtractionService,
     ContentEngineService,
     ContentRotationService,
     OrchestratorQueueService,
