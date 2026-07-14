@@ -1,3 +1,8 @@
+import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
+import {
+  buildBrandProfileAnalysisPrompt,
+  parseGeneratedBrandProfile,
+} from '@api/collections/brands/utils/brand-profile-generation.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
@@ -17,26 +22,6 @@ import { ReplicateService } from '@server/services/integrations/replicate/servic
 /**
  * System prompts for generating brand master prompts
  */
-const BRAND_ANALYSIS_SYSTEM_PROMPT = `You are a brand strategist and marketing expert. Analyze the provided brand information and generate a comprehensive brand voice profile.
-
-Your analysis should include:
-1. Brand tone (e.g., professional, casual, playful, authoritative)
-2. Brand voice characteristics (e.g., friendly, expert, innovative)
-3. Target audience profile
-4. Core brand values
-5. Key messaging themes and taglines
-6. Relevant hashtags for social media
-
-Respond in JSON format with the following structure:
-{
-  "tone": "string describing overall tone",
-  "voice": "string describing voice characteristics",
-  "audience": "string describing target audience",
-  "values": ["array", "of", "brand", "values"],
-  "taglines": ["array", "of", "suggested", "taglines"],
-  "hashtags": ["array", "of", "hashtags", "without", "hash", "symbol"]
-}`;
-
 const MASTER_PROMPT_SYSTEM_PROMPT = `You are an AI content strategist. Based on the brand information provided, generate system prompts that can be used to create content consistent with the brand's voice and values.
 
 Generate 4 master prompts for the following categories:
@@ -88,14 +73,14 @@ export class MasterPromptGeneratorService {
       const brandContext = this.buildBrandContext(brandData);
 
       // Construct prompt for Replicate text model
-      const fullPrompt = `${BRAND_ANALYSIS_SYSTEM_PROMPT}\n\nAnalyze this brand and generate a voice profile:\n\n${brandContext}\n\nRespond ONLY with a valid JSON object, no additional text.`;
+      const fullPrompt = buildBrandProfileAnalysisPrompt(brandContext);
       const input = {
-        max_tokens: 1000,
+        max_tokens: 1200,
         prompt: fullPrompt,
         temperature: 0.7,
       };
 
-      await this.assertCreditsAvailable(billingContext);
+      await this.assertBrandProfileCreditsAvailable(billingContext);
 
       const content = await this.replicateService.generateTextCompletionSync(
         DEFAULT_TEXT_MODEL,
@@ -106,22 +91,24 @@ export class MasterPromptGeneratorService {
         throw new Error('No response from Replicate');
       }
 
-      await this.settleCredits(billingContext, input, content);
-
-      // Extract JSON from response (may contain markdown code blocks)
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      const jsonContent = jsonMatch ? jsonMatch[0] : content;
-      const analysis = JSON.parse(jsonContent);
+      const analysis = parseGeneratedBrandProfile(content);
+      await this.settleBrandProfileCredits(billingContext);
 
       this.loggerService.log(`${caller} completed`, { analysis });
 
       return {
-        audience: analysis.audience || 'General audience',
-        hashtags: analysis.hashtags || [],
-        taglines: analysis.taglines || [],
-        tone: analysis.tone || 'Professional',
-        values: analysis.values || [],
-        voice: analysis.voice || 'Friendly and informative',
+        audience: analysis.audience.join(', '),
+        doNotSoundLike: analysis.doNotSoundLike,
+        goals: analysis.strategy.goals,
+        hashtags: analysis.hashtags,
+        messagingPillars: analysis.messagingPillars,
+        prompting: analysis.prompting,
+        sampleOutput: analysis.sampleOutput,
+        taglines: analysis.taglines,
+        tone: analysis.tone,
+        topics: analysis.strategy.topics,
+        values: analysis.values,
+        voice: analysis.style,
       };
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
@@ -334,6 +321,51 @@ export class MasterPromptGeneratorService {
         billingContext.organizationId,
       );
     throw new InsufficientCreditsException(requiredCredits, currentBalance);
+  }
+
+  private async assertBrandProfileCreditsAvailable(billingContext?: {
+    organizationId: string;
+    userId: string;
+  }): Promise<void> {
+    if (!billingContext) {
+      return;
+    }
+
+    const hasCredits =
+      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        billingContext.organizationId,
+        BRAND_PROFILE_GENERATION_CREDIT_COST,
+      );
+
+    if (hasCredits) {
+      return;
+    }
+
+    const currentBalance =
+      await this.creditsUtilsService.getOrganizationCreditsBalance(
+        billingContext.organizationId,
+      );
+    throw new InsufficientCreditsException(
+      BRAND_PROFILE_GENERATION_CREDIT_COST,
+      currentBalance,
+    );
+  }
+
+  private async settleBrandProfileCredits(billingContext?: {
+    organizationId: string;
+    userId: string;
+  }): Promise<void> {
+    if (!billingContext) {
+      return;
+    }
+
+    await this.creditsUtilsService.deductCreditsFromOrganization(
+      billingContext.organizationId,
+      billingContext.userId,
+      BRAND_PROFILE_GENERATION_CREDIT_COST,
+      'AI brand profile generation',
+      ActivitySource.SCRIPT,
+    );
   }
 
   private async settleCredits(

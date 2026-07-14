@@ -18,7 +18,10 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -102,6 +105,7 @@ describe('BrandsController', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             findOneBySlug: vi.fn(),
+            generateBrandVoice: vi.fn(),
             patch: vi.fn(),
             remove: vi.fn(),
           },
@@ -162,6 +166,13 @@ describe('BrandsController', () => {
     })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
+      .overrideGuard(CreditsGuard)
+      .useValue({ canActivate: () => true })
+      .overrideInterceptor(CreditsInterceptor)
+      .useValue({
+        intercept: (_context: unknown, next: { handle: () => unknown }) =>
+          next.handle(),
+      })
       .compile();
 
     controller = module.get<BrandsController>(BrandsController);
@@ -180,6 +191,15 @@ describe('BrandsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('charges one credit for direct AI brand profile generation', () => {
+    expect(
+      Reflect.getMetadata(CREDITS_KEY, controller.generateBrandVoice),
+    ).toMatchObject({
+      amount: 1,
+      description: 'AI brand profile generation',
+    });
   });
 
   it('passes onboarding profile fields through the sync rename path', async () => {

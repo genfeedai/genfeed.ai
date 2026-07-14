@@ -1,4 +1,5 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import type { IGeneratedBrandProfile } from '@genfeedai/interfaces';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
@@ -74,14 +75,4 @@ export class GenerateBrandVoiceDto {
   examplesToAvoid?: string[];
 }
 
-export interface GeneratedBrandVoice {
-  tone: string;
-  style: string;
-  audience: string[];
-  values: string[];
-  taglines: string[];
-  hashtags: string[];
-  messagingPillars: string[];
-  doNotSoundLike: string[];
-  sampleOutput: string;
-}
+export type GeneratedBrandVoice = IGeneratedBrandProfile;

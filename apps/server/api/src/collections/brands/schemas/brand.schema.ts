@@ -26,7 +26,28 @@ export interface BrandAgentStrategy {
   frequency?: string;
   goals?: string[];
   platforms?: string[];
+  topics?: string[];
   [key: string]: unknown;
+}
+
+export interface BrandPromptSeed {
+  angle: string;
+  audience: string;
+  preferredFormats: string[];
+  topic: string;
+}
+
+export interface BrandConversationStarter {
+  id: string;
+  intent: 'analyze' | 'create' | 'plan';
+  label: string;
+  prompt: string;
+  topic: string;
+}
+
+export interface BrandAgentPrompting {
+  conversationStarters: BrandConversationStarter[];
+  seeds: BrandPromptSeed[];
 }
 
 export interface BrandAgentSchedule {
@@ -64,6 +85,7 @@ export interface BrandAgentConfig {
     | Record<string, BrandAgentPlatformOverride>;
   schedule?: BrandAgentSchedule;
   strategy?: Partial<BrandAgentStrategy>;
+  prompting?: BrandAgentPrompting;
   voice?: Partial<BrandAgentVoice>;
   [key: string]: unknown;
 }

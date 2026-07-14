@@ -1,3 +1,4 @@
+import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolsForSurface } from '@genfeedai/tools';
 
@@ -10,6 +11,8 @@ const EXTRA_AGENT_CREDIT_COSTS: Record<string, number> = {
   [AgentToolName.CREATE_AD_REMIX_WORKFLOW]: 0,
   [AgentToolName.CREATE_LIVESTREAM_BOT]: 0,
   [AgentToolName.CREATE_POST]: 0,
+  [AgentToolName.DRAFT_BRAND_VOICE_PROFILE]:
+    BRAND_PROFILE_GENERATION_CREDIT_COST,
   [AgentToolName.GENERATE_AD_PACK]: 0,
   [AgentToolName.GET_AD_RESEARCH_DETAIL]: 0,
   [AgentToolName.GET_TOP_INGREDIENTS]: 0,

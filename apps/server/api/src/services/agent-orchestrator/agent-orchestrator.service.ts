@@ -75,6 +75,7 @@ import {
   applyAgentReplyStyle,
   buildAgentSystemPrompt,
 } from '@api/services/agent-orchestrator/utils/agent-system-prompt.util';
+import { settleAgentTurnCredits } from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
@@ -707,14 +708,14 @@ export class AgentOrchestratorService {
           );
           const content = normalizedContent.content;
 
-          await this.creditsUtilsService.deductCreditsFromOrganization(
-            context.organizationId,
-            context.userId,
+          totalCreditsUsed += await settleAgentTurnCredits({
+            creditsUtilsService: this.creditsUtilsService,
+            model,
+            organizationId: context.organizationId,
+            toolCalls: allToolCalls,
             turnCost,
-            `Agent chat turn (${model})`,
-            ActivitySource.SCRIPT,
-          );
-          totalCreditsUsed += turnCost;
+            userId: context.userId,
+          });
 
           await this.maybeUpdateThreadTitle({
             context,
@@ -1596,15 +1597,14 @@ export class AgentOrchestratorService {
           );
           const content = normalizedContent.content;
 
-          // Deduct credits
-          await this.creditsUtilsService.deductCreditsFromOrganization(
-            context.organizationId,
-            context.userId,
+          totalCreditsUsed += await settleAgentTurnCredits({
+            creditsUtilsService: this.creditsUtilsService,
+            model,
+            organizationId: context.organizationId,
+            toolCalls: allToolCalls,
             turnCost,
-            `Agent chat turn (${model})`,
-            ActivitySource.SCRIPT,
-          );
-          totalCreditsUsed += turnCost;
+            userId: context.userId,
+          });
 
           await this.maybeUpdateThreadTitle({
             context,

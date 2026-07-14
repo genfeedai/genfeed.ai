@@ -37,6 +37,7 @@ describe('agent-tool-registry', () => {
   });
 
   it('should set non-zero credit costs for generation tools', () => {
+    expect(AGENT_CREDIT_COSTS[AgentToolName.DRAFT_BRAND_VOICE_PROFILE]).toBe(1);
     expect(AGENT_CREDIT_COSTS[AgentToolName.GENERATE_IMAGE]).toBe(50);
     expect(AGENT_CREDIT_COSTS[AgentToolName.GENERATE_VIDEO]).toBe(300);
     expect(AGENT_CREDIT_COSTS[AgentToolName.GENERATE_MUSIC]).toBe(10);

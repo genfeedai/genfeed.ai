@@ -10,7 +10,10 @@
     {
       "name": "app",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd apps/app && bun run dev"],
+      "runtimeArgs": [
+        "-c",
+        "cd apps/app && API_URL=http://genfeed.localhost:3010/v1 bun run dev"
+      ],
       "port": 3000
     },
     {
@@ -26,7 +29,7 @@
         "-c",
         "bunx turbo run dev --filter=@genfeedai/notifications"
       ],
-      "port": 3011
+      "port": 3111
     }
   ]
 }

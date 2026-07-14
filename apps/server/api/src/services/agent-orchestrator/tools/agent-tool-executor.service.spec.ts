@@ -69,7 +69,30 @@ describe('AgentToolExecutorService', () => {
         doNotSoundLike: ['corporate jargon', 'broetry'],
         hashtags: ['#genfeed'],
         messagingPillars: ['clarity', 'speed', 'proof'],
+        prompting: {
+          conversationStarters: [
+            {
+              id: 'brand-create-clarity',
+              intent: 'create',
+              label: 'Create clarity',
+              prompt: 'Create three posts about clarity.',
+              topic: 'clarity',
+            },
+          ],
+          seeds: [
+            {
+              angle: 'Practical guide',
+              audience: 'founders',
+              preferredFormats: ['post'],
+              topic: 'clarity',
+            },
+          ],
+        },
         sampleOutput: 'Clear systems beat noisy hustle.',
+        strategy: {
+          goals: ['Increase qualified leads'],
+          topics: ['clarity', 'speed', 'proof'],
+        },
         style: 'direct',
         taglines: ['Ship with signal'],
         tone: 'confident',
@@ -1416,6 +1439,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
+      agentConfig: { strategy: { platforms: ['linkedin'] } },
       id: 'brand-voice-1',
       label: 'Genfeed',
     });
@@ -1472,6 +1496,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
+      agentConfig: { strategy: { platforms: ['linkedin'] } },
       id: 'brand-voice-1',
       label: 'Genfeed',
     });
@@ -1489,7 +1514,30 @@ describe('AgentToolExecutorService', () => {
           exemplarTexts: ['We ship systems, not vibes'],
           hashtags: ['#genfeed'],
           messagingPillars: ['clarity', 'systems'],
+          prompting: {
+            conversationStarters: [
+              {
+                id: 'brand-create-clarity',
+                intent: 'create',
+                label: 'Create clarity',
+                prompt: 'Create three posts about clarity.',
+                topic: 'clarity',
+              },
+            ],
+            seeds: [
+              {
+                angle: 'Practical guide',
+                audience: 'founders',
+                preferredFormats: ['post'],
+                topic: 'clarity',
+              },
+            ],
+          },
           sampleOutput: 'Clear systems create compounding output.',
+          strategy: {
+            goals: ['Increase qualified leads'],
+            topics: ['clarity', 'systems'],
+          },
           style: 'direct',
           taglines: ['Ship with signal'],
           tone: 'confident',
@@ -1508,6 +1556,30 @@ describe('AgentToolExecutorService', () => {
       'brand-voice-1',
       '67a123456789012345678901',
       {
+        prompting: {
+          conversationStarters: [
+            {
+              id: 'brand-create-clarity',
+              intent: 'create',
+              label: 'Create clarity',
+              prompt: 'Create three posts about clarity.',
+              topic: 'clarity',
+            },
+          ],
+          seeds: [
+            {
+              angle: 'Practical guide',
+              audience: 'founders',
+              preferredFormats: ['post'],
+              topic: 'clarity',
+            },
+          ],
+        },
+        strategy: {
+          goals: ['Increase qualified leads'],
+          platforms: ['linkedin'],
+          topics: ['clarity', 'systems'],
+        },
         voice: {
           approvedHooks: ['Say the quiet part out loud'],
           audience: ['founders', 'operators'],

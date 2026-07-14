@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
 import { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
 import { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
@@ -28,12 +29,15 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
+import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -65,6 +69,7 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -631,6 +636,13 @@ export class BrandsController extends BaseCRUDController<
   }
 
   @Post(':id/agent-config/generate-voice')
+  @Credits({
+    amount: BRAND_PROFILE_GENERATION_CREDIT_COST,
+    description: 'AI brand profile generation',
+    source: ActivitySource.SCRIPT,
+  })
+  @UseGuards(CreditsGuard)
+  @UseInterceptors(CreditsInterceptor)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generateBrandVoice(
     @CurrentUser() user: User,
