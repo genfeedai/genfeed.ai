@@ -43,22 +43,16 @@ export class BrandInterviewService extends HTTPBaseService {
     brandId: string,
     signal?: AbortSignal,
   ): Promise<IActiveBrandInterview | null> {
-    try {
-      const response = await this.instance.get<IActiveBrandInterview | null>(
-        `/${brandId}/interview/active`,
-        { signal },
-      );
+    const response = await this.instance.get<IActiveBrandInterview | null>(
+      `/${brandId}/interview/active`,
+      {
+        signal,
+        validateStatus: (status) =>
+          status === 404 || (status >= 200 && status < 300),
+      },
+    );
 
-      return response.data;
-    } catch (err: unknown) {
-      const httpErr = err as { response?: { status?: number } };
-
-      if (httpErr?.response?.status === 404) {
-        return null;
-      }
-
-      throw err;
-    }
+    return response.status === 404 ? null : response.data;
   }
 
   public async submitAnswer(

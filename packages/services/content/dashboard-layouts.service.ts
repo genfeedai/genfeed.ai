@@ -34,29 +34,25 @@ export class DashboardLayoutsService extends BaseService<DashboardLayout> {
   }
 
   /**
-   * Fetch the persisted layout for a brand/page. Returns `undefined` when the
+   * Fetch the persisted layout for a brand/page. Returns `null` when the
    * brand has no saved layout yet (server responds 404) rather than throwing —
    * callers fall back to the default page rendering in that case.
    */
   public async findForPage(
     brandId: string,
     pageKey: string = DEFAULT_PAGE_KEY,
-  ): Promise<DashboardLayout | undefined> {
-    try {
-      const response = await this.instance.get<JsonApiResponseDocument>('', {
-        params: { brand: brandId, pageKey },
-      });
-      return await this.mapOne(response.data);
-    } catch (err: unknown) {
-      const httpError = err as { response?: { status?: number } };
-      if (httpError?.response?.status === 404) {
-        return undefined;
-      }
-      return this.handleOperationError(
-        `GET ${API_ENDPOINTS.DASHBOARD_LAYOUTS}?brand=${brandId}&pageKey=${pageKey}`,
-        err,
-      );
+  ): Promise<DashboardLayout | null> {
+    const response = await this.instance.get<JsonApiResponseDocument>('', {
+      params: { brand: brandId, pageKey },
+      validateStatus: (status) =>
+        status === 404 || (status >= 200 && status < 300),
+    });
+
+    if (response.status === 404) {
+      return null;
     }
+
+    return await this.mapOne(response.data);
   }
 
   /**
