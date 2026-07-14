@@ -71,7 +71,7 @@ describe('BrandWebsiteParserService', () => {
     });
 
     expect(() => service.assertHtmlResponse(response)).toThrow(
-      'Expected HTML response',
+      'Unsupported content type: application/json',
     );
   });
 });
