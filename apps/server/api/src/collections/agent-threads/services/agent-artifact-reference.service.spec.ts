@@ -244,6 +244,36 @@ describe('AgentArtifactReferenceService', () => {
     expect(prisma.contentVersionPin.create).toHaveBeenCalledTimes(1);
   });
 
+  it('creates the version pin through a caller-provided transaction', async () => {
+    const transaction = createPrismaMock();
+    transaction.member.findFirst.mockResolvedValue({ id: 'member-1' });
+    transaction.post.findFirst.mockResolvedValue({
+      brandId,
+      description: 'Approved copy',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: orgId,
+    });
+    transaction.contentVersionPin.findFirst.mockResolvedValue(null);
+    transaction.contentVersionPin.create.mockImplementation(
+      async ({ data }: { data: Record<string, unknown> }) => ({
+        ...data,
+        createdAt: new Date('2026-07-13T20:00:00.000Z'),
+      }),
+    );
+
+    await service.createOrReuseVersionPin({
+      createdByUserId: userId,
+      reference: reference('post'),
+      transaction,
+    });
+
+    expect(transaction.post.findFirst).toHaveBeenCalled();
+    expect(transaction.contentVersionPin.create).toHaveBeenCalled();
+    expect(prisma.post.findFirst).not.toHaveBeenCalled();
+    expect(prisma.contentVersionPin.create).not.toHaveBeenCalled();
+  });
+
   it('fails closed when canonical post material changes after pinning', async () => {
     const original = {
       brandId,

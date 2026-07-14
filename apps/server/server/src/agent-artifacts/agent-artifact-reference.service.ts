@@ -8,7 +8,7 @@ import type {
   ResolvedAgentArtifactReference,
 } from '@genfeedai/interfaces';
 import { AGENT_ARTIFACT_SERIALIZER_BY_KIND } from '@genfeedai/interfaces';
-import type { ContentVersionPin } from '@genfeedai/prisma';
+import type { ContentVersionPin, Prisma } from '@genfeedai/prisma';
 import {
   ArticleSerializer,
   AssetSerializer,
@@ -92,6 +92,7 @@ export interface AgentArtifactReferenceTelemetryContext {
 export interface CreateOrReuseVersionPinParams {
   createdByUserId: string;
   reference: AgentArtifactReference;
+  transaction?: AgentArtifactReferenceTransaction;
 }
 
 export interface AssertVersionPinCurrentParams {
@@ -117,6 +118,20 @@ interface LegacyReferenceCandidate {
   recordId: string;
   source: LegacyReferenceSource;
 }
+
+export type AgentArtifactReferenceTransaction = Pick<
+  Prisma.TransactionClient,
+  | 'article'
+  | 'asset'
+  | 'brand'
+  | 'contentDraft'
+  | 'contentVersionPin'
+  | 'ingredient'
+  | 'member'
+  | 'newsletter'
+  | 'organization'
+  | 'post'
+>;
 
 const SERIALIZERS = {
   article: ArticleSerializer,
@@ -147,20 +162,8 @@ function artifactNotFound(label: string, id: string): HttpException {
 export class AgentArtifactReferenceService {
   constructor(
     @Inject(SERVER_TOKENS.prisma)
-    private readonly prisma: Pick<
-      ServerPrisma,
-      | 'agentMessage'
-      | 'article'
-      | 'asset'
-      | 'brand'
-      | 'contentDraft'
-      | 'contentVersionPin'
-      | 'ingredient'
-      | 'member'
-      | 'newsletter'
-      | 'organization'
-      | 'post'
-    >,
+    private readonly prisma: AgentArtifactReferenceTransaction &
+      Pick<ServerPrisma, 'agentMessage'>,
     @Inject(SERVER_TOKENS.logger)
     @Optional()
     private readonly logger?: ServerLogger,
@@ -190,6 +193,7 @@ export class AgentArtifactReferenceService {
   async createOrReuseVersionPin(
     params: CreateOrReuseVersionPinParams,
   ): Promise<AgentArtifactVersionPin> {
+    const prisma = params.transaction ?? this.prisma;
     const readContext: AgentArtifactReferenceReadContext = {
       brandId: params.reference.brandId,
       organizationId: params.reference.organizationId,
@@ -198,12 +202,14 @@ export class AgentArtifactReferenceService {
     await this.assertActorAuthorized(
       params.createdByUserId,
       params.reference.organizationId,
+      prisma,
     );
 
     const canonical = await this.loadCanonicalRecord(
       params.reference.kind,
       params.reference.recordId,
       params.reference.organizationId,
+      prisma,
     );
     this.assertCanonicalScope(params.reference, canonical.brandId);
 
@@ -224,6 +230,7 @@ export class AgentArtifactReferenceService {
     const existing = await this.findPinByIdempotencyKey(
       params.reference.organizationId,
       idempotencyKey,
+      prisma,
     );
     if (existing) {
       return this.toVersionPin(existing);
@@ -231,7 +238,7 @@ export class AgentArtifactReferenceService {
 
     const id = randomUUID();
     try {
-      const created = await this.prisma.contentVersionPin.create({
+      const created = await prisma.contentVersionPin.create({
         data: {
           brandId: params.reference.brandId ?? null,
           contentDigest,
@@ -253,13 +260,17 @@ export class AgentArtifactReferenceService {
       });
       return this.toVersionPin(created);
     } catch (error: unknown) {
-      if ((error as { code?: unknown }).code !== 'P2002') {
+      if (
+        params.transaction ||
+        (error as { code?: unknown }).code !== 'P2002'
+      ) {
         throw error;
       }
 
       const winner = await this.findPinByIdempotencyKey(
         params.reference.organizationId,
         idempotencyKey,
+        prisma,
       );
       if (!winner) {
         throw error;
@@ -479,12 +490,13 @@ export class AgentArtifactReferenceService {
     kind: AgentArtifactRecordKind,
     recordId: string,
     organizationId: string,
+    prisma: AgentArtifactReferenceTransaction = this.prisma,
   ): Promise<CanonicalRecordState> {
     switch (kind) {
       case 'article':
         return this.loadScopedRecord(
           'Article',
-          this.prisma.article,
+          prisma.article,
           recordId,
           organizationId,
           [
@@ -498,11 +510,11 @@ export class AgentArtifactReferenceService {
           ],
         );
       case 'asset':
-        return this.loadAsset(recordId, organizationId);
+        return this.loadAsset(recordId, organizationId, prisma);
       case 'content-draft':
         return this.loadScopedRecord(
           'Content draft',
-          this.prisma.contentDraft,
+          prisma.contentDraft,
           recordId,
           organizationId,
           [
@@ -519,12 +531,12 @@ export class AgentArtifactReferenceService {
           ],
         );
       case 'ingredient': {
-        return this.loadIngredient(recordId, organizationId);
+        return this.loadIngredient(recordId, organizationId, prisma);
       }
       case 'newsletter':
         return this.loadScopedRecord(
           'Newsletter',
-          this.prisma.newsletter,
+          prisma.newsletter,
           recordId,
           organizationId,
           [
@@ -541,15 +553,16 @@ export class AgentArtifactReferenceService {
           ],
         );
       case 'post':
-        return this.loadPost(recordId, organizationId);
+        return this.loadPost(recordId, organizationId, prisma);
     }
   }
 
   private async loadIngredient(
     recordId: string,
     organizationId: string,
+    prisma: AgentArtifactReferenceTransaction,
   ): Promise<CanonicalRecordState> {
-    const result = await this.prisma.ingredient.findFirst({
+    const result = await prisma.ingredient.findFirst({
       include: {
         metadata: true,
         prompt: true,
@@ -605,8 +618,9 @@ export class AgentArtifactReferenceService {
   private async loadPost(
     recordId: string,
     organizationId: string,
+    prisma: AgentArtifactReferenceTransaction,
   ): Promise<CanonicalRecordState> {
-    const result = await this.prisma.post.findFirst({
+    const result = await prisma.post.findFirst({
       include: {
         children: {
           include: {
@@ -695,8 +709,9 @@ export class AgentArtifactReferenceService {
   private async loadAsset(
     recordId: string,
     organizationId: string,
+    prisma: AgentArtifactReferenceTransaction,
   ): Promise<CanonicalRecordState> {
-    const asset = await this.prisma.asset.findFirst({
+    const asset = await prisma.asset.findFirst({
       where: { id: recordId, isDeleted: false },
     });
     if (!asset) {
@@ -712,7 +727,7 @@ export class AgentArtifactReferenceService {
       if (!actualBrandId) {
         throw artifactNotFound('Asset', recordId);
       }
-      const brand = await this.prisma.brand.findFirst({
+      const brand = await prisma.brand.findFirst({
         select: { id: true, organizationId: true },
         where: { id: actualBrandId, isDeleted: false, organizationId },
       });
@@ -722,7 +737,7 @@ export class AgentArtifactReferenceService {
       if (!parentIngredientId) {
         throw artifactNotFound('Asset', recordId);
       }
-      const parent = await this.prisma.ingredient.findFirst({
+      const parent = await prisma.ingredient.findFirst({
         select: { brandId: true, organizationId: true },
         where: {
           id: parentIngredientId,
@@ -737,7 +752,7 @@ export class AgentArtifactReferenceService {
       if (!parentArticleId) {
         throw artifactNotFound('Asset', recordId);
       }
-      const parent = await this.prisma.article.findFirst({
+      const parent = await prisma.article.findFirst({
         select: { brandId: true, organizationId: true },
         where: {
           id: parentArticleId,
@@ -852,9 +867,10 @@ export class AgentArtifactReferenceService {
   private async assertActorAuthorized(
     userId: string,
     organizationId: string,
+    prisma: AgentArtifactReferenceTransaction,
   ): Promise<void> {
     const [member, organization] = await Promise.all([
-      this.prisma.member.findFirst({
+      prisma.member.findFirst({
         select: { id: true },
         where: {
           isActive: true,
@@ -863,7 +879,7 @@ export class AgentArtifactReferenceService {
           userId,
         },
       }),
-      this.prisma.organization.findUnique({
+      prisma.organization.findUnique({
         select: { userId: true },
         where: { id: organizationId, isDeleted: false },
       }),
@@ -927,8 +943,9 @@ export class AgentArtifactReferenceService {
   private async findPinByIdempotencyKey(
     organizationId: string,
     idempotencyKey: string,
+    prisma: AgentArtifactReferenceTransaction = this.prisma,
   ): Promise<ContentVersionPin | null> {
-    return this.prisma.contentVersionPin.findFirst({
+    return prisma.contentVersionPin.findFirst({
       where: { idempotencyKey, organizationId },
     });
   }

@@ -799,110 +799,118 @@ export class BatchGenerationService {
           .flatMap((item) => (item.postId ? [item.postId] : [])),
       ),
     ];
-    const versionPinIds = new Map<string, string>();
-    const publishApprovals = new Map<string, IPublishApproval>();
+    const updatedBatch = await this.prisma.$transaction(async (transaction) => {
+      const versionPinIds = new Map<string, string>();
+      const publishApprovals = new Map<string, IPublishApproval>();
 
-    for (const postId of selectedPostIds) {
-      const item = batchItems.find((candidate) => candidate.postId === postId);
-      if (item?.scheduledDate) {
-        const approval =
-          await this.publishApprovalsService.createForCurrentPost({
-            actorUserId: createdByUserId,
-            mode: 'scheduled',
-            organizationId: orgId,
-            postId,
-            provenance: {
-              batchId,
-              reviewItemId: item._id,
-              surface: 'review-queue',
-            },
-          });
-        publishApprovals.set(postId, approval);
-        versionPinIds.set(postId, approval.artifactVersionPinId);
-      } else {
-        const versionPin =
-          await this.agentArtifactReferenceService.createOrReuseVersionPin({
-            createdByUserId,
-            reference: {
-              ...(batchRecord.brandId ? { brandId: batchRecord.brandId } : {}),
-              kind: 'post',
+      for (const postId of selectedPostIds) {
+        const item = batchItems.find(
+          (candidate) => candidate.postId === postId,
+        );
+        if (item?.scheduledDate) {
+          const approval =
+            await this.publishApprovalsService.createForCurrentPost({
+              actorUserId: createdByUserId,
+              mode: 'scheduled',
               organizationId: orgId,
-              recordId: postId,
-              serializer: 'post',
-            },
-          });
-        versionPinIds.set(postId, versionPin.id);
-      }
-    }
-
-    const postIdsToSchedule: string[] = [];
-
-    for (const item of batchItems) {
-      if (
-        itemIdSet.has(item._id) &&
-        item.status === BatchItemStatus.COMPLETED
-      ) {
-        const versionPinId = item.postId
-          ? versionPinIds.get(item.postId)
-          : undefined;
-        item.reviewDecision = 'approved';
-        item.publishApproval = item.postId
-          ? publishApprovals.get(item.postId)
-          : undefined;
-        item.reviewFeedback = undefined;
-        item.versionPinId = versionPinId;
-        item.reviewedAt = reviewedAt;
-        item.reviewEvents = [
-          ...(item.reviewEvents ?? []),
-          {
-            decision: 'approved',
-            reviewedAt,
-            ...(versionPinId ? { versionPinId } : {}),
-          },
-        ];
-        if (item.postId && item.scheduledDate) {
-          postIdsToSchedule.push(item.postId);
+              postId,
+              provenance: {
+                batchId,
+                reviewItemId: item._id,
+                surface: 'review-queue',
+              },
+              transaction,
+            });
+          publishApprovals.set(postId, approval);
+          versionPinIds.set(postId, approval.artifactVersionPinId);
+        } else {
+          const versionPin =
+            await this.agentArtifactReferenceService.createOrReuseVersionPin({
+              createdByUserId,
+              reference: {
+                ...(batchRecord.brandId
+                  ? { brandId: batchRecord.brandId }
+                  : {}),
+                kind: 'post',
+                organizationId: orgId,
+                recordId: postId,
+                serializer: 'post',
+              },
+              transaction,
+            });
+          versionPinIds.set(postId, versionPin.id);
         }
       }
-    }
 
-    const approvalUpdates = await Promise.all(
-      selectedPostIds.map((postId) =>
-        this.prisma.post.updateMany({
-          data: {
-            reviewDecision: 'APPROVED' as never,
-            reviewVersionPinId: versionPinIds.get(postId),
-            reviewedAt: new Date(reviewedAt),
-          },
+      const postIdsToSchedule: string[] = [];
+
+      for (const item of batchItems) {
+        if (
+          itemIdSet.has(item._id) &&
+          item.status === BatchItemStatus.COMPLETED
+        ) {
+          const versionPinId = item.postId
+            ? versionPinIds.get(item.postId)
+            : undefined;
+          item.reviewDecision = 'approved';
+          item.publishApproval = item.postId
+            ? publishApprovals.get(item.postId)
+            : undefined;
+          item.reviewFeedback = undefined;
+          item.versionPinId = versionPinId;
+          item.reviewedAt = reviewedAt;
+          item.reviewEvents = [
+            ...(item.reviewEvents ?? []),
+            {
+              decision: 'approved',
+              reviewedAt,
+              ...(versionPinId ? { versionPinId } : {}),
+            },
+          ];
+          if (item.postId && item.scheduledDate) {
+            postIdsToSchedule.push(item.postId);
+          }
+        }
+      }
+
+      const approvalUpdates = await Promise.all(
+        selectedPostIds.map((postId) =>
+          transaction.post.updateMany({
+            data: {
+              reviewDecision: 'APPROVED' as never,
+              reviewVersionPinId: versionPinIds.get(postId),
+              reviewedAt: new Date(reviewedAt),
+            },
+            where: {
+              id: postId,
+              isDeleted: false,
+              organizationId: orgId,
+            },
+          }),
+        ),
+      );
+      if (approvalUpdates.some((result) => result.count !== 1)) {
+        throw new NotFoundException({
+          message: 'A canonical Post disappeared before approval completed.',
+        });
+      }
+
+      if (postIdsToSchedule.length > 0) {
+        await transaction.post.updateMany({
+          data: { status: PostStatus.SCHEDULED as never },
           where: {
-            id: postId,
+            id: { in: postIdsToSchedule },
             isDeleted: false,
             organizationId: orgId,
           },
-        }),
-      ),
-    );
-    if (approvalUpdates.some((result) => result.count !== 1)) {
-      throw new Error(
-        'A canonical Post disappeared before approval completed.',
-      );
-    }
+        });
+      }
 
-    if (postIdsToSchedule.length > 0) {
-      await this.prisma.post.updateMany({
-        data: { status: PostStatus.SCHEDULED as never },
-        where: {
-          id: { in: postIdsToSchedule },
-          isDeleted: false,
-          organizationId: orgId,
-        },
-      });
-    }
-
-    const updatedBatch = (await this.prisma.batch.update({
-      data: { items: batchItems as never },
-      where: { id: batchId },
-    })) as BatchWithConfig;
+      return (await transaction.batch.update({
+        data: { items: batchItems as never },
+        where: { id: batchId },
+      })) as BatchWithConfig;
+    });
 
     this.logger.log(`Approved ${itemIds.length} items in batch ${batchId}`, {
       batchId,

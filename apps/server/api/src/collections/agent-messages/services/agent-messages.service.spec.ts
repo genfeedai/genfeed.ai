@@ -335,4 +335,27 @@ describe('AgentMessagesService', () => {
       }),
     });
   });
+
+  it('preserves tool-result linkage while copying messages between rooms', async () => {
+    agentMessage.findMany.mockResolvedValueOnce([
+      {
+        artifactReferences: [],
+        artifactVersionPinIds: [],
+        id: 'tool-result-message',
+        organizationId: 'org-1',
+        role: 'tool',
+        threadId: 'source',
+        toolCallId: 'tool-call-1',
+      },
+    ]);
+
+    await service.copyMessages('source', 'target', 'org-1');
+
+    expect(agentMessage.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        threadId: 'target',
+        toolCallId: 'tool-call-1',
+      }),
+    });
+  });
 });

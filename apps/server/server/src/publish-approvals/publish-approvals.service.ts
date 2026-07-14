@@ -84,6 +84,11 @@ type PublishApprovalRow = {
   updatedAt: Date;
 };
 
+type PublishApprovalTransaction = Pick<
+  Prisma.TransactionClient,
+  'post' | 'publishApproval'
+>;
+
 type ApprovalPost = {
   agentContextVersion: number | null;
   brandId: string;
@@ -104,6 +109,7 @@ export interface CreatePostPublishApprovalParams {
   body: unknown;
   organizationId: string;
   provenance?: Record<string, unknown>;
+  transaction?: Prisma.TransactionClient;
 }
 
 export interface ClaimPublishExecutionParams {
@@ -121,6 +127,7 @@ export interface CreateCurrentPostPublishApprovalParams {
   organizationId: string;
   postId: string;
   provenance?: Record<string, unknown>;
+  transaction?: Prisma.TransactionClient;
 }
 
 export interface PublishExecutionClaim {
@@ -165,6 +172,7 @@ export class PublishApprovalsService {
     const post = await this.getPostOrThrow(
       params.organizationId,
       params.postId,
+      params.transaction,
     );
     const scheduleIntent: IPublishScheduleIntent =
       params.mode === 'scheduled'
@@ -189,14 +197,20 @@ export class PublishApprovalsService {
       },
       organizationId: params.organizationId,
       provenance: params.provenance,
+      transaction: params.transaction,
     });
   }
 
   async createForPost(
     params: CreatePostPublishApprovalParams,
   ): Promise<IPublishApproval> {
+    const client = params.transaction ?? this.prisma;
     const input = this.parseCreateInput(params.body);
-    const post = await this.getPostOrThrow(params.organizationId, input.postId);
+    const post = await this.getPostOrThrow(
+      params.organizationId,
+      input.postId,
+      client,
+    );
     this.assertTargetStatus(post);
     if (
       input.contextVersion !== undefined &&
@@ -216,6 +230,7 @@ export class PublishApprovalsService {
           recordId: post.id,
           serializer: 'post',
         },
+        transaction: params.transaction,
       });
 
     const destinations = this.canonicalDestinations(post);
@@ -231,7 +246,7 @@ export class PublishApprovalsService {
       scheduleIntent: input.scheduleIntent,
     };
     const scopeDigest = this.digest(scope);
-    const existing = (await this.prisma.publishApproval.findFirst({
+    const existing = (await client.publishApproval.findFirst({
       where: {
         organizationId: post.organizationId,
         postId: post.id,
@@ -239,7 +254,7 @@ export class PublishApprovalsService {
       },
     })) as PublishApprovalRow | null;
     if (existing) {
-      await this.activatePostApproval(post, existing);
+      await this.activatePostApproval(post, existing, client);
       return this.toInterface(existing);
     }
 
@@ -259,7 +274,9 @@ export class PublishApprovalsService {
 
     let approval: PublishApprovalRow;
     try {
-      approval = await this.prisma.$transaction(async (tx) => {
+      const persistApproval = async (
+        tx: PublishApprovalTransaction,
+      ): Promise<PublishApprovalRow> => {
         const active = (await tx.publishApproval.findMany({
           where: {
             organizationId: post.organizationId,
@@ -332,12 +349,18 @@ export class PublishApprovalsService {
           where: { id: post.id },
         });
         return created;
-      });
+      };
+      approval = params.transaction
+        ? await persistApproval(params.transaction)
+        : await this.prisma.$transaction(persistApproval);
     } catch (error: unknown) {
-      if ((error as { code?: unknown }).code !== 'P2002') {
+      if (
+        params.transaction ||
+        (error as { code?: unknown }).code !== 'P2002'
+      ) {
         throw error;
       }
-      const concurrentWinner = (await this.prisma.publishApproval.findFirst({
+      const concurrentWinner = (await client.publishApproval.findFirst({
         where: {
           organizationId: post.organizationId,
           postId: post.id,
@@ -347,7 +370,7 @@ export class PublishApprovalsService {
       if (!concurrentWinner) {
         throw error;
       }
-      await this.activatePostApproval(post, concurrentWinner);
+      await this.activatePostApproval(post, concurrentWinner, client);
       return this.toInterface(concurrentWinner);
     }
 
@@ -680,6 +703,7 @@ export class PublishApprovalsService {
   private async activatePostApproval(
     post: ApprovalPost,
     approval: PublishApprovalRow,
+    client: PublishApprovalTransaction = this.prisma,
   ): Promise<void> {
     const status = this.parseStatus(approval.status);
     if (
@@ -690,7 +714,7 @@ export class PublishApprovalsService {
         'The matching approval was revoked; create a new version before approval.',
       );
     }
-    await this.prisma.post.update({
+    await client.post.update({
       data: {
         publishApprovalId: approval.id,
         reviewDecision: 'APPROVED',
@@ -703,8 +727,9 @@ export class PublishApprovalsService {
   private async getPostOrThrow(
     organizationId: string,
     postId: string,
+    client: Pick<Prisma.TransactionClient, 'post'> = this.prisma,
   ): Promise<ApprovalPost> {
-    const post = (await this.prisma.post.findFirst({
+    const post = (await client.post.findFirst({
       select: {
         agentContextVersion: true,
         brandId: true,

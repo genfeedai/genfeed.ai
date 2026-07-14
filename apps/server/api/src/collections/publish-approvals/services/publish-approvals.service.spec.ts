@@ -146,6 +146,7 @@ describe('PublishApprovalsService', () => {
     const artifactReferenceService = {
       createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
     };
+    const transaction = { post: prisma.post, publishApproval };
     const service = new PublishApprovalsService(
       prisma as never,
       artifactReferenceService as unknown as AgentArtifactReferenceService,
@@ -157,6 +158,7 @@ describe('PublishApprovalsService', () => {
       organizationId: 'org-1',
       postId: 'post-1',
       provenance: { surface: 'review-queue' },
+      transaction: transaction as never,
     });
 
     expect(approval).toEqual(
@@ -193,6 +195,10 @@ describe('PublishApprovalsService', () => {
         }),
       }),
     );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(
+      artifactReferenceService.createOrReuseVersionPin,
+    ).toHaveBeenCalledWith(expect.objectContaining({ transaction }));
   });
 
   it('fails closed and invalidates when the canonical brand drifts', async () => {
