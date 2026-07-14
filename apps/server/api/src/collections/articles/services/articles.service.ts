@@ -29,6 +29,8 @@ import {
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
@@ -67,15 +69,14 @@ export class ArticlesService extends BaseService<
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
-
-    @Optional()
-    private readonly notificationsService?: NotificationsService,
-    @Optional()
-    private readonly organizationSettingsService?: OrganizationSettingsService,
     private readonly articleVersionService: ArticleVersionService,
     private readonly articleTranscriptService: ArticleTranscriptService,
     private readonly articleInsightsService: ArticleInsightsService,
     private readonly articleRemixService: ArticleRemixService,
+    @Optional()
+    private readonly notificationsService?: NotificationsService,
+    @Optional()
+    private readonly organizationSettingsService?: OrganizationSettingsService,
     @Optional()
     @Inject(forwardRef(() => ArticlesContentService))
     private readonly articlesContentService?: ArticlesContentService,

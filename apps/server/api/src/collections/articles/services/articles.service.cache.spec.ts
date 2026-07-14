@@ -88,12 +88,12 @@ describe('ArticlesService cache invalidation', () => {
       prisma,
       logger,
       configService,
-      undefined, // notificationsService
-      undefined, // organizationSettingsService
       new ArticleVersionService(logger),
       new ArticleTranscriptService(configService, logger),
       new ArticleInsightsService(logger, configService),
       new ArticleRemixService(logger),
+      undefined, // notificationsService
+      undefined, // organizationSettingsService
       undefined, // articlesContentService
       cacheService,
       undefined, // usersService
