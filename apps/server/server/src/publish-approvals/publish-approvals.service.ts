@@ -23,7 +23,7 @@ import type {
   IPublishScheduleIntent,
 } from '@genfeedai/interfaces';
 import {
-  Prisma,
+  type Prisma,
   CredentialPlatform as PrismaCredentialPlatform,
 } from '@genfeedai/prisma';
 import {
@@ -35,7 +35,7 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { AgentArtifactReferenceService } from '@server/agent-artifacts/agent-artifact-reference.service';
+import type { AgentArtifactReferenceService } from '@server/agent-artifacts/agent-artifact-reference.service';
 import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
 
 class PublishApprovalNotFoundException extends HttpException {
@@ -200,7 +200,6 @@ export class PublishApprovalsService {
     this.assertTargetStatus(post);
     if (
       input.contextVersion !== undefined &&
-      post.agentContextVersion !== null &&
       input.contextVersion !== post.agentContextVersion
     ) {
       throw new ConflictException('Publish approval context version is stale.');
@@ -476,25 +475,29 @@ export class PublishApprovalsService {
     reason: string,
     actorId?: string,
   ): Promise<void> {
-    const approvals = (await this.prisma.publishApproval.findMany({
-      where: {
-        organizationId,
-        postId,
-        status: { in: [...ACTIVE_APPROVAL_STATUSES] },
-      },
-    })) as PublishApprovalRow[];
-    if (
-      approvals.some(
-        (approval) =>
-          this.parseStatus(approval.status) === PublishApprovalStatus.EXECUTING,
-      )
-    ) {
-      throw new ConflictException(
-        'Cannot invalidate a publish approval while provider execution is in flight.',
-      );
-    }
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
+      // Read the active approvals inside the transaction so a concurrent
+      // claim-to-EXECUTING cannot slip between the eligibility check and the
+      // invalidating writes.
+      const approvals = (await tx.publishApproval.findMany({
+        where: {
+          organizationId,
+          postId,
+          status: { in: [...ACTIVE_APPROVAL_STATUSES] },
+        },
+      })) as PublishApprovalRow[];
+      if (
+        approvals.some(
+          (approval) =>
+            this.parseStatus(approval.status) ===
+            PublishApprovalStatus.EXECUTING,
+        )
+      ) {
+        throw new ConflictException(
+          'Cannot invalidate a publish approval while provider execution is in flight.',
+        );
+      }
       for (const approval of approvals) {
         await tx.publishApproval.update({
           data: {
@@ -514,8 +517,16 @@ export class PublishApprovalsService {
           where: { id: approval.id },
         });
       }
+      // Clear every approval marker, not just the pin id: leaving
+      // reviewDecision=APPROVED / reviewVersionPinId set lets the worker's
+      // legacy-pin fallback enqueue a job without approval identities, which
+      // execution then rejects.
       await tx.post.updateMany({
-        data: { publishApprovalId: null },
+        data: {
+          publishApprovalId: null,
+          reviewDecision: null,
+          reviewVersionPinId: null,
+        },
         where: { id: postId, organizationId },
       });
     });
@@ -538,7 +549,10 @@ export class PublishApprovalsService {
         `Publish approval cannot transition from ${from} to ${next}.`,
       );
     }
-    const updated = (await this.prisma.publishApproval.update({
+    // Guard the write with the status that authorized it so a concurrent
+    // transition on the same row fails loudly instead of being silently
+    // overwritten (mirrors the QUEUED-predicate claim guard above).
+    const transitioned = await this.prisma.publishApproval.updateMany({
       data: {
         ...(next === PublishApprovalStatus.PUBLISHED
           ? { executedAt: new Date() }
@@ -550,8 +564,14 @@ export class PublishApprovalsService {
           this.transition(from, next, actorId, reason),
         ]),
       },
-      where: { id: current.id },
-    })) as PublishApprovalRow;
+      where: { id: current.id, organizationId, status: from },
+    });
+    if (transitioned.count !== 1) {
+      throw new ConflictException(
+        `Publish approval changed concurrently; expected status ${from}.`,
+      );
+    }
+    const updated = await this.getApprovalOrThrow(organizationId, approvalId);
     return this.toInterface(updated);
   }
 
