@@ -76,6 +76,10 @@ export function useAgentOAuthConnect(
         );
       } catch (error) {
         logger.error('OAuth connect failed', error);
+        // Let the invoking surface restore an actionable error state instead
+        // of leaving a connect control looking successful after a failed API
+        // request. Each current consumer handles the rejection locally.
+        throw error;
       }
     },
     [getToken, isOnboarding, orgHref, selectedBrand, threadId],
