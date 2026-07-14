@@ -13,8 +13,8 @@ const {
   currentUserState,
   getTokenMock,
   getMyOrganizationsMock,
-  isCloudMock,
   isEEEnabledMock,
+  isSaaSMock,
   isSelfHostedMock,
   managedCreateCheckoutSessionMock,
   resolveAuthTokenMock,
@@ -34,8 +34,8 @@ const {
   },
   getTokenMock: vi.fn(),
   getMyOrganizationsMock: vi.fn(),
-  isCloudMock: vi.fn(),
   isEEEnabledMock: vi.fn(),
+  isSaaSMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
   managedCreateCheckoutSessionMock: vi.fn(),
   resolveAuthTokenMock: vi.fn(),
@@ -158,7 +158,7 @@ vi.mock('@genfeedai/config/license', () => ({
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({
-  isCloudDeployment: () => isCloudMock(),
+  isSaaS: () => isSaaSMock(),
   isSelfHostedDeployment: () => isSelfHostedMock(),
 }));
 
@@ -188,8 +188,8 @@ describe('PostSignupPage behavior', () => {
     managedCreateCheckoutSessionMock.mockReset();
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
-    isCloudMock.mockReset();
     isEEEnabledMock.mockReset();
+    isSaaSMock.mockReset();
     isSelfHostedMock.mockReset();
     resolveAuthTokenMock.mockReset();
     localStorageMock.clear();
@@ -202,8 +202,8 @@ describe('PostSignupPage behavior', () => {
       onboardingStepsCompleted: [],
     };
     currentUserState.isLoading = false;
-    isCloudMock.mockReturnValue(false);
     isEEEnabledMock.mockReturnValue(false);
+    isSaaSMock.mockReturnValue(false);
     isSelfHostedMock.mockReturnValue(true);
     resolveAuthTokenMock.mockResolvedValue('api-token');
     getMyOrganizationsMock.mockResolvedValue([]);
@@ -376,8 +376,8 @@ describe('PostSignupPage behavior', () => {
     );
   });
 
-  it('routes new cloud signups to the org-scoped agent onboarding surface', async () => {
-    isCloudMock.mockReturnValue(true);
+  it('routes new SaaS signups to the org-scoped agent onboarding surface', async () => {
+    isSaaSMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([
       {
@@ -398,8 +398,8 @@ describe('PostSignupPage behavior', () => {
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
   });
 
-  it('falls back to the wizard when no cloud org slug can be resolved', async () => {
-    isCloudMock.mockReturnValue(true);
+  it('falls back to the wizard when no SaaS org slug can be resolved', async () => {
+    isSaaSMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([]);
 
@@ -410,8 +410,8 @@ describe('PostSignupPage behavior', () => {
     });
   });
 
-  it('keeps plan checkout returns on the wizard even on cloud (preserves #1421)', async () => {
-    isCloudMock.mockReturnValue(true);
+  it('keeps plan checkout returns on the wizard even on SaaS (preserves #1421)', async () => {
+    isSaaSMock.mockReturnValue(true);
     isEEEnabledMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([
@@ -438,5 +438,27 @@ describe('PostSignupPage behavior', () => {
       });
     });
     expect(locationState.href).toBe('https://checkout.stripe.test/session');
+  });
+
+  it('keeps cloud-connected desktop signups on the classic wizard', async () => {
+    isSaaSMock.mockReturnValue(false);
+    isSelfHostedMock.mockReturnValue(false);
+    getMyOrganizationsMock.mockResolvedValue([
+      {
+        brand: null,
+        id: 'org-1',
+        isActive: true,
+        isOwner: true,
+        label: 'Acme',
+        slug: 'acme',
+      },
+    ]);
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(locationState.href).toBe('/onboarding/brand');
+    });
+    expect(getMyOrganizationsMock).not.toHaveBeenCalled();
   });
 });

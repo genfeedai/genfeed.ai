@@ -7,10 +7,7 @@ import {
   parseSelectedCredits,
 } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import {
-  isCloudDeployment,
-  isSelfHostedDeployment,
-} from '@genfeedai/config/deployment';
+import { isSaaS, isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { isEEEnabled } from '@genfeedai/config/license';
 import {
   APP_ROUTES,
@@ -155,7 +152,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
     );
 
-    if (!isCloudDeployment()) {
+    if (!isSaaS()) {
       return wizardHref;
     }
 

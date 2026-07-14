@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
       organization?: { slug?: string };
       slug?: string;
     }>,
+    isReady: true,
     organizationId: '',
     selectedBrand: null as {
       organization?: { slug?: string };
@@ -68,6 +69,7 @@ describe('ProtectedRootResolver', () => {
     mocks.isAccessStateLoading = false;
     mocks.brandState.brandId = '';
     mocks.brandState.brands = [];
+    mocks.brandState.isReady = true;
     mocks.brandState.organizationId = '';
     mocks.brandState.selectedBrand = null;
     mocks.currentUserState.currentUser = {
@@ -76,6 +78,8 @@ describe('ProtectedRootResolver', () => {
       onboardingStepsCompleted: ['brand', 'providers', 'summary'],
     };
     mocks.currentUserState.isLoading = false;
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
   });
 
   it('opens the selected brand workspace when org and brand are selected', async () => {
@@ -142,7 +146,7 @@ describe('ProtectedRootResolver', () => {
     });
   });
 
-  it('routes incomplete cloud users to the agent onboarding surface', async () => {
+  it('routes incomplete SaaS users to the agent onboarding surface', async () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
     mocks.currentUserState.currentUser = {
       id: 'user_1',
@@ -158,6 +162,51 @@ describe('ProtectedRootResolver', () => {
 
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+    });
+  });
+
+  it('waits for brand readiness before resolving the agent organization', async () => {
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.brandState.isReady = false;
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+
+    const { rerender } = render(<ProtectedRootResolver />);
+
+    expect(mocks.replace).not.toHaveBeenCalled();
+
+    mocks.brandState.isReady = true;
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      slug: 'default',
+    };
+    rerender(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+    });
+  });
+
+  it('keeps cloud-connected desktop users on the classic wizard', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: ['brand'],
+    };
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      slug: 'default',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/providers');
     });
   });
 });

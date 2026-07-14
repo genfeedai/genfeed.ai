@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { isCloudDeployment } from '@genfeedai/config/deployment';
+import { isSaaS } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -101,7 +101,7 @@ export default function OrgLandingContent() {
 
     if (!hasCompletedOnboarding) {
       replace(
-        isCloudDeployment() && orgSlug
+        isSaaS() && orgSlug
           ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
           : `/onboarding/${getResumeStep(completedSteps)}`,
       );

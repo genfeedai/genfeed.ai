@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { isCloudDeployment } from '@genfeedai/config/deployment';
+import { isSaaS } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -33,7 +33,8 @@ function getBrandOrganizationSlug(
 }
 
 export default function ProtectedRootResolver() {
-  const { brandId, brands, organizationId, selectedBrand } = useBrand();
+  const { brandId, brands, isReady, organizationId, selectedBrand } =
+    useBrand();
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const { accessState, isLoading: isAccessStateLoading } = useAccessState();
   const { replace } = useRouter();
@@ -46,6 +47,7 @@ export default function ProtectedRootResolver() {
     if (
       isAccessStateLoading ||
       isCurrentUserLoading ||
+      !isReady ||
       !currentUser ||
       hasStartedRef.current
     ) {
@@ -64,7 +66,7 @@ export default function ProtectedRootResolver() {
         getBrandOrganizationSlug(selectedBrand) ||
         getBrandOrganizationSlug(brands[0]);
       replace(
-        isCloudDeployment() && agentOrgSlug
+        isSaaS() && agentOrgSlug
           ? createOrganizationAppRoute(
               agentOrgSlug,
               APP_ROUTES.AGENT.ONBOARDING,
@@ -129,6 +131,7 @@ export default function ProtectedRootResolver() {
     currentUser,
     isCurrentUserLoading,
     isAccessStateLoading,
+    isReady,
     organizationId,
     replace,
     selectedBrand,

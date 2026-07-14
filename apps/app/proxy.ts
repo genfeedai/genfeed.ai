@@ -2,6 +2,7 @@ import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import {
   isCloudDeployment,
   isDesktopClient,
+  isSaaS,
 } from '@genfeedai/config/deployment';
 import { type NextRequest, NextResponse } from 'next/server';
 
@@ -473,7 +474,7 @@ function isAgentOnboardingPath(pathname: string): boolean {
 }
 
 // Resolve the org-scoped agent onboarding destination for an incomplete user.
-// Agent-first onboarding is the cloud default; callers fall back to the wizard
+// Agent-first onboarding is the SaaS default; callers fall back to the wizard
 // (`ONBOARDING_PATH`) when the workspace slug can't be resolved.
 async function resolveAgentOnboardingRedirect(
   token: string,
@@ -638,7 +639,7 @@ async function redirectSignedInUserToDefaultRoute(
   cacheKey?: string | null,
 ): Promise<NextResponse | null> {
   if (await shouldRedirectSignedInUserToOnboarding(token)) {
-    if (isCloudDeployment()) {
+    if (isSaaS()) {
       const agentOnboarding = await resolveAgentOnboardingRedirect(
         token,
         cacheKey,
@@ -836,8 +837,8 @@ export async function proxy(req: NextRequest) {
     }
 
     if (await shouldRedirectSignedInUserToOnboarding(token)) {
-      // Self-hosted/desktop keep the form wizard; only cloud gets agent-first.
-      if (!isCloudDeployment()) {
+      // Community/Desktop keep the form wizard; only SaaS gets agent-first.
+      if (!isSaaS()) {
         return redirectPreservingSearch(req, ONBOARDING_PATH);
       }
 
