@@ -56,6 +56,35 @@ describe('BrandWebsiteParserService', () => {
     });
   });
 
+  it('matches social links by hostname and ignores redirects or non-web links', () => {
+    const parsed = service.parseHtml(
+      `<body>
+        <a href="https://example.com/redirect?next=https://facebook.com/acme">Redirect</a>
+        <a href="mailto:hello@instagram.com">Email</a>
+        <a href="https://m.facebook.com/acme">Facebook</a>
+        <a href="https://x.com/acme">X</a>
+      </body>`,
+      'https://acme.example',
+    );
+
+    expect(parsed.socialLinks).toEqual({
+      facebook: 'https://m.facebook.com/acme',
+      twitter: 'https://x.com/acme',
+    });
+  });
+
+  it('does not reuse the logo as the fallback banner', () => {
+    const parsed = service.parseHtml(
+      '<body><img class="logo" src="/logo.png"><img src="/banner.png"></body>',
+      'https://acme.example',
+    );
+
+    expect(parsed).toMatchObject({
+      bannerUrl: 'https://acme.example/banner.png',
+      logoUrl: 'https://acme.example/logo.png',
+    });
+  });
+
   it.each([
     ['Acme | Platform', 'Acme'],
     ['Acme - Platform', 'Acme'],

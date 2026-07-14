@@ -1,6 +1,6 @@
 import type { WebsiteScrapingResult } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
 import type { IScrapedBrandData } from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
 const MAX_IMAGE_CANDIDATES = 12;
@@ -69,7 +69,13 @@ export class BrandWebsiteParserService {
     // Extract logo
     const logoUrl = this.extractLogoFromDom($, sourceUrl);
     const images = this.extractImagesFromDom($, sourceUrl);
-    const bannerUrl = this.extractBannerFromDom($, sourceUrl, ogImage, images);
+    const bannerUrl = this.extractBannerFromDom(
+      $,
+      sourceUrl,
+      ogImage,
+      images,
+      logoUrl,
+    );
 
     return {
       aboutText,
@@ -167,20 +173,34 @@ export class BrandWebsiteParserService {
   private extractSocialLinks(
     links: string[],
   ): WebsiteScrapingResult['socialLinks'] {
-    const socialPatterns: Record<string, RegExp> = {
-      facebook: /facebook\.com/i,
-      instagram: /instagram\.com/i,
-      linkedin: /linkedin\.com/i,
-      tiktok: /tiktok\.com/i,
-      twitter: /twitter\.com|x\.com/i,
-      youtube: /youtube\.com/i,
+    const socialHosts: Record<string, string[]> = {
+      facebook: ['facebook.com'],
+      instagram: ['instagram.com'],
+      linkedin: ['linkedin.com'],
+      tiktok: ['tiktok.com'],
+      twitter: ['twitter.com', 'x.com'],
+      youtube: ['youtube.com'],
     };
 
     const result: WebsiteScrapingResult['socialLinks'] = {};
 
     for (const link of links) {
-      for (const [platform, pattern] of Object.entries(socialPatterns)) {
-        if (pattern.test(link) && !result[platform as keyof typeof result]) {
+      let url: URL;
+      try {
+        url = new URL(link, 'https://relative-link.invalid');
+      } catch {
+        continue;
+      }
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        continue;
+      }
+
+      const hostname = url.hostname.toLowerCase();
+      for (const [platform, hosts] of Object.entries(socialHosts)) {
+        const isSocialHost = hosts.some(
+          (host) => hostname === host || hostname.endsWith(`.${host}`),
+        );
+        if (isSocialHost && !result[platform as keyof typeof result]) {
           result[platform as keyof typeof result] = link;
         }
       }
@@ -442,6 +462,7 @@ export class BrandWebsiteParserService {
     sourceUrl: string,
     ogImage: string | undefined,
     images: WebsiteScrapingResult['images'],
+    logoUrl: string | undefined,
   ): string | undefined {
     const bannerSelectors = [
       'img[class*="hero"]',
@@ -463,7 +484,7 @@ export class BrandWebsiteParserService {
       return this.resolveUrl(ogImage, sourceUrl);
     }
 
-    return images[0]?.src;
+    return images.find((image) => image.src !== logoUrl)?.src;
   }
 
   private extractSrcFromSrcSet(value: string): string {
@@ -488,7 +509,7 @@ export class BrandWebsiteParserService {
       !contentType.includes('text/html') &&
       !contentType.includes('application/xhtml+xml')
     ) {
-      throw new Error(`Unsupported content type: ${contentType}`);
+      throw new BadRequestException(`Unsupported content type: ${contentType}`);
     }
   }
 
