@@ -74,6 +74,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     CampaignMemoryQueueService,
+    CampaignWinnerExtractionService,
     ContentEngineService,
     ContentRotationService,
     OrchestratorQueueService,
