@@ -87,6 +87,7 @@ import WorkspaceOverlayHost from './WorkspaceOverlayHost';
 import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
 import {
   useActiveWorkspaceSurfaceAdapter,
+  useActiveWorkspaceSurfacePresentationAdapter,
   useWorkspaceSurfaceAdapter,
   WorkspaceSurfaceAdapterProvider,
 } from './WorkspaceSurfaceAdapterContext';
@@ -139,14 +140,16 @@ function UniversalWorkspaceShellContent({
   const updateThread = useAgentChatStore((state) => state.updateThread);
   const seedComposer = useAgentChatStore((state) => state.seedComposer);
   const activeWorkspaceSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
+  const activeSurfacePresentationAdapter =
+    useActiveWorkspaceSurfacePresentationAdapter();
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
   const [composerPortalTarget, setComposerPortalTarget] =
     useState<HTMLElement | null>(null);
-  const [surfaceScopeStatus, setSurfaceScopeStatus] = useState<
-    'error' | 'ready' | 'syncing'
-  >('ready');
+  const [failedSurfaceScopeKey, setFailedSurfaceScopeKey] = useState<
+    string | null
+  >(null);
   const [researchSurfaceAdapter, setResearchSurfaceAdapter] = useState<{
     readonly registration: ResearchWorkspaceSurfaceAdapterRegistration;
     readonly token: symbol;
@@ -208,6 +211,10 @@ function UniversalWorkspaceShellContent({
     activeWorkspaceSurfaceAdapter.registration.scope === routeRegistration.scope
       ? activeWorkspaceSurfaceAdapter
       : null;
+  const resolvedSurfacePresentationAdapter =
+    activeSurfacePresentationAdapter?.surfaceKey === surfaceKey
+      ? activeSurfacePresentationAdapter
+      : null;
   const canonicalSearchParamsString = canonicalSearchParams.toString();
   const isUnthreadedConversation =
     baseState === 'conversation' &&
@@ -239,9 +246,20 @@ function UniversalWorkspaceShellContent({
   const isSurfaceScopeAligned = Boolean(
     !activeThread || !surfaceBrandId || activeThread.brandId === surfaceBrandId,
   );
+  const surfaceScopeKey =
+    activeThread && surfaceBrandId && !isSurfaceScopeAligned
+      ? `${activeThread.id}:${activeThread.contextVersion}:${surfaceBrandId}`
+      : null;
+  const surfaceScopeStatus = !surfaceScopeKey
+    ? 'ready'
+    : failedSurfaceScopeKey === surfaceScopeKey
+      ? 'error'
+      : 'syncing';
   const surfaceReferences = isSurfaceScopeAligned
     ? productSurfaceAdapter?.references
     : undefined;
+  const activeThreadContextVersion = activeThread?.contextVersion;
+  const activeThreadIdForScope = activeThread?.id;
   const workflowSurfaceRoute = useMemo(
     () =>
       resolveWorkflowSurfaceRoute(
@@ -252,11 +270,12 @@ function UniversalWorkspaceShellContent({
   );
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
   const shellContextLabel =
-    state === 'conversation'
+    resolvedSurfacePresentationAdapter?.contextLabel ??
+    (state === 'conversation'
       ? 'Conversation'
       : state === 'overlay'
         ? 'Overlay · conversation connected'
-        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`;
+        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`);
   const activeResearchSurfaceAdapter =
     researchSurfaceAdapter?.registration.surfaceKey === surfaceKey
       ? researchSurfaceAdapter.registration
@@ -299,23 +318,22 @@ function UniversalWorkspaceShellContent({
     : `${conversationScope.contextLabel} · ${effectiveShellContextLabel}`;
 
   useEffect(() => {
-    if (!activeThread || !surfaceBrandId) {
-      setSurfaceScopeStatus('ready');
-      return;
-    }
-    if (activeThread.brandId === surfaceBrandId) {
-      setSurfaceScopeStatus('ready');
+    if (
+      !activeThreadIdForScope ||
+      activeThreadContextVersion === undefined ||
+      !surfaceBrandId ||
+      !surfaceScopeKey
+    ) {
       return;
     }
 
     const abortController = new AbortController();
-    setSurfaceScopeStatus('syncing');
     runAgentApiEffect(
       agentApiService.updateThreadContextEffect(
-        activeThread.id,
+        activeThreadIdForScope,
         {
           brandId: surfaceBrandId,
-          expectedContextVersion: activeThread.contextVersion,
+          expectedContextVersion: activeThreadContextVersion,
         },
         abortController.signal,
       ),
@@ -324,20 +342,26 @@ function UniversalWorkspaceShellContent({
         if (abortController.signal.aborted) {
           return;
         }
-        updateThread(activeThread.id, {
+        updateThread(activeThreadIdForScope, {
           brandId: thread.brandId,
           contextVersion: thread.contextVersion,
         });
-        setSurfaceScopeStatus('ready');
       })
       .catch(() => {
         if (!abortController.signal.aborted) {
-          setSurfaceScopeStatus('error');
+          setFailedSurfaceScopeKey(surfaceScopeKey);
         }
       });
 
     return () => abortController.abort();
-  }, [activeThread, agentApiService, surfaceBrandId, updateThread]);
+  }, [
+    activeThreadContextVersion,
+    activeThreadIdForScope,
+    agentApiService,
+    surfaceBrandId,
+    surfaceScopeKey,
+    updateThread,
+  ]);
 
   useLayoutEffect(() => {
     if (!isUnthreadedConversation) {
@@ -818,6 +842,8 @@ function UniversalWorkspaceShellContent({
           effectiveSurfaceAdapter.inspectorContent
         ) : activeResearchSurfaceAdapter ? (
           activeResearchSurfaceAdapter.inspectorContent
+        ) : resolvedSurfacePresentationAdapter ? (
+          resolvedSurfacePresentationAdapter.inspector
         ) : (
           <div
             className="gen-shell-empty-state p-4"
@@ -852,7 +878,8 @@ function UniversalWorkspaceShellContent({
         >
           Choose workflow
         </Button>
-        {effectiveSurfaceAdapter ? null : (
+        {effectiveSurfaceAdapter ||
+        resolvedSurfacePresentationAdapter ? null : (
           <Button
             icon={<HiOutlineEye className="size-4" />}
             onClick={handleOpenOverlay}

@@ -377,7 +377,11 @@ const BRAND_ROUTE_REGISTRATIONS = [
     },
   ),
   ...registerRoutes(['/:orgSlug/:brandSlug/messages'], {
-    fallback: '/:orgSlug/:brandSlug/workspace/overview',
+    adapter: {
+      key: 'messages',
+      status: 'embedded',
+    },
+    fallback: '/:orgSlug/:brandSlug/messages',
     mode: 'canvas',
     scope: 'brand',
     surfaceKey: 'messages',

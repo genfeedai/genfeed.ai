@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1040 MCP tools, one per non-internal OpenAPI operation (#1248).
+// 1041 MCP tools, one per non-internal OpenAPI operation (#1248).
 // Execution metadata lives in mcp-operations.generated.ts (#1249 / #1250).
 
 import type { CanonicalToolDefinition } from '../../interfaces/tool-definition.interface.js';
@@ -2876,21 +2876,45 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "analytics__export_data",
     "parameters": {
       "properties": {
+        "brand": {
+          "description": "Brand ID to filter by",
+          "type": "string"
+        },
+        "endDate": {
+          "description": "End date for analytics (YYYY-MM-DD). Defaults to yesterday.",
+          "example": "2024-01-31",
+          "type": "string"
+        },
         "fields": {
+          "description": "Comma-separated export fields",
           "type": "string"
         },
         "format": {
+          "description": "Export format",
+          "enum": [
+            "csv",
+            "xlsx"
+          ],
           "type": "string"
         },
         "organization": {
+          "description": "Organization ID (superadmin only)",
+          "type": "string"
+        },
+        "platform": {
+          "description": "Platform to filter by",
+          "type": "string"
+        },
+        "postId": {
+          "description": "Selected post ID to export",
+          "type": "string"
+        },
+        "startDate": {
+          "description": "Start date for analytics (YYYY-MM-DD). Defaults to 30 days before endDate.",
+          "example": "2024-01-01",
           "type": "string"
         }
       },
-      "required": [
-        "fields",
-        "format",
-        "organization"
-      ],
       "type": "object"
     },
     "requiredRole": "user",
@@ -33426,6 +33450,25 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
   {
     "category": "other",
     "creditCost": 0,
+    "description": "create (POST /publish-approvals)",
+    "name": "publish_approvals__create",
+    "parameters": {
+      "properties": {},
+      "type": "object"
+    },
+    "requiredRole": "user",
+    "surfaces": {
+      "agent": false,
+      "cliAgentVisible": false,
+      "mcp": true
+    },
+    "tags": [
+      "publish_approvals"
+    ]
+  },
+  {
+    "category": "other",
+    "creditCost": 0,
     "description": "connect (POST /services/reddit/connect)",
     "name": "reddit__connect",
     "parameters": {
@@ -44749,6 +44792,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Filter by brand ID (superadmin only)",
           "type": "string"
         },
+        "brandId": {
+          "description": "Restrict visible workflows to the active brand for an authorized picker.",
+          "type": "string"
+        },
         "isDeleted": {
           "default": false,
           "description": "Filter by deleted status",
@@ -45499,12 +45546,20 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "workflow_execution__resume_execution",
     "parameters": {
       "properties": {
+        "expectedContextVersion": {
+          "minimum": 1,
+          "type": "number"
+        },
         "respectLocks": {
           "default": true,
           "description": "Whether to skip locked nodes",
           "type": "boolean"
         },
         "runId": {
+          "type": "string"
+        },
+        "threadId": {
+          "description": "Active agent thread ID",
           "type": "string"
         },
         "workflowId": {
@@ -45542,6 +45597,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "executionId": {
           "type": "string"
         },
+        "expectedContextVersion": {
+          "minimum": 1,
+          "type": "number"
+        },
         "nodeId": {
           "description": "Review gate node ID awaiting approval",
           "example": "review-gate-1",
@@ -45550,6 +45609,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "rejectionReason": {
           "description": "Optional rejection reason when approval is denied",
           "example": "Rejected by reviewer",
+          "type": "string"
+        },
+        "threadId": {
+          "description": "Active agent thread ID",
           "type": "string"
         },
         "workflowId": {
@@ -45581,6 +45644,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
     "name": "workflow_executions__create",
     "parameters": {
       "properties": {
+        "expectedContextVersion": {
+          "minimum": 1,
+          "type": "number"
+        },
         "inputValues": {
           "description": "Input values for workflow variables",
           "type": "object"
@@ -45588,6 +45655,10 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
         "metadata": {
           "description": "Additional metadata",
           "type": "object"
+        },
+        "threadId": {
+          "description": "Active agent thread ID",
+          "type": "string"
         },
         "trigger": {
           "allOf": [

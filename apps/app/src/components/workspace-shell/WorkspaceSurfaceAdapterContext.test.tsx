@@ -3,12 +3,15 @@ import { type ReactElement, useEffect, useMemo } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   useActiveWorkspaceSurfaceAdapter,
+  useActiveWorkspaceSurfacePresentationAdapter,
   useRegisterWorkspaceSurfaceAdapter,
+  useRegisterWorkspaceSurfacePresentationAdapter,
   useWorkspaceSurfaceAdapter,
   useWorkspaceSurfaceSelection,
   WorkspaceSurfaceAdapterProvider,
   WorkspaceSurfaceAdapterRegistration,
   type WorkspaceSurfaceAdapterRegistration as WorkspaceSurfaceAdapterRegistrationContract,
+  type WorkspaceSurfacePresentationAdapter,
 } from './WorkspaceSurfaceAdapterContext';
 
 const scope = vi.hoisted(() => ({
@@ -30,6 +33,12 @@ const REGISTRATION = Object.freeze({
   title: 'Brand Workspace overview',
 } as const satisfies WorkspaceSurfaceAdapterRegistrationContract);
 
+const messagesAdapter: WorkspaceSurfacePresentationAdapter = {
+  contextLabel: 'Canvas · Messages',
+  inspector: <div>Messages inspector</div>,
+  surfaceKey: 'messages',
+};
+
 function AdapterProbe(): ReactElement {
   const adapter = useActiveWorkspaceSurfaceAdapter();
   return (
@@ -39,6 +48,20 @@ function AdapterProbe(): ReactElement {
         : 'none'}
     </output>
   );
+}
+
+function PresentationAdapterProbe(): ReactElement {
+  const adapter = useActiveWorkspaceSurfacePresentationAdapter();
+  return (
+    <output data-testid="presentation-adapter">
+      {adapter ? adapter.contextLabel : 'none'}
+    </output>
+  );
+}
+
+function PresentationAdapterRegistration(): null {
+  useRegisterWorkspaceSurfacePresentationAdapter(messagesAdapter);
+  return null;
 }
 
 function SelectionProbe(): null {
@@ -140,6 +163,33 @@ describe('WorkspaceSurfaceAdapterContext', () => {
     expect(
       screen.getByText('Canonical dashboard remains rendered'),
     ).toBeInTheDocument();
+  });
+
+  it('registers and unregisters a product-owned presentation adapter', async () => {
+    const view = render(
+      <WorkspaceSurfaceAdapterProvider>
+        <PresentationAdapterProbe />
+        <PresentationAdapterRegistration />
+      </WorkspaceSurfaceAdapterProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('presentation-adapter')).toHaveTextContent(
+        'Canvas · Messages',
+      );
+    });
+
+    view.rerender(
+      <WorkspaceSurfaceAdapterProvider>
+        <PresentationAdapterProbe />
+      </WorkspaceSurfaceAdapterProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('presentation-adapter')).toHaveTextContent(
+        'none',
+      );
+    });
   });
 
   it('exposes one product-owned adapter to the shell and clears it on unmount', () => {

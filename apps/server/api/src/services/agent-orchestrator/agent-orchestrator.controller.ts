@@ -3,6 +3,7 @@ import { CreateAgentGoalDto } from '@api/collections/agent-goals/dto/create-agen
 import { UpdateAgentGoalDto } from '@api/collections/agent-goals/dto/update-agent-goal.dto';
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
@@ -18,6 +19,7 @@ import {
   Controller,
   Get,
   Headers,
+  Optional,
   Param,
   Patch,
   Post,
@@ -55,6 +57,8 @@ export class AgentOrchestratorController {
     private readonly agentGoalsService: AgentGoalsService,
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
+    @Optional()
+    private readonly socialInboxService?: SocialInboxService,
   ) {}
 
   @Post('threads/turns')
@@ -111,9 +115,15 @@ export class AgentOrchestratorController {
       const request = this.resolveAgentChatBody(body, routeThreadId);
       const organization = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
+      const authorizedRequest = await this.resolveAuthorizedAgentChatBody(
+        request,
+        user,
+        organization,
+        dbUserId,
+      );
       const authToken = authorization?.replace('Bearer ', '');
 
-      const result = await this.orchestratorService.chat(request, {
+      const result = await this.orchestratorService.chat(authorizedRequest, {
         authToken,
         organizationId: organization,
         userId: dbUserId,
@@ -135,13 +145,22 @@ export class AgentOrchestratorController {
       const request = this.resolveAgentChatBody(body, routeThreadId);
       const organization = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
+      const authorizedRequest = await this.resolveAuthorizedAgentChatBody(
+        request,
+        user,
+        organization,
+        dbUserId,
+      );
       const authToken = authorization?.replace('Bearer ', '');
 
-      const result = await this.orchestratorService.chatStream(request, {
-        authToken,
-        organizationId: organization,
-        userId: dbUserId,
-      });
+      const result = await this.orchestratorService.chatStream(
+        authorizedRequest,
+        {
+          authToken,
+          organizationId: organization,
+          userId: dbUserId,
+        },
+      );
 
       return result;
     } catch (error: unknown) {
@@ -159,6 +178,11 @@ export class AgentOrchestratorController {
       );
     }
 
+    const pageContext = body.pageContext ? { ...body.pageContext } : undefined;
+    if (pageContext) {
+      delete pageContext.authorizedSocialContext;
+    }
+
     return {
       artifactReferences: body.artifactReferences,
       attachments: body.attachments,
@@ -166,10 +190,44 @@ export class AgentOrchestratorController {
       content: body.content,
       expectedContextVersion: body.expectedContextVersion,
       model: body.model,
-      pageContext: body.pageContext,
+      pageContext,
       planModeEnabled: body.planModeEnabled,
       source: body.source,
       threadId: routeThreadId ?? body.threadId,
+    };
+  }
+
+  private async resolveAuthorizedAgentChatBody(
+    body: AgentChatBody,
+    user: User,
+    organizationId: string,
+    userId: string,
+  ): Promise<AgentChatBody> {
+    const references = body.pageContext?.socialReferences;
+    if (!references?.length) {
+      return body;
+    }
+
+    const brandId = getPublicMetadata(user).brand;
+    if (!brandId || body.brandId !== brandId || !this.socialInboxService) {
+      throw new BadRequestException(
+        'Social inbox references require the current authorized brand context.',
+      );
+    }
+
+    const { context: authorizedSocialContext, references: socialReferences } =
+      await this.socialInboxService.resolveAgentContextReferences(
+        { brandId, organizationId, userId },
+        references,
+      );
+
+    return {
+      ...body,
+      pageContext: {
+        ...body.pageContext,
+        authorizedSocialContext,
+        socialReferences,
+      },
     };
   }
 

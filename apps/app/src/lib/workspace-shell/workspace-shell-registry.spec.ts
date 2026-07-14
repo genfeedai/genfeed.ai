@@ -168,6 +168,20 @@ describe('workspace shell trusted registry', () => {
     );
   });
 
+  it('registers Messages as embedded with its canonical route as fallback', () => {
+    const route = resolveWorkspaceShellRoute('/acme/moonrise/messages');
+
+    expect(route).toMatchObject({
+      adapter: { status: 'embedded' },
+      canonicalUrl: '/:orgSlug/:brandSlug/messages',
+      safeFallback: '/:orgSlug/:brandSlug/messages',
+      surfaceKey: 'messages',
+    });
+    expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
+      '/acme/moonrise/messages',
+    );
+  });
+
   it('marks Analytics canvases ready for the product-owned adapter', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/analytics/posts')?.adapter,

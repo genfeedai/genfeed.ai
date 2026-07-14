@@ -11,10 +11,17 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useState,
 } from 'react';
+
+export interface WorkspaceSurfacePresentationAdapter {
+  readonly contextLabel: string;
+  readonly inspector: ReactNode;
+  readonly surfaceKey: string;
+}
 
 export interface WorkspaceSurfaceAdapterRegistration {
   readonly canonicalFallback: 'same-route';
@@ -61,10 +68,14 @@ interface WorkspaceSurfaceAdapterContextValue {
     brandId?: string,
   ) => void;
   readonly deactivateAdapter: (key: string) => void;
+  readonly registerSurfaceAdapter: (
+    adapter: WorkspaceSurfacePresentationAdapter,
+  ) => () => void;
   readonly setArtifactReferences: (
     key: string,
     references: readonly AgentArtifactReference[],
   ) => void;
+  readonly surfaceAdapter: WorkspaceSurfacePresentationAdapter | null;
 }
 
 interface WorkspaceSurfaceAdapterProviderProps {
@@ -137,6 +148,8 @@ export function WorkspaceSurfaceAdapterProvider({
 }: WorkspaceSurfaceAdapterProviderProps): ReactElement {
   const [activeAdapter, setActiveAdapter] =
     useState<ActiveWorkspaceSurfaceAdapter | null>(null);
+  const [surfaceAdapter, setSurfaceAdapter] =
+    useState<WorkspaceSurfacePresentationAdapter | null>(null);
   const [productAdapter, setProductAdapter] =
     useState<ProductWorkspaceSurfaceAdapter | null>(null);
 
@@ -184,6 +197,16 @@ export function WorkspaceSurfaceAdapterProvider({
     );
   }, []);
 
+  const registerSurfaceAdapter = useCallback(
+    (adapter: WorkspaceSurfacePresentationAdapter) => {
+      setSurfaceAdapter(adapter);
+      return () => {
+        setSurfaceAdapter((current) => (current === adapter ? null : current));
+      };
+    },
+    [],
+  );
+
   const setArtifactReferences = useCallback(
     (key: string, references: readonly AgentArtifactReference[]) => {
       setActiveAdapter((current) => {
@@ -205,9 +228,18 @@ export function WorkspaceSurfaceAdapterProvider({
       activeAdapter,
       activateAdapter,
       deactivateAdapter,
+      registerSurfaceAdapter,
       setArtifactReferences,
+      surfaceAdapter,
     }),
-    [activeAdapter, activateAdapter, deactivateAdapter, setArtifactReferences],
+    [
+      activeAdapter,
+      activateAdapter,
+      deactivateAdapter,
+      registerSurfaceAdapter,
+      setArtifactReferences,
+      surfaceAdapter,
+    ],
   );
 
   return (
@@ -276,6 +308,23 @@ export function WorkspaceSurfaceAdapterRegistration({
 
 export function useActiveWorkspaceSurfaceAdapter(): ActiveWorkspaceSurfaceAdapter | null {
   return useContext(WorkspaceSurfaceAdapterContext)?.activeAdapter ?? null;
+}
+
+export function useActiveWorkspaceSurfacePresentationAdapter(): WorkspaceSurfacePresentationAdapter | null {
+  return useContext(WorkspaceSurfaceAdapterContext)?.surfaceAdapter ?? null;
+}
+
+export function useRegisterWorkspaceSurfacePresentationAdapter(
+  adapter: WorkspaceSurfacePresentationAdapter,
+): void {
+  const registerSurfaceAdapter = useContext(
+    WorkspaceSurfaceAdapterContext,
+  )?.registerSurfaceAdapter;
+
+  useEffect(
+    () => registerSurfaceAdapter?.(adapter),
+    [adapter, registerSurfaceAdapter],
+  );
 }
 
 export function useWorkspaceSurfaceSelection(): WorkspaceSurfaceSelectionContextValue | null {

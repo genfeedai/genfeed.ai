@@ -11,6 +11,19 @@ function hasContextValue(value: string | undefined): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+type AgentPageContextTextKey =
+  | 'contentFormat'
+  | 'draftBody'
+  | 'draftInstructions'
+  | 'draftSummary'
+  | 'draftTitle'
+  | 'draftType'
+  | 'postAuthor'
+  | 'postContent'
+  | 'route'
+  | 'selectedText'
+  | 'url';
+
 export function toAgentRequestPageContext(
   context: AgentPageContextState | null | undefined,
 ): AgentRequestPageContext | undefined {
@@ -20,9 +33,9 @@ export function toAgentRequestPageContext(
 
   const requestContext: AgentRequestPageContext = {};
 
-  const assign = (
-    key: keyof AgentRequestPageContext,
-    value: string | undefined,
+  const assign = <Key extends AgentPageContextTextKey>(
+    key: Key,
+    value: AgentRequestPageContext[Key],
   ): void => {
     if (hasContextValue(value)) {
       requestContext[key] = value;
@@ -40,6 +53,10 @@ export function toAgentRequestPageContext(
   assign('route', context.route);
   assign('selectedText', context.selectedText);
   assign('url', context.url);
+
+  if (context.socialReferences?.length) {
+    requestContext.socialReferences = context.socialReferences;
+  }
 
   if (context.analyticsQuery?.kind === 'analytics-query') {
     requestContext.analyticsQuery = context.analyticsQuery;

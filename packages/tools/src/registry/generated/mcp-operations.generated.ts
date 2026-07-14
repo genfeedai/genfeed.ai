@@ -3,7 +3,7 @@
 // Source of truth: apps/server/api/openapi/openapi.json (Phase 1 / #1247).
 // Regenerate:      bun run --filter=@genfeedai/tools generate:mcp-tools
 //
-// 1040 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
+// 1041 MCP operation bindings for generated-tool dispatch (#1249 / #1250).
 
 import type { IGeneratedMcpOperationBinding } from '../openapi/build-generated-mcp-tools.js';
 
@@ -1168,9 +1168,14 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     "path": "/analytics/export",
     "pathParams": [],
     "queryParams": [
+      "brand",
+      "endDate",
       "fields",
       "format",
-      "organization"
+      "organization",
+      "platform",
+      "postId",
+      "startDate"
     ],
     "toolName": "analytics__export_data"
   },
@@ -11692,6 +11697,17 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     "bodyRequired": false,
     "bodyStyle": "none",
     "method": "post",
+    "operationId": "PublishApprovalsController.create",
+    "path": "/publish-approvals",
+    "pathParams": [],
+    "queryParams": [],
+    "toolName": "publish_approvals__create"
+  },
+  {
+    "bodyFields": [],
+    "bodyRequired": false,
+    "bodyStyle": "none",
+    "method": "post",
     "operationId": "RedditController.connect",
     "path": "/services/reddit/connect",
     "pathParams": [],
@@ -15621,6 +15637,7 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
     "pathParams": [],
     "queryParams": [
       "brand",
+      "brandId",
       "isDeleted",
       "isFavorite",
       "limit",
@@ -15778,7 +15795,9 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
   },
   {
     "bodyFields": [
-      "respectLocks"
+      "expectedContextVersion",
+      "respectLocks",
+      "threadId"
     ],
     "bodyRequired": true,
     "bodyStyle": "properties",
@@ -15795,8 +15814,10 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
   {
     "bodyFields": [
       "approved",
+      "expectedContextVersion",
       "nodeId",
-      "rejectionReason"
+      "rejectionReason",
+      "threadId"
     ],
     "bodyRequired": true,
     "bodyStyle": "properties",
@@ -15812,8 +15833,10 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
   },
   {
     "bodyFields": [
+      "expectedContextVersion",
       "inputValues",
       "metadata",
+      "threadId",
       "trigger",
       "workflow"
     ],
