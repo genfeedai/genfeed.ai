@@ -8871,6 +8871,102 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
           "description": "Platform-keyed overrides for voice, strategy, persona, and model",
           "type": "object"
         },
+        "prompting": {
+          "allOf": [
+            {
+              "properties": {
+                "conversationStarters": {
+                  "description": "Top conversation starters generated with the brand profile",
+                  "items": {
+                    "properties": {
+                      "id": {
+                        "description": "Stable identifier for the conversation starter",
+                        "maxLength": 120,
+                        "type": "string"
+                      },
+                      "intent": {
+                        "description": "Agent intent represented by the conversation starter",
+                        "enum": [
+                          "analyze",
+                          "create",
+                          "plan"
+                        ],
+                        "type": "string"
+                      },
+                      "label": {
+                        "description": "Short prompt-bar label",
+                        "maxLength": 32,
+                        "type": "string"
+                      },
+                      "prompt": {
+                        "description": "Prompt inserted when the starter is selected",
+                        "maxLength": 220,
+                        "type": "string"
+                      },
+                      "topic": {
+                        "description": "Canonical brand topic used by the starter",
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "intent",
+                      "label",
+                      "prompt",
+                      "topic"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "seeds": {
+                  "description": "Reusable prompt seeds generated with the brand profile",
+                  "items": {
+                    "properties": {
+                      "angle": {
+                        "description": "Reusable content angle grounded in the brand profile",
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "audience": {
+                        "description": "Audience segment the prompt seed should address",
+                        "maxLength": 200,
+                        "type": "string"
+                      },
+                      "preferredFormats": {
+                        "description": "Content formats suited to this prompt seed",
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "topic": {
+                        "description": "Canonical brand topic used by this prompt seed",
+                        "maxLength": 200,
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "angle",
+                      "audience",
+                      "preferredFormats",
+                      "topic"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "conversationStarters",
+                "seeds"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Persisted prompt seeds and conversation starters"
+        },
         "schedule": {
           "properties": {
             "cronExpression": {
@@ -8913,6 +9009,13 @@ export const GENERATED_MCP_TOOLS: CanonicalToolDefinition[] = [
             },
             "platforms": {
               "description": "Target platforms",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "topics": {
+              "description": "Canonical content topics for prompt personalization",
               "items": {
                 "type": "string"
               },

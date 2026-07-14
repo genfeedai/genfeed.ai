@@ -2996,6 +2996,7 @@ export const GENERATED_MCP_OPERATIONS: IGeneratedMcpOperationBinding[] = [
       "heygenVoiceId",
       "persona",
       "platformOverrides",
+      "prompting",
       "schedule",
       "strategy",
       "voice"
