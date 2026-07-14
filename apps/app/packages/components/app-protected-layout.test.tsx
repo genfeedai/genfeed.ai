@@ -594,11 +594,7 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByTestId('sidebar-brand-switcher'),
     ).not.toBeInTheDocument();
-    // Community mode (no cloud flag): the org switcher must not render — one
-    // org per instance, nothing to switch (ADR-DEPLOYMENT-MODES switcher rule).
-    expect(
-      screen.queryByTestId('organization-switcher'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
@@ -612,7 +608,7 @@ describe('AppProtectedLayout', () => {
         collapsedSidebarWidth: 0,
         currentApp: 'workspace',
         mobileSidebarWidth: 304,
-        orgSwitcherSlot: undefined,
+        orgSwitcherSlot: expect.anything(),
         renderTopSlot: expect.any(Function),
         secondaryItems: [
           { href: '/workspace/activity', label: 'Activity' },

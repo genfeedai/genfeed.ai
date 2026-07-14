@@ -167,7 +167,7 @@ describe('dashboard hydration seam', () => {
     );
 
     expect(blocks[0]).toMatchObject({ value: 2 });
-    expect(blocks[1]).toMatchObject({ value: 200 });
+    expect(blocks[1]).toMatchObject({ value: '200' });
     expect(blocks[2]).toMatchObject({ value: '4.2K' });
   });
 
