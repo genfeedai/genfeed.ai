@@ -8,6 +8,12 @@ import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 
+const identity = vi.hoisted(() => ({
+  databaseUserId: '507f191e810c19729de860ec',
+  metadataUserId: '507f191e810c19729de860eb',
+  organizationId: '507f191e810c19729de860ea',
+}));
+
 vi.mock('@genfeedai/tools', () => ({
   getToolsForSurface: vi.fn(() => []),
   toAgentTools: vi.fn(() => []),
@@ -15,8 +21,8 @@ vi.mock('@genfeedai/tools', () => ({
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     brand: 'brand-1',
-    organization: '507f191e810c19729de860ea',
-    user: '507f191e810c19729de860ea',
+    organization: identity.organizationId,
+    user: identity.metadataUserId,
   })),
 }));
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
@@ -115,7 +121,7 @@ describe('AgentOrchestratorController', () => {
       );
     });
 
-    it('passes typed selected artifact references to the scoped turn', async () => {
+    it('uses the metadata organization and canonical database user for a scoped turn', async () => {
       const user = {
         id: 'authProvider_123',
         publicMetadata: { organization: 'org', user: 'usr' },
@@ -123,12 +129,12 @@ describe('AgentOrchestratorController', () => {
       const reference = {
         brandId: 'brand-1',
         kind: 'post',
-        organizationId: '507f191e810c19729de860ea',
+        organizationId: identity.organizationId,
         recordId: 'post-1',
         serializer: 'post',
       } satisfies AgentArtifactReference;
       usersService.findOne.mockResolvedValue({
-        id: '507f191e810c19729de860ea',
+        id: identity.databaseUserId,
       });
       service.chat.mockResolvedValue({} as never);
 
@@ -145,8 +151,16 @@ describe('AgentOrchestratorController', () => {
       expect(service.chat).toHaveBeenCalledWith(
         expect.objectContaining({ artifactReferences: [reference] }),
         expect.objectContaining({
-          organizationId: '507f191e810c19729de860ea',
+          organizationId: identity.organizationId,
+          userId: identity.databaseUserId,
         }),
+      );
+      expect(usersService.findOne).toHaveBeenCalledWith(
+        {
+          _id: identity.metadataUserId,
+          authProviderId: 'authProvider_123',
+        },
+        [],
       );
     });
 

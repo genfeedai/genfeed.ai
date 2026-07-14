@@ -682,20 +682,29 @@ export function useAgentChatInput({
 
     return [...referencesByKey.values()];
   }, [composerShell?.references, mentionReferences]);
-  const displayedReferences = useMemo<AgentChatReferenceItem[]>(
-    () => [
-      ...references,
-      ...surfaceArtifactReferences.map((item) => {
-        const normalizedItem = normalizeSurfaceArtifactReference(item);
-        return {
-          id: normalizedItem.reference.recordId,
+  const displayedReferences = useMemo<AgentChatReferenceItem[]>(() => {
+    const referencesById = new Map<string, AgentChatReferenceItem>();
+
+    for (const reference of references) {
+      if (!referencesById.has(reference.id)) {
+        referencesById.set(reference.id, reference);
+      }
+    }
+
+    for (const item of surfaceArtifactReferences) {
+      const normalizedItem = normalizeSurfaceArtifactReference(item);
+      const referenceId = normalizedItem.reference.recordId;
+      if (!referencesById.has(referenceId)) {
+        referencesById.set(referenceId, {
+          id: referenceId,
           label: normalizedItem.label,
-          type: 'asset' as const,
-        };
-      }),
-    ],
-    [references, surfaceArtifactReferences],
-  );
+          type: 'asset',
+        });
+      }
+    }
+
+    return [...referencesById.values()];
+  }, [references, surfaceArtifactReferences]);
 
   const isDragActive = dragState?.isActive ?? false;
   const canSendMessage = !isEmpty || hasCompletedAttachments;
