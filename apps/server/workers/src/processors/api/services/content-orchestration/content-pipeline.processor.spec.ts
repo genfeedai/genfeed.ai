@@ -1,14 +1,21 @@
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
+import type { ContentqueryJobData } from '@api/services/content-orchestration/content-pipeline-queue.service';
 import { ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContentPipelineProcessor } from '@workers/processors/api/services/content-orchestration/content-pipeline.processor';
+import type { Job } from 'bullmq';
 
 // Mock the BullMQ decorators
-vi.mock('@nestjs/bullmq', () => ({
-  Processor: () => () => undefined,
-  WorkerHost: class {},
-}));
+vi.mock('@nestjs/bullmq', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@nestjs/bullmq')>();
+
+  return {
+    ...actual,
+    Processor: () => () => undefined,
+    WorkerHost: class {},
+  };
+});
 
 describe('ContentPipelineProcessor', () => {
   let processor: ContentPipelineProcessor;
@@ -75,7 +82,9 @@ describe('ContentPipelineProcessor', () => {
         name: 'generate-and-publish',
       };
 
-      const result = await processor.process(job as any);
+      const result = await processor.process(
+        job as unknown as Job<ContentqueryJobData>,
+      );
 
       expect(result).toEqual(expect.objectContaining({ status: 'completed' }));
       expect(mockOrchestrationService.generateAndPublish).toHaveBeenCalledWith(
@@ -108,7 +117,9 @@ describe('ContentPipelineProcessor', () => {
         name: 'batch-generate',
       };
 
-      const result = await processor.process(job as any);
+      const result = await processor.process(
+        job as unknown as Job<ContentqueryJobData>,
+      );
 
       expect(result).toEqual(
         expect.objectContaining({
@@ -135,9 +146,9 @@ describe('ContentPipelineProcessor', () => {
         name: 'generate-and-publish',
       };
 
-      await expect(processor.process(job as any)).rejects.toThrow(
-        'Processing failed',
-      );
+      await expect(
+        processor.process(job as unknown as Job<ContentqueryJobData>),
+      ).rejects.toThrow('Processing failed');
     });
 
     it('should throw on unknown job type', async () => {
@@ -146,14 +157,14 @@ describe('ContentPipelineProcessor', () => {
           config: {},
           organizationId: 'org-1',
           personaId: 'p-1',
-          type: 'unknown' as any,
+          type: 'unknown',
         },
         name: 'unknown',
       };
 
-      await expect(processor.process(job as any)).rejects.toThrow(
-        'Unknown content pipeline job type',
-      );
+      await expect(
+        processor.process(job as unknown as Job<ContentqueryJobData>),
+      ).rejects.toThrow('Unknown content pipeline job type');
     });
   });
 });

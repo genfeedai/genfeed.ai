@@ -13,13 +13,13 @@ interface WorkspaceOverviewArtifactScope {
   readonly organizationId: string;
 }
 
-const ARTIFACT_KIND_BY_TASK_ENTITY = Object.freeze({
+const ARTIFACT_KIND_BY_TASK_ENTITY: Readonly<
+  Partial<Record<TaskLinkedEntityModel, AgentArtifactRecordKind>>
+> = Object.freeze({
   Article: 'article',
   Ingredient: 'ingredient',
   Post: 'post',
-} as const satisfies Partial<
-  Record<TaskLinkedEntityModel, AgentArtifactRecordKind>
->);
+});
 
 export function getWorkspaceOverviewArtifactReferences(
   task: Task | null,
