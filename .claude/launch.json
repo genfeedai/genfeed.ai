@@ -10,7 +10,10 @@
     {
       "name": "app",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "cd apps/app && bun run dev"],
+      "runtimeArgs": [
+        "-c",
+        "cd apps/app && API_URL=http://local.genfeed.ai:3010/v1 bun run dev"
+      ],
       "port": 3000
     },
     {
