@@ -26,7 +26,7 @@ const AGENT_ORCHESTRATOR_TREE =
  * ratchet: never raise a number; lower it whenever a slice removes lines.
  */
 const RATCHET_CEILINGS: Record<string, number> = {
-  'apps/server/api/src/services/agent-orchestrator/agent-orchestrator.service.ts': 5358,
+  'apps/server/api/src/services/agent-orchestrator/agent-orchestrator.service.ts': 5356,
   'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts': 9307,
   'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-registry.ts': 1136,
 };

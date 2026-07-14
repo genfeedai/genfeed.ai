@@ -247,7 +247,7 @@ describe('AnalyticsExportService', () => {
           limit: 5000,
           page: 1,
           pagination: true,
-          sort: '-publicationDate',
+          sort: { publicationDate: -1 },
         },
       );
     });
@@ -263,7 +263,7 @@ describe('AnalyticsExportService', () => {
           limit: 5000,
           page: 1,
           pagination: true,
-          sort: '-publicationDate',
+          sort: { publicationDate: -1 },
         },
       );
     });
@@ -298,7 +298,7 @@ describe('AnalyticsExportService', () => {
           limit: 5000,
           page: 1,
           pagination: true,
-          sort: '-publicationDate',
+          sort: { publicationDate: -1 },
         },
       );
     });

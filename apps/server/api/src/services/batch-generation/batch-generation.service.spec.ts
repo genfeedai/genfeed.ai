@@ -175,6 +175,7 @@ describe('BatchGenerationService approval version pins', () => {
           _id: 'item-1',
           format: ContentFormat.IMAGE,
           postId: 'post-1',
+          scheduledDate: '2026-07-14T10:00:00.000Z',
           status: BatchItemStatus.COMPLETED,
         },
       ]),

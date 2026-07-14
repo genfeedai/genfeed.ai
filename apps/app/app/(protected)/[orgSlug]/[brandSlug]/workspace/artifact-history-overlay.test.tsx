@@ -62,7 +62,7 @@ describe('ArtifactHistoryOverlay', () => {
     expect(screen.getByText('v3')).toBeInTheDocument();
     expect(screen.getByText('v2')).toBeInTheDocument();
     expect(screen.getByText('v1')).toBeInTheDocument();
-    expect(screen.getByText('Current · immutable')).toBeInTheDocument();
+    expect(screen.getAllByText('Current · immutable')).toHaveLength(2);
   });
 
   it('approves the current immutable version from the primary CTA', () => {
