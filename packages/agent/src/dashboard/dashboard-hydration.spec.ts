@@ -131,12 +131,82 @@ describe('dashboard hydration seam', () => {
     });
   });
 
-  it('leaves placeholders when the bundle cannot resolve a sourceKey', () => {
-    const { document } = sanitizeLayoutForPersistence(validLayout);
-    const hydrated = hydrateLayout(document, { analytics: {} });
+  it('hydrates derived and fallback KPI sourceKeys from live analytics', () => {
+    const blocks = hydrateLayout(
+      {
+        blocks: [
+          {
+            id: 'platforms',
+            sourceKey: 'activePlatformsCount',
+            type: 'metric_card',
+            value: '',
+          },
+          {
+            id: 'views-per-post',
+            sourceKey: 'avgViewsPerPost',
+            type: 'metric_card',
+            value: '',
+          },
+          {
+            id: 'engagement',
+            sourceKey: 'totalEngagement',
+            type: 'metric_card',
+            value: '',
+          },
+        ],
+        version: 'genfeed.dashboard.openui.v1',
+      },
+      {
+        analytics: {
+          activePlatforms: ['instagram', 'tiktok'],
+          totalLikes: 4200,
+          totalPosts: 5,
+          totalViews: 1000,
+        },
+      },
+    );
 
-    const metric = hydrated[0];
-    expect(metric).toMatchObject({ type: 'metric_card', value: '' });
-    expect(metric.hydration?.status).not.toBe('ready');
+    expect(blocks[0]).toMatchObject({ value: 2 });
+    expect(blocks[1]).toMatchObject({ value: 200 });
+    expect(blocks[2]).toMatchObject({ value: '4.2K' });
+  });
+
+  it('rejects a known metric sourceKey when its live value is not provided', () => {
+    const { document } = sanitizeLayoutForPersistence(validLayout);
+
+    expect(() => hydrateLayout(document, { analytics: {} })).toThrow(
+      /live data for sourceKey "totalPosts" was not provided/,
+    );
+  });
+
+  it('rejects an unsupported persisted sourceKey explicitly', () => {
+    expect(() =>
+      hydrateLayout(
+        {
+          blocks: [
+            {
+              id: 'unknown-metric',
+              sourceKey: 'not_a_metric',
+              type: 'metric_card',
+              value: '',
+            },
+          ],
+          version: 'genfeed.dashboard.openui.v1',
+        },
+        bundle,
+      ),
+    ).toThrow(/unsupported sourceKey "not_a_metric"/);
+  });
+
+  it('rejects a recognized collection sourceKey when its live collection is not provided', () => {
+    expect(() =>
+      hydrateLayout(
+        {
+          blocks: [unhydratablePersistedBlocks[0]],
+          version: 'genfeed.dashboard.openui.v1',
+        },
+        { analytics: { totalPosts: 128 } },
+      ),
+    ).toThrow(/live data for sourceKey "timeSeries" was not provided/);
   });
 });

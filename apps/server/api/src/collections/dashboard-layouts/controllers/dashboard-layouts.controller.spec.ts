@@ -142,10 +142,19 @@ describe('DashboardLayoutsController', () => {
       expect(result).toEqual({ error: 'DashboardLayoutsController:brand-1' });
     });
 
-    it('throws BadRequestException when the brand query param is missing', async () => {
-      await expect(
-        controller.findForPage(mockRequest as never, mockUser, ''),
-      ).rejects.toThrow(BadRequestException);
+    it.each([
+      undefined,
+      '',
+      '   ',
+    ])('returns HTTP 400 when the brand query param is missing or blank (%j)', async (brandId) => {
+      const request = controller.findForPage(
+        mockRequest as never,
+        mockUser,
+        brandId as string,
+      );
+
+      await expect(request).rejects.toBeInstanceOf(BadRequestException);
+      await expect(request).rejects.toMatchObject({ status: 400 });
 
       expect(service.findForPage).not.toHaveBeenCalled();
     });

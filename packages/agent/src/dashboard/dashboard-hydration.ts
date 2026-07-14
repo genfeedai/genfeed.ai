@@ -253,8 +253,37 @@ function resolveMetricValue(
   analytics: Partial<IAnalytics>,
 ): string | number | undefined {
   const definition = KPI_CATALOG_BY_KEY.get(sourceKey);
-  const raw = analytics[sourceKey as keyof IAnalytics];
-  const value = toFiniteNumber(raw);
+  if (!definition) {
+    return undefined;
+  }
+
+  let value: number | undefined;
+
+  if (sourceKey === 'activePlatformsCount') {
+    value = Array.isArray(analytics.activePlatforms)
+      ? analytics.activePlatforms.length
+      : undefined;
+  } else if (sourceKey === 'avgViewsPerPost') {
+    const posts = toFiniteNumber(analytics.totalPosts);
+    const views = toFiniteNumber(analytics.totalViews);
+    if (posts === 0) {
+      value = 0;
+    } else if (posts !== undefined && views !== undefined) {
+      value = views / posts;
+    }
+  } else {
+    value = toFiniteNumber(analytics[sourceKey as keyof IAnalytics]);
+
+    if (value === undefined) {
+      for (const fallbackKey of definition.fallbackKeys ?? []) {
+        value = toFiniteNumber(analytics[fallbackKey]);
+        if (value !== undefined) {
+          break;
+        }
+      }
+    }
+  }
+
   if (value === undefined) {
     return undefined;
   }
@@ -268,6 +297,26 @@ function resolveMetricValue(
     );
   }
   return value;
+}
+
+function requireResolvableSourceKey(block: AgentUIBlock): string {
+  const sourceKey = block.sourceKey;
+  if (!isResolvableSourceKey(block.type, sourceKey)) {
+    throw new Error(
+      `Cannot hydrate dashboard ${block.type} block "${block.id}": unsupported sourceKey "${sourceKey ?? '<missing>'}"`,
+    );
+  }
+
+  return sourceKey;
+}
+
+function throwMissingHydrationData(
+  block: AgentUIBlock,
+  sourceKey: string,
+): never {
+  throw new Error(
+    `Cannot hydrate dashboard ${block.type} block "${block.id}": live data for sourceKey "${sourceKey}" was not provided`,
+  );
 }
 
 function resolveCollection(
@@ -321,12 +370,12 @@ function hydrateBlock(
 
   switch (block.type) {
     case 'metric_card': {
-      const value = block.sourceKey
-        ? resolveMetricValue(block.sourceKey, analytics)
-        : undefined;
-      return value === undefined
-        ? block
-        : { ...block, hydration: ready, value };
+      const sourceKey = requireResolvableSourceKey(block);
+      const value = resolveMetricValue(sourceKey, analytics);
+      if (value === undefined) {
+        return throwMissingHydrationData(block, sourceKey);
+      }
+      return { ...block, hydration: ready, value };
     }
     case 'kpi_grid':
       return {
@@ -336,24 +385,28 @@ function hydrateBlock(
         ),
       };
     case 'chart': {
-      const data = block.sourceKey
-        ? resolveCollection(block.sourceKey, bundle)
-        : undefined;
-      return data ? { ...block, data, hydration: ready } : block;
+      const sourceKey = requireResolvableSourceKey(block);
+      const data = resolveCollection(sourceKey, bundle);
+      if (data === undefined) {
+        return throwMissingHydrationData(block, sourceKey);
+      }
+      return { ...block, data, hydration: ready };
     }
     case 'table': {
-      const rows = block.sourceKey
-        ? resolveCollection(block.sourceKey, bundle)
-        : undefined;
-      return rows ? { ...block, hydration: ready, rows } : block;
+      const sourceKey = requireResolvableSourceKey(block);
+      const rows = resolveCollection(sourceKey, bundle);
+      if (rows === undefined) {
+        return throwMissingHydrationData(block, sourceKey);
+      }
+      return { ...block, hydration: ready, rows };
     }
     case 'top_posts': {
-      const rows = block.sourceKey
-        ? resolveCollection(block.sourceKey, bundle)
-        : undefined;
-      return rows
-        ? { ...block, hydration: ready, posts: rows.map(toTopPostItem) }
-        : block;
+      const sourceKey = requireResolvableSourceKey(block);
+      const rows = resolveCollection(sourceKey, bundle);
+      if (rows === undefined) {
+        return throwMissingHydrationData(block, sourceKey);
+      }
+      return { ...block, hydration: ready, posts: rows.map(toTopPostItem) };
     }
     case 'composite':
       return {
@@ -367,8 +420,9 @@ function hydrateBlock(
 
 /**
  * Refill a persisted (snapshot-free) layout's data-bearing blocks from a live
- * analytics bundle. Blocks whose `sourceKey` can't be resolved from the bundle
- * keep their empty placeholder and render their own loading/empty state.
+ * analytics bundle. Unknown source keys and known keys whose live data was not
+ * provided are rejected explicitly so persisted blocks cannot silently render
+ * empty forever.
  */
 export function hydrateLayout(
   input: PersistedDashboardLayoutDocument | unknown,
