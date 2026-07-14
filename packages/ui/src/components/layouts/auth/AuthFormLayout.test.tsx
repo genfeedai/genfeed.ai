@@ -87,4 +87,17 @@ describe('AuthFormLayout', () => {
     expect(logo).toHaveAttribute('height', '48');
     expect(logo).toHaveClass('mb-8');
   });
+
+  it('should wrap compact auth forms in an elevated card', () => {
+    render(
+      <AuthFormLayout logoSize="compact">
+        <div data-testid="child">Content</div>
+      </AuthFormLayout>,
+    );
+
+    const card = screen.getByTestId('child').parentElement as HTMLElement;
+    expect(card).toHaveClass('bg-card');
+    expect(card).toHaveClass('rounded-2xl');
+    expect(card).toHaveClass('shadow-border');
+  });
 });

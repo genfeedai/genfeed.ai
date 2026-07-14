@@ -6,7 +6,7 @@ import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { ArrowLeft, KeyRound, MailCheck, Sparkles } from 'lucide-react';
+import { KeyRound, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -21,6 +21,15 @@ import {
   getAuthFlowHref,
   toAbsoluteAuthCallbackURL,
 } from '../auth-callback-url';
+import {
+  AUTH_LINK_CLASS_NAME,
+  AUTH_PRIMARY_BUTTON_CLASS_NAME,
+  AUTH_SECONDARY_BUTTON_CLASS_NAME,
+  AuthBackLink,
+  AuthCheckEmail,
+  AuthFooterPrompt,
+  AuthHeading,
+} from '../auth-ui';
 
 const subscribe = () => () => {};
 const getSnapshot = () => true;
@@ -31,12 +40,6 @@ type LoginMode = 'chooser' | 'magic-link' | 'password';
 interface LoginBetterAuthProps {
   mode?: LoginMode;
 }
-
-const AUTH_BUTTON_CLASS_NAME =
-  'h-10 w-full justify-center gap-3 rounded-md border-border bg-background text-[15px] font-medium tracking-normal shadow-sm hover:bg-accent/50';
-
-const AUTH_LINK_CLASS_NAME =
-  'text-sm font-medium text-foreground underline underline-offset-4';
 
 export default function LoginBetterAuth({
   mode = 'chooser',
@@ -155,27 +158,17 @@ export default function LoginBetterAuth({
   if (mode === 'magic-link' && isEmailSent) {
     return (
       <AuthFormLayout logoSize="compact">
-        <div className="w-full max-w-sm space-y-4 text-center">
-          <MailCheck
-            className="mx-auto size-8 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <p className="text-2xl font-semibold tracking-normal">
-            Check your email
-          </p>
-          <p className="text-sm text-muted-foreground">
-            We sent a sign-in link to <strong>{email}</strong>. Click the link
-            in the email to sign in.
-          </p>
-          <Button
-            asChild
-            variant={ButtonVariant.OUTLINE}
-            className={AUTH_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            <Link href={chooserHref}>Back to sign in</Link>
-          </Button>
-        </div>
+        <AuthCheckEmail
+          title="Check your email"
+          description={
+            <>
+              We sent a sign-in link to <strong>{email}</strong>. Click the link
+              in the email to sign in.
+            </>
+          }
+          backHref={chooserHref}
+          backLabel="Back to sign in"
+        />
       </AuthFormLayout>
     );
   }
@@ -183,8 +176,8 @@ export default function LoginBetterAuth({
   if (mode === 'magic-link') {
     return (
       <AuthFormLayout logoSize="compact">
-        <div className="w-full max-w-sm space-y-8">
-          <AuthHeader
+        <div className="w-full space-y-6">
+          <AuthHeading
             title="Sign in with a magic link"
             description="Enter your email and we'll send you a secure sign-in link."
           />
@@ -214,14 +207,16 @@ export default function LoginBetterAuth({
               variant={ButtonVariant.DEFAULT}
               isLoading={isSubmitting}
               isDisabled={!email || isSubmitting}
-              className="h-10 w-full justify-center text-[15px] font-medium tracking-normal"
+              className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
               withWrapper={false}
             >
               Email me a sign-in link
             </Button>
           </form>
 
-          <BackToChooser href={chooserHref} />
+          <AuthBackLink href={chooserHref}>
+            Back to sign in options
+          </AuthBackLink>
         </div>
       </AuthFormLayout>
     );
@@ -230,8 +225,8 @@ export default function LoginBetterAuth({
   if (mode === 'password') {
     return (
       <AuthFormLayout logoSize="compact">
-        <div className="w-full max-w-sm space-y-8">
-          <AuthHeader
+        <div className="w-full space-y-6">
+          <AuthHeading
             title="Sign in with email and password"
             description="Use the email and password attached to your Genfeed account."
           />
@@ -268,7 +263,10 @@ export default function LoginBetterAuth({
             </Field>
 
             <div className="text-right">
-              <Link href={forgotPasswordHref} className={AUTH_LINK_CLASS_NAME}>
+              <Link
+                href={forgotPasswordHref}
+                className={`text-sm ${AUTH_LINK_CLASS_NAME}`}
+              >
                 Forgot password?
               </Link>
             </div>
@@ -282,14 +280,16 @@ export default function LoginBetterAuth({
               variant={ButtonVariant.DEFAULT}
               isLoading={isPasswordSubmitting}
               isDisabled={!email || !password || isPasswordSubmitting}
-              className="h-10 w-full justify-center text-[15px] font-medium tracking-normal"
+              className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
               withWrapper={false}
             >
               Sign in
             </Button>
           </form>
 
-          <BackToChooser href={chooserHref} />
+          <AuthBackLink href={chooserHref}>
+            Back to sign in options
+          </AuthBackLink>
         </div>
       </AuthFormLayout>
     );
@@ -297,26 +297,26 @@ export default function LoginBetterAuth({
 
   return (
     <AuthFormLayout logoSize="compact">
-      <div className="w-full max-w-[320px] space-y-8">
-        <AuthHeader title="Welcome Back" description="Sign in to Genfeed" />
+      <div className="w-full space-y-6">
+        <AuthHeading title="Welcome back" description="Sign in to Genfeed" />
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Button
             type="button"
             variant={ButtonVariant.OUTLINE}
             onClick={() => handleSocialSignIn('google')}
             icon={<FcGoogle className="size-4" aria-hidden="true" />}
             isLoading={isSocialSubmitting}
-            className={AUTH_BUTTON_CLASS_NAME}
+            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
-            Google
+            Continue with Google
           </Button>
 
           <Button
             asChild
             variant={ButtonVariant.OUTLINE}
-            className={AUTH_BUTTON_CLASS_NAME}
+            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
             <Link href={magicLinkHref}>
@@ -328,7 +328,7 @@ export default function LoginBetterAuth({
           <Button
             asChild
             variant={ButtonVariant.OUTLINE}
-            className={AUTH_BUTTON_CLASS_NAME}
+            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
             <Link href={passwordHref}>
@@ -344,44 +344,13 @@ export default function LoginBetterAuth({
           </p>
         ) : null}
 
-        <p className="text-center text-xs leading-5 text-muted-foreground">
+        <AuthFooterPrompt>
           Don&apos;t have an account?{' '}
           <Link href={signUpHref} className={AUTH_LINK_CLASS_NAME}>
             Sign up
           </Link>
-        </p>
+        </AuthFooterPrompt>
       </div>
     </AuthFormLayout>
-  );
-}
-
-function AuthHeader({
-  description,
-  title,
-}: {
-  description: string;
-  title: string;
-}) {
-  return (
-    <div className="space-y-2 text-center">
-      <h1 className="text-2xl font-semibold tracking-normal text-foreground">
-        {title}
-      </h1>
-      <p className="text-sm text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
-function BackToChooser({ href }: { href: string }) {
-  return (
-    <div className="text-center">
-      <Link
-        href={href}
-        className="inline-flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Back to sign in options
-      </Link>
-    </div>
   );
 }

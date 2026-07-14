@@ -16,14 +16,16 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { getAuthCallbackURL, getAuthFlowHref } from '../auth-callback-url';
+import {
+  AUTH_LINK_CLASS_NAME,
+  AUTH_PRIMARY_BUTTON_CLASS_NAME,
+  AuthHeading,
+} from '../auth-ui';
 
 const subscribe = () => () => {};
 const getSnapshot = () => true;
 const getServerSnapshot = () => false;
 const MIN_PASSWORD_LENGTH = 8;
-
-const AUTH_BUTTON_CLASS_NAME =
-  'h-10 w-full justify-center text-[15px] font-medium tracking-normal';
 
 function getTokenErrorMessage(errorCode: string | null): string {
   if (errorCode) {
@@ -104,12 +106,12 @@ export default function ResetPasswordContent() {
   if (isResetComplete) {
     return (
       <AuthFormLayout logoSize="compact">
-        <div className="w-full max-w-sm space-y-4 text-center">
+        <div className="w-full space-y-4 text-center">
           <CheckCircle2
             className="mx-auto size-8 text-muted-foreground"
             aria-hidden="true"
           />
-          <h1 className="text-2xl font-semibold tracking-normal">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
             Password updated
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -119,7 +121,7 @@ export default function ResetPasswordContent() {
           <Button
             asChild
             variant={ButtonVariant.DEFAULT}
-            className={AUTH_BUTTON_CLASS_NAME}
+            className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
             <Link href={loginHref}>Sign in</Link>
@@ -132,12 +134,12 @@ export default function ResetPasswordContent() {
   if (hasRecoverableTokenError) {
     return (
       <AuthFormLayout logoSize="compact">
-        <div className="w-full max-w-sm space-y-4 text-center">
+        <div className="w-full space-y-4 text-center">
           <RotateCcw
             className="mx-auto size-8 text-muted-foreground"
             aria-hidden="true"
           />
-          <h1 className="text-2xl font-semibold tracking-normal">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
             Reset link expired
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -146,7 +148,7 @@ export default function ResetPasswordContent() {
           <Button
             asChild
             variant={ButtonVariant.DEFAULT}
-            className={AUTH_BUTTON_CLASS_NAME}
+            className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
             <Link href={forgotPasswordHref}>Request a new reset link</Link>
@@ -158,15 +160,11 @@ export default function ResetPasswordContent() {
 
   return (
     <AuthFormLayout logoSize="compact">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-semibold tracking-normal text-foreground">
-            Choose a new password
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Enter a new password for your Genfeed account.
-          </p>
-        </div>
+      <div className="w-full space-y-6">
+        <AuthHeading
+          title="Choose a new password"
+          description="Enter a new password for your Genfeed account."
+        />
 
         <form onSubmit={handlePasswordReset} className="space-y-4">
           <Field label="New password" isRequired>
@@ -202,10 +200,7 @@ export default function ResetPasswordContent() {
           {errorMessage ? (
             <div className="space-y-2">
               <p className="text-sm text-destructive">{errorMessage}</p>
-              <Link
-                href={forgotPasswordHref}
-                className="text-sm font-medium text-foreground underline underline-offset-4"
-              >
+              <Link href={forgotPasswordHref} className={AUTH_LINK_CLASS_NAME}>
                 Request a new reset link
               </Link>
             </div>
@@ -218,7 +213,7 @@ export default function ResetPasswordContent() {
             isDisabled={
               !newPassword || !confirmPassword || isSubmitting || !token
             }
-            className={AUTH_BUTTON_CLASS_NAME}
+            className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
             Reset password

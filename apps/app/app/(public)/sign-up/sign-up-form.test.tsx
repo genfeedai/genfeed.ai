@@ -96,7 +96,9 @@ describe('SignUpForm', () => {
     expect(
       screen.getByRole('heading', { name: 'Create your account' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Google' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Continue with Google' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
       'href',
       '/sign-up/magic-link',
@@ -223,7 +225,9 @@ describe('SignUpForm', () => {
 
     render(<SignUpForm />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Continue with Google' }),
+    );
 
     await waitFor(() => {
       expect(authClientMocks.social).toHaveBeenCalledWith({
