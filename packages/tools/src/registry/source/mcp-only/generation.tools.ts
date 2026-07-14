@@ -16,7 +16,6 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
     creditCost: 0,
@@ -38,7 +37,6 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
     creditCost: 0,
@@ -60,7 +58,6 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
     creditCost: 0,
@@ -77,7 +74,6 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
   {
     creditCost: 0,
@@ -94,6 +90,5 @@ export const MCP_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
 ];

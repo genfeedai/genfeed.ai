@@ -33,7 +33,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -60,7 +59,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -83,7 +81,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -102,7 +99,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -129,7 +125,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 1,
@@ -157,7 +152,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -170,7 +164,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -264,7 +257,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -361,7 +353,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -423,7 +414,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -448,7 +438,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -463,7 +452,6 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -488,6 +476,5 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
 ];

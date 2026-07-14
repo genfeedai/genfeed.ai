@@ -392,8 +392,7 @@ jobs:
           # `ee/` is included because ee/packages/billing controllers are
           # composed into the API at build (webpack @billing-providers alias),
           # so an EE-only route change must trigger the API scope — otherwise
-          # the OpenAPI spec-drift + API↔MCP parity gates (openapi-drift job)
-          # would miss it (#1251).
+          # the OpenAPI spec-drift gate (openapi-drift job) would miss it.
           if echo "$CHANGED_FILES" | grep -E '^(apps/server/api|ee/|packages/|package\.json|bun\.lock|turbo\.json|vitest\.config\.ts|\.github/workflows/ci\.yml)' >/dev/null; then
             echo "api=true" >> "$GITHUB_OUTPUT"
           else
@@ -648,11 +647,9 @@ jobs:
           NODE_ENV: test
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET || 'test-better-auth-secret' }}
 
-  # OpenAPI spec gate (#1247): the committed artifact at
-  # apps/server/api/openapi/openapi.json is the single source of truth for MCP
-  # tool generation (#1246). This job regenerates it from the compiled bundle
-  # (headless emit — no DB/Redis, exits before the listener) and fails when the
-  # committed spec drifted or the emit is non-deterministic.
+  # OpenAPI documentation gate (#1247). This job regenerates the committed
+  # artifact from the compiled bundle (headless emit — no DB/Redis, exits before
+  # the listener) and fails when the spec drifted or the emit is non-deterministic.
   openapi-drift:
     name: OpenAPI Spec Drift
     runs-on: ubuntu-latest
@@ -687,14 +684,6 @@ jobs:
           fi
       - name: Validate spec (operationId coverage/uniqueness + allowlist)
         run: cd apps/server/api && bun run openapi:validate
-      - name: Generated MCP tools artifact must be fresh
-        run: bun run --filter=@genfeedai/tools generate:mcp-tools:check
-      # API↔MCP parity gate (#1251): every non-internal operation must have an
-      # MCP tool, or be allowlisted, or be acknowledged in the parity baseline.
-      # Fails on a new endpoint with no tool. Reuses the api build above (which
-      # builds @genfeedai/tools via ^build) for getToolsForSurface('mcp').
-      - name: Enforce API↔MCP parity
-        run: cd apps/server/api && bun run mcp:parity
 
   build:
     name: Build

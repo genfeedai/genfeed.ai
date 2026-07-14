@@ -24,7 +24,6 @@ export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -48,7 +47,6 @@ export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -67,7 +65,6 @@ export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -85,6 +82,5 @@ export const BRAND_INTERVIEW_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, mcp: true },
   },
 ];

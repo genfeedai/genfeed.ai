@@ -11,7 +11,6 @@
     "artifacts/**",
     "playwright/artifacts/**",
     "packages/api-types/src/generated/**",
-    "packages/tools/src/registry/generated/**",
     "**/*.d.ts"
   ],
   "ignoreDependencies": [
@@ -42,8 +41,7 @@
       "**/*.stories.*",
       "docs/**",
       "scripts/**",
-      "packages/api-types/src/generated/**",
-      "packages/tools/src/registry/generated/**"
+      "packages/api-types/src/generated/**"
     ],
     "ignoreImports": true
   },
@@ -57,8 +55,7 @@
       "**/*.stories.*",
       "docs/**",
       "scripts/**",
-      "packages/api-types/src/generated/**",
-      "packages/tools/src/registry/generated/**"
+      "packages/api-types/src/generated/**"
     ],
     "suggestInlineSuppression": false
   },

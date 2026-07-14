@@ -62,8 +62,8 @@ export function collectOperations(
  * segment-aware to avoid over-matching: a prefix that does not already end in
  * `/` only matches the exact path or a path continuing at a `/` boundary. So
  * `/health` matches `/health` and `/health/live` but NOT a future public
- * `/healthcare` — which raw `startsWith` would have silently excluded from
- * parity (#1251). Trailing-slash prefixes (`/webhooks/`) keep prefix semantics.
+ * `/healthcare` — which raw `startsWith` would have silently classified as
+ * internal. Trailing-slash prefixes (`/webhooks/`) keep prefix semantics.
  */
 export function isInternalRoute(
   path: string,
@@ -136,7 +136,7 @@ export function validateOpenApiSpec(
   return {
     stats: {
       internalOperations,
-      parityOperations: operations.length - internalOperations,
+      publicOperations: operations.length - internalOperations,
       totalOperations: operations.length,
       uniqueOperationIds: byOperationId.size,
     },

@@ -12,7 +12,6 @@ import { BaseApiClient } from '@mcp/services/client/base-api-client';
 import type {
   BrandResponse,
   CreateBatchParams,
-  GeneratedApiRequest,
   ListBatchesParams,
   PersonaResponse,
 } from '@mcp/services/client/client.types';
@@ -146,10 +145,6 @@ export class ClientService {
     payload: Record<string, unknown>,
   ): Promise<TResponse> {
     return this.base.postAttributes<TResponse>(endpoint, payload);
-  }
-
-  requestGeneratedOperation(request: GeneratedApiRequest): Promise<unknown> {
-    return this.base.requestGeneratedOperation(request);
   }
 
   // ── Agent tools & approvals ──

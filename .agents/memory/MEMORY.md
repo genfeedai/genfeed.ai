@@ -36,6 +36,7 @@
 - [Shared checkout automation](shared_checkout_automation.md) — Treat shared checkout state as moving; path-scope git add
 - [Genfeed project kanban](genfeed_project_kanban.md) — Use project #12 Genfeed.ai as canonical
 - [System Workflows Content OS](system_workflows_content_os.md) — Content automation uses immutable system workflows instead of hard-coded publish/action/cron paths
+- [Curated Agent and MCP actions](curated_agent_mcp_actions.md) — one reviewed product-action catalog controls Agent/MCP surfaces; OpenAPI never defines tool parity
 - [Positive memory framing](positive_memory_framing.md) — Write memory as target-state guidance with active sources of truth
 - [Epic status on child start](epic_status_on_child_start.md) — Move parent epics to In Progress as soon as a child starts
 - [Failed deploys never burn a version](release_tag_after_green_deploy.md) — pre-gate release cutting is normal; on deploy failure fix master and re-cut the SAME version (delete unconsumed tag), never bump

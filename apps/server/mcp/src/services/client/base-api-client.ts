@@ -3,7 +3,7 @@ import type { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
 import type { HttpService } from '@nestjs/axios';
 import type { AxiosInstance, AxiosResponse } from 'axios';
-import type { ApiError, GeneratedApiRequest } from './client.types';
+import type { ApiError } from './client.types';
 
 /**
  * Low-level HTTP foundation shared by every domain client.
@@ -84,45 +84,6 @@ export class BaseApiClient {
     this.logger.error(`Error ${operation}`, error.message, {
       data: error.response?.data,
     });
-  }
-
-  private getGeneratedErrorMessage(
-    error: ApiError,
-    request: GeneratedApiRequest,
-  ): string {
-    const responseData = error.response?.data;
-    const apiDetail =
-      responseData?.errors?.[0]?.detail ??
-      responseData?.errors?.[0]?.title ??
-      responseData?.message ??
-      responseData?.error ??
-      error.message ??
-      'API request failed';
-    const status = error.response?.status
-      ? `HTTP ${error.response.status}`
-      : 'no HTTP status';
-
-    return `${request.operationLabel} failed (${status}): ${apiDetail}`;
-  }
-
-  async requestGeneratedOperation(
-    request: GeneratedApiRequest,
-  ): Promise<unknown> {
-    return this.request(
-      `executing generated MCP operation ${request.operationLabel}`,
-      async (http) => {
-        const response = await http.request({
-          data: request.body,
-          method: request.method,
-          params: request.query,
-          url: request.path,
-        });
-        return response.data;
-      },
-      (error) => {
-        throw new Error(this.getGeneratedErrorMessage(error, request));
-      },
-    );
   }
 
   // ── Response unwrap helpers (JSON:API `{ data: { ... } }` envelope) ──

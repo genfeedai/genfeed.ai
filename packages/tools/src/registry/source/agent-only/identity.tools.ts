@@ -19,6 +19,5 @@ export const AGENT_IDENTITY_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
 ];

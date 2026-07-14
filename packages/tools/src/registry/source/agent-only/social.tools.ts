@@ -26,7 +26,6 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -39,7 +38,6 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -65,6 +63,5 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
 ];

@@ -75,6 +75,5 @@ export const AGENT_WORKFLOW_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
 ];

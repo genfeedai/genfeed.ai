@@ -17,7 +17,6 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -35,7 +34,6 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -66,7 +64,6 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -101,7 +98,6 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -119,6 +115,5 @@ export const WORKFLOW_CONTROL_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
 ];

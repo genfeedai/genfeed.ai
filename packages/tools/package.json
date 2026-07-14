@@ -27,10 +27,9 @@
   },
   "scripts": {
     "build": "tsc --build && test -f dist/index.js",
+    "catalog:changes": "bun run scripts/report-curated-action-catalog.ts",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
-    "generate:mcp-tools": "bun run scripts/generate-mcp-tools.ts",
-    "generate:mcp-tools:check": "bun run scripts/generate-mcp-tools.ts --check",
     "test": "vitest run --config vitest.config.ts",
     "type-check": "tsc --noEmit"
   },

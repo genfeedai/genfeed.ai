@@ -45,6 +45,5 @@ export const AGENT_OPERATOR_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
 ];
