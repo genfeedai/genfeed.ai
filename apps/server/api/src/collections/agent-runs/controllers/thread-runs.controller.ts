@@ -3,7 +3,10 @@ import { AgentRunsService } from '@api/collections/agent-runs/services/agent-run
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
-import { AgentRunSerializer } from '@genfeedai/serializers';
+import {
+  AgentRunSerializer,
+  sanitizeAgentRunCollectionForSerialization,
+} from '@genfeedai/serializers';
 import {
   Controller,
   Get,
@@ -43,6 +46,10 @@ export class ThreadRunsController {
       },
     );
 
-    return serializeCollection(request, AgentRunSerializer, { docs: runs });
+    return serializeCollection(
+      request,
+      AgentRunSerializer,
+      sanitizeAgentRunCollectionForSerialization({ docs: runs }),
+    );
   }
 }

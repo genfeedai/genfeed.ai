@@ -23,7 +23,11 @@ import { AgentThreadEngineService } from '@api/services/agent-threading/services
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { AgentRunSerializer } from '@genfeedai/serializers';
+import {
+  AgentRunSerializer,
+  sanitizeAgentRunCollectionForSerialization,
+  sanitizeAgentRunForSerialization,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -103,7 +107,7 @@ export class AgentRunsController extends BaseCRUDController<
       match.organization = organizationId;
     }
 
-    const brandId = query.brand ?? publicMetadata.brand?.toString();
+    const brandId = publicMetadata.brand?.toString() ?? query.brand;
     if (brandId) {
       match.brand = brandId;
     }
@@ -208,7 +212,11 @@ export class AgentRunsController extends BaseCRUDController<
     };
     const aggregate = this.buildFindAllQuery(user, query);
     const data = await this.agentRunsService.findAll(aggregate, options);
-    return serializeCollection(request, AgentRunSerializer, data);
+    return serializeCollection(
+      request,
+      AgentRunSerializer,
+      sanitizeAgentRunCollectionForSerialization(data),
+    );
   }
 
   public canUserModifyEntity(user: User, entity: AgentRunDocument): boolean {
@@ -263,7 +271,11 @@ export class AgentRunsController extends BaseCRUDController<
         limit: limit ? Number.parseInt(limit, 10) : undefined,
       },
     );
-    return serializeCollection(request, AgentRunSerializer, { docs: runs });
+    return serializeCollection(
+      request,
+      AgentRunSerializer,
+      sanitizeAgentRunCollectionForSerialization({ docs: runs }),
+    );
   }
 
   @Get('stats')
@@ -324,11 +336,13 @@ export class AgentRunsController extends BaseCRUDController<
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
+    @Query('brand') requestedBrandId?: string,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
+    const brandId = publicMetadata.brand ?? requestedBrandId;
     const doc = await this.agentRunsService.findOne({
       _id: id,
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
+      ...(brandId ? { brand: brandId } : {}),
       isDeleted: false,
       organization: publicMetadata.organization,
     });
@@ -337,7 +351,11 @@ export class AgentRunsController extends BaseCRUDController<
       throw new NotFoundException('Agent run');
     }
 
-    return serializeSingle(request, AgentRunSerializer, doc);
+    return serializeSingle(
+      request,
+      AgentRunSerializer,
+      sanitizeAgentRunForSerialization(doc),
+    );
   }
 
   @Get(':id/content')
@@ -367,12 +385,14 @@ export class AgentRunsController extends BaseCRUDController<
     @Req() request: Request,
     @Param('id') id: string,
     @CurrentUser() user: User,
+    @Query('brand') requestedBrandId?: string,
   ) {
     const publicMetadata = getPublicMetadata(user);
+    const brandId = publicMetadata.brand ?? requestedBrandId;
     const run = await this.agentRunsService.cancel(
       id,
       publicMetadata.organization,
-      publicMetadata.brand,
+      brandId,
     );
 
     if (!run) {
@@ -400,7 +420,11 @@ export class AgentRunsController extends BaseCRUDController<
       });
     }
 
-    return serializeSingle(request, AgentRunSerializer, run);
+    return serializeSingle(
+      request,
+      AgentRunSerializer,
+      sanitizeAgentRunForSerialization(run),
+    );
   }
 
   @Post(':id/retries')
@@ -411,17 +435,19 @@ export class AgentRunsController extends BaseCRUDController<
     @Req() request: Request,
     @Param('id') id: string,
     @CurrentUser() user: User,
+    @Query('brand') requestedBrandId?: string,
   ) {
     if (!this.agentRunQueueService) {
       throw new ServiceUnavailableException('Agent run queue is unavailable');
     }
 
     const publicMetadata = getPublicMetadata(user);
+    const brandId = publicMetadata.brand ?? requestedBrandId;
     const preparation = await this.agentRunsService.prepareRetry(
       id,
       publicMetadata.organization,
       {
-        brandId: publicMetadata.brand,
+        brandId,
         retriedBy: publicMetadata.user,
       },
     );
@@ -440,7 +466,7 @@ export class AgentRunsController extends BaseCRUDController<
           id,
           publicMetadata.organization,
           rollback,
-          publicMetadata.brand,
+          brandId,
         );
         if (!restored) {
           this.loggerService.warn('Agent run retry rollback was not applied', {
@@ -486,6 +512,10 @@ export class AgentRunsController extends BaseCRUDController<
       }
     }
 
-    return serializeSingle(request, AgentRunSerializer, run);
+    return serializeSingle(
+      request,
+      AgentRunSerializer,
+      sanitizeAgentRunForSerialization(run),
+    );
   }
 }

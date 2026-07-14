@@ -55,6 +55,7 @@ export function AgentFullPage({
   userRole,
 }: AgentFullPageProps): ReactElement {
   const {
+    activeThreadBrandId,
     activeThreadStatus,
     agentSetup,
     currentStepId,
@@ -114,6 +115,7 @@ export function AgentFullPage({
           <AgentWorkspaceRunSummary
             apiService={apiService}
             authReady={authReady}
+            brandId={activeThreadBrandId}
             onOpenThread={onOpenRunThread}
           />
         ) : null}

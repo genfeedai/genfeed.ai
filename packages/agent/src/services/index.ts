@@ -3,6 +3,7 @@ export type {
   CredentialMentionItem,
   GenerateIngredientResult,
   GenerationModel,
+  ListAgentRunsParams,
   WorkflowInterfaceField,
   WorkflowInterfaceSchema,
 } from '@genfeedai/agent/services/agent-api.service';

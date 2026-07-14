@@ -115,13 +115,29 @@ describe('AgentRunsController', () => {
       });
     });
 
-    it('should prefer explicit brand filter over auth metadata brand', () => {
+    it('should not let a query brand override auth metadata brand', () => {
       const query = buildQuery({
         brand: '507f1f77bcf86cd799439099',
       });
 
       expect(query.where).toMatchObject({
+        brand: '507f1f77bcf86cd799439013',
+      });
+    });
+
+    it('should allow organization-scoped users to select a brand', () => {
+      const organizationUser: User = {
+        ...mockUser,
+        publicMetadata: { ...mockUser.publicMetadata, brand: undefined },
+      };
+
+      const query = controller.buildFindAllQuery(organizationUser, {
         brand: '507f1f77bcf86cd799439099',
+      } as AgentRunsQueryDto);
+
+      expect(query.where).toMatchObject({
+        brand: '507f1f77bcf86cd799439099',
+        organization: '507f1f77bcf86cd799439012',
       });
     });
 
@@ -336,6 +352,85 @@ describe('AgentRunsController', () => {
           cursor: undefined,
           limit: undefined,
         },
+      );
+    });
+  });
+
+  describe('operator serialization and scope', () => {
+    it('redacts unsafe run payloads in paginated collections', async () => {
+      mockServiceMethods.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'run1',
+            metadata: {
+              actualModel: 'openai/gpt-5',
+              apiKey: 'private',
+              rawProviderResponse: { token: 'private' },
+            },
+            toolCalls: [
+              {
+                parameters: { token: 'private' },
+                status: 'completed',
+                toolName: 'web_search',
+              },
+            ],
+          },
+        ],
+        limit: 10,
+        page: 1,
+        totalDocs: 1,
+        totalPages: 1,
+      });
+
+      const result = await controller.findAll(
+        mockRequest,
+        mockUser,
+        {} as AgentRunsQueryDto,
+      );
+
+      expect(result.data).toEqual([
+        {
+          id: 'run1',
+          metadata: { actualModel: 'openai/gpt-5' },
+          toolCalls: [{ status: 'completed', toolName: 'web_search' }],
+        },
+      ]);
+    });
+
+    it('uses a requested brand for organization-scoped detail access', async () => {
+      const organizationUser: User = {
+        ...mockUser,
+        publicMetadata: { ...mockUser.publicMetadata, brand: undefined },
+      };
+      mockServiceMethods.findOne.mockResolvedValue({ id: 'run1' });
+
+      await controller.findOne(
+        mockRequest,
+        organizationUser,
+        'run1',
+        'selected-brand',
+      );
+
+      expect(mockServiceMethods.findOne).toHaveBeenCalledWith({
+        _id: 'run1',
+        brand: 'selected-brand',
+        isDeleted: false,
+        organization: '507f1f77bcf86cd799439012',
+      });
+    });
+
+    it('does not let a detail query override the authenticated brand', async () => {
+      mockServiceMethods.findOne.mockResolvedValue({ id: 'run1' });
+
+      await controller.findOne(
+        mockRequest,
+        mockUser,
+        'run1',
+        'different-brand',
+      );
+
+      expect(mockServiceMethods.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ brand: '507f1f77bcf86cd799439013' }),
       );
     });
   });

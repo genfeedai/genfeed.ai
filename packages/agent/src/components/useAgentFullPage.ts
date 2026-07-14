@@ -178,6 +178,11 @@ export function useAgentFullPage({
   const clearThreadAttention = useAgentChatStore((s) => s.clearThreadAttention);
   const pageContext = useAgentChatStore((s) => s.pageContext);
   const activeStoreThreadId = useAgentChatStore((s) => s.activeThreadId);
+  const activeThreadBrandId = useAgentChatStore((s) =>
+    threadId
+      ? (s.threads.find((thread) => thread.id === threadId)?.brandId ?? null)
+      : null,
+  );
   const activeThreadRef = useRef(activeStoreThreadId);
   const messageCountRef = useRef(existingMessages.length);
   const threadOutputs = useMemo(
@@ -442,6 +447,7 @@ export function useAgentFullPage({
   ]);
 
   return {
+    activeThreadBrandId,
     activeThreadStatus,
     agentSetup,
     currentStepId,
