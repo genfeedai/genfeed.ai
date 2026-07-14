@@ -47,15 +47,41 @@ describe('useFeatureFlag', () => {
     expect(result.current).toBe(true);
   });
 
-  it('fails the conversation shell closed when no provider is configured', () => {
+  it('enables the conversation shell by default when no provider is configured', () => {
     const { result } = renderHook(() => useFeatureFlag('conversation_shell'));
+
+    expect(result.current).toBe(true);
+  });
+
+  it('keeps the conversation shell on when configured defaults omit the flag', () => {
+    const { result } = renderHook(() => useFeatureFlag('conversation_shell'), {
+      wrapper: createWrapper({ some_other_flag: true }),
+    });
+
+    expect(result.current).toBe(true);
+  });
+
+  it('disables the conversation shell only when explicitly configured false', () => {
+    const { result } = renderHook(() => useFeatureFlag('conversation_shell'), {
+      wrapper: createWrapper({ conversation_shell: false }),
+    });
 
     expect(result.current).toBe(false);
   });
 
-  it('enables the conversation shell only when explicitly configured true', () => {
+  it('keeps the conversation shell on when explicitly configured true', () => {
     const { result } = renderHook(() => useFeatureFlag('conversation_shell'), {
       wrapper: createWrapper({ conversation_shell: true }),
+    });
+
+    expect(result.current).toBe(true);
+  });
+
+  it('keeps the conversation shell on when environment defaults are invalid', () => {
+    vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
+
+    const { result } = renderHook(() => useFeatureFlag('conversation_shell'), {
+      wrapper: createWrapper(),
     });
 
     expect(result.current).toBe(true);
