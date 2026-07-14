@@ -14,26 +14,9 @@ export interface TextGenerationCharge {
  * Parameters accepted by ArticlesContentService.runTextGenerationStep.
  * Used as the type anchor for spec-level test mocks and internal callers.
  */
-export interface RunTextGenerationStepParams {
-  model: string;
-  basePrompt: string;
-  harnessContext: {
-    brief?: unknown;
-    promptBuilder: Record<string, unknown>;
-  };
-  buildPromptOptions: Record<string, unknown>;
-  organizationId: string;
-  failureMessage: string;
-  onBilling?: (charge: TextGenerationCharge) => void;
-}
-
-/**
- * Minimal surface of ArticlesContentService used when accessing private
- * runTextGenerationStep in tests via an untyped cast.
- */
-export interface ArticlesContentServiceInternals {
-  runTextGenerationStep(params: RunTextGenerationStepParams): Promise<string>;
-}
+export type RunTextGenerationStepParams = Parameters<
+  ArticleTextGenerationService['runTextGenerationStep']
+>[0];
 
 /**
  * Return shape of buildXArticleContentAndMetadata.
@@ -52,4 +35,35 @@ export interface XArticleContentMetadata {
     wordCount: number;
   };
   wordCount: number;
+}
+
+import type { ArticleTextGenerationService } from '@api/collections/articles/services/article-text-generation.service';
+import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
+import type { ContentHarnessBrief } from '@genfeedai/harness';
+
+export interface ArticleCycleModelConfig {
+  generationModel?: string;
+  reviewModel?: string;
+  updateModel?: string;
+}
+
+export interface ArticleReviewRubric {
+  score: number;
+  strengths: string[];
+  issues: Array<{
+    severity: 'low' | 'medium' | 'high';
+    category: string;
+    message: string;
+    recommendation: string;
+  }>;
+  revisionInstructions: string;
+  summary: string;
+}
+
+export interface ArticleHarnessContext {
+  brief?: ContentHarnessBrief;
+  promptBuilder: Pick<
+    PromptBuilderParams,
+    'brand' | 'branding' | 'brandingMode' | 'isBrandingEnabled'
+  >;
 }
