@@ -3,6 +3,7 @@ import {
   AgentCliTerminalControls,
   useAgentCliTerminal,
 } from '@genfeedai/agent/components/AgentCliTerminal';
+import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentTerminalHeader } from '@genfeedai/agent/components/AgentTerminalHeader';
 import type { AgentRuntimeOption } from '@genfeedai/agent/models/agent-runtime.model';
@@ -33,7 +34,7 @@ interface AgentPanelProps {
   authReady?: boolean;
   isActive?: boolean;
   onNavigateToBilling?: () => void;
-  onOAuthConnect?: (platform: string) => void;
+  onOAuthConnect?: (platform: string) => void | Promise<void>;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;
@@ -65,6 +66,7 @@ export function AgentPanel({
   apiService,
   authReady = true,
   isActive = true,
+  onOAuthConnect,
 }: AgentPanelProps): ReactElement {
   const router = useRouter();
   const { href } = useOrgUrl();
@@ -301,6 +303,7 @@ export function AgentPanel({
             threadLabel={threadLabel}
             onRuntimeChange={handleRuntimeChange}
           />
+          <AgentOAuthConnectMenu onOAuthConnect={onOAuthConnect} />
           <AgentCliTerminalControls controller={terminalController} />
         </div>
       }

@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockPostConnect = vi.fn();
 const mockResolveAuthToken = vi.fn();
 const mockUseParams = vi.fn();
+const mockLoggerError = vi.hoisted(() => vi.fn());
 let selectedBrand: { id: string } | undefined;
 
 vi.mock('@services/external/services.service', () => ({
@@ -20,7 +21,7 @@ vi.mock('@services/external/services.service', () => ({
 }));
 
 vi.mock('@services/core/logger.service', () => ({
-  logger: { error: vi.fn() },
+  logger: { error: mockLoggerError },
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -99,6 +100,19 @@ describe('useAgentOAuthConnect', () => {
     });
 
     expect(mockPostConnect).not.toHaveBeenCalled();
+    expect(openSpy).not.toHaveBeenCalled();
+  });
+
+  it('logs and propagates connect failures to the invoking surface', async () => {
+    const error = new Error('OAuth unavailable');
+    mockPostConnect.mockRejectedValue(error);
+    const { result } = renderHook(() => useAgentOAuthConnect());
+
+    await expect(result.current('twitter')).rejects.toThrow(
+      'OAuth unavailable',
+    );
+
+    expect(mockLoggerError).toHaveBeenCalledWith('OAuth connect failed', error);
     expect(openSpy).not.toHaveBeenCalled();
   });
 });

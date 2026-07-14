@@ -44,7 +44,7 @@ type AgentPanelProps = {
   authReady?: boolean;
   isActive?: boolean;
   onNavigateToBilling?: () => void;
-  onOAuthConnect?: (platform: string) => void;
+  onOAuthConnect?: (platform: string) => void | Promise<void>;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;

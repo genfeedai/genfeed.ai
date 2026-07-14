@@ -240,7 +240,12 @@ describe('AgentPanel', () => {
   });
 
   it('renders the terminal rail without the embedded chat composer toggle', () => {
-    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+    render(
+      <AgentPanel
+        apiService={createCreditsInfoApiService() as never}
+        onOAuthConnect={vi.fn()}
+      />,
+    );
 
     expect(screen.getByTestId('agent-cli-terminal')).toBeInTheDocument();
     expect(
@@ -255,6 +260,9 @@ describe('AgentPanel', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByLabelText('Terminal working directory'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Connect a social channel' }),
     ).toBeInTheDocument();
   });
 

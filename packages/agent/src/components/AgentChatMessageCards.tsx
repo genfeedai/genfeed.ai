@@ -73,9 +73,27 @@ export function OAuthConnectCard({
   onConnect,
 }: {
   action: AgentUiAction;
-  onConnect?: (platform: string) => void;
+  onConnect?: (platform: string) => void | Promise<void>;
 }): ReactElement {
   const platform = action.platform?.trim();
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectError, setConnectError] = useState<string | null>(null);
+
+  const handleConnect = useCallback(async () => {
+    if (!platform || !onConnect || isConnecting) {
+      return;
+    }
+
+    setConnectError(null);
+    setIsConnecting(true);
+    try {
+      await onConnect(platform);
+    } catch {
+      setConnectError('Could not start the connection. Please try again.');
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [isConnecting, onConnect, platform]);
 
   if (!platform) {
     return <GenericOAuthConnectCard action={action} />;
@@ -91,10 +109,17 @@ export function OAuthConnectCard({
       <Button
         variant={ButtonVariant.DEFAULT}
         size={ButtonSize.SM}
-        onClick={() => onConnect?.(platform)}
+        onClick={handleConnect}
+        isDisabled={!onConnect || isConnecting}
+        isLoading={isConnecting}
       >
         Connect {label}
       </Button>
+      {connectError ? (
+        <p className="mt-2 text-xs text-red-600 dark:text-red-400" role="alert">
+          {connectError}
+        </p>
+      ) : null}
     </div>
   );
 }
