@@ -44,6 +44,8 @@ import {
   HiOutlineArrowLeft,
   HiOutlineBolt,
   HiOutlineChatBubbleLeftRight,
+  HiOutlineChevronLeft,
+  HiOutlineChevronRight,
   HiOutlineEye,
   HiOutlineSquares2X2,
   HiOutlineViewColumns,
@@ -804,7 +806,7 @@ function UniversalWorkspaceShellContent({
         <Button
           ariaLabel="Collapse context inspector"
           className="hidden size-7 xl:inline-flex"
-          icon={<HiOutlineViewColumns className="size-4" />}
+          icon={<HiOutlineChevronRight className="size-4" />}
           onClick={() => setIsInspectorOpen(false)}
           size={ButtonSize.ICON}
           variant={ButtonVariant.GHOST}
@@ -913,7 +915,7 @@ function UniversalWorkspaceShellContent({
       shellState={state}
     >
       <div
-        className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-black p-2"
+        className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-background p-2"
         data-shell-state={state}
         data-workspace-surface={surfaceKey}
         data-testid="universal-workspace-shell"
@@ -926,12 +928,7 @@ function UniversalWorkspaceShellContent({
         </div>
 
         <div
-          className={cn(
-            'h-[calc(100dvh-var(--desktop-titlebar-height)-4rem)] min-h-0 gap-2 xl:grid',
-            isInspectorOpen
-              ? 'xl:grid-cols-[minmax(0,1fr)_auto]'
-              : 'xl:grid-cols-1',
-          )}
+          className="h-[calc(100dvh-var(--desktop-titlebar-height)-4rem)] min-h-0 gap-2 xl:grid xl:grid-cols-[minmax(0,1fr)_auto]"
           data-testid="workspace-shell-regions"
         >
           <div className="relative h-full min-h-0 min-w-0">
@@ -1045,38 +1042,45 @@ function UniversalWorkspaceShellContent({
             ) : null}
           </div>
 
-          {isInspectorOpen ? (
-            <aside
-              aria-label="Context inspector"
-              className="gen-workspace-shell-region relative hidden min-h-0 overflow-hidden bg-background-secondary shadow-border xl:block"
-              style={{ width: inspectorWidth }}
-            >
-              <Button
-                aria-orientation="vertical"
-                aria-valuemax={INSPECTOR_MAX_WIDTH}
-                aria-valuemin={INSPECTOR_MIN_WIDTH}
-                aria-valuenow={inspectorWidth}
-                ariaLabel="Resize context inspector"
-                className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
-                onKeyDown={handleInspectorResizeKeyDown}
-                onMouseDown={handleInspectorResizeStart}
-                role="separator"
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-              />
-              {inspectorContent}
-            </aside>
-          ) : (
-            <Button
-              ariaLabel="Open context inspector"
-              className="absolute right-4 top-4 z-10 hidden size-8 xl:inline-flex"
-              icon={<HiOutlineViewColumns className="size-4" />}
-              onClick={() => setIsInspectorOpen(true)}
-              size={ButtonSize.ICON}
-              variant={ButtonVariant.OUTLINE}
-              withWrapper={false}
-            />
-          )}
+          <aside
+            aria-label="Context inspector"
+            className={cn(
+              'gen-workspace-shell-region relative hidden min-h-0 overflow-hidden bg-background-secondary shadow-border transition-[width] duration-300 xl:block',
+              !isInspectorOpen && 'w-12',
+            )}
+            style={isInspectorOpen ? { width: inspectorWidth } : undefined}
+          >
+            {isInspectorOpen ? (
+              <>
+                <Button
+                  aria-orientation="vertical"
+                  aria-valuemax={INSPECTOR_MAX_WIDTH}
+                  aria-valuemin={INSPECTOR_MIN_WIDTH}
+                  aria-valuenow={inspectorWidth}
+                  ariaLabel="Resize context inspector"
+                  className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
+                  onKeyDown={handleInspectorResizeKeyDown}
+                  onMouseDown={handleInspectorResizeStart}
+                  role="separator"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                />
+                {inspectorContent}
+              </>
+            ) : (
+              <div className="flex h-full flex-col items-center pt-3">
+                <Button
+                  ariaLabel="Expand context inspector"
+                  className="size-8"
+                  icon={<HiOutlineChevronLeft className="size-4" />}
+                  onClick={() => setIsInspectorOpen(true)}
+                  size={ButtonSize.ICON}
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                />
+              </div>
+            )}
+          </aside>
         </div>
 
         <Drawer

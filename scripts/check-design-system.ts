@@ -95,6 +95,12 @@ const APP_CHROME_COLOR_SURFACES: Array<{
   {
     root: 'apps/app/app/(protected)/admin/overview/dashboard',
   },
+  {
+    root: 'apps/app/src/components/workspace-shell',
+  },
+  {
+    root: 'apps/app/src/components/shell',
+  },
 ];
 
 const APP_CHROME_COLOR_ALLOW_MARKER = 'design-system-allow-content-color';
