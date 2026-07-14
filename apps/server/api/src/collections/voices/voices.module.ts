@@ -1,14 +1,20 @@
 /**
  * Voices Module
  * AI voice generation: text-to-speech, voice cloning, voice profile management,
-audio file storage, and voice characteristic customization.
+ * audio file storage, and voice characteristic customization.
  */
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { VoicesController } from '@api/collections/voices/controllers/voices.controller';
+import { VoicesCatalogController } from '@api/collections/voices/controllers/voices-catalog.controller';
+import { VoicesOperationsController } from '@api/collections/voices/controllers/voices-operations.controller';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
+import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
+import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
+import { VoiceGenerationService } from '@api/collections/voices/services/voice-generation.service';
+import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -23,7 +29,11 @@ import { FailedGenerationModule } from '@api/shared/services/failed-generation/f
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [VoicesController],
+  controllers: [
+    VoicesController,
+    VoicesCatalogController,
+    VoicesOperationsController,
+  ],
   exports: [ExternalVoiceCatalogService, VoicesService],
   imports: [
     forwardRef(() => IngredientsModule),
@@ -42,6 +52,10 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     ExternalVoiceCatalogService,
+    VoiceCloneService,
+    VoiceCreditsService,
+    VoiceGenerationService,
+    VoiceLibraryService,
     VoicesService,
     CreditsGuard,
     CreditsInterceptor,
