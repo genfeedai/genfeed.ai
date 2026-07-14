@@ -74,6 +74,13 @@ export type {
   ServerModelDimensions,
   ServerModelRecord,
 } from './collections/models/model-record.types';
+export {
+  type ClaimPublishExecutionParams,
+  type CreateCurrentPostPublishApprovalParams,
+  type CreatePostPublishApprovalParams,
+  PublishApprovalsService,
+  type PublishExecutionClaim,
+} from './publish-approvals/publish-approvals.service';
 export { PostPublishQueueService } from './queues/post-publish/post-publish-queue.service';
 export {
   SERVER_TOKENS,

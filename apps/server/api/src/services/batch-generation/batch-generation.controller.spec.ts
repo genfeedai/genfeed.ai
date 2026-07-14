@@ -224,8 +224,9 @@ describe('BatchGenerationController', () => {
       expect(service.requestChanges).toHaveBeenCalledWith(
         'batch-1',
         ['item-1'],
-        expect.any(String),
+        'test-object-id',
         'Tighten the hook and shorten the caption.',
+        'test-object-id',
       );
     });
   });

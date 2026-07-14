@@ -5,7 +5,6 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
@@ -34,6 +33,7 @@ import {
   AgentArtifactReferenceService,
   AgentScopeContextService,
   PostPublishQueueService,
+  PublishApprovalsService,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

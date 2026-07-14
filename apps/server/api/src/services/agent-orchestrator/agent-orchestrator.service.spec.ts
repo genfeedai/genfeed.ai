@@ -117,9 +117,7 @@ describe('AgentOrchestratorService', () => {
     };
     const contextAssemblyServiceMock = {
       assembleContext: vi.fn().mockResolvedValue({ tools: [] }),
-      buildSystemPrompt: vi
-        .fn()
-        .mockReturnValue('You are a helpful assistant.'),
+      buildSystemPrompt: vi.fn((basePrompt: string) => basePrompt),
     };
     const agentThreadsServiceMock = {
       addMessage: vi.fn().mockResolvedValue({}),

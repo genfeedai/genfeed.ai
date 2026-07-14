@@ -514,6 +514,7 @@
       "name": "@genfeedai/server",
       "version": "0.1.0",
       "dependencies": {
+        "@genfeedai/api-types": "*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/integrations": "workspace:*",

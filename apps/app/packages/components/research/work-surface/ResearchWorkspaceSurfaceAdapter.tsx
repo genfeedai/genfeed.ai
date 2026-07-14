@@ -5,6 +5,7 @@ import ResearchFindingInspector from '@pages/research/work-surface/ResearchFindi
 import { useOptionalResearchWorkSurface } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
 import { useEffect, useMemo } from 'react';
 import {
+  type ResearchWorkspaceSurfaceAdapterRegistration,
   useRegisterResearchWorkspaceSurfaceAdapter,
   useResearchWorkspaceSurfaceAdapterRegistrationAvailable,
 } from '@/features/research/work-surface/research-workspace-surface-adapter-context';
@@ -30,7 +31,7 @@ export default function ResearchWorkspaceSurfaceAdapter() {
         : [],
     [surface?.authorizedFinding],
   );
-  const adapter = useMemo(
+  const adapter = useMemo<ResearchWorkspaceSurfaceAdapterRegistration>(
     () => ({
       inspectorContent: <ResearchFindingInspector />,
       references,

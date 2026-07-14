@@ -1,6 +1,5 @@
 import {
   AGENT_ARTIFACT_SERIALIZER_BY_KIND,
-  type AgentArtifactRecordKind,
   type AgentArtifactReference,
 } from '@genfeedai/interfaces';
 import type {
@@ -13,13 +12,40 @@ interface WorkspaceOverviewArtifactScope {
   readonly organizationId: string;
 }
 
-const ARTIFACT_KIND_BY_TASK_ENTITY = Object.freeze({
-  Article: 'article',
-  Ingredient: 'ingredient',
-  Post: 'post',
-} as const satisfies Partial<
-  Record<TaskLinkedEntityModel, AgentArtifactRecordKind>
->);
+function createArtifactReference(
+  entityModel: TaskLinkedEntityModel,
+  recordId: string,
+  scope: WorkspaceOverviewArtifactScope,
+): AgentArtifactReference | null {
+  const referenceScope = {
+    brandId: scope.brandId,
+    organizationId: scope.organizationId,
+    recordId,
+  };
+
+  switch (entityModel) {
+    case 'Article':
+      return {
+        ...referenceScope,
+        kind: 'article',
+        serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.article,
+      };
+    case 'Ingredient':
+      return {
+        ...referenceScope,
+        kind: 'ingredient',
+        serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.ingredient,
+      };
+    case 'Post':
+      return {
+        ...referenceScope,
+        kind: 'post',
+        serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.post,
+      };
+    default:
+      return null;
+  }
+}
 
 export function getWorkspaceOverviewArtifactReferences(
   task: Task | null,
@@ -31,18 +57,18 @@ export function getWorkspaceOverviewArtifactReferences(
 
   const references = new Map<string, AgentArtifactReference>();
   for (const entity of task.linkedEntities ?? []) {
-    const kind = ARTIFACT_KIND_BY_TASK_ENTITY[entity.entityModel];
-    if (!kind || !entity.entityId) {
+    if (!entity.entityId) {
       continue;
     }
 
-    references.set(`${kind}:${entity.entityId}`, {
-      brandId: scope.brandId,
-      kind,
-      organizationId: scope.organizationId,
-      recordId: entity.entityId,
-      serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND[kind],
-    });
+    const reference = createArtifactReference(
+      entity.entityModel,
+      entity.entityId,
+      scope,
+    );
+    if (reference) {
+      references.set(`${reference.kind}:${reference.recordId}`, reference);
+    }
   }
 
   return Object.freeze([...references.values()]);
