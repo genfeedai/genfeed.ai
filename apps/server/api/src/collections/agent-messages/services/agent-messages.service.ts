@@ -349,7 +349,6 @@ export class AgentMessagesService extends BaseService<
               organizationId: doc.organizationId,
               role: doc.role,
               threadId: targetRoomId,
-              toolCallId: doc.toolCallId,
               toolCalls: doc.toolCalls,
               userId: doc.userId,
             },
