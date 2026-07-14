@@ -247,7 +247,7 @@ export class VoiceCloneService {
       label: dto.name,
     });
     if (!result) {
-      await this.markGenfeedAiCloneFailed(ingredientId, publicMetadata);
+      return await this.markGenfeedAiCloneFailed(ingredientId, publicMetadata);
     }
 
     await this.voicesService.patchAll(

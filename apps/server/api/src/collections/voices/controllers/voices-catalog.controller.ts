@@ -34,6 +34,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
+import { ApiOperation } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -46,6 +47,10 @@ export class VoicesCatalogController {
   ) {}
 
   @Get('catalog')
+  @ApiOperation({
+    operationId: 'VoicesController.findCatalog',
+    summary: 'findCatalog',
+  })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findCatalog(
     @Req() request: Request,
@@ -80,6 +85,10 @@ export class VoicesCatalogController {
   }
 
   @Patch('catalog/:id')
+  @ApiOperation({
+    operationId: 'VoicesController.patchCatalogVoice',
+    summary: 'patchCatalogVoice',
+  })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async patchCatalogVoice(
     @Req() request: Request,
@@ -108,6 +117,10 @@ export class VoicesCatalogController {
   }
 
   @Post('import')
+  @ApiOperation({
+    operationId: 'VoicesController.importCatalogVoices',
+    summary: 'importCatalogVoices',
+  })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async importCatalogVoices(
     @Req() request: Request,

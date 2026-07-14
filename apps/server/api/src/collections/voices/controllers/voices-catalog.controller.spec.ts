@@ -127,4 +127,18 @@ describe('VoicesCatalogController', () => {
       DbVoiceProvider.ELEVENLABS,
     ]);
   });
+
+  it.each([
+    ['findCatalog', VoicesCatalogController.prototype.findCatalog],
+    ['patchCatalogVoice', VoicesCatalogController.prototype.patchCatalogVoice],
+    [
+      'importCatalogVoices',
+      VoicesCatalogController.prototype.importCatalogVoices,
+    ],
+  ])('preserves the public VoicesController operation id for %s', (name, handler) => {
+    expect(Reflect.getMetadata('swagger/apiOperation', handler)).toMatchObject({
+      operationId: `VoicesController.${name}`,
+      summary: name,
+    });
+  });
 });

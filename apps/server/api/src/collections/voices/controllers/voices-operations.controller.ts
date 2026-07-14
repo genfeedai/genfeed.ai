@@ -29,6 +29,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiOperation } from '@nestjs/swagger';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -40,6 +41,10 @@ export class VoicesOperationsController {
   ) {}
 
   @Post('generate')
+  @ApiOperation({
+    operationId: 'VoicesController.generate',
+    summary: 'generate',
+  })
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   @Credits({
@@ -63,6 +68,10 @@ export class VoicesOperationsController {
   }
 
   @Post('clone')
+  @ApiOperation({
+    operationId: 'VoicesController.cloneVoice',
+    summary: 'cloneVoice',
+  })
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @UseInterceptors(
     CreditsInterceptor,
