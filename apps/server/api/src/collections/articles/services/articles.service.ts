@@ -12,23 +12,17 @@ import {
   type Article,
   type ArticleDocument,
 } from '@api/collections/articles/schemas/article.schema';
-import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
+import { ArticleInsightsService } from '@api/collections/articles/services/article-insights.service';
+import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
+import { ArticleTranscriptService } from '@api/collections/articles/services/article-transcript.service';
+import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
 import type {
   ArticleCycleModelConfig,
   ArticleReviewRubric,
 } from '@api/collections/articles/services/articles-content.service';
 import { ArticlesContentService } from '@api/collections/articles/services/articles-content.service';
-import {
-  buildViralityAnalysisResponse,
-  normalizePerformanceMetrics,
-} from '@api/collections/articles/utils/virality-analysis.mapper';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import {
   CACHE_PATTERNS,
@@ -37,36 +31,23 @@ import {
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
-import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
-import {
-  calculateEstimatedTextCredits,
-  getMinimumTextCredits,
-} from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
-  ActivitySource,
-  ArticleCategory,
   ArticleScope,
   ArticleStatus,
-  ModelCategory,
   PromptTemplateKey,
-  SystemPromptKey,
 } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
   forwardRef,
@@ -74,7 +55,6 @@ import {
   Injectable,
   Optional,
 } from '@nestjs/common';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 @Injectable()
 export class ArticlesService extends BaseService<
@@ -84,32 +64,25 @@ export class ArticlesService extends BaseService<
   Prisma.ArticleWhereInput
 > {
   private readonly constructorName = this.constructor.name;
-  private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
 
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
-
-    @Optional() private readonly replicateService?: ReplicateService,
-    @Optional() private readonly promptBuilderService?: PromptBuilderService,
+    private readonly articleVersionService: ArticleVersionService,
+    private readonly articleTranscriptService: ArticleTranscriptService,
+    private readonly articleInsightsService: ArticleInsightsService,
+    private readonly articleRemixService: ArticleRemixService,
     @Optional()
     private readonly notificationsService?: NotificationsService,
     @Optional()
     private readonly organizationSettingsService?: OrganizationSettingsService,
     @Optional()
-    private readonly promptsService?: PromptsService,
-    @Optional()
     @Inject(forwardRef(() => ArticlesContentService))
     private readonly articlesContentService?: ArticlesContentService,
-    @Optional() private readonly templatesService?: TemplatesService,
     @Optional() protected readonly cacheService?: CacheService,
-    @Optional()
-    private readonly articleAnalyticsService?: ArticleAnalyticsService,
     @Optional() private readonly usersService?: UsersService,
     @Optional() private readonly organizationsService?: OrganizationsService,
-    @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
-    @Optional() private readonly modelsService?: ModelsService,
     @Optional()
     private readonly cacheInvalidationService?: CacheInvalidationService,
   ) {
@@ -118,24 +91,6 @@ export class ArticlesService extends BaseService<
 
   private readString(value: unknown): string | undefined {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  private readStringArray(value: unknown): string[] {
-    return Array.isArray(value)
-      ? value.filter((item): item is string => typeof item === 'string')
-      : [];
-  }
-
-  private normalizeArticleCategory(
-    value: unknown,
-  ): ArticleCategory | undefined {
-    return Object.values(ArticleCategory).find(
-      (category) => category === value,
-    );
-  }
-
-  private normalizeArticleScope(value: unknown): ArticleScope | undefined {
-    return Object.values(ArticleScope).find((scope) => scope === value);
   }
 
   /**
@@ -232,216 +187,20 @@ export class ArticlesService extends BaseService<
    * Generate article from YouTube transcript
    */
   @HandleErrors('generate article from transcript', 'articles')
-  async generateFromTranscript(
+  generateFromTranscript(
     transcriptId: string,
     userId: string,
     organizationId: string,
     brandId: string,
   ): Promise<ArticleDocument> {
-    await this.assertDefaultTextCreditsAvailable(organizationId);
-
-    const transcript = await this.getTranscriptById(transcriptId);
-
-    if (!transcript) {
-      throw new NotFoundException('Transcript', transcriptId);
-    }
-
-    // Get user prompt from template
-    const userPrompt = await this.templatesService?.getRenderedPrompt(
-      PromptTemplateKey.ARTICLE_TRANSCRIPT,
-      {
-        transcriptText: transcript.transcriptText,
-        videoTitle: transcript.videoTitle || 'Untitled',
-      },
-      organizationId,
-    );
-
-    if (!userPrompt) {
-      throw new Error('Template service not available');
-    }
-
-    // Build prompt with PromptBuilderService then call Replicate
-    const { input } = (await this.promptBuilderService?.buildPrompt(
-      DEFAULT_TEXT_MODEL,
-      {
-        modelCategory: ModelCategory.TEXT,
-        prompt: userPrompt,
-        promptTemplate: PromptTemplateKey.TEXT_ARTICLE,
-        systemPromptTemplate: SystemPromptKey.ARTICLE,
-        temperature: 0.8,
-      },
-      organizationId,
-    )) || { input: {} };
-
-    const articleContent =
-      await this.replicateService?.generateTextCompletionSync(
-        DEFAULT_TEXT_MODEL,
-        input,
-      );
-
-    if (!articleContent) {
-      throw new Error('Failed to generate article content');
-    }
-
-    await this.settleDefaultTextCredits(
-      organizationId,
-      userId,
-      input,
-      articleContent,
-      'Article generation from transcript',
-    );
-
-    // Extract title from generated content
-    const titleMatch = articleContent.match(/^#\s+(.+)$/m);
-    const title =
-      titleMatch?.[1] || transcript.videoTitle || 'Generated Article';
-
-    // Ensure transcriptText exists and is a string before substring
-    const summary =
-      transcript.transcriptText && typeof transcript.transcriptText === 'string'
-        ? transcript.transcriptText.substring(0, 200)
-        : '';
-
-    const createDto: CreateArticleDto = {
-      category: ArticleCategory.TRANSCRIPT,
-      content: articleContent,
-      label: title,
-      status: ArticleStatus.DRAFT,
-      summary,
-    } as CreateArticleDto;
-
-    const article = await this.createArticle(
-      createDto,
+    return this.articleTranscriptService.generateFromTranscript(
+      transcriptId,
       userId,
       organizationId,
       brandId,
+      (dto, ownerUserId, ownerOrganizationId, ownerBrandId) =>
+        this.createArticle(dto, ownerUserId, ownerOrganizationId, ownerBrandId),
     );
-
-    // Link transcript to article
-    await this.linkTranscriptToArticle(transcriptId, article.id);
-
-    return article;
-  }
-
-  private async assertDefaultTextCreditsAvailable(
-    organizationId: string,
-  ): Promise<void> {
-    if (!this.creditsUtilsService || !this.modelsService) {
-      return;
-    }
-
-    const model = await this.getDefaultTextModel();
-    const requiredCredits = getMinimumTextCredits(model);
-    if (requiredCredits <= 0) {
-      return;
-    }
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organizationId,
-        requiredCredits,
-      );
-
-    if (hasCredits) {
-      return;
-    }
-
-    const currentBalance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        organizationId,
-      );
-    throw new InsufficientCreditsException(requiredCredits, currentBalance);
-  }
-
-  private async settleDefaultTextCredits(
-    organizationId: string,
-    userId: string,
-    input: Record<string, unknown>,
-    output: string,
-    description: string,
-  ): Promise<void> {
-    if (!this.creditsUtilsService || !this.modelsService) {
-      return;
-    }
-
-    const model = await this.getDefaultTextModel();
-    const amount = calculateEstimatedTextCredits(model, input, output);
-    if (amount <= 0) {
-      return;
-    }
-
-    await this.creditsUtilsService.deductCreditsFromOrganization(
-      organizationId,
-      userId,
-      amount,
-      description,
-      ActivitySource.ARTICLE_GENERATION,
-      {
-        maxOverdraftCredits: ArticlesService.TEXT_MAX_OVERDRAFT_CREDITS,
-      },
-    );
-  }
-
-  private async getDefaultTextModel() {
-    const model = await this.modelsService?.findOne({
-      isDeleted: false,
-      key: baseModelKey(DEFAULT_TEXT_MODEL),
-    });
-
-    if (!model) {
-      throw new Error(
-        `Model pricing is not configured for ${DEFAULT_TEXT_MODEL}`,
-      );
-    }
-
-    return model;
-  }
-
-  /**
-   * Get transcript by ID (calls transcripts service via HTTP)
-   */
-  private async getTranscriptById(
-    transcriptId: string,
-  ): Promise<{ transcriptText?: string; videoTitle?: string } | null> {
-    // Internal service communication
-    const apiUrl = `${this.configService.get('GENFEEDAI_API_URL')}/transcripts/${transcriptId}`;
-
-    try {
-      const response = await fetch(apiUrl);
-      const data = (await response.json()) as {
-        data?: { transcriptText?: string; videoTitle?: string };
-      };
-      return data.data || null;
-    } catch (error: unknown) {
-      this.logger.error('Failed to fetch transcript', error);
-      return null;
-    }
-  }
-
-  /**
-   * Link transcript to article
-   */
-  private async linkTranscriptToArticle(
-    transcriptId: string,
-    articleId: string,
-  ): Promise<void> {
-    // Internal service communication
-    const apiUrl = `${this.configService.get('GENFEEDAI_API_URL')}/transcripts/${transcriptId}`;
-
-    try {
-      await fetch(apiUrl, {
-        body: JSON.stringify({
-          article: articleId,
-          status: 'completed',
-        }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        method: 'PATCH',
-      });
-    } catch (error: unknown) {
-      this.logger.error('Failed to link transcript to article', error);
-    }
   }
 
   @HandleErrors('create article', 'articles')
@@ -1022,7 +781,7 @@ export class ArticlesService extends BaseService<
   /**
    * Get version history for an article using prompts collection
    */
-  async getArticleVersions(
+  getArticleVersions(
     articleId: string,
     userId: string,
     organizationId: string,
@@ -1032,158 +791,33 @@ export class ArticlesService extends BaseService<
     totalVersions: number;
     prompts: unknown[];
   }> {
-    try {
-      // Verify article exists
-      const article = await this.findOne({
-        id: articleId,
-        OR: [{ userId: userId }, { organizationId: organizationId }],
-        isDeleted: false,
-      });
-
-      if (!article) {
-        throw new NotFoundException('Article');
-      }
-
-      if (!this.promptsService) {
-        return {
-          articleId: article.id,
-          prompts: [],
-          totalVersions: 0,
-        };
-      }
-
-      // Get all prompts for this article - TODO: migrate findAll query to Prisma
-      const promptsResult = await this.promptsService.findAll(
-        { where: {} },
-        {
-          pagination: false,
-        },
-      );
-      const prompts = promptsResult.docs.filter(
-        (p: Record<string, unknown>) =>
-          p.articleId === articleId &&
-          p.brandId === brandId &&
-          p.organizationId === organizationId &&
-          p.userId === userId,
-      );
-
-      return {
-        articleId: article.id,
-        prompts: prompts.map((p: Record<string, unknown>, index: number) => ({
-          id: p.id,
-          prompt: p.original,
-          result: p.enhanced,
-          version: index + 1,
-        })),
-        totalVersions: prompts.length,
-      };
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} getArticleVersions failed`, {
-        articleId,
-        error,
-      });
-      throw error;
-    }
+    return this.articleVersionService.getArticleVersions(
+      articleId,
+      userId,
+      organizationId,
+      brandId,
+      (criteria) => this.findOne(criteria),
+    );
   }
 
   /**
    * Restore article to a specific version (prompt)
    */
-  async restoreArticleVersion(
+  restoreArticleVersion(
     articleId: string,
     promptId: string,
     userId: string,
     organizationId: string,
     _brandId: string,
   ): Promise<ArticleDocument> {
-    try {
-      // Verify article exists
-      const article = await this.findOne({
-        id: articleId,
-        OR: [{ userId: userId }, { organizationId: organizationId }],
-        isDeleted: false,
-      });
-
-      if (!article) {
-        throw new NotFoundException('Article');
-      }
-
-      if (!this.promptsService) {
-        throw new Error('Prompts service not available');
-      }
-
-      // Get the prompt
-      const prompt = await this.promptsService.findOne({
-        id: promptId,
-        articleId,
-        isDeleted: false,
-        userId,
-      });
-
-      if (!prompt) {
-        throw new NotFoundException('Version');
-      }
-
-      // Parse the enhanced data - validate it exists and is valid JSON
-      if (!prompt.enhanced || typeof prompt.enhanced !== 'string') {
-        throw new NotFoundException(
-          'Version data is missing or invalid - cannot restore',
-        );
-      }
-
-      let versionData: { content?: string; title?: string; summary?: string };
-      try {
-        versionData = JSON.parse(prompt.enhanced) as {
-          content?: string;
-          title?: string;
-          summary?: string;
-        };
-      } catch (parseError) {
-        this.logger.error('Failed to parse version data', {
-          articleId,
-          parseError,
-          promptId,
-        });
-
-        throw new NotFoundException(
-          'Version data is corrupted - cannot restore',
-        );
-      }
-
-      // Restore to this version
-      await this.patch(articleId, {
-        content: versionData.content,
-        label: versionData.title,
-        summary: versionData.summary,
-      });
-
-      this.logger.log(`${this.constructorName} restored article to prompt`, {
-        articleId,
-        promptId,
-      });
-
-      const updatedArticle = await this.findOne({
-        id: articleId,
-        OR: [{ userId }, { organizationId }],
-        isDeleted: false,
-      });
-
-      if (!updatedArticle) {
-        throw new NotFoundException('Article');
-      }
-
-      return updatedArticle;
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.constructorName} restoreArticleVersion failed`,
-        {
-          articleId,
-          error,
-          promptId,
-        },
-      );
-      throw error;
-    }
+    return this.articleVersionService.restoreArticleVersion(
+      articleId,
+      promptId,
+      userId,
+      organizationId,
+      (criteria) => this.findOne(criteria),
+      (id, updates) => this.patch(id, updates),
+    );
   }
 
   /**
@@ -1216,107 +850,25 @@ export class ArticlesService extends BaseService<
   /**
    * Analyze article virality potential using AI
    */
-  async analyzeVirality(
+  analyzeVirality(
     articleId: string,
     userId: string,
     organizationId: string,
     _brandId: string,
   ): Promise<ViralityAnalysisResponse> {
-    try {
-      this.logger.debug(`${this.constructorName} analyzeVirality`, {
-        articleId,
-      });
-
-      // Get the article
-      const article = await this.findOne({
-        id: articleId,
-        OR: [{ userId: userId }, { organizationId: organizationId }],
-        isDeleted: false,
-      });
-
-      if (!article) {
-        throw new NotFoundException('Article');
-      }
-
-      if (!this.replicateService || !this.configService) {
-        throw new Error('OpenAI service not available');
-      }
-
-      // Get user prompt from template
-      const userPrompt = await this.templatesService?.getRenderedPrompt(
-        PromptTemplateKey.ARTICLE_VIRALITY,
-        {
-          category: article.category,
-          content: article.content,
-          summary: article.summary,
-          title: article.label,
-        },
-        organizationId,
-      );
-
-      if (!userPrompt) {
-        throw new Error('Template service not available');
-      }
-
-      // Build prompt with PromptBuilderService then call Replicate
-      const { input: viralityInput } =
-        (await this.promptBuilderService?.buildPrompt(
-          DEFAULT_MINI_TEXT_MODEL,
-          {
-            maxTokens: TEXT_GENERATION_LIMITS.articleVirality,
-            modelCategory: ModelCategory.TEXT,
-            prompt: userPrompt,
-            promptTemplate: PromptTemplateKey.TEXT_VIRALITY,
-            systemPromptTemplate: SystemPromptKey.VIRALITY,
-            temperature: 0.7,
-          },
-          organizationId,
-        )) || { input: {} };
-
-      const responseText =
-        await this.replicateService?.generateTextCompletionSync(
-          DEFAULT_MINI_TEXT_MODEL,
-          viralityInput,
-        );
-
-      // Parse JSON response
-      let response: unknown;
-      try {
-        response = JSON.parse(responseText) as unknown;
-      } catch (parseError) {
-        this.logger.error('Failed to parse virality analysis JSON', {
-          parseError,
-          responseText: responseText.substring(0, 500),
-        });
-        throw new Error('Invalid JSON response from AI service');
-      }
-
-      // Validate + build analysis via shared mapper
-      const result = buildViralityAnalysisResponse(articleId, response);
-
-      // Update article with analysis
-      await this.patch(articleId, { viralityAnalysis: result.analysis });
-
-      this.logger.log(`${this.constructorName} completed virality analysis`, {
-        articleId,
-        score: result.analysis.score,
-      });
-
-      return result;
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} analyzeVirality failed`, {
-        articleId,
-        error,
-      });
-      throw error;
-    }
+    return this.articleInsightsService.analyzeVirality(
+      articleId,
+      userId,
+      organizationId,
+      (criteria) => this.findOne(criteria),
+      (id, updates) => this.patch(id, updates),
+    );
   }
 
   /**
-   * Update article performance metrics (called by analytics service or webhooks)
-   * Now uses the separate article-analytics collection instead of embedded metrics
+   * Update article performance metrics.
    */
-  async updatePerformanceMetrics(
+  updatePerformanceMetrics(
     articleId: string,
     metrics: {
       views?: number;
@@ -1326,200 +878,52 @@ export class ArticlesService extends BaseService<
       clickThroughRate?: number;
     },
   ): Promise<void> {
-    try {
-      this.logger.debug(`${this.constructorName} updatePerformanceMetrics`, {
-        articleId,
-        metrics,
-      });
-
-      if (!this.articleAnalyticsService) {
-        this.logger.warn(
-          `${this.constructorName} ArticleAnalyticsService not available, skipping metrics update`,
-        );
-        return;
-      }
-
-      // Use the new article-analytics collection
-      await this.articleAnalyticsService.updatePerformanceMetrics(
-        articleId,
-        normalizePerformanceMetrics(metrics),
-      );
-
-      this.logger.log(`${this.constructorName} updated performance metrics`, {
-        articleId,
-      });
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.constructorName} updatePerformanceMetrics failed`,
-        {
-          articleId,
-          error,
-        },
-      );
-      throw error;
-    }
+    return this.articleInsightsService.updatePerformanceMetrics(
+      articleId,
+      metrics,
+    );
   }
 
   /**
    * Generate a media prompt from article content
    */
   @HandleErrors('generate prompt from article', 'articles')
-  async generatePromptFromArticle(
+  generatePromptFromArticle(
     articleId: string,
     userId: string,
     organizationId: string,
     _brandId: string,
   ): Promise<string> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      this.logger.debug(`${url} started`, { articleId });
-
-      // Find article
-      const article = await this.findOne({
-        id: articleId,
-        OR: [{ userId: userId }, { organizationId: organizationId }],
-        isDeleted: false,
-      });
-
-      if (!article) {
-        throw new NotFoundException('Article');
-      }
-
-      if (!this.replicateService) {
-        throw new Error('OpenAI service not available');
-      }
-
-      // Get user prompt from template - ensure content is a string
-      const contentForPrompt =
-        article.content && typeof article.content === 'string'
-          ? article.content.substring(0, 2000)
-          : '';
-
-      const userPrompt = await this.templatesService?.getRenderedPrompt(
-        PromptTemplateKey.ARTICLE_IMAGE_PROMPT,
-        {
-          content: contentForPrompt,
-          summary: article.summary,
-          title: article.label,
-        },
-        organizationId,
-      );
-
-      if (!userPrompt) {
-        throw new Error('Template service not available');
-      }
-
-      // Build prompt with PromptBuilderService then call Replicate
-      const { input: imagePromptInput } =
-        (await this.promptBuilderService?.buildPrompt(
-          DEFAULT_MINI_TEXT_MODEL,
-          {
-            maxTokens: TEXT_GENERATION_LIMITS.articleImagePrompt,
-            modelCategory: ModelCategory.TEXT,
-            prompt: userPrompt,
-            promptTemplate: PromptTemplateKey.TEXT_IMAGE_PROMPT,
-            systemPromptTemplate: SystemPromptKey.IMAGE_PROMPT,
-            temperature: 0.8,
-          },
-          organizationId,
-        )) || { input: {} };
-
-      const responseText =
-        await this.replicateService?.generateTextCompletionSync(
-          DEFAULT_MINI_TEXT_MODEL,
-          imagePromptInput,
-        );
-
-      if (!responseText) {
-        throw new Error('Failed to generate prompt from AI service');
-      }
-
-      // Update article with generated prompt
-      await this.patch(articleId, { generationPrompt: responseText.trim() });
-
-      this.logger.log(`${url} completed`, {
-        articleId,
-        promptLength: responseText.length,
-      });
-
-      return responseText.trim();
-    } catch (error: unknown) {
-      this.logger.error(`${url} failed`, { articleId, error });
-      throw error;
-    }
+    return this.articleInsightsService.generatePromptFromArticle(
+      articleId,
+      userId,
+      organizationId,
+      (criteria) => this.findOne(criteria),
+      (id, updates) => this.patch(id, updates),
+    );
   }
 
   /**
-   * Create a remix version of an existing article
-   * Copies all properties from the original article with optional new title
-   * Stores reference to original article for tracking
+   * Create a remix version of an existing article.
    */
   @HandleErrors('create remix article', 'articles')
-  async createRemix(
+  createRemix(
     originalArticleId: string,
     userId: string,
     organizationId: string,
     brandId: string,
-    options?: {
-      label?: string;
-    },
+    options?: { label?: string },
   ): Promise<ArticleDocument> {
-    const url = CallerUtil.getCallerName();
-
-    // Find the original article
-    const originalArticle = await this.findOne({
-      id: originalArticleId,
-      OR: [{ userId }, { organizationId }],
-      isDeleted: false,
-    });
-
-    if (!originalArticle) {
-      throw new NotFoundException('Original article', originalArticleId);
-    }
-
-    this.logger.log(`${url} creating remix`, {
+    return this.articleRemixService.createRemix(
       originalArticleId,
-      originalTitle: originalArticle.label,
-    });
-
-    // Create the remix article with copied data
-    const remixTitle =
-      options?.label || `Remix: ${originalArticle.label || 'Untitled'}`;
-
-    // Generate a unique slug for the remix to avoid duplicate key error
-    // The slug field has a unique constraint, so we need a unique value
-    // Handle case where original article slug might be null/undefined
-    const baseSlug = originalArticle.slug || 'article';
-    const remixSlug = `${baseSlug}-remix-${Date.now()}`;
-
-    const remixDto: CreateArticleDto = {
-      category:
-        this.normalizeArticleCategory(originalArticle.category) ??
-        ArticleCategory.POST,
-      content: this.readString(originalArticle.content),
-      label: remixTitle,
-      scope:
-        this.normalizeArticleScope(originalArticle.scope) ?? ArticleScope.USER,
-      slug: remixSlug,
-      status: ArticleStatus.DRAFT, // Always start as draft
-      summary: this.readString(originalArticle.summary) ?? '',
-      tags: this.readStringArray(originalArticle.tags),
-    };
-
-    const remixArticle = await this.createArticle(
-      remixDto,
       userId,
       organizationId,
       brandId,
+      options,
+      (criteria) => this.findOne(criteria),
+      (dto, ownerUserId, ownerOrganizationId, ownerBrandId) =>
+        this.createArticle(dto, ownerUserId, ownerOrganizationId, ownerBrandId),
     );
-
-    this.logger.log(`${url} remix created`, {
-      originalArticleId,
-      remixArticleId: remixArticle.id,
-    });
-
-    return remixArticle;
   }
 
   /**
