@@ -287,7 +287,8 @@ vi.mock('@ui/primitives/dialog', () => ({
 }));
 
 vi.mock('@ui/primitives/drawer', () => ({
-  Drawer: ({ children }: { children: ReactNode }) => <>{children}</>,
+  Drawer: ({ children, open }: { children: ReactNode; open?: boolean }) =>
+    open ? children : null,
   DrawerContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
@@ -423,7 +424,7 @@ describe('UniversalWorkspaceShell', () => {
       return <div>Studio canvas</div>;
     }
 
-    render(
+    const view = render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
         <StudioSurface />
       </UniversalWorkspaceShell>,
@@ -444,6 +445,11 @@ describe('UniversalWorkspaceShell', () => {
         brandId: 'brand-studio',
         contextVersion: 4,
       }),
+    );
+    view.rerender(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <StudioSurface />
+      </UniversalWorkspaceShell>,
     );
     expect(screen.getAllByText('Studio inspector')).not.toHaveLength(0);
     expect(
@@ -680,7 +686,7 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('opens and restores the trusted workflow picker without dialog graph UI', () => {
-    navigation.pathname = '/acme/~/workflows';
+    navigation.pathname = '/acme/moonrise/workspace/overview';
     navigation.searchParams = new URLSearchParams({ thread: 'thread-1' });
 
     const view = render(
@@ -693,7 +699,7 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByRole('button', { name: 'Dispatch workflow action' }),
     );
     expect(router.push).toHaveBeenCalledWith(
-      '/acme/~/workflows?thread=thread-1&overlay=workflow-picker',
+      '/acme/moonrise/workspace/overview?thread=thread-1&overlay=workflow-picker',
     );
 
     navigation.searchParams = new URLSearchParams({
@@ -716,9 +722,8 @@ describe('UniversalWorkspaceShell', () => {
       'Use the deterministic workflow “Launch brief” (workflow ID: workflow-1) for this request: ',
       'thread-1',
     );
-    expect(router.replace).toHaveBeenCalledWith(
-      '/acme/~/workflows?thread=thread-1',
-    );
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('gives canonical workflow editors focused canvas overflow ownership', () => {

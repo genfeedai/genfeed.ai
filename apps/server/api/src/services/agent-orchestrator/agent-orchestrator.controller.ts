@@ -112,18 +112,18 @@ export class AgentOrchestratorController {
     routeThreadId?: string,
   ) {
     try {
+      const request = this.resolveAgentChatBody(body, routeThreadId);
       const organization = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
-      const request = await this.resolveAuthorizedAgentChatBody(
-        body,
+      const authorizedRequest = await this.resolveAuthorizedAgentChatBody(
+        request,
         user,
         organization,
         dbUserId,
-        routeThreadId,
       );
       const authToken = authorization?.replace('Bearer ', '');
 
-      const result = await this.orchestratorService.chat(request, {
+      const result = await this.orchestratorService.chat(authorizedRequest, {
         authToken,
         organizationId: organization,
         userId: dbUserId,
@@ -142,22 +142,25 @@ export class AgentOrchestratorController {
     routeThreadId?: string,
   ) {
     try {
+      const request = this.resolveAgentChatBody(body, routeThreadId);
       const organization = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
-      const request = await this.resolveAuthorizedAgentChatBody(
-        body,
+      const authorizedRequest = await this.resolveAuthorizedAgentChatBody(
+        request,
         user,
         organization,
         dbUserId,
-        routeThreadId,
       );
       const authToken = authorization?.replace('Bearer ', '');
 
-      const result = await this.orchestratorService.chatStream(request, {
-        authToken,
-        organizationId: organization,
-        userId: dbUserId,
-      });
+      const result = await this.orchestratorService.chatStream(
+        authorizedRequest,
+        {
+          authToken,
+          organizationId: organization,
+          userId: dbUserId,
+        },
+      );
 
       return result;
     } catch (error: unknown) {
@@ -199,16 +202,14 @@ export class AgentOrchestratorController {
     user: User,
     organizationId: string,
     userId: string,
-    routeThreadId?: string,
   ): Promise<AgentChatBody> {
-    const request = this.resolveAgentChatBody(body, routeThreadId);
-    const references = request.pageContext?.socialReferences;
+    const references = body.pageContext?.socialReferences;
     if (!references?.length) {
-      return request;
+      return body;
     }
 
     const brandId = getPublicMetadata(user).brand;
-    if (!brandId || request.brandId !== brandId || !this.socialInboxService) {
+    if (!brandId || body.brandId !== brandId || !this.socialInboxService) {
       throw new BadRequestException(
         'Social inbox references require the current authorized brand context.',
       );
@@ -221,9 +222,9 @@ export class AgentOrchestratorController {
       );
 
     return {
-      ...request,
+      ...body,
       pageContext: {
-        ...request.pageContext,
+        ...body.pageContext,
         authorizedSocialContext,
         socialReferences,
       },

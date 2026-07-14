@@ -3833,6 +3833,11 @@
     },
     {
       "method": "post",
+      "operationId": "PublishApprovalsController.create",
+      "path": "/publish-approvals"
+    },
+    {
+      "method": "post",
       "operationId": "RedditController.connect",
       "path": "/services/reddit/connect"
     },

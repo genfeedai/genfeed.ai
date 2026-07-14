@@ -155,7 +155,7 @@ export function AgentChatContainer({
         ...(composerShell?.artifactReferences?.length
           ? {
               artifactReferences: composerShell.artifactReferences.map(
-                (item) => item.reference,
+                (item) => ('reference' in item ? item.reference : item),
               ),
             }
           : {}),
