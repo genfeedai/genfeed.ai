@@ -1,4 +1,7 @@
-import { resolveAgentTurnCreditCost } from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
+import {
+  resolveAgentTurnCreditCost,
+  settleAgentTurnCredits,
+} from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
 import { AgentToolName } from '@genfeedai/interfaces';
 
 describe('resolveAgentTurnCreditCost', () => {
@@ -26,5 +29,28 @@ describe('resolveAgentTurnCreditCost', () => {
         },
       ]),
     ).toBe(4);
+  });
+
+  it('does not create a zero-credit chat transaction after profile billing', async () => {
+    const deductCreditsFromOrganization = vi.fn();
+
+    const billed = await settleAgentTurnCredits({
+      creditsUtilsService: { deductCreditsFromOrganization },
+      model: 'openrouter/auto',
+      organizationId: 'org-1',
+      toolCalls: [
+        {
+          creditsUsed: 1,
+          durationMs: 10,
+          status: 'completed',
+          toolName: AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+        },
+      ],
+      turnCost: 1,
+      userId: 'user-1',
+    });
+
+    expect(billed).toBe(0);
+    expect(deductCreditsFromOrganization).not.toHaveBeenCalled();
   });
 });
