@@ -24,6 +24,11 @@ export interface ServiceHealth {
   error?: string;
 }
 
+type MicroserviceUrlKey =
+  | 'GENFEEDAI_MICROSERVICES_FILES_URL'
+  | 'GENFEEDAI_MICROSERVICES_MCP_URL'
+  | 'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL';
+
 @Injectable()
 export class MicroservicesService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
@@ -58,28 +63,35 @@ export class MicroservicesService implements OnModuleInit {
   }
 
   private initializeServices() {
-    const filesUrl =
-      this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
-      'http://localhost:3012';
-
-    const notificationsUrl =
-      this.configService.get('GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL') ||
-      'http://localhost:3011';
-
-    const MCPUrl =
-      this.configService.get('GENFEEDAI_MICROSERVICES_MCP_URL') ||
-      'http://localhost:3014';
+    const filesUrl = this.getRequiredServiceUrl(
+      'GENFEEDAI_MICROSERVICES_FILES_URL',
+    );
+    const notificationsUrl = this.getRequiredServiceUrl(
+      'GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL',
+    );
+    const mcpUrl = this.getRequiredServiceUrl(
+      'GENFEEDAI_MICROSERVICES_MCP_URL',
+    );
 
     // Log service configuration
     this.loggerService.log(
-      `${this.constructorName} initializeServices: files=${filesUrl}, mcp=${MCPUrl}, notifications=${notificationsUrl}`,
+      `${this.constructorName} initializeServices: files=${filesUrl}, mcp=${mcpUrl}, notifications=${notificationsUrl}`,
     );
 
     this.servicesConfig = new Map([
       ['files', { required: true, url: filesUrl }],
-      ['mcp', { required: true, url: MCPUrl }],
+      ['mcp', { required: true, url: mcpUrl }],
       ['notifications', { required: true, url: notificationsUrl }],
     ]);
+  }
+
+  private getRequiredServiceUrl(key: MicroserviceUrlKey): string {
+    const value = this.configService.get(key);
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      throw new Error(`${key} must be configured`);
+    }
+
+    return value.trim().replace(/\/+$/, '');
   }
 
   private getRedisLogTarget(redisUrl: string): string {

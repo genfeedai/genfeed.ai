@@ -52,6 +52,10 @@
   },
   "manifest": {
     "host_permissions": [
+      "http://genfeed.localhost/*",
+      "http://local.genfeed.ai/*",
+      "https://app.genfeed.ai/*",
+      "https://genfeed.ai/*",
       "https://*.twitter.com/*",
       "https://*.x.com/*",
       "https://*.youtube.com/*",

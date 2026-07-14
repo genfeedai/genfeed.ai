@@ -14,7 +14,7 @@ genfeed.ai/
 ├── apps/
 │   ├── server/              # 12 backend service/server-tier workspaces
 │   │   ├── api/             # Main API (port 3010)
-│   │   ├── notifications/   # Notification service (3011)
+│   │   ├── notifications/   # Notification service (3111 local / 3011 deployed)
 │   │   ├── files/           # File processing (3012)
 │   │   ├── workers/         # Background jobs (3013)
 │   │   ├── mcp/             # MCP server (3014)

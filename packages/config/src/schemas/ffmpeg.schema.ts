@@ -14,5 +14,5 @@ export const ffmpegSchema = {
   FFMPEG_TIMEOUT: Joi.string().optional(),
   FFMPEG_VIDEO_CODEC: Joi.string().optional(),
   TEMP_DIR: Joi.string().default('public/tmp/videos'),
-  WEBSOCKET_URL: Joi.string().default('ws://localhost:3004'),
+  WEBSOCKET_URL: Joi.string().uri().optional().allow(''),
 };

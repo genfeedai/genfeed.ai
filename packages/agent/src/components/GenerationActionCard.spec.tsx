@@ -154,7 +154,7 @@ function createApiServiceMock(options?: {
   const models = options?.models ?? [];
 
   return {
-    baseUrl: 'http://local.genfeed.ai:3010',
+    baseUrl: 'http://genfeed.localhost:3010',
     createPromptEffect: vi.fn((...args: unknown[]) =>
       Effect.promise(() => createPrompt(...args)),
     ),

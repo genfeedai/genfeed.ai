@@ -26,10 +26,13 @@ export { type ContextMenuType, useContextMenuStore } from './contextMenuStore';
 export type { DebugPayload, ExecutionStore, Job } from './execution';
 export { useExecutionStore } from './execution';
 export {
+  configureExecutionApiBaseUrl,
   configureExecutionHeaders,
   configureExecutionHttpClient,
+  getExecutionApiBaseUrl,
   getExecutionHeaders,
   getExecutionHttpClient,
+  resolveExecutionApiBaseUrl,
 } from './execution/executionApi';
 // Embedded stores (moved from core app)
 export {

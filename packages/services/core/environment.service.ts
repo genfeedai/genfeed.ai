@@ -2,6 +2,19 @@ import { MODEL_KEYS } from '@genfeedai/constants';
 
 const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
 const DEFAULT_VIDEO_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1;
+const LOCAL_DEVELOPMENT_HOSTNAMES = new Set([
+  '127.0.0.1',
+  '::1',
+  'genfeed.localhost',
+  'localhost',
+]);
+
+function isLocalDevelopmentHostname(hostname: string): boolean {
+  return (
+    LOCAL_DEVELOPMENT_HOSTNAMES.has(hostname) ||
+    hostname.endsWith('.genfeed.localhost')
+  );
+}
 
 type DesktopEnvironmentOverrides = Partial<{
   apiEndpoint: string;
@@ -258,7 +271,7 @@ export const EnvironmentService = {
     }
 
     // For local development, detect from port
-    if (hostname.includes('local.genfeed.ai')) {
+    if (isLocalDevelopmentHostname(hostname)) {
       const port = window.location.port;
 
       if (port === '3000') {

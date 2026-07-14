@@ -3,7 +3,7 @@
  * `/v1` global prefix exactly once.
  *
  * `GENFEEDAI_API_URL` is configured WITHOUT the prefix in every environment
- * (`.env.example` → `http://local.genfeed.ai:3010`, all docker-compose →
+ * (`.env.example` → `http://genfeed.localhost:3010`, all docker-compose →
  * `http://api:3010`, terraform → `http://api.genfeed.internal:3010`), but the
  * NestJS API runs `setGlobalPrefix('v1')`. The MCP `ClientService` and
  * `AuthService` therefore have to include `/v1` or every request 404s. This

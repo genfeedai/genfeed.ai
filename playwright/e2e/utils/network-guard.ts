@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test';
+import { playwrightApiHostname } from '../config/environment';
 
 interface BlockedRequest {
   host: string;
@@ -34,7 +35,8 @@ const DEFAULT_ALLOWED_HOSTS = [
   'localhost',
   '127.0.0.1',
   '::1',
-  'local.genfeed.ai', // local dev API host (requests are intercepted by page.route())
+  playwrightApiHostname, // configured local dev API host (intercepted by page.route())
+  'local.genfeed.ai', // temporary backwards-compatible local host allowlist
   'cdn.genfeed.ai',
   'fonts.googleapis.com',
   'fonts.gstatic.com',

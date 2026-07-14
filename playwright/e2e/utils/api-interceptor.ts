@@ -1,4 +1,8 @@
 import type { Page, Route } from '@playwright/test';
+import {
+  createPlaywrightApiRoutePattern,
+  playwrightApiEndpoint,
+} from '../config/environment';
 
 /**
  * API Interceptor for Playwright E2E Tests
@@ -1414,17 +1418,15 @@ export async function setupApiMocks(
   // which is registered AFTER this function so its handlers take priority.
   // Do NOT add Better Auth routes here or they will override the fixture's detailed mocks.
 
-  // The local dev API runs at http://local.genfeed.ai:3010/v1
-  // Playwright globs don't handle ports well, so we use regex for the catch-all
-  // and explicit URL patterns for specific resources.
-  const LOCAL_API = 'http://local.genfeed.ai:3010';
+  // Playwright globs don't handle ports well, so derive the catch-all regex and
+  // explicit resource URLs from the configured local API endpoint.
   const PROD_API = '**/api.genfeed.ai';
   const PROD_API_V1 = '**/api.genfeed.ai/v1';
 
   // Register broad local fallback first so later specific mocks win. This keeps
   // route smoke tests from leaking to a real local API when a page asks for a
   // low-risk collection that does not need bespoke fixture data.
-  await page.route(/local\.genfeed\.ai:3010\/v1\/.+/, async (r) => {
+  await page.route(createPlaywrightApiRoutePattern(), async (r) => {
     const url = r.request().url();
 
     if (url.includes('/v1/health')) {
@@ -1449,7 +1451,7 @@ export async function setupApiMocks(
   ): Promise<void> => {
     await page.route(`${PROD_API}${pathPattern}`, handler);
     await page.route(`${PROD_API_V1}${pathPattern}`, handler);
-    await page.route(`${LOCAL_API}/v1${pathPattern}`, handler);
+    await page.route(`${playwrightApiEndpoint}${pathPattern}`, handler);
   };
 
   // Users — register the generic handler first because Playwright matches

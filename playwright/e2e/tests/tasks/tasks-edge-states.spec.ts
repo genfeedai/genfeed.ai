@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test';
+import { playwrightApiOrigin } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 
@@ -132,7 +133,7 @@ async function routeTaskApi(
   handler: (route: Route) => Promise<void>,
 ) {
   await page.route(`**/api.genfeed.ai/**${suffix}`, handler);
-  await page.route(`**/local.genfeed.ai:3010/**${suffix}`, handler);
+  await page.route(`${playwrightApiOrigin}/**${suffix}`, handler);
 }
 
 async function mockTaskEdgeStates(

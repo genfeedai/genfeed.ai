@@ -7,7 +7,7 @@ import { forwardRef, Module } from '@nestjs/common';
  * Dev module for development-only endpoints
  *
  * This module is only registered in development mode.
- * For Discord bot testing, hit the notifications service directly at port 3011.
+ * For Discord bot testing, hit the local notifications service at port 3111.
  */
 @Module({
   controllers: [DevController],

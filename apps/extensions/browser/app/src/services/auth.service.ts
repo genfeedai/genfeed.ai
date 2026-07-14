@@ -99,7 +99,7 @@ class AuthService {
 
   private getTokenFromCookies(): Promise<string | null> {
     return new Promise((resolve) => {
-      const domain = EnvironmentService.websiteDomain;
+      const origins = EnvironmentService.authCookieOrigins;
       const cookieNames = [
         'better-auth.session_token',
         '__Secure-better-auth.session_token',
@@ -108,28 +108,39 @@ class AuthService {
         'token',
       ];
 
-      const tryNextCookie = (index: number) => {
-        if (index >= cookieNames.length) {
+      const tryNextCookie = (originIndex: number, cookieIndex: number) => {
+        if (originIndex >= origins.length) {
           resolve(null);
+          return;
+        }
+
+        const origin = origins[originIndex];
+        if (!origin) {
+          resolve(null);
+          return;
+        }
+
+        if (cookieIndex >= cookieNames.length) {
+          tryNextCookie(originIndex + 1, 0);
           return;
         }
 
         chrome.cookies.get(
           {
-            name: cookieNames[index],
-            url: domain,
+            name: cookieNames[cookieIndex],
+            url: origin,
           },
           (cookie) => {
             if (cookie?.value) {
               resolve(cookie.value);
             } else {
-              tryNextCookie(index + 1);
+              tryNextCookie(originIndex, cookieIndex + 1);
             }
           },
         );
       };
 
-      tryNextCookie(0);
+      tryNextCookie(0, 0);
     });
   }
 
@@ -287,10 +298,11 @@ class AuthService {
   }
 
   debugCookies(): void {
-    const cookieDomain = EnvironmentService.cookieDomain;
-    chrome.cookies.getAll({ domain: cookieDomain }, (_cookies) => {
-      // Debug callback - intentionally empty
-    });
+    for (const origin of EnvironmentService.authCookieOrigins) {
+      chrome.cookies.getAll({ url: origin }, (_cookies) => {
+        // Debug callback - intentionally empty
+      });
+    }
   }
 
   async getTokenInfo(): Promise<TokenInfo | null> {

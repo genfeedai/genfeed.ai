@@ -1,6 +1,6 @@
 import { authService } from '~services/auth.service';
-// Source of truth: EnvironmentService.apiEndpoint (environment.service.ts)
-import { apiEndpoint } from '~services/environment.service';
+// Source of truth: environment.service.ts (PLASMO_PUBLIC_* config boundary)
+import { apiEndpoint, isGenfeedAuthUrl } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import type { ExtensionMessage } from '~types/extension';
 import { logger } from '~utils/logger.util';
@@ -1483,16 +1483,7 @@ async function handleRelayToContent(
 // Listen for tab updates to sync authentication state
 chrome.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
-    // Check for authentication when user visits genfeed.ai domains
-    const isDev =
-      process.env.NODE_ENV === 'development' ||
-      process.env.PLASMO_PUBLIC_ENV === 'development';
-    const devDomain = 'local.genfeed.ai';
-    const prodDomain = 'genfeed.ai';
-    const targetDomain = isDev ? devDomain : prodDomain;
-
-    if (tab.url.includes(targetDomain)) {
-      // Check for authentication when user visits the appropriate genfeed.ai domain
+    if (isGenfeedAuthUrl(tab.url)) {
       chrome.runtime.sendMessage({ event: 'checkAuth' });
     }
   }

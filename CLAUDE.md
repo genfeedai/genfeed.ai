@@ -92,7 +92,7 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 | App | Port | Purpose |
 |-----|------|---------|
 | `api/` | 3010 | Main NestJS API |
-| `notifications/` | 3011 | Notification service |
+| `notifications/` | 3111 local / 3011 deployed | Notification service |
 | `files/` | 3012 | File processing service |
 | `workers/` | 3013 | Background job processors |
 | `mcp/` | 3014 | MCP server for AI tools |

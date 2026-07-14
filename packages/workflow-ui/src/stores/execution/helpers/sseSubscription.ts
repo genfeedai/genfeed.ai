@@ -4,7 +4,7 @@ import type { StoreApi } from 'zustand';
 import { getWorkflowLogger } from '../../executionLogger';
 import { useUIStore } from '../../uiStore';
 import { useWorkflowStore } from '../../workflow/workflowStore';
-import { API_BASE_URL } from '../executionApi';
+import { getExecutionApiBaseUrl } from '../executionApi';
 import type {
   DebugPayload,
   ExecutionData,
@@ -116,7 +116,9 @@ function applyJobUpdates(
  */
 async function reconcileNodeStatuses(executionId: string): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE_URL}/executions/${executionId}`);
+    const response = await fetch(
+      `${getExecutionApiBaseUrl()}/executions/${executionId}`,
+    );
     if (!response.ok) return;
 
     const execution = await response.json();
@@ -151,7 +153,7 @@ export function createExecutionSubscription(
   set: StoreApi<ExecutionStore>['setState'],
 ): EventSource {
   const eventSource = new EventSource(
-    `${API_BASE_URL}/executions/${executionId}/stream`,
+    `${getExecutionApiBaseUrl()}/executions/${executionId}/stream`,
   );
 
   // Track nodes that have already propagated to prevent duplicate cascades
@@ -277,7 +279,7 @@ export function createNodeExecutionSubscription(
   _get: StoreApi<ExecutionStore>['getState'],
 ): EventSource {
   const eventSource = new EventSource(
-    `${API_BASE_URL}/executions/${executionId}/stream`,
+    `${getExecutionApiBaseUrl()}/executions/${executionId}/stream`,
   );
   const propagatedNodeIds = new Set<string>();
 

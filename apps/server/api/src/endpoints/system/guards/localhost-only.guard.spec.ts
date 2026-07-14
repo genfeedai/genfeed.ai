@@ -81,11 +81,34 @@ describe('LocalhostOnlyGuard', () => {
     expect(
       guard.canActivate(
         makeContext({
+          host: 'genfeed.localhost:3010',
+          origin: 'http://genfeed.localhost:3000',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps local.genfeed.ai as an explicit compatibility allowlist entry', () => {
+    expect(
+      guard.canActivate(
+        makeContext({
           host: 'local.genfeed.ai:3010',
           origin: 'http://local.genfeed.ai:3000',
         }),
       ),
     ).toBe(true);
+  });
+
+  it('does not treat arbitrary local-prefixed domains as loopback', () => {
+    expect(() =>
+      guard.canActivate(
+        makeContext({
+          host: 'local.evil.example:3010',
+          ip: '52.10.10.10',
+          origin: 'http://local.evil.example:3000',
+        }),
+      ),
+    ).toThrow(ForbiddenException);
   });
 
   it('allows forwarded localhost ip addresses', () => {

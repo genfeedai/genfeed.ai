@@ -24,7 +24,7 @@ describe('TaskQueueClientService', () => {
     },
     metadata: {
       stepId: '507f1f77bcf86cd799439016',
-      websocketUrl: 'ws://localhost:3011',
+      websocketUrl: 'ws://genfeed.localhost:3111',
       workflowId: '507f1f77bcf86cd799439015',
     },
     organizationId: '507f1f77bcf86cd799439013',

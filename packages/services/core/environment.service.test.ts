@@ -101,11 +101,23 @@ describe('EnvironmentService', () => {
   });
 
   describe('currentApp', () => {
+    it('detects app on the canonical local development host', () => {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        value: {
+          hostname: 'genfeed.localhost',
+          port: '3000',
+        },
+      });
+
+      expect(EnvironmentService.currentApp).toBe('app');
+    });
+
     it('detects marketplace on local port 3003', () => {
       Object.defineProperty(window, 'location', {
         configurable: true,
         value: {
-          hostname: 'local.genfeed.ai',
+          hostname: 'marketplace.genfeed.localhost',
           port: '3003',
         },
       });
@@ -117,7 +129,7 @@ describe('EnvironmentService', () => {
       Object.defineProperty(window, 'location', {
         configurable: true,
         value: {
-          hostname: 'local.genfeed.ai',
+          hostname: 'genfeed.localhost',
           port: '3002',
         },
       });

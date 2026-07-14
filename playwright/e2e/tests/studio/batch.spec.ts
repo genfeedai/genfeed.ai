@@ -1,10 +1,11 @@
+import { playwrightApiEndpoint } from '../../config/environment';
 import {
   mockActiveSubscription,
   mockWorkflowCrud,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 
-const LOCAL_API = 'http://local.genfeed.ai:3010/v1';
+const LOCAL_API = playwrightApiEndpoint;
 
 const workflow = {
   createdAt: '2026-03-15T12:00:00.000Z',

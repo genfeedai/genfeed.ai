@@ -153,7 +153,7 @@ Primary config highlights:
 Most specs use **3-layer auth bypass** (no real Better Auth session needed):
 1. **Middleware bypass** — `__playwright_test=true` cookie; `proxy.ts` skips `authMiddleware`.
 2. **Client SDK mock** — `addInitScript` sets `window.__better_auth_client_state` + `__better_auth_is_signed_in`.
-3. **API mock** — `setupApiMocks` intercepts `api.genfeed.ai` + `local.genfeed.ai:3010`.
+3. **API mock** — `setupApiMocks` intercepts `api.genfeed.ai` + `genfeed.localhost:3010`.
    **Order matters:** call `setupApiMocks` BEFORE `setupBetterAuthMocks` (Playwright routes resolve last-registered-first).
 
 Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`, `unauthenticatedPage`,
