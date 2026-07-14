@@ -8,11 +8,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
-import {
-  bindGeneratedOperationRequest,
-  getGeneratedOperationBinding,
-  isGeneratedWriteOperation,
-} from '@mcp/services/generated-tool-dispatcher';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import type {
   McpResource,
@@ -113,15 +108,6 @@ const isGoogleAdsTool = (name: string): boolean =>
   name.startsWith('list_google_ads_') || name.startsWith('get_google_ads_');
 
 /**
- * OpenAPI-generated MCP tools (#1248) are namespaced `<domain>__<action>`; the
- * `__` separator is never used by a hand-authored tool (asserted in the
- * `@genfeedai/tools` registry tests), so it uniquely identifies the generated
- * baseline. Generated execution metadata lives in `@genfeedai/tools` as a
- * sidecar emitted from the same OpenAPI source as the tool definitions.
- */
-const isGeneratedTool = (name: string): boolean => name.includes('__');
-
-/**
  * Which executor handles a tool name. `'unknown'` means no dispatch path exists
  * — the drift guard rejects any MCP-surfaced tool that classifies as unknown so
  * a registry/handler mismatch fails the boot health check instead of surfacing
@@ -139,7 +125,6 @@ type ExecutorKind =
   | 'account-management'
   | 'social-messages'
   | 'clip-projects'
-  | 'generated'
   | 'unknown';
 
 /**
@@ -302,9 +287,6 @@ export class ToolRegistryService implements OnModuleInit {
 
       // Mutating tools persist a pending approval instead of executing.
       if (ToolRegistryService.requiresApproval(name)) {
-        if (ToolRegistryService.classify(name) === 'generated') {
-          this.buildGeneratedApiRequest(name, args ?? {});
-        }
         const approval = await this.clientService.createApproval(
           name,
           args ?? {},
@@ -328,11 +310,6 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   /**
-   * Dispatch a tool to its actual implementation (agent-executor proxy or the
-   * legacy/external handlers). Used both for normal calls that passed the gates
-   * and for executing an approved deferred action.
-   */
-  /**
    * Classify a tool name to the executor that will run it, WITHOUT executing.
    * Single source of truth for dispatch — used by {@link executeTool} and by the
    * boot-time drift guard. Precedence is identical to the historical if/switch
@@ -348,21 +325,11 @@ export class ToolRegistryService implements OnModuleInit {
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
-    // Checked last: a hand-authored tool that (hypothetically) matched an
-    // earlier branch keeps its real executor; only otherwise-unclassified
-    // `<domain>__<action>` names fall through to the generated baseline.
-    if (isGeneratedTool(name)) return 'generated';
     return 'unknown';
   }
 
   private static requiresApproval(name: string): boolean {
-    if (APPROVAL_REQUIRED_TOOLS.has(name)) {
-      return true;
-    }
-    const generatedOperation = getGeneratedOperationBinding(name);
-    return generatedOperation
-      ? isGeneratedWriteOperation(generatedOperation)
-      : false;
+    return APPROVAL_REQUIRED_TOOLS.has(name);
   }
 
   private async executeTool(name: string, args: Record<string, unknown>) {
@@ -387,52 +354,9 @@ export class ToolRegistryService implements OnModuleInit {
         return handleSocialMessagesTool(this.clientService, name, args);
       case 'clip-projects':
         return handleClipProjectsTool(this.clientService, name, args);
-      case 'generated':
-        return this.executeGeneratedTool(name, args);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
-  }
-
-  private async executeGeneratedTool(
-    name: string,
-    args: Record<string, unknown>,
-  ) {
-    const request = this.buildGeneratedApiRequest(name, args);
-    const payload = await this.clientService.requestGeneratedOperation(request);
-
-    return {
-      content: [
-        {
-          text: JSON.stringify(payload ?? {}, null, 2),
-          type: 'text',
-        },
-      ],
-    };
-  }
-
-  private buildGeneratedApiRequest(
-    name: string,
-    args: Record<string, unknown>,
-  ) {
-    const canonicalTool = getToolByName(name);
-    if (!canonicalTool?.surfaces.mcp) {
-      throw new Error(`Unknown generated tool: ${name}`);
-    }
-
-    const generatedOperation = getGeneratedOperationBinding(name);
-    if (!generatedOperation) {
-      throw new Error(
-        `Generated MCP tool "${name}" has no OpenAPI operation binding. ` +
-          'Regenerate @genfeedai/tools with generate:mcp-tools.',
-      );
-    }
-
-    return bindGeneratedOperationRequest(
-      generatedOperation,
-      canonicalTool,
-      args,
-    );
   }
 
   /**

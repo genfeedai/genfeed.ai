@@ -16,7 +16,6 @@ const mockState = vi.hoisted(() => ({
 }));
 
 vi.mock('@genfeedai/tools', () => ({
-  GENERATED_MCP_OPERATIONS: [],
   getToolByName: vi.fn(),
   getToolsForSurface: vi.fn(() => mockState.tools),
   toMcpTools: vi.fn((tools) => tools),
@@ -40,10 +39,8 @@ describe('ToolRegistryService.classify', () => {
     ['analyze_clip_project', 'clip-projects'],
     ['generate_clips', 'clip-projects'],
     ['get_clip_project', 'clip-projects'],
-    // OpenAPI-generated tools (#1248/#1249): the `__` namespace routes to the
-    // generated executor kind backed by the generated operation sidecar.
-    ['brands__create', 'generated'],
-    ['content_plans__find_all', 'generated'],
+    ['brands__create', 'unknown'],
+    ['content_plans__find_all', 'unknown'],
     ['a_tool_that_does_not_exist', 'unknown'],
     // The darkroom/training/GPU fleet tools were dropped from the OSS MCP
     // surface in PR 5/6 (superadmin+IP-gated fleet API — a gf_ key can't reach
@@ -82,9 +79,6 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       { name: 'get_video_status' },
       { name: 'list_meta_campaigns' },
       { name: 'resolve_approval' },
-      // A generated tool must route (to the 'generated' kind), not trip the
-      // guard.
-      { name: 'brands__create' },
       ...approvalGated.map((name) => ({ name })),
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();

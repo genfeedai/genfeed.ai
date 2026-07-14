@@ -70,7 +70,7 @@ describe('isInternalRoute', () => {
 
   it('does NOT over-match a longer sibling segment', () => {
     const routes = [{ pathPrefix: '/health', reason: 'probes' }];
-    // A future public route must not be silently excluded from parity.
+    // A future public route must not be silently classified as internal.
     expect(isInternalRoute('/healthcare', routes)).toBe(false);
     expect(isInternalRoute('/health-check-public', routes)).toBe(false);
   });
@@ -92,7 +92,7 @@ describe('validateOpenApiSpec', () => {
     expect(result.violations).toEqual([]);
     expect(result.stats).toEqual({
       internalOperations: 1,
-      parityOperations: 1,
+      publicOperations: 1,
       totalOperations: 2,
       uniqueOperationIds: 2,
     });

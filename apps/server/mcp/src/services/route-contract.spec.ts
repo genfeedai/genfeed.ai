@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AgentToolName } from '@genfeedai/interfaces';
+import { getToolsForSurface } from '@genfeedai/tools';
 
 /**
  * Route-contract test (PR 5/6). The MCP server is a thin HTTP proxy: every tool
@@ -24,7 +25,6 @@ import { AgentToolName } from '@genfeedai/interfaces';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const apiSrc = path.resolve(here, '../../../api/src');
-const catalogPath = path.resolve(here, '../../mcp-catalog.json');
 
 /** A tool that dispatches through the agent-executor to a single shared route. */
 const BASE_CRUD_LIST = '__BASE_CRUD_LIST__';
@@ -532,7 +532,7 @@ const readController = (() => {
 const decoratorFor = (route: ContractRoute): string =>
   route.sub === '' ? `@${route.method}()` : `@${route.method}('${route.sub}')`;
 
-const catalog = JSON.parse(readFileSync(catalogPath, 'utf8')) as string[];
+const catalog = getToolsForSurface('mcp').map((tool) => tool.name);
 const agentExecutorNames = new Set<string>(Object.values(AgentToolName));
 
 describe('MCP → API route contract', () => {

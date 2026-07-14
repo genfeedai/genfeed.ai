@@ -8,9 +8,4 @@ export interface SourceTool {
   };
   creditCost: number;
   requiredRole: 'user' | 'admin' | 'superadmin';
-  surfaces: {
-    agent: boolean;
-    mcp: boolean;
-    cliAgentVisible?: boolean;
-  };
 }

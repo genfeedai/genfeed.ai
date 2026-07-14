@@ -1,9 +1,0 @@
-{
-  "description": "API↔MCP coverage map (#1246/#1251). Declares which capability MCP tools reach which API operations. Parity is a REACHABILITY contract, not a 1:1 endpoint mirror: one ergonomic tool may cover many operationIds. An operation is 'covered' when its operationId (<ControllerClass>.<method>, from openapi/openapi.json) is listed here under a tool that exists in getToolsForSurface('mcp'). Curated tools (#1252) and the generic dispatcher (#1249) populate this over time; each entry added removes its operations from openapi-parity-baseline.json. scripts/check-mcp-parity.ts validates every entry against the spec + MCP tool set, so the map cannot claim phantom coverage. Curation is incremental; entries are added as tools are curated (#1252).",
-  "coverage": [
-    {
-      "tool": "tasks__set_output_kept",
-      "operationIds": ["TasksController.setOutputKept"]
-    }
-  ]
-}

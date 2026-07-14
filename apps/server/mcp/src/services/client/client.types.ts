@@ -22,14 +22,6 @@ export interface ApiError {
   message?: string;
 }
 
-export interface GeneratedApiRequest {
-  method: string;
-  path: string;
-  query: Record<string, unknown>;
-  body?: unknown;
-  operationLabel: string;
-}
-
 export interface BrandResponse {
   id: string;
   name: string;

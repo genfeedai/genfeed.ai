@@ -34,6 +34,5 @@ export const MCP_ADMIN_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'superadmin',
-    surfaces: { agent: false, cliAgentVisible: false, mcp: true },
   },
 ];

@@ -20,7 +20,6 @@
     "dev:direct": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start mcp --watch",
     "dev:portless": "portless run --name mcp.genfeed bun run dev:direct",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start mcp --watch",
-    "gen:mcp-catalog": "node scripts/generate-mcp-catalog.mjs",
     "lint": "biome lint --write src --no-errors-on-unmatched",
     "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project mcp-genfeed-ai ../dist",
     "sentry:sourcemaps": "[ -z \"$SENTRY_AUTH_TOKEN\" ] && echo 'Sentry upload skipped (no token)' || (bun run sentry:inject && bun run sentry:upload)",

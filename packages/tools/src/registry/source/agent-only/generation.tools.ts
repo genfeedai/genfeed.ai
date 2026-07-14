@@ -22,7 +22,6 @@ export const AGENT_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     creditCost: 0,
@@ -40,7 +39,6 @@ export const AGENT_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
   {
     // Minimum charge per call (one minute of speech). Actual amount is billed
@@ -64,6 +62,5 @@ export const AGENT_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: false },
   },
 ];

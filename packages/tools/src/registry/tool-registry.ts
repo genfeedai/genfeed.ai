@@ -3,7 +3,10 @@ import type {
   ToolCategory,
   ToolRequiredRole,
 } from '../interfaces/tool-definition.interface.js';
-import { GENERATED_MCP_TOOLS } from './generated/mcp-tools.generated.js';
+import {
+  CURATED_ACTION_CATALOG,
+  isActionOnSurface,
+} from './curated-action-catalog.js';
 import { SOURCE_TOOLS } from './source/index.js';
 
 const UI_ACTION_MAP: Partial<
@@ -122,33 +125,83 @@ const roleWeight: Record<ToolRequiredRole, number> = {
   user: 0,
 };
 
-const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] = SOURCE_TOOLS.map(
-  (tool) => ({
-    category: inferCategory(tool.name),
-    creditCost: tool.creditCost,
-    description: tool.description,
-    name: tool.name,
-    parameters: tool.parameters,
-    requiredRole: tool.requiredRole,
-    surfaces: {
-      agent: tool.surfaces.agent,
-      cliAgentVisible: tool.surfaces.cliAgentVisible ?? tool.surfaces.agent,
-      mcp: tool.surfaces.mcp,
-    },
-    uiActionType: UI_ACTION_MAP[tool.name],
-  }),
+const definitionsByName = new Map(
+  SOURCE_TOOLS.map((tool) => [tool.name, tool]),
+);
+const catalogNames: ReadonlySet<string> = new Set(
+  CURATED_ACTION_CATALOG.map((entry) => entry.name),
 );
 
+const duplicateDefinitionNames = SOURCE_TOOLS.filter(
+  (tool, index) =>
+    SOURCE_TOOLS.findIndex((candidate) => candidate.name === tool.name) !==
+    index,
+).map((tool) => tool.name);
+const duplicateCatalogNames = CURATED_ACTION_CATALOG.filter(
+  (entry, index) =>
+    CURATED_ACTION_CATALOG.findIndex(
+      (candidate) => candidate.name === entry.name,
+    ) !== index,
+).map((entry) => entry.name);
+const missingDefinitions = CURATED_ACTION_CATALOG.filter(
+  (entry) => !definitionsByName.has(entry.name),
+).map((entry) => entry.name);
+const unreviewedDefinitions = SOURCE_TOOLS.filter(
+  (tool) => !catalogNames.has(tool.name),
+).map((tool) => tool.name);
+
+const catalogViolations = [
+  duplicateDefinitionNames.length > 0
+    ? `duplicate definitions: ${duplicateDefinitionNames.join(', ')}`
+    : null,
+  duplicateCatalogNames.length > 0
+    ? `duplicate catalog entries: ${duplicateCatalogNames.join(', ')}`
+    : null,
+  missingDefinitions.length > 0
+    ? `missing definitions: ${missingDefinitions.join(', ')}`
+    : null,
+  unreviewedDefinitions.length > 0
+    ? `definitions absent from the curated catalog: ${unreviewedDefinitions.join(', ')}`
+    : null,
+].filter((violation): violation is string => violation !== null);
+
+if (catalogViolations.length > 0) {
+  throw new Error(
+    `Invalid curated action catalog: ${catalogViolations.join('; ')}`,
+  );
+}
+
+const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
+  CURATED_ACTION_CATALOG.map((entry) => {
+    const tool = definitionsByName.get(entry.name);
+    if (!tool) {
+      throw new Error(`Missing curated action definition: ${entry.name}`);
+    }
+
+    const agent = isActionOnSurface(entry, 'agent');
+    return {
+      category: inferCategory(tool.name),
+      creditCost: tool.creditCost,
+      description: tool.description,
+      name: tool.name,
+      parameters: tool.parameters,
+      requiredRole: tool.requiredRole,
+      surfaces: {
+        agent,
+        cliAgentVisible: agent,
+        mcp: isActionOnSurface(entry, 'mcp'),
+      },
+      uiActionType: UI_ACTION_MAP[tool.name],
+    };
+  });
+
 /**
- * Hand-authored tools plus the OpenAPI-generated MCP baseline (#1248). Generated
- * tools are namespaced `<domain>__<action>`, a shape no hand-authored tool uses,
- * so the two sets never collide (asserted by the registry tests). Both are
- * sorted together by name for a stable, navigable ordering.
+ * Curated product actions only. HTTP endpoints remain documented by OpenAPI,
+ * but they do not become Agent or MCP actions automatically.
  */
-export const ALL_TOOLS: CanonicalToolDefinition[] = [
-  ...CANONICAL_SOURCE_TOOLS,
-  ...GENERATED_MCP_TOOLS,
-].sort((a, b) => a.name.localeCompare(b.name));
+export const ALL_TOOLS: CanonicalToolDefinition[] = CANONICAL_SOURCE_TOOLS.sort(
+  (a, b) => a.name.localeCompare(b.name),
+);
 
 const toolsByName = new Map<string, CanonicalToolDefinition>(
   ALL_TOOLS.map((tool) => [tool.name, tool]),

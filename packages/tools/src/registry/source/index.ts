@@ -4,6 +4,11 @@ import { BRAND_INTERVIEW_TOOLS } from './brand-interview.tools.js';
 import { MCP_ONLY_TOOLS } from './mcp-only/index.js';
 import { OVERLAP_TOOLS } from './overlap.tools.js';
 
+/**
+ * Hand-authored schemas and metadata for curated product actions. The shard
+ * names preserve the historical file organization only; surface intent lives
+ * exclusively in `curated-action-catalog.ts`.
+ */
 export const SOURCE_TOOLS: SourceTool[] = [
   ...OVERLAP_TOOLS,
   ...AGENT_ONLY_TOOLS,

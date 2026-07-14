@@ -27,7 +27,6 @@ const rawToolSourceMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@genfeedai/tools', () => ({
-  GENERATED_MCP_OPERATIONS: [],
   getToolByName: rawToolSourceMocks.getToolByName,
   getToolsForSurface: rawToolSourceMocks.getToolsForSurface,
   toMcpTools: rawToolSourceMocks.toMcpTools,

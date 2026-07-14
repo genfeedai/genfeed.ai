@@ -5,12 +5,15 @@
 ### Layer 1: Canonical Definitions (`@genfeedai/tools`)
 
 **Directory:** `packages/tools/src/registry/`
-- `source/agent-only/*.tools.ts` -- agent-only tool definitions
-- `source/mcp-only/*.tools.ts` -- MCP-only tool definitions
-- `source/overlap.tools.ts` -- shared agent + MCP tool definitions
-- `source/brand-interview.tools.ts` -- brand interview tool definitions
-- `source/index.ts` -- concatenates the source buckets
-- `tool-registry.ts` -- merges sources, provides lookup functions
+- `curated-action-catalog.ts` -- reviewed action names + explicit Agent/MCP surface intent (single source of truth)
+- `source/**/*.tools.ts` -- hand-authored schemas and metadata; historical shard names do not control surfaces
+- `source/index.ts` -- concatenates every definition shard
+- `tool-registry.ts` -- validates the catalog/definition bijection and derives runtime registries
+
+The catalog exposes meaningful product actions only. OpenAPI remains the HTTP
+API documentation contract and does not generate Agent/MCP tools or dispatch
+metadata. At the #1252 migration baseline, the curated union is 135 actions:
+78 on Agent, 78 on MCP, with 21 intentionally on both surfaces.
 
 **Key exports:**
 ```typescript
@@ -20,6 +23,13 @@ getToolsByCategory(category: ToolCategory): CanonicalToolDefinition[]
 getToolsForRole(surface, role): CanonicalToolDefinition[]
 toAgentTools(tools): AgentToolDefinition[]  // adapter to agent format
 ```
+
+`packages/tools/src/registry/curated-action-catalog.spec.ts` verifies unique,
+sorted catalog entries, a complete definition bijection, and exact runtime
+surface derivation. Agent and MCP suites separately verify real executor paths.
+`.github/workflows/curated-action-catalog.yml` triggers only when the catalog
+file changes and reports additions, removals, and surface transitions as warning
+annotations plus a step summary.
 
 **CanonicalToolDefinition:**
 ```typescript

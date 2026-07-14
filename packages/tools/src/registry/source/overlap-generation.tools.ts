@@ -1,10 +1,9 @@
 import type { SourceTool } from '../../interfaces/source-tool.interface.js';
 
 /**
- * Overlap (agent + MCP) batch-generation tools, split out of `overlap.tools.ts`
- * to keep that module under the per-file line budget (`source-tools.test.ts`).
- * Spread into `OVERLAP_TOOLS`, and scanned by the MCP catalog generator/spec —
- * so any tool here must be MCP-surfaced.
+ * Batch-generation definition split out of `overlap.tools.ts` to keep that
+ * module under the per-file line budget (`source-tools.test.ts`). Its Agent/MCP
+ * availability is declared only in `curated-action-catalog.ts`.
  */
 export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
@@ -57,9 +56,5 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    // Surfaced on MCP (PR 5/6): dispatches through the agent-executor to
-    // `POST /agent-tools/generate_content_batch/execute`; the write is gated by
-    // APPROVAL_REQUIRED_TOOLS so it queues a human approval before running.
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
 ];

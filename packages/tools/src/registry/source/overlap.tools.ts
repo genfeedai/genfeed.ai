@@ -83,7 +83,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -209,7 +208,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -232,7 +230,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     // Minimum charge per call (standard image; 4k costs more). Actual amount
@@ -284,7 +281,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     // Minimum charge per call (cheapest music model). Actual amount is billed
@@ -337,7 +333,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     // Minimum charge per call (shortest 4s clip). Actual amount is billed
@@ -376,7 +371,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -388,7 +382,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -422,7 +415,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -440,7 +432,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -463,7 +454,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   {
     creditCost: 0,
@@ -486,7 +476,6 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       type: 'object',
     },
     requiredRole: 'user',
-    surfaces: { agent: true, cliAgentVisible: true, mcp: true },
   },
   ...OVERLAP_GENERATION_TOOLS,
   ...WORKFLOW_CONTROL_TOOLS,

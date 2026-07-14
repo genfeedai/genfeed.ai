@@ -71,7 +71,7 @@ function main(): void {
   }
 
   console.info(
-    `OpenAPI spec valid: ${stats.totalOperations} operations, ${stats.uniqueOperationIds} unique operationIds, ${stats.internalOperations} internal, ${stats.parityOperations} parity-relevant`,
+    `OpenAPI spec valid: ${stats.totalOperations} operations, ${stats.uniqueOperationIds} unique operationIds, ${stats.internalOperations} internal, ${stats.publicOperations} public`,
   );
 }
 
