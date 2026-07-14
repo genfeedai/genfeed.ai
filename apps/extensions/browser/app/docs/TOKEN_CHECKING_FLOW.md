@@ -90,7 +90,7 @@ const token = await authService.getToken();
 ### **3. Cookie Fallback (Last Resort)**
 
 ```typescript
-// From local.genfeed.ai or genfeed.ai cookies
+// From genfeed.localhost or genfeed.ai cookies
 const cookieToken = await authService.getTokenFromCookies();
 ```
 
@@ -179,7 +179,7 @@ const cookieToken = await authService.getTokenFromCookies();
 #### **1. Fresh Login**
 
 ```
-1. User signs in on local.genfeed.ai
+1. User signs in on genfeed.localhost
 2. Extension opens
 3. Should see: "JWT token received, storing..."
 4. Should show: tweets page

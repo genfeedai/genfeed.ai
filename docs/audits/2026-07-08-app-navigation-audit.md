@@ -23,7 +23,7 @@ Severity: P0 local/dev blocker, fixed in this audit pass
 
 ### Actual
 
-Authenticated route sweep against `http://local.genfeed.ai:3000` returned `500` for every audited route after the app compiled the organization webhooks settings page.
+Authenticated route sweep against `http://genfeed.localhost:3000` returned `500` for every audited route after the app compiled the organization webhooks settings page.
 
 Observed routes returning `500` with `Module not found`:
 
@@ -288,7 +288,7 @@ Added a dedicated Credits settings route and moved the managed credits card ther
 
 Updated settings navigation and credit CTAs so non-EE credit purchase flows route to `/settings/credits` instead of abusing `/settings/api-keys` or `/settings/billing`.
 
-Focused browser verification against `http://local.genfeed.ai:3000/default` confirmed:
+Focused browser verification against `http://genfeed.localhost:3000/default` confirmed:
 
 | Route | Result |
 | --- | --- |
@@ -390,8 +390,8 @@ Avoid generic `/overview` fallbacks for app-specific entries.
 
 ## Working Notes
 
-- `dev:app:be` is running locally on `http://local.genfeed.ai:3010`.
-- `dev:app:fe` is running locally on `http://local.genfeed.ai:3000`.
+- `dev:app:be` is running locally on `http://genfeed.localhost:3010`.
+- `dev:app:fe` is running locally on `http://genfeed.localhost:3000`.
 - Magic-link auth was generated from the internal dev log and consumed into a local cookie jar. Session lookup confirms `vincent@genfeed.ai` is authenticated.
 - Spark CLI was available, but local Resend is skipped, so the email was not delivered to Spark. The internal log was the correct local source for the magic link.
 - Codex Preview was requested, but this session exposes no callable Preview/browser tool and the visible Codex side panel did not surface a Preview pane. Evidence uses local authenticated HTTP requests, dev logs, source inspection, and the user-provided production screenshots.

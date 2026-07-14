@@ -320,7 +320,7 @@ describe('logger.service', () => {
         error,
         retryCount: 0,
         tags: { errorBoundary: 'true' },
-        url: 'http://local.genfeed.ai/default/default/workspace/overview',
+        url: 'http://genfeed.localhost/default/default/workspace/overview',
       });
 
       expect(consoleError).toHaveBeenCalledWith(
@@ -336,7 +336,7 @@ describe('logger.service', () => {
           ],
           retryCount: 0,
           tags: { errorBoundary: 'true' },
-          url: 'http://local.genfeed.ai/default/default/workspace/overview',
+          url: 'http://genfeed.localhost/default/default/workspace/overview',
         }),
       );
     });

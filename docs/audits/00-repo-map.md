@@ -59,7 +59,7 @@ default (`packages/config/src/schemas/base.schema.ts:10`); documented defaults l
 | Service | Port (.env.example) | Role | Notable |
 |---|---|---|---|
 | `api` | 3010 | Main API: 54 domain services, 108 CRUD collections, 49 platform integrations, 15 endpoint groups, auth, webhooks, workflows | `src/app.module.ts` is 485 lines / 197 imports; global prefix `v1`; Swagger; helmet + express-rate-limit + compression; Bull Board at `/admin/queues` (bearer-token, `timingSafeEqual`, fail-closed — `src/main.ts:284-311`) |
-| `notifications` | 3011 | Notifications + websocket terminal gateway | Only `@WebSocketGateway` in repo (`src/services/terminal/terminal.gateway.ts`); node-pty native dep |
+| `notifications` | 3111 local / 3011 deployed | Notifications + websocket terminal gateway | Only `@WebSocketGateway` in repo (`src/services/terminal/terminal.gateway.ts`); node-pty native dep |
 | `files` | 3012 | File/media processing | Own 5-queue BullMQ set + 5 processors (`src/queues/`, `src/processors/`); sharp |
 | `workers` | 3013 | Background job engine | Registers ~30 queues, 35 `@Processor` classes; **imports the API's own PrismaModule and ~35 `@api/*` modules via forwardRef** (`src/processors/processors.module.ts`, header cites issue #84) |
 | `mcp` | 3014 | MCP server for AI tools | |

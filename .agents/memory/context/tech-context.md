@@ -59,7 +59,7 @@ Backend ports start at `3010`, grouped by runtime role:
 | Service | Port | Role |
 |---------|------|------|
 | API | 3010 | API core |
-| Notifications | 3011 | API core |
+| Notifications | 3111 local / 3011 deployed | API core |
 | Files | 3012 | API core |
 | Workers | 3013 | API core |
 | MCP | 3014 | Backend service |

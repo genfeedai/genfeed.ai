@@ -30,7 +30,7 @@ import { test as base } from './coverage.fixture';
  *    / onboarding completion.
  *
  * 3. Backend API  — setupApiMocks intercepts all API calls to both the prod
- *    host (api.genfeed.ai) and the local dev host (local.genfeed.ai:3010).
+ *    host (api.genfeed.ai) and the local dev host (genfeed.localhost:3010).
  *
  * Route ordering note: Playwright checks routes in REVERSE registration order
  * (last-registered = highest priority). setupBetterAuthMocks() must therefore be

@@ -1089,5 +1089,20 @@ describe('Config Schemas', () => {
         expect(error.message).toContain('required');
       }
     });
+
+    it('accepts the configured local websocket endpoint without inventing a default', () => {
+      const schema = Joi.object(ffmpegSchema);
+
+      const configured = schema.validate({
+        WEBSOCKET_URL: 'ws://genfeed.localhost:3111',
+      });
+      const unconfigured = schema.validate({});
+
+      expect(configured.error).toBeUndefined();
+      expect(configured.value.WEBSOCKET_URL).toBe(
+        'ws://genfeed.localhost:3111',
+      );
+      expect(unconfigured.value.WEBSOCKET_URL).toBeUndefined();
+    });
   });
 });

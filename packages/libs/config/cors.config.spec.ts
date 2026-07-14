@@ -19,7 +19,7 @@ describe('CORS Configuration', () => {
         expect(origins).toContain('https://chatgpt.com');
       });
 
-      it('should allow localhost and local.genfeed.ai for ports 3000-3999', () => {
+      it('should allow canonical and compatible local hosts for ports 3000-3999', () => {
         const origins = getGenfeedCorsOrigins({
           isDevelopment: true,
         });
@@ -39,15 +39,17 @@ describe('CORS Configuration', () => {
         // Local service ports
         expect(localPattern.test('http://localhost:3012')).toBe(true); // Files
         expect(localPattern.test('http://localhost:3014')).toBe(true); // MCP
-        expect(localPattern.test('http://localhost:3011')).toBe(true); // Notifications
+        expect(localPattern.test('http://localhost:3011')).toBe(true); // Deployed/self-hosted compatibility
         expect(localPattern.test('http://localhost:3016')).toBe(true); // Discord
-        expect(localPattern.test('http://local.genfeed.ai:3015')).toBe(true); // Clips
         // genfeed.localhost dev host (loopback, no /etc/hosts, isolated cookies)
         expect(localPattern.test('http://genfeed.localhost:3000')).toBe(true); // App
         expect(localPattern.test('http://genfeed.localhost:3010')).toBe(true); // API
+        expect(localPattern.test('http://genfeed.localhost:3111')).toBe(true); // Local notifications
         expect(localPattern.test('http://app.genfeed.localhost:3000')).toBe(
           true,
         ); // subdomain
+        // Temporary backwards-compatible host.
+        expect(localPattern.test('http://local.genfeed.ai:3015')).toBe(true);
         // Upper boundary
         expect(localPattern.test('http://localhost:3999')).toBe(true);
         // Out of range

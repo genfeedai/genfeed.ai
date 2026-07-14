@@ -23,17 +23,17 @@ Plasmo-based extension that brings GenFeed's AI workflows to multiple social med
 ## Setup
 
 ```bash
-pnpm install
+bun install
 # Create .env file with the API endpoint
-echo "PLASMO_PUBLIC_API_ENDPOINT=http://local.genfeed.ai:3010/v1" > .env
-pnpm dev                # generates build/chrome-mv3-dev
+echo "PLASMO_PUBLIC_API_ENDPOINT=http://genfeed.localhost:3010/v1" > .env
+bun run dev             # generates build/chrome-mv3-dev
 ```
 
-Load `build/chrome-mv3-dev` in Chrome (Developer Mode → Load unpacked) during development.
+Load `build/chrome-mv3-dev` in Brave (Developer Mode → Load unpacked) during development.
 
 ### Environment Configuration
 
-- **Development**: Extension connects to `local.genfeed.ai` for authentication
+- **Development**: Extension connects to `genfeed.localhost` for authentication
 - **Production**: Extension connects to `genfeed.ai` for authentication
 - **Dark Mode**: Enabled by default for better user experience
 - **Authentication**: Extension opens GenFeed sign in or free signup in the browser
@@ -41,11 +41,11 @@ Load `build/chrome-mv3-dev` in Chrome (Developer Mode → Load unpacked) during 
 ### Scripts
 
 ```bash
-pnpm dev         # watch mode
-pnpm build       # production build
-pnpm lint
-pnpm format
-pnpm test        # unit tests (Vitest) when configured
+bun run dev         # watch mode
+bun run build       # production build
+bun run lint
+bun run format
+bun run test        # unit tests (Vitest) when configured
 ```
 
 ## Architecture Notes
@@ -64,7 +64,8 @@ The extension uses a modular platform configuration system (`src/platforms/`):
 - Shared services (`src/services`) mirror frontend service clients; keep contracts in sync
 - Authentication uses JWT tokens synced across platforms
 - Platform-specific post IDs and URLs handled automatically
-- Events sent to Notifications service for live updates (port 3011)
+- Events sent to Notifications service for live updates (local port 3111;
+  container/deployed port 3011)
 - Consistent design tokens across all platforms
 
 ### Adding New Platforms
@@ -80,7 +81,7 @@ See [MULTI-PLATFORM-SUPPORT.md](./MULTI-PLATFORM-SUPPORT.md) for detailed docume
 
 - Update pending store listing links and track completion in GitHub Issues/Project.
 - Generate store assets (icons, screenshots, promo copy).
-- Bump version in `package.json` and rerun `pnpm build`.
+- Bump version in `package.json` and rerun `bun run build`.
 - Submit zipped build via Chrome Web Store dashboard (or BPP GitHub Action once configured).
 
 ## Documentation

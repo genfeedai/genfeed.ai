@@ -48,6 +48,7 @@
 - [Pricing output meter](pricing_output_meter.md) — Credits/API rates are the monetization throttle; do not add hard product caps for brands or connected channels
 - [Better Auth additionalFields](rules/better_auth_additional_fields.md) — any `User` column a Better Auth hook sets (e.g. `handle`) MUST be declared in `user.additionalFields` or it's stripped and first-time signup fails with `Argument 'X' is missing` (#1576)
 - [Worktree env sync](rules/worktree_env_sync.md) — `.env*` is gitignored; new worktrees have no env. Use `git wt <path>` (after `bun run wt:setup`) or run `bun run wt:sync <path>` after `git worktree add`. NOT automatic for plain `git worktree add` (#1578)
+- [Canonical local development host](rules/local_development_host.md) — `genfeed.localhost` + env/config boundaries; interactive notifications use `3111`, while Docker/self-hosted remains on loopback `3011`
 
 ## References
 
@@ -91,6 +92,7 @@
 
 ## Architecture Decisions
 
+- [Local Development Host Spec](spec-local-development-host.md) and [decisions](decisions-local-development-host.md) — canonical host, environment boundaries, compatibility scope, and notifications-port split
 - [Versioned Agent Artifacts](architecture/VERSIONED-AGENT-ARTIFACTS.md) — finite canonical references, immutable content pins, Desktop v1 exclusion, and the #1671 compatibility-removal gate for #1673
 - [Conversation Shell Contracts](architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md) — conversation/canvas/overlay state and history, scope precedence, protected-route parity, trusted surfaces, approval pins, multi-tab authority, fallback, rollout gates, and #1009/#1644 disposition for epic #1670
 - [Dynamic Scheduling](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via workflow engine

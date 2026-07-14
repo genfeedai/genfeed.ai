@@ -177,6 +177,8 @@ export interface WorkflowUIConfig {
    * credentialed client so runs carry the signed-in user's session.
    */
   executionHttpClient?: WorkflowUIHttpClient;
+  /** Base URL for execution REST reconciliation and SSE subscriptions. */
+  executionApiBaseUrl?: string;
   /**
    * Provider auth headers (Replicate / Fal / HuggingFace BYOK keys) attached to
    * execute requests. Returns no headers when omitted.
