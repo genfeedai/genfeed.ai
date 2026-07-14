@@ -299,6 +299,54 @@ describe('BrandDataMapper', () => {
 
       expect(result.voice?.audience).toEqual(['old']);
     });
+
+    it('persists strategy topics and prompt seeds from the same analysis', () => {
+      const prompting = {
+        conversationStarters: [
+          {
+            id: 'brand-create-ai-workflows',
+            intent: 'create' as const,
+            label: 'Create AI workflows',
+            prompt: 'Create three ideas about AI workflows.',
+            topic: 'AI workflows',
+          },
+        ],
+        seeds: [
+          {
+            angle: 'Practical guide',
+            audience: 'founders',
+            preferredFormats: ['post'],
+            topic: 'AI workflows',
+          },
+        ],
+      };
+
+      const result = mapper.mergeExtractedVoice(
+        { strategy: { platforms: ['linkedin'] } },
+        {
+          brandVoice: {
+            audience: 'founders',
+            goals: ['Increase qualified leads'],
+            hashtags: [],
+            prompting,
+            taglines: [],
+            tone: 'direct',
+            topics: ['AI workflows'],
+            values: [],
+            voice: 'concise',
+          },
+          scrapedAt: new Date(),
+          sourceUrl: 'https://acme.com',
+        },
+      );
+
+      expect(result.prompting).toEqual(prompting);
+      expect(result.strategy).toEqual({
+        goals: ['Increase qualified leads'],
+        platforms: ['linkedin'],
+        topics: ['AI workflows'],
+      });
+    });
   });
 
   describe('mergeVoiceOverrides', () => {

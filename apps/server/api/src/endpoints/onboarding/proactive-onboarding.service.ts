@@ -22,7 +22,6 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import { FontFamily, ProactiveOnboardingStatus } from '@genfeedai/enums';
 import type {
-  IExtractedBrandData,
   IProactivePreparationStatus,
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
@@ -234,11 +233,6 @@ export class ProactiveOnboardingService {
           userId: shadowOrgUserId,
         });
 
-      const extractedData: IExtractedBrandData = {
-        ...scrapedData,
-        brandVoice,
-      };
-
       // 5. Create brand in shadow org
       const name = lead.data.name ?? '';
       const brandLabel =
@@ -267,6 +261,13 @@ export class ProactiveOnboardingService {
       await this.brandsService.patch(brand.id.toString(), {
         agentConfig: {
           enabledSkills: [],
+          prompting: brandVoice?.prompting,
+          strategy: brandVoice
+            ? {
+                goals: brandVoice.goals ?? [],
+                topics: brandVoice.topics ?? brandVoice.messagingPillars ?? [],
+              }
+            : undefined,
           voice: brandVoice
             ? {
                 audience: brandVoice.audience
@@ -276,6 +277,9 @@ export class ProactiveOnboardingService {
                       .filter(Boolean)
                   : [],
                 hashtags: brandVoice.hashtags ?? [],
+                doNotSoundLike: brandVoice.doNotSoundLike ?? [],
+                messagingPillars: brandVoice.messagingPillars ?? [],
+                sampleOutput: brandVoice.sampleOutput,
                 style: brandVoice.voice,
                 taglines: brandVoice.taglines ?? [],
                 tone: brandVoice.tone,

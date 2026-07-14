@@ -3,6 +3,7 @@ import type {
   OnboardingStatus,
   OnboardingStep,
 } from '@genfeedai/enums';
+import type { IBrandAgentPrompting } from '../organization/brand-profile.interface';
 
 export type OnboardingAccessMode = 'server' | 'byok' | 'cloud';
 export type OnboardingRuntimeAccessMode = Exclude<
@@ -74,6 +75,12 @@ export interface IBrandVoiceAnalysis {
   values: string[];
   taglines: string[];
   hashtags: string[];
+  doNotSoundLike?: string[];
+  goals?: string[];
+  messagingPillars?: string[];
+  prompting?: IBrandAgentPrompting;
+  sampleOutput?: string;
+  topics?: string[];
 }
 
 /**

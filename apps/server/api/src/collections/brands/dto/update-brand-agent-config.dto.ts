@@ -144,6 +144,67 @@ export class UpdateBrandAgentStrategyDto {
   @IsString({ each: true })
   @ApiProperty({ description: 'Primary strategic goals', type: [String] })
   goals!: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Canonical content topics for prompt personalization',
+    required: false,
+    type: [String],
+  })
+  topics?: string[];
+}
+
+export class UpdateBrandPromptSeedDto {
+  @IsString()
+  @MaxLength(200)
+  angle!: string;
+
+  @IsString()
+  @MaxLength(200)
+  audience!: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  preferredFormats!: string[];
+
+  @IsString()
+  @MaxLength(200)
+  topic!: string;
+}
+
+export class UpdateBrandConversationStarterDto {
+  @IsString()
+  @MaxLength(120)
+  id!: string;
+
+  @IsIn(['analyze', 'create', 'plan'])
+  intent!: 'analyze' | 'create' | 'plan';
+
+  @IsString()
+  @MaxLength(32)
+  label!: string;
+
+  @IsString()
+  @MaxLength(220)
+  prompt!: string;
+
+  @IsString()
+  @MaxLength(200)
+  topic!: string;
+}
+
+export class UpdateBrandAgentPromptingDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateBrandConversationStarterDto)
+  conversationStarters!: UpdateBrandConversationStarterDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateBrandPromptSeedDto)
+  seeds!: UpdateBrandPromptSeedDto[];
 }
 
 export class UpdateBrandAgentScheduleDto {
@@ -230,6 +291,16 @@ export class UpdateBrandAgentConfigDto {
   @Type(() => UpdateBrandAgentStrategyDto)
   @ApiProperty({ type: UpdateBrandAgentStrategyDto })
   strategy!: UpdateBrandAgentStrategyDto;
+
+  @ValidateNested()
+  @Type(() => UpdateBrandAgentPromptingDto)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Persisted prompt seeds and conversation starters',
+    required: false,
+    type: UpdateBrandAgentPromptingDto,
+  })
+  prompting?: UpdateBrandAgentPromptingDto;
 
   @IsArray()
   @IsString({ each: true })

@@ -1,7 +1,9 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { resolveBrandSurfaceSuggestions } from '@genfeedai/agent/utils/agent-surface-suggestions.util';
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/constants';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { MemberRole } from '@genfeedai/enums';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
@@ -587,6 +589,7 @@ function normalizeAgentContextPathname(rawPathname: string): string {
  */
 export function useAgentPageContext(role?: MemberRole): PageContextConfig {
   const pathname = usePathname();
+  const { selectedBrand } = useBrand();
   const setPageContext = useAgentChatStore((s) => s.setPageContext);
   const contextPathname = useMemo(
     () => normalizeAgentContextPathname(pathname),
@@ -595,11 +598,27 @@ export function useAgentPageContext(role?: MemberRole): PageContextConfig {
 
   const config = useMemo(() => {
     const base = getContextForRoute(contextPathname);
+    const personalized = resolveBrandSurfaceSuggestions(
+      contextPathname,
+      selectedBrand?.agentConfig,
+    ).map((suggestion) => ({
+      icon:
+        suggestion.intent === 'create'
+          ? HiOutlineSparkles({ className: 'size-5 text-foreground/50' })
+          : suggestion.intent === 'plan'
+            ? HiOutlineCalendarDays({ className: 'size-5 text-foreground/50' })
+            : HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
+      label: suggestion.label,
+      prompt: suggestion.prompt,
+    }));
     return {
       ...base,
-      suggestedActions: filterActionsByRole(base.suggestedActions, role),
+      suggestedActions:
+        personalized.length > 0
+          ? personalized
+          : filterActionsByRole(base.suggestedActions, role).slice(0, 3),
     };
-  }, [contextPathname, role]);
+  }, [contextPathname, role, selectedBrand?.agentConfig]);
 
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;

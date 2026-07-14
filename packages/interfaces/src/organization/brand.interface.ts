@@ -7,6 +7,7 @@ import type {
   IOrganization,
   IUser,
 } from '../index';
+import type { IBrandAgentPrompting } from './brand-profile.interface';
 
 export interface IBrand extends IBaseEntity {
   user: IUser;
@@ -97,6 +98,7 @@ export interface IBrandAgentStrategy {
   platforms?: string[];
   frequency?: string;
   goals?: string[];
+  topics?: string[];
 }
 
 export interface IBrandAgentAutoPublish {
@@ -133,6 +135,7 @@ export interface IBrandAgentConfig {
   enabledSkills?: string[];
   voice?: IBrandAgentVoice;
   strategy?: IBrandAgentStrategy;
+  prompting?: IBrandAgentPrompting;
   autoPublish?: IBrandAgentAutoPublish;
   platformOverrides?: Record<string, IBrandAgentPlatformOverride>;
 }

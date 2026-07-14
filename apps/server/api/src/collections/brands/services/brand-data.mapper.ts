@@ -13,6 +13,7 @@ import type {
   XProfileScrapedData,
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
 import type {
+  IBrandAgentPrompting,
   IExtractedBrandData,
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
@@ -26,9 +27,12 @@ interface ExtractedBrandVoice {
   doNotSoundLike?: string[];
   hashtags?: string[];
   messagingPillars?: string[];
+  goals?: string[];
+  prompting?: IBrandAgentPrompting;
   sampleOutput?: string;
   taglines?: string[];
   tone?: string;
+  topics?: string[];
   values?: string[];
   voice?: string;
 }
@@ -226,9 +230,24 @@ export class BrandDataMapper {
             values: extractedVoice?.values ?? [],
           }
         : brandAgentConfig.voice;
+    const nextStrategy = extractedVoice
+      ? {
+          ...(brandAgentConfig.strategy ?? {}),
+          goals: extractedVoice.goals ?? brandAgentConfig.strategy?.goals ?? [],
+          topics:
+            extractedVoice.topics ??
+            extractedVoice.messagingPillars ??
+            brandAgentConfig.strategy?.topics ??
+            [],
+        }
+      : brandAgentConfig.strategy;
 
     return {
       ...brandAgentConfig,
+      ...(extractedVoice?.prompting
+        ? { prompting: extractedVoice.prompting }
+        : {}),
+      ...(nextStrategy ? { strategy: nextStrategy } : {}),
       ...(nextVoice ? { voice: nextVoice } : {}),
     };
   }

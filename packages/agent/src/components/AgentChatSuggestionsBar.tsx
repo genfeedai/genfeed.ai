@@ -44,7 +44,7 @@ export function AgentChatSuggestionsBar({
         onSend(action.prompt);
       }}
       isDisabled={isBusy || isReadOnly}
-      maxSuggestions={normalized.length}
+      maxSuggestions={3}
       className="justify-center"
     />
   );

@@ -1,3 +1,4 @@
+import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import type { AgentToolDefinition } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolsForSurface, toAgentTools } from '@genfeedai/tools';
@@ -88,9 +89,9 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
     },
   },
   {
-    creditCost: 0,
+    creditCost: BRAND_PROFILE_GENERATION_CREDIT_COST,
     description:
-      'Draft a structured brand voice profile for a brand using website/social context, audience, positioning, and examples the user likes or dislikes.',
+      'Build one reusable brand profile, including voice, strategy, prompt seeds, and conversation starters, from website/social context, audience, positioning, and examples.',
     name: AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
     parameters: {
       properties: {
@@ -110,6 +111,10 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
             'Examples, tones, or creators the brand wants to emulate.',
           items: { type: 'string' },
           type: 'array',
+        },
+        industry: {
+          description: 'The brand industry or market category.',
+          type: 'string',
         },
         offering: {
           description: 'What the brand sells, creates, or helps with.',

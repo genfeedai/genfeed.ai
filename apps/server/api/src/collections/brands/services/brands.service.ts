@@ -25,6 +25,10 @@ import type {
 } from '@api/collections/brands/schemas/brand.schema';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import {
+  buildBrandProfileAnalysisPrompt,
+  parseGeneratedBrandProfile,
+} from '@api/collections/brands/utils/brand-profile-generation.util';
+import {
   CACHE_PATTERNS,
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
@@ -1519,26 +1523,13 @@ export class BrandsService extends BaseService<
         ? `\nExamples or styles to avoid: ${dto.examplesToAvoid.join(' | ')}`
         : '';
 
-    const prompt = `Analyze the following brand information and generate a brand voice profile.
-Return a JSON object with these exact fields:
-- tone: a single descriptive word or short phrase (e.g., "confident", "warm and approachable")
-- style: a single descriptive word or short phrase (e.g., "direct", "storytelling")
-- audience: an array of 2-4 target audience segments (e.g., ["founders", "developers", "marketers"])
-- values: an array of 3-5 core brand values (e.g., ["innovation", "transparency", "quality"])
-- taglines: an array of 0-3 short tagline-style phrases
-- hashtags: an array of 0-5 brand-safe hashtags
-- messagingPillars: an array of 3-5 recurring messaging pillars
-- doNotSoundLike: an array of 2-5 tones, phrases, or styles to avoid
-- sampleOutput: a short sample post or paragraph that demonstrates the voice
-
-Brand information:
-${contextText}${audienceContext}${industryContext}${offeringContext}${emulateContext}${avoidContext}
-
-Respond ONLY with the JSON object, no markdown fences or extra text.`;
+    const prompt = buildBrandProfileAnalysisPrompt(
+      `${contextText}${audienceContext}${industryContext}${offeringContext}${emulateContext}${avoidContext}`,
+    );
 
     const completion = await this.llmDispatcherService.chatCompletion(
       {
-        max_tokens: 500,
+        max_tokens: 1200,
         messages: [{ content: prompt, role: 'user' }],
         model: 'anthropic/claude-sonnet-4-5-20250514',
         temperature: 0.7,
@@ -1549,39 +1540,16 @@ Respond ONLY with the JSON object, no markdown fences or extra text.`;
     const rawContent = completion.choices?.[0]?.message?.content?.trim() ?? '';
 
     try {
-      const parsed = JSON.parse(rawContent) as GeneratedBrandVoice;
-      return {
-        audience: Array.isArray(parsed.audience) ? parsed.audience : [],
-        doNotSoundLike: Array.isArray(parsed.doNotSoundLike)
-          ? parsed.doNotSoundLike
-          : [],
-        hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : [],
-        messagingPillars: Array.isArray(parsed.messagingPillars)
-          ? parsed.messagingPillars
-          : [],
-        sampleOutput:
-          typeof parsed.sampleOutput === 'string' ? parsed.sampleOutput : '',
-        style: parsed.style || 'direct',
-        taglines: Array.isArray(parsed.taglines) ? parsed.taglines : [],
-        tone: parsed.tone || 'professional',
-        values: Array.isArray(parsed.values) ? parsed.values : [],
-      };
-    } catch {
+      return parseGeneratedBrandProfile(rawContent);
+    } catch (error: unknown) {
       this.logger.warn('Failed to parse brand voice LLM response', {
+        error,
         rawContent,
         service: this.constructorName,
       });
-      return {
-        audience: [],
-        doNotSoundLike: [],
-        hashtags: [],
-        messagingPillars: [],
-        sampleOutput: '',
-        style: 'direct',
-        taglines: [],
-        tone: 'professional',
-        values: [],
-      };
+      throw new InternalServerErrorException(
+        'The generated brand profile was invalid. Please try again.',
+      );
     }
   }
 

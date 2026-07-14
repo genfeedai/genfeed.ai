@@ -72,6 +72,8 @@ import type {
   AgentUIBlock,
   AgentUiAction,
   ChartBlock,
+  IBrandAgentPrompting,
+  IGeneratedBrandProfile,
   KPIGridBlock,
   TableBlock,
   TopPostsBlock,
@@ -277,17 +279,7 @@ interface AgentBrandsServiceLike {
       url?: string;
     },
     organizationId: string,
-  ) => Promise<{
-    audience: string[];
-    doNotSoundLike: string[];
-    hashtags: string[];
-    messagingPillars: string[];
-    sampleOutput: string;
-    style: string;
-    taglines: string[];
-    tone: string;
-    values: string[];
-  }>;
+  ) => Promise<IGeneratedBrandProfile>;
   updateAgentConfig?: (
     brandId: string,
     orgId: string,
@@ -357,7 +349,12 @@ interface BrandVoiceProfileDraft {
   exemplarTexts: string[];
   hashtags: string[];
   messagingPillars: string[];
+  prompting?: IBrandAgentPrompting;
   sampleOutput: string;
+  strategy?: {
+    goals: string[];
+    topics: string[];
+  };
   style: string;
   taglines: string[];
   tone: string;
@@ -2096,14 +2093,96 @@ export class AgentToolExecutorService {
       `Style: ${profile.style || 'Not set'}`,
       `Audience: ${profile.audience?.join(', ') || 'Not set'}`,
       `Messaging pillars: ${profile.messagingPillars?.join(', ') || 'Not set'}`,
+      `Topics: ${profile.strategy?.topics.join(', ') || 'Not set'}`,
+      `Content goals: ${profile.strategy?.goals.join(', ') || 'Not set'}`,
       `Core values: ${profile.values?.join(', ') || 'Not set'}`,
       `Avoid: ${profile.doNotSoundLike?.join(', ') || 'Not set'}`,
       `Taglines: ${profile.taglines?.join(', ') || 'Not set'}`,
       `Hashtags: ${profile.hashtags?.join(', ') || 'Not set'}`,
+      `Conversation starters: ${profile.prompting?.conversationStarters.map((starter) => starter.label).join(', ') || 'Not set'}`,
       `Sample output:\n${profile.sampleOutput || 'Not set'}`,
     ];
 
     return sections.join('\n\n');
+  }
+
+  private normalizeBrandPrompting(
+    value: unknown,
+  ): IBrandAgentPrompting | undefined {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined;
+    }
+
+    const record = value as Record<string, unknown>;
+    const seeds = Array.isArray(record.seeds)
+      ? record.seeds
+          .flatMap((entry) => {
+            if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+              return [];
+            }
+            const seed = entry as Record<string, unknown>;
+            const topic =
+              typeof seed.topic === 'string' ? seed.topic.trim() : '';
+            if (!topic) {
+              return [];
+            }
+            return [
+              {
+                angle: typeof seed.angle === 'string' ? seed.angle.trim() : '',
+                audience:
+                  typeof seed.audience === 'string' ? seed.audience.trim() : '',
+                preferredFormats: this.normalizeStringList(
+                  seed.preferredFormats,
+                ).slice(0, 3),
+                topic,
+              },
+            ];
+          })
+          .slice(0, 6)
+      : [];
+    const conversationStarters = Array.isArray(record.conversationStarters)
+      ? record.conversationStarters
+          .flatMap((entry) => {
+            if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+              return [];
+            }
+            const starter = entry as Record<string, unknown>;
+            const intent = starter.intent;
+            const label =
+              typeof starter.label === 'string' ? starter.label.trim() : '';
+            const prompt =
+              typeof starter.prompt === 'string' ? starter.prompt.trim() : '';
+            const topic =
+              typeof starter.topic === 'string' ? starter.topic.trim() : '';
+            if (
+              (intent !== 'analyze' &&
+                intent !== 'create' &&
+                intent !== 'plan') ||
+              !label ||
+              !prompt ||
+              !topic
+            ) {
+              return [];
+            }
+            return [
+              {
+                id:
+                  typeof starter.id === 'string' && starter.id.trim()
+                    ? starter.id.trim()
+                    : `brand-${intent}-${topic.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+                intent,
+                label: label.slice(0, 32),
+                prompt: prompt.slice(0, 220),
+                topic,
+              },
+            ];
+          })
+          .slice(0, 3)
+      : [];
+
+    return seeds.length > 0 && conversationStarters.length > 0
+      ? { conversationStarters, seeds }
+      : undefined;
   }
 
   private async draftBrandVoiceProfile(
@@ -2233,6 +2312,7 @@ export class AgentToolExecutorService {
       exemplarTexts: this.normalizeStringList(rawProfile.exemplarTexts),
       hashtags: this.normalizeStringList(rawProfile.hashtags),
       messagingPillars: this.normalizeStringList(rawProfile.messagingPillars),
+      prompting: this.normalizeBrandPrompting(rawProfile.prompting),
       sampleOutput:
         typeof rawProfile.sampleOutput === 'string'
           ? rawProfile.sampleOutput.trim()
@@ -2240,15 +2320,45 @@ export class AgentToolExecutorService {
       style:
         typeof rawProfile.style === 'string' ? rawProfile.style.trim() : '',
       taglines: this.normalizeStringList(rawProfile.taglines),
+      strategy:
+        rawProfile.strategy &&
+        typeof rawProfile.strategy === 'object' &&
+        !Array.isArray(rawProfile.strategy)
+          ? {
+              goals: this.normalizeStringList(
+                (rawProfile.strategy as Record<string, unknown>).goals,
+              ),
+              topics: this.normalizeStringList(
+                (rawProfile.strategy as Record<string, unknown>).topics,
+              ),
+            }
+          : undefined,
       tone: typeof rawProfile.tone === 'string' ? rawProfile.tone.trim() : '',
       values: this.normalizeStringList(rawProfile.values),
       writingRules: this.normalizeStringList(rawProfile.writingRules),
     };
 
+    const existingAgentConfig =
+      brand.agentConfig &&
+      typeof brand.agentConfig === 'object' &&
+      !Array.isArray(brand.agentConfig)
+        ? (brand.agentConfig as Record<string, unknown>)
+        : {};
+    const existingStrategy =
+      existingAgentConfig.strategy &&
+      typeof existingAgentConfig.strategy === 'object' &&
+      !Array.isArray(existingAgentConfig.strategy)
+        ? (existingAgentConfig.strategy as Record<string, unknown>)
+        : {};
+
     await this.brandsService.updateAgentConfig(
       String(brand.id),
       ctx.organizationId,
       {
+        ...(profile.prompting ? { prompting: profile.prompting } : {}),
+        ...(profile.strategy
+          ? { strategy: { ...existingStrategy, ...profile.strategy } }
+          : {}),
         voice: {
           approvedHooks: profile.approvedHooks,
           audience: profile.audience,
