@@ -38,6 +38,10 @@ type WorkflowExecutionResultRow = {
   result: unknown;
 };
 
+type WorkflowExecutionResultUpdateRow = WorkflowExecutionResultRow & {
+  id: string;
+};
+
 type WorkflowExecutionRuntimeStateRow = WorkflowExecutionResultRow & {
   isDeleted: boolean;
   startedAt: Date | null;
@@ -324,6 +328,136 @@ export class WorkflowExecutionsService extends BaseService<
     nodeResult: WorkflowNodeResult,
     totalNodes?: number,
   ): Promise<WorkflowExecutionDocument | null> {
+    const nodeResultJson = JSON.stringify(nodeResult);
+    const useStoredNodeCount = totalNodes === undefined;
+    const expectedNodeCount = totalNodes ?? 0;
+
+    // sql-risk-audit: ignore raw-sql-review -- Primary-key-scoped single-row JSONB update with bound payloads; removes the redundant result hydration identified by Sentry API-GENFEED-AI-6P.
+    const [updatedExecution] = await this.prisma.$queryRaw<
+      WorkflowExecutionResultUpdateRow[]
+    >`
+      WITH current_execution AS (
+        SELECT
+          id,
+          CASE
+            WHEN jsonb_typeof(result) = 'object' THEN result
+            ELSE '{}'::jsonb
+          END AS current_result
+        FROM workflow_executions
+        WHERE id = ${executionId}
+          AND jsonb_typeof(result) IS DISTINCT FROM 'string'
+        FOR UPDATE
+      ),
+      current_node_results AS (
+        SELECT
+          id,
+          current_result,
+          CASE
+            WHEN jsonb_typeof(current_result->'nodeResults') = 'array'
+              THEN current_result->'nodeResults'
+            ELSE '[]'::jsonb
+          END AS node_results
+        FROM current_execution
+      ),
+      target_node AS (
+        SELECT
+          id,
+          current_result,
+          node_results,
+          (
+            SELECT MIN(ordinal)
+            FROM jsonb_array_elements(node_results)
+              WITH ORDINALITY AS nodes(existing_node, ordinal)
+            WHERE existing_node->>'nodeId' = ${nodeResult.nodeId}
+          ) AS target_ordinal
+        FROM current_node_results
+      ),
+      merged_node_results AS (
+        SELECT
+          id,
+          current_result,
+          CASE
+            WHEN target_ordinal IS NULL
+              THEN node_results || jsonb_build_array(${nodeResultJson}::jsonb)
+            ELSE (
+              SELECT COALESCE(
+                jsonb_agg(
+                  CASE
+                    WHEN ordinal = target_ordinal
+                      THEN ${nodeResultJson}::jsonb
+                    ELSE existing_node
+                  END
+                  ORDER BY ordinal
+                ),
+                '[]'::jsonb
+              )
+              FROM jsonb_array_elements(node_results)
+                WITH ORDINALITY AS nodes(existing_node, ordinal)
+            )
+          END AS node_results
+        FROM target_node
+      ),
+      next_execution AS (
+        SELECT
+          id,
+          jsonb_set(
+            jsonb_set(
+              current_result,
+              '{nodeResults}',
+              node_results,
+              true
+            ),
+            '{progress}',
+            to_jsonb(
+              CASE
+                WHEN (
+                  CASE
+                    WHEN ${useStoredNodeCount}
+                      THEN jsonb_array_length(node_results)
+                    ELSE ${expectedNodeCount}
+                  END
+                ) > 0
+                  THEN ROUND(
+                    (
+                      SELECT COUNT(*)
+                      FROM jsonb_array_elements(node_results) AS updated_node
+                      WHERE updated_node->>'status' IN (
+                        ${SharedWorkflowExecutionStatus.COMPLETED},
+                        ${SharedWorkflowExecutionStatus.FAILED}
+                      )
+                    )::numeric * 100 / (
+                      CASE
+                        WHEN ${useStoredNodeCount}
+                          THEN jsonb_array_length(node_results)
+                        ELSE ${expectedNodeCount}
+                      END
+                    )::numeric
+                  )::int
+                ELSE 0
+              END
+            ),
+            true
+          ) AS result
+        FROM merged_node_results
+      )
+      UPDATE workflow_executions AS execution
+      SET
+        result = next_execution.result,
+        "updatedAt" = NOW()
+      FROM next_execution
+      WHERE execution.id = next_execution.id
+      RETURNING execution.id, execution.result
+    `;
+
+    if (updatedExecution) {
+      return this.normalizeDocument(
+        updatedExecution,
+      ) as WorkflowExecutionDocument;
+    }
+
+    // Legacy Mongo imports may contain a JSON-encoded string. Preserve the
+    // tolerant parser for those rows without keeping that fallback on the hot
+    // path for current object-shaped executions.
     const execution = (await this.prisma.workflowExecution.findUnique({
       select: { result: true },
       where: { id: executionId },
@@ -379,11 +513,44 @@ export class WorkflowExecutionsService extends BaseService<
     return this.normalizeDocument(result) as WorkflowExecutionDocument | null;
   }
 
+  private async patchExecutionResult(
+    executionId: string,
+    patch: Record<string, unknown>,
+  ): Promise<boolean> {
+    const patchJson = JSON.stringify(patch);
+
+    // sql-risk-audit: ignore raw-sql-review -- Primary-key-scoped single-row JSONB merge with a bound payload; current executions take this path while legacy encoded strings retain the tolerant fallback.
+    const updated = await this.prisma.$executeRaw`
+      UPDATE workflow_executions AS execution
+      SET
+        result = (
+          CASE
+            WHEN jsonb_typeof(execution.result) = 'object'
+              THEN execution.result
+            ELSE '{}'::jsonb
+          END
+        ) || ${patchJson}::jsonb,
+        "updatedAt" = NOW()
+      WHERE execution.id = ${executionId}
+        AND jsonb_typeof(execution.result) IS DISTINCT FROM 'string'
+    `;
+
+    return updated === 1;
+  }
+
   @HandleErrors('set failed node', 'workflow-executions')
   async setFailedNodeId(
     executionId: string,
     failedNodeId: string,
   ): Promise<void> {
+    if (
+      await this.patchExecutionResult(executionId, {
+        failedNodeId,
+      })
+    ) {
+      return;
+    }
+
     const execution = (await this.prisma.workflowExecution.findUnique({
       select: { result: true },
       where: { id: executionId },
@@ -406,6 +573,14 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     creditsUsed: number,
   ): Promise<void> {
+    if (
+      await this.patchExecutionResult(executionId, {
+        creditsUsed,
+      })
+    ) {
+      return;
+    }
+
     const execution = (await this.prisma.workflowExecution.findUnique({
       select: { result: true },
       where: { id: executionId },
@@ -450,6 +625,44 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     metadataUpdates: Record<string, unknown>,
   ): Promise<WorkflowExecutionDocument | null> {
+    const metadataUpdatesJson = JSON.stringify(metadataUpdates);
+
+    // sql-risk-audit: ignore raw-sql-review -- Primary-key-scoped single-row JSONB merge with a bound payload; avoids re-reading the growing execution result for every ETA update.
+    const [updatedExecution] = await this.prisma.$queryRaw<
+      WorkflowExecutionResultUpdateRow[]
+    >`
+      UPDATE workflow_executions AS execution
+      SET
+        result = jsonb_set(
+          CASE
+            WHEN jsonb_typeof(execution.result) = 'object'
+              THEN execution.result
+            ELSE '{}'::jsonb
+          END,
+          '{metadata}',
+          COALESCE(
+            CASE
+              WHEN jsonb_typeof(execution.result->'metadata') = 'object'
+                THEN execution.result->'metadata'
+            END,
+            '{}'::jsonb
+          ) || ${metadataUpdatesJson}::jsonb,
+          true
+        ),
+        "updatedAt" = NOW()
+      WHERE execution.id = ${executionId}
+        AND jsonb_typeof(execution.result) IS DISTINCT FROM 'string'
+      RETURNING execution.id, execution.result
+    `;
+
+    if (updatedExecution) {
+      return this.normalizeDocument(
+        updatedExecution,
+      ) as WorkflowExecutionDocument;
+    }
+
+    // Keep tolerant handling for legacy JSON-encoded string rows off the
+    // current execution path while preserving their existing merge behavior.
     const execution = (await this.prisma.workflowExecution.findUnique({
       select: { result: true },
       where: { id: executionId },
