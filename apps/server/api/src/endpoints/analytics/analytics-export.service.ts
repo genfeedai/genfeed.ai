@@ -120,7 +120,7 @@ export class AnalyticsExportService {
       limit: MAX_ANALYTICS_EXPORT_ROWS,
       page: 1,
       pagination: true,
-      sort: '-publicationDate',
+      sort: { publicationDate: -1 },
     });
     const docs = (result as unknown as { docs?: ExportPostData[] }).docs || [];
 

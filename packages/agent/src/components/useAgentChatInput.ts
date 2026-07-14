@@ -480,9 +480,17 @@ export function useAgentChatInput({
         : [],
     );
 
-    if (draft.hasFocusIntent) {
-      window.requestAnimationFrame(() => editor.commands.focus('end'));
+    if (!draft.hasFocusIntent) {
+      return;
     }
+
+    const focusFrame = window.requestAnimationFrame(() => {
+      if (!editor.isDestroyed) {
+        editor.commands.focus('end');
+      }
+    });
+
+    return () => window.cancelAnimationFrame(focusFrame);
   }, [draftScopeKey, editor]);
 
   // Keep editorRef in sync for the microphone callback

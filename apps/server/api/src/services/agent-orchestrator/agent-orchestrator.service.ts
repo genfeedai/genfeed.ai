@@ -37,10 +37,7 @@ import {
   LOCAL_DEFAULT_AGENT_CHAT_MODEL,
 } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
-import {
-  detectPlatformIntentSuffix,
-  getAgentTypeConfig,
-} from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
+import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
 import type {
@@ -74,6 +71,10 @@ import {
   recordAgentRunScope,
   withAgentScopeResult,
 } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
+import {
+  applyAgentReplyStyle,
+  buildAgentSystemPrompt,
+} from '@api/services/agent-orchestrator/utils/agent-system-prompt.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
@@ -266,7 +267,6 @@ export class AgentOrchestratorService {
     context: AgentChatContext,
   ): Promise<AgentChatResult> {
     try {
-      // Look up user's generation priority setting
       const userSettings = await this.settingsService.findOne({
         isDeleted: false,
         user: context.userId,
@@ -284,8 +284,6 @@ export class AgentOrchestratorService {
       }
       const model = request.model || DEFAULT_AGENT_CHAT_MODEL;
 
-      // Brand interview turns are free — the engine charges 10 credits once via
-      // BrandInterviewService.start(). Never double-bill the per-turn cost.
       const turnCost =
         request.agentType === AgentType.BRAND_INTERVIEW
           ? 0
@@ -344,7 +342,6 @@ export class AgentOrchestratorService {
         threadId,
       });
 
-      // Save user message
       await this.agentMessagesService.addMessage({
         artifactReferences: request.artifactReferences,
         brandId: scope.brandId,
@@ -419,7 +416,6 @@ export class AgentOrchestratorService {
         );
       }
 
-      // Re-throw NestJS HTTP exceptions as-is
       if (error instanceof HttpException) {
         throw error;
       }
@@ -3708,7 +3704,6 @@ export class AgentOrchestratorService {
       agentTypeConfig?.defaultModel ||
       DEFAULT_AGENT_CHAT_MODEL;
 
-    // Resolve active skills for this brand + strategy
     const resolvedSkills =
       this.skillRuntimeService && policy.brandId
         ? await this.skillRuntimeService.resolveActiveSkills(
@@ -3779,16 +3774,12 @@ export class AgentOrchestratorService {
         systemPrompt: prompt,
       };
     }
-    const typeSuffix = agentTypeConfig?.systemPromptSuffix ?? '';
-    const platformSuffix =
-      !typeSuffix && request.content
-        ? detectPlatformIntentSuffix(request.content)
-        : '';
-    const basePrompt =
-      AGENT_ORCHESTRATOR_SYSTEM_PROMPT +
-      (typeSuffix || platformSuffix) +
-      (skillPromptSuffix ? `\n\n${skillPromptSuffix}` : '') +
-      pageContextPrompt;
+    const basePrompt = buildAgentSystemPrompt({
+      content: request.content,
+      pageContextPrompt,
+      skillPromptSuffix,
+      typeSuffix: agentTypeConfig?.systemPromptSuffix,
+    });
 
     if (brandContext) {
       const systemPrompt = this.contextAssemblyService.buildSystemPrompt(
@@ -3807,28 +3798,13 @@ export class AgentOrchestratorService {
     }
 
     if (replyStyle || agentTypeConfig?.systemPromptSuffix) {
-      const styleMap: Record<string, string> = {
-        concise:
-          'Be brief and to the point. Short sentences, no fluff. No emoji.',
-        detailed:
-          'Provide thorough explanations with context and examples. No emoji.',
-        friendly:
-          'Be warm, clear, and conversational while staying professional. Use simple language. No emoji.',
-        professional: 'Maintain a formal, business-appropriate tone. No emoji.',
-      };
-      const instruction = replyStyle
-        ? (styleMap[replyStyle] ?? styleMap.concise)
-        : null;
-      const systemPrompt = instruction
-        ? `${basePrompt}\n\n## Reply Style\n${instruction}`
-        : basePrompt;
       return {
         memories,
         model: resolveModel(),
         policy,
         preparedScope,
         resolvedSkills,
-        systemPrompt,
+        systemPrompt: applyAgentReplyStyle(basePrompt, replyStyle),
       };
     }
 

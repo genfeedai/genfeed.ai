@@ -551,7 +551,9 @@ export default function MessagesPage() {
   const selectedConversation = useMemo(
     () =>
       selectedId
-        ? conversations.find((conversation) => conversation.id === selectedId)
+        ? (conversations.find(
+            (conversation) => conversation.id === selectedId,
+          ) ?? null)
         : null,
     [conversations, selectedId],
   );
