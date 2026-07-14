@@ -9,10 +9,11 @@ const service = vi.hoisted(() => ({
   resumeExecution: vi.fn(),
   submitApproval: vi.fn(),
 }));
+const getService = vi.hoisted(() => vi.fn());
 const router = vi.hoisted(() => ({ push: vi.fn() }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => service,
+  useAuthedService: () => getService,
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -50,6 +51,7 @@ import { WorkflowSurfaceInspector } from './WorkflowSurfaceInspector';
 describe('WorkflowSurfaceInspector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getService.mockResolvedValue(service);
     service.get.mockResolvedValue({
       _id: 'workflow-1',
       createdAt: '2026-07-13T08:00:00.000Z',

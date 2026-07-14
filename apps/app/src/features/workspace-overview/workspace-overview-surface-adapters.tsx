@@ -1,7 +1,8 @@
 'use client';
 
-import type { ReactElement, ReactNode } from 'react';
+import { type ReactElement, type ReactNode, useMemo } from 'react';
 import {
+  useRegisterWorkspaceSurfacePresentationAdapter,
   WorkspaceSurfaceAdapterRegistration,
   type WorkspaceSurfaceAdapterRegistration as WorkspaceSurfaceAdapterRegistrationContract,
 } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
@@ -35,6 +36,21 @@ export const BRAND_WORKSPACE_OVERVIEW_ADAPTER = Object.freeze({
 export function OrganizationWorkspaceOverviewSurfaceAdapter({
   children,
 }: WorkspaceOverviewSurfaceAdapterProps): ReactElement {
+  const presentation = useMemo(
+    () => ({
+      contextLabel: ORGANIZATION_WORKSPACE_OVERVIEW_ADAPTER.title,
+      inspector: (
+        <div data-testid="workspace-surface-adapter-inspector">
+          <p>{ORGANIZATION_WORKSPACE_OVERVIEW_ADAPTER.title}</p>
+          <p>{ORGANIZATION_WORKSPACE_OVERVIEW_ADAPTER.description}</p>
+        </div>
+      ),
+      surfaceKey: 'workspace-overview',
+    }),
+    [],
+  );
+  useRegisterWorkspaceSurfacePresentationAdapter(presentation);
+
   return (
     <WorkspaceSurfaceAdapterRegistration
       registration={ORGANIZATION_WORKSPACE_OVERVIEW_ADAPTER}
@@ -47,6 +63,21 @@ export function OrganizationWorkspaceOverviewSurfaceAdapter({
 export function BrandWorkspaceOverviewSurfaceAdapter({
   children,
 }: WorkspaceOverviewSurfaceAdapterProps): ReactElement {
+  const presentation = useMemo(
+    () => ({
+      contextLabel: BRAND_WORKSPACE_OVERVIEW_ADAPTER.title,
+      inspector: (
+        <div data-testid="workspace-surface-adapter-inspector">
+          <p>{BRAND_WORKSPACE_OVERVIEW_ADAPTER.title}</p>
+          <p>{BRAND_WORKSPACE_OVERVIEW_ADAPTER.description}</p>
+        </div>
+      ),
+      surfaceKey: 'workspace-overview',
+    }),
+    [],
+  );
+  useRegisterWorkspaceSurfacePresentationAdapter(presentation);
+
   return (
     <WorkspaceSurfaceAdapterRegistration
       registration={BRAND_WORKSPACE_OVERVIEW_ADAPTER}

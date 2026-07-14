@@ -149,9 +149,9 @@ function UniversalWorkspaceShellContent({
   const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
   const [composerPortalTarget, setComposerPortalTarget] =
     useState<HTMLElement | null>(null);
-  const [surfaceScopeStatus, setSurfaceScopeStatus] = useState<
-    'error' | 'ready' | 'syncing'
-  >('ready');
+  const [failedSurfaceScopeKey, setFailedSurfaceScopeKey] = useState<
+    string | null
+  >(null);
   const [researchSurfaceAdapter, setResearchSurfaceAdapter] = useState<{
     readonly registration: ResearchWorkspaceSurfaceAdapterRegistration;
     readonly token: symbol;
@@ -248,9 +248,20 @@ function UniversalWorkspaceShellContent({
   const isSurfaceScopeAligned = Boolean(
     !activeThread || !surfaceBrandId || activeThread.brandId === surfaceBrandId,
   );
+  const surfaceScopeKey =
+    activeThread && surfaceBrandId && !isSurfaceScopeAligned
+      ? `${activeThread.id}:${activeThread.contextVersion}:${surfaceBrandId}`
+      : null;
+  const surfaceScopeStatus = !surfaceScopeKey
+    ? 'ready'
+    : failedSurfaceScopeKey === surfaceScopeKey
+      ? 'error'
+      : 'syncing';
   const surfaceReferences = isSurfaceScopeAligned
     ? productSurfaceAdapter?.references
     : undefined;
+  const activeThreadContextVersion = activeThread?.contextVersion;
+  const activeThreadIdForScope = activeThread?.id;
   const workflowSurfaceRoute = useMemo(
     () =>
       resolveWorkflowSurfaceRoute(
@@ -309,23 +320,22 @@ function UniversalWorkspaceShellContent({
     : `${conversationScope.contextLabel} · ${effectiveShellContextLabel}`;
 
   useEffect(() => {
-    if (!activeThread || !surfaceBrandId) {
-      setSurfaceScopeStatus('ready');
-      return;
-    }
-    if (activeThread.brandId === surfaceBrandId) {
-      setSurfaceScopeStatus('ready');
+    if (
+      !activeThreadIdForScope ||
+      activeThreadContextVersion === undefined ||
+      !surfaceBrandId ||
+      !surfaceScopeKey
+    ) {
       return;
     }
 
     const abortController = new AbortController();
-    setSurfaceScopeStatus('syncing');
     runAgentApiEffect(
       agentApiService.updateThreadContextEffect(
-        activeThread.id,
+        activeThreadIdForScope,
         {
           brandId: surfaceBrandId,
-          expectedContextVersion: activeThread.contextVersion,
+          expectedContextVersion: activeThreadContextVersion,
         },
         abortController.signal,
       ),
@@ -334,20 +344,26 @@ function UniversalWorkspaceShellContent({
         if (abortController.signal.aborted) {
           return;
         }
-        updateThread(activeThread.id, {
+        updateThread(activeThreadIdForScope, {
           brandId: thread.brandId,
           contextVersion: thread.contextVersion,
         });
-        setSurfaceScopeStatus('ready');
       })
       .catch(() => {
         if (!abortController.signal.aborted) {
-          setSurfaceScopeStatus('error');
+          setFailedSurfaceScopeKey(surfaceScopeKey);
         }
       });
 
     return () => abortController.abort();
-  }, [activeThread, agentApiService, surfaceBrandId, updateThread]);
+  }, [
+    activeThreadContextVersion,
+    activeThreadIdForScope,
+    agentApiService,
+    surfaceBrandId,
+    surfaceScopeKey,
+    updateThread,
+  ]);
 
   useLayoutEffect(() => {
     if (!isUnthreadedConversation) {
