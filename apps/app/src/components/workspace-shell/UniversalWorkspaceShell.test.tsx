@@ -530,8 +530,9 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByTestId('universal-workspace-shell').parentElement,
     ).toHaveAttribute('data-draft-scope', 'acme:thread-1:3');
     expect(pageShellMount).toHaveBeenCalledTimes(1);
-    expect(router.back).toHaveBeenCalledTimes(1);
-    expect(router.replace).not.toHaveBeenCalled();
+    expect(router.replace).toHaveBeenCalledWith(
+      '/acme/moonrise/workspace/overview?thread=thread-1',
+    );
   });
 
   it('renders product-owned adapter context in the shared shell slots', () => {
@@ -721,9 +722,8 @@ describe('UniversalWorkspaceShell', () => {
       'Use the deterministic workflow “Launch brief” (workflow ID: workflow-1) for this request: ',
       'thread-1',
     );
-    expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/workspace/overview?thread=thread-1',
-    );
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('gives canonical workflow editors focused canvas overflow ownership', () => {
