@@ -862,7 +862,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it.each([
-    ['/workspace/overview', 'Dashboard'],
+    ['/workspace/overview', 'Workspace'],
     ['/studio/image', 'Image'],
     ['/library/images', 'Images'],
     ['/research/discovery', 'Discovery'],
