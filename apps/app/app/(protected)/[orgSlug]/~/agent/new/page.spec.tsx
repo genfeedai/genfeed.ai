@@ -59,8 +59,11 @@ describe('ChatNewPage', () => {
     const { container } = render(<ChatNewPage />);
     expect(container.firstChild).toHaveClass(
       'flex',
-      'min-h-[calc(100vh-4rem)]',
+      'h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)]',
+      'min-h-0',
+      'flex-1',
       'flex-col',
+      'overflow-hidden',
     );
     expect(container.firstChild).toBeEmptyDOMElement();
   });
