@@ -34,7 +34,7 @@ function buildAnalyticsQueryContext(pageContext: AgentPageContext): string {
 
   const filters = Object.entries(reference.filters)
     .filter((entry): entry is [string, string] => Boolean(entry[1]))
-    .toSorted(([left], [right]) => left.localeCompare(right))
+    .sort(([left], [right]) => left.localeCompare(right))
     .map(([key, value]) => `${key}=${clampPageContextField(value) ?? ''}`)
     .join(', ');
   const fields = [
