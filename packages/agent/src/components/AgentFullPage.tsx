@@ -158,11 +158,11 @@ export function AgentFullPage({
           </div>
 
           {hasThreadOutputs ? (
-            <div className="hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background-secondary">
+            <div className="hidden min-h-0 overflow-hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background-secondary">
               <AgentOutputsPanel className="h-full w-full" />
             </div>
           ) : showSetupPanel ? (
-            <div className="hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background-secondary">
+            <div className="hidden min-h-0 overflow-hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background-secondary">
               <AgentSetupPanel
                 className="h-full w-full"
                 brand={agentSetup.brand}

@@ -107,7 +107,7 @@ export default function FAQContent() {
             <div className="hidden lg:block">
               <div className="sticky top-24 space-y-6">
                 {/* Category navigation */}
-                <div className="bg-fill/5 border border-edge/10 p-6">
+                <div className="gen-card-spotlight p-6">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                     Jump to
                   </h3>
@@ -151,7 +151,7 @@ export default function FAQContent() {
                 </div>
 
                 {/* Quick contact */}
-                <div className="bg-fill/5 border border-edge/10 p-6">
+                <div className="gen-card-spotlight p-6">
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                     Contact us
                   </h3>

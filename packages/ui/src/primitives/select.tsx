@@ -16,6 +16,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   type ChangeEvent,
   Children,
+  type ComponentProps,
   type ComponentPropsWithRef,
   isValidElement,
   type ReactElement,
@@ -27,7 +28,36 @@ import { cn } from '../lib/utils';
 import { fieldControlPopoverClassName } from './field-control';
 import { Label } from './label';
 
-const Select: typeof ShipSelect = ShipSelect;
+/** Radix reserves the empty string for clearing a selection. */
+export const EMPTY_SELECT_ITEM_VALUE = '__genfeed_empty_select_item__';
+
+function toSelectItemValue(value: string): string {
+  return value === '' ? EMPTY_SELECT_ITEM_VALUE : value;
+}
+
+function fromSelectItemValue(value: string): string {
+  return value === EMPTY_SELECT_ITEM_VALUE ? '' : value;
+}
+
+function Select({
+  defaultValue,
+  onValueChange,
+  value,
+  ...props
+}: ComponentProps<typeof SelectPrimitive.Root>) {
+  return (
+    <ShipSelect
+      {...props}
+      defaultValue={
+        defaultValue == null ? defaultValue : toSelectItemValue(defaultValue)
+      }
+      value={value == null ? value : toSelectItemValue(value)}
+      onValueChange={(nextValue) =>
+        onValueChange?.(fromSelectItemValue(nextValue))
+      }
+    />
+  );
+}
 
 const SelectGroup: typeof ShipSelectGroup = ShipSelectGroup;
 
@@ -138,10 +168,16 @@ function SelectItem({
   ref,
   className,
   children,
+  value,
   ...props
 }: ComponentPropsWithRef<typeof SelectPrimitive.Item>) {
   return (
-    <ShipSelectItem ref={ref} className={cn('ship-ui', className)} {...props}>
+    <ShipSelectItem
+      ref={ref}
+      className={cn('ship-ui', className)}
+      value={toSelectItemValue(value)}
+      {...props}
+    >
       {children}
     </ShipSelectItem>
   );
@@ -207,7 +243,7 @@ function extractOptions(children: ReactNode): SelectFieldOption[] {
         {
           children: element.props.children,
           disabled: element.props.disabled,
-          value: String(element.props.value),
+          value: toSelectItemValue(String(element.props.value)),
         },
       ];
     }
@@ -236,7 +272,7 @@ function extractOptions(children: ReactNode): SelectFieldOption[] {
             children: nestedElement.props.children,
             disabled: nestedElement.props.disabled,
             label: element.props.label,
-            value: String(nestedElement.props.value),
+            value: toSelectItemValue(String(nestedElement.props.value)),
           },
         ];
       });
@@ -270,14 +306,17 @@ function SelectFieldInner<T extends FieldValues = FieldValues>({
 }) {
   const options = extractOptions(children);
 
-  const selectValue = value != null ? String(value) : undefined;
+  const rawSelectValue = value != null ? String(value) : undefined;
+  const selectValue =
+    rawSelectValue === '' ? EMPTY_SELECT_ITEM_VALUE : rawSelectValue;
 
   const handleValueChange = (nextValue: string) => {
-    fieldOnChange?.(nextValue);
+    const fieldValue = fromSelectItemValue(nextValue);
+    fieldOnChange?.(fieldValue);
 
     onChange?.({
-      currentTarget: { name, value: nextValue },
-      target: { name, value: nextValue },
+      currentTarget: { name, value: fieldValue },
+      target: { name, value: fieldValue },
     } as ChangeEvent<HTMLSelectElement>);
   };
 
@@ -316,7 +355,7 @@ function SelectFieldInner<T extends FieldValues = FieldValues>({
           onChange={() => {}}
           ref={fieldRef}
           required={isRequired}
-          value={selectValue ?? ''}
+          value={rawSelectValue ?? ''}
         />
 
         <SelectTrigger

@@ -163,9 +163,9 @@ export default function PricingContent() {
         description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks API access plus shared team seats."
       >
         <WebSection maxWidth="lg" py="md">
-          <div className="grid gap-px overflow-hidden border border-edge/10 bg-edge/5 md:grid-cols-4">
+          <div className="grid gap-px bg-edge/5 md:grid-cols-4">
             {PRICING_RULES.map((rule) => (
-              <div key={rule} className="bg-background px-5 py-4 shadow-border">
+              <div key={rule} className="bg-background px-5 py-4">
                 <div className="flex items-center gap-2 text-sm text-surface/65">
                   <HiCheckCircle className="size-4 text-success" />
                   {rule}
@@ -341,11 +341,11 @@ export default function PricingContent() {
             className="[&_h2]:text-5xl mb-4"
           />
 
-          <div className="grid gap-px overflow-hidden border border-edge/10 bg-edge/5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-3">
             {OUTPUT_COSTS.map((row) => (
               <div
                 key={row.label}
-                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4 shadow-border"
+                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
               >
                 <span className="text-sm text-surface/65">{row.label}</span>
                 <span className="text-sm font-semibold text-surface">
@@ -363,11 +363,11 @@ export default function PricingContent() {
             Top up any amount from $10 — pay-as-you-go, no subscription. 1
             credit = $0.01.
           </p>
-          <div className="grid gap-px overflow-hidden border border-edge/10 bg-edge/5 sm:grid-cols-3">
+          <div className="grid gap-px bg-edge/5 sm:grid-cols-3">
             {WEBSITE_CREDIT_PACKS.map((pack) => (
               <div
                 key={pack.label}
-                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4 shadow-border"
+                className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
               >
                 <span className="text-sm font-semibold text-surface">
                   ${creditPackPrice(pack).toLocaleString()}

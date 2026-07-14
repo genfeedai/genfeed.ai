@@ -14,7 +14,7 @@ export default function ProfileArticles({ articles }: ProfileArticlesProps) {
         <Link
           key={article.id}
           href={`/articles/${article.slug}`}
-          className="block bg-fill/10 hover:bg-fill/20 backdrop-blur-sm overflow-hidden transition-all border border-edge/[0.08] hover:border-edge/20"
+          className="gen-card-spotlight block"
         >
           {article.bannerUrl && (
             <div className="relative h-48 w-full">

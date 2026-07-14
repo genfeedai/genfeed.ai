@@ -256,7 +256,7 @@ export default function StudioContent() {
               return (
                 <div
                   key={feature.title}
-                  className="gsap-card gen-card-spotlight p-8 bg-fill/[0.02] text-center"
+                  className="gsap-card gen-card-spotlight p-8 text-center"
                 >
                   <div className="flex justify-center mb-4">
                     <div className="size-12 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">

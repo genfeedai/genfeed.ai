@@ -83,7 +83,7 @@ export default function TermsPage() {
         <section className="py-32 gsap-hero">
           <div className="container mx-auto px-6">
             <div className="max-w-4xl mx-auto">
-              <div className="grid gap-px bg-fill/5 border border-edge/5 overflow-hidden">
+              <div className="grid gap-px bg-edge/5">
                 {termsOfService.map((term, index) => (
                   <div
                     key={term.title}
@@ -139,7 +139,7 @@ export default function TermsPage() {
             </div>
 
             <div className="max-w-5xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-fill/5 border border-edge/5 overflow-hidden">
+              <div className="grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2 lg:grid-cols-4">
                 {legalInfo.map((info, index) => {
                   const Icon = info.icon;
                   return (

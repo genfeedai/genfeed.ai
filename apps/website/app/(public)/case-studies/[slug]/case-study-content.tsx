@@ -114,13 +114,13 @@ export default function CaseStudyContent({
       </WebSection>
 
       <WebSection bg="bordered" maxWidth="lg" py="md">
-        <div className="grid gap-px overflow-hidden border border-edge/10 bg-edge/5 md:grid-cols-3">
+        <div className="grid gap-px bg-edge/5 md:grid-cols-3">
           {[
             ['Challenge', caseStudy.challenge],
             ['Genfeed workflow', caseStudy.solution],
             ['Outcome', caseStudy.outcomeSummary],
           ].map(([title, body]) => (
-            <div key={title} className="bg-background p-6 shadow-border">
+            <div key={title} className="bg-background p-6">
               <h2 className="mb-3 text-xl font-semibold text-surface">
                 {title}
               </h2>
@@ -169,10 +169,10 @@ export default function CaseStudyContent({
           title="Publish checklist."
         />
 
-        <div className="grid gap-px overflow-hidden border border-edge/10 bg-edge/5 md:grid-cols-2">
+        <div className="grid gap-px bg-edge/5 md:grid-cols-2">
           {caseStudy.publishChecklist.map((item) => (
             <div
-              className="flex items-start gap-3 bg-background p-5 shadow-border"
+              className="flex items-start gap-3 bg-background p-5"
               key={item.label}
             >
               <FaCheck className="mt-0.5 size-4 shrink-0 text-success" />

@@ -47,6 +47,7 @@ function stripOrgPrefix(path: string): string {
       'workspace',
       'studio',
       'settings',
+      'agent',
       'agents',
       'posts',
       'analytics',
@@ -77,24 +78,29 @@ function isPathActive(href: string, pathname: string | null): boolean {
     return false;
   }
 
+  // Task-context query parameters are preserved in menu hrefs but never
+  // participate in route matching.
+  const hrefPathname = href.split('?')[0] ?? href;
+
   // Strip org prefix from the pathname for matching against menu hrefs
   const normalizedPathname = stripOrgPrefix(pathname);
 
   if (
-    href.startsWith('/elements/') &&
+    hrefPathname.startsWith('/elements/') &&
     normalizedPathname.startsWith('/elements/')
   ) {
     return true;
   }
   if (
-    href.startsWith('/ingredients/') &&
+    hrefPathname.startsWith('/ingredients/') &&
     normalizedPathname.startsWith('/ingredients/')
   ) {
     return true;
   }
 
   return (
-    normalizedPathname === href || normalizedPathname.startsWith(`${href}/`)
+    normalizedPathname === hrefPathname ||
+    normalizedPathname.startsWith(`${hrefPathname}/`)
   );
 }
 
@@ -141,9 +147,14 @@ export function SidebarNavigationProvider({
         }
         // Respect isExactMatch so a root item (e.g. General at `/settings`)
         // doesn't greedily prefix-match every subpage (`/settings/members`).
-        const matches = item.isExactMatch
-          ? normalizedPathname === item.href
-          : isPathActive(item.href, pathname);
+        const candidatePaths = [item.href, ...(item.matchPaths ?? [])];
+        const matches = candidatePaths.some((candidatePath) => {
+          const candidatePathname =
+            candidatePath.split('?')[0] ?? candidatePath;
+          return item.isExactMatch
+            ? normalizedPathname === candidatePathname
+            : isPathActive(candidatePath, pathname);
+        });
         if (matches) {
           return { derivedGroupId: g.group, derivedPageLabel: item.label };
         }

@@ -72,12 +72,12 @@ describe('PricingContent launch pricing', () => {
 
     const enterpriseCard = screen
       .getByRole('heading', { name: 'Your own studio, fully managed.' })
-      .closest('.shadow-border');
+      .closest('.bg-background');
 
     expect(enterpriseCard).toHaveClass('bg-background');
-    expect(enterpriseCard).not.toHaveClass('border');
-    expect(enterpriseCard?.parentElement).toHaveClass('border-edge/10');
+    expect(enterpriseCard).not.toHaveClass('border', 'shadow-border');
     expect(enterpriseCard?.parentElement).toHaveClass('bg-edge/5');
+    expect(enterpriseCard?.parentElement).not.toHaveClass('border');
   });
 
   it('renders an even number of pricing FAQ blocks', () => {

@@ -163,6 +163,7 @@ function AppLayoutWithDynamicMenu({
     threads,
     shouldMountAgentPanel,
     shouldMountLegacyAgentPanel,
+    agentMenuItems,
     adminMenuItems,
     analyticsMenuItems,
     composeMenuItems,
@@ -310,6 +311,27 @@ function AppLayoutWithDynamicMenu({
         ? AdminAppProtectedTopbar
         : AppProtectedTopbar;
   const topbarChromeVariant = 'default';
+  const navigationMenuItems = isAdminRoute
+    ? adminMenuItems
+    : isSettingsRoute
+      ? settingsMenuItems
+      : isConversationRoute
+        ? agentMenuItems
+        : isLibraryRoute
+          ? libraryMenuItems
+          : isStudioRoute
+            ? studioMenuItems
+            : isComposeRoute
+              ? composeMenuItems
+              : isWorkflowsRoute
+                ? workflowsMenuItems
+                : isAnalyticsRoute
+                  ? analyticsMenuItems
+                  : isResearchRoute
+                    ? researchMenuItems
+                    : isOrgRoute
+                      ? orgMenuItems
+                      : menuItems;
   const agentPanelContent = agentApiService ? (
     <LazyAgentPanel
       apiService={agentApiService}
@@ -377,13 +399,7 @@ function AppLayoutWithDynamicMenu({
       shellChromeVariant={shellChromeVariant}
       topbarChromeVariant={topbarChromeVariant}
       hasSecondaryTopbar={hasSecondaryTopbar}
-      menuItems={
-        isAdminRoute
-          ? adminMenuItems
-          : isSettingsRoute
-            ? settingsMenuItems
-            : menuItems
-      }
+      menuItems={navigationMenuItems}
       agentPanel={visibleAgentPanel}
       isAgentCollapsed={!isAgentOpen}
       onAgentToggle={
@@ -418,13 +434,7 @@ function AppLayoutWithDynamicMenu({
         hasSecondaryTopbar={hasSecondaryTopbar}
         isAgentCollapsed={!isAgentOpen}
         menuComponent={legacyMenuComponent}
-        menuItems={
-          isAdminRoute
-            ? adminMenuItems
-            : isSettingsRoute
-              ? settingsMenuItems
-              : menuItems
-        }
+        menuItems={navigationMenuItems}
         onAgentToggle={shouldMountLegacyAgentPanel ? toggleAgent : undefined}
         orgSlug={orgSlug}
         shellChromeVariant={shellChromeVariant}

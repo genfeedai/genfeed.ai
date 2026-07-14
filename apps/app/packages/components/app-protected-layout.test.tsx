@@ -629,7 +629,7 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
   });
 
-  it('renders the org switcher only in SaaS mode', () => {
+  it('keeps the org switcher visible in SaaS mode', () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
 
     render(
@@ -858,6 +858,34 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         currentApp: 'agent',
       }),
+    );
+  });
+
+  it.each([
+    ['/workspace/overview', 'Dashboard'],
+    ['/studio/image', 'Image'],
+    ['/library/images', 'Images'],
+    ['/research/discovery', 'Discovery'],
+    ['/analytics/overview', 'Overview'],
+    ['/workflows/executions', 'Runs'],
+    ['/admin', 'Dashboard'],
+    ['/agent/new', 'New conversation'],
+  ])('feeds the active surface navigation to breadcrumbs on %s', (pathname, expectedLabel) => {
+    mockPathname.value = pathname;
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
+      menuItems?: { label: string }[];
+    };
+    expect(layoutProps.menuItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: expectedLabel }),
+      ]),
     );
   });
 

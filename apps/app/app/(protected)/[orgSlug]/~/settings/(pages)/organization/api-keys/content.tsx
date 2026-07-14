@@ -19,6 +19,7 @@ import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 import {
   HiArrowPath,
@@ -525,278 +526,302 @@ export default function SettingsApiKeysPage() {
     }
   };
 
-  if (!desktop && (!isReady || isLoading)) {
-    return (
-      <div className="flex items-center justify-center min-h-form">
-        <span className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
-
       <ApiKeysHeader />
 
-      {isReady ? (
-        <Card className="p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h3 className="text-sm font-medium">Genfeed API keys</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Use these keys for CLI profiles, MCP servers, and unattended
-                workflows.
-              </p>
-              {!hasProductApiAccess ? (
-                <p className="mt-2 text-xs text-amber-600">
-                  API access is included on paid plans. Upgrade to Pro to create
-                  Genfeed API keys.
-                </p>
-              ) : null}
-            </div>
-            <Button
-              variant={SECONDARY_BUTTON_VARIANT}
-              onClick={() => fetchProductApiKeys()}
-              isDisabled={isProductLoading}
-              aria-label="Refresh Genfeed API keys"
-            >
-              <HiArrowPath className="size-4" />
-            </Button>
-          </div>
+      <Tabs defaultValue={desktop && !isReady ? 'providers' : 'genfeed'}>
+        <TabsList aria-label="API key type">
+          <TabsTrigger value="genfeed">Genfeed keys</TabsTrigger>
+          <TabsTrigger value="providers">Provider keys</TabsTrigger>
+        </TabsList>
 
-          {productPlainKey ? (
-            <div className="mt-4 border-t border-border pt-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium">{productPlainKey.label}</p>
-                  <p className="mt-1 font-mono text-xs break-all">
-                    {productPlainKey.key}
+        <TabsContent className="mt-4" value="genfeed">
+          {isReady ? (
+            <Card bodyClassName="p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-medium">Genfeed API keys</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use these keys for CLI profiles, MCP servers, and unattended
+                    workflows.
                   </p>
+                  {!hasProductApiAccess ? (
+                    <p className="mt-2 text-xs text-amber-600">
+                      API access is included on paid plans. Upgrade to Pro to
+                      create Genfeed API keys.
+                    </p>
+                  ) : null}
                 </div>
                 <Button
                   variant={SECONDARY_BUTTON_VARIANT}
-                  onClick={() => handleCopyProductKey(productPlainKey.key)}
+                  onClick={() => fetchProductApiKeys()}
+                  isDisabled={isProductLoading}
+                  aria-label="Refresh Genfeed API keys"
                 >
-                  <HiClipboardDocument className="size-4" />
-                  Copy
+                  <HiArrowPath className="size-4" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Store this key now. It will not be shown again.
-              </p>
+
+              {productPlainKey ? (
+                <div className="mt-4 border-t border-border pt-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium">
+                        {productPlainKey.label}
+                      </p>
+                      <p className="mt-1 font-mono text-xs break-all">
+                        {productPlainKey.key}
+                      </p>
+                    </div>
+                    <Button
+                      variant={SECONDARY_BUTTON_VARIANT}
+                      onClick={() => handleCopyProductKey(productPlainKey.key)}
+                    >
+                      <HiClipboardDocument className="size-4" />
+                      Copy
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Store this key now. It will not be shown again.
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                <div>
+                  <span className="text-xs text-muted-foreground mb-1 block">
+                    Key name
+                  </span>
+                  <Input
+                    value={productForm.label}
+                    onChange={(event) =>
+                      handleProductFormChange('label', event.target.value)
+                    }
+                    placeholder="MCP Server"
+                  />
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground mb-1 block">
+                    Expires
+                  </span>
+                  <Input
+                    type="date"
+                    value={productForm.expiresAt}
+                    onChange={(event) =>
+                      handleProductFormChange('expiresAt', event.target.value)
+                    }
+                  />
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground mb-1 block">
+                    Rate limit
+                  </span>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={productForm.rateLimit}
+                    onChange={(event) =>
+                      handleProductFormChange('rateLimit', event.target.value)
+                    }
+                    placeholder="60"
+                  />
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground mb-1 block">
+                    Allowed IPs
+                  </span>
+                  <Input
+                    value={productForm.allowedIps}
+                    onChange={(event) =>
+                      handleProductFormChange('allowedIps', event.target.value)
+                    }
+                    placeholder="203.0.113.10, 203.0.113.11"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <span className="text-xs text-muted-foreground mb-1 block">
+                    Description
+                  </span>
+                  <Input
+                    value={productForm.description}
+                    onChange={(event) =>
+                      handleProductFormChange('description', event.target.value)
+                    }
+                    placeholder="Used by local MCP server"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {PRODUCT_API_KEY_PRESETS.map((preset) => (
+                    <Button
+                      key={preset.label}
+                      variant={SECONDARY_BUTTON_VARIANT}
+                      onClick={() => handlePresetSelect(preset.scopes)}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {API_KEY_SCOPE_OPTIONS.map((option) => {
+                    const checked = option.scopes.every((scope) =>
+                      selectedScopeSet.has(scope),
+                    );
+
+                    return (
+                      <div
+                        key={option.label}
+                        className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs"
+                      >
+                        <Checkbox
+                          isChecked={checked}
+                          label={option.label}
+                          onCheckedChange={() =>
+                            handleScopeToggle(option.scopes)
+                          }
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={handleCreateProductKey}
+                  isDisabled={
+                    isCreatingProductKey ||
+                    !hasProductApiAccess ||
+                    !productForm.label.trim() ||
+                    productForm.selectedScopes.length === 0
+                  }
+                >
+                  <HiPlus className="size-4" />
+                  {isCreatingProductKey ? 'Creating...' : 'Create Key'}
+                </Button>
+              </div>
+
+              <div className="mt-5 border-t border-border pt-4">
+                {isProductLoading ? (
+                  <p className="text-sm text-muted-foreground">
+                    Loading keys...
+                  </p>
+                ) : productApiKeys.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No active Genfeed API keys.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {productApiKeys.map((apiKey) => (
+                      <div
+                        key={apiKey.id}
+                        className="flex flex-col gap-3 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">
+                            {apiKey.label ?? 'Untitled key'}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Last used: {formatLastUsed(apiKey.lastUsedAt)}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {(apiKey.scopes ?? []).join(', ') || 'No scopes'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant={SECONDARY_BUTTON_VARIANT}
+                            onClick={() => handleRotateProductKey(apiKey)}
+                            isDisabled={mutatingProductKeyId === apiKey.id}
+                          >
+                            <HiArrowPath className="size-4" />
+                            Rotate
+                          </Button>
+                          <Button
+                            variant={SECONDARY_BUTTON_VARIANT}
+                            onClick={() => handleRevokeProductKey(apiKey)}
+                            isDisabled={mutatingProductKeyId === apiKey.id}
+                          >
+                            <HiTrash className="size-4" />
+                            Revoke
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+          ) : (
+            <div className="flex min-h-40 items-center justify-center">
+              <span className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent className="mt-4 space-y-3" value="providers">
+          {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
+
+          {!desktop && (!isReady || isLoading) ? (
+            <div className="flex min-h-40 items-center justify-center">
+              <span className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : null}
 
-          <div className="mt-5 grid gap-3 md:grid-cols-2">
-            <div>
-              <span className="text-xs text-muted-foreground mb-1 block">
-                Key name
-              </span>
-              <Input
-                value={productForm.label}
-                onChange={(event) =>
-                  handleProductFormChange('label', event.target.value)
-                }
-                placeholder="MCP Server"
-              />
-            </div>
-            <div>
-              <span className="text-xs text-muted-foreground mb-1 block">
-                Expires
-              </span>
-              <Input
-                type="date"
-                value={productForm.expiresAt}
-                onChange={(event) =>
-                  handleProductFormChange('expiresAt', event.target.value)
-                }
-              />
-            </div>
-            <div>
-              <span className="text-xs text-muted-foreground mb-1 block">
-                Rate limit
-              </span>
-              <Input
-                type="number"
-                min="1"
-                value={productForm.rateLimit}
-                onChange={(event) =>
-                  handleProductFormChange('rateLimit', event.target.value)
-                }
-                placeholder="60"
-              />
-            </div>
-            <div>
-              <span className="text-xs text-muted-foreground mb-1 block">
-                Allowed IPs
-              </span>
-              <Input
-                value={productForm.allowedIps}
-                onChange={(event) =>
-                  handleProductFormChange('allowedIps', event.target.value)
-                }
-                placeholder="203.0.113.10, 203.0.113.11"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <span className="text-xs text-muted-foreground mb-1 block">
-                Description
-              </span>
-              <Input
-                value={productForm.description}
-                onChange={(event) =>
-                  handleProductFormChange('description', event.target.value)
-                }
-                placeholder="Used by local MCP server"
-              />
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {PRODUCT_API_KEY_PRESETS.map((preset) => (
-                <Button
-                  key={preset.label}
-                  variant={SECONDARY_BUTTON_VARIANT}
-                  onClick={() => handlePresetSelect(preset.scopes)}
-                >
-                  {preset.label}
-                </Button>
+          {isReady && !isLoading ? (
+            <div className="space-y-2">
+              {providerStatuses.map((providerStatus) => (
+                <ByokProviderCard
+                  key={providerStatus.provider}
+                  providerStatus={providerStatus}
+                  cardState={{
+                    isExpanded: expandedProvider === providerStatus.provider,
+                    isRemoving: removingProvider === providerStatus.provider,
+                    isValidating:
+                      validatingProvider === providerStatus.provider,
+                    isSaving: savingProvider === providerStatus.provider,
+                  }}
+                  apiKeyValue={apiKeyInputs[providerStatus.provider] ?? ''}
+                  apiSecretValue={
+                    apiSecretInputs[providerStatus.provider] ?? ''
+                  }
+                  onToggleExpand={() =>
+                    dispatch({
+                      type: 'SET_EXPANDED_PROVIDER',
+                      payload:
+                        expandedProvider === providerStatus.provider
+                          ? null
+                          : providerStatus.provider,
+                    })
+                  }
+                  onApiKeyChange={(value) =>
+                    dispatch({
+                      type: 'SET_API_KEY_INPUT',
+                      payload: { provider: providerStatus.provider, value },
+                    })
+                  }
+                  onApiSecretChange={(value) =>
+                    dispatch({
+                      type: 'SET_API_SECRET_INPUT',
+                      payload: { provider: providerStatus.provider, value },
+                    })
+                  }
+                  onValidateAndSave={() =>
+                    handleValidateAndSave(
+                      providerStatus.provider,
+                      providerStatus.requiresSecret || false,
+                    )
+                  }
+                  onRemoveKey={() => handleRemoveKey(providerStatus.provider)}
+                />
               ))}
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {API_KEY_SCOPE_OPTIONS.map((option) => {
-                const checked = option.scopes.every((scope) =>
-                  selectedScopeSet.has(scope),
-                );
-
-                return (
-                  <div
-                    key={option.label}
-                    className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-xs"
-                  >
-                    <Checkbox
-                      isChecked={checked}
-                      label={option.label}
-                      onCheckedChange={() => handleScopeToggle(option.scopes)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="mt-4 flex justify-end">
-            <Button
-              onClick={handleCreateProductKey}
-              isDisabled={
-                isCreatingProductKey ||
-                !hasProductApiAccess ||
-                !productForm.label.trim() ||
-                productForm.selectedScopes.length === 0
-              }
-            >
-              <HiPlus className="size-4" />
-              {isCreatingProductKey ? 'Creating...' : 'Create Key'}
-            </Button>
-          </div>
-
-          <div className="mt-5 border-t border-border pt-4">
-            {isProductLoading ? (
-              <p className="text-sm text-muted-foreground">Loading keys...</p>
-            ) : productApiKeys.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No active Genfeed API keys.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {productApiKeys.map((apiKey) => (
-                  <div
-                    key={apiKey.id}
-                    className="flex flex-col gap-3 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">
-                        {apiKey.label ?? 'Untitled key'}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Last used: {formatLastUsed(apiKey.lastUsedAt)}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {(apiKey.scopes ?? []).join(', ') || 'No scopes'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant={SECONDARY_BUTTON_VARIANT}
-                        onClick={() => handleRotateProductKey(apiKey)}
-                        isDisabled={mutatingProductKeyId === apiKey.id}
-                      >
-                        <HiArrowPath className="size-4" />
-                        Rotate
-                      </Button>
-                      <Button
-                        variant={SECONDARY_BUTTON_VARIANT}
-                        onClick={() => handleRevokeProductKey(apiKey)}
-                        isDisabled={mutatingProductKeyId === apiKey.id}
-                      >
-                        <HiTrash className="size-4" />
-                        Revoke
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-      ) : null}
-
-      {isReady && !isLoading
-        ? providerStatuses.map((providerStatus) => (
-            <ByokProviderCard
-              key={providerStatus.provider}
-              providerStatus={providerStatus}
-              cardState={{
-                isExpanded: expandedProvider === providerStatus.provider,
-                isRemoving: removingProvider === providerStatus.provider,
-                isValidating: validatingProvider === providerStatus.provider,
-                isSaving: savingProvider === providerStatus.provider,
-              }}
-              apiKeyValue={apiKeyInputs[providerStatus.provider] ?? ''}
-              apiSecretValue={apiSecretInputs[providerStatus.provider] ?? ''}
-              onToggleExpand={() =>
-                dispatch({
-                  type: 'SET_EXPANDED_PROVIDER',
-                  payload:
-                    expandedProvider === providerStatus.provider
-                      ? null
-                      : providerStatus.provider,
-                })
-              }
-              onApiKeyChange={(value) =>
-                dispatch({
-                  type: 'SET_API_KEY_INPUT',
-                  payload: { provider: providerStatus.provider, value },
-                })
-              }
-              onApiSecretChange={(value) =>
-                dispatch({
-                  type: 'SET_API_SECRET_INPUT',
-                  payload: { provider: providerStatus.provider, value },
-                })
-              }
-              onValidateAndSave={() =>
-                handleValidateAndSave(
-                  providerStatus.provider,
-                  providerStatus.requiresSecret || false,
-                )
-              }
-              onRemoveKey={() => handleRemoveKey(providerStatus.provider)}
-            />
-          ))
-        : null}
+          ) : null}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

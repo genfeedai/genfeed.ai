@@ -311,11 +311,9 @@ function AppProtectedTopbarContent({
               TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
             }
             rootLabel={
-              isAdminChrome
-                ? TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
-                : isSettingsRoute
-                  ? 'Settings'
-                  : undefined
+              isSettingsRoute
+                ? 'Settings'
+                : TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
             }
           />
         </div>

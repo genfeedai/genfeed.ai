@@ -370,7 +370,7 @@ export default function BrandOSContent(): React.ReactElement {
                   −0.03em.
                 </Text>
               </VStack>
-              <div className="border border-edge/5 bg-fill/[0.02]">
+              <div className="gen-card-spotlight">
                 {TYPE_SCALE.map((row) => (
                   <HStack
                     className="items-center justify-between gap-4 border-b border-edge/5 px-5 py-3.5 last:border-b-0"
@@ -402,12 +402,9 @@ export default function BrandOSContent(): React.ReactElement {
                   containment instead of a CSS border.
                 </Text>
               </VStack>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-px bg-edge/5 sm:grid-cols-2">
                 {RADIUS_STEPS.map((step) => (
-                  <VStack
-                    className="gap-3 border border-edge/5 bg-fill/[0.02] p-5"
-                    key={step.name}
-                  >
+                  <VStack className="gap-3 bg-background p-5" key={step.name}>
                     <div
                       className="h-16 w-full bg-surface/[0.06] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
                       style={{ borderRadius: `${step.px}px` }}

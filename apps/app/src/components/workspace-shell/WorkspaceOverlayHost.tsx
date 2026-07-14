@@ -1,13 +1,7 @@
 'use client';
 
 import type { WorkspaceOverlayHostProps } from '@genfeedai/props/ui/workspace-overlay-host.props';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@ui/primitives/dialog';
+import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
 import LibraryPickerOverlay from '@/features/library-remix/LibraryPickerOverlay';
 
 function formatOverlayParameters(
@@ -21,9 +15,9 @@ function formatOverlayParameters(
 }
 
 /**
- * The only dialog host owned by the universal workspace shell. Product entity
- * inspection sheets remain outside this host and registered shell overlays may
- * contribute only their trusted metadata and typed parameters.
+ * The only context-inspector host owned by the universal workspace shell.
+ * Product entity inspection sheets remain outside this host and registered
+ * shell overlays may contribute only their trusted metadata and typed parameters.
  */
 export default function WorkspaceOverlayHost({
   composerPortalRef,
@@ -42,38 +36,37 @@ export default function WorkspaceOverlayHost({
   );
 
   return (
-    <Dialog
-      open={isOpen && isResolved}
+    <ContextInspector
+      bodyClassName="flex min-h-0 flex-col"
+      className="rounded-l-[var(--radius-workspace-overlay)]"
+      description={registration?.presentation.description}
+      isOpen={isOpen && isResolved}
       onOpenChange={(nextIsOpen) => {
         if (!nextIsOpen) {
           onDismiss();
         }
       }}
+      onCloseAutoFocus={(event) => {
+        const returnFocusTarget = returnFocusRef.current?.isConnected
+          ? returnFocusRef.current
+          : fallbackFocusRef.current;
+        returnFocusRef.current = null;
+        if (!returnFocusTarget?.isConnected) {
+          return;
+        }
+
+        event.preventDefault();
+        returnFocusTarget.focus({ preventScroll: true });
+      }}
+      title={registration?.presentation.title ?? 'Context inspector'}
+      width="lg"
     >
       {isResolved && registration ? (
-        <DialogContent
-          className="w-[min(92vw,42rem)] bg-background p-0 shadow-dialog"
+        <div
+          className="flex min-h-0 flex-1 flex-col"
           data-workspace-overlay-key={registration.key}
           data-workspace-shell-overlay="true"
-          onCloseAutoFocus={(event) => {
-            const returnFocusTarget = returnFocusRef.current?.isConnected
-              ? returnFocusRef.current
-              : fallbackFocusRef.current;
-            returnFocusRef.current = null;
-            if (!returnFocusTarget?.isConnected) {
-              return;
-            }
-
-            event.preventDefault();
-            returnFocusTarget.focus({ preventScroll: true });
-          }}
         >
-          <DialogHeader className="border-b border-border p-5 pr-12">
-            <DialogTitle>{registration.presentation.title}</DialogTitle>
-            <DialogDescription>
-              {registration.presentation.description}
-            </DialogDescription>
-          </DialogHeader>
           {content ??
             (overlay?.key === 'library-picker' && onSelectLibraryReference ? (
               <LibraryPickerOverlay
@@ -90,8 +83,8 @@ export default function WorkspaceOverlayHost({
             data-testid="workspace-overlay-composer-slot"
             ref={composerPortalRef}
           />
-        </DialogContent>
+        </div>
       ) : null}
-    </Dialog>
+    </ContextInspector>
   );
 }
