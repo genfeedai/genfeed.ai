@@ -7,9 +7,9 @@
  * Foundation for epic #1123, issue #1125.
  */
 
-import { publishingProviderReadinessSchema } from '@api-types/contracts/publishing-readiness.contract';
 import { CredentialPlatform, TargetValidationState } from '@genfeedai/enums';
 import { z } from 'zod';
+import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 
 export const channelCapabilityStatusValues = [
   'supported',

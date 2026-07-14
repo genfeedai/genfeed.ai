@@ -336,16 +336,24 @@ describe('AgentMessagesService', () => {
     });
   });
 
-  it('preserves tool-result linkage while copying messages between rooms', async () => {
+  it('preserves tool calls while copying messages between rooms', async () => {
+    const toolCalls = [
+      {
+        parameters: { prompt: 'Create a launch image' },
+        result: { imageId: 'image-1' },
+        status: 'completed',
+        toolName: 'generate_image',
+      },
+    ];
     agentMessage.findMany.mockResolvedValueOnce([
       {
         artifactReferences: [],
         artifactVersionPinIds: [],
-        id: 'tool-result-message',
+        id: 'assistant-message',
         organizationId: 'org-1',
-        role: 'tool',
+        role: 'assistant',
         threadId: 'source',
-        toolCallId: 'tool-call-1',
+        toolCalls,
       },
     ]);
 
@@ -354,7 +362,7 @@ describe('AgentMessagesService', () => {
     expect(agentMessage.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         threadId: 'target',
-        toolCallId: 'tool-call-1',
+        toolCalls,
       }),
     });
   });

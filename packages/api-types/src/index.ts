@@ -15,6 +15,6 @@
  *   });
  */
 
-export * from '@api-types/contracts';
-export * from '@api-types/helpers';
+export * from './contracts';
 export type { components, paths } from './generated/api.js';
+export * from './helpers';
