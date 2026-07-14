@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsApiKeysPage from './content';
@@ -233,8 +232,10 @@ function productApiKeys() {
 }
 
 async function openProviderKeysTab() {
-  const user = userEvent.setup();
-  await user.click(screen.getByRole('tab', { name: 'Provider keys' }));
+  fireEvent.mouseDown(screen.getByRole('tab', { name: 'Provider keys' }), {
+    button: 0,
+    ctrlKey: false,
+  });
   await screen.findByText('OpenAI');
 }
 

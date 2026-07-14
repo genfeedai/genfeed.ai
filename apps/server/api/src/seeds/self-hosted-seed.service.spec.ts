@@ -4,9 +4,14 @@ import type { ModuleRef } from '@nestjs/core';
 
 import { SelfHostedSeedService } from './self-hosted-seed.service';
 
-vi.mock('@genfeedai/config', () => ({
-  isSelfHostedDeployment: vi.fn(() => true),
-}));
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+
+  return {
+    ...actual,
+    isSelfHostedDeployment: vi.fn(() => true),
+  };
+});
 
 describe('SelfHostedSeedService', () => {
   const organizationId = 'org_default';

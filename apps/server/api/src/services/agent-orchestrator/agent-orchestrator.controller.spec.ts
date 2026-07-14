@@ -177,10 +177,12 @@ describe('AgentOrchestratorController', () => {
     });
 
     it('should trust the guard-resolved user id before calling chat', async () => {
-      const userId = '507f191e810c19729de860ea';
       const user = {
         id: 'authProvider_789',
-        publicMetadata: { organization: 'org', user: userId },
+        publicMetadata: {
+          organization: 'org',
+          user: identity.metadataUserId,
+        },
       } as unknown as User;
       service.chat.mockResolvedValue({} as never);
 
@@ -193,7 +195,7 @@ describe('AgentOrchestratorController', () => {
       expect(usersService.findOne).not.toHaveBeenCalled();
       expect(service.chat).toHaveBeenCalledWith(
         expect.any(Object),
-        expect.objectContaining({ userId }),
+        expect.objectContaining({ userId: identity.metadataUserId }),
       );
     });
 
@@ -294,7 +296,7 @@ describe('AgentOrchestratorController', () => {
         {
           brandId: 'brand-1',
           organizationId: '507f191e810c19729de860ea',
-          userId: '507f191e810c19729de860ea',
+          userId: identity.metadataUserId,
         },
         [
           expect.objectContaining({
