@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storeState = {
@@ -46,10 +52,12 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
+import { writeConversationComposerDocument } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 
 describe('AgentChatInput', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     storeState.activeThreadId = null;
     storeState.draftPlanModeEnabled = false;
     storeState.composerSeed = null;
@@ -283,5 +291,58 @@ describe('AgentChatInput', () => {
 
     expect(screen.getByText('1 reference')).toBeInTheDocument();
     expect(screen.getByText('^post:post-1')).toBeInTheDocument();
+  });
+
+  it('renders one tray item and count when an editor mention overlaps a workspace selection', () => {
+    const draftScopeKey = 'acme:thread-overlap:1';
+    writeConversationComposerDocument(
+      draftScopeKey,
+      {
+        content: [
+          {
+            content: [
+              { text: 'Review ', type: 'text' },
+              {
+                attrs: {
+                  contentId: 'post-1',
+                  contentTitle: 'Launch post',
+                  contentType: 'post',
+                },
+                type: 'contentMention',
+              },
+            ],
+            type: 'paragraph',
+          },
+        ],
+        type: 'doc',
+      },
+      'Review Launch post',
+    );
+
+    render(
+      <ConversationComposerShellProvider
+        artifactReferences={[
+          {
+            brandId: 'brand-1',
+            kind: 'post',
+            organizationId: 'org-1',
+            recordId: 'post-1',
+            serializer: 'post',
+          },
+        ]}
+        contextLabel="Brand Workspace overview"
+        draftScopeKey={draftScopeKey}
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatInput onSend={vi.fn()} />
+      </ConversationComposerShellProvider>,
+    );
+
+    const tray = screen.getByRole('group', {
+      name: 'Composer attachments and references',
+    });
+    expect(screen.getByText('1 reference')).toBeInTheDocument();
+    expect(within(tray).getAllByText('^Launch post')).toHaveLength(1);
   });
 });
