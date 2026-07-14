@@ -4,6 +4,10 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
+import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
+import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
+import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
@@ -84,7 +88,11 @@ describe('BatchGenerationService approval version pins', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        BatchGenerationCreationService,
+        BatchGenerationProcessingService,
+        BatchGenerationReviewService,
         BatchGenerationService,
+        BatchGenerationSummaryService,
         {
           provide: AgentArtifactReferenceService,
           useValue: artifactReferenceService,
