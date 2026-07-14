@@ -477,6 +477,13 @@ export function AgentWorkspaceRunSummary({
   const [actionRunId, setActionRunId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
+  if (brandId !== scopeBrandId) {
+    setScopeBrandId(brandId);
+    setPage(1);
+    setSelectedRunId(null);
+    setSelectedRun(null);
+  }
+
   const loadRuns = useCallback(
     async (signal?: AbortSignal) => {
       setIsLoading(true);
@@ -514,13 +521,6 @@ export function AgentWorkspaceRunSummary({
     },
     [apiService, page, scopeBrandId],
   );
-
-  useEffect(() => {
-    setScopeBrandId(brandId);
-    setPage(1);
-    setSelectedRunId(null);
-    setSelectedRun(null);
-  }, [brandId]);
 
   useEffect(() => {
     if (!authReady || !isExpanded) {

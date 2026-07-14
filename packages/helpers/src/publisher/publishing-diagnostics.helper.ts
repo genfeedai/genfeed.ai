@@ -5,7 +5,8 @@ import type {
   PublishingSetupCheckStatus,
   PublishingSetupFailureClassification,
 } from '@genfeedai/interfaces';
-import { redactSensitiveValue } from '@helpers/security/redact-sensitive-value.helper';
+
+import { redactSensitiveValue } from '../security/redact-sensitive-value.helper';
 
 const BLOCKING_CLASSIFICATIONS = new Set<PublishingSetupFailureClassification>([
   'expired_credential',
