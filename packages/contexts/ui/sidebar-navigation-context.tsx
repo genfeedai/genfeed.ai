@@ -133,9 +133,18 @@ export function SidebarNavigationProvider({
 
   // Derive active group + page from pathname
   const { derivedGroupId, derivedPageLabel } = useMemo(() => {
+    const normalizedPathname = stripOrgPrefix(pathname ?? '');
     for (const g of groups) {
       for (const item of g.items) {
-        if (item.href && isPathActive(item.href, pathname)) {
+        if (!item.href) {
+          continue;
+        }
+        // Respect isExactMatch so a root item (e.g. General at `/settings`)
+        // doesn't greedily prefix-match every subpage (`/settings/members`).
+        const matches = item.isExactMatch
+          ? normalizedPathname === item.href
+          : isPathActive(item.href, pathname);
+        if (matches) {
           return { derivedGroupId: g.group, derivedPageLabel: item.label };
         }
       }

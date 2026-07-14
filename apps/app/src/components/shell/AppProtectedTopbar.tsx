@@ -121,6 +121,10 @@ function AppProtectedTopbarContent({
 }: AppProtectedTopbarProps = {}) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  // Settings routes (/:org/~/settings...) show "Settings" as the breadcrumb
+  // root so the trail reads "Settings / <Page>" (the page label comes from the
+  // settings menu items fed to SidebarNavigationProvider on these routes).
+  const isSettingsRoute = pathname ? /\/settings(\/|$)/.test(pathname) : false;
   const { push } = useRouter();
   const isConversationShellEnabled = useConversationShellEnabled();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
@@ -308,7 +312,9 @@ function AppProtectedTopbarContent({
             rootLabel={
               isAdminChrome
                 ? TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
-                : undefined
+                : isSettingsRoute
+                  ? 'Settings'
+                  : undefined
             }
           />
         </div>
