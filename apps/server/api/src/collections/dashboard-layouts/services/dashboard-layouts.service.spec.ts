@@ -50,7 +50,7 @@ const mockLogger = {
 
 const mockCacheInvalidationService = {
   invalidate: vi.fn(),
-  invalidatePattern: vi.fn(),
+  invalidateByTags: vi.fn(),
 } as unknown as CacheInvalidationService;
 
 describe('DashboardLayoutsService', () => {
@@ -174,8 +174,29 @@ describe('DashboardLayoutsService', () => {
         'dashboardLayouts:single:dl-1',
       );
       expect(
-        mockCacheInvalidationService.invalidatePattern,
-      ).toHaveBeenCalledWith('dashboardLayouts:*');
+        mockCacheInvalidationService.invalidateByTags,
+      ).toHaveBeenCalledWith(['dashboardLayouts']);
+    });
+
+    it('does not invalidate caches when the database write fails', async () => {
+      mockPrisma.brand.findFirst.mockResolvedValueOnce({
+        organizationId: 'org-1',
+      });
+      mockPrisma.dashboardLayout.upsert.mockRejectedValueOnce(
+        new Error('database unavailable'),
+      );
+
+      await expect(
+        service.upsertForPage('org-1', {
+          brandId: 'brand-1',
+          document: { blocks: [] },
+        }),
+      ).rejects.toThrow('database unavailable');
+
+      expect(mockCacheInvalidationService.invalidate).not.toHaveBeenCalled();
+      expect(
+        mockCacheInvalidationService.invalidateByTags,
+      ).not.toHaveBeenCalled();
     });
 
     it('does not invalidate caches when the upsert is rejected for a cross-org brand', async () => {
@@ -334,8 +355,8 @@ describe('DashboardLayoutsService', () => {
         'dashboardLayouts:single:dl-1',
       );
       expect(
-        mockCacheInvalidationService.invalidatePattern,
-      ).toHaveBeenCalledWith('dashboardLayouts:*');
+        mockCacheInvalidationService.invalidateByTags,
+      ).toHaveBeenCalledWith(['dashboardLayouts']);
     });
   });
 });

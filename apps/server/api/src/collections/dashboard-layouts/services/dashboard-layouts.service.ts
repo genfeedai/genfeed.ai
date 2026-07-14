@@ -14,7 +14,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { sanitizeLayoutForPersistence } from '@genfeedai/agent/dashboard';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 const DEFAULT_PAGE_KEY = 'workspace-overview';
 
@@ -27,35 +27,30 @@ export class DashboardLayoutsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
-    @Optional()
-    private readonly cacheInvalidationService?: CacheInvalidationService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
   ) {
     super(prisma, 'dashboardLayout', logger);
   }
 
   /**
    * Invalidate the dashboard-layout list + single-record cache keys after a
-   * write. Mirrors ArticlesService.invalidateArticleListCaches — see api
-   * CLAUDE.md → Cache Invalidation Pattern. No-ops when the (optional)
-   * CacheInvalidationService isn't wired (e.g. unit tests).
+   * write. Mirrors ApiKeysService.invalidateRotationCaches — exact keys cover
+   * the canonical list/single caches while the collection tag covers any
+   * controller cache entries registered through `@Cache`.
    */
   private async invalidateLayoutCaches(
     organizationId: string,
     layoutId?: string,
   ): Promise<void> {
-    if (!this.cacheInvalidationService) {
-      return;
-    }
-
     const keys = [CACHE_PATTERNS.DASHBOARD_LAYOUTS_LIST(organizationId)];
     if (layoutId) {
       keys.push(CACHE_PATTERNS.DASHBOARD_LAYOUTS_SINGLE(layoutId));
     }
 
     await this.cacheInvalidationService.invalidate(...keys);
-    await this.cacheInvalidationService.invalidatePattern(
-      `${CACHE_TAGS.DASHBOARD_LAYOUTS}:*`,
-    );
+    await this.cacheInvalidationService.invalidateByTags([
+      CACHE_TAGS.DASHBOARD_LAYOUTS,
+    ]);
   }
 
   async findForPage(

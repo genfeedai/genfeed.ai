@@ -54,7 +54,7 @@ export class DashboardLayoutsController {
     @Query('brand') brandId: string,
     @Query('pageKey') pageKey?: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!brandId) {
+    if (!brandId?.trim()) {
       throw new BadRequestException({
         message: 'Query param `brand` is required',
       });
