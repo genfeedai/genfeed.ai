@@ -60,6 +60,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 export type {
   ArticleCycleModelConfig,
@@ -89,6 +90,7 @@ export class ArticlesContentService {
     private readonly harnessProfilesService?: HarnessProfilesService,
     @Optional()
     private readonly accountPublishingContextService?: AccountPublishingContextService,
+    @Optional() private readonly replicateService?: ReplicateService,
   ) {}
 
   /**
