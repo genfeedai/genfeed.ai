@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
+import { playwrightApiEndpoint } from '../e2e/config/environment';
 
 /**
  * Local-only: hydrate the Playwright RUNNER process from `apps/app/.env.local`
@@ -96,17 +97,15 @@ const appWebAppPath = path.resolve(
   process.cwd(),
   process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/app',
 );
-const testApiEndpoint =
-  process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://local.genfeed.ai:3010/v1';
 const appPlaywrightWebServerEnv = {
   ...process.env,
-  NEXT_PUBLIC_API_ENDPOINT: testApiEndpoint,
+  NEXT_PUBLIC_API_ENDPOINT: playwrightApiEndpoint,
   NEXT_PUBLIC_APPS_APP_ENDPOINT:
     process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'http://localhost:3000',
   NEXT_PUBLIC_PLAYWRIGHT_TEST:
     process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST || 'true',
   NEXT_PUBLIC_WS_ENDPOINT:
-    process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://local.genfeed.ai:3013',
+    process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://genfeed.localhost:3111',
   PLAYWRIGHT_TEST: 'true',
 };
 // Bind the web server dual-stack (IPv6 `::`, which also serves IPv4 127.0.0.1).

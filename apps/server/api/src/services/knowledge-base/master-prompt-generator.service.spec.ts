@@ -18,6 +18,28 @@ const makeBrandData = (
   ...overrides,
 });
 
+const makeProfileResponse = () => ({
+  audience: ['Developers'],
+  doNotSoundLike: ['hype'],
+  goals: ['Increase qualified leads'],
+  hashtags: ['tech', 'ai'],
+  messagingPillars: ['AI workflows', 'developer productivity', 'proof'],
+  promptSeeds: [
+    {
+      angle: 'Practical guide',
+      audience: 'Developers',
+      preferredFormats: ['post'],
+      topic: 'AI workflows',
+    },
+  ],
+  sampleOutput: 'Build faster with less noise.',
+  style: 'Expert and approachable',
+  taglines: ['Build faster'],
+  tone: 'Professional',
+  topics: ['AI workflows', 'developer productivity', 'proof'],
+  values: ['innovation', 'quality'],
+});
+
 describe('MasterPromptGeneratorService', () => {
   let service: MasterPromptGeneratorService;
 
@@ -74,14 +96,7 @@ describe('MasterPromptGeneratorService', () => {
   });
 
   it('should parse brand voice analysis from JSON response', async () => {
-    const voiceJson = JSON.stringify({
-      audience: 'Developers',
-      hashtags: ['tech', 'ai'],
-      taglines: ['Build faster'],
-      tone: 'Professional',
-      values: ['innovation', 'quality'],
-      voice: 'Expert and approachable',
-    });
+    const voiceJson = JSON.stringify(makeProfileResponse());
     mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
       voiceJson,
     );
@@ -97,8 +112,11 @@ describe('MasterPromptGeneratorService', () => {
   });
 
   it('should extract JSON from markdown code blocks', async () => {
-    const response =
-      '```json\n{"tone":"Casual","voice":"Fun","audience":"Teens","values":[],"taglines":[],"hashtags":[]}\n```';
+    const response = `\`\`\`json\n${JSON.stringify({
+      ...makeProfileResponse(),
+      style: 'Fun',
+      tone: 'Casual',
+    })}\n\`\`\``;
     mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
       response,
     );
@@ -135,6 +153,48 @@ describe('MasterPromptGeneratorService', () => {
 
     const result = await service.analyzeBrandVoice(makeBrandData());
     expect(result.tone).toBe('Professional');
+  });
+
+  it('charges exactly one credit after a valid profile is built', async () => {
+    mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      JSON.stringify(makeProfileResponse()),
+    );
+
+    await service.analyzeBrandVoice(makeBrandData(), {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+
+    expect(
+      mockReplicateService.generateTextCompletionSync,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mockCreditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith('org-1', 1);
+    expect(
+      mockCreditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      1,
+      'AI brand profile generation',
+      expect.any(String),
+    );
+  });
+
+  it('does not charge when the generated profile is invalid', async () => {
+    mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      '{"tone":"confident"}',
+    );
+
+    await service.analyzeBrandVoice(makeBrandData(), {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+
+    expect(
+      mockCreditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
   });
 
   it('should parse master prompts from JSON array response', async () => {

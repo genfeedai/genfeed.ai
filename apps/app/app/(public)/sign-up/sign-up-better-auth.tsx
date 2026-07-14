@@ -6,7 +6,7 @@ import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { ArrowLeft, MailCheck, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -23,6 +23,15 @@ import {
   getAuthCallbackURL,
   toAbsoluteAuthCallbackURL,
 } from '../auth-callback-url';
+import {
+  AUTH_LINK_CLASS_NAME,
+  AUTH_PRIMARY_BUTTON_CLASS_NAME,
+  AUTH_SECONDARY_BUTTON_CLASS_NAME,
+  AuthBackLink,
+  AuthCheckEmail,
+  AuthFooterPrompt,
+  AuthHeading,
+} from '../auth-ui';
 
 const subscribe = () => () => {};
 const getSnapshot = () => true;
@@ -33,12 +42,6 @@ type SignUpMode = 'chooser' | 'magic-link';
 interface SignUpBetterAuthProps {
   mode?: SignUpMode;
 }
-
-const AUTH_BUTTON_CLASS_NAME =
-  'h-10 w-full justify-center gap-3 rounded-md border-border bg-background text-[15px] font-medium tracking-normal shadow-sm hover:bg-accent/50';
-
-const AUTH_LINK_CLASS_NAME =
-  'text-sm font-medium text-foreground underline underline-offset-4';
 
 const SIGN_UP_MAGIC_LINK_METADATA = { intent: 'signup' } as const;
 
@@ -167,27 +170,17 @@ export default function SignUpBetterAuth({
   if (mode === 'magic-link' && isEmailSent) {
     return (
       <AuthFormLayout logoSize="compact">
-        <div className="w-full max-w-sm space-y-4 text-center">
-          <MailCheck
-            className="mx-auto size-8 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <p className="text-2xl font-semibold tracking-normal">
-            Check your email
-          </p>
-          <p className="text-sm text-muted-foreground">
-            We sent a sign-up link to <strong>{email}</strong>. Click the link
-            in the email to create your account.
-          </p>
-          <Button
-            asChild
-            variant={ButtonVariant.OUTLINE}
-            className={AUTH_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            <Link href={chooserHref}>Back to sign up</Link>
-          </Button>
-        </div>
+        <AuthCheckEmail
+          title="Check your email"
+          description={
+            <>
+              We sent a sign-up link to <strong>{email}</strong>. Click the link
+              in the email to create your account.
+            </>
+          }
+          backHref={chooserHref}
+          backLabel="Back to sign up"
+        />
       </AuthFormLayout>
     );
   }
@@ -195,8 +188,8 @@ export default function SignUpBetterAuth({
   if (mode === 'magic-link') {
     return (
       <AuthFormLayout logoSize="compact">
-        <div className="w-full max-w-sm space-y-8">
-          <AuthHeader
+        <div className="w-full space-y-6">
+          <AuthHeading
             title="Sign up with a magic link"
             description="Enter your email and we'll send you a secure sign-up link."
           />
@@ -227,14 +220,16 @@ export default function SignUpBetterAuth({
               variant={ButtonVariant.DEFAULT}
               isLoading={isSubmitting}
               isDisabled={!email.trim() || isSubmitting}
-              className="h-10 w-full justify-center text-[15px] font-medium tracking-normal"
+              className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
               withWrapper={false}
             >
               Email me a sign-up link
             </Button>
           </form>
 
-          <BackToChooser href={chooserHref} />
+          <AuthBackLink href={chooserHref}>
+            Back to sign up options
+          </AuthBackLink>
         </div>
       </AuthFormLayout>
     );
@@ -242,29 +237,29 @@ export default function SignUpBetterAuth({
 
   return (
     <AuthFormLayout logoSize="compact">
-      <div className="w-full max-w-[320px] space-y-8">
-        <AuthHeader
+      <div className="w-full space-y-6">
+        <AuthHeading
           title="Create your account"
           description="Start using Genfeed"
         />
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <Button
             type="button"
             variant={ButtonVariant.OUTLINE}
             onClick={() => handleSocialSignUp('google')}
             icon={<FcGoogle className="size-4" aria-hidden="true" />}
             isLoading={isSocialSubmitting}
-            className={AUTH_BUTTON_CLASS_NAME}
+            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
-            Google
+            Continue with Google
           </Button>
 
           <Button
             asChild
             variant={ButtonVariant.OUTLINE}
-            className={AUTH_BUTTON_CLASS_NAME}
+            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >
             <Link href={magicLinkHref}>
@@ -280,44 +275,13 @@ export default function SignUpBetterAuth({
           </p>
         ) : null}
 
-        <p className="text-center text-xs leading-5 text-muted-foreground">
+        <AuthFooterPrompt>
           Already have an account?{' '}
           <Link href={loginHref} className={AUTH_LINK_CLASS_NAME}>
             Sign in
           </Link>
-        </p>
+        </AuthFooterPrompt>
       </div>
     </AuthFormLayout>
-  );
-}
-
-function AuthHeader({
-  description,
-  title,
-}: {
-  description: string;
-  title: string;
-}) {
-  return (
-    <div className="space-y-2 text-center">
-      <h1 className="text-2xl font-semibold tracking-normal text-foreground">
-        {title}
-      </h1>
-      <p className="text-sm text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
-function BackToChooser({ href }: { href: string }) {
-  return (
-    <div className="text-center">
-      <Link
-        href={href}
-        className="inline-flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" aria-hidden="true" />
-        Back to sign up options
-      </Link>
-    </div>
   );
 }

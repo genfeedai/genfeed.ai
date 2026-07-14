@@ -77,13 +77,17 @@ To use it, point the frontend and Better Auth at `genfeed.localhost` in
 ```env
 BETTER_AUTH_URL=http://genfeed.localhost:3010
 NEXT_PUBLIC_API_ENDPOINT=http://genfeed.localhost:3010/v1
-NEXT_PUBLIC_WS_ENDPOINT=ws://genfeed.localhost:3010
+NEXT_PUBLIC_WS_ENDPOINT=ws://genfeed.localhost:3111
 ```
 
-All three hosts (`genfeed.localhost`, `localhost`, `local.genfeed.ai`) are
-auto-trusted by Better Auth outside production/staging, so no
+`genfeed.localhost` and plain `localhost` are auto-trusted by Better Auth
+outside production/staging. The legacy `local.genfeed.ai` host remains in the
+temporary compatibility allowlist, so no
 `BETTER_AUTH_TRUSTED_ORIGINS` config is required for local dev
 (`apps/server/api/src/auth/better-auth/better-auth.config.ts`).
+
+Port `3111` is the interactive local notifications/websocket port. Container,
+self-hosted, and deployed notifications services continue to use port `3011`.
 
 ## Branch and pull-request workflow
 

@@ -1,6 +1,6 @@
 # 🔐 JWT Token Setup for Genfeed Extension
 
-## **Yes! You can get the token from `local.genfeed.ai` in development**
+## **Yes! You can get the token from `genfeed.localhost` in development**
 
 ### **Current Setup**
 
@@ -23,13 +23,13 @@ const token = await getJWTToken(getToken);
 ```
 1. Better Auth JWT Token (Primary)     → getToken({ template: 'genfeed-jwt' })
 2. Stored Token (Cache)          → chrome.storage.local
-3. Session Cookie (Fallback)     → local.genfeed.ai cookies (dev) / genfeed.ai (prod)
+3. Session Cookie (Fallback)     → genfeed.localhost cookies (dev) / genfeed.ai (prod)
 ```
 
 ### **2. Environment Handling**
 
 ```typescript
-Development:  local.genfeed.ai cookies + JWT template
+Development:  genfeed.localhost cookies + JWT template
 Production:  genfeed.ai cookies + JWT template
 ```
 
@@ -51,7 +51,7 @@ export async function getJWTToken(getToken: Function): Promise<string | null> {
 ```env
 # .env file
 PLASMO_PUBLIC_API_ENDPOINT=your_key_here
-PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
+PLASMO_PUBLIC_ENV=development  # This triggers genfeed.localhost
 ```
 
 ### **Better Auth dashboard Setup**
@@ -66,8 +66,8 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 {
   "permissions": ["cookies", "storage", "tabs"],
   "host_permissions": [
-    "https://local.genfeed.ai/*", // Development
-    "https://genfeed.ai/*" // Production
+    "http://genfeed.localhost/*", // Development
+    "https://app.genfeed.ai/*" // Production
   ]
 }
 ```
@@ -77,8 +77,8 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 ### **Development Flow**
 
 ```
-1. User signs in on local.genfeed.ai
-2. Extension detects local.genfeed.ai cookies
+1. User signs in on genfeed.localhost
+2. Extension detects genfeed.localhost cookies
 3. Better Auth getToken({ template: 'genfeed-jwt' }) gets JWT
 4. JWT stored in chrome.storage.local
 5. API calls use JWT token
@@ -104,7 +104,7 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 "Genfeed Extension: JWT token received, storing..."
 
 # Cookie Fallback
-"Genfeed Extension: Checking cookies from https://local.genfeed.ai"
+"Genfeed Extension: Checking cookies from http://genfeed.localhost:3000"
 "Genfeed Extension: Token retrieved from __session cookie"
 
 # Environment Detection
@@ -130,10 +130,10 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 # Solution: Create template in Better Auth dashboard
 ```
 
-#### **2. No Token from local.genfeed.ai**
+#### **2. No Token from genfeed.localhost**
 
 ```bash
-# Check: Are you signed in on local.genfeed.ai?
+# Check: Are you signed in on genfeed.localhost?
 # Check: Does the JWT template exist?
 # Check: Are cookies being set correctly?
 ```
@@ -158,7 +158,7 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 
 ### **Development Testing**
 
-- [ ] Sign in on `local.genfeed.ai`
+- [ ] Sign in on `genfeed.localhost`
 - [ ] Open extension popup
 - [ ] Check console for JWT token logs
 - [ ] Verify debug panel shows token
@@ -184,7 +184,7 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 
 - Automatically detects dev vs prod
 - Uses correct domain for cookies
-- Handles both local.genfeed.ai and genfeed.ai
+- Handles both genfeed.localhost and genfeed.ai
 
 ### **✅ Robust Fallback**
 
@@ -218,4 +218,4 @@ PLASMO_PUBLIC_ENV=development  # This triggers local.genfeed.ai
 - Automatically switches between domains
 - Fallback to production if not set
 
-The extension now perfectly mirrors your frontend JWT token setup and will work seamlessly with `local.genfeed.ai` in development! 🎉
+The extension now perfectly mirrors your frontend JWT token setup and will work seamlessly with `genfeed.localhost` in development! 🎉

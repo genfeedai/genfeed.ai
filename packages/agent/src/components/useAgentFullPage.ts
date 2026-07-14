@@ -21,7 +21,6 @@ import {
   HiOutlineChartBar,
   HiOutlineClipboardDocumentCheck,
   HiOutlineHeart,
-  HiOutlineMagnifyingGlass,
   HiOutlinePaintBrush,
   HiOutlineRocketLaunch,
 } from 'react-icons/hi2';
@@ -43,11 +42,6 @@ const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
     icon: HiOutlineChartBar({ className: 'size-5 text-foreground/50' }),
     label: 'Check performance',
     prompt: 'Summarize my recent content performance',
-  },
-  {
-    icon: HiOutlineMagnifyingGlass({ className: 'size-5 text-foreground/50' }),
-    label: 'Brainstorm ideas',
-    prompt: 'Give me 10 content ideas I can create next',
   },
 ];
 
@@ -213,13 +207,13 @@ export function useAgentFullPage({
       latestMessage?.role === 'assistant' &&
       latestMessage.metadata?.suggestedActions?.length
     ) {
-      return latestMessage.metadata.suggestedActions;
+      return latestMessage.metadata.suggestedActions.slice(0, 3);
     }
 
     if (pageContext?.suggestedActions?.length) {
-      return pageContext.suggestedActions;
+      return pageContext.suggestedActions.slice(0, 3);
     }
-    return filterActionsByRole(DEFAULT_AGENT_ACTIONS, userRole);
+    return filterActionsByRole(DEFAULT_AGENT_ACTIONS, userRole).slice(0, 3);
   }, [existingMessages, pageContext, userRole]);
 
   const showRuntimeSuggestedActions = useMemo(() => {

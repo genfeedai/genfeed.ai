@@ -134,7 +134,8 @@ useEffect(() => {
 ## Context & Hook Usage
 
 - `useBrand()` from `@contexts/user/brand-context/brand-context` — `organizationId`, `brandId`, `selectedBrand`, `isReady`
-- `useAuth()` from legacy auth provider for user identity
+- `useAuthIdentity()` from `@hooks/auth/use-auth-identity/use-auth-identity` for session identity
+- `useAuthUser()` from `@hooks/auth/use-auth-user/use-auth-user` for normalized user details
 - Hook location: `packages/hooks/data/<domain>/use-<entity>/use-<entity>.ts`
 - Service location: `packages/services/<domain>/<entity>.service.ts`
 

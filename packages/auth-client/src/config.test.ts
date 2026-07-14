@@ -52,8 +52,8 @@ describe('auth-client config', () => {
     });
 
     it('strips the path from a custom endpoint', () => {
-      process.env.NEXT_PUBLIC_API_ENDPOINT = 'http://local.genfeed.ai:3010/v1';
-      expect(getApiOrigin()).toBe('http://local.genfeed.ai:3010');
+      process.env.NEXT_PUBLIC_API_ENDPOINT = 'http://genfeed.localhost:3010/v1';
+      expect(getApiOrigin()).toBe('http://genfeed.localhost:3010');
     });
 
     it('prefers the runtime endpoint injected by the app shell', () => {
@@ -117,8 +117,8 @@ describe('auth-client config', () => {
     });
 
     it('honours NEXT_PUBLIC_API_ENDPOINT when present', () => {
-      process.env.NEXT_PUBLIC_API_ENDPOINT = 'http://local.genfeed.ai:3010/v1';
-      expect(getApiEndpoint()).toBe('http://local.genfeed.ai:3010/v1');
+      process.env.NEXT_PUBLIC_API_ENDPOINT = 'http://genfeed.localhost:3010/v1';
+      expect(getApiEndpoint()).toBe('http://genfeed.localhost:3010/v1');
     });
 
     it('honours runtime API endpoint before build-time env', () => {

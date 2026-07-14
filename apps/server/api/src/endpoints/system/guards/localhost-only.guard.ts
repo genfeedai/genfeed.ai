@@ -7,7 +7,14 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+const LOCAL_HOSTS = new Set([
+  ...LOOPBACK_HOSTS,
+  'genfeed.localhost',
+  // Temporary backwards-compatible development host.
+  'local.genfeed.ai',
+]);
+const LOCAL_DEVELOPMENT_HOST_SUFFIX = '.genfeed.localhost';
 
 @Injectable()
 export class LocalhostOnlyGuard implements CanActivate {
@@ -83,7 +90,8 @@ export class LocalhostOnlyGuard implements CanActivate {
 
     const normalizedValue = this.normalizeIpOrHost(value);
     return (
-      LOCAL_HOSTS.has(normalizedValue) || normalizedValue.startsWith('local.')
+      LOCAL_HOSTS.has(normalizedValue) ||
+      normalizedValue.endsWith(LOCAL_DEVELOPMENT_HOST_SUFFIX)
     );
   }
 
@@ -92,7 +100,7 @@ export class LocalhostOnlyGuard implements CanActivate {
       return false;
     }
 
-    return LOCAL_HOSTS.has(this.normalizeIpOrHost(value));
+    return LOOPBACK_HOSTS.has(this.normalizeIpOrHost(value));
   }
 
   private normalizeHostHeader(

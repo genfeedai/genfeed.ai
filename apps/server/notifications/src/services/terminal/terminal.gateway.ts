@@ -22,6 +22,8 @@ const LOCAL_ORIGIN_HOSTS = new Set([
   '127.0.0.1',
   '::1',
   'localhost',
+  'genfeed.localhost',
+  // Temporary backwards-compatible development host.
   'local.genfeed.ai',
 ]);
 const PORTLESS_LOCALHOST_SUFFIX = '.genfeed.localhost';

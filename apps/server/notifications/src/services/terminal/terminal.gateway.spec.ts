@@ -210,6 +210,36 @@ describe('TerminalGateway', () => {
     expect(socket.disconnect).not.toHaveBeenCalled();
   });
 
+  it('accepts the canonical local development origin', async () => {
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const socket = createSocket(
+      'http://genfeed.localhost:3000',
+      'session-token',
+    );
+
+    await gateway.handleConnection(socket);
+
+    expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
+      socketId: 'socket-1',
+    });
+  });
+
+  it('keeps the legacy development origin as an explicit compatibility allowlist entry', async () => {
+    const terminalService = createTerminalService();
+    const gateway = new TerminalGateway(terminalService as never);
+    const socket = createSocket(
+      'http://local.genfeed.ai:3000',
+      'session-token',
+    );
+
+    await gateway.handleConnection(socket);
+
+    expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
+      socketId: 'socket-1',
+    });
+  });
+
   it('emits terminal:sessions in response to terminal:list', async () => {
     const terminalService = createTerminalService();
     const gateway = new TerminalGateway(terminalService as never);

@@ -17,19 +17,37 @@ export default function AuthFormLayout({
   const logoUrl = useThemeLogo();
   const logoDimension = LOGO_DIMENSIONS[logoSize];
 
+  // Compact = the auth forms (login / sign-up / forgot / reset). These sit in a
+  // single elevated card. The `default` size is reserved for wide, non-form
+  // surfaces (oauth/cli, managed-credits success) that must not be boxed.
+  if (logoSize === 'compact') {
+    return (
+      <div className="min-h-screen flex flex-col justify-center items-center bg-background px-4 text-foreground">
+        <div className="w-full max-w-[400px] rounded-2xl bg-card p-8 shadow-border">
+          {logoUrl && (
+            <Image
+              src={logoUrl}
+              className="mb-8 object-contain dark:invert"
+              alt={EnvironmentService.LOGO_ALT}
+              width={logoDimension}
+              height={logoDimension}
+              priority
+            />
+          )}
+
+          {children}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div
-      className={`min-h-screen flex flex-col justify-center items-center ${
-        logoSize === 'compact' ? 'bg-background px-4 text-foreground' : ''
-      }`}
-    >
+    <div className="min-h-screen flex flex-col justify-center items-center">
       <div className="mb-4">
         {logoUrl && (
           <Image
             src={logoUrl}
-            className={`mx-auto object-contain dark:invert ${
-              logoSize === 'compact' ? 'mb-8' : 'mb-20'
-            }`}
+            className="mx-auto mb-20 object-contain dark:invert"
             alt={EnvironmentService.LOGO_ALT}
             width={logoDimension}
             height={logoDimension}

@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test';
+import { playwrightApiEndpoint } from '../config/environment';
 import {
   generateMockIngredient,
   generateMockOrganization,
@@ -44,7 +45,7 @@ interface MockAvatarIdentityFixture {
   parent?: string;
 }
 
-const LOCAL_API = 'http://local.genfeed.ai:3010/v1';
+const LOCAL_API = playwrightApiEndpoint;
 
 function buildAvatarIdentityFixture(
   overrides: Partial<MockAvatarIdentityFixture>,

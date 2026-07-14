@@ -2,6 +2,7 @@
 
 import { createContext, type ReactNode, use, useEffect } from 'react';
 import {
+  configureExecutionApiBaseUrl,
   configureExecutionHeaders,
   configureExecutionHttpClient,
 } from '../stores/execution/executionApi';
@@ -51,6 +52,10 @@ export function WorkflowUIProvider({
   useEffect(() => {
     configureExecutionHttpClient(config.executionHttpClient);
   }, [config.executionHttpClient]);
+
+  useEffect(() => {
+    configureExecutionApiBaseUrl(config.executionApiBaseUrl);
+  }, [config.executionApiBaseUrl]);
 
   useEffect(() => {
     configureExecutionHeaders(config.executionHeaders);

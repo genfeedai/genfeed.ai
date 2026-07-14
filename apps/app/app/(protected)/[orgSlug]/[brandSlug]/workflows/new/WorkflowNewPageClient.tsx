@@ -9,6 +9,7 @@ import {
 } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import { ReactFlowProvider } from '@xyflow/react';
@@ -201,6 +202,7 @@ export default function WorkflowNewPageClient() {
   const workflowUiConfig = useMemo<WorkflowUIConfig>(
     () => ({
       applyEditOperations,
+      executionApiBaseUrl: EnvironmentService.apiEndpoint,
       executionHeaders: getExecutionProviderHeaders,
       executionHttpClient: {
         post: <T,>(

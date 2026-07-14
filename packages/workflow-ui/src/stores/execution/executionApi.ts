@@ -21,12 +21,14 @@ import type {
  * credentialed client and its provider auth headers through `WorkflowUIConfig`.
  */
 
-/**
- * Base URL every execution HTTP/SSE request is built on. Canonical definition
- * for the execution store; SSE helpers import this rather than redefining it.
- */
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://local.genfeed.ai:3010/api';
+export function resolveExecutionApiBaseUrl(value?: string): string {
+  const trimmed = value?.trim().replace(/\/+$/, '');
+  return trimmed || '/v1';
+}
+
+const DEFAULT_API_BASE_URL = resolveExecutionApiBaseUrl(
+  process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_ENDPOINT,
+);
 
 /**
  * Default fetch-based client. Preserves the package's prior inline `apiPost`
@@ -39,7 +41,7 @@ const DEFAULT_HTTP_CLIENT: WorkflowUIHttpClient = {
     body?: Record<string, unknown>,
     options?: { headers?: Record<string, string> },
   ): Promise<T> => {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
+    const response = await fetch(`${getExecutionApiBaseUrl()}${path}`, {
       headers: { 'Content-Type': 'application/json', ...options?.headers },
       method: 'POST',
       ...(body && { body: JSON.stringify(body) }),
@@ -59,6 +61,18 @@ const NOOP_HEADERS: ExecutionHeaderProvider = () => ({});
 
 let _httpClient: WorkflowUIHttpClient = DEFAULT_HTTP_CLIENT;
 let _headers: ExecutionHeaderProvider = NOOP_HEADERS;
+let _apiBaseUrl = DEFAULT_API_BASE_URL;
+
+/** Configure the base URL used by execution REST and SSE requests. */
+export function configureExecutionApiBaseUrl(value?: string): void {
+  _apiBaseUrl = value
+    ? resolveExecutionApiBaseUrl(value)
+    : DEFAULT_API_BASE_URL;
+}
+
+export function getExecutionApiBaseUrl(): string {
+  return _apiBaseUrl;
+}
 
 /**
  * Register the HTTP client the execution store posts through.

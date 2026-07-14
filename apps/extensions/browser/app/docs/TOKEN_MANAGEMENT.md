@@ -43,7 +43,7 @@ Logout       → AuthService.clearToken() → Cache cleared
 ### **3. Environment Handling**
 
 ```typescript
-Development:  local.genfeed.ai cookies
+Development:  genfeed.localhost cookies
 Production:   genfeed.ai cookies
 ```
 

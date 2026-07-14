@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { WorkflowUIHttpClient } from '../../provider/types';
 import {
+  configureExecutionApiBaseUrl,
   configureExecutionHeaders,
   configureExecutionHttpClient,
+  getExecutionApiBaseUrl,
   getExecutionHeaders,
   getExecutionHttpClient,
+  resolveExecutionApiBaseUrl,
 } from './executionApi';
 
 describe('executionApi', () => {
@@ -12,8 +15,21 @@ describe('executionApi', () => {
     // Reset both registries to their standalone defaults so tests don't leak.
     configureExecutionHttpClient(undefined);
     configureExecutionHeaders(undefined);
+    configureExecutionApiBaseUrl(undefined);
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  describe('execution API base URL', () => {
+    it('normalizes an injected endpoint and removes trailing slashes', () => {
+      configureExecutionApiBaseUrl('http://genfeed.localhost:3010/v1///');
+
+      expect(getExecutionApiBaseUrl()).toBe('http://genfeed.localhost:3010/v1');
+    });
+
+    it('uses a relative API boundary when no endpoint is configured', () => {
+      expect(resolveExecutionApiBaseUrl(undefined)).toBe('/v1');
+    });
   });
 
   describe('execution headers', () => {

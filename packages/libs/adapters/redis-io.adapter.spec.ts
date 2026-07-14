@@ -217,7 +217,7 @@ describe('RedisIoAdapter', () => {
       const origins = buildServerOrigins('development');
 
       expect(originAllows(origins, 'http://localhost:3000')).toBe(true);
-      expect(originAllows(origins, 'http://local.genfeed.ai:3011')).toBe(true);
+      expect(originAllows(origins, 'http://genfeed.localhost:3111')).toBe(true);
     });
   });
 });

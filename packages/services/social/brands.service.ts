@@ -7,6 +7,7 @@ import type {
   IActivity,
   IAnalytics,
   IArticle,
+  IBrandAgentPrompting,
   IBrandKitApplyRequest,
   IBrandKitApplyResult,
   IBrandKitAssetImportRequest,
@@ -205,6 +206,7 @@ export class BrandsService extends BaseService<Brand> {
       heygenAvatarId?: string | null;
       heygenVoiceId?: string | null;
       persona?: string;
+      prompting?: IBrandAgentPrompting;
       voice?: {
         approvedHooks?: string[];
         bannedPhrases?: string[];
@@ -226,6 +228,7 @@ export class BrandsService extends BaseService<Brand> {
         platforms?: string[];
         frequency?: string;
         goals?: string[];
+        topics?: string[];
       };
       schedule?: {
         cronExpression?: string;
@@ -262,6 +265,7 @@ export class BrandsService extends BaseService<Brand> {
             platforms?: string[];
             frequency?: string;
             goals?: string[];
+            topics?: string[];
           };
         }
       >;

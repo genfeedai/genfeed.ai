@@ -52,10 +52,13 @@ export { useWorkflowUIConfig, WorkflowUIProvider } from './provider';
 export { useAnnotationStore } from './stores/annotationStore';
 export { useExecutionStore } from './stores/execution';
 export {
+  configureExecutionApiBaseUrl,
   configureExecutionHeaders,
   configureExecutionHttpClient,
+  getExecutionApiBaseUrl,
   getExecutionHeaders,
   getExecutionHttpClient,
+  resolveExecutionApiBaseUrl,
 } from './stores/execution/executionApi';
 export {
   configureWorkflowLogger,
