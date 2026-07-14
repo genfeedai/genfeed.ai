@@ -78,6 +78,8 @@ describe('OrgLandingContent', () => {
       onboardingStepsCompleted: ['brand', 'providers', 'summary'],
     };
     mocks.currentUserState.isLoading = false;
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
   });
 
   it('redirects to onboarding when the organization has no projects', async () => {
@@ -129,7 +131,7 @@ describe('OrgLandingContent', () => {
     });
   });
 
-  it('routes incomplete cloud users to the agent onboarding surface', async () => {
+  it('routes incomplete SaaS users to the agent onboarding surface', async () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
     mocks.currentUserState.currentUser = {
       id: 'user_1',
@@ -149,6 +151,30 @@ describe('OrgLandingContent', () => {
 
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+    });
+  });
+
+  it('keeps cloud-connected desktop org-root navigation on the classic wizard', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+    mocks.brandState.brands = [
+      {
+        id: 'brand_1',
+        label: 'Default Organization',
+        slug: 'default',
+        totalCredentials: 0,
+      },
+    ];
+
+    render(<OrgLandingContent />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 

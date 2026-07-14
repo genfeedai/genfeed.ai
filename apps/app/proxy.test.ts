@@ -80,6 +80,7 @@ describe('proxy', () => {
     vi.stubEnv('API_URL', undefined);
     vi.stubEnv('NEXT_PUBLIC_API_ENDPOINT', 'http://localhost:3010/v1');
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
     vi.resetModules();
     globalThis.fetch = fetchMock as typeof fetch;
 
@@ -263,7 +264,7 @@ describe('proxy', () => {
     );
   });
 
-  describe('agent-first onboarding (cloud)', () => {
+  describe('agent-first onboarding (SaaS)', () => {
     const mockIncompleteUser = () =>
       fetchMock.mockImplementation(async (input: string | URL) => {
         const url = String(input);
@@ -299,7 +300,7 @@ describe('proxy', () => {
         return new Response('not found', { status: 404 });
       });
 
-    it('redirects an incomplete cloud user on a protected route to the agent onboarding surface', async () => {
+    it('redirects an incomplete SaaS user on a protected route to the agent onboarding surface', async () => {
       vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
       mockIncompleteUser();
 
@@ -315,7 +316,7 @@ describe('proxy', () => {
       );
     });
 
-    it('lets an incomplete cloud user stay on the agent onboarding surface (no redirect loop)', async () => {
+    it('lets an incomplete SaaS user stay on the agent onboarding surface (no redirect loop)', async () => {
       vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
       mockIncompleteUser();
 
@@ -341,6 +342,20 @@ describe('proxy', () => {
       expect(response.headers.get('location')).toBe(
         'http://localhost:3000/onboarding',
       );
+    });
+
+    it('does not route cloud-connected desktop users into web agent onboarding', async () => {
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+      mockIncompleteUser();
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedInRequest('/acme/default/workspace/overview'),
+        {} as never,
+      );
+
+      expect(response.headers.get('location')).toBeNull();
     });
   });
 
