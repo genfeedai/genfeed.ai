@@ -10745,39 +10745,6 @@
         ],
         "type": "object"
       },
-      "UpdateBrandPromptSeedDto": {
-        "properties": {
-          "angle": {
-            "description": "Reusable content angle grounded in the brand profile",
-            "maxLength": 200,
-            "type": "string"
-          },
-          "audience": {
-            "description": "Audience segment the prompt seed should address",
-            "maxLength": 200,
-            "type": "string"
-          },
-          "preferredFormats": {
-            "description": "Content formats suited to this prompt seed",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "topic": {
-            "description": "Canonical brand topic used by this prompt seed",
-            "maxLength": 200,
-            "type": "string"
-          }
-        },
-        "required": [
-          "angle",
-          "audience",
-          "preferredFormats",
-          "topic"
-        ],
-        "type": "object"
-      },
       "UpdateBrandDto": {
         "properties": {
           "agentConfig": {
@@ -10924,6 +10891,39 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "UpdateBrandPromptSeedDto": {
+        "properties": {
+          "angle": {
+            "description": "Reusable content angle grounded in the brand profile",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "audience": {
+            "description": "Audience segment the prompt seed should address",
+            "maxLength": 200,
+            "type": "string"
+          },
+          "preferredFormats": {
+            "description": "Content formats suited to this prompt seed",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "topic": {
+            "description": "Canonical brand topic used by this prompt seed",
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "angle",
+          "audience",
+          "preferredFormats",
+          "topic"
+        ],
         "type": "object"
       },
       "UpdateCaptionDto": {
