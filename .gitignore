@@ -56,6 +56,9 @@ apps/desktop/app/release/
 .genfeed/
 .package-release/
 
+# ShipCode interactive prompt/output scratch
+.shipcode/runs/
+
 # Playwright generated artifacts: reports, traces, videos, screenshots, and legacy auth provider storageState
 playwright/artifacts/
 playwright/.authProvider/
