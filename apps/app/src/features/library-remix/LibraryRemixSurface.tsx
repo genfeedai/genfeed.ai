@@ -90,7 +90,7 @@ export default function LibraryRemixSurface({
               <Button
                 label="Choose a source"
                 onClick={openLibraryPicker}
-                variant={ButtonVariant.PRIMARY}
+                variant={ButtonVariant.DEFAULT}
               />
             ) : null}
             <Link
@@ -146,7 +146,7 @@ export default function LibraryRemixSurface({
               <Button
                 label="Choose another source"
                 onClick={openLibraryPicker}
-                variant={ButtonVariant.PRIMARY}
+                variant={ButtonVariant.DEFAULT}
               />
             ) : null}
             <Link
@@ -198,7 +198,7 @@ export default function LibraryRemixSurface({
             <Button
               label="Choose a different source"
               onClick={openLibraryPicker}
-              variant={ButtonVariant.PRIMARY}
+              variant={ButtonVariant.DEFAULT}
             />
           ) : null}
           <Link

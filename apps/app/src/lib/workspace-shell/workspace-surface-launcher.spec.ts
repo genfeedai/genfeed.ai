@@ -10,7 +10,7 @@ describe('workspace surface launcher', () => {
           '/acme/~/analytics/overview?taskId=task-1&taskSource=workspace',
       }),
     ).toMatchObject({
-      announcement: 'Opening organization overview in canvas mode.',
+      announcement: 'Opening analytics in canvas mode.',
       history: 'push',
       href: '/acme/~/analytics/overview?taskId=task-1&taskSource=workspace&thread=thread-1',
       mode: 'canvas',

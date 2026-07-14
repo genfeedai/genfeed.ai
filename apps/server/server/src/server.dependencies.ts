@@ -142,6 +142,7 @@ export interface ServerPostRecord {
 
 export interface ServerPrisma {
   $queryRaw<T = unknown>(query: Prisma.Sql): Promise<T>;
+  $transaction: PrismaClient['$transaction'];
   agentMessage: PrismaClient['agentMessage'];
   agentThread: PrismaClient['agentThread'];
   article: PrismaClient['article'];
@@ -155,6 +156,7 @@ export interface ServerPrisma {
   brand: PrismaClient['brand'];
   contentDraft: PrismaClient['contentDraft'];
   contentVersionPin: PrismaClient['contentVersionPin'];
+  credential: PrismaClient['credential'];
   contentPerformance: {
     create(args: unknown): Promise<unknown>;
     findFirst(
@@ -193,16 +195,12 @@ export interface ServerPrisma {
     } | null>;
     update(args: unknown): Promise<unknown>;
   };
-  organization: {
-    findUnique(args: unknown): Promise<{
-      label: string | null;
-      userId: string | null;
-    } | null>;
-  };
+  organization: PrismaClient['organization'];
   ingredient: PrismaClient['ingredient'];
   member: PrismaClient['member'];
   newsletter: PrismaClient['newsletter'];
   post: PrismaClient['post'];
+  publishApproval: PrismaClient['publishApproval'];
   postAnalytics: {
     aggregate(args: unknown): Promise<{
       _avg: {
