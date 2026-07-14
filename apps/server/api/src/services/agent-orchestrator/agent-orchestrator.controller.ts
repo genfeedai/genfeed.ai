@@ -318,22 +318,16 @@ export class AgentOrchestratorController {
   }
 
   private async resolveMongoUserId(user: User): Promise<string> {
+    const { user: metadataUserId } = getPublicMetadata(user);
+    if (metadataUserId) {
+      return metadataUserId;
+    }
+
     const authProviderId = user.id;
     if (!authProviderId) {
       throw new UnauthorizedException(
         'Missing user identity. Please sign in again.',
       );
-    }
-
-    const { user: metadataUserId } = getPublicMetadata(user);
-    if (metadataUserId) {
-      const metadataUserDoc = await this.usersService.findOne(
-        { _id: metadataUserId, authProviderId },
-        [],
-      );
-      if (metadataUserDoc?.id) {
-        return String(metadataUserDoc.id);
-      }
     }
 
     const dbUser = await this.usersService.findOne({ authProviderId }, []);

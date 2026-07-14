@@ -128,6 +128,7 @@ describe('Threading AgentThreadRuntimeController', () => {
         userId,
       },
     );
+    expect(usersService.findOne).not.toHaveBeenCalled();
   });
 
   it('rejects unsupported thread UI actions', async () => {

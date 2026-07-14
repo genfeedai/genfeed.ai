@@ -9,7 +9,6 @@ import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const identity = vi.hoisted(() => ({
-  databaseUserId: '507f191e810c19729de860ec',
   metadataUserId: '507f191e810c19729de860eb',
   organizationId: '507f191e810c19729de860ea',
 }));
@@ -133,9 +132,6 @@ describe('AgentOrchestratorController', () => {
         recordId: 'post-1',
         serializer: 'post',
       } satisfies AgentArtifactReference;
-      usersService.findOne.mockResolvedValue({
-        id: identity.databaseUserId,
-      });
       service.chat.mockResolvedValue({} as never);
 
       await controller.createTurn(
@@ -152,16 +148,10 @@ describe('AgentOrchestratorController', () => {
         expect.objectContaining({ artifactReferences: [reference] }),
         expect.objectContaining({
           organizationId: identity.organizationId,
-          userId: identity.databaseUserId,
+          userId: identity.metadataUserId,
         }),
       );
-      expect(usersService.findOne).toHaveBeenCalledWith(
-        {
-          _id: identity.metadataUserId,
-          authProviderId: 'authProvider_123',
-        },
-        [],
-      );
+      expect(usersService.findOne).not.toHaveBeenCalled();
     });
 
     it('should strip Bearer prefix from auth header', async () => {
@@ -186,13 +176,12 @@ describe('AgentOrchestratorController', () => {
       );
     });
 
-    it('should resolve user from usersService before calling chat', async () => {
+    it('should trust the guard-resolved user id before calling chat', async () => {
       const userId = '507f191e810c19729de860ea';
       const user = {
         id: 'authProvider_789',
-        publicMetadata: { organization: 'org', user: 'usr' },
+        publicMetadata: { organization: 'org', user: userId },
       } as unknown as User;
-      usersService.findOne.mockResolvedValue({ id: userId });
       service.chat.mockResolvedValue({} as never);
 
       await controller.createTurn(
@@ -201,7 +190,7 @@ describe('AgentOrchestratorController', () => {
         'Bearer t',
       );
 
-      expect(usersService.findOne).toHaveBeenCalled();
+      expect(usersService.findOne).not.toHaveBeenCalled();
       expect(service.chat).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({ userId }),

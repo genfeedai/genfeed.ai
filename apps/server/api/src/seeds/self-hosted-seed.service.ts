@@ -3,11 +3,13 @@
  * Creates the default workspace (User, Organization, Brand, OrganizationSetting)
  * on first application boot when running in self-hosted mode.
  *
- * Idempotent: skips seeding if a default organization already exists.
+ * Idempotent: creates missing default resources and repairs the owner membership
+ * for workspaces created before Member became the authorization source of truth.
  */
 
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import { MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -32,8 +34,9 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
     });
 
     if (existingOrg) {
+      await this.ensureOwnerMembership(existingOrg.id, existingOrg.userId);
       this.logger.log(
-        'Default workspace already exists — skipping seed',
+        'Default workspace already exists — seed reconciliation complete',
         this.context,
       );
       return;
@@ -84,10 +87,66 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       },
     });
 
+    await this.ensureOwnerMembership(org.id, user.id);
+
     await this.provisionDefaultWorkflows(user.id, org.id);
 
     this.logger.log(
       `Self-hosted workspace seeded (org=${org.id}, user=${user.id})`,
+      this.context,
+    );
+  }
+
+  private async ensureOwnerMembership(
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    const existingMember = await this.prisma.member.findFirst({
+      where: {
+        isDeleted: false,
+        organizationId,
+        userId,
+      },
+    });
+
+    if (existingMember) {
+      if (!existingMember.isActive) {
+        await this.prisma.member.update({
+          data: { isActive: true },
+          where: { id: existingMember.id },
+        });
+      }
+      return;
+    }
+
+    const roles = await this.prisma.role.findMany({
+      where: {
+        isDeleted: false,
+        key: {
+          in: [MemberRole.OWNER, MemberRole.ADMIN, MemberRole.USER],
+        },
+      },
+    });
+    const role = [MemberRole.OWNER, MemberRole.ADMIN, MemberRole.USER]
+      .map((key) => roles.find((candidate) => candidate.key === key))
+      .find(Boolean);
+
+    if (!role) {
+      throw new Error('No owner, admin, or user role found for default member');
+    }
+
+    await this.prisma.member.create({
+      data: {
+        isActive: true,
+        organizationId,
+        roleId: role.id,
+        roleKey: role.key,
+        userId,
+      },
+    });
+
+    this.logger.log(
+      `Created default workspace member (org=${organizationId}, user=${userId}, role=${role.key})`,
       this.context,
     );
   }
