@@ -159,39 +159,75 @@ export class UpdateBrandAgentStrategyDto {
 export class UpdateBrandPromptSeedDto {
   @IsString()
   @MaxLength(200)
+  @ApiProperty({
+    description: 'Reusable content angle grounded in the brand profile',
+    maxLength: 200,
+  })
   angle!: string;
 
   @IsString()
   @MaxLength(200)
+  @ApiProperty({
+    description: 'Audience segment the prompt seed should address',
+    maxLength: 200,
+  })
   audience!: string;
 
   @IsArray()
   @IsString({ each: true })
+  @ApiProperty({
+    description: 'Content formats suited to this prompt seed',
+    type: [String],
+  })
   preferredFormats!: string[];
 
   @IsString()
   @MaxLength(200)
+  @ApiProperty({
+    description: 'Canonical brand topic used by this prompt seed',
+    maxLength: 200,
+  })
   topic!: string;
 }
 
 export class UpdateBrandConversationStarterDto {
   @IsString()
   @MaxLength(120)
+  @ApiProperty({
+    description: 'Stable identifier for the conversation starter',
+    maxLength: 120,
+  })
   id!: string;
 
   @IsIn(['analyze', 'create', 'plan'])
+  @ApiProperty({
+    description: 'Agent intent represented by the conversation starter',
+    enum: ['analyze', 'create', 'plan'],
+  })
   intent!: 'analyze' | 'create' | 'plan';
 
   @IsString()
   @MaxLength(32)
+  @ApiProperty({
+    description: 'Short prompt-bar label',
+    maxLength: 32,
+  })
   label!: string;
 
   @IsString()
   @MaxLength(220)
+  @ApiProperty({
+    description: 'Prompt inserted when the starter is selected',
+    maxLength: 220,
+  })
   prompt!: string;
 
   @IsString()
   @MaxLength(200)
+  @ApiProperty({
+    description: 'Canonical brand topic used by the starter',
+    maxLength: 200,
+  })
   topic!: string;
 }
 
@@ -199,11 +235,21 @@ export class UpdateBrandAgentPromptingDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateBrandConversationStarterDto)
+  @ApiProperty({
+    description: 'Top conversation starters generated with the brand profile',
+    isArray: true,
+    type: UpdateBrandConversationStarterDto,
+  })
   conversationStarters!: UpdateBrandConversationStarterDto[];
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateBrandPromptSeedDto)
+  @ApiProperty({
+    description: 'Reusable prompt seeds generated with the brand profile',
+    isArray: true,
+    type: UpdateBrandPromptSeedDto,
+  })
   seeds!: UpdateBrandPromptSeedDto[];
 }
 
