@@ -8,19 +8,19 @@
  * Foundation for parent issue #1132, child issue #1513.
  */
 
-import {
-  type ChannelTargetInput,
-  channelTargetSettingsSchema,
-  releaseAttachmentInputSchema,
-} from '@api-types/contracts/scheduler.contract';
+import { CredentialPlatform, ReleaseAttachmentKind } from '@genfeedai/enums';
+import { z } from 'zod';
 import {
   dateStringSchema,
   nonEmptyStringSchema,
   nonNegativeIntSchema,
   timezoneSchema,
-} from '@api-types/helpers/common-schemas';
-import { CredentialPlatform, ReleaseAttachmentKind } from '@genfeedai/enums';
-import { z } from 'zod';
+} from '../helpers/common-schemas';
+import {
+  type ChannelTargetInput,
+  channelTargetSettingsSchema,
+  releaseAttachmentInputSchema,
+} from './scheduler.contract';
 
 const idSchema = nonEmptyStringSchema({ max: 255 });
 const labelSchema = nonEmptyStringSchema({ max: 120 });

@@ -1,13 +1,13 @@
 import {
-  dateStringSchema,
-  nonEmptyStringSchema,
-} from '@api-types/helpers/common-schemas';
-import {
   CredentialPlatform,
   PublishApprovalPolicyId,
   PublishApprovalStatus,
 } from '@genfeedai/enums';
 import { z } from 'zod';
+import {
+  dateStringSchema,
+  nonEmptyStringSchema,
+} from '../helpers/common-schemas';
 
 const idSchema = nonEmptyStringSchema({ max: 255 });
 
