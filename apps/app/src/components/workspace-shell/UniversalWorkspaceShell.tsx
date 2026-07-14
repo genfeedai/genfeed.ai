@@ -258,6 +258,8 @@ function UniversalWorkspaceShellContent({
   const surfaceReferences = isSurfaceScopeAligned
     ? productSurfaceAdapter?.references
     : undefined;
+  const activeThreadContextVersion = activeThread?.contextVersion;
+  const activeThreadIdForScope = activeThread?.id;
   const workflowSurfaceRoute = useMemo(
     () =>
       resolveWorkflowSurfaceRoute(
@@ -316,17 +318,22 @@ function UniversalWorkspaceShellContent({
     : `${conversationScope.contextLabel} · ${effectiveShellContextLabel}`;
 
   useEffect(() => {
-    if (!activeThread || !surfaceBrandId || !surfaceScopeKey) {
+    if (
+      !activeThreadIdForScope ||
+      activeThreadContextVersion === undefined ||
+      !surfaceBrandId ||
+      !surfaceScopeKey
+    ) {
       return;
     }
 
     const abortController = new AbortController();
     runAgentApiEffect(
       agentApiService.updateThreadContextEffect(
-        activeThread.id,
+        activeThreadIdForScope,
         {
           brandId: surfaceBrandId,
-          expectedContextVersion: activeThread.contextVersion,
+          expectedContextVersion: activeThreadContextVersion,
         },
         abortController.signal,
       ),
@@ -335,7 +342,7 @@ function UniversalWorkspaceShellContent({
         if (abortController.signal.aborted) {
           return;
         }
-        updateThread(activeThread.id, {
+        updateThread(activeThreadIdForScope, {
           brandId: thread.brandId,
           contextVersion: thread.contextVersion,
         });
@@ -348,7 +355,8 @@ function UniversalWorkspaceShellContent({
 
     return () => abortController.abort();
   }, [
-    activeThread,
+    activeThreadContextVersion,
+    activeThreadIdForScope,
     agentApiService,
     surfaceBrandId,
     surfaceScopeKey,

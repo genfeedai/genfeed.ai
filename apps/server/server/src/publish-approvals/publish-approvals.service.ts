@@ -24,7 +24,7 @@ import type {
 } from '@genfeedai/interfaces';
 import {
   Prisma,
-  type CredentialPlatform as PrismaCredentialPlatform,
+  CredentialPlatform as PrismaCredentialPlatform,
 } from '@genfeedai/prisma';
 import {
   BadRequestException,
@@ -601,6 +601,9 @@ export class PublishApprovalsService {
       );
     }
 
+    const credentialPlatform = Object.values(PrismaCredentialPlatform).find(
+      (platform) => platform === String(destinations[0]?.platform),
+    );
     const credential = await this.prisma.credential.findFirst({
       select: { id: true },
       where: {
@@ -609,9 +612,7 @@ export class PublishApprovalsService {
         isConnected: true,
         isDeleted: false,
         organizationId: post.organizationId,
-        platform: destinations[0]?.platform as
-          | PrismaCredentialPlatform
-          | undefined,
+        platform: credentialPlatform,
       },
     });
     if (!credential) {
