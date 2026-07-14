@@ -88,7 +88,7 @@ function toFiniteNumber(value: unknown): number | undefined {
 export function isResolvableSourceKey(
   type: AgentUIBlockType,
   sourceKey: string | undefined,
-): boolean {
+): sourceKey is string {
   if (!sourceKey) {
     return false;
   }
