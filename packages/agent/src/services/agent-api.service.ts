@@ -5,6 +5,7 @@ import type {
   AgentChatStreamResponse,
   AgentCreditsInfo,
   AgentMemoryEntry,
+  AgentRunPage,
   AgentRunSummary,
   AgentThread,
   AgentThreadSnapshot,
@@ -37,6 +38,13 @@ export interface CredentialMentionItem {
   name: string;
   platform: string;
   avatar: string | null;
+}
+
+export interface ListAgentRunsParams {
+  brandId?: string;
+  limit?: number;
+  page?: number;
+  status?: string;
 }
 
 export interface AgentInstallReadiness {
@@ -435,14 +443,91 @@ export class AgentApiService extends AgentBaseApiService {
     );
   }
 
+  listRunsEffect(
+    params: ListAgentRunsParams = {},
+    signal?: AbortSignal,
+  ): Effect.Effect<AgentRunPage, AgentApiError> {
+    const query = new URLSearchParams();
+    query.set('limit', String(params.limit ?? 10));
+    query.set('page', String(params.page ?? 1));
+    if (params.brandId) {
+      query.set('brand', params.brandId);
+    }
+    if (params.status) {
+      query.set('status', params.status);
+    }
+
+    return this.fetchJsonEffect<JsonApiResponseDocument>(
+      `${this.config.baseUrl}/runs?${query.toString()}`,
+      { signal },
+      'Failed to fetch agent runs',
+    ).pipe(
+      Effect.flatMap((document) =>
+        this.deserializeCollectionEffect<AgentRunSummary>(
+          document,
+          'Failed to deserialize agent runs',
+        ).pipe(
+          Effect.map((runs) => ({
+            pagination: document.links?.pagination ?? {
+              limit: params.limit ?? 10,
+              page: params.page ?? 1,
+              pages: runs.length > 0 ? 1 : 0,
+              total: runs.length,
+            },
+            runs,
+          })),
+        ),
+      ),
+    );
+  }
+
+  getRunEffect(
+    runId: string,
+    brandId?: string,
+    signal?: AbortSignal,
+  ): Effect.Effect<AgentRunSummary, AgentApiError> {
+    const query = brandId
+      ? `?${new URLSearchParams({ brand: brandId }).toString()}`
+      : '';
+
+    return this.fetchResourceEffect<AgentRunSummary>(
+      `${this.config.baseUrl}/runs/${runId}${query}`,
+      { signal },
+      'Failed to fetch agent run',
+      'Failed to deserialize agent run',
+    );
+  }
+
   cancelRunEffect(
     runId: string,
     signal?: AbortSignal,
+    brandId?: string,
   ): Effect.Effect<AgentRunSummary, AgentApiError> {
+    const query = brandId
+      ? `?${new URLSearchParams({ brand: brandId }).toString()}`
+      : '';
+
     return this.fetchResourceEffect<AgentRunSummary>(
-      `${this.config.baseUrl}/runs/${runId}/cancellations`,
+      `${this.config.baseUrl}/runs/${runId}/cancellations${query}`,
       { method: 'POST', signal },
       'Failed to cancel active agent run',
+      'Failed to deserialize agent run',
+    );
+  }
+
+  retryRunEffect(
+    runId: string,
+    signal?: AbortSignal,
+    brandId?: string,
+  ): Effect.Effect<AgentRunSummary, AgentApiError> {
+    const query = brandId
+      ? `?${new URLSearchParams({ brand: brandId }).toString()}`
+      : '';
+
+    return this.fetchResourceEffect<AgentRunSummary>(
+      `${this.config.baseUrl}/runs/${runId}/retries${query}`,
+      { method: 'POST', signal },
+      'Failed to retry agent run',
       'Failed to deserialize agent run',
     );
   }

@@ -556,6 +556,75 @@ describe('AgentApiService', () => {
         expect.objectContaining({ method: 'POST' }),
       );
     });
+
+    it('includes the selected brand scope', async () => {
+      const run = { id: 'run-1', status: 'cancelled' };
+      mockJsonApiResource(run, 'agent-run');
+      const service = makeService();
+
+      await Effect.runPromise(
+        service.cancelRunEffect('run-1', undefined, 'brand-1'),
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/runs/run-1/cancellations?brand=brand-1',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
+  });
+
+  describe('operator runs', () => {
+    it('returns paginated brand-scoped run history', async () => {
+      mockOk({
+        data: [
+          {
+            attributes: { label: 'Campaign run', status: 'completed' },
+            id: 'run-1',
+            type: 'agent-run',
+          },
+        ],
+        links: {
+          pagination: { limit: 10, page: 2, pages: 3, total: 24 },
+        },
+      });
+      const service = makeService();
+
+      await expect(
+        Effect.runPromise(
+          service.listRunsEffect({ brandId: 'brand-1', page: 2 }),
+        ),
+      ).resolves.toEqual({
+        pagination: { limit: 10, page: 2, pages: 3, total: 24 },
+        runs: [{ id: 'run-1', label: 'Campaign run', status: 'completed' }],
+      });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/runs?limit=10&page=2&brand=brand-1',
+        expect.any(Object),
+      );
+    });
+
+    it('fetches detail and retries within the selected brand', async () => {
+      const run = { id: 'run-1', status: 'pending' };
+      mockJsonApiResource(run, 'agent-run');
+      mockJsonApiResource(run, 'agent-run');
+      const service = makeService();
+
+      await Effect.runPromise(service.getRunEffect('run-1', 'brand-1'));
+      await Effect.runPromise(
+        service.retryRunEffect('run-1', undefined, 'brand-1'),
+      );
+
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        1,
+        'http://api.test/runs/run-1?brand=brand-1',
+        expect.any(Object),
+      );
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        'http://api.test/runs/run-1/retries?brand=brand-1',
+        expect.objectContaining({ method: 'POST' }),
+      );
+    });
   });
 
   describe('mentions', () => {

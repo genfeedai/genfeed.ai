@@ -538,16 +538,62 @@ export interface AgentCreditsInfo {
 }
 
 export interface AgentRunSummary {
+  artifactReferences?: AgentArtifactReference[];
+  artifactVersionPinIds?: string[];
+  brand?: string;
   completedAt?: string;
   thread?: string;
+  creditBudget?: number;
+  creditsUsed?: number;
   createdAt?: string;
   durationMs?: number;
   error?: string;
   id: string;
   label: string;
   metadata?: Record<string, unknown>;
+  objective?: string;
+  progress?: number;
+  retryCount?: number;
   startedAt?: string;
   status: string;
+  steps?: AgentRunStepSummary[];
+  strategy?: string;
+  summary?: string;
+  toolCalls?: AgentRunToolCallSummary[];
+  trigger?: string;
+  updatedAt?: string;
+}
+
+export interface AgentRunStepSummary {
+  completedAt?: string;
+  durationMs?: number;
+  id?: string;
+  index?: number;
+  label?: string;
+  startedAt?: string;
+  status?: string;
+  toolCallIds?: string[];
+}
+
+export interface AgentRunToolCallSummary {
+  creditsUsed?: number;
+  durationMs?: number;
+  error?: string;
+  executedAt?: string;
+  status?: string;
+  toolName?: string;
+}
+
+export interface AgentRunPagination {
+  limit: number;
+  page: number;
+  pages: number;
+  total?: number;
+}
+
+export interface AgentRunPage {
+  pagination: AgentRunPagination;
+  runs: AgentRunSummary[];
 }
 
 export interface AgentChatStreamResponse {

@@ -6,17 +6,7 @@ import type {
   PublishingSetupFailureClassification,
 } from '@genfeedai/interfaces';
 
-const REDACTED_VALUE = '[REDACTED]';
-
-const SENSITIVE_KEY_PATTERN =
-  /(^|[_-])(access[_-]?token|api[_-]?key|authorization|bearer|client[_-]?secret|cookie|id[_-]?token|password|private[_-]?key|refresh[_-]?token|secret|session|token)([_-]|$)/i;
-
-const SENSITIVE_QUERY_PARAM_PATTERN =
-  /([?&][^=&#]*(?:access[_-]?token|api[_-]?key|client[_-]?secret|id[_-]?token|password|refresh[_-]?token|secret|session|token)[^=&#]*=)[^&#]*/gi;
-
-const AUTH_HEADER_PATTERN = /\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/gi;
-const PRIVATE_KEY_BLOCK_PATTERN =
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g;
+import { redactSensitiveValue } from '../security/redact-sensitive-value.helper';
 
 const BLOCKING_CLASSIFICATIONS = new Set<PublishingSetupFailureClassification>([
   'expired_credential',
@@ -52,40 +42,8 @@ export type PublishingReadinessInput = Omit<
   tokenFreshness?: PublishingSetupCheckStatus;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function redactString(value: string): string {
-  return value
-    .replace(PRIVATE_KEY_BLOCK_PATTERN, REDACTED_VALUE)
-    .replace(AUTH_HEADER_PATTERN, (_match, scheme: string) => {
-      return `${scheme} ${REDACTED_VALUE}`;
-    })
-    .replace(SENSITIVE_QUERY_PARAM_PATTERN, `$1${REDACTED_VALUE}`);
-}
-
 export function redactPublishingDiagnosticValue(value: unknown): unknown {
-  if (typeof value === 'string') {
-    return redactString(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) => redactPublishingDiagnosticValue(item));
-  }
-
-  if (!isRecord(value)) {
-    return value;
-  }
-
-  return Object.fromEntries(
-    Object.entries(value).map(([key, entry]) => [
-      key,
-      SENSITIVE_KEY_PATTERN.test(key)
-        ? REDACTED_VALUE
-        : redactPublishingDiagnosticValue(entry),
-    ]),
-  );
+  return redactSensitiveValue(value);
 }
 
 export function sanitizePublishingDiagnostic(

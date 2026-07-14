@@ -127,6 +127,7 @@ interface StoreState {
   setThreadPrompt: ReturnType<typeof vi.fn>;
   setWorkEvents: ReturnType<typeof vi.fn>;
   seedComposer: ReturnType<typeof vi.fn>;
+  threads: Array<{ brandId?: string | null; id: string }>;
   upsertThread: ReturnType<typeof vi.fn>;
 }
 
@@ -158,6 +159,7 @@ const storeState: StoreState = {
   setRunStartedAt: vi.fn(),
   setThreadPrompt: vi.fn(),
   setWorkEvents: vi.fn(),
+  threads: [],
   upsertThread: vi.fn(),
 };
 
@@ -278,6 +280,7 @@ describe('AgentFullPage', () => {
     storeState.activeThreadId = null;
     storeState.messages = [];
     storeState.pageContext = null;
+    storeState.threads = [];
     storeState.setPendingInputRequest.mockReset();
     storeState.setRunStartedAt.mockReset();
     setupStatusState.showSetupPanel = false;
