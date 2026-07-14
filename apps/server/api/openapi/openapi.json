@@ -41636,17 +41636,17 @@
         "operationId": "AgentRunsController.findOne",
         "parameters": [
           {
-            "in": "path",
-            "name": "id",
+            "in": "query",
+            "name": "brand",
             "required": true,
             "schema": {
               "type": "string"
             }
           },
           {
-            "in": "query",
-            "name": "brand",
-            "required": false,
+            "in": "path",
+            "name": "id",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -41702,7 +41702,7 @@
           {
             "in": "query",
             "name": "brand",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -41760,7 +41760,7 @@
           {
             "in": "query",
             "name": "brand",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string"
             }
