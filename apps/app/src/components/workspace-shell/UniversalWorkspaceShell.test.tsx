@@ -424,7 +424,7 @@ describe('UniversalWorkspaceShell', () => {
       return <div>Studio canvas</div>;
     }
 
-    render(
+    const view = render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
         <StudioSurface />
       </UniversalWorkspaceShell>,
@@ -445,6 +445,11 @@ describe('UniversalWorkspaceShell', () => {
         brandId: 'brand-studio',
         contextVersion: 4,
       }),
+    );
+    view.rerender(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <StudioSurface />
+      </UniversalWorkspaceShell>,
     );
     expect(screen.getAllByText('Studio inspector')).not.toHaveLength(0);
     expect(
@@ -525,9 +530,8 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByTestId('universal-workspace-shell').parentElement,
     ).toHaveAttribute('data-draft-scope', 'acme:thread-1:3');
     expect(pageShellMount).toHaveBeenCalledTimes(1);
-    expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/workspace/overview?thread=thread-1',
-    );
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('renders product-owned adapter context in the shared shell slots', () => {

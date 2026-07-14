@@ -679,11 +679,6 @@ jobs:
           bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-1.json
           bun run scripts/emit-openapi.ts --skip-build --out=/tmp/openapi-emit-2.json
           cmp /tmp/openapi-emit-1.json /tmp/openapi-emit-2.json
-      - name: Upload generated OpenAPI spec for repair
-        uses: actions/upload-artifact@v6
-        with:
-          name: generated-openapi-spec
-          path: /tmp/openapi-emit-1.json
       - name: Committed spec must match generated
         run: |
           if ! cmp apps/server/api/openapi/openapi.json /tmp/openapi-emit-1.json; then

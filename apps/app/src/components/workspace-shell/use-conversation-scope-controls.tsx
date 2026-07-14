@@ -267,6 +267,7 @@ export function useConversationScopeControls({
   const isStale = Boolean(
     staleContext &&
       activeThread &&
+      staleContext.threadId === activeThread.id &&
       staleContext.contextVersion > activeThread.contextVersion,
   );
 
@@ -320,7 +321,6 @@ export function useConversationScopeControls({
 
   useEffect(() => {
     if (!activeThread) {
-      setStaleContext(null);
       return;
     }
 

@@ -18014,15 +18014,6 @@
             }
           },
           {
-            "description": "Restrict visible workflows to the active brand for an authorized picker.",
-            "in": "query",
-            "name": "brandId",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "description": "Filter by deleted status",
             "in": "query",
             "name": "isDeleted",
@@ -18298,25 +18289,79 @@
         "operationId": "AnalyticsController.exportData",
         "parameters": [
           {
+            "description": "Start date for analytics (YYYY-MM-DD). Defaults to 30 days before endDate.",
+            "in": "query",
+            "name": "startDate",
+            "required": false,
+            "schema": {
+              "example": "2024-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "description": "End date for analytics (YYYY-MM-DD). Defaults to yesterday.",
+            "in": "query",
+            "name": "endDate",
+            "required": false,
+            "schema": {
+              "example": "2024-01-31",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Brand ID to filter by",
+            "in": "query",
+            "name": "brand",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Platform to filter by",
+            "in": "query",
+            "name": "platform",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Selected post ID to export",
+            "in": "query",
+            "name": "postId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Export format",
             "in": "query",
             "name": "format",
-            "required": true,
+            "required": false,
             "schema": {
+              "enum": [
+                "csv",
+                "xlsx"
+              ],
               "type": "string"
             }
           },
           {
+            "description": "Comma-separated export fields",
             "in": "query",
             "name": "fields",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string"
             }
           },
           {
+            "description": "Organization ID (superadmin only)",
             "in": "query",
             "name": "organization",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string"
             }
@@ -40771,6 +40816,21 @@
         ]
       }
     },
+    "/publish-approvals": {
+      "post": {
+        "operationId": "PublishApprovalsController.create",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "create",
+        "tags": [
+          "PublishApprovals"
+        ]
+      }
+    },
     "/reply-bot-configs": {
       "get": {
         "operationId": "ReplyBotConfigsController.findAll",
@@ -51619,6 +51679,15 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "description": "Restrict visible workflows to the active brand for an authorized picker.",
+            "in": "query",
+            "name": "brandId",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           },
           {

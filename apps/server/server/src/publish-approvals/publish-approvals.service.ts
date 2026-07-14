@@ -22,7 +22,10 @@ import type {
   IPublishApprovalStatusTransition,
   IPublishScheduleIntent,
 } from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import {
+  Prisma,
+  type CredentialPlatform as PrismaCredentialPlatform,
+} from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
@@ -606,7 +609,9 @@ export class PublishApprovalsService {
         isConnected: true,
         isDeleted: false,
         organizationId: post.organizationId,
-        platform: destinations[0]?.platform,
+        platform: destinations[0]?.platform as
+          | PrismaCredentialPlatform
+          | undefined,
       },
     });
     if (!credential) {
