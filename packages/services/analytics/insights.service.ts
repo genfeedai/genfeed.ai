@@ -32,10 +32,13 @@ class InsightsServiceClass extends HTTPBaseService {
   /**
    * Get AI-generated insights
    */
-  async getInsights(limit: number = ITEMS_PER_PAGE): Promise<Insight[]> {
+  async getInsights(
+    limit: number = ITEMS_PER_PAGE,
+    signal?: AbortSignal,
+  ): Promise<Insight[]> {
     try {
       return await this.instance
-        .get<JsonApiResponseDocument>(`?limit=${limit}`)
+        .get<JsonApiResponseDocument>(`?limit=${limit}`, { signal })
         .then((res) => {
           const data = deserializeCollection<IInsightResponse>(res.data);
           logger.info('Insights retrieved', { count: data.length });
@@ -185,7 +188,7 @@ export class PredictiveAnalyticsService {
     );
   }
 
-  async getContentInsights(range?: IDateRange) {
+  async getContentInsights(range?: IDateRange, signal?: AbortSignal) {
     const url = this.buildUrl('/insights', {
       end: range?.end,
       start: range?.start,
@@ -193,7 +196,7 @@ export class PredictiveAnalyticsService {
 
     return this.request(
       url,
-      { method: 'GET' },
+      { method: 'GET', signal },
       'Failed to get content insights',
     );
   }
