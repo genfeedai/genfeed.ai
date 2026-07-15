@@ -1,4 +1,7 @@
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
+import type {
+  AgentArtifactReference,
+  ResearchFindingReferenceKind,
+} from '@genfeedai/interfaces';
 import type { JSONContent } from '@tiptap/core';
 
 export interface ConversationComposerArtifactReference {
@@ -19,15 +22,7 @@ export type ConversationComposerActionName =
 export type ConversationComposerScope = 'brand' | 'organization';
 
 export type ConversationComposerContextReferenceKind =
-  | 'research-ad-connected-google'
-  | 'research-ad-connected-meta'
-  | 'research-ad-public-google'
-  | 'research-ad-public-meta'
-  | 'research-source-post'
-  | 'research-trend-content'
-  | 'research-trend-hashtag'
-  | 'research-trend-sound'
-  | 'research-trend-video';
+  ResearchFindingReferenceKind;
 
 export interface ConversationComposerContextReference {
   authorization: 'authorized';

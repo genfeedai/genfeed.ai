@@ -62,5 +62,9 @@ export function toAgentRequestPageContext(
     requestContext.analyticsQuery = context.analyticsQuery;
   }
 
+  if (context.researchReferences?.length) {
+    requestContext.researchReferences = context.researchReferences;
+  }
+
   return Object.keys(requestContext).length > 0 ? requestContext : undefined;
 }

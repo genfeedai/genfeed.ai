@@ -150,6 +150,7 @@ export * from './integrations/heygen.interface';
 export * from './integrations/instagram.interface';
 export * from './integrations/integration.interface';
 export * from './integrations/news.interface';
+export * from './integrations/research-finding-reference.interface';
 export * from './integrations/social-api.interface';
 export * from './knowledge-base/knowledge-base.interface';
 export * from './management/folder.interface';

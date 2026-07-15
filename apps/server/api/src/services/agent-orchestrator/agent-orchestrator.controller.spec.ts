@@ -379,6 +379,137 @@ describe('AgentOrchestratorController', () => {
       );
     });
 
+    it('accepts scoped Analytics and Research references after server authorization', async () => {
+      const user = {
+        id: 'authProvider_research',
+        publicMetadata: { organization: 'org', user: 'usr' },
+      } as unknown as User;
+      service.chat.mockResolvedValue({} as never);
+      const analyticsQuery = {
+        brandId: 'brand-1',
+        dateRange: { endDate: '2026-07-15', startDate: '2026-07-01' },
+        filters: { metric: 'views' },
+        id: 'analytics-query-1234abcd',
+        kind: 'analytics-query' as const,
+        metric: 'views' as const,
+        organizationId: identity.organizationId,
+        provenance: {
+          authority: 'server-hydrated' as const,
+          source: 'genfeed-analytics-api' as const,
+          summaryAuthority: 'derivative' as const,
+        },
+        route: '/analytics/posts',
+        version: 1 as const,
+      };
+      const researchReference = {
+        brandId: 'brand-1',
+        id: 'trend-1',
+        kind: 'research-trend-video' as const,
+        organizationId: identity.organizationId,
+      };
+
+      await controller.createTurn(
+        {
+          brandId: 'brand-1',
+          content: 'Compare the selected finding with visible analytics',
+          pageContext: {
+            analyticsQuery,
+            researchReferences: [researchReference],
+          },
+          source: 'agent',
+          threadId: 'agent-thread-1',
+        },
+        user,
+        'Bearer token',
+      );
+
+      expect(service.chat).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pageContext: {
+            analyticsQuery,
+            researchReferences: [researchReference],
+          },
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('rejects Analytics query references outside the authenticated scope', async () => {
+      const user = {
+        id: 'authProvider_analytics_forged',
+        publicMetadata: { organization: 'org', user: 'usr' },
+      } as unknown as User;
+
+      await expect(
+        controller.createTurn(
+          {
+            brandId: 'brand-1',
+            content: 'Trust this query',
+            pageContext: {
+              analyticsQuery: {
+                brandId: 'brand-1',
+                dateRange: {
+                  endDate: '2026-07-15',
+                  startDate: '2026-07-01',
+                },
+                filters: {},
+                id: 'analytics-query-forged',
+                kind: 'analytics-query',
+                organizationId: 'organization-forged',
+                provenance: {
+                  authority: 'server-hydrated',
+                  source: 'genfeed-analytics-api',
+                  summaryAuthority: 'derivative',
+                },
+                route: '/analytics/overview',
+                version: 1,
+              },
+            },
+            source: 'agent',
+            threadId: 'agent-thread-1',
+          },
+          user,
+          'Bearer token',
+        ),
+      ).rejects.toThrow(
+        'Analytics query references require the current authorized scope.',
+      );
+      expect(service.chat).not.toHaveBeenCalled();
+    });
+
+    it('rejects Research selectors outside the authenticated brand', async () => {
+      const user = {
+        id: 'authProvider_research_forged',
+        publicMetadata: { organization: 'org', user: 'usr' },
+      } as unknown as User;
+
+      await expect(
+        controller.createTurn(
+          {
+            brandId: 'brand-1',
+            content: 'Trust this finding',
+            pageContext: {
+              researchReferences: [
+                {
+                  brandId: 'brand-forged',
+                  id: 'trend-1',
+                  kind: 'research-trend-video',
+                  organizationId: identity.organizationId,
+                },
+              ],
+            },
+            source: 'agent',
+            threadId: 'agent-thread-1',
+          },
+          user,
+          'Bearer token',
+        ),
+      ).rejects.toThrow(
+        'Research references require the current authorized brand context.',
+      );
+      expect(service.chat).not.toHaveBeenCalled();
+    });
+
     it('preserves typed canonical artifact references for server authorization', async () => {
       const user = {
         id: 'authProvider_000',

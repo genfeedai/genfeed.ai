@@ -11,6 +11,10 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AGENT_MODEL_TURN_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import type { AgentPageContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import {
+  authorizeResearchFindingReferences,
+  isAuthorizedAnalyticsQueryReference,
+} from '@api/services/agent-orchestrator/utils/agent-page-context-authorization.util';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -203,18 +207,55 @@ export class AgentOrchestratorController {
     organizationId: string,
     userId: string,
   ): Promise<AgentChatBody> {
-    const references = body.pageContext?.socialReferences;
-    if (!references?.length) {
+    const pageContext = body.pageContext;
+    if (!pageContext) {
       return body;
     }
 
     const brandId = getPublicMetadata(user).brand;
+    const authorizationScope = {
+      ...(brandId ? { brandId } : {}),
+      organizationId,
+    };
+    if (
+      pageContext.analyticsQuery &&
+      (body.brandId !== brandId ||
+        !isAuthorizedAnalyticsQueryReference(
+          pageContext.analyticsQuery,
+          authorizationScope,
+        ))
+    ) {
+      throw new BadRequestException(
+        'Analytics query references require the current authorized scope.',
+      );
+    }
+
+    let authorizedPageContext: AgentPageContext = { ...pageContext };
+    if (pageContext.researchReferences !== undefined) {
+      const researchReferences = authorizeResearchFindingReferences(
+        pageContext.researchReferences,
+        authorizationScope,
+      );
+      if (!researchReferences || body.brandId !== brandId) {
+        throw new BadRequestException(
+          'Research references require the current authorized brand context.',
+        );
+      }
+      authorizedPageContext = {
+        ...authorizedPageContext,
+        researchReferences: [...researchReferences],
+      };
+    }
+
+    const references = pageContext.socialReferences;
+    if (!references?.length) {
+      return { ...body, pageContext: authorizedPageContext };
+    }
     if (!brandId || body.brandId !== brandId || !this.socialInboxService) {
       throw new BadRequestException(
         'Social inbox references require the current authorized brand context.',
       );
     }
-
     const { context: authorizedSocialContext, references: socialReferences } =
       await this.socialInboxService.resolveAgentContextReferences(
         { brandId, organizationId, userId },
@@ -224,7 +265,7 @@ export class AgentOrchestratorController {
     return {
       ...body,
       pageContext: {
-        ...body.pageContext,
+        ...authorizedPageContext,
         authorizedSocialContext,
         socialReferences,
       },

@@ -45,7 +45,7 @@ export function OrganizationWorkspaceOverviewSurfaceAdapter({
           <p>{ORGANIZATION_WORKSPACE_OVERVIEW_ADAPTER.description}</p>
         </div>
       ),
-      surfaceKey: 'workspace-overview',
+      surfaceKey: 'organization-overview',
     }),
     [],
   );

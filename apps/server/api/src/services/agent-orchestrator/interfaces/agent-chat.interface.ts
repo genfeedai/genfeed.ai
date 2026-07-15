@@ -2,6 +2,7 @@ import type { AgentType } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   AnalyticsQueryReference,
+  ScopedResearchFindingReference,
   SocialInboxAgentContextRecord,
   SocialInboxReference,
   ValidatedAgentScope,
@@ -26,6 +27,7 @@ export interface AgentPageContext {
   draftType?: string;
   postAuthor?: string;
   postContent?: string;
+  researchReferences?: ScopedResearchFindingReference[];
   route?: string;
   selectedText?: string;
   socialReferences?: SocialInboxReference[];
