@@ -15,6 +15,7 @@ import { BrandKitAssetsService } from '@api/collections/brands/services/brand-ki
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -108,6 +109,73 @@ describe('BrandsService', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('create', () => {
+    const createBrandDto = {
+      backgroundColor: '#000000',
+      fontFamily: 'MONTSERRAT_BLACK',
+      isSelected: true,
+      label: 'Default Brand',
+      primaryColor: '#000000',
+      secondaryColor: '#FFFFFF',
+      slug: 'default-brand',
+    };
+
+    it('maps controller metadata aliases to canonical Prisma foreign keys', async () => {
+      delegate.create.mockResolvedValue({
+        ...createBrandDto,
+        id: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      await service.create({
+        ...createBrandDto,
+        organization: 'org-1',
+        user: 'user-1',
+      });
+
+      const createInput = delegate.create.mock.calls[0]?.[0] as {
+        data: Record<string, unknown>;
+      };
+      expect(createInput.data).toMatchObject({
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+      expect(createInput.data).not.toHaveProperty('organization');
+      expect(createInput.data).not.toHaveProperty('user');
+      expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+        CACHE_PATTERNS.BRANDS_LIST('org-1'),
+      );
+    });
+
+    it('prefers canonical foreign keys over legacy metadata aliases', async () => {
+      delegate.create.mockResolvedValue({
+        ...createBrandDto,
+        id: 'brand-1',
+        organizationId: 'org-canonical',
+        userId: 'user-canonical',
+      });
+
+      await service.create({
+        ...createBrandDto,
+        organization: 'org-legacy',
+        organizationId: 'org-canonical',
+        user: 'user-legacy',
+        userId: 'user-canonical',
+      });
+
+      const createInput = delegate.create.mock.calls[0]?.[0] as {
+        data: Record<string, unknown>;
+      };
+      expect(createInput.data).toMatchObject({
+        organizationId: 'org-canonical',
+        userId: 'user-canonical',
+      });
+      expect(createInput.data).not.toHaveProperty('organization');
+      expect(createInput.data).not.toHaveProperty('user');
+    });
   });
 
   it('resolves legacy mongo ids before selecting a brand', async () => {
