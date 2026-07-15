@@ -1,6 +1,9 @@
 import { Readable } from 'node:stream';
 import { ConfigService } from '@files/config/config.service';
 import { FilesController } from '@files/controllers/files.controller';
+import { FilesMetadataController } from '@files/controllers/files-metadata.controller';
+import { FilesProcessingController } from '@files/controllers/files-processing.controller';
+import { FilesStorageController } from '@files/controllers/files-storage.controller';
 import { TempFileCleanupCron } from '@files/cron/temp-file-cleanup.cron';
 import { FileQueueService } from '@files/queues/file-queue.service';
 import { ImageQueueService } from '@files/queues/image-queue.service';
@@ -9,10 +12,12 @@ import { VideoQueueService } from '@files/queues/video-queue.service';
 import { YoutubeQueueService } from '@files/queues/youtube-queue.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FilesService } from '@files/services/files/files.service';
+import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import { ImagesSplitService } from '@files/services/images/images-split.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
 import { UploadService } from '@files/services/upload/upload.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, StreamableFile } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -40,7 +45,13 @@ vi.mock('path', async () => ({
 }));
 
 describe('FilesController', () => {
-  let controller: FilesController;
+  type PublicController<T> = Pick<T, keyof T>;
+  type TestFilesController = PublicController<FilesController> &
+    PublicController<FilesMetadataController> &
+    PublicController<FilesProcessingController> &
+    PublicController<FilesStorageController>;
+
+  let controller: TestFilesController;
   let videoQueueService: VideoQueueService;
   let imageQueueService: ImageQueueService;
   let fileQueueService: FileQueueService;
@@ -195,6 +206,16 @@ describe('FilesController', () => {
     }),
   };
 
+  const mockHookRemixService = {
+    processHookRemix: vi.fn(),
+  };
+
+  const mockLoggerService = {
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
 
@@ -321,15 +342,22 @@ describe('FilesController', () => {
     });
 
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [FilesController],
+      controllers: [
+        FilesController,
+        FilesMetadataController,
+        FilesProcessingController,
+        FilesStorageController,
+      ],
       providers: [
         { provide: ConfigService, useValue: mockConfigService },
         { provide: FileQueueService, useValue: mockFileQueueService },
         { provide: FFmpegService, useValue: mockFFmpegService },
         { provide: FilesService, useValue: mockFilesService },
+        { provide: HookRemixService, useValue: mockHookRemixService },
         { provide: HttpService, useValue: mockHttpService },
         { provide: ImageQueueService, useValue: mockImageQueueService },
         { provide: ImagesSplitService, useValue: mockImagesSplitService },
+        { provide: LoggerService, useValue: mockLoggerService },
         { provide: S3Service, useValue: mockS3Service },
         { provide: TempFileCleanupCron, useValue: mockTempFileCleanupCron },
         { provide: UploadService, useValue: mockUploadService },
@@ -339,7 +367,44 @@ describe('FilesController', () => {
       ],
     }).compile();
 
-    controller = module.get<FilesController>(FilesController);
+    const jobsController = module.get<FilesController>(FilesController);
+    const metadataController = module.get<FilesMetadataController>(
+      FilesMetadataController,
+    );
+    const processingController = module.get<FilesProcessingController>(
+      FilesProcessingController,
+    );
+    const storageController = module.get<FilesStorageController>(
+      FilesStorageController,
+    );
+
+    controller = {
+      audioOverlay:
+        processingController.audioOverlay.bind(processingController),
+      cleanupTempFiles:
+        metadataController.cleanupTempFiles.bind(metadataController),
+      copyFile: storageController.copyFile.bind(storageController),
+      downloadFile: storageController.downloadFile.bind(storageController),
+      generateThumbnail:
+        processingController.generateThumbnail.bind(processingController),
+      getFileMetadata:
+        metadataController.getFileMetadata.bind(metadataController),
+      getJobStatus: jobsController.getJobStatus.bind(jobsController),
+      getPresignedDownloadUrl:
+        storageController.getPresignedDownloadUrl.bind(storageController),
+      getPresignedUploadUrl:
+        storageController.getPresignedUploadUrl.bind(storageController),
+      getQueueStats: jobsController.getQueueStats.bind(jobsController),
+      getTempFile: metadataController.getTempFile.bind(metadataController),
+      processFile: jobsController.processFile.bind(jobsController),
+      processHookRemix: jobsController.processHookRemix.bind(jobsController),
+      processImage: jobsController.processImage.bind(jobsController),
+      processVideo: jobsController.processVideo.bind(jobsController),
+      processYoutube: jobsController.processYoutube.bind(jobsController),
+      resizeImage: processingController.resizeImage.bind(processingController),
+      splitImage: processingController.splitImage.bind(processingController),
+      uploadFile: storageController.uploadFile.bind(storageController),
+    };
     videoQueueService = module.get<VideoQueueService>(VideoQueueService);
     imageQueueService = module.get<ImageQueueService>(ImageQueueService);
     fileQueueService = module.get<FileQueueService>(FileQueueService);
@@ -965,7 +1030,9 @@ describe('FilesController', () => {
     });
 
     it('should throw error if videoUrl is missing', async () => {
-      const body = { ingredientId: 'ingredient_123' } as any;
+      const body = { ingredientId: 'ingredient_123' } as Parameters<
+        typeof controller.generateThumbnail
+      >[0];
 
       await expect(controller.generateThumbnail(body)).rejects.toThrow(
         HttpException,
@@ -976,7 +1043,9 @@ describe('FilesController', () => {
     });
 
     it('should throw error if ingredientId is missing', async () => {
-      const body = { videoUrl: 'https://example.com/video.mp4' } as any;
+      const body = {
+        videoUrl: 'https://example.com/video.mp4',
+      } as Parameters<typeof controller.generateThumbnail>[0];
 
       await expect(controller.generateThumbnail(body)).rejects.toThrow(
         HttpException,
@@ -1103,7 +1172,9 @@ describe('FilesController', () => {
     });
 
     it('should throw error if imageUrl is missing', async () => {
-      const body = { gridCols: 2, gridRows: 2 } as any;
+      const body = { gridCols: 2, gridRows: 2 } as Parameters<
+        typeof controller.splitImage
+      >[0];
 
       await expect(controller.splitImage(body)).rejects.toThrow(HttpException);
       await expect(controller.splitImage(body)).rejects.toThrow(
@@ -1431,7 +1502,9 @@ describe('FilesController', () => {
     });
 
     it('should throw error if required fields are missing', async () => {
-      const body = { key: 'test.mp4' } as any;
+      const body = { key: 'test.mp4' } as Parameters<
+        typeof controller.uploadFile
+      >[0];
 
       await expect(controller.uploadFile(body)).rejects.toThrow(HttpException);
       await expect(controller.uploadFile(body)).rejects.toThrow(
@@ -1561,7 +1634,9 @@ describe('FilesController', () => {
     });
 
     it('should throw error if sourceKey is missing', async () => {
-      const body = { destinationKey: 'dest.mp4' } as any;
+      const body = { destinationKey: 'dest.mp4' } as Parameters<
+        typeof controller.copyFile
+      >[0];
 
       await expect(controller.copyFile(body)).rejects.toThrow(HttpException);
       await expect(controller.copyFile(body)).rejects.toThrow(
@@ -1570,7 +1645,9 @@ describe('FilesController', () => {
     });
 
     it('should throw error if destinationKey is missing', async () => {
-      const body = { sourceKey: 'source.mp4' } as any;
+      const body = { sourceKey: 'source.mp4' } as Parameters<
+        typeof controller.copyFile
+      >[0];
 
       await expect(controller.copyFile(body)).rejects.toThrow(HttpException);
     });

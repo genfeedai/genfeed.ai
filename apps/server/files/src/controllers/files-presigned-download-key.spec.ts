@@ -1,4 +1,4 @@
-import { resolvePresignedDownloadKey } from '@files/controllers/files.controller';
+import { resolvePresignedDownloadKey } from '@files/controllers/files-storage.controller';
 
 describe('resolvePresignedDownloadKey', () => {
   it('preserves Skills Pro registry keys', () => {
