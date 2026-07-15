@@ -1,4 +1,8 @@
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import {
+  normalizeReplyBotPlatform,
+  unsupportedReplyBotPlatformMessage,
+} from '@api/services/reply-bot/reply-bot-platform.util';
 import { ReplyBotPlatform } from '@genfeedai/enums';
 import type {
   IReplyBotContentData,
@@ -112,13 +116,19 @@ export class BotActionExecutorService {
     targetContent: IReplyBotContentData,
     replyText: string,
   ): Promise<IReplyBotReplyResult> {
-    const platform = credential.platform || ReplyBotPlatform.TWITTER;
+    const platformInput = credential.platform ?? ReplyBotPlatform.TWITTER;
+    const platform = normalizeReplyBotPlatform(platformInput);
 
     switch (platform) {
+      case ReplyBotPlatform.TWITTER:
+        return this.postTwitterReply(credential, targetContent, replyText);
       case ReplyBotPlatform.INSTAGRAM:
         return this.postInstagramComment(credential, targetContent, replyText);
       default:
-        return this.postTwitterReply(credential, targetContent, replyText);
+        return Promise.resolve({
+          error: unsupportedReplyBotPlatformMessage(platformInput),
+          success: false,
+        });
     }
   }
 
@@ -130,13 +140,19 @@ export class BotActionExecutorService {
     recipientUserId: string,
     message: string,
   ): Promise<IReplyBotDmResult> {
-    const platform = credential.platform || ReplyBotPlatform.TWITTER;
+    const platformInput = credential.platform ?? ReplyBotPlatform.TWITTER;
+    const platform = normalizeReplyBotPlatform(platformInput);
 
     switch (platform) {
+      case ReplyBotPlatform.TWITTER:
+        return this.sendTwitterDm(credential, recipientUserId, message);
       case ReplyBotPlatform.INSTAGRAM:
         return this.sendInstagramDm(credential, recipientUserId, message);
       default:
-        return this.sendTwitterDm(credential, recipientUserId, message);
+        return Promise.resolve({
+          error: unsupportedReplyBotPlatformMessage(platformInput),
+          success: false,
+        });
     }
   }
 

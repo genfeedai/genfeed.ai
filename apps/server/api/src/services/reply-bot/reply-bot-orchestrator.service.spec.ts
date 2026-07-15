@@ -9,6 +9,7 @@ import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-o
 import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
+import { ReplyBotPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -228,6 +229,44 @@ describe('ReplyBotOrchestratorService', () => {
       expect(result.repliesSent).toBe(0);
       expect(result.skipped).toBe(0);
       expect(result.errors).toBe(0);
+      expect(mockSocialMonitorService.getUserMentions).not.toHaveBeenCalled();
+    });
+
+    it('normalizes the credential platform before processing', async () => {
+      const botConfig = makeBotConfig();
+      mockRateLimitService.isWithinSchedule.mockReturnValue(false);
+
+      const result = await service.processSingleBot(botConfig as never, orgId, {
+        ...credential,
+        platform: 'TWITTER' as ReplyBotPlatform,
+      });
+
+      expect(result.platform).toBe(ReplyBotPlatform.TWITTER);
+    });
+
+    it('normalizes the config platform when the credential omits it', async () => {
+      const botConfig = makeBotConfig({ platform: 'INSTAGRAM' });
+      mockRateLimitService.isWithinSchedule.mockReturnValue(false);
+
+      const result = await service.processSingleBot(botConfig as never, orgId, {
+        accessToken: 'token-123',
+        username: 'testuser',
+      });
+
+      expect(result.platform).toBe(ReplyBotPlatform.INSTAGRAM);
+    });
+
+    it('rejects an unknown platform before processing', async () => {
+      const botConfig = makeBotConfig();
+
+      await expect(
+        service.processSingleBot(botConfig as never, orgId, {
+          ...credential,
+          platform: 'unknown' as ReplyBotPlatform,
+        }),
+      ).rejects.toThrow('Unsupported reply bot platform: unknown');
+
+      expect(mockRateLimitService.isWithinSchedule).not.toHaveBeenCalled();
       expect(mockSocialMonitorService.getUserMentions).not.toHaveBeenCalled();
     });
 

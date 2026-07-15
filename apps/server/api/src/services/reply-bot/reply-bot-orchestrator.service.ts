@@ -21,6 +21,10 @@ import {
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { RateLimitService } from '@api/services/reply-bot/rate-limit.service';
 import {
+  normalizeReplyBotPlatform,
+  unsupportedReplyBotPlatformMessage,
+} from '@api/services/reply-bot/reply-bot-platform.util';
+import {
   type ReplyCandidate,
   ReplyCandidatePrefilterService,
 } from '@api/services/reply-bot/reply-candidate-prefilter.service';
@@ -131,7 +135,18 @@ export class ReplyBotOrchestratorService {
   ): Promise<ProcessingResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const botConfigId = botConfig.id.toString();
-    const platform = credential.platform || ReplyBotPlatform.TWITTER;
+    const platformInput =
+      credential.platform ?? botConfig.platform ?? ReplyBotPlatform.TWITTER;
+    const platform = normalizeReplyBotPlatform(platformInput);
+
+    if (!platform) {
+      throw new Error(unsupportedReplyBotPlatformMessage(platformInput));
+    }
+
+    const normalizedCredential: IReplyBotCredentialData = {
+      ...credential,
+      platform,
+    };
 
     const result: ProcessingResult = {
       botConfigId,
@@ -156,21 +171,21 @@ export class ReplyBotOrchestratorService {
       if (botConfig.type === ReplyBotType.REPLY_GUY) {
         content = await this.fetchMentions(
           botConfig,
-          credential,
+          normalizedCredential,
           organizationId,
           platform,
         );
       } else if (botConfig.type === ReplyBotType.ACCOUNT_MONITOR) {
         content = await this.fetchMonitoredAccountContent(
           botConfig,
-          credential,
+          normalizedCredential,
           organizationId,
           platform,
         );
       } else if (botConfig.type === ReplyBotType.COMMENT_RESPONDER) {
         content = await this.fetchComments(
           botConfig,
-          credential,
+          normalizedCredential,
           organizationId,
           platform,
         );
@@ -188,7 +203,7 @@ export class ReplyBotOrchestratorService {
         {
           botConfig,
           botType: (botConfig.type ?? ReplyBotType.REPLY_GUY) as ReplyBotType,
-          credential,
+          credential: normalizedCredential,
           organizationId,
           platform,
         },
@@ -211,7 +226,7 @@ export class ReplyBotOrchestratorService {
           botConfig,
           item,
           organizationId,
-          credential,
+          normalizedCredential,
         );
 
         result.contentProcessed++;
@@ -532,15 +547,6 @@ export class ReplyBotOrchestratorService {
       let replyContentId: string | undefined;
       let replyContentUrl: string | undefined;
 
-      // Ensure credential has platform info for routing
-      const platformCredential = {
-        ...credential,
-        platform:
-          credential.platform ||
-          (botConfig as unknown as { platform?: string }).platform ||
-          ReplyBotPlatform.TWITTER,
-      };
-
       const actionExecution =
         await this.systemWorkflowProvenanceService.runAction(
           {
@@ -553,7 +559,7 @@ export class ReplyBotOrchestratorService {
               actionType: botConfig.actionType,
               botConfigId,
               contentId: content.id,
-              platform: platformCredential.platform,
+              platform: credential.platform,
             },
             label: 'Reply and DM Automation',
             metadata: {
@@ -578,8 +584,7 @@ export class ReplyBotOrchestratorService {
               };
 
               const replyResult = await this.botActionExecutorService.postReply(
-                // @ts-expect-error TS2345
-                platformCredential,
+                credential,
                 contentData,
                 replyText,
               );
@@ -607,8 +612,7 @@ export class ReplyBotOrchestratorService {
               await this.delay(dmDelay);
 
               const dmResult = await this.botActionExecutorService.sendDm(
-                // @ts-expect-error TS2345
-                platformCredential,
+                credential,
                 content.authorId,
                 dmText,
               );
