@@ -53,29 +53,30 @@ export class ResendEmailDeliveryError extends Error {
   }
 }
 
+const RESEND_RETRYABILITY_OVERRIDES: Partial<
+  Record<ErrorResponse['name'], boolean>
+> = {
+  concurrent_idempotent_requests: true,
+  daily_quota_exceeded: false,
+  monthly_quota_exceeded: false,
+  rate_limit_exceeded: true,
+};
+
+const RETRYABLE_RESEND_STATUS_CODES = new Set([408, 425, 429]);
+
 function isRetryableResendFailure(error: ErrorResponse): boolean {
-  if (
-    error.name === 'daily_quota_exceeded' ||
-    error.name === 'monthly_quota_exceeded'
-  ) {
-    return false;
+  const override = RESEND_RETRYABILITY_OVERRIDES[error.name];
+  if (override !== undefined) {
+    return override;
   }
 
-  if (
-    error.name === 'concurrent_idempotent_requests' ||
-    error.name === 'rate_limit_exceeded'
-  ) {
+  if (error.statusCode === null) {
     return true;
   }
 
-  const statusCode = error.statusCode;
-
   return (
-    statusCode === null ||
-    statusCode === 408 ||
-    statusCode === 425 ||
-    statusCode === 429 ||
-    statusCode >= 500
+    error.statusCode >= 500 ||
+    RETRYABLE_RESEND_STATUS_CODES.has(error.statusCode)
   );
 }
 
