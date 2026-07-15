@@ -21,13 +21,20 @@ export default function TopbarBreadcrumbs({
   fallbackRootLabel,
   rootLabel,
 }: TopbarBreadcrumbsProps) {
-  const { activeGroupId, activePageLabel, exitNestedGroup } =
-    useSidebarNavigation();
+  const {
+    activeGroupId,
+    breadcrumbPageLabel,
+    breadcrumbRootLabel,
+    exitNestedGroup,
+    nestedGroupId,
+  } = useSidebarNavigation();
 
-  const groupLabel = rootLabel || activeGroupId || fallbackRootLabel;
-  const canExitNestedGroup = Boolean(activeGroupId && activePageLabel);
+  const groupLabel = rootLabel || breadcrumbRootLabel || fallbackRootLabel;
+  const canExitNestedGroup = Boolean(
+    activeGroupId && breadcrumbPageLabel && nestedGroupId,
+  );
 
-  if (!groupLabel && !activePageLabel) {
+  if (!groupLabel && !breadcrumbPageLabel) {
     return null;
   }
 
@@ -36,7 +43,7 @@ export default function TopbarBreadcrumbs({
       className="flex items-center gap-1.5 text-[13px]"
       aria-label="Breadcrumb"
     >
-      {groupLabel && activePageLabel && canExitNestedGroup ? (
+      {groupLabel && breadcrumbPageLabel && canExitNestedGroup ? (
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
@@ -54,15 +61,15 @@ export default function TopbarBreadcrumbs({
         </span>
       ) : null}
 
-      {groupLabel && activePageLabel && (
+      {groupLabel && breadcrumbPageLabel && (
         <span aria-hidden="true" className="text-foreground/30 select-none">
           /
         </span>
       )}
 
-      {activePageLabel && (
+      {breadcrumbPageLabel && (
         <span className="truncate max-w-truncate-lg text-foreground font-semibold">
-          {activePageLabel}
+          {breadcrumbPageLabel}
         </span>
       )}
     </nav>

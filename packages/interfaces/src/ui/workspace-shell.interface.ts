@@ -105,11 +105,17 @@ export interface WorkspaceShellAdapterSeam {
   readonly status: 'dedicated-route' | 'embedded' | 'placeholder' | 'ready';
 }
 
+export interface WorkspaceShellBreadcrumbMetadata {
+  readonly leafLabel: string;
+  readonly rootLabel: string;
+}
+
 export interface WorkspaceShellRouteRegistration {
   readonly accessPolicy: WorkspaceShellAccessPolicy;
   readonly adapter: WorkspaceShellAdapterSeam;
   readonly allowedShellModes: readonly [WorkspaceShellRouteMode];
   readonly availability: Exclude<WorkspaceShellAvailability, 'legacy-shell'>;
+  readonly breadcrumb: WorkspaceShellBreadcrumbMetadata;
   readonly canonicalUrl: string;
   readonly deployments: readonly WorkspaceShellDeployment[];
   readonly key: string;

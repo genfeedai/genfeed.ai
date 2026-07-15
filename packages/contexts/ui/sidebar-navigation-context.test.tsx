@@ -13,8 +13,24 @@ vi.mock('next/navigation', () => ({
 }));
 
 function NavigationState() {
-  const { activePageLabel } = useSidebarNavigation();
-  return <span>{activePageLabel || 'none'}</span>;
+  const {
+    activeGroupId,
+    activePageLabel,
+    breadcrumbPageLabel,
+    breadcrumbRootLabel,
+    groups,
+  } = useSidebarNavigation();
+  return (
+    <span>
+      {[
+        activeGroupId || 'none',
+        activePageLabel || 'none',
+        breadcrumbRootLabel || 'none',
+        breadcrumbPageLabel || 'none',
+        groups.length,
+      ].join('|')}
+    </span>
+  );
 }
 
 function renderNavigation(items: MenuItemConfig[]) {
@@ -37,7 +53,9 @@ describe('SidebarNavigationProvider', () => {
       },
     ]);
 
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(
+      screen.getByText('none|Dashboard|none|Dashboard|1'),
+    ).toBeInTheDocument();
   });
 
   it.each([
@@ -66,7 +84,9 @@ describe('SidebarNavigationProvider', () => {
       },
     ]);
 
-    expect(screen.getByText(childLabel)).toBeInTheDocument();
+    expect(
+      screen.getByText(`none|${childLabel}|none|${childLabel}|1`),
+    ).toBeInTheDocument();
   });
 
   it('ignores task-context query parameters when matching menu hrefs', () => {
@@ -79,7 +99,7 @@ describe('SidebarNavigationProvider', () => {
       },
     ]);
 
-    expect(screen.getByText('Images')).toBeInTheDocument();
+    expect(screen.getByText('none|Images|none|Images|1')).toBeInTheDocument();
   });
 
   it('preserves exact matching for root items with sibling pages', () => {
@@ -90,6 +110,26 @@ describe('SidebarNavigationProvider', () => {
       { href: '/settings/members', label: 'Members' },
     ]);
 
-    expect(screen.getByText('Members')).toBeInTheDocument();
+    expect(screen.getByText('none|Members|none|Members|1')).toBeInTheDocument();
+  });
+
+  it('uses canonical route breadcrumbs without discarding sidebar groups', () => {
+    pathnameState.value = '/acme/brand/library/moodboard';
+
+    render(
+      <SidebarNavigationProvider
+        breadcrumb={{ leafLabel: 'Moodboard', rootLabel: 'Library' }}
+        items={[
+          { group: 'Assets', href: '/library/images', label: 'Images' },
+          { group: 'Assets', href: '/library/videos', label: 'Videos' },
+        ]}
+      >
+        <NavigationState />
+      </SidebarNavigationProvider>,
+    );
+
+    expect(
+      screen.getByText('Assets|none|Library|Moodboard|1'),
+    ).toBeInTheDocument();
   });
 });

@@ -30,12 +30,12 @@ const CONTRACTS: PageContextContract[] = [
   {
     route: `${BRAND_BASE}/library/images`,
     currentApp: 'library',
-    sectionLabel: 'Workspace',
+    sectionLabel: 'Library',
   },
   {
     route: `${BRAND_BASE}/studio/image`,
     currentApp: 'studio',
-    sectionLabel: 'Workspace',
+    sectionLabel: 'Studio',
   },
   {
     route: `${BRAND_BASE}/posts/scheduled`,

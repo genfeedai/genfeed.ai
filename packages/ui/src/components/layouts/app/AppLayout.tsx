@@ -23,6 +23,7 @@ export default function AppLayout({
   topbarChromeVariant = 'inherit',
   hasSecondaryTopbar: _hasSecondaryTopbar = false,
   menuItems = EMPTY_ARRAY,
+  breadcrumb,
   agentPanel,
   isAgentCollapsed = false,
   onAgentToggle,
@@ -67,7 +68,7 @@ export default function AppLayout({
     ) : null;
 
   const layoutContent = (
-    <SidebarNavigationProvider items={menuItems}>
+    <SidebarNavigationProvider breadcrumb={breadcrumb} items={menuItems}>
       <div
         className="ship-ui min-h-screen overflow-x-hidden bg-background"
         data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
