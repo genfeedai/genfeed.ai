@@ -18,7 +18,7 @@
  *  2. Postgres-level: Stripe redelivering the SAME invoice under a NEW event
  *     id (e.g. a dashboard "Resend" or a retry after the 24h Redis TTL
  *     expires) must not double-grant credits. This is enforced by
- *     `StripeWebhookSupportService#hasSubscriptionInvoiceCreditGrant`,
+ *     `StripeWebhookSupportService#hasSubscriptionCreditGrant`,
  *     keyed on a `referenceId`/`referenceType` persisted on the credit
  *     transaction row.
  *
@@ -58,6 +58,7 @@ import { RequestContextCacheService } from '@api/common/services/request-context
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
+import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
@@ -205,6 +206,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
         StripeService,
         StripeWebhookService,
         StripeInvoiceWebhookHandler,
+        StripeSubscriptionCreditReconcilerService,
         StripeWebhookSupportService,
         CreditsUtilsService,
         CreditBalanceService,
@@ -435,7 +437,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
       },
     });
     // Before the #1398 fix, resetOrganizationCredits had no way to persist a
-    // referenceId/referenceType, so hasSubscriptionInvoiceCreditGrant could
+    // referenceId/referenceType, so hasSubscriptionCreditGrant could
     // never find this row and the redelivery would reset credits a second
     // time (the balance would still read 500_000 either way, since RESET is
     // absolute — but a second RESET row, and re-running side effects like

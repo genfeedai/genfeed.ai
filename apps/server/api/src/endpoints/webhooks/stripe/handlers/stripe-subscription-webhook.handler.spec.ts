@@ -1,5 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
@@ -31,6 +32,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
   const lifecycleEmailService = {
     recordSubscriptionLapsed: vi.fn(),
   };
+  const creditReconciler = { reconcile: vi.fn() };
 
   function stripeSubscription(
     overrides: Record<string, unknown> = {},
@@ -42,6 +44,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
       items: {
         data: [
           {
+            current_period_start: 1_747_321_600,
             current_period_end: 1_750_000_000,
             price: { id: 'price_1', recurring: { interval: 'month' } },
           },
@@ -74,6 +77,10 @@ describe('StripeSubscriptionWebhookHandler', () => {
         { provide: UsersService, useValue: usersService },
         { provide: StripeWebhookSupportService, useValue: supportService },
         { provide: LifecycleEmailService, useValue: lifecycleEmailService },
+        {
+          provide: StripeSubscriptionCreditReconcilerService,
+          useValue: creditReconciler,
+        },
       ],
     }).compile();
 
@@ -104,6 +111,20 @@ describe('StripeSubscriptionWebhookHandler', () => {
         'price_1',
         'active',
       );
+      expect(creditReconciler.reconcile).toHaveBeenCalledWith({
+        billingReason: 'subscription_create',
+        periodEnd: new Date(1_750_000_000 * 1000),
+        periodStart: new Date(1_747_321_600 * 1000),
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: expect.objectContaining({
+          organization: 'org_1',
+          stripePriceId: 'price_1',
+          type: SubscriptionPlan.MONTHLY,
+        }),
+        subscriptionStatus: 'active',
+        trigger: 'customer.subscription.created',
+        url: 'test',
+      });
     });
 
     it('updates the org tier when the price maps to one', async () => {
@@ -132,6 +153,25 @@ describe('StripeSubscriptionWebhookHandler', () => {
         expect.objectContaining({ customerId: 'cus_123' }),
       );
       expect(subscriptionsService.patch).not.toHaveBeenCalled();
+      expect(creditReconciler.reconcile).not.toHaveBeenCalled();
+    });
+
+    it('propagates reconciliation failures so Stripe can retry the event', async () => {
+      const reconciliationError = new Error('credit ledger unavailable');
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
+        dbSubscription,
+      );
+      subscriptionsService.patch.mockResolvedValue(dbSubscription);
+      creditReconciler.reconcile.mockRejectedValueOnce(reconciliationError);
+
+      await expect(
+        handler.handleSubscriptionCreated(stripeSubscription(), 'test'),
+      ).rejects.toBe(reconciliationError);
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed to handle subscription created'),
+        reconciliationError,
+      );
     });
   });
 

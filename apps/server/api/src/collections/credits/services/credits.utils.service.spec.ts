@@ -269,7 +269,7 @@ describe('CreditsUtilsService', () => {
 
     // #1398: the yearly subscription reset path relies on this reference
     // being persisted on the transaction row — otherwise
-    // StripeWebhookSupportService#hasSubscriptionInvoiceCreditGrant can
+    // StripeWebhookSupportService#hasSubscriptionCreditGrant can
     // never find a match and a replayed invoice.paid double-resets credits.
     it('persists a referenceId/referenceType on the reset transaction when options are passed', async () => {
       const service = buildService();
