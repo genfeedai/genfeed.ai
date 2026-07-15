@@ -75,6 +75,14 @@ export class BrandsService extends BaseService<
       userId?: string;
     },
   ): Promise<BrandDocument> {
+    const { organization, organizationId, user, userId, ...brandFields } =
+      createBrandDto;
+    const resolvedOrganizationId =
+      organizationId ??
+      (typeof organization === 'string' ? organization : undefined);
+    const resolvedUserId =
+      userId ?? (typeof user === 'string' ? user : undefined);
+
     this.logger.debug('Creating brand', {
       label: createBrandDto.label,
       operation: 'create',
@@ -82,16 +90,18 @@ export class BrandsService extends BaseService<
       slug: createBrandDto.slug,
     });
 
-    const orgId =
-      (createBrandDto.organizationId as string) ??
-      (createBrandDto.organization as string);
-
-    const brand = await super.create(createBrandDto);
+    const brand = await super.create({
+      ...brandFields,
+      ...(resolvedOrganizationId
+        ? { organizationId: resolvedOrganizationId }
+        : {}),
+      ...(resolvedUserId ? { userId: resolvedUserId } : {}),
+    } as CreateBrandDto);
 
     // Invalidate brand list cache so the new brand is immediately visible
-    if (orgId) {
+    if (resolvedOrganizationId) {
       await this.cacheInvalidationService.invalidate(
-        CACHE_PATTERNS.BRANDS_LIST(orgId),
+        CACHE_PATTERNS.BRANDS_LIST(resolvedOrganizationId),
       );
     }
     // Also bust the shared brands tag (covers user-scoped list keys from @Cache decorator)
