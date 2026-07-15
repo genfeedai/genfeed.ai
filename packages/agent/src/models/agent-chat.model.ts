@@ -7,6 +7,7 @@ import type {
   AgentDashboardOperation,
   AgentUIBlock,
   AnalyticsQueryReference,
+  ScopedResearchFindingReference,
   SocialInboxReference,
 } from '@genfeedai/interfaces';
 import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
@@ -452,6 +453,7 @@ export interface AgentPageContext {
   postContent?: string;
   postAuthor?: string;
   route?: string;
+  researchReferences?: ScopedResearchFindingReference[];
   selectedText?: string;
   socialReferences?: SocialInboxReference[];
   url?: string;

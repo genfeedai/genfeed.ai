@@ -4,28 +4,16 @@ import type {
   ITrendHashtag,
   ITrendSound,
   ITrendVideo,
+  ResearchFindingReference,
+  ResearchFindingReferenceKind,
 } from '@genfeedai/interfaces';
 import type { TrendContentItem } from '@props/trends/trends-page.props';
 
-export const RESEARCH_FINDING_REFERENCE_KINDS = [
-  'research-ad-connected-google',
-  'research-ad-connected-meta',
-  'research-ad-public-google',
-  'research-ad-public-meta',
-  'research-source-post',
-  'research-trend-content',
-  'research-trend-hashtag',
-  'research-trend-sound',
-  'research-trend-video',
-] as const;
-
-export type ResearchFindingReferenceKind =
-  (typeof RESEARCH_FINDING_REFERENCE_KINDS)[number];
-
-export interface ResearchFindingReference {
-  readonly id: string;
-  readonly kind: ResearchFindingReferenceKind;
-}
+export {
+  RESEARCH_FINDING_REFERENCE_KINDS,
+  type ResearchFindingReference,
+  type ResearchFindingReferenceKind,
+} from '@genfeedai/interfaces';
 
 export interface ResearchFindingMetadataItem {
   readonly label: string;

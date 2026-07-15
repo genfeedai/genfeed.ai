@@ -6,12 +6,13 @@ type: reference
 
 # App Page Map
 
-Last audited: 2026-07-13.
+Last audited: 2026-07-15.
 
-Conversation-shell parity baseline: 206 canonical protected route patterns plus
-two intentional hard-cut families. This file is the exact denominator owned by
-`architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md`; the app switcher is only a
-discovery subset.
+Conversation-shell parity baseline: the 206 canonical protected route patterns
+accepted in `architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md`, plus the
+organization workflow-run detail route added by #1703, for a current executable
+denominator of 207 patterns. Two intentional hard-cut families remain outside
+the denominator. The app switcher is only a discovery subset.
 
 Source of truth:
 
@@ -23,7 +24,7 @@ Source of truth:
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
 - App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
 
-The application registry mirrors all 206 parity-eligible patterns below and
+The application registry mirrors all 207 parity-eligible patterns below and
 keeps Notifications plus the Community/Desktop terminal dock as explicit
 trusted non-route surfaces. The two hard-cut families remain outside it.
 
@@ -166,6 +167,7 @@ Organization catch-all module pages served by `/:orgSlug/~/:orgRootApp/[[...segm
 - `/:orgSlug/~/workflows/library`
 - `/:orgSlug/~/workflows/templates`
 - `/:orgSlug/~/workflows/executions`
+- `/:orgSlug/~/workflows/executions/:id`
 - `/:orgSlug/~/workflows/new`
 - `/:orgSlug/~/workflows/:id`
 - `/:orgSlug/~/editor`

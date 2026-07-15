@@ -99,4 +99,24 @@ describe('buildPageContextPrompt', () => {
     expect(prompt).toContain('derivative and non-authoritative');
     expect(prompt).not.toContain('Metric value');
   });
+
+  it('emits only typed server-authorized Research selectors', () => {
+    const prompt = buildPageContextPrompt({
+      researchReferences: [
+        {
+          brandId: 'brand-1',
+          id: 'trend-1',
+          kind: 'research-trend-video',
+          organizationId: 'organization-1',
+        },
+      ],
+      route: '/acme/moonrise/research/discovery',
+    });
+
+    expect(prompt).toContain('Server-Authorized Research Selectors');
+    expect(prompt).toContain('research-trend-video:trend-1');
+    expect(prompt).toContain('contain no copied authoritative state');
+    expect(prompt).not.toContain('brand-1');
+    expect(prompt).not.toContain('organization-1');
+  });
 });

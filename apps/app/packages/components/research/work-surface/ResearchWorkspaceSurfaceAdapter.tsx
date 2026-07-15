@@ -1,8 +1,14 @@
 'use client';
 
-import type { ConversationComposerContextReference } from '@genfeedai/agent';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  type ConversationComposerContextReference,
+  useAgentChatStore,
+} from '@genfeedai/agent';
+import type { ScopedResearchFindingReference } from '@genfeedai/interfaces';
 import ResearchFindingInspector from '@pages/research/work-surface/ResearchFindingInspector';
 import { useOptionalResearchWorkSurface } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
+import { usePathname } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 import {
   type ResearchWorkspaceSurfaceAdapterRegistration,
@@ -12,6 +18,9 @@ import {
 
 export default function ResearchWorkspaceSurfaceAdapter() {
   const surface = useOptionalResearchWorkSurface();
+  const { brandId, organizationId } = useBrand();
+  const pathname = usePathname();
+  const setPageContext = useAgentChatStore((state) => state.setPageContext);
   const isRegistrationAvailable =
     useResearchWorkspaceSurfaceAdapterRegistrationAvailable();
   useEffect(() => {
@@ -31,6 +40,42 @@ export default function ResearchWorkspaceSurfaceAdapter() {
         : [],
     [surface?.authorizedFinding],
   );
+  const researchReferences = useMemo<readonly ScopedResearchFindingReference[]>(
+    () =>
+      surface?.authorizedFinding && brandId && organizationId
+        ? [
+            {
+              ...surface.authorizedFinding.reference,
+              brandId,
+              organizationId,
+            },
+          ]
+        : [],
+    [brandId, organizationId, surface?.authorizedFinding],
+  );
+
+  useEffect(() => {
+    const currentContext = useAgentChatStore.getState().pageContext;
+    setPageContext({
+      ...(currentContext?.route === pathname ? currentContext : {}),
+      researchReferences:
+        researchReferences.length > 0 ? [...researchReferences] : undefined,
+      route: pathname,
+      suggestedActions: currentContext?.suggestedActions ?? [],
+    });
+
+    return () => {
+      const latestContext = useAgentChatStore.getState().pageContext;
+      if (latestContext?.route !== pathname) {
+        return;
+      }
+
+      const { researchReferences: _researchReferences, ...rest } =
+        latestContext;
+      setPageContext(rest);
+    };
+  }, [pathname, researchReferences, setPageContext]);
+
   const adapter = useMemo<ResearchWorkspaceSurfaceAdapterRegistration>(
     () => ({
       inspectorContent: <ResearchFindingInspector />,
