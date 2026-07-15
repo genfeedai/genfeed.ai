@@ -1,8 +1,8 @@
-import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import {
-  clearTokenCache,
-  useAuthedService,
-} from '@hooks/auth/use-authed-service/use-authed-service';
+  resolveAuthToken,
+  resolveRequiredAuthToken,
+} from '@helpers/auth/auth.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,6 +14,7 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 
 vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: vi.fn(),
+  resolveRequiredAuthToken: vi.fn(),
 }));
 
 describe('useAuthedService', () => {
@@ -21,31 +22,25 @@ describe('useAuthedService', () => {
   const mockResolveAuthToken = resolveAuthToken as unknown as ReturnType<
     typeof vi.fn
   >;
-  let orgIdMock: string | null = 'org-123';
-  let userIdMock: string | null = 'user-123';
-
-  function createJwt(exp: number): string {
-    const encode = (value: object): string =>
-      btoa(JSON.stringify(value))
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/g, '');
-
-    return `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ exp })}.signature`;
-  }
+  const mockResolveRequiredAuthToken =
+    resolveRequiredAuthToken as unknown as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    clearTokenCache();
-    orgIdMock = 'org-123';
-    userIdMock = 'user-123';
     mockResolveAuthToken.mockImplementation(async (getToken, opts) =>
       getToken(opts),
     );
+    mockResolveRequiredAuthToken.mockImplementation(
+      async (getToken, opts, createError) => {
+        const token = await mockResolveAuthToken(getToken, opts);
+        if (!token) {
+          throw createError();
+        }
+        return token;
+      },
+    );
     mockUseAuthIdentity.mockReturnValue({
       getToken: getTokenMock,
-      orgId: orgIdMock,
-      userId: userIdMock,
     });
   });
 
@@ -109,25 +104,6 @@ describe('useAuthedService', () => {
     expect(mockService).toHaveBeenCalledWith('playwright-jwt');
   });
 
-  it('does not reuse a token that is already near expiry', async () => {
-    const mockService = vi.fn();
-    const nearExpiryToken = createJwt(Math.floor(Date.now() / 1000) + 1);
-    const refreshedToken = createJwt(Math.floor(Date.now() / 1000) + 120);
-
-    getTokenMock
-      .mockResolvedValueOnce(nearExpiryToken)
-      .mockResolvedValueOnce(refreshedToken);
-
-    const { result } = renderHook(() => useAuthedService(mockService));
-
-    await result.current();
-    await result.current();
-
-    expect(getTokenMock).toHaveBeenCalledTimes(2);
-    expect(mockService).toHaveBeenNthCalledWith(1, nearExpiryToken);
-    expect(mockService).toHaveBeenNthCalledWith(2, refreshedToken);
-  });
-
   it('supports forcing a fresh token lookup', async () => {
     const mockService = vi.fn();
     getTokenMock
@@ -145,32 +121,5 @@ describe('useAuthedService', () => {
       template: undefined,
     });
     expect(mockService).toHaveBeenNthCalledWith(2, 'fresh-token');
-  });
-
-  it('does not reuse a cached token across auth identity changes', async () => {
-    const mockService = vi.fn();
-    getTokenMock
-      .mockResolvedValueOnce('jwt-token-user-1')
-      .mockResolvedValueOnce('jwt-token-user-2');
-
-    const { result, rerender } = renderHook(() =>
-      useAuthedService(mockService),
-    );
-
-    await result.current();
-
-    userIdMock = 'user-456';
-    mockUseAuthIdentity.mockReturnValue({
-      getToken: getTokenMock,
-      orgId: orgIdMock,
-      userId: userIdMock,
-    });
-
-    rerender();
-    await result.current();
-
-    expect(getTokenMock).toHaveBeenCalledTimes(2);
-    expect(mockService).toHaveBeenNthCalledWith(1, 'jwt-token-user-1');
-    expect(mockService).toHaveBeenNthCalledWith(2, 'jwt-token-user-2');
   });
 });

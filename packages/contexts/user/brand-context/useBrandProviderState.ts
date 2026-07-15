@@ -25,10 +25,7 @@ import {
   useState,
 } from 'react';
 import { loadClientProtectedBootstrap } from '../../providers/protected-bootstrap/client-protected-bootstrap';
-import {
-  clearContextTokenCache,
-  useContextAuthedService,
-} from '../internal/context-authed-service';
+import { useContextAuthedService } from '../internal/context-authed-service';
 import {
   BRAND_CONTEXT_CACHE_TTL_MS,
   getBrandEntityId,
@@ -389,7 +386,6 @@ export function useBrandProviderState({
 
   useEffect(() => {
     if (effectiveIsAuthLoaded && !effectiveIsSignedIn) {
-      clearContextTokenCache();
       clearAllServiceInstances();
       startTransition(() => {
         setBrandId('');
