@@ -19,7 +19,7 @@ interface AgentSetupPanelProps {
   className?: string;
   connectedConnections: AgentSetupConnection[];
   connectedPlatformsCount: number;
-  onOAuthConnect?: (platform: string) => void;
+  onOAuthConnect?: (platform: string) => void | Promise<void>;
 }
 
 function getConnectionLabel(connection: AgentSetupConnection): string {
