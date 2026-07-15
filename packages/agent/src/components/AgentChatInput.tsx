@@ -153,7 +153,6 @@ export function AgentChatInput({
       <PromptBarShell
         className={cn(
           'overflow-hidden rounded-xl border border-border bg-card shadow-border transition-[border-color,box-shadow] focus-within:border-foreground/[0.18] focus-within:shadow-border-strong',
-          disabled && 'opacity-50',
           isDragActive && 'ring-1 ring-primary/40',
         )}
         data-testid="agent-chat-input-shell"
