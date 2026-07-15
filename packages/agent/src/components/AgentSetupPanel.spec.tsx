@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -87,6 +87,62 @@ describe('AgentSetupPanel', () => {
     fireEvent.click(screen.getByText('Twitter'));
 
     expect(onOAuthConnect).toHaveBeenCalledWith('twitter');
+  });
+
+  it('re-enables connect actions when a successful handoff does not navigate', async () => {
+    const onOAuthConnect = vi.fn(() => undefined);
+    render(
+      <AgentSetupPanel
+        brand={brand}
+        connectedConnections={[]}
+        connectedPlatformsCount={0}
+        onOAuthConnect={onOAuthConnect}
+      />,
+    );
+
+    const twitterButton = screen.getByRole('button', { name: 'Twitter' });
+    fireEvent.click(twitterButton);
+
+    expect(onOAuthConnect).toHaveBeenCalledWith('twitter');
+    await waitFor(() => expect(twitterButton).toBeEnabled());
+  });
+
+  it('re-enables connect actions when an async handoff rejects', async () => {
+    const onOAuthConnect = vi.fn().mockRejectedValue(new Error('api down'));
+    render(
+      <AgentSetupPanel
+        brand={brand}
+        connectedConnections={[]}
+        connectedPlatformsCount={0}
+        onOAuthConnect={onOAuthConnect}
+      />,
+    );
+
+    const twitterButton = screen.getByRole('button', { name: 'Twitter' });
+    fireEvent.click(twitterButton);
+
+    expect(onOAuthConnect).toHaveBeenCalledWith('twitter');
+    await waitFor(() => expect(twitterButton).toBeEnabled());
+  });
+
+  it('re-enables connect actions when the handoff throws synchronously', async () => {
+    const onOAuthConnect = vi.fn(() => {
+      throw new Error('popup blocked');
+    });
+    render(
+      <AgentSetupPanel
+        brand={brand}
+        connectedConnections={[]}
+        connectedPlatformsCount={0}
+        onOAuthConnect={onOAuthConnect}
+      />,
+    );
+
+    const twitterButton = screen.getByRole('button', { name: 'Twitter' });
+    fireEvent.click(twitterButton);
+
+    expect(onOAuthConnect).toHaveBeenCalledWith('twitter');
+    await waitFor(() => expect(twitterButton).toBeEnabled());
   });
 
   it('lists connected accounts and hides them from the connect list', () => {
