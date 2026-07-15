@@ -98,4 +98,122 @@ describe('FeatureFlagService', () => {
 
     expect(service.isEnabled('dashboard', { id: 'user-123' })).toBe(true);
   });
+
+  it('fails the conversation shell closed when its rollout document is missing', async () => {
+    const service = new FeatureFlagService(
+      createConfigService() as never,
+      { debug: vi.fn(), warn: vi.fn() } as never,
+    );
+
+    await service.init();
+
+    expect(
+      service.evaluateConversationShell({
+        client: 'web',
+        organizationId: 'org-123',
+      }),
+    ).toMatchObject({
+      enabled: false,
+      reason: 'invalid_configuration',
+    });
+  });
+
+  it('reports malformed structured rollout configuration without logging its contents', async () => {
+    const loggerService = { debug: vi.fn(), warn: vi.fn() };
+    const service = new FeatureFlagService(
+      createConfigService({
+        FEATURE_FLAG_DEFAULTS: JSON.stringify({
+          conversation_shell: { enabled: true, organizationId: 'secret-org' },
+        }),
+      }) as never,
+      loggerService as never,
+    );
+
+    await service.init();
+
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      'Conversation shell rollout configuration is invalid; evaluation will fail closed',
+      { reason: 'invalid_configuration' },
+    );
+    expect(JSON.stringify(loggerService.warn.mock.calls)).not.toContain(
+      'secret-org',
+    );
+  });
+
+  it('targets an explicit organization cohort and rejects client disagreement', async () => {
+    const service = new FeatureFlagService(
+      createConfigService({
+        FEATURE_FLAG_DEFAULTS: JSON.stringify({
+          conversation_shell: {
+            configVersion: 'test-v1',
+            enabled: true,
+            enabledCohorts: ['internal'],
+            enabledDeploymentModes: ['community'],
+            organizations: {
+              internal: ['org-123'],
+              opt_in: [],
+            },
+            rollbackRevision: 0,
+            schemaVersion: 1,
+          },
+        }),
+      }) as never,
+      { debug: vi.fn(), warn: vi.fn() } as never,
+    );
+
+    await service.init();
+
+    expect(
+      service.evaluateConversationShell({
+        client: 'web',
+        organizationId: 'org-123',
+      }),
+    ).toMatchObject({
+      cohort: 'internal',
+      deploymentMode: 'community',
+      enabled: true,
+      reason: 'enabled',
+    });
+    expect(
+      service.evaluateConversationShell({
+        client: 'browser-spoof',
+        organizationId: 'org-123',
+      }),
+    ).toMatchObject({
+      enabled: false,
+      reason: 'missing_attributes',
+    });
+  });
+
+  it('disables the conversation shell through a rollback revision', async () => {
+    const service = new FeatureFlagService(
+      createConfigService({
+        FEATURE_FLAG_DEFAULTS: JSON.stringify({
+          conversation_shell: {
+            configVersion: 'test-v2',
+            enabled: false,
+            enabledCohorts: ['internal'],
+            enabledDeploymentModes: ['community'],
+            organizations: { internal: ['org-123'], opt_in: [] },
+            rollbackRevision: 4,
+            schemaVersion: 1,
+          },
+        }),
+      }) as never,
+      { debug: vi.fn(), warn: vi.fn() } as never,
+    );
+
+    await service.init();
+
+    expect(
+      service.evaluateConversationShell({
+        client: 'web',
+        organizationId: 'org-123',
+      }),
+    ).toMatchObject({
+      enabled: false,
+      reason: 'disabled',
+      rollbackRevision: 4,
+    });
+  });
 });

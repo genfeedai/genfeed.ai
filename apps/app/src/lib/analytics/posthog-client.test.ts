@@ -119,6 +119,16 @@ describe('initAnalytics', () => {
         },
         title: 'Secret Post — Genfeed',
         utm_term: 'a secret search phrase',
+        prompt: 'Draft a confidential launch plan',
+        nested: {
+          credentialId: 'credential-secret',
+          messageText: 'private conversation',
+        },
+        deeplyNested: {
+          one: {
+            two: { three: { four: { five: { safe: 'drop-at-limit' } } } },
+          },
+        },
       },
     });
 
@@ -135,6 +145,11 @@ describe('initAnalytics', () => {
     // Free-text keys are dropped entirely.
     expect(props.title).toBeUndefined();
     expect(props.utm_term).toBeUndefined();
+    expect(props.prompt).toBeUndefined();
+    expect(props.nested).toEqual({});
+    expect(props.deeplyNested).toEqual({
+      one: { two: { three: { four: { five: {} } } } },
+    });
     // Tenant slugs templatized, ids collapsed — on top-level and nested bags.
     expect(props.$current_url).toBe(
       'https://app.genfeed.ai/:org/:brand/compose/post',
@@ -225,8 +240,14 @@ describe('event taxonomy', () => {
         'content_write_blank_draft_started',
         'content_write_opened',
         'content_write_prompt_generated',
+        'conversation_shell_approval',
+        'conversation_shell_error',
         'conversation_shell_fallback',
+        'conversation_shell_overlay_abandonment',
+        'conversation_shell_performance',
         'conversation_shell_restoration_failure',
+        'conversation_shell_scope_correction',
+        'conversation_shell_session',
         'conversation_shell_transition',
         'first_credit_purchase',
         'first_successful_publish',

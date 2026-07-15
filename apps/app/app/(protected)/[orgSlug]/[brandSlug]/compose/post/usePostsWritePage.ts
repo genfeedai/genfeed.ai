@@ -152,7 +152,6 @@ export function usePostsWritePage() {
       captureAnalyticsEvent(
         ANALYTICS_EVENTS.CONTENT_WRITE_BLANK_DRAFT_STARTED,
         {
-          credentialId: selectedCredential.id,
           hasPrefilledIngredient: Boolean(preselectedIngredientId),
           platform: selectedCredential.platform,
         },
@@ -280,7 +279,6 @@ export function usePostsWritePage() {
           title: nextTitle,
         }).catch(() => undefined);
         captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED, {
-          credentialId: selectedCredential.id,
           platform: selectedCredential.platform,
           source: 'desktop-ipc-fallback',
         });
@@ -293,7 +291,6 @@ export function usePostsWritePage() {
       }
 
       captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED, {
-        credentialId: selectedCredential.id,
         platform: selectedCredential.platform,
       });
       captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {

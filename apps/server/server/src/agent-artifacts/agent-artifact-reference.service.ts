@@ -1113,15 +1113,13 @@ export class AgentArtifactReferenceService {
   private recordReferenceTelemetry(
     resolution: 'canonical' | 'legacy-message' | 'none',
     params: ResolveMessageArtifactReferencesParams,
-    extra: Record<string, unknown> = {},
+    extra: { readonly resolvedCandidateCount?: number } = {},
   ): void {
     this.logger?.log('agent_artifact_reference_read', {
-      brandId: params.readContext.brandId,
       client: params.telemetry?.client ?? 'unknown',
       deployment: params.telemetry?.deployment ?? 'unknown',
       isInternal: params.telemetry?.isInternal ?? false,
       isKnownBot: params.telemetry?.isKnownBot ?? false,
-      messageId: params.messageId,
       organizationId: params.readContext.organizationId,
       resolution,
       telemetryQueryVersion: 1,

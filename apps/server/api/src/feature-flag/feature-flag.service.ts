@@ -1,8 +1,24 @@
+import {
+  CONVERSATION_SHELL_FLAG_KEY,
+  type ConversationShellClientSurface,
+  type ConversationShellDeployment,
+  type ConversationShellEvaluation,
+  type ConversationShellEvaluationAttributes,
+  type ConversationShellRolloutConfigParseResult,
+  evaluateConversationShellRollout,
+  getDeployment,
+  parseConversationShellRolloutConfig,
+} from '@genfeedai/config';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 export type FeatureFlagAttributes = Record<string, unknown>;
+
+export interface ConversationShellEvaluationInput {
+  readonly client?: unknown;
+  readonly organizationId?: unknown;
+}
 
 interface ParsedFeatureFlagDefaults {
   defaults: Record<string, unknown>;
@@ -11,6 +27,10 @@ interface ParsedFeatureFlagDefaults {
 
 @Injectable()
 export class FeatureFlagService implements OnModuleInit {
+  private conversationShellConfig: ConversationShellRolloutConfigParseResult = {
+    config: null,
+    error: 'missing_configuration',
+  };
   private isLocalDefaultsConfigured = false;
   private localDefaults: Record<string, unknown> = {};
 
@@ -27,10 +47,22 @@ export class FeatureFlagService implements OnModuleInit {
     const parsedDefaults = this.parseLocalDefaults();
     this.localDefaults = parsedDefaults.defaults;
     this.isLocalDefaultsConfigured = parsedDefaults.isConfigured;
+    this.conversationShellConfig = parseConversationShellRolloutConfig(
+      this.localDefaults[CONVERSATION_SHELL_FLAG_KEY],
+    );
+
+    if (this.conversationShellConfig.error === 'invalid_configuration') {
+      this.loggerService.warn(
+        'Conversation shell rollout configuration is invalid; evaluation will fail closed',
+        { reason: this.conversationShellConfig.error },
+      );
+    }
 
     this.loggerService.debug(
       'Feature flags initialized with local defaults only',
       {
+        conversationShellConfiguration:
+          this.conversationShellConfig.error ?? 'valid',
         isConfigured: this.isLocalDefaultsConfigured,
         localDefaultCount: Object.keys(this.localDefaults).length,
       },
@@ -38,6 +70,13 @@ export class FeatureFlagService implements OnModuleInit {
   }
 
   isEnabled(flagKey: string, _attributes?: FeatureFlagAttributes): boolean {
+    if (flagKey === CONVERSATION_SHELL_FLAG_KEY) {
+      return this.evaluateConversationShell({
+        client: _attributes?.client,
+        organizationId: _attributes?.organizationId,
+      }).enabled;
+    }
+
     if (!this.isLocalDefaultsConfigured) {
       this.loggerService.debug('Feature flag evaluated', {
         flagKey,
@@ -75,6 +114,43 @@ export class FeatureFlagService implements OnModuleInit {
     });
 
     return resolvedValue;
+  }
+
+  evaluateConversationShell(
+    input: ConversationShellEvaluationInput,
+  ): ConversationShellEvaluation {
+    const deployment = getDeployment() satisfies ConversationShellDeployment;
+    const client = this.parseConversationShellClient(input.client);
+    const organizationId =
+      typeof input.organizationId === 'string'
+        ? input.organizationId.trim()
+        : '';
+    const attributes: ConversationShellEvaluationAttributes = {
+      client: client ?? 'web',
+      deployment,
+      organizationId: client ? organizationId : '',
+    };
+    const evaluation = evaluateConversationShellRollout(
+      this.conversationShellConfig,
+      attributes,
+    );
+
+    this.loggerService.debug('Conversation shell flag evaluated', {
+      cohort: evaluation.cohort,
+      configVersion: evaluation.configVersion,
+      deploymentMode: evaluation.deploymentMode,
+      enabled: evaluation.enabled,
+      reason: evaluation.reason,
+      rollbackRevision: evaluation.rollbackRevision,
+    });
+
+    return evaluation;
+  }
+
+  private parseConversationShellClient(
+    value: unknown,
+  ): ConversationShellClientSurface | null {
+    return value === 'desktop' || value === 'web' ? value : null;
   }
 
   private parseLocalDefaults(): ParsedFeatureFlagDefaults {

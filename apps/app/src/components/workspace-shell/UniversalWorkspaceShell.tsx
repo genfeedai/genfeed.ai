@@ -80,7 +80,10 @@ import {
   resolveWorkspaceShellRoute,
 } from '@/lib/workspace-shell/workspace-shell-registry';
 import {
+  captureWorkspaceShellError,
+  captureWorkspaceShellOverlayAbandonment,
   captureWorkspaceShellRestorationFailure,
+  captureWorkspaceShellScopeCorrection,
   captureWorkspaceShellTransition,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
@@ -168,6 +171,14 @@ function UniversalWorkspaceShellContent({
     | null
   >(null);
   const isOwnedOverlayEntryRef = useRef(false);
+  const activeOverlayTelemetryClassRef = useRef<
+    | 'library_picker'
+    | 'notifications'
+    | 'shell_preview'
+    | 'workflow_picker'
+    | null
+  >(null);
+  const overlayCompletedRef = useRef(false);
   const hasOverlayReturnFocusRef = useRef(false);
   const overlayReturnFocusRef = useRef<HTMLElement | null>(null);
 
@@ -348,10 +359,13 @@ function UniversalWorkspaceShellContent({
           brandId: thread.brandId,
           contextVersion: thread.contextVersion,
         });
+        captureWorkspaceShellScopeCorrection('success');
       })
       .catch(() => {
         if (!abortController.signal.aborted) {
           setFailedSurfaceScopeKey(surfaceScopeKey);
+          captureWorkspaceShellScopeCorrection('failure');
+          captureWorkspaceShellError('scope', 'scope_sync_failed');
         }
       });
 
@@ -387,6 +401,7 @@ function UniversalWorkspaceShellContent({
     );
     if (restorationFailure) {
       captureWorkspaceShellRestorationFailure(restorationFailure);
+      captureWorkspaceShellError('restoration', 'restoration_failed');
     }
     replace(
       restorationFailure === 'invalid_thread'
@@ -477,6 +492,25 @@ function UniversalWorkspaceShellContent({
     previousStateRef.current = state;
     pendingTransitionRef.current = null;
 
+    if (state === 'overlay' && overlayRegistration) {
+      activeOverlayTelemetryClassRef.current =
+        overlayRegistration.telemetryClass;
+      if (previousState !== 'overlay') {
+        overlayCompletedRef.current = false;
+      }
+    } else if (previousState === 'overlay') {
+      if (
+        activeOverlayTelemetryClassRef.current &&
+        !overlayCompletedRef.current
+      ) {
+        captureWorkspaceShellOverlayAbandonment(
+          activeOverlayTelemetryClassRef.current,
+        );
+      }
+      activeOverlayTelemetryClassRef.current = null;
+      overlayCompletedRef.current = false;
+    }
+
     if (state !== 'overlay') {
       isOwnedOverlayEntryRef.current = false;
       const shouldRestoreOverlayTrigger =
@@ -486,7 +520,7 @@ function UniversalWorkspaceShellContent({
       }
       hasOverlayReturnFocusRef.current = false;
     }
-  }, [normalizedPathname, state]);
+  }, [normalizedPathname, overlayRegistration, state]);
 
   const handleOpenCanvas = useCallback(() => {
     const launch = resolveWorkspaceSurfaceLaunch({
@@ -708,6 +742,7 @@ function UniversalWorkspaceShellContent({
       }
 
       pendingTransitionRef.current = 'canvas_launch';
+      overlayCompletedRef.current = true;
       replace(launch.href);
     },
     [
@@ -751,6 +786,7 @@ function UniversalWorkspaceShellContent({
       }
 
       pendingTransitionRef.current = 'canvas_launch';
+      overlayCompletedRef.current = true;
       push(launch.href);
     },
     [activeThreadId, currentHref, effectiveThreadId, href, push],
@@ -762,6 +798,7 @@ function UniversalWorkspaceShellContent({
         `Use the deterministic workflow “${workflow.name}” (workflow ID: ${workflow._id}) for this request: `,
         effectiveThreadId ?? activeThreadId,
       );
+      overlayCompletedRef.current = true;
       handleDismissOverlay();
     },
     [activeThreadId, effectiveThreadId, handleDismissOverlay, seedComposer],

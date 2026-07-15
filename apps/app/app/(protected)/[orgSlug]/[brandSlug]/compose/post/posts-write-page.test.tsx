@@ -154,7 +154,6 @@ describe('PostsWritePage', () => {
     expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
       ANALYTICS_EVENTS.CONTENT_WRITE_BLANK_DRAFT_STARTED,
       {
-        credentialId: 'cred-1',
         hasPrefilledIngredient: false,
         platform: 'twitter',
       },
@@ -246,7 +245,7 @@ describe('PostsWritePage', () => {
     );
     expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
       ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED,
-      { credentialId: 'cred-1', platform: 'twitter' },
+      { platform: 'twitter' },
     );
   });
 
@@ -288,7 +287,7 @@ describe('PostsWritePage', () => {
     );
     expect(captureAnalyticsEventMock).toHaveBeenCalledWith(
       ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED,
-      { credentialId: 'cred-1', platform: 'twitter' },
+      { platform: 'twitter' },
     );
   });
 

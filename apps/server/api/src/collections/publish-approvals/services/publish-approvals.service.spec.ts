@@ -146,10 +146,12 @@ describe('PublishApprovalsService', () => {
     const artifactReferenceService = {
       createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
     };
+    const logger = { log: vi.fn() };
     const transaction = { post: prisma.post, publishApproval };
     const service = new PublishApprovalsService(
       prisma as never,
       artifactReferenceService as unknown as AgentArtifactReferenceService,
+      logger as never,
     );
 
     const approval = await service.createForCurrentPost({
@@ -199,6 +201,13 @@ describe('PublishApprovalsService', () => {
     expect(
       artifactReferenceService.createOrReuseVersionPin,
     ).toHaveBeenCalledWith(expect.objectContaining({ transaction }));
+    expect(logger.log).toHaveBeenCalledWith('conversation_shell_approval', {
+      action: 'approve',
+      integrity: 'matched',
+      organizationId: 'org-1',
+      outcome: 'success',
+      telemetryQueryVersion: 1,
+    });
   });
 
   it('fails closed and invalidates when the canonical brand drifts', async () => {

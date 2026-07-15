@@ -44,7 +44,16 @@ export function isAnalyticsEnabled(): boolean {
  * never leave the client (issue #1178, FR8). `title` is `document.title` on
  * $pageview; `utm_term`/`ph_keyword` are free-text search-campaign params.
  */
-const FREE_TEXT_PROPERTY_KEYS = new Set(['ph_keyword', 'title', 'utm_term']);
+const FREE_TEXT_PROPERTY_KEYS = new Set([
+  'description',
+  'label',
+  'name',
+  'ph_keyword',
+  'title',
+  'utm_term',
+]);
+const SENSITIVE_PROPERTY_KEY_PATTERN =
+  /(content|credential|message|prompt|secret|text|token)/i;
 /** A property value worth sanitising as a URL: absolute or path-relative. */
 const URL_LIKE_RE = /^(?:https?:\/\/|\/)/;
 /** Bound on recursion into nested property bags ($set/$set_once/$groups). */
@@ -60,15 +69,21 @@ function scrubPropertyValue(value: unknown, depth: number): unknown {
   if (typeof value === 'string') {
     return URL_LIKE_RE.test(value) ? sanitizeAnalyticsUrl(value) : value;
   }
-  if (depth >= MAX_SCRUB_DEPTH || value === null || typeof value !== 'object') {
+  if (value === null || typeof value !== 'object') {
     return value;
+  }
+  if (depth >= MAX_SCRUB_DEPTH) {
+    return Array.isArray(value) ? [] : {};
   }
   if (Array.isArray(value)) {
     return value.map((item) => scrubPropertyValue(item, depth + 1));
   }
   const record = value as Record<string, unknown>;
   for (const key of Object.keys(record)) {
-    if (FREE_TEXT_PROPERTY_KEYS.has(key)) {
+    if (
+      FREE_TEXT_PROPERTY_KEYS.has(key.toLowerCase()) ||
+      SENSITIVE_PROPERTY_KEY_PATTERN.test(key)
+    ) {
       delete record[key];
       continue;
     }

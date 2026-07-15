@@ -22,8 +22,15 @@ export const ANALYTICS_EVENTS = {
   CONTENT_WRITE_OPENED: 'content_write_opened',
   CONTENT_WRITE_PROMPT_GENERATED: 'content_write_prompt_generated',
   CONVERSATION_SHELL_FALLBACK: 'conversation_shell_fallback',
+  CONVERSATION_SHELL_APPROVAL: 'conversation_shell_approval',
+  CONVERSATION_SHELL_ERROR: 'conversation_shell_error',
+  CONVERSATION_SHELL_OVERLAY_ABANDONMENT:
+    'conversation_shell_overlay_abandonment',
+  CONVERSATION_SHELL_PERFORMANCE: 'conversation_shell_performance',
   CONVERSATION_SHELL_RESTORATION_FAILURE:
     'conversation_shell_restoration_failure',
+  CONVERSATION_SHELL_SCOPE_CORRECTION: 'conversation_shell_scope_correction',
+  CONVERSATION_SHELL_SESSION: 'conversation_shell_session',
   CONVERSATION_SHELL_TRANSITION: 'conversation_shell_transition',
   FIRST_CREDIT_PURCHASED: 'first_credit_purchase',
   FIRST_SUCCESSFUL_PUBLISH: 'first_successful_publish',
@@ -78,13 +85,32 @@ export type ConversationShellTransition =
 
 export type ConversationShellFallbackReason =
   | 'dedicated_route'
+  | 'evaluation_error'
   | 'invalid_overlay'
   | 'invalid_overlay_reference'
   | 'invalid_thread'
   | 'registry_miss'
   | 'render_error'
+  | 'server_rollback'
   | 'stale_overlay_reference'
   | 'unauthorized_overlay_reference';
+
+export type ConversationShellCohort = 'internal' | 'opt_in' | 'unassigned';
+
+export type ConversationShellDeploymentMode =
+  | 'community'
+  | 'desktop_cloud'
+  | 'desktop_self_hosted'
+  | 'saas'
+  | 'unknown';
+
+export interface ConversationShellTelemetryContext {
+  readonly cohort: ConversationShellCohort;
+  readonly configVersion: string;
+  readonly deploymentMode: ConversationShellDeploymentMode;
+  readonly isInternal: boolean;
+  readonly rollbackRevision: number;
+}
 
 /**
  * Property shape for each event. Keys map 1:1 to {@link ANALYTICS_EVENTS} values.
@@ -99,10 +125,11 @@ export interface AnalyticsEventProperties {
     readonly fromState: ConversationShellState;
     readonly toState: ConversationShellState;
     readonly transition: ConversationShellTransition;
-  };
+  } & ConversationShellTelemetryContext;
+  [ANALYTICS_EVENTS.CONVERSATION_SHELL_SESSION]: ConversationShellTelemetryContext;
   [ANALYTICS_EVENTS.CONVERSATION_SHELL_FALLBACK]: {
     readonly reason: ConversationShellFallbackReason;
-  };
+  } & ConversationShellTelemetryContext;
   [ANALYTICS_EVENTS.CONVERSATION_SHELL_RESTORATION_FAILURE]: {
     readonly reason: Extract<
       ConversationShellFallbackReason,
@@ -112,7 +139,38 @@ export interface AnalyticsEventProperties {
       | 'stale_overlay_reference'
       | 'unauthorized_overlay_reference'
     >;
-  };
+  } & ConversationShellTelemetryContext;
+  [ANALYTICS_EVENTS.CONVERSATION_SHELL_SCOPE_CORRECTION]: {
+    readonly outcome: AnalyticsOutcome;
+    readonly source: 'surface_adapter';
+  } & ConversationShellTelemetryContext;
+  [ANALYTICS_EVENTS.CONVERSATION_SHELL_OVERLAY_ABANDONMENT]: {
+    readonly overlayClass:
+      | 'library_picker'
+      | 'notifications'
+      | 'shell_preview'
+      | 'workflow_picker';
+  } & ConversationShellTelemetryContext;
+  [ANALYTICS_EVENTS.CONVERSATION_SHELL_APPROVAL]: {
+    readonly action: 'approve' | 'execute' | 'reject' | 'revoke';
+    readonly integrity: 'blocked' | 'matched' | 'not_applicable';
+    readonly outcome: AnalyticsOutcome;
+  } & ConversationShellTelemetryContext;
+  [ANALYTICS_EVENTS.CONVERSATION_SHELL_PERFORMANCE]: {
+    readonly deviceClass: 'desktop' | 'mobile';
+    readonly durationMs: number;
+    readonly metric: 'first_useful_paint';
+    readonly routeClass: 'agent' | 'management' | 'product';
+    readonly shellMode: 'conversation' | 'legacy';
+  } & ConversationShellTelemetryContext;
+  [ANALYTICS_EVENTS.CONVERSATION_SHELL_ERROR]: {
+    readonly code:
+      | 'render_failed'
+      | 'request_failed'
+      | 'restoration_failed'
+      | 'scope_sync_failed';
+    readonly stage: 'evaluation' | 'render' | 'restoration' | 'scope';
+  } & ConversationShellTelemetryContext;
   [ANALYTICS_EVENTS.SIGNUP_STARTED]: {
     readonly hasCloudHandoff: boolean;
     readonly hasCreditsIntent: boolean;
@@ -140,16 +198,12 @@ export interface AnalyticsEventProperties {
   [ANALYTICS_EVENTS.ONBOARDING_COMPLETED]: Record<string, never>;
   [ANALYTICS_EVENTS.CONTENT_WRITE_OPENED]: Record<string, never>;
   [ANALYTICS_EVENTS.CONTENT_WRITE_BLANK_DRAFT_STARTED]: {
-    /** Opaque internal credential id — a bounded identifier, never user copy. */
-    readonly credentialId: string;
     /** Whether the draft was seeded from a preselected ingredient. */
     readonly hasPrefilledIngredient: boolean;
     /** Connected-platform slug (e.g. "x", "linkedin"), never post content. */
     readonly platform: string;
   };
   [ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED]: {
-    /** Opaque internal credential id; absent on the desktop-only path. */
-    readonly credentialId?: string;
     /** Connected- or desktop-platform slug, never the prompt/generated text. */
     readonly platform: string;
     /** Which generation path ran; absent for the default cloud path. */

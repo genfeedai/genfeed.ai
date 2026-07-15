@@ -22,11 +22,15 @@ const FeatureFlagContext = createContext<FeatureFlagContextValue>({
 export interface FeatureFlagProviderProps {
   children: ReactNode;
   defaults?: Record<string, unknown>;
+  overrides?: Record<string, unknown>;
+  ready?: boolean;
 }
 
 export function FeatureFlagProvider({
   children,
   defaults,
+  overrides,
+  ready = true,
 }: FeatureFlagProviderProps) {
   const resolvedDefaults = useMemo<ParsedFeatureFlagDefaults>(
     () =>
@@ -43,11 +47,13 @@ export function FeatureFlagProvider({
 
   const value = useMemo<FeatureFlagContextValue>(
     () => ({
-      flags: resolvedDefaults.flags,
-      isConfigured: resolvedDefaults.isConfigured,
-      isReady: true,
+      flags: { ...resolvedDefaults.flags, ...overrides },
+      isConfigured:
+        resolvedDefaults.isConfigured ||
+        (overrides !== undefined && Object.keys(overrides).length > 0),
+      isReady: ready,
     }),
-    [resolvedDefaults],
+    [overrides, ready, resolvedDefaults],
   );
 
   return (

@@ -568,6 +568,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/orchestration/overview',
       '/:orgSlug/:brandSlug/orchestration/analytics',
       '/:orgSlug/:brandSlug/orchestration/autopilot',
+      '/:orgSlug/:brandSlug/workflows/autopilot',
       '/:orgSlug/:brandSlug/orchestration/runs',
       '/:orgSlug/:brandSlug/orchestration/skills',
       '/:orgSlug/:brandSlug/orchestration/content-runs/:runId',
@@ -584,6 +585,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/orchestration/new',
       '/:orgSlug/:brandSlug/orchestration/configuration',
+      '/:orgSlug/:brandSlug/workflows/configuration',
       '/:orgSlug/:brandSlug/orchestration/hire',
       '/:orgSlug/:brandSlug/orchestration/orchestrator',
       '/:orgSlug/:brandSlug/orchestration/campaigns',

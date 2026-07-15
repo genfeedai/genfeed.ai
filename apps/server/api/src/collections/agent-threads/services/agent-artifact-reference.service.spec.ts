@@ -371,8 +371,12 @@ describe('AgentArtifactReferenceService', () => {
       expect.objectContaining({
         client: 'web',
         deployment: 'saas',
+        organizationId: orgId,
         resolution: 'legacy-message',
       }),
+    );
+    expect(JSON.stringify(logger.log.mock.calls)).not.toMatch(
+      /brandId|messageId|ingredient-1|Copied presentation text/,
     );
   });
 
