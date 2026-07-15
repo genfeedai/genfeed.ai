@@ -733,7 +733,7 @@ export class CronPostsService {
       // Publish using the platform publisher, with a durable workflow execution
       // record so scheduled publishing is inspectable as a system workflow.
       const { provenance, result } =
-        await this.systemWorkflowProvenanceService.runAction(
+        await this.systemWorkflowProvenanceService.runAction<PublishResult>(
           {
             actionType: 'publish-post',
             canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
