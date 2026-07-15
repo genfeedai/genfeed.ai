@@ -23,7 +23,7 @@ describe('SelfHostedSeedService', () => {
       findFirst: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
-    role: { findMany: ReturnType<typeof vi.fn> };
+    role: { upsert: ReturnType<typeof vi.fn> };
   };
   let service: SelfHostedSeedService;
 
@@ -41,10 +41,10 @@ describe('SelfHostedSeedService', () => {
         }),
       },
       role: {
-        findMany: vi.fn().mockResolvedValue([
-          { id: 'role_user', key: 'user' },
-          { id: 'role_owner', key: 'owner' },
-        ]),
+        upsert: vi.fn().mockResolvedValue({
+          id: 'role_owner',
+          key: 'owner',
+        }),
       },
     };
     const logger = {
@@ -63,6 +63,16 @@ describe('SelfHostedSeedService', () => {
   it('backfills an active owner member when the default workspace already exists', async () => {
     await service.onApplicationBootstrap();
 
+    expect(prisma.role.upsert).toHaveBeenCalledWith({
+      create: {
+        key: 'owner',
+        label: 'Owner',
+      },
+      update: {
+        isDeleted: false,
+      },
+      where: { key: 'owner' },
+    });
     expect(prisma.member.create).toHaveBeenCalledWith({
       data: {
         isActive: true,

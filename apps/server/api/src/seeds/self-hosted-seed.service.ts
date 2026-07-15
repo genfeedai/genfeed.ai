@@ -119,21 +119,16 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       return;
     }
 
-    const roles = await this.prisma.role.findMany({
-      where: {
-        isDeleted: false,
-        key: {
-          in: [MemberRole.OWNER, MemberRole.ADMIN, MemberRole.USER],
-        },
+    const role = await this.prisma.role.upsert({
+      create: {
+        key: MemberRole.OWNER,
+        label: 'Owner',
       },
+      update: {
+        isDeleted: false,
+      },
+      where: { key: MemberRole.OWNER },
     });
-    const role = [MemberRole.OWNER, MemberRole.ADMIN, MemberRole.USER]
-      .map((key) => roles.find((candidate) => candidate.key === key))
-      .find(Boolean);
-
-    if (!role) {
-      throw new Error('No owner, admin, or user role found for default member');
-    }
 
     await this.prisma.member.create({
       data: {

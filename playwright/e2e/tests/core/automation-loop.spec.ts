@@ -39,14 +39,11 @@ test.describe('Core Automation Loop', () => {
       automationPage.getByRole('link', { name: 'New Workflow' }).first(),
     ).toHaveAttribute('href', /\/workflows\/new$/);
     await expect(
-      automationPage.getByRole('link', { name: 'Workflows' }).first(),
-    ).toBeVisible();
-    await expect(
       automationPage.getByRole('link', { name: 'Templates' }).first(),
     ).toBeVisible();
     await expect(
-      automationPage.getByRole('link', { name: 'Runs' }).first(),
-    ).toBeVisible();
+      automationPage.getByRole('link', { name: 'Autopilot' }).first(),
+    ).toHaveAttribute('href', /\/orchestration\/autopilot$/);
     await expect(
       automationPage
         .getByText('No workflows yet')

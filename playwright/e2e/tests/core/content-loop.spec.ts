@@ -167,13 +167,18 @@ test.describe('Core Content Loop', () => {
     await authenticatedPage.goto(
       `/analytics/posts?postId=${String(contentLoopPost.id)}`,
     );
+    await expect(authenticatedPage).toHaveURL(
+      new RegExp(`analytics/posts\\?postId=${String(contentLoopPost.id)}`),
+    );
+    const postDetail = authenticatedPage.getByRole('dialog', {
+      name: 'Post detail',
+    });
+    await expect(postDetail).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Top Posts' }),
+      postDetail.getByRole('heading', { name: 'Post detail' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByText(
-        'Focused on a single post from the loop. Open the post detail to remix, or ask the agent for the next step.',
-      ),
+      postDetail.getByRole('button', { name: 'Open page' }),
     ).toBeVisible();
   });
 });
