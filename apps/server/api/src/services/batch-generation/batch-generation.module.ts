@@ -5,6 +5,10 @@ import { PostsModule } from '@api/collections/posts/posts.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
+import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
+import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
+import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentArtifactReferenceService,
@@ -29,7 +33,11 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     AgentArtifactReferenceService,
+    BatchGenerationCreationService,
+    BatchGenerationProcessingService,
+    BatchGenerationReviewService,
     BatchGenerationService,
+    BatchGenerationSummaryService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
   ],
