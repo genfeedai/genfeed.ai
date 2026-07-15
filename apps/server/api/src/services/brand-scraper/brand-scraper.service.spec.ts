@@ -1,4 +1,5 @@
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { BrandWebsiteParserService } from '@api/services/brand-scraper/brand-website-parser.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -99,6 +100,7 @@ describe('BrandScraperService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BrandScraperService,
+        BrandWebsiteParserService,
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
