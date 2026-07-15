@@ -12,7 +12,6 @@ import {
   resolveAuthToken,
 } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { clearTokenCache } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
 import { AccessStateProvider } from '@providers/access-state/access-state.provider';
@@ -55,11 +54,6 @@ export function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
     orgId ?? playwrightAuth?.orgId ?? 'no-org',
     effectiveIsSignedIn ? 'in' : 'out',
   ].join(':');
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional trigger — sessionKey changes drive cache clear
-  useEffect(() => {
-    clearTokenCache();
-  }, [sessionKey]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: sessionKey as a change trigger for auth token refresh
   useEffect(() => {

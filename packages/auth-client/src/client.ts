@@ -166,6 +166,85 @@ function extractBetterAuthToken(response: unknown): string | null {
     : null;
 }
 
+function getReusableTokenPromise(
+  cacheKey: string,
+  isForceRefresh: boolean,
+): Promise<string | null> | null {
+  const cachedEntry = betterAuthTokenCache.get(cacheKey);
+
+  if (cachedEntry?.promise) {
+    return cachedEntry.promise;
+  }
+
+  if (
+    isForceRefresh ||
+    !cachedEntry?.token ||
+    cachedEntry.expiresAt <= Date.now()
+  ) {
+    return null;
+  }
+
+  return Promise.resolve(cachedEntry.token);
+}
+
+function cacheResolvedToken(
+  cacheKey: string,
+  cacheEntry: BetterAuthTokenCacheEntry,
+  token: string | null,
+): string | null {
+  if (betterAuthTokenCache.get(cacheKey) !== cacheEntry) {
+    return null;
+  }
+
+  if (!token) {
+    betterAuthTokenCache.delete(cacheKey);
+    return null;
+  }
+
+  cacheEntry.expiresAt = getJwtAwareExpiry(token);
+  cacheEntry.token = token;
+  return token;
+}
+
+function deleteTokenCacheEntry(
+  cacheKey: string,
+  cacheEntry: BetterAuthTokenCacheEntry,
+): void {
+  if (betterAuthTokenCache.get(cacheKey) === cacheEntry) {
+    betterAuthTokenCache.delete(cacheKey);
+  }
+}
+
+function clearInFlightTokenPromise(
+  cacheKey: string,
+  cacheEntry: BetterAuthTokenCacheEntry,
+): void {
+  if (betterAuthTokenCache.get(cacheKey) === cacheEntry) {
+    cacheEntry.promise = undefined;
+  }
+}
+
+function createBetterAuthTokenExchange(
+  cacheKey: string,
+): Promise<string | null> {
+  const cacheEntry: BetterAuthTokenCacheEntry = { expiresAt: 0 };
+  const exchange = authClient
+    .$fetch<{ token: string }>('/token', { method: 'GET' })
+    .then(extractBetterAuthToken)
+    .then((token) => cacheResolvedToken(cacheKey, cacheEntry, token))
+    .catch((error: unknown) => {
+      deleteTokenCacheEntry(cacheKey, cacheEntry);
+      throw error;
+    })
+    .finally(() => {
+      clearInFlightTokenPromise(cacheKey, cacheEntry);
+    });
+
+  cacheEntry.promise = exchange;
+  betterAuthTokenCache.set(cacheKey, cacheEntry);
+  return exchange;
+}
+
 /**
  * Retrieves a Bearer JWT minted by the Better Auth `jwt` plugin via its server
  * `GET /token` endpoint (the jwt *client* plugin only exposes `jwks`, not a
@@ -181,57 +260,11 @@ export function getBetterAuthToken(
   options?: BetterAuthTokenRequestOptions,
 ): Promise<string | null> {
   const cacheKey = getBetterAuthTokenCacheKey(contextKey, options?.template);
-  const cachedEntry = betterAuthTokenCache.get(cacheKey);
+  const tokenPromise =
+    getReusableTokenPromise(cacheKey, options?.forceRefresh === true) ??
+    createBetterAuthTokenExchange(cacheKey);
 
-  if (cachedEntry?.promise) {
-    return waitForTokenConsumer(cachedEntry.promise, options?.signal);
-  }
-
-  if (
-    !options?.forceRefresh &&
-    cachedEntry?.token &&
-    cachedEntry.expiresAt > Date.now()
-  ) {
-    return waitForTokenConsumer(
-      Promise.resolve(cachedEntry.token),
-      options?.signal,
-    );
-  }
-
-  const nextEntry: BetterAuthTokenCacheEntry = { expiresAt: 0 };
-  const exchange = authClient
-    .$fetch<{ token: string }>('/token', { method: 'GET' })
-    .then(extractBetterAuthToken)
-    .then((token) => {
-      if (betterAuthTokenCache.get(cacheKey) !== nextEntry) {
-        return null;
-      }
-
-      if (!token) {
-        betterAuthTokenCache.delete(cacheKey);
-        return null;
-      }
-
-      nextEntry.expiresAt = getJwtAwareExpiry(token);
-      nextEntry.token = token;
-      return token;
-    })
-    .catch((error: unknown) => {
-      if (betterAuthTokenCache.get(cacheKey) === nextEntry) {
-        betterAuthTokenCache.delete(cacheKey);
-      }
-      throw error;
-    })
-    .finally(() => {
-      if (betterAuthTokenCache.get(cacheKey) === nextEntry) {
-        nextEntry.promise = undefined;
-      }
-    });
-
-  nextEntry.promise = exchange;
-  betterAuthTokenCache.set(cacheKey, nextEntry);
-
-  return waitForTokenConsumer(exchange, options?.signal);
+  return waitForTokenConsumer(tokenPromise, options?.signal);
 }
 
 export function clearBetterAuthTokenCache(contextKey?: string): void {

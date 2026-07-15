@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { resolveAuthToken } from './auth.helper';
+import { resolveAuthToken, resolveRequiredAuthToken } from './auth.helper';
 
 describe('resolveAuthToken', () => {
   beforeEach(() => {
@@ -34,5 +34,17 @@ describe('resolveAuthToken', () => {
     await expect(resolveAuthToken(getToken)).resolves.toBe('playwright-token');
 
     expect(getToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws the boundary-specific error when no token is available', async () => {
+    const getToken = vi.fn().mockResolvedValue(null);
+
+    await expect(
+      resolveRequiredAuthToken(
+        getToken,
+        undefined,
+        () => new Error('Authentication token unavailable'),
+      ),
+    ).rejects.toThrow('Authentication token unavailable');
   });
 });

@@ -29,11 +29,15 @@ export interface PlaywrightAuthState {
   userId: string | null;
 }
 
-export type AuthTokenGetter = (opts?: {
+export interface AuthTokenOptions {
   forceRefresh?: boolean;
   signal?: AbortSignal;
   template?: string;
-}) => Promise<string | null>;
+}
+
+export type AuthTokenGetter = (
+  opts?: AuthTokenOptions,
+) => Promise<string | null>;
 
 const PLAYWRIGHT_JWT_STORAGE_KEYS = [
   '__better_auth_client_jwt',
@@ -86,13 +90,23 @@ export function getPlaywrightJwtToken(): string | null {
 
 export async function resolveAuthToken(
   getToken: AuthTokenGetter,
-  opts?: {
-    forceRefresh?: boolean;
-    signal?: AbortSignal;
-    template?: string;
-  },
+  opts?: AuthTokenOptions,
 ): Promise<string | null> {
   return (await getToken(opts)) ?? getPlaywrightJwtToken();
+}
+
+export async function resolveRequiredAuthToken(
+  getToken: AuthTokenGetter,
+  opts: AuthTokenOptions | undefined,
+  createError: () => Error,
+): Promise<string> {
+  const token = await resolveAuthToken(getToken, opts);
+
+  if (!token) {
+    throw createError();
+  }
+
+  return token;
 }
 
 export function hasPlaywrightJwtToken(): boolean {
