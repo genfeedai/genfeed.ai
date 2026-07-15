@@ -30,4 +30,22 @@ describe('WORKFLOWS_MENU_ITEMS', () => {
       expect(item.solid).toBeDefined();
     }
   });
+
+  it.each([
+    ['Autopilot', '/orchestration/autopilot', '/workflows/autopilot'],
+    [
+      'Configuration',
+      '/orchestration/configuration',
+      '/workflows/configuration',
+    ],
+  ])('uses the canonical orchestration route for %s and only matches its legacy workflow alias', (label, canonicalHref, legacyHref) => {
+    const item = WORKFLOWS_MENU_ITEMS.find(
+      (menuItem) => menuItem.label === label,
+    );
+
+    expect(item).toMatchObject({ href: canonicalHref });
+    expect(item?.matchPaths).toEqual(
+      expect.arrayContaining([canonicalHref, legacyHref]),
+    );
+  });
 });
