@@ -10,7 +10,7 @@ export class FeatureFlagController {
   @Get('conversation-shell')
   evaluateConversationShell(
     @Req() request: RequestWithContext,
-    @Query('client') client: string | undefined,
+    @Query('client') client?: string,
   ): ConversationShellEvaluation {
     return this.featureFlagService.evaluateConversationShell({
       client,
