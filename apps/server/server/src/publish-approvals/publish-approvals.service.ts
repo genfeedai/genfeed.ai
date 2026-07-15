@@ -135,7 +135,15 @@ export interface PublishExecutionClaim {
 
 export class PublishApprovalsService {
   constructor(
-    private readonly prisma: ServerPrisma,
+    private readonly prisma: Pick<
+      ServerPrisma,
+      | '$transaction'
+      | 'credential'
+      | 'member'
+      | 'organization'
+      | 'post'
+      | 'publishApproval'
+    >,
     private readonly artifactReferenceService: AgentArtifactReferenceService,
     private readonly logger?: ServerLogger,
   ) {}
