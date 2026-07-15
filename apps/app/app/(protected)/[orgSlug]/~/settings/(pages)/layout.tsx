@@ -2,16 +2,10 @@
 
 import type { LayoutProps } from '@props/layout/layout.props';
 import Container from '@ui/layout/container/Container';
-import { HiOutlineCog6Tooth } from 'react-icons/hi2';
 
 export default function SettingsLayout({ children }: LayoutProps) {
-  return (
-    <Container
-      label="Settings"
-      description="Manage your account, organization, and integrations"
-      icon={HiOutlineCog6Tooth}
-    >
-      {children}
-    </Container>
-  );
+  // No title here: the breadcrumb ("Settings / <Page>") plus each page's own
+  // Container heading already name the page. Rendering a "Settings" title here
+  // stacked a redundant second heading above the page title.
+  return <Container>{children}</Container>;
 }

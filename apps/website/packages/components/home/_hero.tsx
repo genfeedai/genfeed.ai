@@ -83,7 +83,7 @@ export default function HomeHero(): React.ReactElement {
           <div className="max-w-[42rem] self-center">
             <Heading
               as="h1"
-              className="hero-headline max-w-[42rem] whitespace-normal text-[2.5rem] font-semibold leading-[0.9] tracking-[-0.035em] text-surface sm:whitespace-nowrap sm:text-5xl md:text-[3.5rem] lg:text-[3.5rem] xl:text-[4rem] 2xl:text-[4.5rem]"
+              className="hero-headline max-w-[42rem] whitespace-normal text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.035em] text-surface sm:whitespace-nowrap sm:text-5xl md:text-[3.5rem] lg:text-[3.5rem] xl:text-[4rem] 2xl:text-[4.5rem]"
             >
               <span className="block">One prompt.</span>
               <span className="block text-surface/60">Publish everywhere.</span>
