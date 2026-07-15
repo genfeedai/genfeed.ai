@@ -27,6 +27,19 @@ vi.mock('@genfeedai/constants', () => ({ ITEMS_PER_PAGE: 20 }));
 
 describe('InsightsService', () => {
   const mockToken = 'test-token-123';
+  type MockInsightsHttpClient = {
+    get: ReturnType<typeof vi.fn>;
+  };
+
+  function getHttpClient(
+    service: ReturnType<typeof InsightsService.getInstance>,
+  ): MockInsightsHttpClient {
+    return (
+      service as unknown as {
+        instance: MockInsightsHttpClient;
+      }
+    ).instance;
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,5 +74,45 @@ describe('InsightsService', () => {
     InsightsService.clearInstance(mockToken);
     const inst2 = InsightsService.getInstance(mockToken);
     expect(inst1).not.toBe(inst2);
+  });
+
+  it('returns a successful insights collection and forwards cancellation', async () => {
+    const service = InsightsService.getInstance(mockToken);
+    const controller = new AbortController();
+    getHttpClient(service).get.mockResolvedValue({
+      data: {
+        data: [
+          {
+            attributes: {
+              actionableSteps: [],
+              category: 'opportunity',
+              confidence: 80,
+              createdAt: '2026-07-15T00:00:00.000Z',
+              description: 'Continue the series',
+              impact: 'high',
+              isRead: false,
+              relatedMetrics: [],
+              title: 'Momentum is increasing',
+            },
+            id: 'insight-1',
+            type: 'insights',
+          },
+        ],
+      },
+    });
+
+    const result = await service.getInsights(15, controller.signal);
+
+    expect(result).toHaveLength(1);
+    expect(getHttpClient(service).get).toHaveBeenCalledWith('?limit=15', {
+      signal: controller.signal,
+    });
+  });
+
+  it('returns an empty insights collection without treating it as an error', async () => {
+    const service = InsightsService.getInstance(mockToken);
+    getHttpClient(service).get.mockResolvedValue({ data: { data: [] } });
+
+    await expect(service.getInsights()).resolves.toEqual([]);
   });
 });

@@ -2,20 +2,25 @@ import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { useOptionalAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { Platform, Timeframe } from '@genfeedai/enums';
 import type {
+  IBrand,
   ITrend,
   ITrendHashtag,
   ITrendPlaybook,
   ITrendSound,
   ITrendVideo,
+  IVideo,
 } from '@genfeedai/interfaces';
 import type { ICreatorWatchlist } from '@genfeedai/interfaces/analytics/creator-watchlist.interface';
 import type { ITrendPlatformConfig } from '@genfeedai/interfaces/analytics/platform-config.interface';
+import type { Video } from '@genfeedai/models/ingredients/video.model';
 import { createLocalStorageCache } from '@helpers/data/cache/cache.helper';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TrendItem } from '@props/trends/trends-page.props';
 import { logger } from '@services/core/logger.service';
+import { VideosService } from '@services/ingredients/videos.service';
 import { TrendsService } from '@services/social/trends.service';
+import { useQuery } from '@tanstack/react-query';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -30,6 +35,39 @@ const TRENDS_PLATFORMS: ITrendPlatformConfig[] = [
 
 const TRENDS_CACHE_TTL = 30 * 60 * 1000;
 const trendsCache = createLocalStorageCache({ prefix: 'trends:' });
+const VIDEO_TIMEFRAME_MS = {
+  [Timeframe.H24]: 24 * 60 * 60 * 1000,
+  [Timeframe.H72]: 72 * 60 * 60 * 1000,
+  [Timeframe.D7]: 7 * 24 * 60 * 60 * 1000,
+} as const;
+
+export function normalizeAnalyticsVideo(video: Video): ITrendVideo {
+  const ingredient = video as IVideo;
+  const evaluation = ingredient.evaluation;
+  const actualPerformance = evaluation?.actualPerformance;
+  const engagementScores = evaluation?.scores?.engagement;
+  const brand =
+    typeof ingredient.brand === 'object'
+      ? (ingredient.brand as IBrand)
+      : undefined;
+
+  return {
+    creatorHandle: brand?.label || 'Your brand',
+    description: video.metadataDescription || undefined,
+    engagementRate: actualPerformance?.engagementRate ?? 0,
+    id: video.id || '',
+    platform:
+      evaluation?.externalContent?.platform || ingredient.provider || 'genfeed',
+    publishedAt: ingredient.publishedAt || video.createdAt,
+    thumbnailUrl: video.thumbnailUrl,
+    title: video.metadataLabel || video.id?.slice(0, 8) || 'Untitled video',
+    velocity: actualPerformance?.engagement ?? 0,
+    videoUrl: video.ingredientUrl,
+    viralScore:
+      engagementScores?.viralityPotential ?? evaluation?.overallScore ?? 0,
+    views: actualPerformance?.views ?? 0,
+  };
+}
 
 export function useAnalyticsTrends() {
   const brandId = useBrandId();
@@ -39,12 +77,14 @@ export function useAnalyticsTrends() {
   const getTrendsService = useAuthedService((token: string) =>
     TrendsService.getInstance(token),
   );
+  const getVideosService = useAuthedService((token: string) =>
+    VideosService.getInstance(token),
+  );
 
   const [tiktokTrends, setTiktokTrends] = useState<ITrend[]>([]);
   const [youtubeTrends, setYoutubeTrends] = useState<ITrend[]>([]);
   const [twitterTrends, setTwitterTrends] = useState<ITrend[]>([]);
   const [instagramTrends, setInstagramTrends] = useState<ITrend[]>([]);
-  const [viralVideos, setViralVideos] = useState<ITrendVideo[]>([]);
   const [creators, setCreators] = useState<ICreatorWatchlist[]>([]);
   const [playbooks, setPlaybooks] = useState<ITrendPlaybook[]>([]);
 
@@ -55,7 +95,6 @@ export function useAnalyticsTrends() {
   // New state for hashtags and sounds
   const [trendingHashtags, setTrendingHashtags] = useState<ITrendHashtag[]>([]);
   const [trendingSounds, setTrendingSounds] = useState<ITrendSound[]>([]);
-  const [isLoadingVideos, setIsLoadingVideos] = useState(true);
   const [isLoadingHashtags, setIsLoadingHashtags] = useState(true);
   const [isLoadingSounds, setIsLoadingSounds] = useState(true);
 
@@ -88,6 +127,54 @@ export function useAnalyticsTrends() {
   );
 
   const [remixVideo, setRemixVideo] = useState<ITrendVideo | null>(null);
+
+  const videoCacheKey = `videos:${brandId}`;
+  const { data: analyticsVideos = [], isLoading: isLoadingVideos } = useQuery<
+    ITrendVideo[]
+  >({
+    enabled: Boolean(brandId),
+    queryKey: ['analytics-trends-videos', brandId],
+    queryFn: async ({ signal }) => {
+      const service = await getVideosService();
+      signal.throwIfAborted();
+
+      try {
+        const videos = await service.findAll(
+          {
+            brand: brandId,
+            lightweight: true,
+            limit: 12,
+            sort: 'createdAt: -1',
+          },
+          signal,
+        );
+        const normalizedVideos = videos.map(normalizeAnalyticsVideo);
+
+        trendsCache.set(videoCacheKey, normalizedVideos, TRENDS_CACHE_TTL);
+        logger.info('Fetched analytics videos', {
+          count: normalizedVideos.length,
+        });
+        return normalizedVideos;
+      } catch (error) {
+        if (signal.aborted) {
+          throw error;
+        }
+
+        logger.error('Failed to fetch analytics videos', { error });
+        return (trendsCache.get(videoCacheKey) as ITrendVideo[] | null) ?? [];
+      }
+    },
+    retry: false,
+    staleTime: TRENDS_CACHE_TTL,
+  });
+  const viralVideos = useMemo(() => {
+    const cutoff = Date.now() - VIDEO_TIMEFRAME_MS[videoTimeframe];
+
+    return analyticsVideos.filter((video) => {
+      const publishedAt = new Date(video.publishedAt ?? 0).getTime();
+      return Number.isFinite(publishedAt) && publishedAt >= cutoff;
+    });
+  }, [analyticsVideos, videoTimeframe]);
 
   // Fetch trending topics from our TrendsService
   useEffect(() => {
@@ -152,45 +239,6 @@ export function useAnalyticsTrends() {
     findTrends();
     return () => controller.abort();
   }, [getTrendsService]);
-
-  // Fetch viral videos from backend
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchViralVideos = async () => {
-      setIsLoadingVideos(true);
-      try {
-        const service = await getTrendsService();
-        const videos = await service.getViralVideos({
-          limit: 12,
-          timeframe: videoTimeframe,
-        });
-        setViralVideos(videos);
-        trendsCache.set(
-          `viral:${brandId}:${videoTimeframe}`,
-          videos,
-          TRENDS_CACHE_TTL,
-        );
-        logger.info('Fetched viral videos', { count: videos.length });
-      } catch (error) {
-        if ((error as Error).name === 'AbortError') {
-          return;
-        }
-        logger.error('Failed to fetch viral videos', { error });
-        const cv = trendsCache.get(`viral:${brandId}:${videoTimeframe}`) as
-          | ITrendVideo[]
-          | null;
-        if (cv) {
-          setViralVideos(cv);
-        }
-      } finally {
-        setIsLoadingVideos(false);
-      }
-    };
-
-    fetchViralVideos();
-    return () => controller.abort();
-  }, [brandId, getTrendsService, videoTimeframe]);
 
   // Fetch trending hashtags from backend
   useEffect(() => {

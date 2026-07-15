@@ -8,14 +8,19 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 type Forecast = ForecastDocument;
 type Insight = InsightDocument;
+const INSIGHTS_TEXT_MODEL = 'anthropic/claude-sonnet-4-5';
 
 type InsightData = {
   actionableSteps?: string[];
@@ -43,7 +48,7 @@ export class InsightsService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
-    private readonly replicateService: ReplicateService,
+    private readonly llmDispatcherService: LlmDispatcherService,
   ) {}
 
   private readObjectRecord(value: unknown): Record<string, unknown> {
@@ -236,11 +241,20 @@ export class InsightsService {
         return existingInsights as unknown as Insight[];
       }
 
-      const newInsights = await this.generateInsights(
-        organizationId,
-        limit - existingInsights.length,
-        onBilling,
-      );
+      let newInsights: Insight[];
+      try {
+        newInsights = await this.generateInsights(
+          organizationId,
+          limit - existingInsights.length,
+          onBilling,
+        );
+      } catch (error: unknown) {
+        if (!(error instanceof ServiceUnavailableException)) {
+          throw error;
+        }
+
+        return existingInsights as unknown as Insight[];
+      }
 
       return [...(existingInsights as unknown as Insight[]), ...newInsights];
     } catch (error: unknown) {
@@ -368,9 +382,10 @@ Probability is % chance of going viral (>100k views).
 Return ONLY valid JSON. Do not include any text before or after the JSON.`;
 
       const input = { max_completion_tokens: 1024, prompt };
-      const response = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_TEXT_MODEL,
-        input,
+      const response = await this.generateTextCompletion(
+        prompt,
+        input.max_completion_tokens,
+        organizationId,
       );
       onBilling?.(await this.calculateDefaultTextCharge(input, response));
 
@@ -425,9 +440,10 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
 }`;
 
       const input = { max_completion_tokens: 1024, prompt };
-      const response = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_TEXT_MODEL,
-        input,
+      const response = await this.generateTextCompletion(
+        prompt,
+        input.max_completion_tokens,
+        organizationId,
       );
       onBilling?.(await this.calculateDefaultTextCharge(input, response));
 
@@ -485,9 +501,10 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
 Provide 5-7 optimal time slots.`;
 
       const input = { max_completion_tokens: 1024, prompt };
-      const response = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_TEXT_MODEL,
-        input,
+      const response = await this.generateTextCompletion(
+        prompt,
+        input.max_completion_tokens,
+        organizationId,
       );
       onBilling?.(await this.calculateDefaultTextCharge(input, response));
 
@@ -574,9 +591,10 @@ Impact: high, medium, low
 Confidence: 0-100`;
 
     const input = { max_completion_tokens: 2048, prompt };
-    const response = await this.replicateService.generateTextCompletionSync(
-      DEFAULT_TEXT_MODEL,
-      input,
+    const response = await this.generateTextCompletion(
+      prompt,
+      input.max_completion_tokens,
+      organizationId,
     );
     onBilling?.(await this.calculateDefaultTextCharge(input, response));
 
@@ -614,6 +632,34 @@ Confidence: 0-100`;
     }
 
     return savedInsights;
+  }
+
+  private async generateTextCompletion(
+    prompt: string,
+    maxTokens: number,
+    organizationId: string,
+  ): Promise<string> {
+    try {
+      const response = await this.llmDispatcherService.chatCompletion(
+        {
+          max_tokens: maxTokens,
+          messages: [{ content: prompt, role: 'user' }],
+          model: INSIGHTS_TEXT_MODEL,
+          temperature: 0.2,
+        },
+        organizationId,
+      );
+
+      return response.choices?.[0]?.message?.content?.trim() ?? '';
+    } catch {
+      this.logger.warn('Insight generation provider unavailable', {
+        organizationId,
+        providerStatus: 'unavailable',
+      });
+      throw new ServiceUnavailableException(
+        'Analytics insight generation is temporarily unavailable',
+      );
+    }
   }
 
   private async calculateDefaultTextCharge(

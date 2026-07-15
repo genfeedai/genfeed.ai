@@ -1,19 +1,21 @@
 import '@testing-library/jest-dom/vitest';
 import { Platform, Timeframe } from '@genfeedai/enums';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsTrends from './analytics-trends';
 
 const mocks = vi.hoisted(() => ({
   cacheGet: vi.fn(),
   cacheSet: vi.fn(),
+  findAllVideos: vi.fn(),
   getTrendsDiscovery: vi.fn(),
   getTrendingHashtags: vi.fn(),
   getTrendingSounds: vi.fn(),
   getTrendingTopics: vi.fn(),
   getTrendsService: vi.fn(),
-  getViralVideos: vi.fn(),
+  getVideosService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   open: vi.fn(),
@@ -40,7 +42,18 @@ vi.mock('@helpers/formatting/format/format.helper', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getTrendsService,
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const service = factory('mock-token');
+    return service === 'videos-service'
+      ? mocks.getVideosService
+      : mocks.getTrendsService;
+  },
+}));
+
+vi.mock('@services/ingredients/videos.service', () => ({
+  VideosService: {
+    getInstance: vi.fn(() => 'videos-service'),
+  },
 }));
 
 vi.mock('@pages/trends/list/components/HookRemixModal', () => ({
@@ -253,16 +266,21 @@ function makeTrend(overrides: Record<string, unknown> = {}) {
 
 function makeVideo(overrides: Record<string, unknown> = {}) {
   return {
-    creatorHandle: 'creator',
-    engagementRate: 8.5,
+    brand: { label: 'Creator' },
+    createdAt: '2026-07-15T08:00:00.000Z',
+    evaluation: {
+      actualPerformance: {
+        engagementRate: 8.5,
+        views: 100_000,
+      },
+      externalContent: { platform: Platform.TIKTOK },
+      scores: { engagement: { viralityPotential: 91 } },
+    },
     id: 'video-1',
-    platform: Platform.TIKTOK,
-    publishedAt: '2026-05-19T08:00:00.000Z',
-    title: 'Launch hook',
-    velocity: 42,
-    videoUrl: 'https://example.test/video',
-    viralScore: 91,
-    views: 100_000,
+    ingredientUrl: 'https://example.test/video',
+    metadataLabel: 'Launch hook',
+    publishedAt: new Date().toISOString(),
+    thumbnailUrl: 'https://example.test/thumbnail',
     ...overrides,
   };
 }
@@ -301,14 +319,18 @@ function configureSuccessfulService() {
       topic: 'Carousel hooks',
     }),
   ]);
-  mocks.getViralVideos.mockResolvedValue([
+  mocks.findAllVideos.mockResolvedValue([
     makeVideo(),
     makeVideo({
+      brand: undefined,
+      evaluation: {
+        actualPerformance: { engagementRate: 0, views: 0 },
+        externalContent: { platform: Platform.YOUTUBE },
+        scores: { engagement: { viralityPotential: 44 } },
+      },
       id: undefined,
-      platform: Platform.YOUTUBE,
-      title: 'External video',
-      videoUrl: 'https://example.test/external-video',
-      viralScore: 44,
+      ingredientUrl: 'https://example.test/external-video',
+      metadataLabel: 'External video',
     }),
   ]);
   mocks.getTrendingHashtags.mockResolvedValue([
@@ -330,12 +352,27 @@ describe('AnalyticsTrends', () => {
       getTrendingHashtags: mocks.getTrendingHashtags,
       getTrendingSounds: mocks.getTrendingSounds,
       getTrendingTopics: mocks.getTrendingTopics,
-      getViralVideos: mocks.getViralVideos,
+    });
+    mocks.getVideosService.mockResolvedValue({
+      findAll: mocks.findAllVideos,
     });
   });
 
+  function renderAnalyticsTrends(isStrictMode: boolean = false) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const content = <AnalyticsTrends />;
+
+    return render(
+      <QueryClientProvider client={queryClient}>
+        {isStrictMode ? <StrictMode>{content}</StrictMode> : content}
+      </QueryClientProvider>,
+    );
+  }
+
   it('loads trend surfaces and routes interactive trend content', async () => {
-    render(<AnalyticsTrends />);
+    renderAnalyticsTrends();
 
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       'Social Media Trends',
@@ -351,10 +388,16 @@ describe('AnalyticsTrends', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Last 7 Days' }));
     await waitFor(() => {
-      expect(mocks.getViralVideos).toHaveBeenCalledWith({
-        limit: 12,
-        timeframe: Timeframe.D7,
-      });
+      expect(mocks.findAllVideos).toHaveBeenLastCalledWith(
+        {
+          brand: 'brand-1',
+          lightweight: true,
+          limit: 12,
+          sort: 'createdAt: -1',
+        },
+        expect.any(AbortSignal),
+      );
+      expect(mocks.findAllVideos).toHaveBeenCalledTimes(1);
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Launch hook' }));
@@ -385,11 +428,11 @@ describe('AnalyticsTrends', () => {
   it('renders empty topic copy and falls back to cached videos, hashtags, and sounds', async () => {
     mocks.getTrendsDiscovery.mockResolvedValue({ trends: [] });
     mocks.getTrendingTopics.mockRejectedValue(new Error('topics failed'));
-    mocks.getViralVideos.mockRejectedValue(new Error('videos failed'));
+    mocks.findAllVideos.mockRejectedValue(new Error('videos failed'));
     mocks.getTrendingHashtags.mockRejectedValue(new Error('hashtags failed'));
     mocks.getTrendingSounds.mockRejectedValue(new Error('sounds failed'));
     mocks.cacheGet.mockImplementation((key: string) => {
-      if (key.startsWith('viral:')) {
+      if (key.startsWith('videos:')) {
         return [makeVideo({ id: 'cached-video', title: 'Cached video' })];
       }
       if (key.startsWith('hashtags:')) {
@@ -401,7 +444,7 @@ describe('AnalyticsTrends', () => {
       return null;
     });
 
-    render(<AnalyticsTrends />);
+    renderAnalyticsTrends();
 
     expect(
       await screen.findByText('No trending topics available.'),
@@ -413,7 +456,7 @@ describe('AnalyticsTrends', () => {
       error: expect.any(Error),
     });
     expect(mocks.loggerError).toHaveBeenCalledWith(
-      'Failed to fetch viral videos',
+      'Failed to fetch analytics videos',
       { error: expect.any(Error) },
     );
     expect(mocks.loggerError).toHaveBeenCalledWith(
@@ -424,5 +467,52 @@ describe('AnalyticsTrends', () => {
       'Failed to fetch trending sounds',
       { error: expect.any(Error) },
     );
+  });
+
+  it('normalizes videos with missing analytics data into a safe empty-metric row', async () => {
+    mocks.findAllVideos.mockResolvedValue([
+      makeVideo({
+        brand: undefined,
+        evaluation: undefined,
+        id: 'video-without-analytics',
+        metadataLabel: undefined,
+        provider: undefined,
+        publishedAt: undefined,
+      }),
+    ]);
+
+    renderAnalyticsTrends();
+
+    expect(await screen.findByText('video-wi')).toBeInTheDocument();
+    expect(screen.getByText('@Your brand')).toBeInTheDocument();
+    expect(screen.getByText('0.0%')).toBeInTheDocument();
+  });
+
+  it('renders the recoverable empty state when the videos collection is empty', async () => {
+    mocks.findAllVideos.mockResolvedValue([]);
+
+    renderAnalyticsTrends();
+
+    expect(
+      await screen.findByText('No viral videos found'),
+    ).toBeInTheDocument();
+    expect(mocks.loggerError).not.toHaveBeenCalledWith(
+      'Failed to fetch analytics videos',
+      expect.anything(),
+    );
+  });
+
+  it('deduplicates the canonical videos request across a Strict Mode remount', async () => {
+    mocks.findAllVideos.mockReturnValue(new Promise(() => undefined));
+
+    const view = renderAnalyticsTrends(true);
+
+    await waitFor(() => {
+      expect(mocks.findAllVideos).toHaveBeenCalledTimes(1);
+    });
+
+    const requestSignal = mocks.findAllVideos.mock.calls[0]?.[1] as AbortSignal;
+    view.unmount();
+    expect(requestSignal.aborted).toBe(true);
   });
 });

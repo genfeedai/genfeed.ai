@@ -90,9 +90,9 @@ export function useInsights({
     refetch: refetchInsights,
   } = useQuery<Insight[]>({
     queryKey: insightsQueryKey,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const service = await getInsightsService();
-      return service.getInsights();
+      return service.getInsights(undefined, signal);
     },
     enabled,
   });
@@ -105,7 +105,7 @@ export function useInsights({
     refetch: refetchContent,
   } = useQuery<ContentInsightsData>({
     queryKey: contentQueryKey,
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const service = await getPredictiveService();
       const range =
         dateRange.startDate && dateRange.endDate
@@ -115,7 +115,10 @@ export function useInsights({
             }
           : undefined;
 
-      return (await service.getContentInsights(range)) as ContentInsightsData;
+      return (await service.getContentInsights(
+        range,
+        signal,
+      )) as ContentInsightsData;
     },
     enabled,
   });
