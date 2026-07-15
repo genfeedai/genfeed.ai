@@ -140,6 +140,14 @@ export function SidebarNavigationProvider({
   // Derive active group + page from pathname
   const { derivedGroupId, derivedPageLabel } = useMemo(() => {
     const normalizedPathname = stripOrgPrefix(pathname ?? '');
+    let bestMatch:
+      | {
+          derivedGroupId: string;
+          derivedPageLabel: string;
+          specificity: number;
+        }
+      | undefined;
+
     for (const g of groups) {
       for (const item of g.items) {
         if (!item.href) {
@@ -148,18 +156,31 @@ export function SidebarNavigationProvider({
         // Respect isExactMatch so a root item (e.g. General at `/settings`)
         // doesn't greedily prefix-match every subpage (`/settings/members`).
         const candidatePaths = [item.href, ...(item.matchPaths ?? [])];
-        const matches = candidatePaths.some((candidatePath) => {
+        for (const candidatePath of candidatePaths) {
           const candidatePathname =
             candidatePath.split('?')[0] ?? candidatePath;
-          return item.isExactMatch
+          const matches = item.isExactMatch
             ? normalizedPathname === candidatePathname
             : isPathActive(candidatePath, pathname);
-        });
-        if (matches) {
-          return { derivedGroupId: g.group, derivedPageLabel: item.label };
+
+          if (
+            matches &&
+            (!bestMatch || candidatePathname.length > bestMatch.specificity)
+          ) {
+            bestMatch = {
+              derivedGroupId: g.group,
+              derivedPageLabel: item.label,
+              specificity: candidatePathname.length,
+            };
+          }
         }
       }
     }
+
+    if (bestMatch) {
+      return bestMatch;
+    }
+
     return {
       derivedGroupId: groups[0]?.group ?? '',
       derivedPageLabel: '',
