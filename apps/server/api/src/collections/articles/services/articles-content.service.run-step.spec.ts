@@ -1,9 +1,11 @@
+import type { ModelsService } from '@api/collections/models/services/models.service';
+import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { ModelCategory } from '@genfeedai/enums';
+import type { ConfigService } from '@libs/config/config.service';
+import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ArticlesContentService } from './articles-content.service';
-import type {
-  ArticlesContentServiceInternals,
-  RunTextGenerationStepParams,
-} from './articles-content.types';
+import { ArticleTextGenerationService } from './article-text-generation.service';
+import type { RunTextGenerationStepParams } from './articles-content.types';
 
 /**
  * Focused unit tests for the shared `runTextGenerationStep` prologue that backs
@@ -14,12 +16,6 @@ import type {
  */
 
 function makeService() {
-  const logger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
   const config = { get: vi.fn() };
   const models = {
     findOne: vi.fn().mockResolvedValue({ cost: 5, pricingType: 'flat' }),
@@ -31,49 +27,44 @@ function makeService() {
     buildPrompt: vi.fn().mockResolvedValue({ input: { prompt: 'built' } }),
   };
 
-  // Construct via an untyped ctor cast to avoid wiring every Nest dependency
-  // type into the test; the step only touches the mocks provided here.
-  const Ctor = ArticlesContentService as unknown as new (
-    ...args: unknown[]
-  ) => ArticlesContentService;
-  const service = new Ctor(
-    logger,
-    config,
-    {},
-    models,
-    undefined,
-    replicate,
-    promptBuilder,
+  const service = new ArticleTextGenerationService(
+    config as unknown as ConfigService,
+    models as unknown as ModelsService,
+    replicate as unknown as ReplicateService,
+    promptBuilder as unknown as PromptBuilderService,
   );
 
-  const internal = service as unknown as ArticlesContentServiceInternals;
-  return { internal, models, promptBuilder, replicate };
+  return { service, models, promptBuilder, replicate };
 }
 
 const baseParams: RunTextGenerationStepParams = {
   basePrompt: 'BASE PROMPT',
-  buildPromptOptions: { systemPromptTemplate: 'ARTICLE', temperature: 0.8 },
+  buildPromptOptions: {
+    modelCategory: ModelCategory.TEXT,
+    systemPromptTemplate: 'ARTICLE',
+    temperature: 0.8,
+  },
   failureMessage: 'fail',
-  harnessContext: { promptBuilder: { brand: 'brand-x' } },
+  harnessContext: { promptBuilder: { brand: { label: 'brand-x' } } },
   model: 'test-model',
   organizationId: 'org-1',
 };
 
-describe('ArticlesContentService.runTextGenerationStep', () => {
+describe('ArticleTextGenerationService.runTextGenerationStep', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it('builds the prompt, runs the model, and returns the raw response', async () => {
-    const { internal, promptBuilder, replicate } = makeService();
+    const { service, promptBuilder, replicate } = makeService();
 
-    const output = await internal.runTextGenerationStep(baseParams);
+    const output = await service.runTextGenerationStep(baseParams);
 
     expect(output).toBe('AI OUTPUT');
     expect(promptBuilder.buildPrompt).toHaveBeenCalledWith(
       'test-model',
       expect.objectContaining({
-        brand: 'brand-x',
+        brand: { label: 'brand-x' },
         prompt: expect.stringContaining('BASE PROMPT'),
         temperature: 0.8,
       }),
@@ -86,10 +77,10 @@ describe('ArticlesContentService.runTextGenerationStep', () => {
   });
 
   it('meters a charge only when an onBilling callback is supplied', async () => {
-    const { internal } = makeService();
+    const { service } = makeService();
     const onBilling = vi.fn();
 
-    await internal.runTextGenerationStep({ ...baseParams, onBilling });
+    await service.runTextGenerationStep({ ...baseParams, onBilling });
 
     expect(onBilling).toHaveBeenCalledTimes(1);
     expect(onBilling).toHaveBeenCalledWith(
@@ -98,20 +89,20 @@ describe('ArticlesContentService.runTextGenerationStep', () => {
   });
 
   it('never computes a charge when onBilling is omitted (enhance path)', async () => {
-    const { internal, models } = makeService();
+    const { service, models } = makeService();
 
-    await internal.runTextGenerationStep(baseParams);
+    await service.runTextGenerationStep(baseParams);
 
     // calculateTextGenerationCharge() is the only caller of modelsService.findOne
     expect(models.findOne).not.toHaveBeenCalled();
   });
 
   it('throws the caller-supplied failure message when the model returns no text', async () => {
-    const { internal, replicate } = makeService();
+    const { service, replicate } = makeService();
     replicate.generateTextCompletionSync.mockResolvedValueOnce('');
 
     await expect(
-      internal.runTextGenerationStep({
+      service.runTextGenerationStep({
         ...baseParams,
         failureMessage: 'custom failure message',
       }),

@@ -16,10 +16,15 @@ import {
   type EditArticleWithAIDto,
   type GenerateArticlesDto,
 } from '@api/collections/articles/dto/generate-articles.dto';
-import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import { type ArticleDocument } from '@api/collections/articles/schemas/article.schema';
+import { ArticleContentPersistenceService } from '@api/collections/articles/services/article-content-persistence.service';
+import { ArticleReviewService } from '@api/collections/articles/services/article-review.service';
+import { ArticleTextGenerationService } from '@api/collections/articles/services/article-text-generation.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import type {
+  ArticleCycleModelConfig,
+  ArticleHarnessContext,
+  ArticleReviewRubric,
   TextGenerationCharge,
   XArticleContentMetadata,
 } from '@api/collections/articles/services/articles-content.types';
@@ -27,37 +32,24 @@ import { buildTwitterThreadTweets } from '@api/collections/articles/utils/articl
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
-import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import {
-  appendHarnessBriefToPrompt,
   buildHarnessInput,
   buildPromptBuilderBrandContext,
 } from '@api/services/harness/harness-brief.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   ArticleCategory,
   ArticleStatus,
-  AssetScope,
   ModelCategory,
-  PromptCategory,
-  PromptStatus,
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/enums';
-import type { ContentHarnessBrief } from '@genfeedai/harness';
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import type {
   ArticleCreatePayload,
@@ -70,32 +62,10 @@ import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
-export interface ArticleCycleModelConfig {
-  generationModel?: string;
-  reviewModel?: string;
-  updateModel?: string;
-}
-
-export interface ArticleReviewRubric {
-  score: number;
-  strengths: string[];
-  issues: Array<{
-    severity: 'low' | 'medium' | 'high';
-    category: string;
-    message: string;
-    recommendation: string;
-  }>;
-  revisionInstructions: string;
-  summary: string;
-}
-
-interface ArticleHarnessContext {
-  brief?: ContentHarnessBrief;
-  promptBuilder: Pick<
-    PromptBuilderParams,
-    'brand' | 'branding' | 'brandingMode' | 'isBrandingEnabled'
-  >;
-}
+export type {
+  ArticleCycleModelConfig,
+  ArticleReviewRubric,
+} from '@api/collections/articles/services/articles-content.types';
 
 type HarnessPersonaInput = Parameters<typeof buildHarnessInput>[0]['persona'];
 
@@ -108,14 +78,11 @@ export class ArticlesContentService {
     private readonly logger: LoggerService,
     private readonly configService: ConfigService,
     private readonly moduleRef: ModuleRef,
+    private readonly articleTextGenerationService: ArticleTextGenerationService,
+    private readonly articleReviewService: ArticleReviewService,
+    private readonly articleContentPersistenceService: ArticleContentPersistenceService,
 
-    @Optional() private readonly modelsService?: ModelsService,
-    @Optional() private readonly promptsService?: PromptsService,
-    @Optional() private readonly replicateService?: ReplicateService,
-    @Optional() private readonly promptBuilderService?: PromptBuilderService,
     @Optional() private readonly templatesService?: TemplatesService,
-    @Optional()
-    private readonly websocketService?: NotificationsPublisherService,
     @Optional() private readonly brandsService?: BrandsService,
     @Optional() private readonly personasService?: PersonasService,
     @Optional() private readonly contentHarnessService?: ContentHarnessService,
@@ -123,6 +90,7 @@ export class ArticlesContentService {
     private readonly harnessProfilesService?: HarnessProfilesService,
     @Optional()
     private readonly accountPublishingContextService?: AccountPublishingContextService,
+    @Optional() private readonly replicateService?: ReplicateService,
   ) {}
 
   /**
@@ -255,21 +223,22 @@ export class ArticlesContentService {
       });
       // Build prompt with PromptBuilderService then call Replicate
       const generationModel = modelConfig.generationModel || DEFAULT_TEXT_MODEL;
-      const responseText = await this.runTextGenerationStep({
-        basePrompt: prompt,
-        buildPromptOptions: {
-          maxTokens: this.configService.get('MAX_TOKENS'),
-          modelCategory: ModelCategory.TEXT,
-          promptTemplate: PromptTemplateKey.TEXT_ARTICLE,
-          systemPromptTemplate: SystemPromptKey.ARTICLE,
-          temperature: 0.8,
-        },
-        failureMessage: 'Failed to generate content from AI service',
-        harnessContext,
-        model: generationModel,
-        onBilling,
-        organizationId,
-      });
+      const responseText =
+        await this.articleTextGenerationService.runTextGenerationStep({
+          basePrompt: prompt,
+          buildPromptOptions: {
+            maxTokens: this.configService.get('MAX_TOKENS'),
+            modelCategory: ModelCategory.TEXT,
+            promptTemplate: PromptTemplateKey.TEXT_ARTICLE,
+            systemPromptTemplate: SystemPromptKey.ARTICLE,
+            temperature: 0.8,
+          },
+          failureMessage: 'Failed to generate content from AI service',
+          harnessContext,
+          model: generationModel,
+          onBilling,
+          organizationId,
+        });
 
       // Parse JSON response
       let response: ArticleGenerationResponse;
@@ -307,7 +276,7 @@ export class ArticlesContentService {
             generated.label || generated.title || `Generated Article ${i + 1}`,
           summary: generated.summary || '',
         };
-        const cycle = await this.runReviewUpdateCycle({
+        const cycle = await this.articleReviewService.runReviewUpdateCycle({
           draft,
           harnessContext,
           modelConfig,
@@ -438,24 +407,25 @@ export class ArticlesContentService {
       });
       // Build prompt with PromptBuilderService then call Replicate
       const generationModel = modelConfig.generationModel || DEFAULT_TEXT_MODEL;
-      const responseText = await this.runTextGenerationStep({
-        basePrompt: this.appendAccountPublishingContextToPrompt(
-          prompt,
-          accountPublishingContext,
-        ),
-        buildPromptOptions: {
-          maxTokens: this.configService.get('MAX_TOKENS'),
-          modelCategory: ModelCategory.TEXT,
-          promptTemplate: PromptTemplateKey.X_ARTICLE_GENERATE,
-          systemPromptTemplate: SystemPromptKey.X_ARTICLE,
-          temperature: 0.8,
-        },
-        failureMessage: 'Failed to generate content from AI service',
-        harnessContext,
-        model: generationModel,
-        onBilling,
-        organizationId,
-      });
+      const responseText =
+        await this.articleTextGenerationService.runTextGenerationStep({
+          basePrompt: this.appendAccountPublishingContextToPrompt(
+            prompt,
+            accountPublishingContext,
+          ),
+          buildPromptOptions: {
+            maxTokens: this.configService.get('MAX_TOKENS'),
+            modelCategory: ModelCategory.TEXT,
+            promptTemplate: PromptTemplateKey.X_ARTICLE_GENERATE,
+            systemPromptTemplate: SystemPromptKey.X_ARTICLE,
+            temperature: 0.8,
+          },
+          failureMessage: 'Failed to generate content from AI service',
+          harnessContext,
+          model: generationModel,
+          onBilling,
+          organizationId,
+        });
 
       // Parse JSON response
       let response: ArticleGenerationResponse;
@@ -485,7 +455,7 @@ export class ArticlesContentService {
         wordCount,
       } = this.buildXArticleContentAndMetadata(response.sections);
 
-      const cycle = await this.runReviewUpdateCycle({
+      const cycle = await this.articleReviewService.runReviewUpdateCycle({
         draft: {
           content: fullContent,
           label: response.title,
@@ -601,20 +571,21 @@ export class ArticlesContentService {
       });
       // Build prompt with PromptBuilderService then call Replicate.
       // Enhancement is intentionally unbilled, so no onBilling callback is passed.
-      const responseText = await this.runTextGenerationStep({
-        basePrompt: prompt,
-        buildPromptOptions: {
-          maxTokens: TEXT_GENERATION_LIMITS.articleEnhancement,
-          modelCategory: ModelCategory.TEXT,
-          systemPromptTemplate: SystemPromptKey.ARTICLE,
-          temperature: 0.8,
-          useTemplate: false,
-        },
-        failureMessage: 'Failed to enhance content from AI service',
-        harnessContext,
-        model: DEFAULT_MINI_TEXT_MODEL,
-        organizationId,
-      });
+      const responseText =
+        await this.articleTextGenerationService.runTextGenerationStep({
+          basePrompt: prompt,
+          buildPromptOptions: {
+            maxTokens: TEXT_GENERATION_LIMITS.articleEnhancement,
+            modelCategory: ModelCategory.TEXT,
+            systemPromptTemplate: SystemPromptKey.ARTICLE,
+            temperature: 0.8,
+            useTemplate: false,
+          },
+          failureMessage: 'Failed to enhance content from AI service',
+          harnessContext,
+          model: DEFAULT_MINI_TEXT_MODEL,
+          organizationId,
+        });
 
       // Parse JSON response
       let response: ArticleGenerationResponse;
@@ -627,7 +598,7 @@ export class ArticlesContentService {
       }
 
       // Update article with enhanced content
-      await this.updateArticleWithEnhancedContent(
+      await this.articleContentPersistenceService.updateArticleWithEnhancedContent(
         article,
         response,
         prompt,
@@ -709,71 +680,6 @@ export class ArticlesContentService {
       );
       throw error;
     }
-  }
-
-  /**
-   * Shared generation prologue for the article generators.
-   *
-   * Appends the harness brief to `basePrompt`, builds the model input via the
-   * PromptBuilderService (merging the harness brand context), runs the Replicate
-   * text completion, and — when an `onBilling` callback is supplied — meters the
-   * charge. Returns the raw model response for the caller to parse. The differing
-   * pieces (model, prompt-builder options, failure message, whether the step is
-   * billed) are passed in so generateArticles/generateLongFormArticle/enhance can
-   * share one body without changing their individual behaviour.
-   */
-  private async runTextGenerationStep(params: {
-    model: string;
-    basePrompt: string;
-    harnessContext: ArticleHarnessContext;
-    buildPromptOptions: Omit<
-      PromptBuilderParams,
-      'prompt' | 'brand' | 'branding' | 'brandingMode' | 'isBrandingEnabled'
-    >;
-    organizationId: string;
-    failureMessage: string;
-    onBilling?: (charge: TextGenerationCharge) => void;
-  }): Promise<string> {
-    const promptWithHarness = appendHarnessBriefToPrompt(
-      params.basePrompt,
-      params.harnessContext.brief,
-    );
-
-    if (!this.promptBuilderService) {
-      throw new Error('Prompt builder service not available');
-    }
-
-    const { input } = await this.promptBuilderService.buildPrompt(
-      params.model,
-      {
-        ...params.buildPromptOptions,
-        prompt: promptWithHarness,
-        ...params.harnessContext.promptBuilder,
-      },
-      params.organizationId,
-    );
-
-    const responseText =
-      await this.replicateService?.generateTextCompletionSync(
-        params.model,
-        input,
-      );
-
-    if (!responseText) {
-      throw new Error(params.failureMessage);
-    }
-
-    if (params.onBilling) {
-      params.onBilling(
-        await this.calculateTextGenerationCharge(
-          params.model,
-          input,
-          responseText,
-        ),
-      );
-    }
-
-    return responseText;
   }
 
   /**
@@ -919,191 +825,15 @@ export class ArticlesContentService {
       sourceLines: focus ? [`review-focus: ${focus}`] : [],
       topic: this.getArticleLabel(article),
     });
-    const reviewModel = modelConfig.reviewModel || DEFAULT_MINI_TEXT_MODEL;
-    const reviewPrompt = this.buildReviewPrompt({
-      content: article.content ?? '',
+
+    return this.articleReviewService.reviewExistingArticle(
+      article,
+      organizationId,
+      modelConfig,
+      harnessContext,
       focus,
-      harnessBrief: harnessContext.brief,
-      label: this.getArticleLabel(article),
-      summary: article.summary || '',
-      type:
-        article.category === ArticleCategory.X_ARTICLE
-          ? ArticleGenerationType.X_ARTICLE
-          : ArticleGenerationType.STANDARD,
-    });
-
-    const { output: reviewRaw, charge } = await this.generateTextWithModel(
-      reviewModel,
-      reviewPrompt,
-      organizationId,
-      harnessContext.promptBuilder,
+      onBilling,
     );
-    onBilling?.(charge);
-
-    return this.parseReviewRubric(reviewRaw);
-  }
-
-  private async runReviewUpdateCycle(params: {
-    draft: { label: string; summary: string; content: string };
-    harnessContext?: ArticleHarnessContext;
-    prompt: string;
-    organizationId: string;
-    modelConfig: ArticleCycleModelConfig;
-    type: ArticleGenerationType;
-    onBilling?: (charge: TextGenerationCharge) => void;
-  }): Promise<{
-    review: ArticleReviewRubric;
-    updated: { label: string; summary: string; content: string };
-  }> {
-    const reviewModel =
-      params.modelConfig.reviewModel || DEFAULT_MINI_TEXT_MODEL;
-    const updateModel =
-      params.modelConfig.updateModel || DEFAULT_MINI_TEXT_MODEL;
-
-    const { output: reviewRaw, charge: reviewCharge } =
-      await this.generateTextWithModel(
-        reviewModel,
-        this.buildReviewPrompt({
-          content: params.draft.content,
-          harnessBrief: params.harnessContext?.brief,
-          label: params.draft.label,
-          summary: params.draft.summary,
-          type: params.type,
-        }),
-        params.organizationId,
-        params.harnessContext?.promptBuilder,
-      );
-    params.onBilling?.(reviewCharge);
-    const review = this.parseReviewRubric(reviewRaw);
-
-    const { output: revisionRaw, charge: revisionCharge } =
-      await this.generateTextWithModel(
-        updateModel,
-        this.buildRevisionPrompt(
-          params.draft,
-          params.prompt,
-          review,
-          params.type,
-          params.harnessContext?.brief,
-        ),
-        params.organizationId,
-        params.harnessContext?.promptBuilder,
-      );
-    params.onBilling?.(revisionCharge);
-    const updated = this.parseUpdatedArticle(revisionRaw, params.draft);
-
-    return { review, updated };
-  }
-
-  private async generateTextWithModel(
-    model: string,
-    prompt: string,
-    organizationId: string,
-    promptBuilderContext?: Pick<
-      PromptBuilderParams,
-      'brand' | 'branding' | 'brandingMode' | 'isBrandingEnabled'
-    >,
-  ): Promise<{ output: string; charge: TextGenerationCharge }> {
-    const { input } = (await this.promptBuilderService?.buildPrompt(
-      model as string,
-      {
-        maxTokens: this.configService.get('MAX_TOKENS'),
-        modelCategory: ModelCategory.TEXT,
-        prompt,
-        systemPromptTemplate: SystemPromptKey.ARTICLE,
-        temperature: 0.7,
-        useTemplate: false,
-        ...promptBuilderContext,
-      },
-      organizationId,
-    )) || { input: {} };
-
-    const output = await this.replicateService?.generateTextCompletionSync(
-      model,
-      input,
-    );
-
-    if (!output) {
-      throw new Error(`Failed to generate text with model: ${model}`);
-    }
-
-    return {
-      charge: await this.calculateTextGenerationCharge(model, input, output),
-      output,
-    };
-  }
-
-  private async calculateTextGenerationCharge(
-    modelKey: string,
-    input: unknown,
-    output: string,
-  ): Promise<TextGenerationCharge> {
-    if (!this.modelsService) {
-      throw new Error('ModelsService not available');
-    }
-
-    const model = await this.modelsService.findOne({
-      isDeleted: false,
-      key: baseModelKey(modelKey),
-    });
-
-    if (!model) {
-      throw new Error(`Model pricing is not configured for ${modelKey}`);
-    }
-
-    const inputTokens = this.estimateTokens(input);
-    const outputTokens = this.estimateTokens(output);
-
-    const amount =
-      model.pricingType === 'per-token'
-        ? Math.max(
-            Math.ceil(
-              (inputTokens * Number(model.inputCostPerMillionTokens || 0) +
-                outputTokens * Number(model.outputCostPerMillionTokens || 0)) /
-                1_000_000,
-            ),
-            getMinimumTextCredits(model),
-          )
-        : model.cost || 0;
-
-    return {
-      amount,
-      inputTokens,
-      modelKey,
-      outputTokens,
-    };
-  }
-
-  private estimateTokens(value: unknown): number {
-    const text = this.extractBillableText(value).trim();
-
-    if (!text) {
-      return 0;
-    }
-
-    return Math.ceil(text.length / 4);
-  }
-
-  private extractBillableText(value: unknown): string {
-    if (typeof value === 'string') {
-      return value;
-    }
-
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return String(value);
-    }
-
-    if (Array.isArray(value)) {
-      return value.map((item) => this.extractBillableText(item)).join(' ');
-    }
-
-    if (value && typeof value === 'object') {
-      return Object.values(value as Record<string, unknown>)
-        .map((item) => this.extractBillableText(item))
-        .join(' ');
-    }
-
-    return '';
   }
 
   private getArticleLabel(article: Pick<ArticleDocument, 'label'>): string {
@@ -1136,350 +866,5 @@ export class ArticlesContentService {
     };
 
     return normalizedPersona;
-  }
-
-  private buildReviewPrompt(input: {
-    label: string;
-    summary: string;
-    content: string;
-    type: ArticleGenerationType;
-    focus?: string;
-    harnessBrief?: ContentHarnessBrief;
-  }): string {
-    const typeLabel =
-      input.type === ArticleGenerationType.X_ARTICLE
-        ? 'X long-form article'
-        : 'standard article';
-    const focusLine = input.focus ? `Focus area: ${input.focus}` : '';
-
-    return appendHarnessBriefToPrompt(
-      `You are an expert content reviewer. Review this ${typeLabel} and return strict JSON only.
-
-${focusLine}
-
-TITLE:
-${input.label}
-
-SUMMARY:
-${input.summary}
-
-CONTENT:
-${input.content}
-
-Return this exact JSON shape:
-{
-  "score": 0,
-  "summary": "One paragraph overview",
-  "strengths": ["..."],
-  "issues": [
-    {
-      "severity": "low|medium|high",
-      "category": "clarity|structure|tone|seo|accuracy|cta",
-      "message": "...",
-      "recommendation": "..."
-    }
-  ],
-  "revisionInstructions": "Concrete instructions to improve the draft in one pass"
-}`,
-      input.harnessBrief,
-    );
-  }
-
-  private buildRevisionPrompt(
-    draft: { label: string; summary: string; content: string },
-    originalPrompt: string,
-    review: ArticleReviewRubric,
-    type: ArticleGenerationType,
-    harnessBrief?: ContentHarnessBrief,
-  ): string {
-    const typeLine =
-      type === ArticleGenerationType.X_ARTICLE
-        ? 'Keep X article style and section depth.'
-        : 'Keep standard article/blog style.';
-    return appendHarnessBriefToPrompt(
-      `You are an expert content editor. Improve the draft using the review feedback.
-
-Original request:
-${originalPrompt}
-
-${typeLine}
-
-Current draft:
-Title: ${draft.label}
-Summary: ${draft.summary}
-Content:
-${draft.content}
-
-Review summary:
-${review.summary}
-Score: ${review.score}
-Revision instructions:
-${review.revisionInstructions}
-
-Issues:
-${review.issues
-  .map(
-    (issue, index) =>
-      `${index + 1}. [${issue.severity}] ${issue.category}: ${issue.message} -> ${issue.recommendation}`,
-  )
-  .join('\n')}
-
-Return strict JSON only:
-{
-  "label": "Improved title",
-  "summary": "Improved summary",
-  "content": "Improved content (HTML allowed)"
-}`,
-      harnessBrief,
-    );
-  }
-
-  private parseReviewRubric(raw: string): ArticleReviewRubric {
-    try {
-      const parsed = JSON.parse(raw) as Partial<ArticleReviewRubric>;
-      const issues = Array.isArray(parsed.issues)
-        ? parsed.issues
-            .map((issue) => ({
-              category: String(issue.category || 'clarity'),
-              message: String(issue.message || ''),
-              recommendation: String(issue.recommendation || ''),
-              severity:
-                issue.severity === 'high' ||
-                issue.severity === 'medium' ||
-                issue.severity === 'low'
-                  ? issue.severity
-                  : 'medium',
-            }))
-            .filter((issue) => issue.message.length > 0)
-        : [];
-
-      return {
-        issues,
-        revisionInstructions: String(parsed.revisionInstructions || ''),
-        score:
-          typeof parsed.score === 'number' && Number.isFinite(parsed.score)
-            ? Math.max(0, Math.min(100, parsed.score))
-            : 70,
-        strengths: Array.isArray(parsed.strengths)
-          ? parsed.strengths
-              .map((item) => String(item))
-              .filter((item) => item.length > 0)
-          : [],
-        summary: String(parsed.summary || ''),
-      };
-    } catch {
-      return {
-        issues: [],
-        revisionInstructions:
-          'Improve clarity, structure, and call to action while preserving intent.',
-        score: 70,
-        strengths: [],
-        summary:
-          'Review model returned unstructured output, using fallback rubric.',
-      };
-    }
-  }
-
-  private parseUpdatedArticle(
-    raw: string,
-    fallback: { label: string; summary: string; content: string },
-  ): { label: string; summary: string; content: string } {
-    try {
-      const parsed = JSON.parse(raw) as Partial<{
-        label: string;
-        summary: string;
-        content: string;
-      }>;
-      return {
-        content: String(parsed.content || fallback.content),
-        label: String(parsed.label || fallback.label),
-        summary: String(parsed.summary || fallback.summary),
-      };
-    } catch {
-      return fallback;
-    }
-  }
-
-  /**
-   * Update article with enhanced content from OpenAI response
-   */
-  private async updateArticleWithEnhancedContent(
-    article: ArticleDocument,
-    response: ArticleGenerationResponse,
-    prompt: string,
-    _assistantId: string | undefined,
-    userId: string,
-    organizationId: string,
-    brandId: string,
-  ): Promise<void> {
-    try {
-      // Extract article data from response
-      // Response can be: { articles: [...] } or direct article object with { label, summary, content }
-      let articleData: GeneratedArticleData;
-      if (
-        response.articles &&
-        Array.isArray(response.articles) &&
-        response.articles.length > 0
-      ) {
-        articleData = response.articles[0];
-      } else if (response.label || response.content || response.summary) {
-        // Direct article format
-        articleData = response as GeneratedArticleData;
-      } else {
-        this.logger.error('Invalid response format from OpenAI assistant', {
-          hasArticles: !!response.articles,
-          isArray: Array.isArray(response.articles),
-          responseKeys: Object.keys(response),
-        });
-        throw new Error('Invalid response format from AI assistant');
-      }
-
-      // Assistant returns ONLY changed fields - build update data accordingly
-      const updateData: Record<string, unknown> = {
-        'aiGeneration.completedAt': new Date(),
-        status: ArticleStatus.DRAFT,
-      };
-
-      if (articleData.label) {
-        updateData.label = articleData.label.substring(0, 200);
-      }
-
-      if (articleData.summary) {
-        updateData.summary = articleData.summary.substring(0, 500);
-      }
-
-      if (articleData.content) {
-        updateData.content = articleData.content;
-      }
-
-      if (articleData.slug) {
-        // Ensure slug is unique if being changed
-        let slug = articleData.slug
-          .toLowerCase()
-          .replace(/[^a-z0-9-]/g, '-')
-          .replace(/-+/g, '-')
-          .trim();
-
-        if (slug !== article.slug) {
-          let counter = 1;
-          while (await this.slugExists(slug, organizationId, brandId)) {
-            slug = `${articleData.slug}-${counter}`;
-            counter++;
-          }
-          updateData.slug = slug;
-        }
-      }
-
-      // Update article
-      await this.articlesService?.patch(article.id, updateData);
-
-      // Create a prompt record to track this edit
-      if (this.promptsService) {
-        await this.promptsService.create(
-          new PromptEntity({
-            articleId: String(
-              (article as Record<string, unknown>).id ?? article.id,
-            ),
-            brandId: brandId,
-            category: PromptCategory.ARTICLE,
-            enhanced: JSON.stringify(response),
-            isDeleted: false,
-            isFavorite: false,
-            isSkipEnhancement: false,
-            organizationId: organizationId,
-            original: prompt,
-            scope: AssetScope.USER,
-            status: PromptStatus.GENERATED,
-            userId: userId,
-          }),
-        );
-      }
-
-      // Publish websocket event for article completion
-      if (this.websocketService) {
-        await this.websocketService.publishArticleStatus(
-          article.id.toString(),
-          'completed',
-          userId,
-          {
-            content: updateData.content || article.content,
-            label: updateData.label || article.label,
-            slug: updateData.slug || article.slug,
-            summary: updateData.summary || article.summary,
-          },
-        );
-      }
-
-      this.logger.log(`${this.constructorName} enhanced article with AI`, {
-        articleId: article.id,
-        prompt,
-      });
-    } catch (error: unknown) {
-      this.logger.error('Failed to update article with enhanced content', {
-        articleId: article.id,
-        error: {
-          message: (error as Error)?.message || 'Unknown error',
-          stack: (error as Error)?.stack,
-        },
-      });
-      await this.markArticleAsFailed(
-        article,
-        (error as Error)?.message || 'Failed to process enhanced content',
-        userId,
-      );
-    }
-  }
-
-  /**
-   * Mark article as failed during enhancement
-   */
-  private async markArticleAsFailed(
-    article: ArticleDocument,
-    errorMessage: string,
-    userId: string,
-  ): Promise<void> {
-    await this.articlesService?.patch(
-      ((article as Record<string, unknown>).id as string) ?? String(article.id),
-      {
-        aiGenerationCompletedAt: new Date(),
-        aiGenerationError: errorMessage,
-        status: ArticleStatus.DRAFT,
-      } as unknown as Partial<UpdateArticleDto>,
-    );
-
-    // Publish websocket event for article failure
-    if (this.websocketService) {
-      await this.websocketService.publishArticleStatus(
-        article.id.toString(),
-        'failed',
-        userId,
-        {
-          error: errorMessage,
-        },
-      );
-    }
-
-    this.logger.error('Article enhancement failed', {
-      articleId: article.id,
-      error: errorMessage,
-    });
-  }
-
-  /**
-   * Check if slug exists for the organization/brand
-   */
-  private async slugExists(
-    slug: string,
-    organizationId: string,
-    brandId: string,
-  ): Promise<boolean> {
-    const existing = await this.articlesService?.findOne({
-      brandId: brandId,
-      isDeleted: false,
-      organizationId: organizationId,
-      slug,
-    });
-
-    return !!existing;
   }
 }
