@@ -9,6 +9,7 @@ import { PublishEventWebhookService } from '@api/services/webhook-client/webhook
 import { PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
 
 describe('CronTiktokStatusService', () => {
@@ -26,6 +27,9 @@ describe('CronTiktokStatusService', () => {
     emitLegacyPostPublished: ReturnType<typeof vi.fn>;
   };
   let provenanceService: { runAction: ReturnType<typeof vi.fn> };
+  let schedulerPublishStateService: {
+    transitionPost: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     postsService = {
@@ -51,6 +55,9 @@ describe('CronTiktokStatusService', () => {
           result: await action(),
         }),
       ),
+    };
+    schedulerPublishStateService = {
+      transitionPost: vi.fn().mockResolvedValue(false),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -85,6 +92,10 @@ describe('CronTiktokStatusService', () => {
         {
           provide: PublishEventWebhookService,
           useValue: publishEventWebhookService,
+        },
+        {
+          provide: SchedulerPublishStateService,
+          useValue: schedulerPublishStateService,
         },
       ],
     }).compile();
@@ -176,9 +187,10 @@ describe('CronTiktokStatusService', () => {
       }),
       expect.any(Function),
     );
-    expect(postsService.patch).toHaveBeenCalledWith('post-2', {
-      status: PostStatus.FAILED,
-    });
+    expect(postsService.patch).toHaveBeenCalledWith(
+      'post-2',
+      expect.objectContaining({ status: PostStatus.FAILED }),
+    );
     expect(
       publishEventWebhookService.emitLegacyPostFailed,
     ).toHaveBeenCalledWith(
@@ -213,5 +225,42 @@ describe('CronTiktokStatusService', () => {
     );
 
     await expect(service.checkPendingTiktokPosts()).resolves.toBeUndefined();
+  });
+
+  it('rolls a grouped TikTok completion into canonical target state', async () => {
+    const post = {
+      brand: 'brand-1',
+      credential: {
+        accessToken: 'encrypted-token',
+        externalHandle: 'creator',
+        id: 'credential-1',
+        isConnected: true,
+      },
+      externalId: 'publish-4',
+      groupId: 'group-1',
+      id: 'post-4',
+      organization: 'org-1',
+      updatedAt: new Date().toISOString(),
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValue({ docs: [post] });
+    tiktokService.refreshToken.mockResolvedValue({ accessToken: '' });
+    tiktokService.getPublishStatus.mockResolvedValue({
+      publicly_available_post_id: ['tiktok-post-4'],
+      status: 'PUBLISH_COMPLETE',
+    });
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+
+    await service.checkPendingTiktokPosts();
+
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
+      post,
+      expect.objectContaining({
+        externalId: 'tiktok-post-4',
+        status: PostStatus.PUBLIC,
+      }),
+      expect.stringContaining('moderation completed'),
+    );
+    expect(postsService.patch).not.toHaveBeenCalled();
   });
 });

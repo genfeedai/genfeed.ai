@@ -99,6 +99,7 @@ type SchedulerPostTarget = {
   timezone: string;
   updatedAt: Date;
   url: string | null;
+  workflowExecutionId: string | null;
 };
 
 type ChannelValidationMedia = NonNullable<
@@ -385,7 +386,7 @@ export class PostGroupsService {
   ): Promise<IReleaseGroup> {
     const input = this.parseTargetInput(body);
 
-    const release = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const group = await this.getGroupOrThrow(tx, organizationId, groupId);
       const existing = await this.getTargetOrThrow(
         tx,
@@ -417,6 +418,10 @@ export class PostGroupsService {
         );
       }
 
+      const isManualRetry =
+        existing.targetExecutionState === TargetExecutionState.FAILED &&
+        input.executionState === TargetExecutionState.SCHEDULED;
+
       await tx.post.update({
         data: {
           ...(input.error !== undefined && {
@@ -427,6 +432,11 @@ export class PostGroupsService {
           ...(input.executionState !== undefined && {
             status: input.executionState,
             targetExecutionState: input.executionState,
+          }),
+          ...(isManualRetry && {
+            lastAttemptAt: null,
+            retryCount: 0,
+            targetError: Prisma.JsonNull,
           }),
           ...(input.externalProviderId !== undefined && {
             externalId: input.externalProviderId,
@@ -474,7 +484,15 @@ export class PostGroupsService {
         where: { id: existing.id },
       });
 
-      return this.recalculateAndHydrate(tx, organizationId, group.id, userId);
+      return {
+        isManualRetry,
+        release: await this.recalculateAndHydrate(
+          tx,
+          organizationId,
+          group.id,
+          userId,
+        ),
+      };
     });
     if (
       input.scheduledDate !== undefined ||
@@ -488,7 +506,33 @@ export class PostGroupsService {
         userId,
       );
     }
-    return release;
+    if (result.isManualRetry) {
+      const approval = await this.publishApprovalsService.createForCurrentPost({
+        actorUserId: userId,
+        mode: 'scheduled',
+        organizationId,
+        postId: targetId,
+        provenance: {
+          releaseId: groupId,
+          surface: 'post-groups-manual-retry',
+        },
+      });
+      await this.publishApprovalsService.markQueued(
+        approval.id,
+        organizationId,
+        userId,
+      );
+      await this.postPublishQueueService.enqueue({
+        approvalId: approval.id,
+        operationId: approval.operationId,
+        organizationId,
+        postId: targetId,
+        source: 'manual_retry',
+        userId,
+        versionPinId: approval.artifactVersionPinId,
+      });
+    }
+    return result.release;
   }
 
   cancel(
@@ -1132,6 +1176,7 @@ export class PostGroupsService {
       url: target.url,
       validationIssues: target.targetValidationIssues,
       validationState: target.targetValidationState as TargetValidationState,
+      workflowExecutionId: target.workflowExecutionId,
     };
   }
 

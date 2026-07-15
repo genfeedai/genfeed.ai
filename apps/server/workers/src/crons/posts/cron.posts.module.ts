@@ -17,6 +17,7 @@ import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
+import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
   providers: [
     AgentArtifactReferenceService,
     CronPostsService,
+    SchedulerPublishStateService,
     SystemWorkflowProvenanceService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },

@@ -13,7 +13,7 @@ export interface PostPublishJobData {
   operationId?: string;
   organizationId: string;
   postId: string;
-  source: 'publish_now' | 'scheduled_sweep';
+  source: 'manual_retry' | 'publish_now' | 'scheduled_sweep';
   userId?: string;
   versionPinId?: string;
 }

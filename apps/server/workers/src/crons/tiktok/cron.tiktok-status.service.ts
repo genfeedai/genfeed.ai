@@ -11,12 +11,15 @@ import { PublishEventWebhookService } from '@api/services/webhook-client/webhook
 import {
   CredentialPlatform,
   PostStatus,
+  TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
+import type { IChannelTargetError } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
+import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
 
 type TiktokError = {
   message?: string;
@@ -69,6 +72,7 @@ export class CronTiktokStatusService {
     private readonly credentialsService: CredentialsService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
+    private readonly schedulerPublishStateService: SchedulerPublishStateService,
   ) {}
 
   /**
@@ -240,11 +244,32 @@ export class CronTiktokStatusService {
           'published',
           `TikTok moderation completed - post ${postId} is live`,
           async () => {
-            await this.postsService.patch(post.id.toString(), {
-              externalId: postId, // Replace publish_id with actual post_id
-              publicationDate: new Date(),
-              status: PostStatus.PUBLIC,
-            });
+            const publishedAt = new Date();
+            const grouped =
+              await this.schedulerPublishStateService.transitionPost(
+                post,
+                {
+                  error: null,
+                  executionState: TargetExecutionState.PUBLISHED,
+                  externalId: postId,
+                  publicationDate: publishedAt,
+                  publishedAt,
+                  status: PostStatus.PUBLIC,
+                  url: postUrl,
+                },
+                `TikTok moderation completed - post ${postId} is live`,
+              );
+            if (!grouped) {
+              await this.postsService.patch(post.id.toString(), {
+                externalId: postId, // Replace publish_id with actual post_id
+                publicationDate: publishedAt,
+                publishedAt,
+                status: PostStatus.PUBLIC,
+                targetError: null,
+                targetExecutionState: TargetExecutionState.PUBLISHED,
+                url: postUrl,
+              } as never);
+            }
           },
         );
         if (transitioned) {
@@ -356,9 +381,28 @@ export class CronTiktokStatusService {
       'failed',
       reason,
       async () => {
-        await this.postsService.patch(String(post.id), {
-          status: PostStatus.FAILED,
-        });
+        const targetError: IChannelTargetError = {
+          code: 'tiktok_publish_failed',
+          failedAt: new Date().toISOString(),
+          isRetryable: false,
+          message: reason,
+        };
+        const grouped = await this.schedulerPublishStateService.transitionPost(
+          post,
+          {
+            error: targetError,
+            executionState: TargetExecutionState.FAILED,
+            status: PostStatus.FAILED,
+          },
+          reason,
+        );
+        if (!grouped) {
+          await this.postsService.patch(String(post.id), {
+            status: PostStatus.FAILED,
+            targetError,
+            targetExecutionState: TargetExecutionState.FAILED,
+          } as never);
+        }
       },
     );
     if (transitioned) {

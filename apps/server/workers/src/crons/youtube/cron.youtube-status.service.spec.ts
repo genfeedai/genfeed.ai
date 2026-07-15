@@ -8,6 +8,7 @@ import { PublishEventWebhookService } from '@api/services/webhook-client/webhook
 import { PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
 
 describe('CronYoutubeStatusService', () => {
@@ -22,6 +23,9 @@ describe('CronYoutubeStatusService', () => {
     emitLegacyPostPublished: ReturnType<typeof vi.fn>;
   };
   let provenanceService: { runAction: ReturnType<typeof vi.fn> };
+  let schedulerPublishStateService: {
+    transitionPost: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     postsService = {
@@ -46,6 +50,9 @@ describe('CronYoutubeStatusService', () => {
           result: await action(),
         }),
       ),
+    };
+    schedulerPublishStateService = {
+      transitionPost: vi.fn().mockResolvedValue(false),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -75,10 +82,41 @@ describe('CronYoutubeStatusService', () => {
           provide: PublishEventWebhookService,
           useValue: publishEventWebhookService,
         },
+        {
+          provide: SchedulerPublishStateService,
+          useValue: schedulerPublishStateService,
+        },
       ],
     }).compile();
 
     service = module.get<CronYoutubeStatusService>(CronYoutubeStatusService);
+  });
+
+  it('rolls a grouped public video into canonical target state', async () => {
+    const post = {
+      brand: 'brand-1',
+      credential: 'credential-1',
+      externalId: 'video-4',
+      groupId: 'group-1',
+      id: 'post-4',
+      organization: 'org-1',
+      status: PostStatus.PRIVATE,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValue({ docs: [post] });
+    youtubeService.getVideoStatus.mockResolvedValue({
+      privacyStatus: 'public',
+    });
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+
+    await service.checkScheduledYoutubeVideos();
+
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
+      post,
+      expect.objectContaining({ status: PostStatus.PUBLIC }),
+      'YouTube reports public',
+    );
+    expect(postsService.patch).not.toHaveBeenCalled();
   });
 
   it('should be defined', () => {

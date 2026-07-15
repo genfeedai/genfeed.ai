@@ -10,11 +10,13 @@ import { PublishEventWebhookService } from '@api/services/webhook-client/webhook
 import {
   CredentialPlatform,
   PostStatus,
+  TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
 
 const YOUTUBE_PRIVACY_STATUS_MAP: Record<string, PostStatus> = {
   private: PostStatus.PRIVATE,
@@ -32,6 +34,7 @@ export class CronYoutubeStatusService {
     private readonly youtubeService: YoutubeService,
     private readonly systemWorkflowProvenanceService: SystemWorkflowProvenanceService,
     private readonly publishEventWebhookService: PublishEventWebhookService,
+    private readonly schedulerPublishStateService: SchedulerPublishStateService,
   ) {}
 
   /**
@@ -141,7 +144,41 @@ export class CronYoutubeStatusService {
           targetStatus,
           `YouTube reports ${videoStatus.privacyStatus} - syncing post from ${post.status} to ${targetStatus}`,
           async () => {
-            await this.postsService.patch(post.id.toString(), updateData);
+            const isPublished = targetStatus === PostStatus.PUBLIC;
+            const publishedAt = isPublished
+              ? ((updateData.publicationDate as Date | undefined) ??
+                post.publicationDate ??
+                new Date())
+              : undefined;
+            const grouped =
+              await this.schedulerPublishStateService.transitionPost(
+                post,
+                {
+                  error: null,
+                  executionState: isPublished
+                    ? TargetExecutionState.PUBLISHED
+                    : TargetExecutionState.PUBLISHING,
+                  ...(publishedAt && {
+                    publicationDate: publishedAt,
+                    publishedAt,
+                  }),
+                  status: targetStatus,
+                  ...(isPublished && {
+                    url: `https://www.youtube.com/watch?v=${post.externalId}`,
+                  }),
+                },
+                `YouTube reports ${videoStatus.privacyStatus}`,
+              );
+            if (!grouped) {
+              await this.postsService.patch(post.id.toString(), {
+                ...updateData,
+                targetError: null,
+                targetExecutionState: isPublished
+                  ? TargetExecutionState.PUBLISHED
+                  : TargetExecutionState.PUBLISHING,
+                ...(publishedAt && { publishedAt }),
+              } as never);
+            }
           },
         );
         if (

@@ -64,6 +64,7 @@ type MockPostTarget = {
   timezone: string;
   updatedAt: Date;
   url: string | null;
+  workflowExecutionId: string | null;
 };
 
 describe('PostGroupsService', () => {
@@ -413,6 +414,84 @@ describe('PostGroupsService', () => {
     );
     expect(result.status).toBe(ReleaseStatus.PAUSED);
   });
+
+  it('requeues a failed target through the canonical publish worker path', async () => {
+    const failedTarget = makeTarget({
+      groupId: 'group-1',
+      id: 'target-1',
+      lastAttemptAt: new Date('2026-07-16T00:00:00.000Z'),
+      retryCount: 3,
+      targetError: {
+        code: 'rate_limited',
+        isRetryable: false,
+        message: 'Retry budget exhausted',
+      },
+      targetExecutionState: TargetExecutionState.FAILED,
+    });
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.FAILED }),
+    );
+    prisma.post.findFirst.mockResolvedValue(failedTarget);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        lastAttemptAt: null,
+        retryCount: 0,
+        targetError: null,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status,
+          statusTransitions: data.statusTransitions,
+        }),
+      ),
+    );
+
+    const result = await service.updateTarget(
+      'org-1',
+      'user-1',
+      'group-1',
+      'target-1',
+      { executionState: TargetExecutionState.SCHEDULED },
+    );
+
+    expect(prisma.post.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          lastAttemptAt: null,
+          retryCount: 0,
+          status: TargetExecutionState.SCHEDULED,
+          targetError: expect.anything(),
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        }),
+      }),
+    );
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      mode: 'scheduled',
+      organizationId: 'org-1',
+      postId: 'target-1',
+      provenance: {
+        releaseId: 'group-1',
+        surface: 'post-groups-manual-retry',
+      },
+    });
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      postId: 'target-1',
+      source: 'manual_retry',
+      userId: 'user-1',
+      versionPinId: 'pin-1',
+    });
+    expect(result.status).toBe(ReleaseStatus.SCHEDULED);
+  });
 });
 
 function makeGroup(overrides: Partial<MockPostGroup> = {}): MockPostGroup {
@@ -470,6 +549,7 @@ function makeTarget(overrides: Partial<MockPostTarget> = {}): MockPostTarget {
     timezone: 'UTC',
     updatedAt: new Date('2026-07-08T22:25:13.000Z'),
     url: null,
+    workflowExecutionId: 'execution-1',
     ...overrides,
   };
 }

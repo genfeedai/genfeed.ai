@@ -77,6 +77,8 @@ export interface IChannelTarget extends IBaseEntity {
   lastAttemptAt?: string | null;
   /** ISO 8601 timestamp the target reached `PUBLISHED`. */
   publishedAt?: string | null;
+  /** Durable workflow execution backing the latest scheduled run, when present. */
+  workflowExecutionId?: string | null;
   /**
    * Idempotency key scoping a single publish attempt for this target, so worker
    * retries never double-post.
