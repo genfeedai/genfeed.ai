@@ -7,6 +7,7 @@ const mockSocketDisconnect = vi.fn();
 const mockSocketOff = vi.fn();
 const mockSocketRemoveAllListeners = vi.fn();
 const socketEventHandlers = new Map<string, (...args: unknown[]) => void>();
+const socketState = vi.hoisted(() => ({ active: true }));
 const { mockLogger } = vi.hoisted(() => ({
   mockLogger: {
     debug: vi.fn(),
@@ -19,6 +20,9 @@ const { mockLogger } = vi.hoisted(() => ({
 vi.mock('socket.io-client', () => ({
   io: vi.fn(() => {
     const socket = {
+      get active() {
+        return socketState.active;
+      },
       connect: mockSocketConnect,
       disconnect: mockSocketDisconnect,
       off: mockSocketOff,
@@ -49,6 +53,7 @@ describe('SocketService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     socketEventHandlers.clear();
+    socketState.active = true;
     SocketService.clearInstance();
   });
 
@@ -113,21 +118,103 @@ describe('SocketService', () => {
   });
 
   describe('socket lifecycle logging', () => {
-    it('logs disconnects as warnings instead of errors', () => {
+    it('keeps deliberate client disconnects out of warning telemetry', () => {
       SocketService.getInstance();
 
       const disconnectHandler = socketEventHandlers.get('disconnect');
       expect(disconnectHandler).toBeDefined();
 
-      disconnectHandler?.('transport close');
+      socketState.active = false;
+      disconnectHandler?.('io client disconnect');
 
-      expect(mockLogger.warn).toHaveBeenCalledWith('Socket disconnected', {
+      expect(mockLogger.info).toHaveBeenCalledWith('Socket disconnected', {
         expected: true,
-        reason: 'transport close',
+        reason: 'io client disconnect',
+        recovery: 'none',
       });
-      expect(mockLogger.error).not.toHaveBeenCalledWith(
-        'Socket disconnected',
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it.each(['ping timeout', 'transport close', 'transport error'])(
+      'records %s as an automatically recovering interruption',
+      (reason) => {
+        SocketService.getInstance();
+
+        socketState.active = true;
+        socketEventHandlers.get('disconnect')?.(reason);
+
+        expect(mockLogger.info).toHaveBeenCalledWith(
+          'Socket connection interrupted',
+          {
+            expected: false,
+            reason,
+            recovery: 'automatic',
+          },
+        );
+        expect(mockLogger.warn).not.toHaveBeenCalled();
+      },
+    );
+
+    it('keeps server-forced disconnects observable with bounded context', () => {
+      SocketService.getInstance();
+
+      socketState.active = false;
+      socketEventHandlers.get('disconnect')?.('io server disconnect');
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Socket disconnected unexpectedly',
+        {
+          expected: false,
+          reason: 'io server disconnect',
+          recovery: 'manual',
+          tags: {
+            component: 'realtime',
+            recovery: 'manual',
+          },
+        },
+      );
+    });
+
+    it('does not report temporary connection errors while Socket.IO retries', () => {
+      SocketService.getInstance();
+
+      socketState.active = true;
+      socketEventHandlers.get('connect_error')?.(
+        new Error('token and endpoint content must stay out of telemetry'),
+      );
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        'Socket connection retry scheduled',
+        {
+          errorName: 'Error',
+          recovery: 'automatic',
+        },
+      );
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('reports rejected connections without error-message content', () => {
+      SocketService.getInstance();
+
+      socketState.active = false;
+      socketEventHandlers.get('connect_error')?.(
+        new TypeError('sensitive endpoint response'),
+      );
+
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Socket connection rejected',
+        {
+          errorName: 'TypeError',
+          recovery: 'manual',
+          tags: {
+            component: 'realtime',
+            recovery: 'manual',
+          },
+        },
+      );
+      expect(mockLogger.warn).not.toHaveBeenCalledWith(
         expect.anything(),
+        expect.objectContaining({ message: expect.anything() }),
       );
     });
   });

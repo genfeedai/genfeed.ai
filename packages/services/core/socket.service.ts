@@ -2,9 +2,30 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { io, type Socket } from 'socket.io-client';
 
+export type SocketDisconnectRecovery = 'automatic' | 'manual' | 'none';
+
+export interface SocketDisconnectDisposition {
+  expected: boolean;
+  recovery: SocketDisconnectRecovery;
+}
+
+export function classifySocketDisconnect(
+  reason: string,
+  isAutomaticallyReconnecting: boolean,
+): SocketDisconnectDisposition {
+  if (reason === 'io client disconnect') {
+    return { expected: true, recovery: 'none' };
+  }
+
+  return {
+    expected: false,
+    recovery: isAutomaticallyReconnecting ? 'automatic' : 'manual',
+  };
+}
+
 export class SocketService {
   private static classInstance?: SocketService;
-  public socket: Socket | Record<string, never> = {};
+  public socket!: Socket;
   private currentToken?: string;
 
   private constructor(token?: string) {
@@ -42,28 +63,45 @@ export class SocketService {
     });
 
     this.socket.on('connect_error', (error: Error) => {
-      logger.warn('Socket connection error', {
-        message: error.message,
-        name: error.name,
+      const recovery = this.socket.active ? 'automatic' : 'manual';
+      const context = { errorName: error.name, recovery };
+
+      if (recovery === 'automatic') {
+        logger.info('Socket connection retry scheduled', context);
+        return;
+      }
+
+      logger.warn('Socket connection rejected', {
+        ...context,
+        tags: { component: 'realtime', recovery },
       });
     });
 
     this.socket.on('disconnect', (reason: string) => {
-      logger.warn('Socket disconnected', {
-        expected: this.isExpectedDisconnectReason(reason),
+      const disposition = classifySocketDisconnect(reason, this.socket.active);
+      const context = {
+        ...disposition,
         reason,
+      };
+
+      if (disposition.expected) {
+        logger.info('Socket disconnected', context);
+        return;
+      }
+
+      if (disposition.recovery === 'automatic') {
+        logger.info('Socket connection interrupted', context);
+        return;
+      }
+
+      logger.warn('Socket disconnected unexpectedly', {
+        ...context,
+        tags: {
+          component: 'realtime',
+          recovery: disposition.recovery,
+        },
       });
     });
-  }
-
-  private isExpectedDisconnectReason(reason: string): boolean {
-    return (
-      reason === 'io client disconnect' ||
-      reason === 'io server disconnect' ||
-      reason === 'transport close' ||
-      reason === 'transport error' ||
-      reason === 'ping timeout'
-    );
   }
 
   public static getInstance(token?: string): SocketService {

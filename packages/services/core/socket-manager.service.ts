@@ -9,7 +9,10 @@ import type {
 import type { SocketListener } from '@genfeedai/interfaces/services/socket-listener.interface';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { SocketService } from '@services/core/socket.service';
+import {
+  classifySocketDisconnect,
+  SocketService,
+} from '@services/core/socket.service';
 
 export type SocketConnectionState =
   | 'connecting'
@@ -30,7 +33,7 @@ export class SocketManager {
   >();
   private onConnectHandler?: () => void;
   private onConnectErrorHandler?: () => void;
-  private onDisconnectHandler?: () => void;
+  private onDisconnectHandler?: (reason: string) => void;
   private onReconnectAttemptHandler?: () => void;
 
   constructor(config: ISocketManagerConfig = {}) {
@@ -96,10 +99,26 @@ export class SocketManager {
       this.setConnectionState('connected');
     };
     this.onConnectErrorHandler = () => {
-      this.setConnectionState('reconnecting');
+      this.setConnectionState(
+        this.socketService.socket.active ? 'reconnecting' : 'offline',
+      );
     };
-    this.onDisconnectHandler = () => {
-      this.setConnectionState('offline');
+    this.onDisconnectHandler = (reason: string) => {
+      const disposition = classifySocketDisconnect(
+        reason,
+        this.socketService.socket.active,
+      );
+
+      if (disposition.expected) {
+        this.setConnectionState('offline');
+        return;
+      }
+
+      this.setConnectionState('reconnecting');
+
+      if (disposition.recovery === 'manual') {
+        this.socketService.connect();
+      }
     };
     this.onReconnectAttemptHandler = () => {
       this.setConnectionState('reconnecting');
@@ -108,7 +127,7 @@ export class SocketManager {
     this.socketService.socket.on('connect', this.onConnectHandler);
     this.socketService.socket.on('connect_error', this.onConnectErrorHandler);
     this.socketService.socket.on('disconnect', this.onDisconnectHandler);
-    this.socketService.socket.on(
+    this.socketService.socket.io.on(
       'reconnect_attempt',
       this.onReconnectAttemptHandler,
     );
@@ -229,7 +248,7 @@ export class SocketManager {
     }
 
     if (this.onReconnectAttemptHandler) {
-      this.socketService.off(
+      this.socketService.socket.io.off(
         'reconnect_attempt',
         this.onReconnectAttemptHandler,
       );
