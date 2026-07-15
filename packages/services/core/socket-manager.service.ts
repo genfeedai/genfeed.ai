@@ -243,7 +243,10 @@ export class SocketManager {
     }
 
     if (this.onDisconnectHandler) {
-      this.socketService.off('disconnect', this.onDisconnectHandler);
+      this.socketService.off(
+        'disconnect',
+        this.onDisconnectHandler as (...args: unknown[]) => void,
+      );
       this.onDisconnectHandler = undefined;
     }
 
