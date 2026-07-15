@@ -121,10 +121,11 @@ function AppProtectedTopbarContent({
 }: AppProtectedTopbarProps = {}) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  // Settings routes (/:org/~/settings...) show "Settings" as the breadcrumb
-  // root so the trail reads "Settings / <Page>" (the page label comes from the
-  // settings menu items fed to SidebarNavigationProvider on these routes).
-  const isSettingsRoute = pathname ? /\/settings(\/|$)/.test(pathname) : false;
+  // Settings routes (/:org/~/settings or /:org/:brand/settings) show
+  // "Settings" as the breadcrumb root. Inspect the app-route segment so a
+  // brand slug named "settings" cannot trigger the settings breadcrumb.
+  const isSettingsRoute =
+    pathname?.split('/').filter(Boolean)[2] === 'settings';
   const { push } = useRouter();
   const isConversationShellEnabled = useConversationShellEnabled();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
