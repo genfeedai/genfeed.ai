@@ -1,5 +1,19 @@
+const mockTwitterTweet = vi.fn();
+const mockTwitterDm = vi.fn();
+
+vi.mock('twitter-api-v2', () => ({
+  TwitterApi: vi.fn().mockImplementation(() => ({
+    v2: {
+      sendDmToParticipant: mockTwitterDm,
+      tweet: mockTwitterTweet,
+    },
+  })),
+}));
+
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
+import { ReplyBotPlatform } from '@genfeedai/enums';
+import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -45,6 +59,54 @@ describe('BotActionExecutorService', () => {
   });
 
   describe('postReply', () => {
+    const targetContent = {
+      authorId: 'author-1',
+      authorUsername: 'user1',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      id: 'content-123',
+      text: 'Original content',
+    };
+
+    it.each([
+      { isSupported: true, platform: ReplyBotPlatform.TWITTER },
+      { isSupported: true, platform: ReplyBotPlatform.INSTAGRAM },
+      { isSupported: false, platform: ReplyBotPlatform.TIKTOK },
+      { isSupported: false, platform: ReplyBotPlatform.YOUTUBE },
+      { isSupported: false, platform: ReplyBotPlatform.REDDIT },
+      { isSupported: false, platform: 'unknown' },
+    ])(
+      'routes reply actions fail-closed for $platform',
+      async ({ isSupported, platform }) => {
+        mockTwitterTweet.mockResolvedValue({ data: { id: 'reply-1' } });
+        mockInstagramService.postComment.mockResolvedValue({
+          commentId: 'reply-1',
+        });
+        const credential = {
+          accessToken: 'token',
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          platform,
+        } as IReplyBotCredentialData;
+
+        const result = await service.postReply(
+          credential,
+          targetContent,
+          'Nice post!',
+        );
+
+        expect(result.success).toBe(isSupported);
+        if (isSupported) {
+          expect(result.error).toBeUndefined();
+        } else {
+          expect(result.error).toBe(
+            `Unsupported reply bot platform: ${platform}`,
+          );
+          expect(mockTwitterTweet).not.toHaveBeenCalled();
+          expect(mockInstagramService.postComment).not.toHaveBeenCalled();
+        }
+      },
+    );
+
     it('should route to Instagram when platform is instagram', async () => {
       const credential = {
         accessToken: 'encrypted-token',
@@ -97,6 +159,46 @@ describe('BotActionExecutorService', () => {
   });
 
   describe('sendDm', () => {
+    it.each([
+      { isSupported: true, platform: ReplyBotPlatform.TWITTER },
+      { isSupported: true, platform: ReplyBotPlatform.INSTAGRAM },
+      { isSupported: false, platform: ReplyBotPlatform.TIKTOK },
+      { isSupported: false, platform: ReplyBotPlatform.YOUTUBE },
+      { isSupported: false, platform: ReplyBotPlatform.REDDIT },
+      { isSupported: false, platform: 'unknown' },
+    ])(
+      'routes DM actions fail-closed for $platform',
+      async ({ isSupported, platform }) => {
+        mockTwitterDm.mockResolvedValue(undefined);
+        mockInstagramService.sendCommentReplyDm.mockResolvedValue(undefined);
+        const credential = {
+          accessToken: 'token',
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          platform,
+        } as IReplyBotCredentialData;
+
+        const result = await service.sendDm(
+          credential,
+          'recipient-1',
+          'Hello!',
+        );
+
+        expect(result.success).toBe(isSupported);
+        if (isSupported) {
+          expect(result.error).toBeUndefined();
+        } else {
+          expect(result.error).toBe(
+            `Unsupported reply bot platform: ${platform}`,
+          );
+          expect(mockTwitterDm).not.toHaveBeenCalled();
+          expect(
+            mockInstagramService.sendCommentReplyDm,
+          ).not.toHaveBeenCalled();
+        }
+      },
+    );
+
     it('should route to Instagram DM when platform is instagram', async () => {
       const credential = {
         accessToken: 'token',
@@ -197,7 +299,7 @@ describe('BotActionExecutorService', () => {
 
       expect(result.reply.success).toBe(true);
       expect(result.dm).toBeDefined();
-      expect(result.dm!.success).toBe(true);
+      expect(result.dm?.success).toBe(true);
     });
   });
 
