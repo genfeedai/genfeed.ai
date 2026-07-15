@@ -58,16 +58,14 @@ describe('PostsRemixPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('preserves the existing no-input Trend Remix entry', async () => {
-    const page = await PostsRemixPage({
-      searchParams: Promise.resolve({ thread: 'thread-1' }),
-    });
+  it('renders the Library source picker when Remix has no source intent', async () => {
+    const page = await PostsRemixPage({});
 
     render(page);
 
-    expect(screen.getByTestId('trend-remix-surface')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('library-remix-surface'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('library-remix-surface')).toHaveTextContent(
+      'none:none',
+    );
+    expect(screen.queryByTestId('trend-remix-surface')).not.toBeInTheDocument();
   });
 });
