@@ -1,6 +1,5 @@
 'use client';
 
-import { clearBetterAuthTokenCache } from '@genfeedai/auth-client';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveRequiredAuthToken } from '@helpers/auth/auth.helper';
 import { useCallback, useEffect, useRef } from 'react';
@@ -17,10 +16,6 @@ export class ContextAuthenticationTokenUnavailableError extends Error {
     super('Authentication token unavailable');
     this.name = 'ContextAuthenticationTokenUnavailableError';
   }
-}
-
-export function clearContextTokenCache(): void {
-  clearBetterAuthTokenCache();
 }
 
 export function useContextAuthedService<T>(

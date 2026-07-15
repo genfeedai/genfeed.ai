@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import {
   authClient,
   type BetterAuthTokenRequestOptions,
+  clearBetterAuthTokenCache,
   getBetterAuthToken,
   getBetterAuthTokenContextKey,
 } from './client';
@@ -46,6 +47,17 @@ export function useBetterAuthIdentity(): AuthIdentity {
     sessionId,
     userId,
   });
+  const previousTokenContextKeyRef = useRef(tokenContextKey);
+
+  useEffect(() => {
+    const previousTokenContextKey = previousTokenContextKeyRef.current;
+    previousTokenContextKeyRef.current = tokenContextKey;
+
+    if (previousTokenContextKey !== tokenContextKey) {
+      clearBetterAuthTokenCache(previousTokenContextKey);
+    }
+  }, [tokenContextKey]);
+
   const getToken = useCallback(
     (options?: BetterAuthTokenRequestOptions) =>
       getBetterAuthToken(tokenContextKey, options),
