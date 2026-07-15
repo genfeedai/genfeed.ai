@@ -54,6 +54,8 @@ export interface BetterAuthTokenRequestOptions {
   template?: string;
 }
 
+const DEFAULT_TOKEN_REQUEST_OPTIONS: BetterAuthTokenRequestOptions = {};
+
 interface BetterAuthTokenCacheEntry {
   expiresAt: number;
   promise?: Promise<string | null>;
@@ -166,25 +168,48 @@ function extractBetterAuthToken(response: unknown): string | null {
     : null;
 }
 
+function getInFlightTokenPromise(
+  cacheEntry: BetterAuthTokenCacheEntry | undefined,
+): Promise<string | null> | null {
+  if (!cacheEntry) {
+    return null;
+  }
+
+  return cacheEntry.promise ?? null;
+}
+
+function getUnexpiredToken(
+  cacheEntry: BetterAuthTokenCacheEntry | undefined,
+): string | null {
+  if (!cacheEntry) {
+    return null;
+  }
+  if (!cacheEntry.token) {
+    return null;
+  }
+  if (cacheEntry.expiresAt <= Date.now()) {
+    return null;
+  }
+
+  return cacheEntry.token;
+}
+
 function getReusableTokenPromise(
   cacheKey: string,
   isForceRefresh: boolean,
 ): Promise<string | null> | null {
-  const cachedEntry = betterAuthTokenCache.get(cacheKey);
+  const cacheEntry = betterAuthTokenCache.get(cacheKey);
+  const inFlightPromise = getInFlightTokenPromise(cacheEntry);
 
-  if (cachedEntry?.promise) {
-    return cachedEntry.promise;
+  if (inFlightPromise) {
+    return inFlightPromise;
   }
-
-  if (
-    isForceRefresh ||
-    !cachedEntry?.token ||
-    cachedEntry.expiresAt <= Date.now()
-  ) {
+  if (isForceRefresh) {
     return null;
   }
 
-  return Promise.resolve(cachedEntry.token);
+  const token = getUnexpiredToken(cacheEntry);
+  return token ? Promise.resolve(token) : null;
 }
 
 function cacheResolvedToken(
@@ -257,14 +282,14 @@ function createBetterAuthTokenExchange(
  */
 export function getBetterAuthToken(
   contextKey = DEFAULT_TOKEN_CONTEXT_KEY,
-  options?: BetterAuthTokenRequestOptions,
+  options = DEFAULT_TOKEN_REQUEST_OPTIONS,
 ): Promise<string | null> {
-  const cacheKey = getBetterAuthTokenCacheKey(contextKey, options?.template);
+  const cacheKey = getBetterAuthTokenCacheKey(contextKey, options.template);
   const tokenPromise =
-    getReusableTokenPromise(cacheKey, options?.forceRefresh === true) ??
+    getReusableTokenPromise(cacheKey, options.forceRefresh === true) ??
     createBetterAuthTokenExchange(cacheKey);
 
-  return waitForTokenConsumer(tokenPromise, options?.signal);
+  return waitForTokenConsumer(tokenPromise, options.signal);
 }
 
 export function clearBetterAuthTokenCache(contextKey?: string): void {
