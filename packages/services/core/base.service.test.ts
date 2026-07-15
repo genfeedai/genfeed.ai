@@ -101,6 +101,7 @@ import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.inter
 import { PagesService } from '@services/content/pages.service';
 // Import after mocks
 import { BaseService } from '@services/core/base.service';
+import { logger } from '@services/core/logger.service';
 
 // Create a concrete implementation for testing
 class TestModel {
@@ -822,6 +823,14 @@ describe('BaseService', () => {
   });
 
   describe('error handling', () => {
+    it('preserves silent request cancellations without logging or wrapping', async () => {
+      const cancellation = { isCancelled: true, silent: true };
+      service.getInstanceForTest().get.mockRejectedValue(cancellation);
+
+      await expect(service.findAll()).rejects.toBe(cancellation);
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
     it('should handle network errors', async () => {
       service
         .getInstanceForTest()

@@ -150,8 +150,10 @@ function isAbortLike(error: unknown): boolean {
     (error instanceof DOMException && error.name === 'AbortError') ||
     (typeof error === 'object' &&
       error !== null &&
-      'name' in error &&
-      (error as { name?: string }).name === 'CanceledError')
+      (('name' in error &&
+        (error as { name?: string }).name === 'CanceledError') ||
+        ('isCancelled' in error &&
+          (error as { isCancelled?: boolean }).isCancelled === true)))
   );
 }
 
