@@ -1,4 +1,8 @@
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
+import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
+import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
+import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
+import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 type StoreConversation = {
@@ -398,6 +402,23 @@ function createContext(): TestContext {
   const notificationsPublisher = {
     emit: vi.fn().mockResolvedValue(undefined),
   };
+  const queryService = new SocialInboxQueryService(prisma as never);
+  const realtimeService = new SocialInboxRealtimeService(
+    notificationsPublisher as never,
+  );
+  const ingestionService = new SocialInboxIngestionService(
+    prisma as never,
+    youtubeService as never,
+    realtimeService,
+    queueService as never,
+  );
+  const actionService = new SocialInboxActionService(
+    prisma as never,
+    youtubeService as never,
+    instagramService as never,
+    queryService,
+    realtimeService,
+  );
 
   return {
     conversations,
@@ -407,11 +428,9 @@ function createContext(): TestContext {
     prisma: prisma as unknown as PrismaMock,
     queueService,
     service: new SocialInboxService(
-      prisma as never,
-      youtubeService as never,
-      instagramService as never,
-      queueService as never,
-      notificationsPublisher as never,
+      queryService,
+      ingestionService,
+      actionService,
     ),
     youtubeService,
   };
