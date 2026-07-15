@@ -17,7 +17,10 @@ import {
   isNotificationEvent,
   type NotificationEvent,
 } from '@notifications/services/notification-handler.types';
-import { ResendService } from '@notifications/services/resend/resend.service';
+import {
+  ResendEmailDeliveryError,
+  ResendService,
+} from '@notifications/services/resend/resend.service';
 import { SlackService } from '@notifications/services/slack/slack.service';
 import { TelegramService } from '@notifications/services/telegram/telegram.service';
 
@@ -59,11 +62,24 @@ export class NotificationHandlerService implements OnModuleInit {
         try {
           await this.handleEvent(event);
         } catch (error: unknown) {
+          const resendDeliveryError =
+            error instanceof ResendEmailDeliveryError ? error : null;
           this.logger.error(
             `Failed to handle event ${event.type}:${event.action}`,
             error,
-            this.context,
+            resendDeliveryError
+              ? {
+                  ...this.context,
+                  providerCode: resendDeliveryError.providerCode,
+                  retryable: resendDeliveryError.retryable,
+                  statusCode: resendDeliveryError.statusCode,
+                }
+              : this.context,
           );
+
+          if (resendDeliveryError && !resendDeliveryError.retryable) {
+            return;
+          }
 
           const retryCount = event.retryCount ?? 0;
           if (retryCount < 3) {
