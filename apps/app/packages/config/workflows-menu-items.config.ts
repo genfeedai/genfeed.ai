@@ -43,7 +43,7 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: '',
-    href: APP_ROUTES.WORKFLOWS.AUTOPILOT,
+    href: APP_ROUTES.ORCHESTRATION.AUTOPILOT,
     label: 'Autopilot',
     matchPaths: [
       APP_ROUTES.WORKFLOWS.AUTOPILOT,
@@ -55,7 +55,7 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: '',
-    href: APP_ROUTES.WORKFLOWS.CONFIGURATION,
+    href: APP_ROUTES.ORCHESTRATION.CONFIGURATION,
     label: 'Configuration',
     matchPaths: [
       APP_ROUTES.WORKFLOWS.CONFIGURATION,

@@ -202,7 +202,9 @@ export const APP_ROUTES = {
     ROOT: '/tasks',
   },
   WORKFLOWS: {
+    /** @deprecated Use ORCHESTRATION.AUTOPILOT. Retained for legacy deep links. */
     AUTOPILOT: '/workflows/autopilot',
+    /** @deprecated Use ORCHESTRATION.CONFIGURATION. Retained for legacy deep links. */
     CONFIGURATION: '/workflows/configuration',
     EXECUTIONS: '/workflows/executions',
     NEW: '/workflows/new',
