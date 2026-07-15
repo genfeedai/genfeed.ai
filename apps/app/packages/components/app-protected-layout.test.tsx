@@ -914,6 +914,7 @@ describe('AppProtectedLayout', () => {
       'Campaign',
     ],
   ] as const)('feeds canonical root and leaf breadcrumb metadata on %s', (pathname, rootLabel, leafLabel) => {
+    featureFlagState.conversationShell = true;
     mockPathname.value = pathname;
 
     render(
