@@ -26,6 +26,15 @@ export type { JsonApiResponseDocument } from '@services/core/json-api';
 
 const serviceInstances = new ServiceInstanceManager<BaseService<unknown>>();
 
+function isCancelledRequest(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'isCancelled' in error &&
+    error.isCancelled === true
+  );
+}
+
 /**
  * Base service class for API operations with type-safe request payloads.
  *
@@ -259,6 +268,13 @@ export abstract class BaseService<
     try {
       return await promise;
     } catch (error) {
+      // The interceptor marks request cancellations as silent control flow.
+      // Preserve that marker so callers can ignore stale requests without a
+      // misleading 500 log or a generic structured error wrapper.
+      if (isCancelledRequest(error)) {
+        throw error;
+      }
+
       this.handleOperationError(operation, error);
     }
   }
