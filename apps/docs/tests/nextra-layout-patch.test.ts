@@ -15,7 +15,9 @@ describe('Nextra docs layout prerender patch', () => {
   it('validates the complete layout props object', () => {
     const layout = readThemeFile('layout.js');
 
+    expect(layout).toContain('if ($[3] !== t0)');
     expect(layout).toContain('LayoutPropsSchema.safeParse(t0)');
+    expect(layout).toContain('$[3] = t0');
     expect(layout).not.toContain('LayoutPropsSchema.safeParse(themeConfig)');
   });
 
