@@ -1,7 +1,10 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@notifications/config/config.service';
-import { ResendService } from '@notifications/services/resend/resend.service';
+import {
+  ResendEmailDeliveryError,
+  ResendService,
+} from '@notifications/services/resend/resend.service';
 import { Resend } from 'resend';
 
 const mockSend = vi.fn();
@@ -119,5 +122,150 @@ describe('ResendService', () => {
       }),
       { idempotencyKey: 'crm/contacted/lead_1' },
     );
+  });
+
+  it('surfaces transient Resend failures as retryable delivery errors', async () => {
+    mockSend.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Too many requests',
+        name: 'rate_limit_exceeded',
+        statusCode: 429,
+      },
+    });
+
+    const delivery = service.sendEmail({
+      html: '<p>hello</p>',
+      subject: 'Subject',
+      to: 'test@example.com',
+    });
+
+    await expect(delivery).rejects.toMatchObject({
+      message: 'Too many requests',
+      name: ResendEmailDeliveryError.name,
+      providerCode: 'rate_limit_exceeded',
+      retryable: true,
+      statusCode: 429,
+    });
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      'ResendService sendEmail failed',
+      expect.any(ResendEmailDeliveryError),
+      expect.objectContaining({
+        providerCode: 'rate_limit_exceeded',
+        retryable: true,
+        statusCode: 429,
+      }),
+    );
+  });
+
+  it('treats SDK-normalized network failures as retryable', async () => {
+    mockSend.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Unable to fetch data',
+        name: 'application_error',
+        statusCode: null,
+      },
+    });
+
+    await expect(
+      service.sendEmail({
+        html: '<p>hello</p>',
+        subject: 'Subject',
+        to: 'test@example.com',
+      }),
+    ).rejects.toMatchObject({
+      providerCode: 'application_error',
+      retryable: true,
+      statusCode: null,
+    });
+  });
+
+  it('retries concurrent requests that reuse an in-flight idempotency key', async () => {
+    mockSend.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'The original request is still in progress',
+        name: 'concurrent_idempotent_requests',
+        statusCode: 409,
+      },
+    });
+
+    await expect(
+      service.sendEmail({
+        html: '<p>hello</p>',
+        idempotencyKey: 'workflow-status/workflow_1/completed',
+        subject: 'Subject',
+        to: 'test@example.com',
+      }),
+    ).rejects.toMatchObject({
+      providerCode: 'concurrent_idempotent_requests',
+      retryable: true,
+      statusCode: 409,
+    });
+  });
+
+  it('surfaces permanent Resend failures without marking them retryable', async () => {
+    mockSend.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Invalid recipient',
+        name: 'validation_error',
+        statusCode: 422,
+      },
+    });
+
+    await expect(
+      service.sendEmail({
+        html: '<p>hello</p>',
+        subject: 'Subject',
+        to: 'invalid',
+      }),
+    ).rejects.toMatchObject({
+      message: 'Invalid recipient',
+      providerCode: 'validation_error',
+      retryable: false,
+      statusCode: 422,
+    });
+  });
+
+  it('does not retry quota failures that cannot recover within the retry window', async () => {
+    mockSend.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Monthly quota exceeded',
+        name: 'monthly_quota_exceeded',
+        statusCode: 429,
+      },
+    });
+
+    await expect(
+      service.sendEmail({
+        html: '<p>hello</p>',
+        subject: 'Subject',
+        to: 'test@example.com',
+      }),
+    ).rejects.toMatchObject({
+      providerCode: 'monthly_quota_exceeded',
+      retryable: false,
+      statusCode: 429,
+    });
+  });
+
+  it('surfaces thrown transport failures as retryable delivery errors', async () => {
+    mockSend.mockRejectedValue(new Error('socket closed'));
+
+    await expect(
+      service.sendEmail({
+        html: '<p>hello</p>',
+        subject: 'Subject',
+        to: 'test@example.com',
+      }),
+    ).rejects.toMatchObject({
+      message: 'socket closed',
+      providerCode: null,
+      retryable: true,
+      statusCode: null,
+    });
   });
 });

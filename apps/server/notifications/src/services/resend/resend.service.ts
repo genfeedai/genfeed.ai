@@ -2,7 +2,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
-import { Resend } from 'resend';
+import { type ErrorResponse, Resend } from 'resend';
 
 export interface ResendEmailPayload {
   readonly to: string;
@@ -12,6 +12,71 @@ export interface ResendEmailPayload {
   readonly from?: string;
   readonly replyTo?: string;
   readonly idempotencyKey?: string;
+}
+
+export interface ResendEmailDeliveryErrorOptions {
+  readonly providerCode: ErrorResponse['name'] | null;
+  readonly retryable: boolean;
+  readonly statusCode: number | null;
+}
+
+export class ResendEmailDeliveryError extends Error {
+  readonly providerCode: ErrorResponse['name'] | null;
+  readonly retryable: boolean;
+  readonly statusCode: number | null;
+
+  constructor(message: string, options: ResendEmailDeliveryErrorOptions) {
+    super(message);
+    this.name = ResendEmailDeliveryError.name;
+    this.providerCode = options.providerCode;
+    this.retryable = options.retryable;
+    this.statusCode = options.statusCode;
+  }
+
+  static fromResponse(error: ErrorResponse): ResendEmailDeliveryError {
+    return new ResendEmailDeliveryError(error.message, {
+      providerCode: error.name,
+      retryable: isRetryableResendFailure(error),
+      statusCode: error.statusCode,
+    });
+  }
+
+  static fromCause(error: unknown): ResendEmailDeliveryError {
+    return new ResendEmailDeliveryError(
+      error instanceof Error ? error.message : 'Resend email delivery failed',
+      {
+        providerCode: null,
+        retryable: true,
+        statusCode: null,
+      },
+    );
+  }
+}
+
+function isRetryableResendFailure(error: ErrorResponse): boolean {
+  if (
+    error.name === 'daily_quota_exceeded' ||
+    error.name === 'monthly_quota_exceeded'
+  ) {
+    return false;
+  }
+
+  if (
+    error.name === 'concurrent_idempotent_requests' ||
+    error.name === 'rate_limit_exceeded'
+  ) {
+    return true;
+  }
+
+  const statusCode = error.statusCode;
+
+  return (
+    statusCode === null ||
+    statusCode === 408 ||
+    statusCode === 425 ||
+    statusCode === 429 ||
+    statusCode >= 500
+  );
 }
 
 @Injectable()
@@ -36,9 +101,8 @@ export class ResendService {
       return null;
     }
 
-    const resend = new Resend(this.configService.get('RESEND_API_KEY') || '');
-
     try {
+      const resend = new Resend(this.configService.get('RESEND_API_KEY') || '');
       const response = await resend.emails.send(
         {
           from:
@@ -58,8 +122,7 @@ export class ResendService {
       );
 
       if (response.error) {
-        this.loggerService.error(`${url} failed`, response.error);
-        return null;
+        throw ResendEmailDeliveryError.fromResponse(response.error);
       }
 
       this.loggerService.log(`${url} success`, {
@@ -70,8 +133,19 @@ export class ResendService {
 
       return response.data?.id ?? null;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      return null;
+      const deliveryError =
+        error instanceof ResendEmailDeliveryError
+          ? error
+          : ResendEmailDeliveryError.fromCause(error);
+
+      this.loggerService.error(`${url} failed`, error, {
+        provider: 'resend',
+        providerCode: deliveryError.providerCode,
+        retryable: deliveryError.retryable,
+        statusCode: deliveryError.statusCode,
+      });
+
+      throw deliveryError;
     }
   }
 }
