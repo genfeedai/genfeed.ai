@@ -1,15 +1,3 @@
-const mockTwitterTweet = vi.fn();
-const mockTwitterDm = vi.fn();
-
-vi.mock('twitter-api-v2', () => ({
-  TwitterApi: vi.fn().mockImplementation(() => ({
-    v2: {
-      sendDmToParticipant: mockTwitterDm,
-      tweet: mockTwitterTweet,
-    },
-  })),
-}));
-
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyBotPlatform } from '@genfeedai/enums';
@@ -17,6 +5,11 @@ import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+
+type BotActionExecutorRouting = {
+  postTwitterReply: BotActionExecutorService['postReply'];
+  sendTwitterDm: BotActionExecutorService['sendDm'];
+};
 
 describe('BotActionExecutorService', () => {
   let service: BotActionExecutorService;
@@ -77,7 +70,12 @@ describe('BotActionExecutorService', () => {
     ])(
       'routes reply actions fail-closed for $platform',
       async ({ isSupported, platform }) => {
-        mockTwitterTweet.mockResolvedValue({ data: { id: 'reply-1' } });
+        const postTwitterReply = vi
+          .spyOn(
+            service as unknown as BotActionExecutorRouting,
+            'postTwitterReply',
+          )
+          .mockResolvedValue({ contentId: 'reply-1', success: true });
         mockInstagramService.postComment.mockResolvedValue({
           commentId: 'reply-1',
         });
@@ -97,11 +95,16 @@ describe('BotActionExecutorService', () => {
         expect(result.success).toBe(isSupported);
         if (isSupported) {
           expect(result.error).toBeUndefined();
+          if (platform === ReplyBotPlatform.TWITTER) {
+            expect(postTwitterReply).toHaveBeenCalledOnce();
+          } else {
+            expect(mockInstagramService.postComment).toHaveBeenCalledOnce();
+          }
         } else {
           expect(result.error).toBe(
             `Unsupported reply bot platform: ${platform}`,
           );
-          expect(mockTwitterTweet).not.toHaveBeenCalled();
+          expect(postTwitterReply).not.toHaveBeenCalled();
           expect(mockInstagramService.postComment).not.toHaveBeenCalled();
         }
       },
@@ -169,7 +172,12 @@ describe('BotActionExecutorService', () => {
     ])(
       'routes DM actions fail-closed for $platform',
       async ({ isSupported, platform }) => {
-        mockTwitterDm.mockResolvedValue(undefined);
+        const sendTwitterDm = vi
+          .spyOn(
+            service as unknown as BotActionExecutorRouting,
+            'sendTwitterDm',
+          )
+          .mockResolvedValue({ success: true });
         mockInstagramService.sendCommentReplyDm.mockResolvedValue(undefined);
         const credential = {
           accessToken: 'token',
@@ -187,11 +195,18 @@ describe('BotActionExecutorService', () => {
         expect(result.success).toBe(isSupported);
         if (isSupported) {
           expect(result.error).toBeUndefined();
+          if (platform === ReplyBotPlatform.TWITTER) {
+            expect(sendTwitterDm).toHaveBeenCalledOnce();
+          } else {
+            expect(
+              mockInstagramService.sendCommentReplyDm,
+            ).toHaveBeenCalledOnce();
+          }
         } else {
           expect(result.error).toBe(
             `Unsupported reply bot platform: ${platform}`,
           );
-          expect(mockTwitterDm).not.toHaveBeenCalled();
+          expect(sendTwitterDm).not.toHaveBeenCalled();
           expect(
             mockInstagramService.sendCommentReplyDm,
           ).not.toHaveBeenCalled();
