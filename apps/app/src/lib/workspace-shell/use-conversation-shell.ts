@@ -1,5 +1,6 @@
 'use client';
 
+import { useFeatureFlagContext } from '@hooks/feature-flags/provider';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useSyncExternalStore } from 'react';
 
@@ -40,4 +41,8 @@ export function useConversationShellEnabled(): boolean {
   );
 
   return isFlagEnabled && !isCircuitOpen;
+}
+
+export function useConversationShellEvaluationReady(): boolean {
+  return useFeatureFlagContext().isReady;
 }

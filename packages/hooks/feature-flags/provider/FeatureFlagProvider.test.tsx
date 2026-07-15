@@ -6,6 +6,32 @@ import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 describe('FeatureFlagProvider', () => {
+  it('merges server overrides over public defaults and exposes readiness', () => {
+    function Consumer() {
+      const context = useFeatureFlagContext();
+      return (
+        <div>
+          <span data-testid="flags">{JSON.stringify(context.flags)}</span>
+          <span data-testid="ready">{String(context.isReady)}</span>
+        </div>
+      );
+    }
+
+    render(
+      <FeatureFlagProvider
+        defaults={{ conversation_shell: true, other: true }}
+        overrides={{ conversation_shell: false }}
+        ready={false}
+      >
+        <Consumer />
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByTestId('flags')).toHaveTextContent(
+      JSON.stringify({ conversation_shell: false, other: true }),
+    );
+    expect(screen.getByTestId('ready')).toHaveTextContent('false');
+  });
   afterEach(() => {
     vi.unstubAllEnvs();
   });

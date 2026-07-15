@@ -4,6 +4,7 @@ import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { captureWorkspaceShellApproval } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import {
   getNextActiveItemId,
   getReviewFilterCounts,
@@ -293,7 +294,17 @@ export function useReviewQueueContent() {
         const nextItemId = getNextActiveItemId(remainingItems, activeItemId);
         setActiveItemId(nextItemId);
         syncReviewLocation({ itemId: nextItemId });
+        captureWorkspaceShellApproval({
+          action,
+          integrity: 'not_applicable',
+          outcome: 'success',
+        });
       } catch (error) {
+        captureWorkspaceShellApproval({
+          action,
+          integrity: 'not_applicable',
+          outcome: 'failure',
+        });
         logger.error(`Bulk ${action} failed`, error);
       } finally {
         setIsActioning(false);
@@ -329,6 +340,11 @@ export function useReviewQueueContent() {
         });
 
         await refreshBatch();
+        captureWorkspaceShellApproval({
+          action: 'approve',
+          integrity: 'not_applicable',
+          outcome: 'success',
+        });
 
         setSelectedIds((prev) => {
           if (!prev.has(itemId)) {
@@ -352,6 +368,11 @@ export function useReviewQueueContent() {
         setActiveItemId(nextItemId);
         syncReviewLocation({ itemId: nextItemId });
       } catch (error) {
+        captureWorkspaceShellApproval({
+          action: 'approve',
+          integrity: 'not_applicable',
+          outcome: 'failure',
+        });
         logger.error('Approve item failed', error);
       } finally {
         setIsActioning(false);
@@ -430,6 +451,11 @@ export function useReviewQueueContent() {
         });
 
         await refreshBatch();
+        captureWorkspaceShellApproval({
+          action: 'reject',
+          integrity: 'not_applicable',
+          outcome: 'success',
+        });
 
         setSelectedIds((prev) => {
           if (!prev.has(itemId)) {
@@ -445,6 +471,11 @@ export function useReviewQueueContent() {
         setActiveItemId(nextItemId);
         syncReviewLocation({ itemId: nextItemId });
       } catch (error) {
+        captureWorkspaceShellApproval({
+          action: 'reject',
+          integrity: 'not_applicable',
+          outcome: 'failure',
+        });
         logger.error('Reject item failed', error);
       } finally {
         setIsActioning(false);

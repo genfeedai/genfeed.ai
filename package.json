@@ -51,6 +51,8 @@
     "setup:skills:sync": "scripts/setup-skills.sh --sync",
     "check:skills": "scripts/setup-skills.sh --check",
     "check:skills-readme": "bun run scripts/check-skills-readme-drift.ts",
+    "conversation-shell:gates": "bun run scripts/conversation-shell/evaluate-rollout-gates.ts",
+    "conversation-shell:rehearse-rollback": "bun run scripts/conversation-shell/rehearse-rollback.ts",
     "posthog:funnel-alerts": "bun run scripts/posthog/setup-funnel-alerts.ts",
     "build": "bunx turbo run build --filter='./packages/*'",
     "build:app": "bunx turbo run build --filter=@genfeedai/app",

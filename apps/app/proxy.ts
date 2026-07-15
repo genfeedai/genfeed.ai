@@ -1,4 +1,5 @@
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
+import { isConversationShellEvaluation } from '@genfeedai/config/conversation-shell-rollout';
 import {
   isCloudDeployment,
   isDesktopClient,
@@ -465,6 +466,31 @@ async function shouldRedirectSignedInUserToOnboarding(
   return !ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
 }
 
+async function isConversationShellOnboardingEnabled(
+  token: string,
+): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${getApiBaseUrl()}/feature-flags/conversation-shell?client=web`,
+      {
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    if (!response.ok) {
+      return false;
+    }
+
+    const evaluation: unknown = await response.json();
+    return isConversationShellEvaluation(evaluation) && evaluation.isEnabled;
+  } catch {
+    return false;
+  }
+}
+
 // Matches the org-scoped agent onboarding surface and its threaded children,
 // e.g. `/acme/~/agent/onboarding` and `/acme/~/agent/onboarding/<threadId>`.
 const AGENT_ONBOARDING_PATH_RE = /^\/[^/]+\/~\/agent\/onboarding(?:\/|$)/;
@@ -474,8 +500,9 @@ function isAgentOnboardingPath(pathname: string): boolean {
 }
 
 // Resolve the org-scoped agent onboarding destination for an incomplete user.
-// Agent-first onboarding is the SaaS default; callers fall back to the wizard
-// (`ONBOARDING_PATH`) when the workspace slug can't be resolved.
+// Agent-first onboarding is available only to enabled SaaS cohorts; callers
+// fall back to the wizard (`ONBOARDING_PATH`) when evaluation or slug resolution
+// fails.
 async function resolveAgentOnboardingRedirect(
   token: string,
   cacheKey?: string | null,
@@ -837,8 +864,10 @@ export async function proxy(req: NextRequest) {
     }
 
     if (await shouldRedirectSignedInUserToOnboarding(token)) {
-      // Community/Desktop keep the form wizard; only SaaS gets agent-first.
-      if (!isSaaS()) {
+      // Community/Desktop keep the form wizard. SaaS agent-first onboarding
+      // consumes the same server-evaluated organization cohort as the shell;
+      // missing or failed evaluation immediately retains the classic wizard.
+      if (!isSaaS() || !(await isConversationShellOnboardingEnabled(token))) {
         return redirectPreservingSearch(req, ONBOARDING_PATH);
       }
 

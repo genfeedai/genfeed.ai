@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(207);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(209);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(207);
+    ).toBe(209);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -92,6 +92,18 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute(materializeRoutePattern(pattern))?.mode,
     ).toBe(mode);
+  });
+
+  it('keeps legacy workflow aliases aligned with their canonical orchestration owners', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/workflows/autopilot'),
+    ).toMatchObject({ mode: 'canvas', surfaceKey: 'orchestration' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/workflows/configuration'),
+    ).toMatchObject({
+      mode: 'dedicated',
+      surfaceKey: 'orchestration-management',
+    });
   });
 
   it('activates the Studio adapter only for generation and canonical asset editing', () => {

@@ -146,10 +146,12 @@ describe('PublishApprovalsService', () => {
     const artifactReferenceService = {
       createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
     };
+    const logger = { log: vi.fn() };
     const transaction = { post: prisma.post, publishApproval };
     const service = new PublishApprovalsService(
       prisma as never,
       artifactReferenceService as unknown as AgentArtifactReferenceService,
+      logger as never,
     );
 
     const approval = await service.createForCurrentPost({
@@ -199,6 +201,13 @@ describe('PublishApprovalsService', () => {
     expect(
       artifactReferenceService.createOrReuseVersionPin,
     ).toHaveBeenCalledWith(expect.objectContaining({ transaction }));
+    expect(logger.log).toHaveBeenCalledWith('conversation_shell_approval', {
+      action: 'approve',
+      integrity: 'matched',
+      organizationId: 'org-1',
+      outcome: 'success',
+      telemetryQueryVersion: 1,
+    });
   });
 
   it('fails closed and invalidates when the canonical brand drifts', async () => {
@@ -285,6 +294,49 @@ describe('PublishApprovalsService', () => {
     expect(
       artifactReferenceService.assertVersionPinCurrent,
     ).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [true, PublishApprovalStatus.PUBLISHED, 'success'],
+    [false, PublishApprovalStatus.FAILED, 'failure'],
+  ] as const)('records provider completion telemetry for success=%s', async (isSuccess, completedStatus, outcome) => {
+    const executing = makeApproval({
+      status: PublishApprovalStatus.EXECUTING,
+    });
+    const completed = makeApproval({ status: completedStatus });
+    const publishApproval = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValueOnce(executing)
+        .mockResolvedValueOnce(completed),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+    const logger = { log: vi.fn() };
+    const service = new PublishApprovalsService(
+      { publishApproval } as never,
+      {} as AgentArtifactReferenceService,
+      logger as never,
+    );
+
+    await service.completeExecution(
+      'approval-1',
+      'org-1',
+      isSuccess,
+      isSuccess ? undefined : 'provider failed',
+    );
+
+    expect(publishApproval.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: completedStatus }),
+      }),
+    );
+    expect(logger.log).toHaveBeenCalledWith('conversation_shell_approval', {
+      action: 'execute',
+      integrity: 'matched',
+      organizationId: 'org-1',
+      outcome,
+      telemetryQueryVersion: 1,
+    });
   });
 
   it('blocks version drift before claiming execution', async () => {

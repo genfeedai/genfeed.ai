@@ -37,6 +37,7 @@ describe('AgentScopeContextService', () => {
     };
     brand: { findFirst: ReturnType<typeof vi.fn> };
   };
+  const logger = { log: vi.fn() };
 
   beforeEach(() => {
     prisma = {
@@ -47,7 +48,8 @@ describe('AgentScopeContextService', () => {
       },
       brand: { findFirst: vi.fn().mockResolvedValue({ id: BRAND_ID }) },
     };
-    service = new AgentScopeContextService(prisma as never);
+    logger.log.mockClear();
+    service = new AgentScopeContextService(prisma as never, logger as never);
   });
 
   it('resolves an authorized thread scope from immutable server authority', async () => {
@@ -80,6 +82,15 @@ describe('AgentScopeContextService', () => {
           userId: USER_ID,
         },
       }),
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      'agent_context_compatibility_read',
+      {
+        organizationId: ORGANIZATION_ID,
+        resolution: 'current',
+        source: 'explicit_thread_scope',
+        telemetryQueryVersion: 1,
+      },
     );
   });
 
@@ -275,6 +286,33 @@ describe('AgentScopeContextService', () => {
     expect(prisma.agentThread.updateMany).not.toHaveBeenCalled();
   });
 
+  it('emits content-free compatibility telemetry for bounded legacy reads', async () => {
+    prisma.agentThread.findFirst.mockResolvedValue(
+      threadRow({
+        brandId: null,
+        isLegacyBrandFallbackEligible: true,
+        legacyBrandFallbackCount: 0,
+      }),
+    );
+
+    await service.prepareForTurn({
+      organizationId: ORGANIZATION_ID,
+      policyBrandId: BRAND_ID,
+      threadId: THREAD_ID,
+      userId: USER_ID,
+    });
+
+    expect(logger.log).toHaveBeenCalledWith(
+      'agent_context_compatibility_read',
+      {
+        organizationId: ORGANIZATION_ID,
+        resolution: 'legacy',
+        source: 'legacy_execution_policy',
+        telemetryQueryVersion: 1,
+      },
+    );
+  });
+
   it('requires an explicit version before strict consequential execution', async () => {
     await expect(
       service.assertConsequentialBoundary(
@@ -292,6 +330,16 @@ describe('AgentScopeContextService', () => {
       ),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(prisma.agentThread.findFirst).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      'conversation_shell_consequential_attempt',
+      {
+        boundary: 'tool',
+        contextStatus: 'missing_version',
+        organizationId: ORGANIZATION_ID,
+        outcome: 'blocked',
+        telemetryQueryVersion: 1,
+      },
+    );
   });
 
   it('revalidates version and brand immediately before a side effect', async () => {

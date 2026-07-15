@@ -9,10 +9,8 @@ import {
   ForbiddenException,
   HttpException,
   HttpStatus,
-  Inject,
-  Injectable,
 } from '@nestjs/common';
-import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
+import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
 
 const MAX_SCOPE_PROVENANCE_ENTRIES = 50;
 const MAX_LEGACY_BRAND_FALLBACK_USES = 20;
@@ -78,14 +76,13 @@ export interface MutateAgentScopeParams {
   userId: string;
 }
 
-@Injectable()
 export class AgentScopeContextService {
   constructor(
-    @Inject(SERVER_TOKENS.prisma)
     private readonly prisma: Pick<
       ServerPrisma,
       'agentMessage' | 'agentThread' | 'brand'
     >,
+    private readonly logger?: ServerLogger,
   ) {}
 
   async prepareForTurn(
@@ -145,6 +142,11 @@ export class AgentScopeContextService {
 
     if (thread.brandId) {
       await this.assertBrandAuthorized(thread.brandId, params.organizationId);
+      this.recordCompatibilityRead(
+        'current',
+        'explicit_thread_scope',
+        params.organizationId,
+      );
       return {
         existingScope: this.toValidatedScope(
           thread,
@@ -157,6 +159,11 @@ export class AgentScopeContextService {
     }
 
     if (!thread.isLegacyBrandFallbackEligible) {
+      this.recordCompatibilityRead(
+        'current',
+        'explicit_thread_scope',
+        params.organizationId,
+      );
       return {
         existingScope: this.toValidatedScope(
           thread,
@@ -313,6 +320,13 @@ export class AgentScopeContextService {
       throw agentThreadNotFound(params.threadId);
     }
 
+    this.logger?.log('conversation_shell_scope_correction', {
+      organizationId: params.organizationId,
+      outcome: 'success',
+      source: 'thread_context_api',
+      telemetryQueryVersion: 1,
+    });
+
     return updated as unknown as Record<string, unknown>;
   }
 
@@ -320,42 +334,59 @@ export class AgentScopeContextService {
     scope: ValidatedAgentScope,
     boundary: 'publish' | 'tool' | 'workflow',
   ): Promise<void> {
-    if (
-      !scope.isVersionExplicit &&
-      !scope.isLegacyFallback &&
-      scope.source !== 'thread_created'
-    ) {
-      throw new ConflictException({
-        code: 'agent_context_version_required',
-        contextVersion: scope.contextVersion,
-        detail: `expectedContextVersion is required before ${boundary} execution.`,
-        title: 'Agent context synchronization required',
-      });
-    }
+    try {
+      if (
+        !scope.isVersionExplicit &&
+        !scope.isLegacyFallback &&
+        scope.source !== 'thread_created'
+      ) {
+        throw new ConflictException({
+          code: 'agent_context_version_required',
+          contextVersion: scope.contextVersion,
+          detail: `expectedContextVersion is required before ${boundary} execution.`,
+          title: 'Agent context synchronization required',
+        });
+      }
 
-    const current = await this.findThread(
-      scope.threadId,
-      scope.organizationId,
-      scope.userId,
-    );
+      const current = await this.findThread(
+        scope.threadId,
+        scope.organizationId,
+        scope.userId,
+      );
 
-    if (!current) {
-      throw new ForbiddenException('Agent scope is no longer authorized.');
-    }
+      if (!current) {
+        throw new ForbiddenException('Agent scope is no longer authorized.');
+      }
 
-    if (
-      current.contextVersion !== scope.contextVersion ||
-      current.brandId !==
-        (scope.isLegacyFallback ? null : (scope.brandId ?? null)) ||
-      (scope.isLegacyFallback &&
-        (current.legacyBrandFallbackLastBrandId !== (scope.brandId ?? null) ||
-          current.legacyBrandFallbackLastSource !== scope.source))
-    ) {
-      throw this.contextConflict(current);
-    }
+      if (
+        current.contextVersion !== scope.contextVersion ||
+        current.brandId !==
+          (scope.isLegacyFallback ? null : (scope.brandId ?? null)) ||
+        (scope.isLegacyFallback &&
+          (current.legacyBrandFallbackLastBrandId !== (scope.brandId ?? null) ||
+            current.legacyBrandFallbackLastSource !== scope.source))
+      ) {
+        throw this.contextConflict(current);
+      }
 
-    if (scope.brandId) {
-      await this.assertBrandAuthorized(scope.brandId, scope.organizationId);
+      if (scope.brandId) {
+        await this.assertBrandAuthorized(scope.brandId, scope.organizationId);
+      }
+
+      this.recordConsequentialAttempt(
+        boundary,
+        'allowed',
+        'current',
+        scope.organizationId,
+      );
+    } catch (error: unknown) {
+      this.recordConsequentialAttempt(
+        boundary,
+        'blocked',
+        this.classifyConsequentialContextStatus(error),
+        scope.organizationId,
+      );
+      throw error;
     }
   }
 
@@ -365,12 +396,14 @@ export class AgentScopeContextService {
     resourceLabel: string,
   ): void {
     if (!scope.brandId) {
+      this.recordBlockedScopeAttempt('missing_brand', scope.organizationId);
       throw new BadRequestException(
         `An explicit brand context is required for ${resourceLabel}.`,
       );
     }
 
     if (!resourceBrandId || resourceBrandId !== scope.brandId) {
+      this.recordBlockedScopeAttempt('brand_mismatch', scope.organizationId);
       throw new ForbiddenException(
         `${resourceLabel} is outside the validated thread brand scope.`,
       );
@@ -483,6 +516,8 @@ export class AgentScopeContextService {
     if (result.count !== 1) {
       throw this.legacyFallbackExpired(thread);
     }
+
+    this.recordCompatibilityRead('legacy', source, thread.organizationId);
   }
 
   private buildInitialScopeFields(
@@ -576,6 +611,11 @@ export class AgentScopeContextService {
   }
 
   private contextConflict(thread: AgentThreadScopeRow): ConflictException {
+    this.logger?.log('conversation_shell_stale_context_blocked', {
+      organizationId: thread.organizationId,
+      outcome: 'blocked',
+      telemetryQueryVersion: 1,
+    });
     return new ConflictException({
       code: 'agent_context_version_conflict',
       context: {
@@ -616,5 +656,77 @@ export class AgentScopeContextService {
   private normalizeBrandId(value?: string | null): string | undefined {
     const normalized = value?.trim();
     return normalized ? normalized : undefined;
+  }
+
+  private recordBlockedScopeAttempt(
+    reason: 'brand_mismatch' | 'missing_brand',
+    organizationId: string,
+  ): void {
+    this.logger?.log('conversation_shell_scope_violation_blocked', {
+      organizationId,
+      outcome: 'blocked',
+      reason,
+      telemetryQueryVersion: 1,
+    });
+  }
+
+  private recordCompatibilityRead(
+    resolution: 'current' | 'legacy',
+    source:
+      | 'explicit_thread_scope'
+      | 'legacy_execution_policy'
+      | 'legacy_message_history'
+      | 'legacy_organization_only'
+      | 'legacy_scope_provenance',
+    organizationId: string,
+  ): void {
+    this.logger?.log('agent_context_compatibility_read', {
+      organizationId,
+      resolution,
+      source,
+      telemetryQueryVersion: 1,
+    });
+  }
+
+  private recordConsequentialAttempt(
+    boundary: 'publish' | 'tool' | 'workflow',
+    outcome: 'allowed' | 'blocked',
+    contextStatus:
+      | 'blocked_unknown'
+      | 'current'
+      | 'missing_version'
+      | 'stale'
+      | 'unauthorized_scope',
+    organizationId: string,
+  ): void {
+    this.logger?.log('conversation_shell_consequential_attempt', {
+      boundary,
+      contextStatus,
+      organizationId,
+      outcome,
+      telemetryQueryVersion: 1,
+    });
+  }
+
+  private classifyConsequentialContextStatus(
+    error: unknown,
+  ): 'blocked_unknown' | 'missing_version' | 'stale' | 'unauthorized_scope' {
+    if (error instanceof ForbiddenException) {
+      return 'unauthorized_scope';
+    }
+    if (error instanceof ConflictException) {
+      const response = error.getResponse();
+      const code =
+        response && typeof response === 'object' && 'code' in response
+          ? response.code
+          : null;
+      if (code === 'agent_context_version_conflict') {
+        return 'stale';
+      }
+      if (code === 'agent_context_version_required') {
+        return 'missing_version';
+      }
+    }
+    return 'blocked_unknown';
   }
 }

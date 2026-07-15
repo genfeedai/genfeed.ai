@@ -9,6 +9,7 @@ import type { LayoutProps } from '@props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import ProtectedProviders from '@providers/protected-providers/protected-providers';
+import { logger } from '@services/core/logger.service';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import ProductionDataBanner from '@ui/banners/production-data/ProductionDataBanner';
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
@@ -29,8 +30,15 @@ import {
 } from 'react';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
-import { openWorkspaceShellCircuit } from '@/lib/workspace-shell/use-conversation-shell';
-import { captureWorkspaceShellFallback } from '@/lib/workspace-shell/workspace-shell-telemetry';
+import {
+  openWorkspaceShellCircuit,
+  useConversationShellEvaluationReady,
+} from '@/lib/workspace-shell/use-conversation-shell';
+import {
+  captureWorkspaceShellError,
+  captureWorkspaceShellFallback,
+  captureWorkspaceShellPerformance,
+} from '@/lib/workspace-shell/workspace-shell-telemetry';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AssetGateGuard from './asset-gate-guard';
 import {
@@ -188,8 +196,39 @@ function AppLayoutWithDynamicMenu({
     isUniversalWorkspaceShell,
     workspaceShellRoute,
   } = useAppProtectedLayout(initialBootstrap);
+  const isConversationShellEvaluationReady =
+    useConversationShellEvaluationReady();
   const isWorkspaceShellReady =
     isUniversalWorkspaceShell && agentApiService !== null;
+  const hasCapturedPerformanceRef = useRef(false);
+
+  useEffect(() => {
+    if (
+      hasCapturedPerformanceRef.current ||
+      !isConversationShellEvaluationReady ||
+      (isUniversalWorkspaceShell && !isWorkspaceShellReady) ||
+      typeof performance === 'undefined'
+    ) {
+      return;
+    }
+
+    hasCapturedPerformanceRef.current = true;
+    captureWorkspaceShellPerformance({
+      deviceClass:
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(max-width: 767px)').matches
+          ? 'mobile'
+          : 'desktop',
+      durationMs: Math.max(0, Math.round(performance.now())),
+      routeClass: workspaceShellRoute?.telemetryClass ?? 'management',
+      shellMode: isWorkspaceShellReady ? 'conversation' : 'legacy',
+    });
+  }, [
+    isConversationShellEvaluationReady,
+    isUniversalWorkspaceShell,
+    isWorkspaceShellReady,
+    workspaceShellRoute?.telemetryClass,
+  ]);
 
   const renderConversations = useCallback(
     () =>
@@ -447,9 +486,14 @@ function AppLayoutWithDynamicMenu({
   const guardedMainLayout = isWorkspaceShellReady ? (
     <ErrorBoundary
       fallback={legacyFallbackLayout}
-      onError={() => {
+      onError={(error) => {
         openWorkspaceShellCircuit();
         captureWorkspaceShellFallback('render_error');
+        captureWorkspaceShellError('render', 'render_failed');
+        logger.error('Conversation shell render failed', {
+          error,
+          reportToSentry: true,
+        });
       }}
     >
       {mainLayout}

@@ -1,5 +1,34 @@
 // Helpers
 
+export type {
+  ConversationShellGateName,
+  ConversationShellGateReport,
+  ConversationShellGateResult,
+  ConversationShellGateSnapshot,
+  ConversationShellGateStatus,
+} from './conversation-shell-gates';
+export { evaluateConversationShellGates } from './conversation-shell-gates';
+export type {
+  ConversationShellClientSurface,
+  ConversationShellCohort,
+  ConversationShellDeployment,
+  ConversationShellDeploymentMode,
+  ConversationShellEvaluation,
+  ConversationShellEvaluationAttributes,
+  ConversationShellEvaluationReason,
+  ConversationShellRolloutConfig,
+  ConversationShellRolloutConfigParseResult,
+} from './conversation-shell-rollout';
+export {
+  CONVERSATION_SHELL_COHORTS,
+  CONVERSATION_SHELL_DEPLOYMENT_ORDER,
+  CONVERSATION_SHELL_EVALUATION_REASONS,
+  CONVERSATION_SHELL_FLAG_KEY,
+  evaluateConversationShellRollout,
+  isConversationShellEvaluation,
+  parseConversationShellRolloutConfig,
+  resolveConversationShellDeploymentMode,
+} from './conversation-shell-rollout';
 // Deployment
 export type { ClientSurface, Deployment } from './deployment';
 export {
