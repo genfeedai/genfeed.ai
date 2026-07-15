@@ -134,9 +134,7 @@ export class BrandWebsiteParserService {
         .map((image) => image.src)
         .filter(
           (src, index, all) =>
-            src !== scrapedContent.logoUrl &&
-            src !== scrapedContent.bannerUrl &&
-            all.indexOf(src) === index,
+            src !== scrapedContent.logoUrl && all.indexOf(src) === index,
         )
         .slice(0, MAX_IMAGE_CANDIDATES),
       scrapedAt: scrapedContent.scrapedAt,
