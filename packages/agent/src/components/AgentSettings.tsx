@@ -1,10 +1,15 @@
 import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
-import type { AgentApiConfig } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant, CostTier } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
-import { type ReactElement, useCallback, useEffect, useState } from 'react';
+import {
+  type ChangeEvent,
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import {
   HiOutlineBolt,
   HiOutlineCheck,
@@ -14,20 +19,22 @@ import {
   HiOutlineTrophy,
 } from 'react-icons/hi2';
 
+export type AgentGenerationPriority = 'quality' | 'balanced' | 'speed' | 'cost';
+
+export interface AgentSettingsValues {
+  defaultModel: string;
+  generationPriority: AgentGenerationPriority;
+  persona: string;
+}
+
 interface AgentSettingsProps {
-  apiConfig: AgentApiConfig;
-  brandId?: string;
+  initialSettings: AgentSettingsValues;
+  isDefaultState?: boolean;
+  onSave: (settings: AgentSettingsValues) => Promise<void>;
 }
-
-interface BrandAgentConfig {
-  defaultModel?: string;
-  persona?: string;
-}
-
-type GenerationPriority = 'quality' | 'balanced' | 'speed' | 'cost';
 
 interface PriorityOption {
-  key: GenerationPriority;
+  key: AgentGenerationPriority;
   label: string;
   description: string;
   icon: ReactElement;
@@ -67,137 +74,88 @@ const COST_TIER_COLORS: Record<CostTier, string> = {
 };
 
 export function AgentSettings({
-  apiConfig,
-  brandId,
+  initialSettings,
+  isDefaultState = false,
+  onSave,
 }: AgentSettingsProps): ReactElement {
-  const [selectedModel, setSelectedModel] = useState<string>('');
-  const [persona, setPersona] = useState('');
+  const [selectedModel, setSelectedModel] = useState(
+    initialSettings.defaultModel,
+  );
+  const [persona, setPersona] = useState(initialSettings.persona);
   const [generationPriority, setGenerationPriority] =
-    useState<GenerationPriority>('quality');
+    useState<AgentGenerationPriority>(initialSettings.generationPriority);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>(
     'idle',
   );
-  const [isLoading, setIsLoading] = useState(true);
+  const [hasPersistedOverrides, setHasPersistedOverrides] = useState(
+    !isDefaultState,
+  );
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    async function fetchConfig(): Promise<void> {
-      try {
-        const token = await apiConfig.getToken();
-        const headers = {
-          Authorization: token ? `Bearer ${token}` : '',
-          'Content-Type': 'application/json',
-        };
-
-        // Fetch brand config and user settings in parallel
-        const [brandRes, settingsRes] = await Promise.all([
-          brandId
-            ? fetch(`${apiConfig.baseUrl}/brands/${brandId}`, {
-                headers,
-                signal: controller.signal,
-              })
-            : Promise.resolve(null),
-          fetch(`${apiConfig.baseUrl}/users/me/settings`, {
-            headers,
-            signal: controller.signal,
-          }),
-        ]);
-
-        if (brandRes?.ok) {
-          const json = await brandRes.json();
-          const agentConfig: BrandAgentConfig | undefined =
-            json?.data?.attributes?.agentConfig;
-          if (agentConfig?.defaultModel) {
-            setSelectedModel(agentConfig.defaultModel);
-          }
-          if (agentConfig?.persona) {
-            setPersona(agentConfig.persona);
-          }
-        }
-
-        if (settingsRes.ok) {
-          const json = await settingsRes.json();
-          const priority = json?.data?.attributes?.generationPriority;
-          if (priority) {
-            setGenerationPriority(priority as GenerationPriority);
-          }
-        }
-      } catch {
-        // Silently fail — settings will use defaults
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchConfig();
-    return () => controller.abort();
-  }, [apiConfig, brandId]);
+    setSelectedModel(initialSettings.defaultModel);
+    setPersona(initialSettings.persona);
+    setGenerationPriority(initialSettings.generationPriority);
+    setHasPersistedOverrides(!isDefaultState);
+    setSaveStatus('idle');
+  }, [
+    initialSettings.defaultModel,
+    initialSettings.generationPriority,
+    initialSettings.persona,
+    isDefaultState,
+  ]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     setSaveStatus('idle');
 
     try {
-      const token = await apiConfig.getToken();
-      const headers = {
-        Authorization: token ? `Bearer ${token}` : '',
-        'Content-Type': 'application/json',
-      };
-
-      // Save brand config and user settings in parallel
-      const requests: Promise<Response>[] = [];
-
-      if (brandId) {
-        requests.push(
-          fetch(`${apiConfig.baseUrl}/brands/${brandId}/agent-config`, {
-            body: JSON.stringify({
-              defaultModel: selectedModel || undefined,
-              persona: persona || undefined,
-            }),
-            headers,
-            method: 'PATCH',
-          }),
-        );
-      }
-
-      requests.push(
-        fetch(`${apiConfig.baseUrl}/users/me/settings`, {
-          body: JSON.stringify({ generationPriority }),
-          headers,
-          method: 'PATCH',
-        }),
-      );
-
-      const results = await Promise.all(requests);
-      const allOk = results.every((r) => r.ok);
-
-      if (allOk) {
-        setSaveStatus('success');
-        setTimeout(() => setSaveStatus('idle'), 2000);
-      } else {
-        setSaveStatus('error');
-      }
+      await onSave({
+        defaultModel: selectedModel,
+        generationPriority,
+        persona,
+      });
+      setHasPersistedOverrides(true);
+      setSaveStatus('success');
     } catch {
       setSaveStatus('error');
     } finally {
       setIsSaving(false);
     }
-  }, [apiConfig, brandId, selectedModel, persona, generationPriority]);
+  }, [generationPriority, onSave, persona, selectedModel]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-      </div>
-    );
-  }
+  const handlePriorityChange = useCallback(
+    (priority: AgentGenerationPriority) => {
+      setGenerationPriority(priority);
+      setSaveStatus('idle');
+    },
+    [],
+  );
+
+  const handleModelChange = useCallback((model: string) => {
+    setSelectedModel(model);
+    setSaveStatus('idle');
+  }, []);
+
+  const handlePersonaChange = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => {
+      setPersona(event.target.value);
+      setSaveStatus('idle');
+    },
+    [],
+  );
 
   return (
     <div className="space-y-8">
+      {!hasPersistedOverrides && (
+        <p
+          className="rounded bg-white/[0.02] px-4 py-3 text-xs text-muted-foreground"
+          role="status"
+        >
+          No model, persona, or generation priority overrides are saved yet.
+          These defaults become persisted only after you save.
+        </p>
+      )}
       {/* Generation Priority */}
       <section>
         <h3 className="mb-1 text-sm font-semibold text-foreground">
@@ -210,9 +168,10 @@ export function AgentSettings({
           {GENERATION_PRIORITY_OPTIONS.map((option) => (
             <Button
               key={option.key}
+              aria-pressed={generationPriority === option.key}
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
-              onClick={() => setGenerationPriority(option.key)}
+              onClick={() => handlePriorityChange(option.key)}
               className={cn(
                 'flex items-center gap-3 border px-4 py-3 text-left transition-colors',
                 generationPriority === option.key
@@ -259,9 +218,10 @@ export function AgentSettings({
           {AGENT_MODELS.map((model) => (
             <Button
               key={model.key}
+              aria-pressed={selectedModel === model.key}
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
-              onClick={() => setSelectedModel(model.key)}
+              onClick={() => handleModelChange(model.key)}
               className={cn(
                 'flex items-center gap-3 border px-4 py-3 text-left transition-colors',
                 selectedModel === model.key
@@ -309,8 +269,9 @@ export function AgentSettings({
         </p>
         <div className="relative">
           <Textarea
+            aria-label="Agent persona"
             value={persona}
-            onChange={(e) => setPersona(e.target.value)}
+            onChange={handlePersonaChange}
             placeholder="Customize your agent's personality and instructions..."
             maxLength={5000}
             rows={6}
@@ -334,10 +295,14 @@ export function AgentSettings({
           {isSaving ? 'Saving...' : 'Save Settings'}
         </Button>
         {saveStatus === 'success' && (
-          <span className="text-xs text-green-400">Settings saved</span>
+          <span className="text-xs text-success" role="status">
+            Settings saved
+          </span>
         )}
         {saveStatus === 'error' && (
-          <span className="text-xs text-red-400">Failed to save</span>
+          <span className="text-xs text-destructive" role="alert">
+            Failed to save settings
+          </span>
         )}
       </div>
     </div>
