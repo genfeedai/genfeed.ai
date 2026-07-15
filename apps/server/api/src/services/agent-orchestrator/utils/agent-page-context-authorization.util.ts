@@ -2,18 +2,9 @@ import {
   RESEARCH_FINDING_REFERENCE_KINDS,
   type ScopedResearchFindingReference,
 } from '@genfeedai/interfaces';
+import { z } from 'zod';
 
-const ANALYTICS_FILTER_KEYS = Object.freeze([
-  'metric',
-  'patternType',
-  'platform',
-  'postId',
-  'query',
-  'sort',
-  'timeframe',
-  'visibility',
-]);
-const ANALYTICS_METRICS = Object.freeze([
+const ANALYTICS_METRICS = [
   'comments',
   'engagement',
   'engagementRate',
@@ -22,41 +13,77 @@ const ANALYTICS_METRICS = Object.freeze([
   'saves',
   'shares',
   'views',
-]);
-const ANALYTICS_RESOURCE_KINDS = Object.freeze([
-  'brand',
-  'platform',
-  'post',
-  'trend',
-]);
+] as const;
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const SAFE_REFERENCE_ID = /^[A-Za-z0-9._~-]{1,160}$/;
 const MAX_RESEARCH_REFERENCES = 20;
+
+const boundedScopeIdSchema = z.string().min(1).max(160);
+const boundedFilterSchema = z.string().min(1).max(120);
+const analyticsFiltersSchema = z
+  .object({
+    metric: boundedFilterSchema.optional(),
+    patternType: boundedFilterSchema.optional(),
+    platform: boundedFilterSchema.optional(),
+    postId: boundedFilterSchema.optional(),
+    query: boundedFilterSchema.optional(),
+    sort: boundedFilterSchema.optional(),
+    timeframe: boundedFilterSchema.optional(),
+    visibility: boundedFilterSchema.optional(),
+  })
+  .strict();
+const analyticsQuerySchema = z
+  .object({
+    brandId: boundedScopeIdSchema.optional(),
+    dateRange: z
+      .object({
+        endDate: z.string().regex(DATE_KEY_PATTERN),
+        startDate: z.string().regex(DATE_KEY_PATTERN),
+      })
+      .strict(),
+    filters: analyticsFiltersSchema,
+    id: z.string().regex(SAFE_REFERENCE_ID),
+    kind: z.literal('analytics-query'),
+    metric: z.enum(ANALYTICS_METRICS).optional(),
+    organizationId: boundedScopeIdSchema,
+    provenance: z
+      .object({
+        authority: z.literal('server-hydrated'),
+        source: z.enum(['genfeed-analytics-api', 'genfeed-trends-api']),
+        summaryAuthority: z.literal('derivative'),
+      })
+      .strict(),
+    route: z
+      .string()
+      .max(240)
+      .regex(/^\/analytics(?:\/|$)/),
+    selectedResource: z
+      .object({
+        id: z.string().regex(SAFE_REFERENCE_ID),
+        kind: z.enum(['brand', 'platform', 'post', 'trend']),
+      })
+      .strict()
+      .optional(),
+    version: z.literal(1),
+  })
+  .strict();
+const researchReferencesSchema = z
+  .array(
+    z.object({
+      brandId: boundedScopeIdSchema,
+      id: z.string().regex(SAFE_REFERENCE_ID),
+      kind: z.enum(RESEARCH_FINDING_REFERENCE_KINDS),
+      organizationId: boundedScopeIdSchema,
+    }),
+  )
+  .max(MAX_RESEARCH_REFERENCES);
 
 export interface AgentPageContextAuthorizationScope {
   readonly brandId?: string;
   readonly organizationId: string;
 }
 
-function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isOptionalBoundedString(
-  value: unknown,
-  maxLength: number,
-): value is string | undefined {
-  return (
-    value === undefined ||
-    (typeof value === 'string' && value.length > 0 && value.length <= maxLength)
-  );
-}
-
-function parseDateKey(value: unknown): Date | null {
-  if (typeof value !== 'string' || !DATE_KEY_PATTERN.test(value)) {
-    return null;
-  }
-
+function parseDateKey(value: string): Date | null {
   const date = new Date(`${value}T00:00:00.000Z`);
   return Number.isNaN(date.getTime()) ||
     date.toISOString().slice(0, 10) !== value
@@ -65,7 +92,7 @@ function parseDateKey(value: unknown): Date | null {
 }
 
 function hasAuthorizedScope(
-  value: Readonly<Record<string, unknown>>,
+  value: { readonly brandId?: string; readonly organizationId: string },
   scope: AgentPageContextAuthorizationScope,
 ): boolean {
   return (
@@ -74,34 +101,16 @@ function hasAuthorizedScope(
   );
 }
 
-function isAnalyticsFilters(value: unknown): boolean {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return Object.entries(value).every(
-    ([key, filterValue]) =>
-      ANALYTICS_FILTER_KEYS.includes(key) &&
-      typeof filterValue === 'string' &&
-      filterValue.length > 0 &&
-      filterValue.length <= 120,
-  );
-}
-
-function isAnalyticsSelectedResource(value: unknown): boolean {
-  if (value === undefined) {
-    return true;
-  }
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    typeof value.id === 'string' &&
-    SAFE_REFERENCE_ID.test(value.id) &&
-    typeof value.kind === 'string' &&
-    ANALYTICS_RESOURCE_KINDS.includes(value.kind)
-  );
+function hasValidAnalyticsDateRange(
+  dateRange: z.infer<typeof analyticsQuerySchema>['dateRange'],
+): boolean {
+  const startDate = parseDateKey(dateRange.startDate);
+  const endDate = parseDateKey(dateRange.endDate);
+  const durationDays =
+    startDate && endDate
+      ? Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1
+      : 0;
+  return durationDays >= 1 && durationDays <= 366;
 }
 
 /**
@@ -112,42 +121,14 @@ export function isAuthorizedAnalyticsQueryReference(
   value: unknown,
   scope: AgentPageContextAuthorizationScope,
 ): boolean {
-  if (!isRecord(value) || !hasAuthorizedScope(value, scope)) {
-    return false;
-  }
-  if (
-    value.kind !== 'analytics-query' ||
-    value.version !== 1 ||
-    typeof value.id !== 'string' ||
-    !SAFE_REFERENCE_ID.test(value.id) ||
-    typeof value.route !== 'string' ||
-    !/^\/analytics(?:\/|$)/.test(value.route) ||
-    value.route.length > 240 ||
-    !isAnalyticsFilters(value.filters) ||
-    !isAnalyticsSelectedResource(value.selectedResource)
-  ) {
+  const parsed = analyticsQuerySchema.safeParse(value);
+  if (!parsed.success) {
     return false;
   }
 
-  const dateRange = value.dateRange;
-  const provenance = value.provenance;
-  const startDate = isRecord(dateRange)
-    ? parseDateKey(dateRange.startDate)
-    : null;
-  const endDate = isRecord(dateRange) ? parseDateKey(dateRange.endDate) : null;
-  const durationDays =
-    startDate && endDate
-      ? Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1
-      : 0;
   return (
-    Boolean(startDate && endDate && durationDays >= 1 && durationDays <= 366) &&
-    isOptionalBoundedString(value.metric, 32) &&
-    (value.metric === undefined || ANALYTICS_METRICS.includes(value.metric)) &&
-    isRecord(provenance) &&
-    provenance.authority === 'server-hydrated' &&
-    (provenance.source === 'genfeed-analytics-api' ||
-      provenance.source === 'genfeed-trends-api') &&
-    provenance.summaryAuthority === 'derivative'
+    hasAuthorizedScope(parsed.data, scope) &&
+    hasValidAnalyticsDateRange(parsed.data.dateRange)
   );
 }
 
@@ -159,37 +140,22 @@ export function authorizeResearchFindingReferences(
   value: unknown,
   scope: AgentPageContextAuthorizationScope,
 ): readonly ScopedResearchFindingReference[] | null {
-  if (!Array.isArray(value) || value.length > MAX_RESEARCH_REFERENCES) {
+  const parsed = researchReferencesSchema.safeParse(value);
+  if (!parsed.success) {
     return null;
   }
-  if (value.length > 0 && !scope.brandId) {
+  if (!parsed.data.every((reference) => hasAuthorizedScope(reference, scope))) {
     return null;
   }
 
-  const references = new Map<string, ScopedResearchFindingReference>();
-  for (const candidate of value) {
-    if (
-      !isRecord(candidate) ||
-      !hasAuthorizedScope(candidate, scope) ||
-      typeof candidate.id !== 'string' ||
-      !SAFE_REFERENCE_ID.test(candidate.id) ||
-      typeof candidate.kind !== 'string' ||
-      !RESEARCH_FINDING_REFERENCE_KINDS.includes(
-        candidate.kind as (typeof RESEARCH_FINDING_REFERENCE_KINDS)[number],
-      ) ||
-      !scope.brandId
-    ) {
-      return null;
-    }
-
-    const reference: ScopedResearchFindingReference = {
-      brandId: scope.brandId,
-      id: candidate.id,
-      kind: candidate.kind as ScopedResearchFindingReference['kind'],
-      organizationId: scope.organizationId,
-    };
-    references.set(`${reference.kind}:${reference.id}`, reference);
-  }
-
+  const references = new Map(
+    parsed.data.map(
+      (reference) =>
+        [
+          `${reference.kind}:${reference.id}`,
+          reference satisfies ScopedResearchFindingReference,
+        ] as const,
+    ),
+  );
   return Object.freeze([...references.values()]);
 }
