@@ -47,6 +47,25 @@ describe('useFeatureFlag', () => {
     expect(result.current).toBe(true);
   });
 
+  it('keeps ordinary OSS flags on when only the conversation shell override is configured', () => {
+    function Wrapper({ children }: { children: ReactNode }) {
+      return createElement(
+        FeatureFlagProvider,
+        {
+          defaults: {},
+          overrides: { conversation_shell: true },
+        },
+        children,
+      );
+    }
+
+    const { result } = renderHook(() => useFeatureFlag('analytics'), {
+      wrapper: Wrapper,
+    });
+
+    expect(result.current).toBe(true);
+  });
+
   it('fails the conversation shell closed when no provider is configured', () => {
     const { result } = renderHook(() => useFeatureFlag('conversation_shell'));
 

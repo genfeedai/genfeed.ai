@@ -55,6 +55,34 @@ describe('FeatureFlagProvider', () => {
     expect(status).toEqual({ isConfigured: false, isReady: true });
   });
 
+  it('keeps public defaults unconfigured when only server overrides are provided', () => {
+    let status: {
+      flags: Record<string, unknown>;
+      isConfigured: boolean;
+    } | null = null;
+
+    function Probe() {
+      const ctx = useFeatureFlagContext();
+      status = { flags: ctx.flags, isConfigured: ctx.isConfigured };
+      return <span>override content</span>;
+    }
+
+    render(
+      <FeatureFlagProvider
+        defaults={{}}
+        overrides={{ conversation_shell: true }}
+      >
+        <Probe />
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByText('override content')).toBeDefined();
+    expect(status).toEqual({
+      flags: { conversation_shell: true },
+      isConfigured: false,
+    });
+  });
+
   it('renders children when no config is provided', () => {
     render(
       <FeatureFlagProvider defaults={{}}>
