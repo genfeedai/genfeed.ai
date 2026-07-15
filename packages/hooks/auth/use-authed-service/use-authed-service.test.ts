@@ -22,6 +22,7 @@ describe('useAuthedService', () => {
     typeof vi.fn
   >;
   let orgIdMock: string | null = 'org-123';
+  let sessionIdMock: string | null = 'session-123';
   let userIdMock: string | null = 'user-123';
 
   function createJwt(exp: number): string {
@@ -38,6 +39,7 @@ describe('useAuthedService', () => {
     vi.clearAllMocks();
     clearTokenCache();
     orgIdMock = 'org-123';
+    sessionIdMock = 'session-123';
     userIdMock = 'user-123';
     mockResolveAuthToken.mockImplementation(async (getToken, opts) =>
       getToken(opts),
@@ -45,6 +47,7 @@ describe('useAuthedService', () => {
     mockUseAuthIdentity.mockReturnValue({
       getToken: getTokenMock,
       orgId: orgIdMock,
+      sessionId: sessionIdMock,
       userId: userIdMock,
     });
   });
@@ -163,6 +166,7 @@ describe('useAuthedService', () => {
     mockUseAuthIdentity.mockReturnValue({
       getToken: getTokenMock,
       orgId: orgIdMock,
+      sessionId: sessionIdMock,
       userId: userIdMock,
     });
 
@@ -172,5 +176,33 @@ describe('useAuthedService', () => {
     expect(getTokenMock).toHaveBeenCalledTimes(2);
     expect(mockService).toHaveBeenNthCalledWith(1, 'jwt-token-user-1');
     expect(mockService).toHaveBeenNthCalledWith(2, 'jwt-token-user-2');
+  });
+
+  it('does not reuse a cached token across session rotations', async () => {
+    const mockService = vi.fn();
+    getTokenMock
+      .mockResolvedValueOnce('jwt-token-session-1')
+      .mockResolvedValueOnce('jwt-token-session-2');
+
+    const { result, rerender } = renderHook(() =>
+      useAuthedService(mockService),
+    );
+
+    await result.current();
+
+    sessionIdMock = 'session-456';
+    mockUseAuthIdentity.mockReturnValue({
+      getToken: getTokenMock,
+      orgId: orgIdMock,
+      sessionId: sessionIdMock,
+      userId: userIdMock,
+    });
+
+    rerender();
+    await result.current();
+
+    expect(getTokenMock).toHaveBeenCalledTimes(2);
+    expect(mockService).toHaveBeenNthCalledWith(1, 'jwt-token-session-1');
+    expect(mockService).toHaveBeenNthCalledWith(2, 'jwt-token-session-2');
   });
 });

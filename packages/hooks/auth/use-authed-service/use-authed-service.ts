@@ -112,7 +112,7 @@ export function useAuthedService<T>(
   factory: (token: string) => T,
   template?: string,
 ) {
-  const { getToken, orgId, userId } = useAuthIdentity();
+  const { getToken, orgId, sessionId, userId } = useAuthIdentity();
 
   // Store factory in ref to avoid callback recreation
   const factoryRef = useRef(factory);
@@ -130,7 +130,11 @@ export function useAuthedService<T>(
     ) => Promise<string | null>;
   }, [factory, getToken]);
 
-  const identityKey = `${userId ?? 'anonymous'}:${orgId ?? 'no-org'}`;
+  const identityKey = [
+    sessionId ?? 'no-session',
+    userId ?? 'anonymous',
+    orgId ?? 'no-org',
+  ].join(IDENTITY_CACHE_KEY_SEPARATOR);
 
   return useCallback(
     async (options?: { forceRefresh?: boolean }) => {

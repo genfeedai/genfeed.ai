@@ -179,4 +179,42 @@ describe('ProtectedProviders', () => {
       expect(screen.getByTestId('child')).toHaveTextContent('playwright-auth');
     });
   });
+
+  it('acquires a fresh token when the authenticated session changes', async () => {
+    const firstGetToken = vi.fn().mockResolvedValue('session-1-token');
+    const secondGetToken = vi.fn().mockResolvedValue('session-2-token');
+    useAuthMock.mockReturnValue({
+      getToken: firstGetToken,
+      isLoaded: true,
+      isSignedIn: true,
+      orgId: 'org-1',
+      sessionId: 'session-1',
+      userId: 'user-1',
+    });
+
+    const { rerender } = render(
+      <ProtectedProviders>
+        <span data-testid="child">session-token</span>
+      </ProtectedProviders>,
+    );
+
+    await waitFor(() => expect(firstGetToken).toHaveBeenCalledTimes(1));
+
+    useAuthMock.mockReturnValue({
+      getToken: secondGetToken,
+      isLoaded: true,
+      isSignedIn: true,
+      orgId: 'org-1',
+      sessionId: 'session-2',
+      userId: 'user-1',
+    });
+    rerender(
+      <ProtectedProviders>
+        <span data-testid="child">session-token</span>
+      </ProtectedProviders>,
+    );
+
+    await waitFor(() => expect(secondGetToken).toHaveBeenCalledTimes(1));
+    expect(firstGetToken).toHaveBeenCalledTimes(1);
+  });
 });

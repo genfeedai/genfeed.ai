@@ -1,5 +1,6 @@
 'use client';
 
+import { clearBetterAuthTokenCache } from '@genfeedai/auth-client';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useCallback, useEffect, useRef } from 'react';
@@ -101,13 +102,14 @@ function getCachedToken(
 
 export function clearContextTokenCache(): void {
   tokenCache.clear();
+  clearBetterAuthTokenCache();
 }
 
 export function useContextAuthedService<T>(
   factory: (token: string) => T,
   template?: string,
 ) {
-  const { getToken, orgId, userId } = useAuthIdentity();
+  const { getToken, orgId, sessionId, userId } = useAuthIdentity();
   const factoryRef = useRef(factory);
   const getTokenRef = useRef(
     getToken as (opts?: TokenOptions) => Promise<string | null>,
@@ -120,7 +122,11 @@ export function useContextAuthedService<T>(
     ) => Promise<string | null>;
   }, [factory, getToken]);
 
-  const identityKey = `${userId ?? 'anonymous'}:${orgId ?? 'no-org'}`;
+  const identityKey = [
+    sessionId ?? 'no-session',
+    userId ?? 'anonymous',
+    orgId ?? 'no-org',
+  ].join(IDENTITY_CACHE_KEY_SEPARATOR);
 
   return useCallback(
     async (options?: { forceRefresh?: boolean }) => {

@@ -2,7 +2,12 @@
 
 import { useCallback } from 'react';
 
-import { authClient, getBetterAuthToken } from './client';
+import {
+  authClient,
+  type BetterAuthTokenRequestOptions,
+  getBetterAuthToken,
+  getBetterAuthTokenContextKey,
+} from './client';
 
 /**
  * Provider-neutral auth identity shape consumed by the app's token choke
@@ -10,10 +15,7 @@ import { authClient, getBetterAuthToken } from './client';
  * from the concrete auth client.
  */
 export interface AuthIdentity {
-  getToken: (opts?: {
-    forceRefresh?: boolean;
-    template?: string;
-  }) => Promise<string | null>;
+  getToken: (opts?: BetterAuthTokenRequestOptions) => Promise<string | null>;
   isLoaded: boolean;
   isSignedIn: boolean;
   orgId: string | null;
@@ -35,17 +37,27 @@ interface BetterAuthSessionShape {
  */
 export function useBetterAuthIdentity(): AuthIdentity {
   const { data, isPending } = authClient.useSession();
-
-  const getToken = useCallback(() => getBetterAuthToken(), []);
-
   const session = data?.session as BetterAuthSessionShape | undefined;
+  const organizationId = session?.activeOrganizationId ?? null;
+  const sessionId = session?.id ?? null;
+  const userId = data?.user?.id ?? null;
+  const tokenContextKey = getBetterAuthTokenContextKey({
+    organizationId,
+    sessionId,
+    userId,
+  });
+  const getToken = useCallback(
+    (options?: BetterAuthTokenRequestOptions) =>
+      getBetterAuthToken(tokenContextKey, options),
+    [tokenContextKey],
+  );
 
   return {
     getToken,
     isLoaded: !isPending,
     isSignedIn: Boolean(data?.session),
-    orgId: session?.activeOrganizationId ?? null,
-    sessionId: session?.id ?? null,
-    userId: data?.user?.id ?? null,
+    orgId: organizationId,
+    sessionId,
+    userId,
   };
 }

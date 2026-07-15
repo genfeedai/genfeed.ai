@@ -38,6 +38,8 @@ export function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
     getToken,
     isLoaded: isAuthLoaded,
     isSignedIn,
+    orgId,
+    sessionId,
     userId,
   } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
@@ -47,7 +49,12 @@ export function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
   const effectiveUserId = userId ?? playwrightAuth?.userId ?? null;
   const [hasJwtToken, setHasJwtToken] = useState(false);
 
-  const sessionKey = `${effectiveUserId ?? 'none'}:${effectiveIsSignedIn ? 'in' : 'out'}`;
+  const sessionKey = [
+    sessionId ?? 'no-session',
+    effectiveUserId ?? 'none',
+    orgId ?? playwrightAuth?.orgId ?? 'no-org',
+    effectiveIsSignedIn ? 'in' : 'out',
+  ].join(':');
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentional trigger — sessionKey changes drive cache clear
   useEffect(() => {

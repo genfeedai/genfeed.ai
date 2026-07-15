@@ -31,6 +31,7 @@ export interface PlaywrightAuthState {
 
 export type AuthTokenGetter = (opts?: {
   forceRefresh?: boolean;
+  signal?: AbortSignal;
   template?: string;
 }) => Promise<string | null>;
 
@@ -87,15 +88,11 @@ export async function resolveAuthToken(
   getToken: AuthTokenGetter,
   opts?: {
     forceRefresh?: boolean;
+    signal?: AbortSignal;
     template?: string;
   },
 ): Promise<string | null> {
-  const { getBetterAuthToken } = await import('@genfeedai/auth-client');
-  return (
-    (await getBetterAuthToken()) ??
-    (await getToken(opts)) ??
-    getPlaywrightJwtToken()
-  );
+  return (await getToken(opts)) ?? getPlaywrightJwtToken();
 }
 
 export function hasPlaywrightJwtToken(): boolean {
