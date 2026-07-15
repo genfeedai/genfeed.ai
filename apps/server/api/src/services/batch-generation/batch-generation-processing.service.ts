@@ -131,7 +131,7 @@ export class BatchGenerationProcessingService {
 
     if (finalized.count !== 1) {
       const currentBatch = await this.findScopedBatch(batchId, orgId);
-      if (currentBatch.status === BatchStatus.CANCELLED) {
+      if (String(currentBatch.status) === BatchStatus.CANCELLED) {
         return this.summaryService.toBatchSummary(currentBatch);
       }
       throw new BadRequestException(
@@ -319,7 +319,7 @@ export class BatchGenerationProcessingService {
         organizationId: orgId,
       },
     });
-    return batch?.status === BatchStatus.GENERATING;
+    return String(batch?.status) === BatchStatus.GENERATING;
   }
 
   private async invokeLifecycleCallback(
