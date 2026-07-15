@@ -70,6 +70,15 @@ describe('AgentChatInput', () => {
     expect(screen.getByTestId('agent-chat-input-shell')).toBeTruthy();
   });
 
+  it('keeps the prompt shell opaque when disabled', () => {
+    render(<AgentChatInput disabled onSend={vi.fn()} />);
+
+    const shell = screen.getByTestId('agent-chat-input-shell');
+
+    expect(shell).toHaveClass('bg-card');
+    expect(shell).not.toHaveClass('opacity-50');
+  });
+
   it('renders the stop action within the shell footer when a run is active', () => {
     render(<AgentChatInput onSend={vi.fn()} onStop={vi.fn()} showStop />);
 
