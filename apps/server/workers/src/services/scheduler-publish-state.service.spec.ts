@@ -3,7 +3,7 @@ import {
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
+import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 describe('SchedulerPublishStateService', () => {
   it('persists a provider outcome and rolls mixed targets up to partial success', async () => {

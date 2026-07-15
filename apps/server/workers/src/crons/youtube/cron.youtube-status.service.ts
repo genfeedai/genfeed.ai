@@ -16,7 +16,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
+import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 const YOUTUBE_PRIVACY_STATUS_MAP: Record<string, PostStatus> = {
   private: PostStatus.PRIVATE,

@@ -20,7 +20,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
-import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
+import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 const APPROVAL_JOB_IDENTITY = {
   approvalId: 'approval-1',

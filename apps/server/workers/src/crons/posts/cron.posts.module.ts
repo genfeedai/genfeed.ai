@@ -17,8 +17,8 @@ import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
-import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
+import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 @Module({
   imports: [

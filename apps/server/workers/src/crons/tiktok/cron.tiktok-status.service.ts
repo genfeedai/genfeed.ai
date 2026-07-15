@@ -19,7 +19,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Injectable } from '@nestjs/common';
-import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
+import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 type TiktokError = {
   message?: string;

@@ -45,7 +45,7 @@ import { Injectable } from '@nestjs/common';
 import {
   SchedulerPublishStateService,
   type SchedulerPublishTargetUpdate,
-} from '@workers/crons/posts/scheduler-publish-state.service';
+} from '@workers/services/scheduler-publish-state.service';
 
 type CronPostChild = {
   id?: unknown;

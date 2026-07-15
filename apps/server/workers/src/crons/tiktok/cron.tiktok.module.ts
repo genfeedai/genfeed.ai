@@ -5,8 +5,8 @@ import { TiktokModule } from '@api/services/integrations/tiktok/tiktok.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { forwardRef, Module } from '@nestjs/common';
-import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
+import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 @Module({
   imports: [

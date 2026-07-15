@@ -9,8 +9,8 @@ import { PublishEventWebhookService } from '@api/services/webhook-client/webhook
 import { PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { SchedulerPublishStateService } from '@workers/crons/posts/scheduler-publish-state.service';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
+import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 describe('CronTiktokStatusService', () => {
   let service: CronTiktokStatusService;
