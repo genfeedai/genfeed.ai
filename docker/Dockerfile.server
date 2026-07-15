@@ -48,7 +48,7 @@ COPY package.json ./
 
 # Narrow the workspace graph to the packages needed for the unified server
 # image so Bun does not try to resolve unrelated web/mobile/extension apps.
-RUN node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.workspaces=['apps/server/*','packages/agent','packages/auth-client','packages/client','packages/config','packages/constants','packages/contexts','packages/enums','packages/harness','packages/helpers','packages/hooks','packages/integrations','packages/interfaces','packages/models','packages/pricing','packages/prisma','packages/props','packages/queue-contracts','packages/serializers','packages/services','packages/storage','packages/tools','packages/types','packages/ui','packages/utils','packages/workflows','ee/packages/billing']; if (p.scripts) delete p.scripts.postinstall; if (p.dependencies?.resend==='^6.9.3') p.dependencies.resend='6.9.3'; fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\n');"
+RUN node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.workspaces=['apps/server/*','packages/agent','packages/api-types','packages/auth-client','packages/client','packages/config','packages/constants','packages/contexts','packages/enums','packages/harness','packages/helpers','packages/hooks','packages/integrations','packages/interfaces','packages/models','packages/pricing','packages/prisma','packages/props','packages/queue-contracts','packages/serializers','packages/services','packages/storage','packages/tools','packages/types','packages/ui','packages/utils','packages/workflows','ee/packages/billing']; if (p.scripts) delete p.scripts.postinstall; if (p.dependencies?.resend==='^6.9.3') p.dependencies.resend='6.9.3'; fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\n');"
 
 # Copy all 12 service package.json files for bun workspace resolution
 COPY apps/server/api/package.json ./apps/server/api/
@@ -68,6 +68,7 @@ COPY apps/server/videos/package.json ./apps/server/videos/
 RUN --mount=type=bind,source=.,target=/ctx \
     for f in \
       /ctx/packages/agent/package.json \
+      /ctx/packages/api-types/package.json \
       /ctx/packages/auth-client/package.json \
       /ctx/packages/client/package.json \
       /ctx/packages/config/package.json \
@@ -139,6 +140,7 @@ COPY apps/server/tsconfig.json apps/server/tsconfig.json
 # compile against their package exports.
 RUN set -e; \
     bun --filter @genfeedai/enums build; \
+    bun --filter @genfeedai/api-types build; \
     bun --filter @genfeedai/constants build; \
     bun --filter @genfeedai/interfaces build; \
     bun --filter @genfeedai/pricing build; \
