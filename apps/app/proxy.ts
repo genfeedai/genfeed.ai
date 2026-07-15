@@ -485,7 +485,7 @@ async function isConversationShellOnboardingEnabled(
     }
 
     const evaluation: unknown = await response.json();
-    return isConversationShellEvaluation(evaluation) && evaluation.enabled;
+    return isConversationShellEvaluation(evaluation) && evaluation.isEnabled;
   } catch {
     return false;
   }

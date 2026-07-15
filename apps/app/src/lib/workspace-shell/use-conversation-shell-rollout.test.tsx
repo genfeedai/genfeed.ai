@@ -18,8 +18,8 @@ vi.mock('@genfeedai/auth-client', () => ({
   isBetterAuthEnabled: () => true,
 }));
 
-vi.mock('@genfeedai/config', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@genfeedai/config')>()),
+vi.mock('@genfeedai/config/deployment', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config/deployment')>()),
   isDesktopClient: () => false,
   isSelfHostedDeployment: () => false,
 }));
@@ -65,7 +65,7 @@ const ENABLED_EVALUATION = {
   cohort: 'internal' as const,
   configVersion: 'internal-1',
   deploymentMode: 'saas' as const,
-  enabled: true,
+  isEnabled: true,
   evaluatedAt: '2026-07-15T00:00:00.000Z',
   reason: 'enabled' as const,
   rollbackRevision: 0,
@@ -89,7 +89,7 @@ describe('useConversationShellRollout', () => {
 
     expect(result.current).toEqual({ evaluation: null, isReady: false });
     await waitFor(() => expect(result.current.isReady).toBe(true));
-    expect(result.current.evaluation?.enabled).toBe(true);
+    expect(result.current.evaluation?.isEnabled).toBe(true);
     expect(mocks.captureSession).toHaveBeenCalledTimes(1);
   });
 
@@ -125,7 +125,7 @@ describe('useConversationShellRollout', () => {
       .mockResolvedValueOnce(ENABLED_EVALUATION)
       .mockResolvedValueOnce({
         ...ENABLED_EVALUATION,
-        enabled: false,
+        isEnabled: false,
         reason: 'disabled',
         rollbackRevision: 1,
       });
@@ -136,13 +136,13 @@ describe('useConversationShellRollout', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(result.current.evaluation?.enabled).toBe(true);
+    expect(result.current.evaluation?.isEnabled).toBe(true);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(60_000);
     });
 
-    expect(result.current.evaluation?.enabled).toBe(false);
+    expect(result.current.evaluation?.isEnabled).toBe(false);
     expect(mocks.openCircuit).toHaveBeenCalledTimes(1);
     expect(mocks.captureFallback).toHaveBeenCalledWith('server_rollback');
   });

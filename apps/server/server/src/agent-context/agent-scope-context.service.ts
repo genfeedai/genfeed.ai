@@ -9,15 +9,9 @@ import {
   ForbiddenException,
   HttpException,
   HttpStatus,
-  Inject,
   Injectable,
-  Optional,
 } from '@nestjs/common';
-import {
-  SERVER_TOKENS,
-  type ServerLogger,
-  type ServerPrisma,
-} from '@server/server.dependencies';
+import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
 
 const MAX_SCOPE_PROVENANCE_ENTRIES = 50;
 const MAX_LEGACY_BRAND_FALLBACK_USES = 20;
@@ -86,13 +80,10 @@ export interface MutateAgentScopeParams {
 @Injectable()
 export class AgentScopeContextService {
   constructor(
-    @Inject(SERVER_TOKENS.prisma)
     private readonly prisma: Pick<
       ServerPrisma,
       'agentMessage' | 'agentThread' | 'brand'
     >,
-    @Inject(SERVER_TOKENS.logger)
-    @Optional()
     private readonly logger?: ServerLogger,
   ) {}
 

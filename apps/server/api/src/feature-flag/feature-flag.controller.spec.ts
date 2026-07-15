@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 describe('FeatureFlagController', () => {
   it('evaluates the conversation shell from server-derived organization scope', () => {
     const featureFlagService = {
-      evaluateConversationShell: vi.fn().mockReturnValue({ enabled: true }),
+      evaluateConversationShell: vi.fn().mockReturnValue({ isEnabled: true }),
     };
     const controller = new FeatureFlagController(featureFlagService as never);
 
@@ -13,7 +13,7 @@ describe('FeatureFlagController', () => {
       'desktop',
     );
 
-    expect(response).toEqual({ enabled: true });
+    expect(response).toEqual({ isEnabled: true });
     expect(featureFlagService.evaluateConversationShell).toHaveBeenCalledWith({
       client: 'desktop',
       organizationId: 'org-123',
@@ -22,7 +22,7 @@ describe('FeatureFlagController', () => {
 
   it('passes missing client and organization attributes through to fail closed', () => {
     const featureFlagService = {
-      evaluateConversationShell: vi.fn().mockReturnValue({ enabled: false }),
+      evaluateConversationShell: vi.fn().mockReturnValue({ isEnabled: false }),
     };
     const controller = new FeatureFlagController(featureFlagService as never);
 

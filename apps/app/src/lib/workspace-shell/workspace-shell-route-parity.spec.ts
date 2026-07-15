@@ -36,7 +36,7 @@ function collectPageFiles(directory: string): string[] {
 
 function toCanonicalPattern(appDirectory: string, pageFile: string): string {
   const segments = relative(appDirectory, dirname(pageFile))
-    .split('/')
+    .split(/[/\\]/)
     .filter((segment) => !/^\(.+\)$/.test(segment))
     .map((segment) => {
       const dynamicSegment = segment.match(/^\[([^.[\]]+)\]$/);

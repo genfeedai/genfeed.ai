@@ -21,10 +21,15 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => UsersModule),
   ],
   providers: [
-    AgentScopeContextService,
     AgentThreadsService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
+    {
+      inject: [PrismaService, LoggerService],
+      provide: AgentScopeContextService,
+      useFactory: (prisma: PrismaService, logger: LoggerService) =>
+        new AgentScopeContextService(prisma, logger),
+    },
   ],
 })
 export class AgentThreadsModule {}

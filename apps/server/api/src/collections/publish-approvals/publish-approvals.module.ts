@@ -13,9 +13,18 @@ import { Module } from '@nestjs/common';
   exports: [PublishApprovalsService],
   providers: [
     AgentArtifactReferenceService,
-    PublishApprovalsService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
+    {
+      inject: [PrismaService, AgentArtifactReferenceService, LoggerService],
+      provide: PublishApprovalsService,
+      useFactory: (
+        prisma: PrismaService,
+        artifactReferenceService: AgentArtifactReferenceService,
+        logger: LoggerService,
+      ) =>
+        new PublishApprovalsService(prisma, artifactReferenceService, logger),
+    },
   ],
 })
 export class PublishApprovalsModule {}

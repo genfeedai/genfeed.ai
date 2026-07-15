@@ -32,16 +32,10 @@ import {
   ForbiddenException,
   HttpException,
   HttpStatus,
-  Inject,
   Injectable,
-  Optional,
 } from '@nestjs/common';
 import { AgentArtifactReferenceService } from '@server/agent-artifacts/agent-artifact-reference.service';
-import {
-  SERVER_TOKENS,
-  type ServerLogger,
-  type ServerPrisma,
-} from '@server/server.dependencies';
+import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
 
 class PublishApprovalNotFoundException extends HttpException {
   constructor(resource: string, identifier: string) {
@@ -143,11 +137,8 @@ export interface PublishExecutionClaim {
 @Injectable()
 export class PublishApprovalsService {
   constructor(
-    @Inject(SERVER_TOKENS.prisma)
     private readonly prisma: ServerPrisma,
     private readonly artifactReferenceService: AgentArtifactReferenceService,
-    @Inject(SERVER_TOKENS.logger)
-    @Optional()
     private readonly logger?: ServerLogger,
   ) {}
 
@@ -511,12 +502,6 @@ export class PublishApprovalsService {
         params.approvalId,
         params.postId,
       );
-      this.recordApprovalTelemetry(
-        'execute',
-        'success',
-        'matched',
-        params.organizationId,
-      );
       return { alreadyPublished: false, approval: this.toInterface(updated) };
     } catch (error: unknown) {
       this.recordApprovalTelemetry(
@@ -535,13 +520,20 @@ export class PublishApprovalsService {
     success: boolean,
     error?: string,
   ): Promise<IPublishApproval> {
-    return await this.transitionStatus(
+    const approval = await this.transitionStatus(
       approvalId,
       organizationId,
       success ? PublishApprovalStatus.PUBLISHED : PublishApprovalStatus.FAILED,
       undefined,
       error,
     );
+    this.recordApprovalTelemetry(
+      'execute',
+      success ? 'success' : 'failure',
+      'matched',
+      organizationId,
+    );
+    return approval;
   }
 
   async invalidatePost(

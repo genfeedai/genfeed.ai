@@ -11,7 +11,7 @@ Set `FEATURE_FLAG_DEFAULTS` to a JSON object containing a `conversation_shell` d
   "conversation_shell": {
     "schemaVersion": 1,
     "configVersion": "2026-07-internal-1",
-    "enabled": true,
+    "isEnabled": true,
     "enabledCohorts": ["internal"],
     "enabledDeploymentModes": ["community"],
     "organizations": {
@@ -34,9 +34,9 @@ This prevents SaaS from being enabled before Community and both Desktop modes. C
 
 ## Fail-closed behavior and rollback
 
-The protected layout starts in a not-ready legacy state and requests `GET /feature-flags/conversation-shell?client=web|desktop`. Only an authenticated, schema-valid response with `enabled: true` activates the shell. Evaluation failures, invalid contracts, missing organization context, render failures, and server disablement immediately open the session circuit and render the existing legacy shell.
+The protected layout starts in a not-ready legacy state and requests `GET /feature-flags/conversation-shell?client=web|desktop`. Only an authenticated, schema-valid response with `isEnabled: true` activates the shell. Evaluation failures, invalid contracts, missing organization context, render failures, and server disablement immediately open the session circuit and render the existing legacy shell.
 
-Enabled clients poll the server every 60 seconds for rollback. To roll back, set `enabled` to `false`, increment `rollbackRevision`, and update the server configuration. Keep the configuration shape, compatibility reads, threads, drafts, version pins, and artifacts intact; no schema reversal is required.
+Enabled clients poll the server every 60 seconds for rollback. To roll back, set `isEnabled` to `false`, increment `rollbackRevision`, and update the server configuration. Keep the configuration shape, compatibility reads, threads, drafts, version pins, and artifacts intact; no schema reversal is required.
 
 Before a live change, validate the proposed kill switch without writing configuration:
 

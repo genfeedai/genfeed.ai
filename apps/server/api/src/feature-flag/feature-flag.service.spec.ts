@@ -113,7 +113,7 @@ describe('FeatureFlagService', () => {
         organizationId: 'org-123',
       }),
     ).toMatchObject({
-      enabled: false,
+      isEnabled: false,
       reason: 'invalid_configuration',
     });
   });
@@ -123,7 +123,10 @@ describe('FeatureFlagService', () => {
     const service = new FeatureFlagService(
       createConfigService({
         FEATURE_FLAG_DEFAULTS: JSON.stringify({
-          conversation_shell: { enabled: true, organizationId: 'secret-org' },
+          conversation_shell: {
+            isEnabled: true,
+            organizationId: 'secret-org',
+          },
         }),
       }) as never,
       loggerService as never,
@@ -146,7 +149,7 @@ describe('FeatureFlagService', () => {
         FEATURE_FLAG_DEFAULTS: JSON.stringify({
           conversation_shell: {
             configVersion: 'test-v1',
-            enabled: true,
+            isEnabled: true,
             enabledCohorts: ['internal'],
             enabledDeploymentModes: ['community'],
             organizations: {
@@ -171,7 +174,7 @@ describe('FeatureFlagService', () => {
     ).toMatchObject({
       cohort: 'internal',
       deploymentMode: 'community',
-      enabled: true,
+      isEnabled: true,
       reason: 'enabled',
     });
     expect(
@@ -180,7 +183,7 @@ describe('FeatureFlagService', () => {
         organizationId: 'org-123',
       }),
     ).toMatchObject({
-      enabled: false,
+      isEnabled: false,
       reason: 'missing_attributes',
     });
   });
@@ -191,7 +194,7 @@ describe('FeatureFlagService', () => {
         FEATURE_FLAG_DEFAULTS: JSON.stringify({
           conversation_shell: {
             configVersion: 'test-v2',
-            enabled: false,
+            isEnabled: false,
             enabledCohorts: ['internal'],
             enabledDeploymentModes: ['community'],
             organizations: { internal: ['org-123'], opt_in: [] },
@@ -211,7 +214,7 @@ describe('FeatureFlagService', () => {
         organizationId: 'org-123',
       }),
     ).toMatchObject({
-      enabled: false,
+      isEnabled: false,
       reason: 'disabled',
       rollbackRevision: 4,
     });

@@ -74,7 +74,7 @@ export class FeatureFlagService implements OnModuleInit {
       return this.evaluateConversationShell({
         client: _attributes?.client,
         organizationId: _attributes?.organizationId,
-      }).enabled;
+      }).isEnabled;
     }
 
     if (!this.isLocalDefaultsConfigured) {
@@ -139,7 +139,7 @@ export class FeatureFlagService implements OnModuleInit {
       cohort: evaluation.cohort,
       configVersion: evaluation.configVersion,
       deploymentMode: evaluation.deploymentMode,
-      enabled: evaluation.enabled,
+      isEnabled: evaluation.isEnabled,
       reason: evaluation.reason,
       rollbackRevision: evaluation.rollbackRevision,
     });

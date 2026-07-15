@@ -296,6 +296,49 @@ describe('PublishApprovalsService', () => {
     ).not.toHaveBeenCalled();
   });
 
+  it.each([
+    [true, PublishApprovalStatus.PUBLISHED, 'success'],
+    [false, PublishApprovalStatus.FAILED, 'failure'],
+  ] as const)('records provider completion telemetry for success=%s', async (isSuccess, completedStatus, outcome) => {
+    const executing = makeApproval({
+      status: PublishApprovalStatus.EXECUTING,
+    });
+    const completed = makeApproval({ status: completedStatus });
+    const publishApproval = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValueOnce(executing)
+        .mockResolvedValueOnce(completed),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+    const logger = { log: vi.fn() };
+    const service = new PublishApprovalsService(
+      { publishApproval } as never,
+      {} as AgentArtifactReferenceService,
+      logger as never,
+    );
+
+    await service.completeExecution(
+      'approval-1',
+      'org-1',
+      isSuccess,
+      isSuccess ? undefined : 'provider failed',
+    );
+
+    expect(publishApproval.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: completedStatus }),
+      }),
+    );
+    expect(logger.log).toHaveBeenCalledWith('conversation_shell_approval', {
+      action: 'execute',
+      integrity: 'matched',
+      organizationId: 'org-1',
+      outcome,
+      telemetryQueryVersion: 1,
+    });
+  });
+
   it('blocks version drift before claiming execution', async () => {
     const approval = makeApproval({ scopeDigest: scopeDigest() });
     const publishApproval = {

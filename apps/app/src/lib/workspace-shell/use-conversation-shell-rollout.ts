@@ -103,7 +103,7 @@ export function useConversationShellRollout(): ConversationShellRolloutState {
           return;
         }
 
-        if (!evaluation.enabled) {
+        if (!evaluation.isEnabled) {
           setWorkspaceShellTelemetryContext(evaluation);
           failClosed('server_rollback', evaluation);
         }
@@ -127,13 +127,13 @@ export function useConversationShellRollout(): ConversationShellRolloutState {
         }
 
         setWorkspaceShellTelemetryContext(evaluation);
-        if (evaluation.enabled && isWorkspaceShellCircuitOpen()) {
+        if (evaluation.isEnabled && isWorkspaceShellCircuitOpen()) {
           setState({ evaluation: null, isReady: true });
           return;
         }
         setState({ evaluation, isReady: true });
 
-        if (evaluation.enabled) {
+        if (evaluation.isEnabled) {
           const eventKey = [
             evaluation.configVersion,
             evaluation.rollbackRevision,

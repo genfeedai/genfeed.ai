@@ -49,6 +49,6 @@ try {
 }
 console.log(JSON.stringify(report, null, 2));
 
-if (!report.passed) {
+if (!report.isPassed) {
   process.exit(1);
 }

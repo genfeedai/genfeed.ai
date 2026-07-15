@@ -59,11 +59,15 @@ const URL_LIKE_RE = /^(?:https?:\/\/|\/)/;
 /** Bound on recursion into nested property bags ($set/$set_once/$groups). */
 const MAX_SCRUB_DEPTH = 6;
 
+function isDateObject(value: object): boolean {
+  return Object.prototype.toString.call(value) === '[object Date]';
+}
+
 /**
  * Recursively reduce a property value to its privacy-safe form: URL-bearing
  * strings become bounded route templates; everything else passes through.
- * Objects/arrays are walked in place (and mutated) so nested $set/$set_once
- * payloads are covered.
+ * Plain objects/arrays are copied while nested $set/$set_once payloads are
+ * scrubbed, so analytics cannot mutate application-owned state by reference.
  */
 function scrubPropertyValue(value: unknown, depth: number): unknown {
   if (typeof value === 'string') {
@@ -73,23 +77,32 @@ function scrubPropertyValue(value: unknown, depth: number): unknown {
     return value;
   }
   if (depth >= MAX_SCRUB_DEPTH) {
-    return Array.isArray(value) ? [] : {};
+    if (Array.isArray(value)) {
+      return [];
+    }
+    return isDateObject(value) ? value : {};
   }
   if (Array.isArray(value)) {
     return value.map((item) => scrubPropertyValue(item, depth + 1));
   }
+  if (isDateObject(value)) {
+    return value;
+  }
+  if (Object.prototype.toString.call(value) !== '[object Object]') {
+    return {};
+  }
   const record = value as Record<string, unknown>;
+  const scrubbed: Record<string, unknown> = {};
   for (const key of Object.keys(record)) {
     if (
       FREE_TEXT_PROPERTY_KEYS.has(key.toLowerCase()) ||
       SENSITIVE_PROPERTY_KEY_PATTERN.test(key)
     ) {
-      delete record[key];
       continue;
     }
-    record[key] = scrubPropertyValue(record[key], depth + 1);
+    scrubbed[key] = scrubPropertyValue(record[key], depth + 1);
   }
-  return record;
+  return scrubbed;
 }
 
 /**
@@ -104,7 +117,10 @@ function scrubEventProperties(
   event: CaptureResult | null,
 ): CaptureResult | null {
   if (event?.properties) {
-    scrubPropertyValue(event.properties, 0);
+    event.properties = scrubPropertyValue(
+      event.properties,
+      0,
+    ) as typeof event.properties;
   }
   return event;
 }

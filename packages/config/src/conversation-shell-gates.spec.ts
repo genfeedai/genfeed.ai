@@ -23,9 +23,9 @@ function passingSnapshot(
       shellP95Ms: 2_300,
     },
     manualValidation: {
-      accessibilityPassed: true,
-      responsivePassed: true,
-      rollbackRehearsalPassed: true,
+      isAccessibilityPassed: true,
+      isResponsivePassed: true,
+      isRollbackRehearsalPassed: true,
     },
     observationWindow: {
       completeUtcDays: 14,
@@ -52,7 +52,7 @@ describe('conversation shell numeric rollout gates', () => {
       new Date('2026-07-15T12:00:00.000Z'),
     );
 
-    expect(report.passed).toBe(true);
+    expect(report.isPassed).toBe(true);
     expect(report.gates.every((gate) => gate.status === 'pass')).toBe(true);
   });
 
@@ -68,7 +68,7 @@ describe('conversation shell numeric rollout gates', () => {
       new Date('2026-07-15T12:00:00.000Z'),
     );
 
-    expect(report.passed).toBe(false);
+    expect(report.isPassed).toBe(false);
     expect(
       report.gates.find((gate) => gate.name === 'observation_window'),
     ).toMatchObject({ status: 'insufficient_observation' });
@@ -109,7 +109,7 @@ describe('conversation shell numeric rollout gates', () => {
       new Date('2026-07-15T12:00:00.000Z'),
     );
 
-    expect(report.passed).toBe(false);
+    expect(report.isPassed).toBe(false);
     expect(report.gates.find((gate) => gate.name === gateName)).toMatchObject({
       status: 'fail',
     });

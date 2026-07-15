@@ -35,9 +35,9 @@ export interface ConversationShellGateSnapshot {
     readonly shellP95Ms: number;
   };
   readonly manualValidation: {
-    readonly accessibilityPassed: boolean;
-    readonly responsivePassed: boolean;
-    readonly rollbackRehearsalPassed: boolean;
+    readonly isAccessibilityPassed: boolean;
+    readonly isResponsivePassed: boolean;
+    readonly isRollbackRehearsalPassed: boolean;
   };
   readonly observationWindow: {
     readonly completeUtcDays: number;
@@ -89,7 +89,7 @@ export interface ConversationShellGateReport {
   readonly denominatorSnapshotId: string;
   readonly deploymentMode: ConversationShellDeploymentMode;
   readonly gates: readonly ConversationShellGateResult[];
-  readonly passed: boolean;
+  readonly isPassed: boolean;
   readonly telemetryQueryVersion: 1;
 }
 
@@ -142,9 +142,9 @@ function assertValidSnapshot(snapshot: ConversationShellGateSnapshot): void {
       (value) => Number.isSafeInteger(value) && isFiniteNonNegative(value),
     ) ||
     !durations.every(isFiniteNonNegative) ||
-    typeof snapshot.manualValidation.accessibilityPassed !== 'boolean' ||
-    typeof snapshot.manualValidation.responsivePassed !== 'boolean' ||
-    typeof snapshot.manualValidation.rollbackRehearsalPassed !== 'boolean' ||
+    typeof snapshot.manualValidation.isAccessibilityPassed !== 'boolean' ||
+    typeof snapshot.manualValidation.isResponsivePassed !== 'boolean' ||
+    typeof snapshot.manualValidation.isRollbackRehearsalPassed !== 'boolean' ||
     snapshot.approvalPinIntegrity.exactMatches >
       snapshot.approvalPinIntegrity.attempts ||
     snapshot.compatibilityReads.legacyReads >
@@ -317,7 +317,7 @@ export function evaluateConversationShellGates(
     snapshot.firstUsefulPaint.legacyP75Ms,
     snapshot.firstUsefulPaint.legacyP95Ms,
   ];
-  const performancePassed =
+  const isPerformancePassed =
     performanceValues.every(isFiniteNonNegative) &&
     snapshot.firstUsefulPaint.legacyP75Ms > 0 &&
     snapshot.firstUsefulPaint.legacyP95Ms > 0 &&
@@ -328,7 +328,7 @@ export function evaluateConversationShellGates(
   gates.push(
     result(
       'first_useful_paint',
-      performanceMinimum ?? (performancePassed ? 'pass' : 'fail'),
+      performanceMinimum ?? (isPerformancePassed ? 'pass' : 'fail'),
       `Shell p75/p95 ${snapshot.firstUsefulPaint.shellP75Ms}/${snapshot.firstUsefulPaint.shellP95Ms}ms; legacy ${snapshot.firstUsefulPaint.legacyP75Ms}/${snapshot.firstUsefulPaint.legacyP95Ms}ms.`,
     ),
   );
@@ -352,28 +352,29 @@ export function evaluateConversationShellGates(
   gates.push(
     result(
       'accessibility',
-      snapshot.manualValidation.accessibilityPassed ? 'pass' : 'fail',
+      snapshot.manualValidation.isAccessibilityPassed ? 'pass' : 'fail',
       'WCAG keyboard, screen-reader, focus, status, and contrast validation.',
     ),
     result(
       'responsive',
-      snapshot.manualValidation.responsivePassed ? 'pass' : 'fail',
+      snapshot.manualValidation.isResponsivePassed ? 'pass' : 'fail',
       'Responsive validation across supported shell states and deployment modes.',
     ),
     result(
       'rollback_rehearsal',
-      snapshot.manualValidation.rollbackRehearsalPassed ? 'pass' : 'fail',
+      snapshot.manualValidation.isRollbackRehearsalPassed ? 'pass' : 'fail',
       'Rollback rehearsal preserved existing threads, artifacts, drafts, and deep links.',
     ),
   );
 
-  const observationPassed = observationWindow.status === 'pass';
+  const isObservationPassed = observationWindow.status === 'pass';
   return {
     cohort: snapshot.cohort,
     denominatorSnapshotId: snapshot.denominatorSnapshotId,
     deploymentMode: snapshot.deploymentMode,
     gates,
-    passed: observationPassed && gates.every((gate) => gate.status === 'pass'),
+    isPassed:
+      isObservationPassed && gates.every((gate) => gate.status === 'pass'),
     telemetryQueryVersion: 1,
   };
 }

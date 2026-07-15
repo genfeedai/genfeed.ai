@@ -14,7 +14,7 @@ export default function ProtectedLayoutClient({
 
   return (
     <FeatureFlagProvider
-      overrides={{ conversation_shell: rollout.evaluation?.enabled === true }}
+      overrides={{ conversation_shell: rollout.evaluation?.isEnabled === true }}
       ready={rollout.isReady}
     >
       <AppProtectedLayout initialBootstrap={initialBootstrap}>

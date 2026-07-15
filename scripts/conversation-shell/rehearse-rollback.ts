@@ -57,7 +57,7 @@ if (!parsed.config) {
   fail(`Rollout config is ${parsed.error.replaceAll('_', ' ')}.`);
 }
 const config = parsed.config;
-if (!config.enabled) {
+if (!config.isEnabled) {
   fail('Rollback rehearsal requires a currently enabled rollout config.');
 }
 
@@ -73,7 +73,7 @@ if (
 
 const rollbackConfig = {
   ...config,
-  enabled: false,
+  isEnabled: false,
   rollbackRevision: config.rollbackRevision + 1,
 };
 const rollbackParsed = parseConversationShellRolloutConfig(rollbackConfig);
@@ -91,7 +91,7 @@ const evaluations = CONVERSATION_SHELL_DEPLOYMENT_ORDER.flatMap((mode) =>
   ),
 );
 const passed = evaluations.every(
-  (evaluation) => !evaluation.enabled && evaluation.reason === 'disabled',
+  (evaluation) => !evaluation.isEnabled && evaluation.reason === 'disabled',
 );
 
 console.log(

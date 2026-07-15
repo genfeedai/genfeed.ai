@@ -296,7 +296,7 @@ describe('proxy', () => {
               cohort: 'internal',
               configVersion: 'internal-1',
               deploymentMode: 'saas',
-              enabled: true,
+              isEnabled: true,
               evaluatedAt: '2026-07-15T00:00:00.000Z',
               reason: 'enabled',
               rollbackRevision: 0,

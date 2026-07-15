@@ -34,7 +34,7 @@ export type ConversationShellEvaluationReason =
 
 export interface ConversationShellRolloutConfig {
   readonly configVersion: string;
-  readonly enabled: boolean;
+  readonly isEnabled: boolean;
   readonly enabledCohorts: readonly ConversationShellCohort[];
   readonly enabledDeploymentModes: readonly ConversationShellDeploymentMode[];
   readonly organizations: Readonly<
@@ -54,7 +54,7 @@ export interface ConversationShellEvaluation {
   readonly cohort: ConversationShellCohort | null;
   readonly configVersion: string | null;
   readonly deploymentMode: ConversationShellDeploymentMode;
-  readonly enabled: boolean;
+  readonly isEnabled: boolean;
   readonly evaluatedAt: string;
   readonly reason: ConversationShellEvaluationReason;
   readonly rollbackRevision: number | null;
@@ -95,7 +95,7 @@ export function isConversationShellEvaluation(
   const cohort = value.cohort;
   const configVersion = value.configVersion;
   const deploymentMode = value.deploymentMode;
-  const enabled = value.enabled;
+  const isEnabled = value.isEnabled;
   const evaluatedAt = value.evaluatedAt;
   const reason = value.reason;
   const rollbackRevision = value.rollbackRevision;
@@ -115,7 +115,7 @@ export function isConversationShellEvaluation(
       'cohort',
       'configVersion',
       'deploymentMode',
-      'enabled',
+      'isEnabled',
       'evaluatedAt',
       'reason',
       'rollbackRevision',
@@ -127,7 +127,7 @@ export function isConversationShellEvaluation(
     !CONVERSATION_SHELL_DEPLOYMENT_ORDER.some(
       (candidate) => candidate === deploymentMode,
     ) ||
-    typeof enabled !== 'boolean' ||
+    typeof isEnabled !== 'boolean' ||
     typeof evaluatedAt !== 'string' ||
     !Number.isFinite(new Date(evaluatedAt).getTime()) ||
     !CONVERSATION_SHELL_EVALUATION_REASONS.some(
@@ -138,7 +138,7 @@ export function isConversationShellEvaluation(
     return false;
   }
 
-  return enabled
+  return isEnabled
     ? reason === 'enabled' &&
         cohort !== null &&
         configVersion !== null &&
@@ -215,7 +215,7 @@ export function parseConversationShellRolloutConfig(
   if (
     !hasOnlyKeys(value, [
       'configVersion',
-      'enabled',
+      'isEnabled',
       'enabledCohorts',
       'enabledDeploymentModes',
       'organizations',
@@ -223,7 +223,7 @@ export function parseConversationShellRolloutConfig(
       'schemaVersion',
     ]) ||
     value.schemaVersion !== 1 ||
-    typeof value.enabled !== 'boolean' ||
+    typeof value.isEnabled !== 'boolean' ||
     !SAFE_CONFIG_VERSION_PATTERN.test(configVersion) ||
     !Number.isSafeInteger(value.rollbackRevision) ||
     Number(value.rollbackRevision) < 0 ||
@@ -257,7 +257,7 @@ export function parseConversationShellRolloutConfig(
   return {
     config: Object.freeze({
       configVersion,
-      enabled: value.enabled,
+      isEnabled: value.isEnabled,
       enabledCohorts,
       enabledDeploymentModes,
       organizations: Object.freeze({
@@ -306,7 +306,7 @@ export function evaluateConversationShellRollout(
     cohort: null,
     configVersion: parsed.config?.configVersion ?? null,
     deploymentMode,
-    enabled: false,
+    isEnabled: false,
     evaluatedAt: evaluatedAt.toISOString(),
     rollbackRevision: parsed.config?.rollbackRevision ?? null,
     schemaVersion: 1,
@@ -320,7 +320,7 @@ export function evaluateConversationShellRollout(
     return { ...base, reason: 'missing_attributes' };
   }
 
-  if (!parsed.config.enabled) {
+  if (!parsed.config.isEnabled) {
     return { ...base, reason: 'disabled' };
   }
 
@@ -340,5 +340,5 @@ export function evaluateConversationShellRollout(
     return { ...base, cohort, reason: 'deployment_not_enabled' };
   }
 
-  return { ...base, cohort, enabled: true, reason: 'enabled' };
+  return { ...base, cohort, isEnabled: true, reason: 'enabled' };
 }

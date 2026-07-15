@@ -104,32 +104,36 @@ describe('initAnalytics', () => {
       before_send: (event: unknown) => { properties: Record<string, unknown> };
     };
 
-    const scrubbed = config.before_send({
-      event: '$pageview',
-      properties: {
-        $current_url:
-          'https://app.genfeed.ai/acme/brand/compose/post?title=Secret%20Post&description=xyz',
-        $pathname: '/acme/brand/posts/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
-        $prev_pageview_pathname:
-          '/acme/brand/editor/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
-        $referrer: 'https://app.genfeed.ai/acme/brand/posts/x?title=leak',
-        $set_once: {
-          $initial_current_url:
-            'https://app.genfeed.ai/acme/brand/compose/post?title=Secret%20Post',
-        },
-        title: 'Secret Post — Genfeed',
-        utm_term: 'a secret search phrase',
-        prompt: 'Draft a confidential launch plan',
-        nested: {
-          credentialId: 'credential-secret',
-          messageText: 'private conversation',
-        },
-        deeplyNested: {
-          one: {
-            two: { three: { four: { five: { safe: 'drop-at-limit' } } } },
+    const capturedAt = new Date('2026-07-15T00:00:00.000Z');
+    const originalProperties = {
+      $current_url:
+        'https://app.genfeed.ai/acme/brand/compose/post?title=Secret%20Post&description=xyz',
+      $pathname: '/acme/brand/posts/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+      $prev_pageview_pathname:
+        '/acme/brand/editor/3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+      $referrer: 'https://app.genfeed.ai/acme/brand/posts/x?title=leak',
+      $set_once: {
+        $initial_current_url:
+          'https://app.genfeed.ai/acme/brand/compose/post?title=Secret%20Post',
+      },
+      title: 'Secret Post — Genfeed',
+      utm_term: 'a secret search phrase',
+      prompt: 'Draft a confidential launch plan',
+      nested: {
+        credentialId: 'credential-secret',
+        messageText: 'private conversation',
+      },
+      deeplyNested: {
+        one: {
+          two: {
+            three: { four: { capturedAt, five: { safe: 'drop-at-limit' } } },
           },
         },
       },
+    };
+    const scrubbed = config.before_send({
+      event: '$pageview',
+      properties: originalProperties,
     });
 
     const props = scrubbed.properties;
@@ -148,8 +152,14 @@ describe('initAnalytics', () => {
     expect(props.prompt).toBeUndefined();
     expect(props.nested).toEqual({});
     expect(props.deeplyNested).toEqual({
-      one: { two: { three: { four: { five: {} } } } },
+      one: { two: { three: { four: { capturedAt, five: {} } } } },
     });
+    expect(originalProperties.prompt).toBe('Draft a confidential launch plan');
+    expect(originalProperties.nested).toEqual({
+      credentialId: 'credential-secret',
+      messageText: 'private conversation',
+    });
+    expect(scrubbed.properties).not.toBe(originalProperties);
     // Tenant slugs templatized, ids collapsed — on top-level and nested bags.
     expect(props.$current_url).toBe(
       'https://app.genfeed.ai/:org/:brand/compose/post',

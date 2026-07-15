@@ -10,7 +10,7 @@ import {
 function validConfig(overrides: Record<string, unknown> = {}) {
   return {
     configVersion: 'rollout-2026-07-15',
-    enabled: true,
+    isEnabled: true,
     enabledCohorts: ['internal', 'opt_in'],
     enabledDeploymentModes: [...CONVERSATION_SHELL_DEPLOYMENT_ORDER],
     organizations: {
@@ -29,7 +29,7 @@ describe('conversation shell rollout configuration', () => {
     true,
     'on',
     [],
-    { enabled: true },
+    { isEnabled: true },
   ])('fails closed for missing or malformed configuration %#', (value) => {
     const parsed = parseConversationShellRolloutConfig(value);
     const evaluation = evaluateConversationShellRollout(parsed, {
@@ -39,7 +39,7 @@ describe('conversation shell rollout configuration', () => {
     });
 
     expect(evaluation).toMatchObject({
-      enabled: false,
+      isEnabled: false,
       reason: 'invalid_configuration',
     });
   });
@@ -53,7 +53,11 @@ describe('conversation shell rollout configuration', () => {
         deployment: 'cloud',
         organizationId: 'org-internal',
       }),
-    ).toMatchObject({ cohort: 'internal', enabled: true, reason: 'enabled' });
+    ).toMatchObject({
+      cohort: 'internal',
+      isEnabled: true,
+      reason: 'enabled',
+    });
     expect(
       evaluateConversationShellRollout(parsed, {
         client: 'web',
@@ -62,7 +66,7 @@ describe('conversation shell rollout configuration', () => {
       }),
     ).toMatchObject({
       cohort: null,
-      enabled: false,
+      isEnabled: false,
       reason: 'organization_not_targeted',
     });
   });
@@ -119,7 +123,7 @@ describe('conversation shell rollout configuration', () => {
 
   it('turns every cohort off through the kill switch without changing schema', () => {
     const parsed = parseConversationShellRolloutConfig(
-      validConfig({ enabled: false, rollbackRevision: 3 }),
+      validConfig({ isEnabled: false, rollbackRevision: 3 }),
     );
     const evaluation = evaluateConversationShellRollout(parsed, {
       client: 'desktop',
@@ -129,7 +133,7 @@ describe('conversation shell rollout configuration', () => {
 
     expect(evaluation).toMatchObject({
       configVersion: 'rollout-2026-07-15',
-      enabled: false,
+      isEnabled: false,
       reason: 'disabled',
       rollbackRevision: 3,
       schemaVersion: 1,
@@ -170,7 +174,7 @@ describe('conversation shell rollout configuration', () => {
     expect(
       isConversationShellEvaluation({
         ...evaluation,
-        enabled: false,
+        isEnabled: false,
         reason: 'enabled',
       }),
     ).toBe(false);
