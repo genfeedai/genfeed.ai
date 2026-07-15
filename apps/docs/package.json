@@ -26,7 +26,7 @@
     "format:fix": "prettier --write .",
     "lint": "biome check app components content tests mdx-components.tsx next.config.mjs package.json tsconfig.json types styles README.md",
     "start": "next start",
-    "test": "bun test ./tests",
+    "test": "vitest run tests/nextra-layout-patch.test.ts",
     "type-check": "tsc --noEmit"
   },
   "version": "0.0.0"

@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'bun:test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
 
 const themeDist = path.dirname(
   fileURLToPath(import.meta.resolve('nextra-theme-docs')),
