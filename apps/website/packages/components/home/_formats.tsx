@@ -103,7 +103,7 @@ export default function HomeFormats(): React.ReactElement {
           {OUTPUT_FORMATS.map((format) => (
             <div
               key={format.title}
-              className="group flex flex-col bg-background shadow-border"
+              className="group flex flex-col bg-background"
             >
               <div className="relative aspect-[16/10] overflow-hidden bg-card">
                 <Image

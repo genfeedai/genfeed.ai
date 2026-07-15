@@ -130,14 +130,14 @@ export default function IntegrationsContent() {
       >
         {/* Platform Grid */}
         <section className="gsap-hero max-w-6xl mx-auto py-16 px-6">
-          <div className="gsap-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="gsap-grid grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-3">
             {integrations.map((integration) => {
               const Icon = ICON_MAP[integration.icon];
               return (
                 <Link
                   key={integration.slug}
                   href={`/integrations/${integration.slug}`}
-                  className="gsap-card group relative flex flex-col border border-edge/5 bg-fill/[0.02] p-8 transition-all duration-300 hover:border-[var(--gen-accent-hover)] hover:bg-fill/[0.05] hover:shadow-[0_8px_40px_rgba(0,0,0,0.25)]"
+                  className="gsap-card group relative flex flex-col bg-background p-8 transition-colors hover:bg-fill/[0.02]"
                 >
                   <div className="mb-5 flex size-14 items-center justify-center rounded-xl border border-edge/10 bg-fill/[0.06] transition-colors group-hover:border-[var(--gen-accent-border)] group-hover:bg-[var(--gen-accent-bg)]">
                     {Icon && (
@@ -165,7 +165,7 @@ export default function IntegrationsContent() {
 
         {/* CTA */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <div className="text-center p-12 border border-[var(--gen-accent-border)] bg-white/[0.04]">
+          <div className="gen-card-spotlight p-12 text-center">
             <div className="flex justify-center mb-4">
               <HiSparkles className="size-8 text-surface" />
             </div>

@@ -81,9 +81,9 @@ export default function CaseStudiesContent(): React.ReactElement {
           title="Consent to publish, in five steps."
         />
 
-        <div className="grid gap-px overflow-hidden border border-edge/10 bg-edge/5 lg:grid-cols-5">
+        <div className="grid gap-px bg-edge/5 lg:grid-cols-5">
           {caseStudyPipeline.map((step) => (
-            <div key={step.id} className="bg-background p-5 shadow-border">
+            <div key={step.id} className="bg-background p-5">
               <div className="mb-5 text-xs font-black uppercase tracking-widest text-surface/45">
                 {step.label} / {step.owner}
               </div>

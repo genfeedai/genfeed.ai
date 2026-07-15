@@ -89,7 +89,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
         <Heading as="h2" className="text-3xl font-bold text-center mb-10">
           How It Works
         </Heading>
-        <div className="border border-edge/5">
+        <div className="gen-card-spotlight">
           {useCase.workflow.map((step, index) => (
             <div
               key={step.step}
@@ -119,7 +119,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           <Heading as="h2" className="text-3xl font-bold text-center mb-10">
             Results
           </Heading>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-edge/5 border border-edge/5">
+          <div className="grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2">
             {useCase.results.map((result) => (
               <div
                 key={result}
@@ -134,7 +134,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
       )}
 
       <section className="max-w-4xl mx-auto pb-20">
-        <div className="border border-edge/5 p-10 text-center">
+        <div className="gen-card-spotlight p-10 text-center">
           <Heading as="h3" className="text-3xl font-bold mb-2">
             {useCase.pricing.recommended}
           </Heading>

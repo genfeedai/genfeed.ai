@@ -261,6 +261,25 @@ export function useAppProtectedLayout(
     [dynamicMenuItems, taskContextSearchParams],
   );
 
+  const agentMenuItems = useMemo<MenuItemConfig[]>(
+    () => [
+      {
+        group: '',
+        href: withTaskContextHref(
+          APP_ROUTES.AGENT.ROOT,
+          taskContextSearchParams,
+        ),
+        label:
+          pathname === APP_ROUTES.AGENT.ROOT ||
+          pathname === APP_ROUTES.AGENT.NEW
+            ? 'New conversation'
+            : 'Conversation',
+        matchPaths: [APP_ROUTES.AGENT.ROOT],
+      },
+    ],
+    [pathname, taskContextSearchParams],
+  );
+
   const secondaryMenuItems = useMemo(
     () =>
       getAppSecondaryMenuItems(brandSlug).map(
@@ -607,6 +626,7 @@ export function useAppProtectedLayout(
     shouldMountAgentPanel,
     shouldMountLegacyAgentPanel,
     // menu items
+    agentMenuItems,
     adminMenuItems,
     analyticsMenuItems,
     composeMenuItems,

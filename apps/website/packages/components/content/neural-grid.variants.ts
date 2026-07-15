@@ -1,30 +1,27 @@
 import { cva } from 'class-variance-authority';
 
-export const neuralGridVariants = cva(
-  'grid gap-px bg-edge/5 border border-edge/10 overflow-hidden',
-  {
-    defaultVariants: {
-      columns: 3,
-      radius: 'lg',
+export const neuralGridVariants = cva('grid gap-px bg-edge/5', {
+  defaultVariants: {
+    columns: 3,
+    radius: 'lg',
+  },
+  variants: {
+    columns: {
+      1: 'grid-cols-1',
+      2: 'grid-cols-1 md:grid-cols-2',
+      3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
+      4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
+      5: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
     },
-    variants: {
-      columns: {
-        1: 'grid-cols-1',
-        2: 'grid-cols-1 md:grid-cols-2',
-        3: 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-        4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
-        5: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
-      },
-      radius: {
-        lg: '',
-        xl: '',
-      },
+    radius: {
+      lg: '',
+      xl: '',
     },
   },
-);
+});
 
 export const neuralGridItemVariants = cva(
-  'bg-background shadow-border group hover:bg-fill/[0.02] transition-colors',
+  'group bg-background transition-colors hover:bg-fill/[0.02]',
   {
     defaultVariants: {
       align: 'left',

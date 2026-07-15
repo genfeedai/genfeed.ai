@@ -254,17 +254,17 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/dialog', () => ({
-  Dialog: ({
+vi.mock('@ui/overlays/context-inspector/ContextInspector', () => ({
+  default: ({
     children,
     onOpenChange,
-    open,
+    isOpen,
   }: {
     children: ReactNode;
     onOpenChange: (isOpen: boolean) => void;
-    open: boolean;
+    isOpen: boolean;
   }) =>
-    open ? (
+    isOpen ? (
       <div data-testid="workspace-dialog">
         {children}
         <button
@@ -274,16 +274,6 @@ vi.mock('@ui/primitives/dialog', () => ({
         />
       </div>
     ) : null,
-  DialogContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DialogDescription: ({ children }: { children: ReactNode }) => (
-    <p>{children}</p>
-  ),
-  DialogHeader: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
 }));
 
 vi.mock('@ui/primitives/drawer', () => ({

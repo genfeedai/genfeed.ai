@@ -69,7 +69,7 @@ export default function AboutContent() {
 
         {/* CTA */}
         <section className="max-w-4xl mx-auto pb-20">
-          <div className="bg-background p-8 text-center shadow-border-strong">
+          <div className="gen-card-spotlight p-8 text-center">
             <h2 className="text-2xl font-semibold mb-4">Get Started</h2>
             <p className="text-foreground/70 mb-6">
               Sign up, pick a plan, and start creating content at scale.

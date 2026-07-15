@@ -90,6 +90,8 @@ vi.mock('@services/management/api-keys.service', () => ({
 
 vi.mock('react-icons/hi2', () => ({
   HiArrowPath: () => <span data-testid="hi-arrow-path" />,
+  HiChevronDown: () => <span data-testid="hi-chevron-down" />,
+  HiChevronRight: () => <span data-testid="hi-chevron-right" />,
   HiClipboardDocument: () => <span data-testid="hi-clipboard-document" />,
   HiPlus: () => <span data-testid="hi-plus" />,
   HiTrash: () => <span data-testid="hi-trash" />,
@@ -97,12 +99,19 @@ vi.mock('react-icons/hi2', () => ({
 
 vi.mock('@ui/card/Card', () => ({
   default: ({
+    bodyClassName,
     children,
     className,
+    ...props
   }: {
+    bodyClassName?: string;
     children: ReactNode;
     className?: string;
-  }) => <section className={className}>{children}</section>,
+  } & React.HTMLAttributes<HTMLElement>) => (
+    <section className={className} {...props}>
+      <div className={bodyClassName}>{children}</div>
+    </section>
+  ),
 }));
 
 function resolveButtonLabel(children: ReactNode): string {
@@ -224,6 +233,14 @@ function productApiKeys() {
   ];
 }
 
+async function openProviderKeysTab() {
+  fireEvent.mouseDown(screen.getByRole('tab', { name: 'Provider keys' }), {
+    button: 0,
+    ctrlKey: false,
+  });
+  await screen.findByText('OpenAI');
+}
+
 describe('SettingsApiKeysPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -278,9 +295,22 @@ describe('SettingsApiKeysPage', () => {
       screen.getByText(/server-configured providers by default/),
     ).toBeInTheDocument();
     expect(screen.getByText(/no credits are deducted/)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Genfeed keys' })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+    expect(screen.queryByText('OpenAI')).not.toBeInTheDocument();
+
+    await openProviderKeysTab();
     expect(screen.getByText('OpenAI')).toBeInTheDocument();
     expect(screen.getByText('Replicate')).toBeInTheDocument();
     expect(screen.getByText('r8_****1234')).toBeInTheDocument();
+    const providerRow = screen.getByTestId('provider-openai');
+    expect(providerRow.firstElementChild).toHaveClass('gap-0', 'p-0');
+    expect(providerRow.firstElementChild?.firstElementChild).toHaveClass(
+      'min-h-12',
+      'py-2',
+    );
 
     expect(mocks.getByokAllProviders).toHaveBeenCalledWith('org-1');
     expect(mocks.findAllApiKeys).toHaveBeenCalledWith({ limit: 100 });
@@ -359,7 +389,7 @@ describe('SettingsApiKeysPage', () => {
   it('validates and saves a provider key, then refreshes provider statuses', async () => {
     render(<SettingsApiKeysPage />);
 
-    await screen.findByText('OpenAI');
+    await openProviderKeysTab();
     fireEvent.click(screen.getByRole('button', { name: 'Add Key' }));
     fireEvent.change(screen.getByPlaceholderText('Enter API key...'), {
       target: { value: 'sk-test' },
@@ -388,7 +418,7 @@ describe('SettingsApiKeysPage', () => {
   it('requires provider secrets, reports invalid keys, and removes connected keys', async () => {
     render(<SettingsApiKeysPage />);
 
-    await screen.findByText('Replicate');
+    await openProviderKeysTab();
     fireEvent.click(screen.getByRole('button', { name: 'Replace Key' }));
     expect(
       screen.getByRole('button', { name: 'Validate & Save' }),
@@ -452,7 +482,7 @@ describe('SettingsApiKeysPage', () => {
     unmount();
     mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
     render(<SettingsApiKeysPage />);
-    await screen.findByText('Replicate');
+    await openProviderKeysTab();
 
     mocks.removeByokProviderKey.mockRejectedValueOnce(
       new Error('remove failed'),

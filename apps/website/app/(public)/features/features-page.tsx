@@ -65,7 +65,7 @@ export default function FeaturesPage(): React.ReactElement {
         {/* Features Grid */}
         <section className="gsap-hero py-32">
           <div className="container mx-auto px-6">
-            <div className="gsap-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-px bg-fill/5 border border-edge/5 overflow-hidden">
+            <div className="gsap-grid grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2 lg:grid-cols-4">
               {FEATURES.map((feature) => {
                 const Icon = feature.icon;
                 return (
@@ -128,8 +128,8 @@ export default function FeaturesPage(): React.ReactElement {
                     providers or settings.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-8">
-                  <div className="p-8 border border-edge/5">
+                <div className="grid grid-cols-2 gap-px bg-edge/5">
+                  <div className="bg-background p-8">
                     <span className="text-4xl font-semibold block mb-2">
                       250%
                     </span>
@@ -137,7 +137,7 @@ export default function FeaturesPage(): React.ReactElement {
                       Efficiency Increase
                     </span>
                   </div>
-                  <div className="p-8 border border-edge/5">
+                  <div className="bg-background p-8">
                     <span className="text-4xl font-semibold block mb-2">
                       0.4s
                     </span>

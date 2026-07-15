@@ -51,7 +51,7 @@ export default function ServiceLandingPage({
         showFooter={false}
       >
         <WebSection maxWidth="md" className="pt-0">
-          <div className="grid gap-8 border border-edge/5 bg-fill/[0.02] p-8 md:grid-cols-[1.4fr_0.8fr] md:p-12">
+          <div className="gen-card-spotlight grid gap-8 p-8 md:grid-cols-[1.4fr_0.8fr] md:p-12">
             <div>
               <p className="mb-6 text-lg leading-relaxed text-surface/70">
                 {config.intro}
@@ -72,7 +72,7 @@ export default function ServiceLandingPage({
               </div>
             </div>
 
-            <div className="border border-edge/10 bg-black/30 p-6">
+            <div className="bg-background/60 p-6">
               <div className="mb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-surface/50">
                 <LuCalendarRange className="size-4" />
                 {config.fitLabel}
@@ -141,11 +141,11 @@ export default function ServiceLandingPage({
             ))}
           </NeuralGrid>
 
-          <div className="mt-8 grid gap-3 border border-edge/5 bg-fill/[0.02] p-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-4">
             {config.includes.map((item) => (
               <div
                 key={item}
-                className="border border-edge/10 p-4 text-sm text-surface/60"
+                className="bg-background p-4 text-sm text-surface/60"
               >
                 {item}
               </div>

@@ -161,7 +161,7 @@ export default function ServicesContent() {
             description="Deep-dive service pages for specific content needs."
             className="[&_h2]:text-5xl"
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-2">
             {[
               {
                 href: '/done-for-you',
@@ -187,7 +187,7 @@ export default function ServicesContent() {
               <Link
                 key={item.label}
                 href={item.href}
-                className="flex items-center justify-between p-4 border border-edge/10 bg-fill/[0.02] hover:border-surface/20 transition-all"
+                className="flex items-center justify-between bg-background p-4 transition-colors hover:bg-fill/[0.02]"
               >
                 <span className="text-xs font-black uppercase tracking-widest text-surface/60">
                   {item.label}

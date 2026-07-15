@@ -5,7 +5,7 @@ import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { HiTrash } from 'react-icons/hi2';
+import { HiChevronDown, HiChevronRight, HiTrash } from 'react-icons/hi2';
 
 type ByokProviderCardState = {
   isExpanded: boolean;
@@ -47,19 +47,40 @@ export default function ByokProviderCard({
     isSaving;
 
   return (
-    <Card key={providerStatus.provider} className="p-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-medium">{providerStatus.label}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {providerStatus.description}
+    <Card
+      key={providerStatus.provider}
+      bodyClassName="gap-0 p-0"
+      data-testid={`provider-${providerStatus.provider}`}
+    >
+      <div className="flex min-h-12 items-center gap-3 px-3 py-2">
+        <Button
+          aria-expanded={isExpanded}
+          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${providerStatus.label} provider`}
+          className="shrink-0 text-muted-foreground"
+          onClick={onToggleExpand}
+          variant={ButtonVariant.GHOST}
+        >
+          {isExpanded ? (
+            <HiChevronDown className="size-4" />
+          ) : (
+            <HiChevronRight className="size-4" />
+          )}
+        </Button>
+        <div className="min-w-0 flex-1 sm:flex sm:items-center sm:gap-3">
+          <h3 className="truncate text-sm font-medium">
+            {providerStatus.label}
+          </h3>
+          <p className="truncate text-xs text-muted-foreground">
+            {isConnected && providerStatus.maskedKey
+              ? providerStatus.maskedKey
+              : providerStatus.description}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2">
           {isConnected ? (
             <>
-              <span className="flex items-center gap-1.5 text-xs text-green-500">
-                <span className="size-2 rounded-full bg-green-500" />
+              <span className="flex items-center gap-1.5 text-xs text-success">
+                <span className="size-2 rounded-full bg-success" />
                 Connected
               </span>
               <Button
@@ -79,7 +100,7 @@ export default function ByokProviderCard({
             </>
           ) : (
             <>
-              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
                 <span className="size-2 rounded-full bg-muted-foreground/30" />
                 Not configured
               </span>
@@ -94,15 +115,9 @@ export default function ByokProviderCard({
         </div>
       </div>
 
-      {isConnected && !isExpanded && providerStatus.maskedKey && (
-        <p className="text-xs text-muted-foreground font-mono mt-2">
-          {providerStatus.maskedKey}
-        </p>
-      )}
-
       {isExpanded && (
-        <div className="mt-4 pt-4 border-t border-border">
-          <div className="space-y-3">
+        <div className="border-t border-border px-3 py-3">
+          <div className="space-y-3 sm:pl-11">
             <div>
               <span className="text-xs text-muted-foreground mb-1 block">
                 API Key

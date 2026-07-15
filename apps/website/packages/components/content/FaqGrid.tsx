@@ -12,12 +12,12 @@ export interface FaqGridProps {
 export default function FaqGrid({ className, items }: FaqGridProps) {
   return (
     <div
-      className={`grid grid-cols-1 md:grid-cols-2 gap-px bg-fill/5 border border-edge/5 overflow-hidden ${className ?? ''}`}
+      className={`grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-2 ${className ?? ''}`}
     >
       {items.map((item) => (
         <div
           key={item.question}
-          className="p-10 group bg-background hover:bg-fill/[0.02] transition-colors"
+          className="group bg-background p-10 transition-colors hover:bg-fill/[0.02]"
         >
           <h3 className="text-lg font-semibold mb-3">{item.question}</h3>
           <p className="text-surface/65 text-sm leading-relaxed">

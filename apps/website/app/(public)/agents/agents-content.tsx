@@ -136,7 +136,7 @@ export default function AgentsContent() {
       >
         {/* Highlight Card */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
-          <div className="bg-background p-8 shadow-border">
+          <div className="gen-card-spotlight p-8">
             <HStack className="flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="flex size-20 items-center justify-center bg-card shadow-border">
@@ -194,7 +194,7 @@ export default function AgentsContent() {
               return (
                 <div
                   key={feature.title}
-                  className={`gsap-card gen-card-spotlight bg-fill/[0.02] p-8 ${
+                  className={`gsap-card gen-card-spotlight p-8 ${
                     index === 0 ? 'md:col-span-2' : ''
                   }`}
                 >
@@ -249,7 +249,7 @@ export default function AgentsContent() {
 
         {/* Pricing CTA */}
         <section className="max-w-4xl mx-auto pb-16 px-6">
-          <div className="bg-background p-12 text-center shadow-border">
+          <div className="gen-card-spotlight p-12 text-center">
             <div className="flex justify-center mb-4">
               <HiUserGroup className="size-8 text-surface" />
             </div>

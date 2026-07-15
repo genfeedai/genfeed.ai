@@ -15,14 +15,14 @@ export interface BenefitGridProps {
 export default function BenefitGrid({ benefits, className }: BenefitGridProps) {
   return (
     <div
-      className={`grid grid-cols-1 md:grid-cols-3 gap-px bg-fill/5 border border-edge/5 overflow-hidden ${className ?? ''}`}
+      className={`grid grid-cols-1 gap-px bg-edge/5 md:grid-cols-3 ${className ?? ''}`}
     >
       {benefits.map((benefit) => {
         const Icon = benefit.icon;
         return (
           <div
             key={benefit.title}
-            className="p-10 text-center group bg-zinc-900 hover:bg-fill/[0.02] transition-colors"
+            className="group bg-background p-10 text-center transition-colors hover:bg-fill/[0.02]"
           >
             <Icon className="size-8 mx-auto mb-4 text-surface/65 group-hover:text-surface transition-all" />
             <h3 className="text-lg font-semibold mb-2">{benefit.title}</h3>

@@ -82,9 +82,6 @@ describe('AgentCampaignsController', () => {
     const mockReq = { headers: {}, url: '/agent-campaigns/campaign-1' } as any;
 
     it('routes status=active through executionService.execute using the Mongo user id from public metadata', async () => {
-      mockUsersService.findOne.mockResolvedValue({
-        id: '507f1f77bcf86cd799439014',
-      });
       mockExecutionService.execute.mockResolvedValue({
         id: 'campaign-1',
       });
@@ -98,13 +95,7 @@ describe('AgentCampaignsController', () => {
         '507f1f77bcf86cd799439012',
         '507f1f77bcf86cd799439014',
       );
-      expect(mockUsersService.findOne).toHaveBeenCalledWith(
-        {
-          _id: '507f1f77bcf86cd799439014',
-          authProviderId: 'user_123',
-        },
-        [],
-      );
+      expect(mockUsersService.findOne).not.toHaveBeenCalled();
     });
 
     it('falls back to lookup by authProvider id when metadata user id is unavailable', async () => {

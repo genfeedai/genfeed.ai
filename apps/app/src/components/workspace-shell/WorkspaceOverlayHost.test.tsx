@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { FocusEvent, FocusEventHandler, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -36,53 +36,40 @@ vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
   ),
 }));
 
-vi.mock('@ui/primitives/dialog', () => ({
-  Dialog: ({
+vi.mock('@ui/overlays/context-inspector/ContextInspector', () => ({
+  default: ({
     children,
+    description,
+    isOpen,
+    onCloseAutoFocus,
     onOpenChange,
-    open,
+    title,
   }: {
     children: ReactNode;
+    description?: ReactNode;
+    isOpen: boolean;
+    onCloseAutoFocus?: (event: Event) => void;
     onOpenChange: (isOpen: boolean) => void;
-    open: boolean;
+    title: ReactNode;
   }) =>
-    open ? (
+    isOpen ? (
       <div role="dialog">
+        <h2>{title}</h2>
+        {description ? <p>{description}</p> : null}
         {children}
         <button type="button" onClick={() => onOpenChange(false)}>
           Dismiss
         </button>
+        <button
+          type="button"
+          onClick={() =>
+            onCloseAutoFocus?.({ preventDefault: vi.fn() } as unknown as Event)
+          }
+        >
+          Complete close autofocus
+        </button>
       </div>
     ) : null,
-  DialogContent: ({
-    children,
-    onCloseAutoFocus,
-    ...props
-  }: {
-    children: ReactNode;
-    onCloseAutoFocus?: FocusEventHandler<HTMLDivElement>;
-  }) => (
-    <div {...props}>
-      {children}
-      <button
-        type="button"
-        onClick={() =>
-          onCloseAutoFocus?.({
-            preventDefault: vi.fn(),
-          } as unknown as FocusEvent<HTMLDivElement>)
-        }
-      >
-        Complete close autofocus
-      </button>
-    </div>
-  ),
-  DialogDescription: ({ children }: { children: ReactNode }) => (
-    <p>{children}</p>
-  ),
-  DialogHeader: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  DialogTitle: ({ children }: { children: ReactNode }) => <h2>{children}</h2>,
 }));
 
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
