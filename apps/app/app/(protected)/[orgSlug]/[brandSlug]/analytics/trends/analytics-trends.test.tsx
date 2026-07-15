@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   loggerInfo: vi.fn(),
   open: vi.fn(),
   push: vi.fn(),
+  viralVideoProps: vi.fn(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -136,33 +137,35 @@ vi.mock('@ui/analytics/trends', () => ({
       ))}
     </section>
   ),
-  ViralVideoLeaderboard: ({
-    onTimeframeChange,
-    onVideoClick,
-    timeframe,
-    videos,
-  }: {
+  ViralVideoLeaderboard: (props: {
     onTimeframeChange: (timeframe: Timeframe.D7) => void;
     onVideoClick: (video: Record<string, unknown>) => void;
     timeframe: string;
-    videos: Array<{ title: string }>;
-  }) => (
-    <section>
-      <div>Video timeframe: {timeframe}</div>
-      <button type="button" onClick={() => onTimeframeChange(Timeframe.D7)}>
-        Last 7 Days
-      </button>
-      {videos.map((video) => (
+    videos: Array<{ creatorHandle: string; title: string }>;
+  }) => {
+    mocks.viralVideoProps(props);
+
+    return (
+      <section>
+        <div>Video timeframe: {props.timeframe}</div>
         <button
-          key={video.title}
           type="button"
-          onClick={() => onVideoClick(video)}
+          onClick={() => props.onTimeframeChange(Timeframe.D7)}
         >
-          Open {video.title}
+          Last 7 Days
         </button>
-      ))}
-    </section>
-  ),
+        {props.videos.map((video) => (
+          <button
+            key={video.title}
+            type="button"
+            onClick={() => props.onVideoClick(video)}
+          >
+            Open {video.title}
+          </button>
+        ))}
+      </section>
+    );
+  },
 }));
 
 vi.mock('@ui/card/Card', () => ({
@@ -483,19 +486,34 @@ describe('AnalyticsTrends', () => {
 
     renderAnalyticsTrends();
 
-    expect(await screen.findByText('video-wi')).toBeInTheDocument();
-    expect(screen.getByText('@Your brand')).toBeInTheDocument();
-    expect(screen.getByText('0.0%')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mocks.viralVideoProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          videos: [
+            expect.objectContaining({
+              creatorHandle: 'Your brand',
+              engagementRate: 0,
+              platform: 'genfeed',
+              title: 'video-wi',
+              viralScore: 0,
+              views: 0,
+            }),
+          ],
+        }),
+      );
+    });
   });
 
-  it('renders the recoverable empty state when the videos collection is empty', async () => {
+  it('supplies a recoverable empty collection when no videos exist', async () => {
     mocks.findAllVideos.mockResolvedValue([]);
 
     renderAnalyticsTrends();
 
-    expect(
-      await screen.findByText('No viral videos found'),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mocks.viralVideoProps).toHaveBeenLastCalledWith(
+        expect.objectContaining({ videos: [] }),
+      );
+    });
     expect(mocks.loggerError).not.toHaveBeenCalledWith(
       'Failed to fetch analytics videos',
       expect.anything(),
