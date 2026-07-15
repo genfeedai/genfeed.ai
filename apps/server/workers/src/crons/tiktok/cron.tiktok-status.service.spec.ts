@@ -67,7 +67,7 @@ describe('CronTiktokStatusService', () => {
       ),
     };
     schedulerPublishStateService = {
-      transitionPost: vi.fn().mockResolvedValue(false),
+      transitionPost: vi.fn().mockResolvedValue(true),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -151,12 +151,14 @@ describe('CronTiktokStatusService', () => {
       }),
       expect.any(Function),
     );
-    expect(postsService.patch).toHaveBeenCalledWith(
-      'post-1',
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
+      post,
       expect.objectContaining({
         externalId: 'tiktok-post-1',
         status: PostStatus.PUBLIC,
       }),
+      expect.stringContaining('moderation completed'),
+      expect.any(Object),
     );
     expect(
       publishEventWebhookService.emitLegacyPostPublished,
@@ -197,9 +199,11 @@ describe('CronTiktokStatusService', () => {
       }),
       expect.any(Function),
     );
-    expect(postsService.patch).toHaveBeenCalledWith(
-      'post-2',
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
+      post,
       expect.objectContaining({ status: PostStatus.FAILED }),
+      'TikTok moderation timeout - exceeded 24 hours',
+      expect.any(Object),
     );
     expect(
       publishEventWebhookService.emitLegacyPostFailed,
@@ -211,6 +215,33 @@ describe('CronTiktokStatusService', () => {
       }),
     );
     expect(tiktokService.getPublishStatus).not.toHaveBeenCalled();
+  });
+
+  it('suppresses the failed webhook when the canonical transition is stale', async () => {
+    const post = {
+      _id: 'post-stale-failure',
+      brand: 'brand-1',
+      credential: {
+        _id: 'credential-1',
+        accessToken: 'encrypted-token',
+        id: 'credential-1',
+        isConnected: true,
+      },
+      externalId: 'publish-stale-failure',
+      id: 'post-stale-failure',
+      organization: 'org-1',
+      updatedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValue({ docs: [post] });
+    schedulerPublishStateService.transitionPost.mockResolvedValue(false);
+
+    await service.checkPendingTiktokPosts();
+
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalled();
+    expect(
+      publishEventWebhookService.emitLegacyPostFailed,
+    ).not.toHaveBeenCalled();
   });
 
   it('continues the sweep when provenance recording fails', async () => {
@@ -277,5 +308,37 @@ describe('CronTiktokStatusService', () => {
       },
     );
     expect(postsService.patch).not.toHaveBeenCalled();
+  });
+
+  it('suppresses the published webhook when the canonical transition is stale', async () => {
+    const post = {
+      brand: 'brand-1',
+      credential: {
+        accessToken: 'encrypted-token',
+        externalHandle: 'creator',
+        id: 'credential-1',
+        isConnected: true,
+      },
+      externalId: 'publish-stale-success',
+      groupId: 'group-1',
+      id: 'post-stale-success',
+      organization: 'org-1',
+      updatedAt: new Date().toISOString(),
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValue({ docs: [post] });
+    tiktokService.refreshToken.mockResolvedValue({ accessToken: '' });
+    tiktokService.getPublishStatus.mockResolvedValue({
+      publicly_available_post_id: ['tiktok-stale-success'],
+      status: 'PUBLISH_COMPLETE',
+    });
+    schedulerPublishStateService.transitionPost.mockResolvedValue(false);
+
+    await service.checkPendingTiktokPosts();
+
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalled();
+    expect(
+      publishEventWebhookService.emitLegacyPostPublished,
+    ).not.toHaveBeenCalled();
   });
 });

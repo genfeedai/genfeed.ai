@@ -181,6 +181,7 @@ export class CronYoutubeStatusService {
                 workflowExecutionId: provenance.executionId,
               });
             }
+            return grouped;
           },
         );
         if (
@@ -254,6 +255,7 @@ export class CronYoutubeStatusService {
             await this.postsService.patch(post.id.toString(), {
               isDeleted: true,
             });
+            return true;
           },
         );
 
@@ -277,33 +279,35 @@ export class CronYoutubeStatusService {
     post: PostEntity,
     outcome: string,
     detail: string,
-    transition: (provenance: SystemWorkflowProvenance) => Promise<void>,
+    transition: (provenance: SystemWorkflowProvenance) => Promise<boolean>,
   ): Promise<boolean> {
     try {
-      await this.systemWorkflowProvenanceService.runAction(
-        {
-          actionType: 'youtube-status-reconciliation',
-          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
-          description:
-            'Syncs recent YouTube video visibility with the actual status reported by YouTube.',
-          inputValues: {
-            detail,
-            outcome,
-            postId: String(post.id),
-            videoId: post.externalId,
+      const { result } =
+        await this.systemWorkflowProvenanceService.runAction<boolean>(
+          {
+            actionType: 'youtube-status-reconciliation',
+            canonicalId:
+              SYSTEM_WORKFLOW_ACTION_IDS.YOUTUBE_STATUS_RECONCILIATION,
+            description:
+              'Syncs recent YouTube video visibility with the actual status reported by YouTube.',
+            inputValues: {
+              detail,
+              outcome,
+              postId: String(post.id),
+              videoId: post.externalId,
+            },
+            label: 'YouTube Status Reconciliation',
+            metadata: { platform: CredentialPlatform.YOUTUBE },
+            organizationId: post.organization.toString(),
+            postIds: [post.id.toString()],
+            schedule: '0 1 * * *',
+            source: 'CronYoutubeStatusService.checkPostStatus',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            userId: post.user?.toString(),
           },
-          label: 'YouTube Status Reconciliation',
-          metadata: { platform: CredentialPlatform.YOUTUBE },
-          organizationId: post.organization.toString(),
-          postIds: [post.id.toString()],
-          schedule: '0 1 * * *',
-          source: 'CronYoutubeStatusService.checkPostStatus',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-          userId: post.user?.toString(),
-        },
-        transition,
-      );
-      return true;
+          transition,
+        );
+      return result;
     } catch (error: unknown) {
       this.logger.error('Failed to record YouTube status transition', {
         error: (error as Error)?.message,

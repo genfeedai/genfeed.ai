@@ -62,7 +62,7 @@ describe('CronYoutubeStatusService', () => {
       ),
     };
     schedulerPublishStateService = {
-      transitionPost: vi.fn().mockResolvedValue(false),
+      transitionPost: vi.fn().mockResolvedValue(true),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -166,9 +166,11 @@ describe('CronYoutubeStatusService', () => {
       }),
       expect.any(Function),
     );
-    expect(postsService.patch).toHaveBeenCalledWith(
-      'post-1',
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
+      post,
       expect.objectContaining({ status: PostStatus.PUBLIC }),
+      'YouTube reports public',
+      expect.any(Object),
     );
     expect(
       publishEventWebhookService.emitLegacyPostPublished,
@@ -180,6 +182,32 @@ describe('CronYoutubeStatusService', () => {
         url: 'https://www.youtube.com/watch?v=video-1',
       }),
     );
+  });
+
+  it('suppresses the published webhook when the canonical transition is stale', async () => {
+    const post = {
+      _id: 'post-stale',
+      brand: 'brand-1',
+      credential: 'credential-1',
+      externalId: 'video-stale',
+      groupId: 'group-1',
+      id: 'post-stale',
+      organization: 'org-1',
+      status: PostStatus.PRIVATE,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValue({ docs: [post] });
+    youtubeService.getVideoStatus.mockResolvedValue({
+      privacyStatus: 'public',
+    });
+    schedulerPublishStateService.transitionPost.mockResolvedValue(false);
+
+    await service.checkScheduledYoutubeVideos();
+
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalled();
+    expect(
+      publishEventWebhookService.emitLegacyPostPublished,
+    ).not.toHaveBeenCalled();
   });
 
   it('does not record an execution when the status is unchanged', async () => {

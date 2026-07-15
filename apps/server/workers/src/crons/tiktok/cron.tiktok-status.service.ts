@@ -271,6 +271,7 @@ export class CronTiktokStatusService {
                 workflowExecutionId: provenance.executionId,
               });
             }
+            return grouped;
           },
         );
         if (transitioned) {
@@ -408,6 +409,7 @@ export class CronTiktokStatusService {
             workflowExecutionId: provenance.executionId,
           });
         }
+        return grouped;
       },
     );
     if (transitioned) {
@@ -433,34 +435,36 @@ export class CronTiktokStatusService {
     post: TiktokPost,
     outcome: 'published' | 'failed',
     detail: string,
-    transition: (provenance: SystemWorkflowProvenance) => Promise<void>,
+    transition: (provenance: SystemWorkflowProvenance) => Promise<boolean>,
   ): Promise<boolean> {
     try {
-      await this.systemWorkflowProvenanceService.runAction(
-        {
-          actionType: 'tiktok-status-reconciliation',
-          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
-          description:
-            'Verifies pending TikTok publications and reconciles post status once moderation completes.',
-          failureMessage: () => (outcome === 'failed' ? detail : undefined),
-          inputValues: {
-            detail,
-            outcome,
-            postId: String(post.id),
-            publishId: post.externalId,
+      const { result } =
+        await this.systemWorkflowProvenanceService.runAction<boolean>(
+          {
+            actionType: 'tiktok-status-reconciliation',
+            canonicalId:
+              SYSTEM_WORKFLOW_ACTION_IDS.TIKTOK_STATUS_RECONCILIATION,
+            description:
+              'Verifies pending TikTok publications and reconciles post status once moderation completes.',
+            failureMessage: () => (outcome === 'failed' ? detail : undefined),
+            inputValues: {
+              detail,
+              outcome,
+              postId: String(post.id),
+              publishId: post.externalId,
+            },
+            label: 'TikTok Status Reconciliation',
+            metadata: { platform: CredentialPlatform.TIKTOK },
+            organizationId: post.organization.toString(),
+            postIds: [String(post.id)],
+            schedule: '*/5 * * * *',
+            source: 'CronTiktokStatusService.checkPostStatus',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            userId: post.user?.toString(),
           },
-          label: 'TikTok Status Reconciliation',
-          metadata: { platform: CredentialPlatform.TIKTOK },
-          organizationId: post.organization.toString(),
-          postIds: [String(post.id)],
-          schedule: '*/5 * * * *',
-          source: 'CronTiktokStatusService.checkPostStatus',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-          userId: post.user?.toString(),
-        },
-        transition,
-      );
-      return true;
+          transition,
+        );
+      return result;
     } catch (error: unknown) {
       this.logger.error('Failed to record TikTok status transition', {
         error: (error as Error)?.message,
