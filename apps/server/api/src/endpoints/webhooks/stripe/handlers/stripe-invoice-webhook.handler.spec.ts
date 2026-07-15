@@ -2,6 +2,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
+import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { ByokBillingStatus, SubscriptionTier } from '@genfeedai/enums';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
@@ -29,7 +30,7 @@ describe('StripeInvoiceWebhookHandler', () => {
   const usersService = { findOne: vi.fn(), patch: vi.fn() };
   const accessBootstrapCacheService = { invalidateForUser: vi.fn() };
   const supportService = {
-    hasSubscriptionInvoiceCreditGrant: vi.fn().mockResolvedValue(false),
+    hasSubscriptionCreditGrant: vi.fn().mockResolvedValue(false),
     isUniqueConstraintError: vi.fn().mockReturnValue(false),
     markOnboardingComplete: vi.fn(),
     recordCreditsActivity: vi.fn(),
@@ -63,12 +64,13 @@ describe('StripeInvoiceWebhookHandler', () => {
     subscriptionsService.findOne.mockResolvedValue(monthlySubscription);
     subscriptionsService.patch.mockResolvedValue(monthlySubscription);
     supportService.resolveTierFromPriceId.mockReturnValue(null);
-    supportService.hasSubscriptionInvoiceCreditGrant.mockResolvedValue(false);
+    supportService.hasSubscriptionCreditGrant.mockResolvedValue(false);
     supportService.isUniqueConstraintError.mockReturnValue(false);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         StripeInvoiceWebhookHandler,
+        StripeSubscriptionCreditReconcilerService,
         { provide: ConfigService, useValue: configService },
         { provide: LoggerService, useValue: loggerService },
         { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
@@ -107,10 +109,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         'monthly',
         expect.stringContaining('monthly'),
         expect.any(Date),
-        {
+        expect.objectContaining({
           referenceId: 'stripe-invoice:in_123',
           referenceType: 'stripe-invoice:subscription-grant',
-        },
+        }),
       );
       expect(supportService.setHasEverHadCredits).toHaveBeenCalledWith(
         'org_1',
@@ -142,10 +144,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         500_000,
         'yearly',
         expect.stringContaining('yearly'),
-        {
+        expect.objectContaining({
           referenceId: 'stripe-invoice:in_123',
           referenceType: 'stripe-invoice:subscription-grant',
-        },
+        }),
       );
     });
 
@@ -173,10 +175,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         'monthly',
         expect.stringContaining('monthly'),
         expect.any(Date),
-        {
+        expect.objectContaining({
           referenceId: 'stripe-invoice:in_123',
           referenceType: 'stripe-invoice:subscription-grant',
-        },
+        }),
       );
     });
 
@@ -204,10 +206,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         'monthly',
         expect.stringContaining('monthly'),
         expect.any(Date),
-        {
+        expect.objectContaining({
           referenceId: 'stripe-invoice:in_123',
           referenceType: 'stripe-invoice:subscription-grant',
-        },
+        }),
       );
     });
 
@@ -233,10 +235,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         96_000,
         'yearly',
         expect.stringContaining('yearly'),
-        {
+        expect.objectContaining({
           referenceId: 'stripe-invoice:in_123',
           referenceType: 'stripe-invoice:subscription-grant',
-        },
+        }),
       );
     });
 
@@ -295,10 +297,46 @@ describe('StripeInvoiceWebhookHandler', () => {
       expect(
         accessBootstrapCacheService.invalidateForUser,
       ).toHaveBeenCalledWith('user_1');
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).toHaveBeenCalledWith(
+        'org_1',
+        35_000,
+        'monthly',
+        expect.stringContaining('monthly'),
+        expect.any(Date),
+        expect.objectContaining({
+          referenceId: 'stripe-subscription:sub_stripe_1',
+          referenceType: 'stripe-subscription:initial-grant',
+        }),
+      );
+    });
+
+    it('propagates credit reconciliation failures for Stripe retry', async () => {
+      const ledgerError = new Error('ledger unavailable');
+      creditsUtilsService.addOrganizationCreditsWithExpiration.mockRejectedValueOnce(
+        ledgerError,
+      );
+
+      await expect(
+        handler.handleInvoicePaid(
+          invoiceWith({
+            parent: {
+              subscription_details: { subscription: 'sub_stripe_1' },
+            },
+          }),
+          'test',
+        ),
+      ).rejects.toBe(ledgerError);
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed to handle invoice paid'),
+        ledgerError,
+      );
     });
 
     it('#1398: skips a duplicate monthly grant when the invoice reference already exists', async () => {
-      supportService.hasSubscriptionInvoiceCreditGrant.mockResolvedValue(true);
+      supportService.hasSubscriptionCreditGrant.mockResolvedValue(true);
 
       await handler.handleInvoicePaid(
         invoiceWith({
@@ -309,12 +347,15 @@ describe('StripeInvoiceWebhookHandler', () => {
         'test',
       );
 
-      expect(
-        supportService.hasSubscriptionInvoiceCreditGrant,
-      ).toHaveBeenCalledWith('org_1', {
-        referenceId: 'stripe-invoice:in_123',
-        referenceType: 'stripe-invoice:subscription-grant',
-      });
+      expect(supportService.hasSubscriptionCreditGrant).toHaveBeenCalledWith(
+        'org_1',
+        {
+          reference: {
+            referenceId: 'stripe-invoice:in_123',
+            referenceType: 'stripe-invoice:subscription-grant',
+          },
+        },
+      );
       expect(
         creditsUtilsService.addOrganizationCreditsWithExpiration,
       ).not.toHaveBeenCalled();
@@ -329,7 +370,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         ...monthlySubscription,
         type: 'yearly',
       });
-      supportService.hasSubscriptionInvoiceCreditGrant.mockResolvedValue(true);
+      supportService.hasSubscriptionCreditGrant.mockResolvedValue(true);
 
       await handler.handleInvoicePaid(
         invoiceWith({
@@ -398,10 +439,10 @@ describe('StripeInvoiceWebhookHandler', () => {
         500_000,
         'yearly',
         expect.stringContaining('yearly'),
-        {
+        expect.objectContaining({
           referenceId: 'stripe-invoice:in_123',
           referenceType: 'stripe-invoice:subscription-grant',
-        },
+        }),
       );
       expect(supportService.isUniqueConstraintError).toHaveBeenCalledWith(
         uniqueConstraintError,

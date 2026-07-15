@@ -276,14 +276,16 @@ describe('StripeWebhookSupportService', () => {
     });
   });
 
-  describe('hasSubscriptionInvoiceCreditGrant', () => {
+  describe('hasSubscriptionCreditGrant', () => {
     it('returns false when no matching credit transaction exists', async () => {
       prisma.creditTransaction.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.hasSubscriptionInvoiceCreditGrant('org_1', {
-          referenceId: 'stripe-invoice:in_123',
-          referenceType: 'stripe-invoice:subscription-grant',
+        service.hasSubscriptionCreditGrant('org_1', {
+          reference: {
+            referenceId: 'stripe-invoice:in_123',
+            referenceType: 'stripe-invoice:subscription-grant',
+          },
         }),
       ).resolves.toBe(false);
 
@@ -292,8 +294,12 @@ describe('StripeWebhookSupportService', () => {
         where: {
           isDeleted: false,
           organizationId: 'org_1',
-          referenceId: 'stripe-invoice:in_123',
-          referenceType: 'stripe-invoice:subscription-grant',
+          OR: [
+            {
+              referenceId: 'stripe-invoice:in_123',
+              referenceType: 'stripe-invoice:subscription-grant',
+            },
+          ],
         },
       });
     });
@@ -302,14 +308,55 @@ describe('StripeWebhookSupportService', () => {
       prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'txn_1' });
 
       await expect(
-        service.hasSubscriptionInvoiceCreditGrant('org_1', {
-          referenceId: 'stripe-invoice:in_123',
-          referenceType: 'stripe-invoice:subscription-grant',
+        service.hasSubscriptionCreditGrant('org_1', {
+          reference: {
+            referenceId: 'stripe-invoice:in_123',
+            referenceType: 'stripe-invoice:subscription-grant',
+          },
         }),
       ).resolves.toBe(true);
 
       const where = prisma.creditTransaction.findFirst.mock.calls[0][0].where;
       expect(where).not.toHaveProperty('category');
+    });
+
+    it('recognizes legacy invoice grants from the same subscription period', async () => {
+      prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'txn_1' });
+      const periodStart = new Date('2026-07-01T00:00:00.000Z');
+      const periodEnd = new Date('2026-08-01T00:00:00.000Z');
+
+      await expect(
+        service.hasSubscriptionCreditGrant('org_1', {
+          legacyPeriod: {
+            end: periodEnd,
+            source: 'monthly',
+            start: periodStart,
+          },
+          reference: {
+            referenceId: 'stripe-subscription:sub_123',
+            referenceType: 'stripe-subscription:initial-grant',
+          },
+        }),
+      ).resolves.toBe(true);
+
+      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          isDeleted: false,
+          organizationId: 'org_1',
+          OR: [
+            {
+              referenceId: 'stripe-subscription:sub_123',
+              referenceType: 'stripe-subscription:initial-grant',
+            },
+            {
+              createdAt: { gte: periodStart, lt: periodEnd },
+              referenceType: 'stripe-invoice:subscription-grant',
+              source: 'monthly',
+            },
+          ],
+        },
+      });
     });
   });
 

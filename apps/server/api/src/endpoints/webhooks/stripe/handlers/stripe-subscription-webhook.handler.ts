@@ -1,5 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { UsersService } from '@api/collections/users/services/users.service';
+import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
@@ -24,6 +25,7 @@ export class StripeSubscriptionWebhookHandler {
     private readonly usersService: UsersService,
     private readonly supportService: StripeWebhookSupportService,
     private readonly lifecycleEmailService: LifecycleEmailService,
+    private readonly creditReconciler: StripeSubscriptionCreditReconcilerService,
   ) {}
 
   async handleSubscriptionCreated(
@@ -80,6 +82,33 @@ export class StripeSubscriptionWebhookHandler {
         );
       }
 
+      const subscriptionItem = subscription.items.data[0];
+      await this.creditReconciler.reconcile({
+        billingReason: 'subscription_create',
+        ...(subscriptionItem.current_period_end
+          ? {
+              periodEnd: new Date(subscriptionItem.current_period_end * 1000),
+            }
+          : {}),
+        ...(subscriptionItem.current_period_start
+          ? {
+              periodStart: new Date(
+                subscriptionItem.current_period_start * 1000,
+              ),
+            }
+          : {}),
+        stripeSubscriptionId: subscription.id,
+        subscription: {
+          ...existingSubscription,
+          ...(updatedSubscription ?? {}),
+          stripePriceId,
+          type: subscriptionData.type,
+        },
+        subscriptionStatus: subscription.status,
+        trigger: 'customer.subscription.created',
+        url,
+      });
+
       this.loggerService.log(`${url} subscription created successfully`, {
         organizationId: existingSubscription.organization,
         status: subscription.status,
@@ -90,6 +119,7 @@ export class StripeSubscriptionWebhookHandler {
         `${url} failed to handle subscription created`,
         error,
       );
+      throw error;
     }
   }
 
@@ -104,10 +134,13 @@ export class StripeSubscriptionWebhookHandler {
     // Stripe API: cancel_at_period_end is on Subscription,
     // current_period_end is on subscription items (moved in newer API versions)
     const currentPeriodEnd = subscription.items.data[0]?.current_period_end;
+    const currentPeriodStart = subscription.items.data[0]?.current_period_start;
 
     return {
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
       currentPeriodEnd: currentPeriodEnd && new Date(currentPeriodEnd * 1000),
+      currentPeriodStart:
+        currentPeriodStart && new Date(currentPeriodStart * 1000),
       status: subscription.status as SubscriptionStatus,
       stripePriceId: subscription.items.data[0].price.id,
       stripeSubscriptionId: subscription.id,

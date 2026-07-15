@@ -1,47 +1,30 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { extractInvoiceSubscriptionId } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
-import {
-  ActivityKey,
-  ActivitySource,
-  ByokBillingStatus,
-  SubscriptionPlan,
-} from '@genfeedai/enums';
+import { ActivitySource, ByokBillingStatus } from '@genfeedai/enums';
 import {
   type ISubscriptionOssReadModel,
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
-import { TIER_INCLUDED_MONTHLY_CREDITS } from '@genfeedai/pricing';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
-
-/**
- * Durable reference type for subscription-invoice credit grants (#1398).
- * Scoped by `stripe-invoice:{invoice.id}` so a Stripe replay of the same
- * invoice (same or a fresh event id) can never re-grant credits, even after
- * the 24h Redis webhook-event dedup marker has expired.
- */
-const SUBSCRIPTION_INVOICE_CREDIT_REFERENCE_TYPE =
-  'stripe-invoice:subscription-grant';
 
 /** Handles invoice.paid / invoice.payment_failed Stripe webhook events. */
 @Injectable()
 export class StripeInvoiceWebhookHandler {
   constructor(
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
 
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly usersService: UsersService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly supportService: StripeWebhookSupportService,
+    private readonly creditReconciler: StripeSubscriptionCreditReconcilerService,
   ) {}
 
   async handleInvoicePaid(invoice: StripeInvoice, url: string): Promise<void> {
@@ -95,7 +78,20 @@ export class StripeInvoiceWebhookHandler {
         updatedSubscription,
       );
 
-      await this.allocateSubscriptionCredits(subscription, invoice, url);
+      await this.creditReconciler.reconcile({
+        billingReason: invoice.billing_reason,
+        invoiceId: invoice.id,
+        ...(invoice.period_end
+          ? { periodEnd: new Date(invoice.period_end * 1000) }
+          : {}),
+        ...(invoice.period_start
+          ? { periodStart: new Date(invoice.period_start * 1000) }
+          : {}),
+        stripeSubscriptionId,
+        subscription,
+        trigger: 'invoice.paid',
+        url,
+      });
 
       // Mark onboarding as completed server-side on first subscription payment
       if (invoice.billing_reason === 'subscription_create') {
@@ -108,173 +104,8 @@ export class StripeInvoiceWebhookHandler {
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed to handle invoice paid`, error);
+      throw error;
     }
-  }
-
-  /**
-   * Resolve the billing-period credit amount for a subscription.
-   *
-   * Tier-aware: Pro/Scale grant their configured monthly included credits
-   * (TIER_INCLUDED_MONTHLY_CREDITS — single source of truth in
-   * @genfeedai/pricing, matching the website plan cards); yearly grants 12x
-   * that. Tiers without a configured allotment (e.g. Enterprise) and any
-   * unresolved price fall back to the STRIPE_MONTHLY_CREDITS /
-   * STRIPE_YEARLY_CREDITS config values.
-   */
-  private resolvePlanCredits(
-    subscription: Pick<ISubscriptionOssReadModel, 'type' | 'stripePriceId'>,
-  ): number {
-    const tier = subscription.stripePriceId
-      ? this.supportService.resolveTierFromPriceId(subscription.stripePriceId)
-      : null;
-    const tierMonthlyCredits = tier
-      ? TIER_INCLUDED_MONTHLY_CREDITS[tier]
-      : undefined;
-
-    if (subscription.type === SubscriptionPlan.MONTHLY) {
-      return (
-        tierMonthlyCredits ??
-        (Number(this.configService.get('STRIPE_MONTHLY_CREDITS')) || 35_000)
-      );
-    }
-
-    if (subscription.type === SubscriptionPlan.YEARLY) {
-      return tierMonthlyCredits != null
-        ? tierMonthlyCredits * 12
-        : Number(this.configService.get('STRIPE_YEARLY_CREDITS')) || 500_000;
-    }
-
-    return 0;
-  }
-
-  /** Allocate billing-period credits based on the subscription plan's rollover policy. */
-  private async allocateSubscriptionCredits(
-    subscription: ISubscriptionOssReadModel,
-    invoice: StripeInvoice,
-    url: string,
-  ): Promise<void> {
-    const creditsToAdd = this.resolvePlanCredits(subscription);
-
-    if (creditsToAdd <= 0) {
-      return;
-    }
-
-    const organizationId = String(subscription.organization);
-    // #1398: durable Postgres-level dedup keyed on the invoice, covering
-    // BOTH rollover policies below. The Redis event-id marker only guards
-    // the 24h window immediately after the original webhook — this guards
-    // any later replay of the same invoice regardless of event id.
-    const creditReference = {
-      referenceId: `stripe-invoice:${invoice.id}`,
-      referenceType: SUBSCRIPTION_INVOICE_CREDIT_REFERENCE_TYPE,
-    };
-
-    if (
-      await this.supportService.hasSubscriptionInvoiceCreditGrant(
-        organizationId,
-        creditReference,
-      )
-    ) {
-      this.loggerService.log(
-        `${url} skipping duplicate subscription invoice credit grant`,
-        { invoiceId: invoice.id, organizationId, ...creditReference },
-      );
-      return;
-    }
-
-    // Handle different rollover policies based on subscription type
-    if (subscription.type === SubscriptionPlan.MONTHLY) {
-      // Monthly: 3-month rollover with expiration. The reference is also
-      // passed through to the transaction row as a race-condition backstop
-      // behind a unique index (P2002 is treated as a duplicate no-op below).
-      try {
-        await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-          organizationId,
-          creditsToAdd,
-          subscription.type,
-          `${subscription.type} subscription billing period`,
-          new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 months from now
-          creditReference,
-        );
-      } catch (error: unknown) {
-        if (this.supportService.isUniqueConstraintError(error)) {
-          this.loggerService.log(
-            `${url} skipping duplicate subscription invoice credit grant`,
-            { invoiceId: invoice.id, organizationId, ...creditReference },
-          );
-          return;
-        }
-        throw error;
-      }
-    } else if (subscription.type === SubscriptionPlan.YEARLY) {
-      // Yearly: reset credits (no rollover). The reference is also passed
-      // through to the reset transaction row as a race-condition backstop
-      // behind the same unique index used by the monthly path above (P2002
-      // is treated as a duplicate no-op below) — symmetric protection to
-      // MONTHLY, since the pre-check alone cannot see a prior grant unless
-      // the reset transaction actually persists the reference (#1398).
-      try {
-        await this.creditsUtilsService.resetOrganizationCredits(
-          organizationId,
-          creditsToAdd,
-          subscription.type,
-          `${subscription.type} subscription billing period reset`,
-          creditReference,
-        );
-      } catch (error: unknown) {
-        if (this.supportService.isUniqueConstraintError(error)) {
-          this.loggerService.log(
-            `${url} skipping duplicate subscription invoice credit grant`,
-            { invoiceId: invoice.id, organizationId, ...creditReference },
-          );
-          return;
-        }
-        throw error;
-      }
-    }
-
-    // Log activity for credit handling
-    const activityKey =
-      subscription.type === SubscriptionPlan.MONTHLY
-        ? ActivityKey.CREDITS_ADD
-        : ActivityKey.CREDITS_RESET;
-
-    await this.supportService.recordCreditsActivity({
-      brandId: String(subscription.organization),
-      key: activityKey,
-      organizationId: String(subscription.organization),
-      source: ActivitySource.SUBSCRIPTION,
-      userId: String(subscription.user),
-      value: String(creditsToAdd),
-    });
-
-    const currentBalance =
-      await this.creditsUtilsService.getOrganizationCreditsBalance(
-        String(subscription.organization),
-      );
-
-    this.loggerService.log(
-      `${url} ${subscription.type} subscription credits processed`,
-      {
-        billingReason: invoice.billing_reason,
-        creditsAdded: creditsToAdd,
-        currentBalance,
-        organizationId: subscription.organization,
-        policy:
-          subscription.type === SubscriptionPlan.MONTHLY
-            ? '3-month rollover'
-            : 'reset only',
-        subscriptionType: subscription.type,
-      },
-    );
-
-    // Mark org as having received credits (used by frontend to hide setup card).
-    // hasEverHadCredits is persisted to OrganizationSetting and read from the DB
-    // on bootstrap (epic #735, Phase C — no legacy auth provider write-back).
-    await this.supportService.setHasEverHadCredits(
-      String(subscription.organization),
-      url,
-    );
   }
 
   private async markOnboardingCompleteFromInvoice(

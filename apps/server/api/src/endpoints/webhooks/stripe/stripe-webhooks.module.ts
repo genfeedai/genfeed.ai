@@ -14,6 +14,7 @@ import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
+import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
@@ -52,6 +53,7 @@ const BaseModule = createServiceModule(StripeWebhookService, {
     StripeCheckoutWebhookHandler,
     StripeCustomerWebhookHandler,
     StripeInvoiceWebhookHandler,
+    StripeSubscriptionCreditReconcilerService,
     StripeSubscriptionWebhookHandler,
     StripeWebhookSupportService,
   ],

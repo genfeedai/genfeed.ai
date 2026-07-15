@@ -53,6 +53,16 @@ type PurchasedCreditsReference = {
   referenceType: string;
 };
 
+type SubscriptionCreditGrantLookup = {
+  legacyInvoiceReference?: PurchasedCreditsReference;
+  legacyPeriod?: {
+    end: Date;
+    source: string;
+    start: Date;
+  };
+  reference: PurchasedCreditsReference;
+};
+
 /**
  * Shared side-effect helpers used by the per-concern Stripe webhook handlers.
  * Each helper is the single definition of a block that was previously
@@ -207,25 +217,49 @@ export class StripeWebhookSupportService {
   }
 
   /**
-   * Durable Postgres-level dedup for subscription-invoice credit grants
-   * (#1398). The Redis `stripe:webhook:{event.id}` marker only covers the
-   * originating event for 24h; a Stripe replay past that window (auto-retry
-   * runs up to 3 days, or a manual Dashboard resend) must still be a no-op.
-   * Unlike {@link hasPurchasedCreditGrant} this is NOT filtered by
-   * `category` — a MONTHLY grant writes an ADD row, a YEARLY grant writes a
-   * RESET row, and either must block a re-grant for the same invoice.
+   * Durable Postgres-level dedup for subscription credit grants. The exact
+   * reference is the concurrency guard; optional legacy lookups prevent a
+   * historical invoice grant from being repeated after the initial-grant key
+   * introduced by #1608. Category is intentionally unrestricted because
+   * monthly grants write ADD rows while yearly grants write RESET rows.
    */
-  async hasSubscriptionInvoiceCreditGrant(
+  async hasSubscriptionCreditGrant(
     organizationId: string,
-    reference: PurchasedCreditsReference,
+    lookup: SubscriptionCreditGrantLookup,
   ): Promise<boolean> {
+    const references = [
+      {
+        referenceId: lookup.reference.referenceId,
+        referenceType: lookup.reference.referenceType,
+      },
+      ...(lookup.legacyInvoiceReference
+        ? [
+            {
+              referenceId: lookup.legacyInvoiceReference.referenceId,
+              referenceType: lookup.legacyInvoiceReference.referenceType,
+            },
+          ]
+        : []),
+      ...(lookup.legacyPeriod
+        ? [
+            {
+              createdAt: {
+                gte: lookup.legacyPeriod.start,
+                lt: lookup.legacyPeriod.end,
+              },
+              referenceType: 'stripe-invoice:subscription-grant',
+              source: lookup.legacyPeriod.source,
+            },
+          ]
+        : []),
+    ];
+
     const existing = await this.prisma.creditTransaction.findFirst({
       select: { id: true },
       where: {
         isDeleted: false,
         organizationId,
-        referenceId: reference.referenceId,
-        referenceType: reference.referenceType,
+        OR: references,
       },
     });
 
