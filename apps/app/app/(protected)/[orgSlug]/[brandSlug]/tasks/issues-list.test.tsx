@@ -4,13 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import IssuesList from './issues-list';
 
 const mocks = vi.hoisted(() => ({
+  getService: vi.fn(),
   list: vi.fn(),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({
-    list: mocks.list,
-  }),
+  useAuthedService: () => mocks.getService,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -28,8 +27,10 @@ vi.mock('./issue-overlay-controls', () => ({
 
 describe('IssuesList view controls', () => {
   beforeEach(() => {
+    mocks.getService.mockReset();
     mocks.list.mockReset();
     mocks.list.mockResolvedValue([]);
+    mocks.getService.mockResolvedValue({ list: mocks.list });
   });
 
   it('names the view controls and exposes their selected state', async () => {
