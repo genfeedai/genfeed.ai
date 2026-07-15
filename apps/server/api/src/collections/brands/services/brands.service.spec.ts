@@ -10,6 +10,7 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
@@ -86,6 +87,7 @@ describe('BrandsService', () => {
       llmDispatcher as unknown as LlmDispatcherService,
       cacheInvalidationService as unknown as CacheInvalidationService,
       filesClientService as unknown as FilesClientService,
+      {} as unknown as BrandRelocationService,
     );
   });
 

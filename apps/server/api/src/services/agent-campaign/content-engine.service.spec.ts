@@ -1,6 +1,6 @@
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
-
+import { CampaignWinnerExtractionService } from './campaign-winner-extraction.service';
 import { ContentEngineService } from './content-engine.service';
 import { ContentRotationService } from './content-rotation.service';
 
@@ -111,6 +111,12 @@ describe('ContentEngineService', () => {
         agentMemoryCaptureService as never,
         campaignMemoryQueueService as never,
         orchestratorQueueService as never,
+        new CampaignWinnerExtractionService(
+          agentCampaignsService as never,
+          analyticsService as never,
+          agentMemoryCaptureService as never,
+          logger as never,
+        ),
         logger as never,
       ),
     };
@@ -420,7 +426,7 @@ describe('ContentEngineService', () => {
       agents: strategies.map((s) => s.id),
       contentRotation: {
         enabled: true,
-        targets: strategies.map((s, i) => ({
+        targets: strategies.map((_strategy, i) => ({
           key: `topic-${i}`,
           topic: `topic-${i}`,
           weight: 10,
@@ -741,6 +747,12 @@ describe('ContentEngineService', () => {
       agentMemoryCaptureService as never,
       { queueExtraction: vi.fn() } as never,
       { queueCampaignRun: vi.fn() } as never,
+      new CampaignWinnerExtractionService(
+        agentCampaignsService as never,
+        analyticsService as never,
+        agentMemoryCaptureService as never,
+        logger as never,
+      ),
       logger as never,
     );
 

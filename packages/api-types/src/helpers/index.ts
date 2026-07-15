@@ -1,1 +1,1 @@
-export * from '@api-types/helpers/common-schemas';
+export * from './common-schemas';

@@ -8,9 +8,11 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { AgentStrategiesController } from '@api/collections/agent-strategies/controllers/agent-strategies.controller';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
+import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-execution.service';
+import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
+import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
-import { BrandsModule } from '@api/collections/brands/brands.module';
 import { ContentDraftsModule } from '@api/collections/content-drafts/content-drafts.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -32,7 +34,6 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   imports: [
     forwardRef(() => ActivitiesModule),
-    forwardRef(() => BrandsModule),
     forwardRef(() => ContentDraftsModule),
     forwardRef(() => ContentGatewayModule),
     forwardRef(() => BatchGenerationModule),
@@ -47,6 +48,9 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentStrategiesService,
     AgentStrategyOpportunitiesService,
     AgentStrategyReportsService,
+    AgentStrategyAutopilotExecutionService,
+    AgentStrategyAutopilotPerformanceService,
+    AgentStrategyAutopilotPlanningService,
     AgentStrategyAutopilotService,
   ],
 })

@@ -140,7 +140,7 @@ export const PRODUCT_WORKFLOW_BOUNDARY_EXCEPTIONS: ProductWorkflowBoundaryExcept
     },
     {
       classification: 'pending-system-workflow-migration',
-      file: 'apps/server/api/src/collections/social-inbox/services/social-inbox.service.ts',
+      file: 'apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts',
       id: 'social-inbox-manual-actions',
       issue: 1032,
       reason:

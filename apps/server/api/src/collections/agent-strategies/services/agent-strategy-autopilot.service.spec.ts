@@ -1,4 +1,7 @@
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
+import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-execution.service';
+import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
+import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
 
 describe('AgentStrategyAutopilotService', () => {
   const strategyId = 'test-object-id';
@@ -78,7 +81,6 @@ describe('AgentStrategyAutopilotService', () => {
     const trendsService = {
       getTrends: vi.fn().mockResolvedValue([]),
     };
-    const brandsService = {};
     const contentGatewayService = {
       processManualRequest: vi.fn(),
     };
@@ -131,13 +133,22 @@ describe('AgentStrategyAutopilotService', () => {
       warn: vi.fn(),
     };
 
-    const service = new AgentStrategyAutopilotService(
+    const performanceService = new AgentStrategyAutopilotPerformanceService(
       agentStrategiesService as never,
-      opportunitiesService as never,
       reportsService as never,
-      activitiesService as never,
+      contentDraftsService as never,
+      opportunitiesService as never,
+      contentPerformanceService as never,
+      performanceSummaryService as never,
+    );
+    const planningService = new AgentStrategyAutopilotPlanningService(
+      opportunitiesService as never,
       trendsService as never,
-      brandsService as never,
+      performanceService,
+    );
+    const executionService = new AgentStrategyAutopilotExecutionService(
+      opportunitiesService as never,
+      activitiesService as never,
       contentGatewayService as never,
       contentDraftsService as never,
       optimizersService as never,
@@ -145,9 +156,15 @@ describe('AgentStrategyAutopilotService', () => {
       credentialsService as never,
       postsService as never,
       batchGenerationService as never,
-      contentPerformanceService as never,
-      performanceSummaryService as never,
       logger as never,
+    );
+
+    const service = new AgentStrategyAutopilotService(
+      agentStrategiesService as never,
+      opportunitiesService as never,
+      performanceService,
+      planningService,
+      executionService,
     );
 
     return {

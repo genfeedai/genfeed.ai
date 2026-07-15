@@ -22,6 +22,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';
 import { Switch } from '@ui/primitives/switch';
+import { Text } from '@ui/typography/text';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiArrowPath, HiPaperAirplane } from 'react-icons/hi2';
 
@@ -111,6 +112,12 @@ export default function SettingsWebhooksPage() {
   );
 
   const deliveryStatus = settings?.webhookDeliveryStatus ?? null;
+  // The API rejects a test with 400 "Webhook endpoint is not configured" unless
+  // a webhook endpoint is saved AND enabled. Gate the Test button on the SAVED
+  // settings (not the unsaved form) so users configure + save before testing.
+  const isWebhookConfigured = Boolean(
+    settings?.isWebhookEnabled && settings?.webhookEndpoint,
+  );
   const selectedEvents = useMemo(
     () => new Set(form.webhookEventTypes),
     [form.webhookEventTypes],
@@ -241,7 +248,24 @@ export default function SettingsWebhooksPage() {
       NotificationsService.getInstance().success('Webhook test queued');
     } catch (error) {
       logger.error('Failed to test webhook delivery', error);
-      NotificationsService.getInstance().error('Failed to queue webhook test');
+      const responseData =
+        error && typeof error === 'object' && 'response' in error
+          ? (
+              error as {
+                response?: {
+                  data?: {
+                    message?: string;
+                    errors?: Array<{ detail?: string }>;
+                  };
+                };
+              }
+            ).response?.data
+          : undefined;
+      const message =
+        responseData?.errors?.[0]?.detail ??
+        responseData?.message ??
+        'Failed to queue webhook test';
+      NotificationsService.getInstance().error(message);
     } finally {
       setIsTesting(false);
     }
@@ -330,12 +354,18 @@ export default function SettingsWebhooksPage() {
             </Button>
             <Button
               icon={<HiPaperAirplane />}
+              isDisabled={!isWebhookConfigured}
               isLoading={isTesting}
               onClick={testDelivery}
               variant={SECONDARY_BUTTON_VARIANT}
             >
               Test delivery
             </Button>
+            {!isWebhookConfigured ? (
+              <Text as="span" className="text-xs text-surface/55">
+                Save an enabled endpoint before sending a test.
+              </Text>
+            ) : null}
           </div>
         </div>
       </Card>

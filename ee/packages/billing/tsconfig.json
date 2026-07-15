@@ -40,6 +40,8 @@
       "@genfeedai/utils/*": ["../../../packages/utils/*"],
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/api-types": ["../../../packages/api-types/src/index.ts"],
+      "@genfeedai/api-types/*": ["../../../packages/api-types/src/*"],
       "@genfeedai/harness": ["../../../packages/harness/src/index.ts"],
       "@genfeedai/harness/*": ["../../../packages/harness/src/*"],
       "@genfeedai/ee-billing": ["../../../ee/packages/billing/src/index.ts"],

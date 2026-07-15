@@ -377,7 +377,13 @@ function AppLayoutWithDynamicMenu({
       shellChromeVariant={shellChromeVariant}
       topbarChromeVariant={topbarChromeVariant}
       hasSecondaryTopbar={hasSecondaryTopbar}
-      menuItems={isAdminRoute ? adminMenuItems : menuItems}
+      menuItems={
+        isAdminRoute
+          ? adminMenuItems
+          : isSettingsRoute
+            ? settingsMenuItems
+            : menuItems
+      }
       agentPanel={visibleAgentPanel}
       isAgentCollapsed={!isAgentOpen}
       onAgentToggle={
@@ -412,7 +418,13 @@ function AppLayoutWithDynamicMenu({
         hasSecondaryTopbar={hasSecondaryTopbar}
         isAgentCollapsed={!isAgentOpen}
         menuComponent={legacyMenuComponent}
-        menuItems={isAdminRoute ? adminMenuItems : menuItems}
+        menuItems={
+          isAdminRoute
+            ? adminMenuItems
+            : isSettingsRoute
+              ? settingsMenuItems
+              : menuItems
+        }
         onAgentToggle={shouldMountLegacyAgentPanel ? toggleAgent : undefined}
         orgSlug={orgSlug}
         shellChromeVariant={shellChromeVariant}

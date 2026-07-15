@@ -8,11 +8,11 @@
  * - Inferred form data types (e.g., CreatePostFormData)
  */
 
-export * from '@api-types/contracts/channel-capabilities.contract';
-export * from '@api-types/contracts/ingredients.contract';
-export * from '@api-types/contracts/posting-sets.contract';
-export * from '@api-types/contracts/posts.contract';
-export * from '@api-types/contracts/publish-approval.contract';
-export * from '@api-types/contracts/publish-webhook-events.contract';
-export * from '@api-types/contracts/publishing-readiness.contract';
-export * from '@api-types/contracts/scheduler.contract';
+export * from './channel-capabilities.contract';
+export * from './ingredients.contract';
+export * from './posting-sets.contract';
+export * from './posts.contract';
+export * from './publish-approval.contract';
+export * from './publish-webhook-events.contract';
+export * from './publishing-readiness.contract';
+export * from './scheduler.contract';

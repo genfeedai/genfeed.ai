@@ -5,6 +5,9 @@
  * Types are derived from OpenAPI spec, with Zod schemas for runtime validation.
  */
 
+import { PostCategory, PostFrequency, PostStatus } from '@genfeedai/enums';
+import { z } from 'zod';
+import type { components } from '../generated/api.js';
 import {
   dateStringSchema,
   daysOfWeekSchema,
@@ -13,10 +16,7 @@ import {
   objectIdSchema,
   optionalStringSchema,
   timezoneSchema,
-} from '@api-types/helpers/common-schemas';
-import { PostCategory, PostFrequency, PostStatus } from '@genfeedai/enums';
-import { z } from 'zod';
-import type { components } from '../generated/api.js';
+} from '../helpers/common-schemas';
 
 // ============================================================================
 // Type Aliases from OpenAPI

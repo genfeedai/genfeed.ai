@@ -34,7 +34,12 @@ export default async function PostsRemixPage({
   const threadId = resolvedSearchParams.thread;
 
   if (typeof sourceArtifact !== 'string' || !sourceArtifact.trim()) {
-    return <TrendRemixPage />;
+    return (
+      <LibraryRemixSurface
+        sourceArtifact={null}
+        threadId={typeof threadId === 'string' ? threadId : null}
+      />
+    );
   }
 
   return (

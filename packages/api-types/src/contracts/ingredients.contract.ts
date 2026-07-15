@@ -6,19 +6,19 @@
  */
 
 import {
-  nonNegativeIntSchema,
-  objectIdArraySchema,
-  objectIdSchema,
-  optionalStringSchema,
-  positiveIntSchema,
-} from '@api-types/helpers/common-schemas';
-import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
 import { z } from 'zod';
+import {
+  nonNegativeIntSchema,
+  objectIdArraySchema,
+  objectIdSchema,
+  optionalStringSchema,
+  positiveIntSchema,
+} from '../helpers/common-schemas';
 
 // ============================================================================
 // Type Definitions (manual until OpenAPI generation is run)

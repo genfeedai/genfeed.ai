@@ -38,11 +38,11 @@ export function useDashboardLayout({
     isLoading,
     error,
     refetch,
-  } = useQuery<IDashboardLayout | undefined>({
+  } = useQuery<IDashboardLayout | null>({
     queryKey,
     queryFn: async () => {
       if (!brandId) {
-        return undefined;
+        return null;
       }
       const service = await getDashboardLayoutsService();
       return service.findForPage(brandId, pageKey);

@@ -15,6 +15,10 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import type { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
+import { ArticleInsightsService } from '@api/collections/articles/services/article-insights.service';
+import { ArticleRemixService } from '@api/collections/articles/services/article-remix.service';
+import { ArticleTranscriptService } from '@api/collections/articles/services/article-transcript.service';
+import { ArticleVersionService } from '@api/collections/articles/services/article-version.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -76,23 +80,24 @@ describe('ArticlesService cache invalidation', () => {
       invalidatePattern: vi.fn().mockResolvedValue(undefined),
     } as unknown as CacheInvalidationService;
 
+    const configService = {
+      get: vi.fn(),
+    } as unknown as ConfigService;
+
     const service = new ArticlesService(
       prisma,
       logger,
-      { get: vi.fn() } as unknown as ConfigService,
-      undefined, // replicateService
-      undefined, // promptBuilderService
+      configService,
+      new ArticleVersionService(logger),
+      new ArticleTranscriptService(configService, logger),
+      new ArticleInsightsService(logger, configService),
+      new ArticleRemixService(logger),
       undefined, // notificationsService
       undefined, // organizationSettingsService
-      undefined, // promptsService
       undefined, // articlesContentService
-      undefined, // templatesService
       cacheService,
-      undefined, // articleAnalyticsService
       undefined, // usersService
       undefined, // organizationsService
-      undefined, // creditsUtilsService
-      undefined, // modelsService
       cacheInvalidationService,
     );
 

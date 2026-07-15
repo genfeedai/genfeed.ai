@@ -4,10 +4,13 @@ import type { IngredientCategory } from '@genfeedai/enums';
 import {
   categoryToParam,
   paramToCategory,
+  STUDIO_CATEGORY_CONFIG,
   useEnabledCategories,
 } from '@hooks/data/organization/use-enabled-categories/use-enabled-categories';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import StudioGenerateLayout from '@pages/studio/generate';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import StudioWorkspaceSurfaceAdapter from '../studio-workspace-surface-adapter';
@@ -15,10 +18,12 @@ import GenerationFeatureGuard from './GenerationFeatureGuard';
 
 function StudioPageContentInner() {
   const { replace } = useRouter();
+  const { href } = useOrgUrl();
   const params = useParams<{ type?: string }>();
   const searchParams = useSearchParams();
   const requestedType = searchParams.get('type');
-  const { isEnabled, defaultCategory, isLoading } = useEnabledCategories();
+  const { enabledCategories, isEnabled, defaultCategory, isLoading } =
+    useEnabledCategories();
   const hasRedirectedRef = useRef(false);
 
   // Derive category from URL (single source of truth)
@@ -59,9 +64,31 @@ function StudioPageContentInner() {
     [replace],
   );
 
+  const navigationItems = useMemo(
+    () =>
+      STUDIO_CATEGORY_CONFIG.filter(({ category }) =>
+        enabledCategories.includes(category),
+      ).map(({ category, param }) => ({
+        href: href(`/studio/${param}`),
+        id: param,
+        label: `${category.charAt(0).toUpperCase()}${category.slice(1)}`,
+        matchMode: 'exact' as const,
+      })),
+    [enabledCategories, href],
+  );
+
   return (
     <div className="flex h-full flex-col">
       <StudioWorkspaceSurfaceAdapter mode={category} />
+      <div className="shrink-0 border-border border-b px-4 py-2">
+        <Tabs
+          items={navigationItems}
+          activeTab={categoryToParam(category)}
+          fullWidth={false}
+          size="sm"
+          variant="pills"
+        />
+      </div>
       <div className="min-h-0 flex-1">
         <GenerationFeatureGuard category={category}>
           <StudioGenerateLayout

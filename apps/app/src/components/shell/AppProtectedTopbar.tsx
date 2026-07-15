@@ -121,6 +121,11 @@ function AppProtectedTopbarContent({
 }: AppProtectedTopbarProps = {}) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  // Settings routes (/:org/~/settings or /:org/:brand/settings) show
+  // "Settings" as the breadcrumb root. Inspect the app-route segment so a
+  // brand slug named "settings" cannot trigger the settings breadcrumb.
+  const isSettingsRoute =
+    pathname?.split('/').filter(Boolean)[2] === 'settings';
   const { push } = useRouter();
   const isConversationShellEnabled = useConversationShellEnabled();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
@@ -308,7 +313,9 @@ function AppProtectedTopbarContent({
             rootLabel={
               isAdminChrome
                 ? TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
-                : undefined
+                : isSettingsRoute
+                  ? 'Settings'
+                  : undefined
             }
           />
         </div>

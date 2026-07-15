@@ -28,15 +28,6 @@
  * The mapping is backward-compatible: no legacy field is dropped, only relocated.
  */
 
-import { publishingProviderReadinessSchema } from '@api-types/contracts/publishing-readiness.contract';
-import {
-  dateStringSchema,
-  daysOfWeekSchema,
-  nonEmptyStringSchema,
-  nonNegativeIntSchema,
-  optionalStringSchema,
-  timezoneSchema,
-} from '@api-types/helpers/common-schemas';
 import {
   CredentialPlatform,
   PostFrequency,
@@ -47,6 +38,15 @@ import {
   TargetValidationState,
 } from '@genfeedai/enums';
 import { z } from 'zod';
+import {
+  dateStringSchema,
+  daysOfWeekSchema,
+  nonEmptyStringSchema,
+  nonNegativeIntSchema,
+  optionalStringSchema,
+  timezoneSchema,
+} from '../helpers/common-schemas';
+import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 
 // ============================================================================
 // Primitives

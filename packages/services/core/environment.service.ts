@@ -196,10 +196,15 @@ export const EnvironmentService = {
   },
 
   get managedCreditsApiEndpoint(): string {
+    // Fall back to the app's configured API endpoint (local in dev, cloud in
+    // prod) rather than a hardcoded production URL. The managed-checkout route
+    // is served by the same API as everything else, so hardcoding prod made
+    // local/self-hosted browsers issue a cross-origin POST to api.genfeed.ai
+    // that fails with "Failed to fetch". Explicit overrides still win.
     return (
       process.env.NEXT_PUBLIC_GENFEED_MANAGED_CREDITS_API_ENDPOINT ||
       process.env.NEXT_PUBLIC_GENFEED_MANAGED_API_ENDPOINT ||
-      'https://api.genfeed.ai/v1'
+      this.apiEndpoint
     );
   },
 

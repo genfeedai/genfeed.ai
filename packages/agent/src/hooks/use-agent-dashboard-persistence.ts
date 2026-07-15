@@ -96,9 +96,12 @@ export function useAgentDashboardPersistence({
       (localSnapshot.blocks.length > 0 || localSnapshot.isAgentModified)
     ) {
       hydrateState(localSnapshot);
-      lastPersistedSnapshotRef.current = JSON.stringify(localSnapshot);
     }
 
+    // Treat the resolved local state as the persistence baseline even when it
+    // is empty. Otherwise the default dashboard is immediately PATCHed back
+    // to the API on mount despite the user not changing anything.
+    lastPersistedSnapshotRef.current = JSON.stringify(localSnapshot);
     hasResolvedPersistenceRef.current = true;
   }, [currentUser, disabled, getLocalSnapshot, hydrateState, scope]);
 
