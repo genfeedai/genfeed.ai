@@ -702,7 +702,7 @@ jobs:
       - name: Run build
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run build --filter='./packages/*' --affected
+            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run build --filter='./packages/*' --filter=@genfeedai/docs --affected
           else
             bun run build
           fi
