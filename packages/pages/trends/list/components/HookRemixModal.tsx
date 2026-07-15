@@ -1,18 +1,14 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  ButtonSize,
-  ButtonVariant,
-  IngredientCategory,
-} from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ModalHookRemixProps } from '@props/trends/hook-remix.props';
-import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { HookRemixService } from '@services/hook-remix/hook-remix.service';
+import { VideosService } from '@services/ingredients/videos.service';
 import { useQuery } from '@tanstack/react-query';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -46,7 +42,6 @@ function getIngredientOptionLabel(ingredient: IIngredient): string {
 export default function HookRemixModal({
   video,
   isOpen,
-  openKey,
   onSubmit,
   onClose,
 }: ModalHookRemixProps) {
@@ -64,7 +59,7 @@ export default function HookRemixModal({
   onSubmitRef.current = onSubmit;
 
   const getVideoIngredientsService = useAuthedService((token: string) =>
-    IngredientsService.getInstance(IngredientCategory.VIDEO, token),
+    VideosService.getInstance(token),
   );
 
   const getHookRemixService = useAuthedService((token: string) =>
@@ -75,7 +70,7 @@ export default function HookRemixModal({
   const { data: videoIngredients = [], isLoading: isLoadingClips } = useQuery<
     IIngredient[]
   >({
-    enabled: Boolean(selectedBrandId),
+    enabled: Boolean(isOpen && selectedBrandId),
     queryFn: async () => {
       if (!selectedBrandId) {
         return [];
