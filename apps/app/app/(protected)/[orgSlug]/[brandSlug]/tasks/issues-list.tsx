@@ -411,8 +411,11 @@ export default function IssuesList() {
               ))}
             </SelectContent>
           </Select>
-          <div className="flex rounded border border-white/10">
+          <fieldset className="flex rounded border border-white/10">
+            <legend className="sr-only">Task view</legend>
             <Button
+              aria-pressed={viewMode === 'list'}
+              ariaLabel="List view"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
               className={cn(
@@ -425,9 +428,11 @@ export default function IssuesList() {
                 dispatch({ type: 'SET_VIEW_MODE', payload: 'list' })
               }
             >
-              <HiOutlineListBullet className="size-4" />
+              <HiOutlineListBullet aria-hidden="true" className="size-4" />
             </Button>
             <Button
+              aria-pressed={viewMode === 'kanban'}
+              ariaLabel="Kanban view"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
               className={cn(
@@ -440,9 +445,9 @@ export default function IssuesList() {
                 dispatch({ type: 'SET_VIEW_MODE', payload: 'kanban' })
               }
             >
-              <HiOutlineViewColumns className="size-4" />
+              <HiOutlineViewColumns aria-hidden="true" className="size-4" />
             </Button>
-          </div>
+          </fieldset>
         </div>
       </div>
 

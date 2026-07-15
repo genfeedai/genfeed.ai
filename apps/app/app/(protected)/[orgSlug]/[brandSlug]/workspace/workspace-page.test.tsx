@@ -288,6 +288,21 @@ describe('WorkspacePageContent', () => {
     ]);
   });
 
+  it('renders the activity empty state on the dedicated activity page', async () => {
+    mocks.list.mockResolvedValue([]);
+
+    render(<WorkspacePageContent section="activity" />);
+
+    await waitFor(() => {
+      expect(mocks.list).toHaveBeenCalledWith({});
+    });
+
+    expect(screen.getByTestId('workspace-activity')).toBeInTheDocument();
+    expect(
+      screen.getByText('Activity will appear here once tasks start running.'),
+    ).toBeVisible();
+  });
+
   it('loads inbox tasks, opens the inspector, and executes task actions', async () => {
     render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
 

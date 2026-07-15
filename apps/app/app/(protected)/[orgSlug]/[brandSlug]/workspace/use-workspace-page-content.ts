@@ -572,7 +572,7 @@ export function useWorkspacePageContent({
   const sectionCopy = SECTION_COPY[section];
   const shouldShowComposer = false;
   const shouldShowInbox = section === 'overview' || section === 'inbox';
-  const shouldShowHistory = false;
+  const shouldShowHistory = section === 'activity';
   const shouldShowSectionSnapshot = section === 'inbox';
 
   return {
