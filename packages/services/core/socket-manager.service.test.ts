@@ -6,12 +6,25 @@ const mockSocketOff = vi.fn();
 const mockSocketConnect = vi.fn();
 const mockSocketDisconnect = vi.fn();
 const mockSocketRemoveAllListeners = vi.fn();
+const mockManagerOn = vi.fn();
+const mockManagerOff = vi.fn();
+const socketState = vi.hoisted(() => ({ active: true, connected: false }));
 
 vi.mock('socket.io-client', () => ({
   io: vi.fn(() => ({
+    get active() {
+      return socketState.active;
+    },
     connect: mockSocketConnect,
+    get connected() {
+      return socketState.connected;
+    },
     disconnect: mockSocketDisconnect,
     id: 'mock-socket-id',
+    io: {
+      off: mockManagerOff,
+      on: mockManagerOn,
+    },
     off: mockSocketOff,
     on: mockSocketOn,
     removeAllListeners: mockSocketRemoveAllListeners,
@@ -40,6 +53,8 @@ import { SocketManager } from '@services/core/socket-manager.service';
 describe('SocketManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    socketState.active = true;
+    socketState.connected = false;
     SocketManager.clearInstance();
     SocketService.clearInstance();
   });
@@ -118,6 +133,111 @@ describe('SocketManager', () => {
       manager.subscribe('ev1', vi.fn());
       manager.subscribe('ev2', vi.fn());
       expect(manager.getListenersCount()).toBe(2);
+    });
+  });
+
+  describe('connection recovery', () => {
+    const getSocketHandler = (event: string) => {
+      const call = mockSocketOn.mock.calls.findLast(
+        ([registeredEvent]) => registeredEvent === event,
+      );
+      return call?.[1] as ((...args: unknown[]) => void) | undefined;
+    };
+
+    it('observes reconnect attempts on the underlying Socket.IO manager', () => {
+      const manager = SocketManager.getInstance({ autoConnect: false });
+      const states: string[] = [];
+      manager.subscribeConnectionState((state) => states.push(state));
+
+      expect(mockManagerOn).toHaveBeenCalledWith(
+        'reconnect_attempt',
+        expect.any(Function),
+      );
+      expect(mockSocketOn).not.toHaveBeenCalledWith(
+        'reconnect_attempt',
+        expect.any(Function),
+      );
+
+      const reconnectAttemptHandler = mockManagerOn.mock.calls.find(
+        ([event]) => event === 'reconnect_attempt',
+      )?.[1] as (() => void) | undefined;
+      reconnectAttemptHandler?.();
+
+      expect(states.at(-1)).toBe('reconnecting');
+    });
+
+    it('keeps subscriptions active while transport loss reconnects automatically', () => {
+      const manager = SocketManager.getInstance({ autoConnect: false });
+      const eventHandler = vi.fn();
+      const states: string[] = [];
+      manager.subscribe('generation-progress', eventHandler);
+      manager.subscribeConnectionState((state) => states.push(state));
+
+      socketState.active = true;
+      getSocketHandler('disconnect')?.('transport close');
+
+      expect(states.at(-1)).toBe('reconnecting');
+      expect(mockSocketConnect).not.toHaveBeenCalled();
+
+      socketState.connected = true;
+      getSocketHandler('connect')?.();
+      const subscribedHandler = mockSocketOn.mock.calls.find(
+        ([event]) => event === 'generation-progress',
+      )?.[1] as ((data: unknown) => void) | undefined;
+      subscribedHandler?.({ progress: 25 });
+
+      expect(states.at(-1)).toBe('connected');
+      expect(eventHandler).toHaveBeenCalledWith({ progress: 25 });
+      expect(mockSocketOff).not.toHaveBeenCalledWith(
+        'generation-progress',
+        expect.any(Function),
+      );
+    });
+
+    it('manually reconnects a server-disconnected namespace', () => {
+      const manager = SocketManager.getInstance({ autoConnect: false });
+      const states: string[] = [];
+      manager.subscribeConnectionState((state) => states.push(state));
+
+      socketState.active = false;
+      getSocketHandler('disconnect')?.('io server disconnect');
+
+      expect(states.at(-1)).toBe('reconnecting');
+      expect(mockSocketConnect).toHaveBeenCalledOnce();
+    });
+
+    it('leaves deliberate client disconnects offline without reconnecting', () => {
+      const manager = SocketManager.getInstance({ autoConnect: false });
+      const states: string[] = [];
+      manager.subscribeConnectionState((state) => states.push(state));
+
+      socketState.active = false;
+      getSocketHandler('disconnect')?.('io client disconnect');
+
+      expect(states.at(-1)).toBe('offline');
+      expect(mockSocketConnect).not.toHaveBeenCalled();
+    });
+
+    it('exposes denied connection attempts as offline', () => {
+      const manager = SocketManager.getInstance({ autoConnect: false });
+      const states: string[] = [];
+      manager.subscribeConnectionState((state) => states.push(state));
+
+      socketState.active = false;
+      getSocketHandler('connect_error')?.(new Error('denied'));
+
+      expect(states.at(-1)).toBe('offline');
+    });
+
+    it('removes manager reconnect listeners during cleanup', () => {
+      SocketManager.getInstance({ autoConnect: false });
+
+      SocketManager.clearInstance();
+
+      expect(mockManagerOff).toHaveBeenCalledWith(
+        'reconnect_attempt',
+        expect.any(Function),
+      );
     });
   });
 
