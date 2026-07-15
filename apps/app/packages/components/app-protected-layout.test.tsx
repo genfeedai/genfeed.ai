@@ -889,6 +889,45 @@ describe('AppProtectedLayout', () => {
     );
   });
 
+  it.each([
+    ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
+    ['/org-123/brand-123/research/following', 'Research', 'Following'],
+    ['/org-123/brand-123/library/ingredients', 'Library', 'Ingredients'],
+    ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
+    ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
+    ['/org-123/brand-123/analytics/trends', 'Analytics', 'Trends'],
+    [
+      '/org-123/brand-123/analytics/trends/detail/trend-1',
+      'Analytics',
+      'Trend Detail',
+    ],
+    ['/org-123/brand-123/workflows/templates', 'Workflows', 'Templates'],
+    ['/org-123/brand-123/workflows/new', 'Workflows', 'New Workflow'],
+    [
+      '/org-123/brand-123/orchestration/content-runs/run-1',
+      'Workflows',
+      'Content Run',
+    ],
+    [
+      '/org-123/brand-123/orchestration/campaigns/campaign-1',
+      'Workflows',
+      'Campaign',
+    ],
+  ] as const)('feeds canonical root and leaf breadcrumb metadata on %s', (pathname, rootLabel, leafLabel) => {
+    mockPathname.value = pathname;
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    const layoutProps = appLayoutSpy.mock.lastCall?.[0] as {
+      breadcrumb?: { leafLabel: string; rootLabel: string };
+    };
+    expect(layoutProps.breadcrumb).toEqual({ leafLabel, rootLabel });
+  });
+
   it('hides sidebar and topbar chrome for focused onboarding agent routes', () => {
     mockPathname.value = '/agent/onboarding';
 

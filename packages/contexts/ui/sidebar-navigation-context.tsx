@@ -1,6 +1,7 @@
 'use client';
 
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import type { WorkspaceShellBreadcrumbMetadata } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { createContext, use, useCallback, useMemo, useState } from 'react';
@@ -17,6 +18,10 @@ interface SidebarNavigationContextType {
   nestedGroupId: string | null;
   /** Label of the currently active page */
   activePageLabel: string;
+  /** Canonical breadcrumb root, independent of sidebar discovery coverage. */
+  breadcrumbRootLabel: string;
+  /** Canonical breadcrumb leaf, independent of sidebar discovery coverage. */
+  breadcrumbPageLabel: string;
   /** All grouped menu items for breadcrumb/navigation reference */
   groups: GroupedMenu[];
   /** Enter nested sidebar mode for a group */
@@ -105,6 +110,7 @@ function isPathActive(href: string, pathname: string | null): boolean {
 }
 
 interface SidebarNavigationProviderProps {
+  breadcrumb?: WorkspaceShellBreadcrumbMetadata;
   children: ReactNode;
   items: MenuItemConfig[];
 }
@@ -115,6 +121,7 @@ interface NestedGroupOverride {
 }
 
 export function SidebarNavigationProvider({
+  breadcrumb,
   children,
   items,
 }: SidebarNavigationProviderProps) {
@@ -221,6 +228,8 @@ export function SidebarNavigationProvider({
     () => ({
       activeGroupId: derivedGroupId,
       activePageLabel: derivedPageLabel,
+      breadcrumbPageLabel: breadcrumb?.leafLabel ?? derivedPageLabel,
+      breadcrumbRootLabel: breadcrumb?.rootLabel ?? derivedGroupId,
       enterNestedGroup,
       exitNestedGroup,
       groups,
@@ -230,6 +239,7 @@ export function SidebarNavigationProvider({
       derivedGroupId,
       nestedGroupId,
       derivedPageLabel,
+      breadcrumb,
       groups,
       enterNestedGroup,
       exitNestedGroup,
@@ -246,6 +256,8 @@ export function SidebarNavigationProvider({
 const DEFAULT_CONTEXT: SidebarNavigationContextType = {
   activeGroupId: '',
   activePageLabel: '',
+  breadcrumbPageLabel: '',
+  breadcrumbRootLabel: '',
   enterNestedGroup: () => {},
   exitNestedGroup: () => {},
   groups: [],

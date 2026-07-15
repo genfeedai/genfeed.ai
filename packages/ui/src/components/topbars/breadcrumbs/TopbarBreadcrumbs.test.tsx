@@ -4,7 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockExitNestedGroup = vi.fn();
 
-let mockNavigationState = {
+let mockNavigationState: {
+  activeGroupId: string;
+  activePageLabel: string;
+  breadcrumbPageLabel?: string;
+  breadcrumbRootLabel?: string;
+  exitNestedGroup: typeof mockExitNestedGroup;
+  nestedGroupId?: string | null;
+} = {
   activeGroupId: '',
   activePageLabel: '',
   exitNestedGroup: mockExitNestedGroup,
@@ -14,10 +21,16 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => ({
     activeGroupId: mockNavigationState.activeGroupId,
     activePageLabel: mockNavigationState.activePageLabel,
+    breadcrumbPageLabel:
+      mockNavigationState.breadcrumbPageLabel ??
+      mockNavigationState.activePageLabel,
+    breadcrumbRootLabel:
+      mockNavigationState.breadcrumbRootLabel ??
+      mockNavigationState.activeGroupId,
     enterNestedGroup: vi.fn(),
     exitNestedGroup: mockNavigationState.exitNestedGroup,
     groups: [],
-    nestedGroupId: null,
+    nestedGroupId: mockNavigationState.nestedGroupId ?? null,
   }),
 }));
 
@@ -42,6 +55,7 @@ describe('TopbarBreadcrumbs', () => {
       activeGroupId: 'Library',
       activePageLabel: 'Images',
       exitNestedGroup: mockExitNestedGroup,
+      nestedGroupId: 'Library',
     };
 
     render(<TopbarBreadcrumbs />);
@@ -62,6 +76,22 @@ describe('TopbarBreadcrumbs', () => {
 
     expect(screen.getByText('Admin')).toBeInTheDocument();
     expect(screen.queryByText('Library')).not.toBeInTheDocument();
+  });
+
+  it('uses canonical route labels without changing nested navigation state', () => {
+    mockNavigationState = {
+      activeGroupId: 'Assets',
+      activePageLabel: '',
+      breadcrumbPageLabel: 'Moodboard',
+      breadcrumbRootLabel: 'Library',
+      exitNestedGroup: mockExitNestedGroup,
+    };
+
+    render(<TopbarBreadcrumbs />);
+
+    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.getByText('Moodboard')).toBeInTheDocument();
+    expect(screen.queryByText('Assets')).not.toBeInTheDocument();
   });
 
   it('uses a fallback root label when the active page has no group', () => {
@@ -99,6 +129,7 @@ describe('TopbarBreadcrumbs', () => {
       activeGroupId: 'Library',
       activePageLabel: 'Images',
       exitNestedGroup: mockExitNestedGroup,
+      nestedGroupId: 'Library',
     };
 
     render(<TopbarBreadcrumbs />);

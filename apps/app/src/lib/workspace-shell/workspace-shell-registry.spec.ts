@@ -46,6 +46,8 @@ describe('workspace shell trusted registry', () => {
         route.mode === 'dedicated' ? 'always' : 'conversation-shell',
       );
       expect(route.canonicalUrl).toMatch(/^\//);
+      expect(route.breadcrumb.rootLabel).not.toHaveLength(0);
+      expect(route.breadcrumb.leafLabel).not.toHaveLength(0);
       expect(route.deployments).toEqual([
         'cloud-web',
         'self-hosted-web',
@@ -75,7 +77,50 @@ describe('workspace shell trusted registry', () => {
       );
 
       expect(route?.key).toBe(registration.key);
+      expect(route?.breadcrumb.rootLabel).not.toMatch(/:/);
+      expect(route?.breadcrumb.leafLabel).not.toMatch(/:/);
     }
+  });
+
+  it.each([
+    ['/acme/~/settings/api-keys', 'Settings', 'API Keys'],
+    ['/acme/moonrise/research/following', 'Research', 'Following'],
+    ['/acme/moonrise/research/instagram', 'Research', 'Instagram'],
+    ['/acme/moonrise/library/ingredients', 'Library', 'Ingredients'],
+    ['/acme/moonrise/library/moodboard', 'Library', 'Moodboard'],
+    ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
+    ['/acme/moonrise/studio/video/asset-1', 'Studio', 'Video'],
+    ['/acme/moonrise/analytics/trends', 'Analytics', 'Trends'],
+    [
+      '/acme/moonrise/analytics/trends/detail/trend-1',
+      'Analytics',
+      'Trend Detail',
+    ],
+    [
+      '/acme/moonrise/analytics/trends/platforms/instagram',
+      'Analytics',
+      'Instagram Trends',
+    ],
+    ['/acme/moonrise/workflows/templates', 'Workflows', 'Templates'],
+    ['/acme/moonrise/workflows/new', 'Workflows', 'New Workflow'],
+    ['/acme/moonrise/workflows/workflow-1', 'Workflows', 'Workflow'],
+    ['/acme/moonrise/orchestration/overview', 'Workflows', 'Overview'],
+    [
+      '/acme/moonrise/orchestration/content-runs/run-1',
+      'Workflows',
+      'Content Run',
+    ],
+    [
+      '/acme/moonrise/orchestration/campaigns/campaign-1',
+      'Workflows',
+      'Campaign',
+    ],
+    ['/acme/moonrise/orchestration/library/images', 'Workflows', 'Images'],
+  ] as const)('resolves canonical breadcrumb metadata for %s', (pathname, rootLabel, leafLabel) => {
+    expect(resolveWorkspaceShellRoute(pathname)?.breadcrumb).toEqual({
+      leafLabel,
+      rootLabel,
+    });
   });
 
   it.each([
@@ -265,6 +310,9 @@ describe('workspace shell trusted registry', () => {
     expect(Object.isFrozen(PROTECTED_ROUTE_INVENTORY)).toBe(true);
     expect(Object.isFrozen(PROTECTED_ROUTE_INVENTORY[0])).toBe(true);
     expect(Object.isFrozen(PROTECTED_ROUTE_INVENTORY[0]?.adapter)).toBe(true);
+    expect(Object.isFrozen(PROTECTED_ROUTE_INVENTORY[0]?.breadcrumb)).toBe(
+      true,
+    );
     expect(
       Reflect.set(PROTECTED_ROUTE_INVENTORY, 0, {
         key: 'model-produced-surface',

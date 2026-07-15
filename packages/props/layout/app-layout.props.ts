@@ -1,5 +1,6 @@
 import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import type { WorkspaceShellBreadcrumbMetadata } from '@genfeedai/interfaces/ui/workspace-shell.interface';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import type { ComponentType, ReactNode } from 'react';
 
@@ -17,6 +18,8 @@ export interface AppLayoutProps {
   hasSecondaryTopbar?: boolean;
   /** Menu items for SidebarNavigationProvider (breadcrumbs, nested nav) */
   menuItems?: MenuItemConfig[];
+  /** Canonical route breadcrumb, independent of sidebar discovery coverage. */
+  breadcrumb?: WorkspaceShellBreadcrumbMetadata;
   /** Agent panel rendered as a persistent bottom terminal dock */
   agentPanel?: ReactNode | null;
   /** Whether the agent panel is collapsed */

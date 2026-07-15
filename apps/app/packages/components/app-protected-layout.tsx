@@ -431,6 +431,7 @@ function AppLayoutWithDynamicMenu({
   const mainLayout = (
     <AppLayout
       bannerComponent={shellBanner}
+      breadcrumb={workspaceShellRoute?.breadcrumb}
       brandSlug={brandSlug}
       currentApp={currentApp}
       menuComponent={menuComponent}
@@ -468,6 +469,7 @@ function AppLayoutWithDynamicMenu({
       <AppLayout
         agentPanel={legacyAgentPanel}
         bannerComponent={shellBanner}
+        breadcrumb={workspaceShellRoute?.breadcrumb}
         brandSlug={brandSlug}
         currentApp={currentApp}
         hasSecondaryTopbar={hasSecondaryTopbar}

@@ -3,6 +3,7 @@ import type {
   WorkspaceShellAccessPolicy,
   WorkspaceShellAdapterSeam,
   WorkspaceShellAuxiliaryRegistration,
+  WorkspaceShellBreadcrumbMetadata,
   WorkspaceShellDeployment,
   WorkspaceShellOverlayRegistration,
   WorkspaceShellRestorationPolicy,
@@ -18,6 +19,7 @@ export type {
   WorkspaceShellAuxiliaryRegistration,
   WorkspaceShellAvailability,
   WorkspaceShellBaseState,
+  WorkspaceShellBreadcrumbMetadata,
   WorkspaceShellChromeRegistration,
   WorkspaceShellDeployment,
   WorkspaceShellLaunchTarget,
@@ -99,6 +101,174 @@ const LAUNCH_TARGET_BY_MODE = Object.freeze({
   WorkspaceShellRouteRegistration['launchTarget']
 >);
 
+const BREADCRUMB_ROOT_LABELS = Object.freeze({
+  admin: 'Admin',
+  agent: 'Agent',
+  analytics: 'Analytics',
+  compose: 'Compose',
+  editor: 'Editor',
+  lab: 'Lab',
+  library: 'Library',
+  messages: 'Messages',
+  orchestration: 'Workflows',
+  overview: 'Workspace',
+  posts: 'Publish',
+  research: 'Research',
+  settings: 'Settings',
+  studio: 'Studio',
+  tasks: 'Workspace',
+  workflows: 'Workflows',
+  workspace: 'Workspace',
+  write: 'Compose',
+} as const satisfies Readonly<Record<string, string>>);
+
+const BREADCRUMB_WORD_LABELS = Object.freeze({
+  api: 'API',
+  gifs: 'GIFs',
+  id: 'ID',
+} as const satisfies Readonly<Record<string, string>>);
+
+const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
+  '/': 'Workspace',
+  '/:orgSlug': 'Overview',
+  '/:orgSlug/:brandSlug/agent': 'New Conversation',
+  '/:orgSlug/:brandSlug/agent/:id': 'Conversation',
+  '/:orgSlug/:brandSlug/agent/new': 'New Conversation',
+  '/:orgSlug/:brandSlug/agent/onboarding/:threadId': 'Onboarding',
+  '/:orgSlug/:brandSlug/analytics/brands/:id': 'Brand Details',
+  '/:orgSlug/:brandSlug/analytics/brands/:id/platforms/:platform': ':platform',
+  '/:orgSlug/:brandSlug/analytics/trends/detail/:id': 'Trend Detail',
+  '/:orgSlug/:brandSlug/analytics/trends/platforms/:platform':
+    ':platform Trends',
+  '/:orgSlug/:brandSlug/editor': 'Projects',
+  '/:orgSlug/:brandSlug/editor/:id': 'Project',
+  '/:orgSlug/:brandSlug/orchestration': 'Overview',
+  '/:orgSlug/:brandSlug/orchestration/:agentId': 'Agent',
+  '/:orgSlug/:brandSlug/orchestration/campaigns/:id': 'Campaign',
+  '/:orgSlug/:brandSlug/orchestration/content-runs/:runId': 'Content Run',
+  '/:orgSlug/:brandSlug/orchestration/library/:type': ':type',
+  '/:orgSlug/:brandSlug/orchestration/outreach-campaigns/:id':
+    'Outreach Campaign',
+  '/:orgSlug/:brandSlug/posts/:id': 'Post',
+  '/:orgSlug/:brandSlug/research/:platform': ':platform',
+  '/:orgSlug/:brandSlug/settings': 'General',
+  '/:orgSlug/:brandSlug/studio/:type': ':type',
+  '/:orgSlug/:brandSlug/studio/:type/:id': ':type',
+  '/:orgSlug/:brandSlug/tasks/:id': 'Task',
+  '/:orgSlug/:brandSlug/workflows/:id': 'Workflow',
+  '/:orgSlug/:brandSlug/workflows/executions/:id': 'Run',
+  '/:orgSlug/:brandSlug/workflows/new': 'New Workflow',
+  '/:orgSlug/~/agent': 'New Conversation',
+  '/:orgSlug/~/agent/:id': 'Conversation',
+  '/:orgSlug/~/agent/new': 'New Conversation',
+  '/:orgSlug/~/agent/onboarding/:threadId': 'Onboarding',
+  '/:orgSlug/~/compose/:segment': ':segment',
+  '/:orgSlug/~/editor': 'Projects',
+  '/:orgSlug/~/editor/:id': 'Project',
+  '/:orgSlug/~/library/:type': ':type',
+  '/:orgSlug/~/settings': 'General',
+  '/:orgSlug/~/settings/models/:type': ':type',
+  '/:orgSlug/~/studio/:type': ':type',
+  '/:orgSlug/~/workflows/:id': 'Workflow',
+  '/:orgSlug/~/workflows/executions/:id': 'Run',
+  '/:orgSlug/~/workflows/new': 'New Workflow',
+  '/:orgSlug/~/write/:segment': ':segment',
+  '/admin': 'Dashboard',
+  '/admin/agent': 'New Conversation',
+  '/admin/agent/:threadId': 'Conversation',
+  '/admin/agent/new': 'New Conversation',
+  '/admin/automation/models/:type': ':type Models',
+  '/admin/automation/trainings/:id/images': 'Training Images',
+  '/admin/automation/trainings/:id/sources': 'Training Sources',
+  '/admin/configuration/tags/:filter': ':filter Tags',
+  '/admin/content/ingredients/:type': ':type Ingredients',
+  '/admin/content/posts/:id': 'Post',
+  '/admin/content/templates/:id': 'Template',
+  '/admin/fleet/characters/:slug': 'Character',
+  '/admin/images/:id': 'Image',
+  '/admin/overview/analytics/brands/:id': 'Brand Details',
+  '/admin/overview/analytics/brands/:id/platforms/:platform': ':platform',
+  '/admin/overview/analytics/organizations/:id': 'Organization Details',
+  '/admin/videos/:id': 'Video',
+  '/settings': 'General',
+} as const satisfies Readonly<Record<string, string>>);
+
+function humanizeBreadcrumbLabel(value: string): string {
+  return value
+    .split('-')
+    .filter(Boolean)
+    .map((word) => {
+      const normalizedWord = word.toLowerCase();
+      return (
+        BREADCRUMB_WORD_LABELS[
+          normalizedWord as keyof typeof BREADCRUMB_WORD_LABELS
+        ] ??
+        `${normalizedWord.charAt(0).toUpperCase()}${normalizedWord.slice(1)}`
+      );
+    })
+    .join(' ');
+}
+
+function getCanonicalAppSegment(canonicalUrl: string): string {
+  if (canonicalUrl === '/') {
+    return 'workspace';
+  }
+
+  const segments = canonicalUrl.split('/').filter(Boolean);
+  if (segments[0] === 'admin' || segments[0] === 'settings') {
+    return segments[0];
+  }
+
+  if (segments[0] === ':orgSlug') {
+    if (segments.length === 1) {
+      return 'workspace';
+    }
+
+    return segments[1] === '~'
+      ? (segments[2] ?? 'overview')
+      : (segments[2] ?? 'workspace');
+  }
+
+  return segments[0] ?? 'workspace';
+}
+
+function getDefaultBreadcrumbLeafLabel(canonicalUrl: string): string {
+  const segments = canonicalUrl.split('/').filter(Boolean);
+  const lastStaticSegment = [...segments]
+    .reverse()
+    .find((segment) => !segment.startsWith(':') && segment !== '~');
+
+  return humanizeBreadcrumbLabel(lastStaticSegment ?? 'overview');
+}
+
+function getRouteBreadcrumbMetadata(
+  canonicalUrl: string,
+): WorkspaceShellBreadcrumbMetadata {
+  const appSegment = getCanonicalAppSegment(canonicalUrl);
+  const rootLabel =
+    BREADCRUMB_ROOT_LABELS[appSegment as keyof typeof BREADCRUMB_ROOT_LABELS] ??
+    humanizeBreadcrumbLabel(appSegment);
+  const leafLabel =
+    BREADCRUMB_LEAF_OVERRIDES[
+      canonicalUrl as keyof typeof BREADCRUMB_LEAF_OVERRIDES
+    ] ?? getDefaultBreadcrumbLeafLabel(canonicalUrl);
+
+  return Object.freeze({ leafLabel, rootLabel });
+}
+
+function resolveBreadcrumbMetadata(
+  breadcrumb: WorkspaceShellBreadcrumbMetadata,
+  params: Readonly<Record<string, string>>,
+): WorkspaceShellBreadcrumbMetadata {
+  const leafLabel = breadcrumb.leafLabel.replace(
+    /:([A-Za-z][A-Za-z0-9]*)/g,
+    (_, parameterName: string) =>
+      humanizeBreadcrumbLabel(params[parameterName] ?? parameterName),
+  );
+
+  return Object.freeze({ ...breadcrumb, leafLabel });
+}
+
 function freezeRouteRegistration(
   canonicalUrl: string,
   config: RouteGroupConfig,
@@ -113,6 +283,7 @@ function freezeRouteRegistration(
     ),
     allowedShellModes: Object.freeze([config.mode] as const),
     availability: AVAILABILITY_BY_MODE[config.mode],
+    breadcrumb: getRouteBreadcrumbMetadata(canonicalUrl),
     canonicalUrl,
     deployments: ALL_DEPLOYMENTS,
     key: `route:${canonicalUrl}`,
@@ -965,7 +1136,14 @@ export function resolveWorkspaceShellRoute(
     ),
   );
 
-  return Object.freeze({ ...bestMatch.registration, params });
+  return Object.freeze({
+    ...bestMatch.registration,
+    breadcrumb: resolveBreadcrumbMetadata(
+      bestMatch.registration.breadcrumb,
+      params,
+    ),
+    params,
+  });
 }
 
 export function getWorkspaceShellOverlayRegistration(

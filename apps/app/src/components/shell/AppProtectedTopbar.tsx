@@ -310,11 +310,7 @@ function AppProtectedTopbarContent({
             fallbackRootLabel={
               TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
             }
-            rootLabel={
-              isSettingsRoute
-                ? 'Settings'
-                : TOPBAR_BREADCRUMB_ROOT_LABELS[effectiveCurrentApp]
-            }
+            rootLabel={isSettingsRoute ? 'Settings' : undefined}
           />
         </div>
 
