@@ -10,6 +10,7 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
+import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -37,6 +38,7 @@ describe('BrandsService', () => {
   };
   let filesClientService: { uploadToS3: ReturnType<typeof vi.fn> };
   let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
+  let loggerService: LoggerService;
 
   beforeEach(() => {
     brandScraperService = {
@@ -68,6 +70,12 @@ describe('BrandsService', () => {
     filesClientService = {
       uploadToS3: vi.fn(),
     };
+    loggerService = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    } as unknown as LoggerService;
 
     const prisma = {
       asset: assetDelegate,
@@ -76,18 +84,17 @@ describe('BrandsService', () => {
 
     service = new BrandsService(
       prisma,
-      {
-        debug: vi.fn(),
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
-      } as unknown as LoggerService,
+      loggerService,
       { invalidateByTags: vi.fn() } as unknown as CacheService,
       brandScraperService as unknown as BrandScraperService,
-      llmDispatcher as unknown as LlmDispatcherService,
       cacheInvalidationService as unknown as CacheInvalidationService,
       filesClientService as unknown as FilesClientService,
       {} as unknown as BrandRelocationService,
+      new BrandGenerationService(
+        brandScraperService as unknown as BrandScraperService,
+        llmDispatcher as unknown as LlmDispatcherService,
+        loggerService,
+      ),
     );
   });
 

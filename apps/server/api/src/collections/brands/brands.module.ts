@@ -8,6 +8,7 @@ import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
+import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
@@ -70,6 +71,7 @@ import { forwardRef, Module } from '@nestjs/common';
     // routes no longer round-trip back through OnboardingService and close an
     // OnboardingModule ↔ BrandsModule import cycle.
     BrandSetupService,
+    BrandGenerationService,
     BrandPersistenceService,
     BrandRelocationService,
     BrandDataMapper,
