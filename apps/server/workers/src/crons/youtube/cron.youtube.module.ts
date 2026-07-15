@@ -3,7 +3,9 @@ import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.mo
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
+import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronYoutubeAnalyticsService } from '@workers/crons/youtube/cron.youtube-analytics.service';
 import { CronYoutubeMessagesService } from '@workers/crons/youtube/cron.youtube-messages.service';
@@ -25,8 +27,13 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     CronYoutubeAnalyticsService,
     CronYoutubeMessagesService,
     CronYoutubeStatusService,
-    SchedulerPublishStateService,
     SystemWorkflowProvenanceService,
+    {
+      inject: [PrismaService, LoggerService],
+      provide: SchedulerPublishStateService,
+      useFactory: (prisma: PrismaService, logger: LoggerService) =>
+        new SchedulerPublishStateService(prisma, logger),
+    },
   ],
 })
 export class CronYoutubeModule {}

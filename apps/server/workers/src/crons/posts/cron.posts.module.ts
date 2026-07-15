@@ -36,10 +36,15 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
   providers: [
     AgentArtifactReferenceService,
     CronPostsService,
-    SchedulerPublishStateService,
     SystemWorkflowProvenanceService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
+    {
+      inject: [PrismaService, LoggerService],
+      provide: SchedulerPublishStateService,
+      useFactory: (prisma: PrismaService, logger: LoggerService) =>
+        new SchedulerPublishStateService(prisma, logger),
+    },
     {
       inject: [PrismaService, LoggerService],
       provide: AgentScopeContextService,

@@ -3,6 +3,7 @@ import { PublishApprovalsService } from '@api/collections/publish-approvals/serv
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
+  PublishApprovalStatus,
   ReleaseStatus,
   TargetExecutionState,
   TargetValidationState,
@@ -52,6 +53,7 @@ type MockPostTarget = {
     id: string;
     operationId: string;
   } | null;
+  publishApprovalId: string | null;
   scheduledDate: Date | null;
   targetAttachments: unknown;
   targetError: unknown;
@@ -73,6 +75,7 @@ describe('PostGroupsService', () => {
   let publishApprovalsService: {
     createForCurrentPost: ReturnType<typeof vi.fn>;
     markQueued: ReturnType<typeof vi.fn>;
+    toPublicInterface: ReturnType<typeof vi.fn>;
   };
   let prisma: {
     $transaction: ReturnType<typeof vi.fn>;
@@ -87,6 +90,10 @@ describe('PostGroupsService', () => {
     };
     postGroup: {
       create: ReturnType<typeof vi.fn>;
+      findFirst: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+    publishApproval: {
       findFirst: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
@@ -138,6 +145,10 @@ describe('PostGroupsService', () => {
             Promise.resolve(makeGroup({ ...data, id: 'group-1' })),
           ),
       },
+      publishApproval: {
+        findFirst: vi.fn(),
+        update: vi.fn().mockResolvedValue(undefined),
+      },
     };
     postPublishQueueService = {
       enqueue: vi.fn().mockResolvedValue('target-1'),
@@ -147,8 +158,11 @@ describe('PostGroupsService', () => {
         artifactVersionPinId: 'pin-1',
         id: 'approval-1',
         operationId: 'operation-1',
+        provenance: {},
+        status: PublishApprovalStatus.FAILED,
       }),
       markQueued: vi.fn().mockResolvedValue(undefined),
+      toPublicInterface: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -480,6 +494,20 @@ describe('PostGroupsService', () => {
         releaseId: 'group-1',
         surface: 'post-groups-manual-retry',
       },
+      transaction: prisma,
+    });
+    expect(prisma.publishApproval.update).toHaveBeenCalledWith({
+      data: {
+        provenance: expect.objectContaining({
+          manualRetryCommand: {
+            releaseId: 'group-1',
+            requestedByUserId: 'user-1',
+            targetId: 'target-1',
+            version: 1,
+          },
+        }),
+      },
+      where: { id: 'approval-1' },
     });
     expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
       approvalId: 'approval-1',
@@ -491,6 +519,51 @@ describe('PostGroupsService', () => {
       versionPinId: 'pin-1',
     });
     expect(result.status).toBe(ReleaseStatus.SCHEDULED);
+  });
+
+  it('replays a durable manual-retry command when queue dispatch previously failed', async () => {
+    const scheduledTarget = makeTarget({
+      groupId: 'group-1',
+      id: 'target-1',
+      publishApprovalId: 'approval-1',
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+    });
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.SCHEDULED }),
+    );
+    prisma.post.findFirst.mockResolvedValue(scheduledTarget);
+    prisma.post.findMany.mockResolvedValue([scheduledTarget]);
+    prisma.publishApproval.findFirst.mockResolvedValue({ id: 'approval-1' });
+    publishApprovalsService.toPublicInterface.mockReturnValue({
+      artifactVersionPinId: 'pin-1',
+      id: 'approval-1',
+      operationId: 'operation-1',
+      provenance: {
+        manualRetryCommand: {
+          releaseId: 'group-1',
+          requestedByUserId: 'user-1',
+          targetId: 'target-1',
+          version: 1,
+        },
+      },
+      status: PublishApprovalStatus.QUEUED,
+    });
+
+    await service.updateTarget('org-1', 'user-1', 'group-1', 'target-1', {
+      executionState: TargetExecutionState.SCHEDULED,
+    });
+
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+    expect(publishApprovalsService.markQueued).not.toHaveBeenCalled();
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      postId: 'target-1',
+      source: 'manual_retry',
+      userId: 'user-1',
+      versionPinId: 'pin-1',
+    });
   });
 });
 
@@ -535,6 +608,7 @@ function makeTarget(overrides: Partial<MockPostTarget> = {}): MockPostTarget {
       id: 'approval-1',
       operationId: 'operation-1',
     },
+    publishApprovalId: 'approval-1',
     publishedAt: null,
     retryCount: 0,
     scheduledDate: null,

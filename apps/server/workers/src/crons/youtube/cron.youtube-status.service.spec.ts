@@ -5,7 +5,7 @@ import {
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus, TargetExecutionState } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
@@ -41,14 +41,24 @@ describe('CronYoutubeStatusService', () => {
     };
     provenanceService = {
       runAction: vi.fn(
-        async (_input: unknown, action: () => Promise<unknown>) => ({
-          provenance: {
+        async (
+          _input: unknown,
+          action: (provenance: {
+            executionId: string;
+            workflowId: string;
+            workflowLabel: string;
+          }) => Promise<unknown>,
+        ) => {
+          const provenance = {
             executionId: 'execution-1',
             workflowId: 'workflow-1',
             workflowLabel: 'YouTube Status Reconciliation',
-          },
-          result: await action(),
-        }),
+          };
+          return {
+            provenance,
+            result: await action(provenance),
+          };
+        },
       ),
     };
     schedulerPublishStateService = {
@@ -113,8 +123,16 @@ describe('CronYoutubeStatusService', () => {
 
     expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
       post,
-      expect.objectContaining({ status: PostStatus.PUBLIC }),
+      expect.objectContaining({
+        status: PostStatus.PUBLIC,
+        url: 'https://www.youtube.com/watch?v=video-4',
+        workflowExecutionId: 'execution-1',
+      }),
       'YouTube reports public',
+      {
+        expectedWorkflowExecutionId: 'execution-1',
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
     );
     expect(postsService.patch).not.toHaveBeenCalled();
   });

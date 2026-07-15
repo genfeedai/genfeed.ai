@@ -54,7 +54,7 @@ describe('CronPostsService', () => {
     markQueued: ReturnType<typeof vi.fn>;
   };
   let schedulerPublishStateService: {
-    transition: ReturnType<typeof vi.fn>;
+    transitionPost: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -98,7 +98,7 @@ describe('CronPostsService', () => {
       markQueued: vi.fn().mockResolvedValue(undefined),
     };
     schedulerPublishStateService = {
-      transition: vi.fn().mockResolvedValue(undefined),
+      transitionPost: vi.fn().mockResolvedValue(false),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -631,6 +631,7 @@ describe('CronPostsService', () => {
   });
 
   it('persists a grouped provider success even when the provider omits its id', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
     const post = {
       brandId: 'brand-1',
       children: [],
@@ -676,17 +677,20 @@ describe('CronPostsService', () => {
       source: 'scheduled_sweep',
     });
 
-    expect(schedulerPublishStateService.transition).toHaveBeenNthCalledWith(
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
       2,
+      post,
       expect.objectContaining({
-        groupId: 'group-1',
-        postId: 'post-1',
-        update: expect.objectContaining({
-          executionState: TargetExecutionState.PUBLISHED,
-          externalId: null,
-          status: PostStatus.PUBLIC,
-        }),
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: null,
+        status: PostStatus.PUBLIC,
+        workflowExecutionId: 'execution-1',
       }),
+      undefined,
+      {
+        expectedWorkflowExecutionId: 'execution-1',
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
     );
     expect(loggerService.warn).toHaveBeenCalledWith(
       expect.stringContaining('provider returned no external id'),
@@ -695,6 +699,7 @@ describe('CronPostsService', () => {
   });
 
   it('records a retryable grouped provider failure as scheduled with structured error state', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
     const post = {
       brandId: 'brand-1',
       children: [],
@@ -745,19 +750,24 @@ describe('CronPostsService', () => {
     expect(result).toEqual(
       expect.objectContaining({ status: PostStatus.SCHEDULED, success: false }),
     );
-    expect(schedulerPublishStateService.transition).toHaveBeenNthCalledWith(
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
       2,
+      post,
       expect.objectContaining({
-        update: expect.objectContaining({
-          error: expect.objectContaining({
-            code: 'rate_limited',
-            isRetryable: true,
-          }),
-          executionState: TargetExecutionState.SCHEDULED,
-          retryCount: 1,
-          status: PostStatus.SCHEDULED,
+        error: expect.objectContaining({
+          code: 'rate_limited',
+          isRetryable: true,
         }),
+        executionState: TargetExecutionState.SCHEDULED,
+        retryCount: 1,
+        status: PostStatus.SCHEDULED,
+        workflowExecutionId: 'execution-1',
       }),
+      '429 rate limit',
+      {
+        expectedWorkflowExecutionId: 'execution-1',
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
     );
   });
 

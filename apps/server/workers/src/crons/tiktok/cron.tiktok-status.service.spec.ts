@@ -6,7 +6,7 @@ import {
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus, TargetExecutionState } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
@@ -46,14 +46,24 @@ describe('CronTiktokStatusService', () => {
     };
     provenanceService = {
       runAction: vi.fn(
-        async (_input: unknown, action: () => Promise<unknown>) => ({
-          provenance: {
+        async (
+          _input: unknown,
+          action: (provenance: {
+            executionId: string;
+            workflowId: string;
+            workflowLabel: string;
+          }) => Promise<unknown>,
+        ) => {
+          const provenance = {
             executionId: 'execution-1',
             workflowId: 'workflow-1',
             workflowLabel: 'TikTok Status Reconciliation',
-          },
-          result: await action(),
-        }),
+          };
+          return {
+            provenance,
+            result: await action(provenance),
+          };
+        },
       ),
     };
     schedulerPublishStateService = {
@@ -258,8 +268,13 @@ describe('CronTiktokStatusService', () => {
       expect.objectContaining({
         externalId: 'tiktok-post-4',
         status: PostStatus.PUBLIC,
+        workflowExecutionId: 'execution-1',
       }),
       expect.stringContaining('moderation completed'),
+      {
+        expectedWorkflowExecutionId: 'execution-1',
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
     );
     expect(postsService.patch).not.toHaveBeenCalled();
   });

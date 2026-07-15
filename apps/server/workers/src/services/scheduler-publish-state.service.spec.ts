@@ -143,9 +143,7 @@ describe('SchedulerPublishStateService', () => {
 
   it('normalizes relation-shaped tenant identifiers before transitioning', async () => {
     const service = new SchedulerPublishStateService({} as never, {} as never);
-    const transition = vi
-      .spyOn(service, 'transition')
-      .mockResolvedValue(undefined);
+    const transition = vi.spyOn(service, 'transition').mockResolvedValue(true);
 
     const grouped = await service.transitionPost(
       {
@@ -163,6 +161,7 @@ describe('SchedulerPublishStateService', () => {
     expect(grouped).toBe(true);
     expect(transition).toHaveBeenCalledWith({
       groupId: 'group-1',
+      guard: undefined,
       organizationId: 'org-1',
       postId: 'post-1',
       reason: 'Provider confirmed publication',
@@ -171,5 +170,95 @@ describe('SchedulerPublishStateService', () => {
         status: PostStatus.PUBLIC,
       },
     });
+  });
+
+  it('persists provider URLs and workflow provenance for legacy ungrouped posts', async () => {
+    const post = {
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+    const postGroup = {
+      findFirst: vi.fn(),
+      updateMany: vi.fn(),
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
+    };
+    const service = new SchedulerPublishStateService(
+      prisma as never,
+      { warn: vi.fn() } as never,
+    );
+
+    const applied = await service.transitionPost(
+      { id: 'legacy-post-1', organizationId: 'org-1' },
+      {
+        executionState: TargetExecutionState.PUBLISHED,
+        status: PostStatus.PUBLIC,
+        url: 'https://www.youtube.com/watch?v=video-1',
+        workflowExecutionId: 'execution-1',
+      },
+    );
+
+    expect(applied).toBe(true);
+    expect(post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          url: 'https://www.youtube.com/watch?v=video-1',
+          workflowExecutionId: 'execution-1',
+        }),
+        where: expect.not.objectContaining({ groupId: expect.anything() }),
+      }),
+    );
+    expect(postGroup.findFirst).not.toHaveBeenCalled();
+    expect(postGroup.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('ignores an outcome from a stale workflow execution', async () => {
+    const post = {
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    };
+    const postGroup = {
+      findFirst: vi.fn(),
+      updateMany: vi.fn(),
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
+    };
+    const logger = { warn: vi.fn() };
+    const service = new SchedulerPublishStateService(
+      prisma as never,
+      logger as never,
+    );
+
+    const applied = await service.transition({
+      groupId: 'group-1',
+      guard: {
+        expectedWorkflowExecutionId: 'execution-current',
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
+      organizationId: 'org-1',
+      postId: 'target-1',
+      update: {
+        executionState: TargetExecutionState.PUBLISHED,
+        status: PostStatus.PUBLIC,
+      },
+    });
+
+    expect(applied).toBe(false);
+    expect(post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          targetExecutionState: { in: [TargetExecutionState.PUBLISHING] },
+          workflowExecutionId: 'execution-current',
+        }),
+      }),
+    );
+    expect(postGroup.findFirst).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('ignored stale publish transition'),
+      expect.objectContaining({
+        expectedWorkflowExecutionId: 'execution-current',
+        postId: 'target-1',
+      }),
+    );
   });
 });

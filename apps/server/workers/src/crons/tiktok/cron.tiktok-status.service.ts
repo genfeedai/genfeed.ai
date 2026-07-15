@@ -3,6 +3,7 @@ import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowProvenance,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -243,7 +244,7 @@ export class CronTiktokStatusService {
           post,
           'published',
           `TikTok moderation completed - post ${postId} is live`,
-          async () => {
+          async (provenance) => {
             const publishedAt = new Date();
             const grouped =
               await this.schedulerPublishStateService.transitionPost(
@@ -256,19 +257,19 @@ export class CronTiktokStatusService {
                   publishedAt,
                   status: PostStatus.PUBLIC,
                   url: postUrl,
+                  workflowExecutionId: provenance.executionId,
                 },
                 `TikTok moderation completed - post ${postId} is live`,
+                {
+                  expectedWorkflowExecutionId: provenance.executionId,
+                  priorExecutionStates: [TargetExecutionState.PUBLISHING],
+                },
               );
             if (!grouped) {
-              await this.postsService.patch(post.id.toString(), {
-                externalId: postId, // Replace publish_id with actual post_id
-                publicationDate: publishedAt,
-                publishedAt,
-                status: PostStatus.PUBLIC,
-                targetError: null,
-                targetExecutionState: TargetExecutionState.PUBLISHED,
-                url: postUrl,
-              } as never);
+              this.logger.warn('Ignored stale TikTok publish confirmation', {
+                postId: String(post.id),
+                workflowExecutionId: provenance.executionId,
+              });
             }
           },
         );
@@ -380,7 +381,7 @@ export class CronTiktokStatusService {
       post,
       'failed',
       reason,
-      async () => {
+      async (provenance) => {
         const targetError: IChannelTargetError = {
           code: 'tiktok_publish_failed',
           failedAt: new Date().toISOString(),
@@ -393,15 +394,19 @@ export class CronTiktokStatusService {
             error: targetError,
             executionState: TargetExecutionState.FAILED,
             status: PostStatus.FAILED,
+            workflowExecutionId: provenance.executionId,
           },
           reason,
+          {
+            expectedWorkflowExecutionId: provenance.executionId,
+            priorExecutionStates: [TargetExecutionState.PUBLISHING],
+          },
         );
         if (!grouped) {
-          await this.postsService.patch(String(post.id), {
-            status: PostStatus.FAILED,
-            targetError,
-            targetExecutionState: TargetExecutionState.FAILED,
-          } as never);
+          this.logger.warn('Ignored stale TikTok publish failure', {
+            postId: String(post.id),
+            workflowExecutionId: provenance.executionId,
+          });
         }
       },
     );
@@ -428,7 +433,7 @@ export class CronTiktokStatusService {
     post: TiktokPost,
     outcome: 'published' | 'failed',
     detail: string,
-    transition: () => Promise<void>,
+    transition: (provenance: SystemWorkflowProvenance) => Promise<void>,
   ): Promise<boolean> {
     try {
       await this.systemWorkflowProvenanceService.runAction(
@@ -447,6 +452,7 @@ export class CronTiktokStatusService {
           label: 'TikTok Status Reconciliation',
           metadata: { platform: CredentialPlatform.TIKTOK },
           organizationId: post.organization.toString(),
+          postIds: [String(post.id)],
           schedule: '*/5 * * * *',
           source: 'CronTiktokStatusService.checkPostStatus',
           trigger: WorkflowExecutionTrigger.SCHEDULED,

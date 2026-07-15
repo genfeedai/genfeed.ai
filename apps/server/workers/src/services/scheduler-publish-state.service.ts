@@ -11,7 +11,6 @@ import type {
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
-import { Injectable } from '@nestjs/common';
 
 const MAX_SERIALIZABLE_ATTEMPTS = 3;
 
@@ -26,6 +25,12 @@ export type SchedulerPublishTargetUpdate = {
   retryCount?: number;
   status: PostStatus;
   url?: string | null;
+  workflowExecutionId?: string;
+};
+
+export type SchedulerPublishTransitionGuard = {
+  expectedWorkflowExecutionId?: string;
+  priorExecutionStates?: readonly TargetExecutionState[];
 };
 
 export type SchedulerPublishPostIdentity = {
@@ -36,7 +41,8 @@ export type SchedulerPublishPostIdentity = {
 };
 
 type SchedulerPublishStateInput = {
-  groupId: string;
+  groupId?: string;
+  guard?: SchedulerPublishTransitionGuard;
   organizationId: string;
   postId: string;
   reason?: string;
@@ -50,7 +56,6 @@ type SchedulerGroupRow = {
   statusTransitions: Prisma.JsonValue;
 };
 
-@Injectable()
 export class SchedulerPublishStateService {
   private readonly logContext = 'SchedulerPublishStateService';
 
@@ -63,30 +68,31 @@ export class SchedulerPublishStateService {
     post: SchedulerPublishPostIdentity,
     update: SchedulerPublishTargetUpdate,
     reason?: string,
+    guard?: SchedulerPublishTransitionGuard,
   ): Promise<boolean> {
     const groupId = this.readIdentifier(post.groupId);
     const organizationId = this.readIdentifier(
       post.organizationId ?? post.organization,
     );
     const postId = this.readIdentifier(post.id);
-    if (!groupId || !organizationId || !postId) {
+    if (!organizationId || !postId) {
       return false;
     }
 
-    await this.transition({
+    return this.transition({
       groupId,
+      guard,
       organizationId,
       postId,
       reason,
       update,
     });
-    return true;
   }
 
-  async transition(input: SchedulerPublishStateInput): Promise<void> {
+  async transition(input: SchedulerPublishStateInput): Promise<boolean> {
     for (let attempt = 1; attempt <= MAX_SERIALIZABLE_ATTEMPTS; attempt++) {
       try {
-        await this.prisma.$transaction(
+        const applied = await this.prisma.$transaction(
           async (tx) => {
             const updated = await tx.post.updateMany({
               data: {
@@ -118,18 +124,46 @@ export class SchedulerPublishStateService {
                 ...(input.update.url !== undefined && {
                   url: input.update.url,
                 }),
+                ...(input.update.workflowExecutionId !== undefined && {
+                  workflowExecutionId: input.update.workflowExecutionId,
+                }),
               },
               where: {
-                groupId: input.groupId,
+                ...(input.groupId ? { groupId: input.groupId } : {}),
                 id: input.postId,
                 isDeleted: false,
                 organizationId: input.organizationId,
+                ...(input.guard?.expectedWorkflowExecutionId
+                  ? {
+                      workflowExecutionId:
+                        input.guard.expectedWorkflowExecutionId,
+                    }
+                  : {}),
+                ...(input.guard?.priorExecutionStates?.length
+                  ? {
+                      targetExecutionState: {
+                        in: [...input.guard.priorExecutionStates],
+                      },
+                    }
+                  : {}),
               },
             });
             if (updated.count !== 1) {
-              throw new Error(
-                `Scheduler target ${input.postId} is no longer available in release ${input.groupId}.`,
+              this.logger.warn(
+                `${this.logContext} ignored stale publish transition`,
+                {
+                  expectedWorkflowExecutionId:
+                    input.guard?.expectedWorkflowExecutionId,
+                  groupId: input.groupId,
+                  postId: input.postId,
+                  priorExecutionStates: input.guard?.priorExecutionStates,
+                },
               );
+              return false;
+            }
+
+            if (!input.groupId) {
+              return true;
             }
 
             const [group, targets] = await Promise.all([
@@ -202,10 +236,11 @@ export class SchedulerPublishStateService {
                 `Scheduler release ${input.groupId} is no longer available.`,
               );
             }
+            return true;
           },
           { isolationLevel: 'Serializable' },
         );
-        return;
+        return applied;
       } catch (error: unknown) {
         if (
           !this.isSerializationFailure(error) ||
@@ -220,6 +255,7 @@ export class SchedulerPublishStateService {
         });
       }
     }
+    return false;
   }
 
   private readExecutionState(value: string): TargetExecutionState {

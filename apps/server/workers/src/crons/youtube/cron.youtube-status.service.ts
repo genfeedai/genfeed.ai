@@ -2,6 +2,7 @@ import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
   SYSTEM_WORKFLOW_ACTION_IDS,
+  type SystemWorkflowProvenance,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -143,7 +144,7 @@ export class CronYoutubeStatusService {
           post,
           targetStatus,
           `YouTube reports ${videoStatus.privacyStatus} - syncing post from ${post.status} to ${targetStatus}`,
-          async () => {
+          async (provenance) => {
             const isPublished = targetStatus === PostStatus.PUBLIC;
             const publishedAt = isPublished
               ? ((updateData.publicationDate as Date | undefined) ??
@@ -166,18 +167,19 @@ export class CronYoutubeStatusService {
                   ...(isPublished && {
                     url: `https://www.youtube.com/watch?v=${post.externalId}`,
                   }),
+                  workflowExecutionId: provenance.executionId,
                 },
                 `YouTube reports ${videoStatus.privacyStatus}`,
+                {
+                  expectedWorkflowExecutionId: provenance.executionId,
+                  priorExecutionStates: [TargetExecutionState.PUBLISHING],
+                },
               );
             if (!grouped) {
-              await this.postsService.patch(post.id.toString(), {
-                ...updateData,
-                targetError: null,
-                targetExecutionState: isPublished
-                  ? TargetExecutionState.PUBLISHED
-                  : TargetExecutionState.PUBLISHING,
-                ...(publishedAt && { publishedAt }),
-              } as never);
+              this.logger.warn('Ignored stale YouTube status transition', {
+                postId: post.id.toString(),
+                workflowExecutionId: provenance.executionId,
+              });
             }
           },
         );
@@ -275,7 +277,7 @@ export class CronYoutubeStatusService {
     post: PostEntity,
     outcome: string,
     detail: string,
-    transition: () => Promise<void>,
+    transition: (provenance: SystemWorkflowProvenance) => Promise<void>,
   ): Promise<boolean> {
     try {
       await this.systemWorkflowProvenanceService.runAction(
@@ -293,6 +295,7 @@ export class CronYoutubeStatusService {
           label: 'YouTube Status Reconciliation',
           metadata: { platform: CredentialPlatform.YOUTUBE },
           organizationId: post.organization.toString(),
+          postIds: [post.id.toString()],
           schedule: '0 1 * * *',
           source: 'CronYoutubeStatusService.checkPostStatus',
           trigger: WorkflowExecutionTrigger.SCHEDULED,

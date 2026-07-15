@@ -45,6 +45,7 @@ import { Injectable } from '@nestjs/common';
 import {
   SchedulerPublishStateService,
   type SchedulerPublishTargetUpdate,
+  type SchedulerPublishTransitionGuard,
 } from '@workers/services/scheduler-publish-state.service';
 
 type CronPostChild = {
@@ -478,21 +479,27 @@ export class CronPostsService {
     post: PostEntity,
     update: SchedulerPublishTargetUpdate,
     reason?: string,
-  ): Promise<void> {
-    const groupId = this.readPostString(post, ['groupId']);
-    const organizationId = this.readPostString(post, [
-      'organizationId',
-      'organization',
-    ]);
-    if (groupId && organizationId) {
-      await this.schedulerPublishStateService.transition({
-        groupId,
-        organizationId,
-        postId: post.id.toString(),
-        reason,
-        update,
-      });
-      return;
+    guard?: SchedulerPublishTransitionGuard,
+  ): Promise<boolean> {
+    const handled = await this.schedulerPublishStateService.transitionPost(
+      post,
+      update,
+      reason,
+      guard,
+    );
+    if (handled) {
+      return true;
+    }
+
+    if (guard?.expectedWorkflowExecutionId) {
+      this.logger.warn(
+        'Skipped guarded publish fallback without a durable tenant identity',
+        {
+          expectedWorkflowExecutionId: guard.expectedWorkflowExecutionId,
+          postId: post.id.toString(),
+        },
+      );
+      return false;
     }
 
     await this.postsService.patch(post.id.toString(), {
@@ -518,7 +525,11 @@ export class CronPostsService {
       status: update.status,
       targetExecutionState: update.executionState,
       ...(update.url !== undefined && { url: update.url }),
+      ...(update.workflowExecutionId !== undefined && {
+        workflowExecutionId: update.workflowExecutionId,
+      }),
     } as never);
+    return true;
   }
 
   private createTargetError(
@@ -535,24 +546,29 @@ export class CronPostsService {
   }
 
   private errorCode(error: unknown): string {
-    if (error && typeof error === 'object' && 'code' in error) {
-      const code = String((error as { code?: unknown }).code ?? '').trim();
-      if (code) {
-        return code.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-      }
-    }
-
     const message = this.errorMessage(error).toLowerCase();
-    if (message.includes('rate limit') || message.includes('429')) {
+    const rawCode =
+      error && typeof error === 'object' && 'code' in error
+        ? String((error as { code?: unknown }).code ?? '').toLowerCase()
+        : '';
+    const classificationText = `${rawCode} ${message}`;
+    if (
+      classificationText.includes('rate limit') ||
+      classificationText.includes('429')
+    ) {
       return 'rate_limited';
     }
-    if (message.includes('timeout') || message.includes('timed out')) {
+    if (
+      classificationText.includes('timeout') ||
+      classificationText.includes('timed out') ||
+      classificationText.includes('etimedout')
+    ) {
       return 'timeout';
     }
-    if (/\b(500|502|503|504)\b/.test(message)) {
+    if (/\b(500|502|503|504)\b/.test(classificationText)) {
       return 'provider_unavailable';
     }
-    return 'provider_error';
+    return rawCode.replace(/[^a-z0-9]+/g, '_') || 'provider_error';
   }
 
   private errorMessage(error: unknown): string {
@@ -586,6 +602,7 @@ export class CronPostsService {
     ]);
     const postBrandId = this.readPostString(post, ['brandId', 'brand']);
     const postUserId = this.readPostString(post, ['userId', 'user']);
+    let workflowExecutionId: string | undefined;
 
     try {
       // Get credential
@@ -715,39 +732,48 @@ export class CronPostsService {
 
       // Publish using the platform publisher, with a durable workflow execution
       // record so scheduled publishing is inspectable as a system workflow.
-      const { result } = await this.systemWorkflowProvenanceService.runAction(
-        {
-          actionType: 'publish-post',
-          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
-          description:
-            'Publishes due scheduled posts through the connected brand credential.',
-          failureMessage: (publishResult) =>
-            publishResult.success
-              ? undefined
-              : publishResult.error || 'Scheduled post publishing failed',
-          inputValues: {
-            brandId: postBrandId ?? '',
-            platform: credential.platform,
-            postId: post.id.toString(),
-            scheduledDate:
-              post.scheduledDate instanceof Date
-                ? post.scheduledDate.toISOString()
-                : post.scheduledDate,
+      const { provenance, result } =
+        await this.systemWorkflowProvenanceService.runAction(
+          {
+            actionType: 'publish-post',
+            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
+            description:
+              'Publishes due scheduled posts through the connected brand credential.',
+            failureMessage: (publishResult) =>
+              publishResult.success
+                ? undefined
+                : publishResult.error || 'Scheduled post publishing failed',
+            inputValues: {
+              brandId: postBrandId ?? '',
+              platform: credential.platform,
+              postId: post.id.toString(),
+              scheduledDate:
+                post.scheduledDate instanceof Date
+                  ? post.scheduledDate.toISOString()
+                  : post.scheduledDate,
+            },
+            label: 'Scheduled Post Publishing',
+            metadata: {
+              credentialId: credential.id?.toString?.() ?? credential.id,
+              hasThreadChildren: Boolean(post.children?.length),
+            },
+            organizationId: postOrganizationId ?? '',
+            postIds: [post.id.toString()],
+            schedule: '*/15 * * * *',
+            source: 'CronPostsService.publishSinglePost',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            userId: postUserId,
           },
-          label: 'Scheduled Post Publishing',
-          metadata: {
-            credentialId: credential.id?.toString?.() ?? credential.id,
-            hasThreadChildren: Boolean(post.children?.length),
+          (currentProvenance) => {
+            workflowExecutionId = currentProvenance.executionId;
+            return publisher.publish(context);
           },
-          organizationId: postOrganizationId ?? '',
-          postIds: [post.id.toString()],
-          schedule: '*/15 * * * *',
-          source: 'CronPostsService.publishSinglePost',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-          userId: postUserId,
-        },
-        () => publisher.publish(context),
-      );
+        );
+      workflowExecutionId = provenance.executionId;
+      const transitionGuard: SchedulerPublishTransitionGuard = {
+        expectedWorkflowExecutionId: workflowExecutionId,
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      };
 
       if (result.success) {
         if (!result.externalId) {
@@ -760,13 +786,22 @@ export class CronPostsService {
         if (result.status === PostStatus.PENDING) {
           // Store publish_id temporarily, mark as PENDING
           // Cron job will verify and update to PUBLIC once platform confirms
-          await this.persistPublishState(post, {
-            error: null,
-            executionState: TargetExecutionState.PUBLISHING,
-            externalId: result.externalId,
-            status: PostStatus.PENDING,
-            url: result.url || null,
-          });
+          const persisted = await this.persistPublishState(
+            post,
+            {
+              error: null,
+              executionState: TargetExecutionState.PUBLISHING,
+              externalId: result.externalId,
+              status: PostStatus.PENDING,
+              url: result.url || null,
+              workflowExecutionId,
+            },
+            undefined,
+            transitionGuard,
+          );
+          if (!persisted) {
+            return result;
+          }
 
           this.logger.log(
             `${url} post marked PENDING for deferred verification`,
@@ -782,16 +817,25 @@ export class CronPostsService {
 
         // Immediate success - update post with external ID and status
         const publishedAt = new Date();
-        await this.persistPublishState(post, {
-          error: null,
-          executionState: TargetExecutionState.PUBLISHED,
-          externalId: result.externalId,
-          externalShortcode: result.externalShortcode ?? null,
-          publicationDate: publishedAt,
-          publishedAt,
-          status: PostStatus.PUBLIC,
-          url: result.url || null,
-        });
+        const persisted = await this.persistPublishState(
+          post,
+          {
+            error: null,
+            executionState: TargetExecutionState.PUBLISHED,
+            externalId: result.externalId,
+            externalShortcode: result.externalShortcode ?? null,
+            publicationDate: publishedAt,
+            publishedAt,
+            status: PostStatus.PUBLIC,
+            url: result.url || null,
+            workflowExecutionId,
+          },
+          undefined,
+          transitionGuard,
+        );
+        if (!persisted) {
+          return result;
+        }
 
         // Handle thread children (for platforms that support threads)
         const children = (post.children || []) as unknown as PostDocument[];
@@ -847,12 +891,13 @@ export class CronPostsService {
           post,
           result,
           credential.platform,
+          workflowExecutionId,
         );
       }
 
       return result;
     } catch (error: unknown) {
-      return await this.handlePublishError(post, error);
+      return await this.handlePublishError(post, error, workflowExecutionId);
     }
   }
 
@@ -865,13 +910,14 @@ export class CronPostsService {
     canRetry: boolean,
     errorMessage: string,
     errorCode = this.errorCode(errorMessage),
-  ): Promise<boolean> {
+    workflowExecutionId?: string,
+  ): Promise<boolean | undefined> {
     const url = `${this.constructorName} attemptRetry`;
     const currentRetryCount = post.retryCount || 0;
 
     if (canRetry) {
       const targetError = this.createTargetError(errorCode, errorMessage, true);
-      await this.persistPublishState(
+      const persisted = await this.persistPublishState(
         post,
         {
           error: targetError,
@@ -879,9 +925,19 @@ export class CronPostsService {
           lastAttemptAt: new Date(),
           retryCount: currentRetryCount + 1,
           status: PostStatus.SCHEDULED,
+          ...(workflowExecutionId ? { workflowExecutionId } : {}),
         },
         errorMessage,
+        workflowExecutionId
+          ? {
+              expectedWorkflowExecutionId: workflowExecutionId,
+              priorExecutionStates: [TargetExecutionState.PUBLISHING],
+            }
+          : undefined,
       );
+      if (!persisted) {
+        return undefined;
+      }
 
       this.logger.log(
         `${url} will retry post (attempt ${currentRetryCount + 1}/${this.MAX_RETRY_ATTEMPTS}) after ${this.RETRY_BACKOFF_SECONDS}s backoff`,
@@ -892,16 +948,26 @@ export class CronPostsService {
     }
 
     // Max retries reached - mark parent and children as failed
-    await this.persistPublishState(
+    const persisted = await this.persistPublishState(
       post,
       {
         error: this.createTargetError(errorCode, errorMessage, false),
         executionState: TargetExecutionState.FAILED,
         lastAttemptAt: new Date(),
         status: PostStatus.FAILED,
+        ...(workflowExecutionId ? { workflowExecutionId } : {}),
       },
       errorMessage,
+      workflowExecutionId
+        ? {
+            expectedWorkflowExecutionId: workflowExecutionId,
+            priorExecutionStates: [TargetExecutionState.PUBLISHING],
+          }
+        : undefined,
     );
+    if (!persisted) {
+      return undefined;
+    }
     await this.failChildren(post, 'Parent post failed');
     await this.logFailedActivity(post, errorMessage);
 
@@ -915,6 +981,7 @@ export class CronPostsService {
     post: PostEntity,
     result: PublishResult,
     platform: CredentialPlatform | string,
+    workflowExecutionId?: string,
   ): Promise<PublishResult> {
     const currentRetryCount = post.retryCount || 0;
     const isRetryable = this.isRetryableError(result.error);
@@ -926,6 +993,7 @@ export class CronPostsService {
       canRetry,
       errorMessage,
       this.errorCode(result.error),
+      workflowExecutionId,
     );
 
     if (scheduledForRetry) {
@@ -938,6 +1006,10 @@ export class CronPostsService {
       };
     }
 
+    if (scheduledForRetry === undefined) {
+      return result;
+    }
+
     this.emitPublishFailedWebhook(post, errorMessage, platform);
     return result;
   }
@@ -948,6 +1020,7 @@ export class CronPostsService {
   private async handlePublishError(
     post: PostEntity,
     error: unknown,
+    workflowExecutionId?: string,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const currentRetryCount = post.retryCount || 0;
@@ -968,6 +1041,7 @@ export class CronPostsService {
       canRetry,
       errorMessage,
       this.errorCode(error),
+      workflowExecutionId,
     );
 
     if (scheduledForRetry) {
@@ -978,6 +1052,10 @@ export class CronPostsService {
         success: false,
         url: '',
       };
+    }
+
+    if (scheduledForRetry === undefined) {
+      return this.createFailedResult('', errorMessage);
     }
 
     this.emitPublishFailedWebhook(post, errorMessage);
