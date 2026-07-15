@@ -40,6 +40,35 @@ describe('SidebarNavigationProvider', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
   });
 
+  it.each([
+    ['/acme/brand/studio/video', '/studio', '/studio/video', 'Video'],
+    [
+      '/acme/brand/analytics/insights',
+      '/analytics',
+      '/analytics/insights',
+      'Insights',
+    ],
+    ['/acme/brand/workspace/inbox', '/workspace', '/workspace/inbox', 'Inbox'],
+    ['/acme/brand/compose/post', '/compose', '/compose/post', 'Post'],
+  ])('prefers the most specific match for %s', (pathname, rootPath, childPath, childLabel) => {
+    pathnameState.value = pathname;
+
+    renderNavigation([
+      {
+        href: `${rootPath}/overview`,
+        label: 'Overview',
+        matchPaths: [rootPath],
+      },
+      {
+        href: childPath,
+        label: childLabel,
+        matchPaths: [childPath],
+      },
+    ]);
+
+    expect(screen.getByText(childLabel)).toBeInTheDocument();
+  });
+
   it('ignores task-context query parameters when matching menu hrefs', () => {
     pathnameState.value = '/acme/brand/library/images';
 
