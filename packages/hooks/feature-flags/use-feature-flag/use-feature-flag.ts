@@ -1,4 +1,4 @@
-import { CONVERSATION_SHELL_FLAG_KEY } from '@genfeedai/config';
+import { CONVERSATION_SHELL_FLAG_KEY } from '@genfeedai/config/conversation-shell-rollout';
 import { useFeatureFlagContext } from '@hooks/feature-flags/provider';
 
 export function useFeatureFlag(flagKey: string): boolean {

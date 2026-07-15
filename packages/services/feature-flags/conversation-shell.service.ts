@@ -1,7 +1,7 @@
 import type {
   ConversationShellClientSurface,
   ConversationShellEvaluation,
-} from '@genfeedai/config';
+} from '@genfeedai/config/conversation-shell-rollout';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

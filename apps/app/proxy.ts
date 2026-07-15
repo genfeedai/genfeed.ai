@@ -1,5 +1,5 @@
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
-import { isConversationShellEvaluation } from '@genfeedai/config';
+import { isConversationShellEvaluation } from '@genfeedai/config/conversation-shell-rollout';
 import {
   isCloudDeployment,
   isDesktopClient,

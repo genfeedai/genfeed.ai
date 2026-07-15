@@ -6,9 +6,9 @@ import {
   type ConversationShellEvaluationAttributes,
   type ConversationShellRolloutConfigParseResult,
   evaluateConversationShellRollout,
-  getDeployment,
   parseConversationShellRolloutConfig,
-} from '@genfeedai/config';
+} from '@genfeedai/config/conversation-shell-rollout';
+import { getDeployment } from '@genfeedai/config/deployment';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';

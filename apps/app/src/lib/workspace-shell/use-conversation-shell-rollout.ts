@@ -4,9 +4,11 @@ import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import {
   type ConversationShellEvaluation,
   isConversationShellEvaluation,
+} from '@genfeedai/config/conversation-shell-rollout';
+import {
   isDesktopClient,
   isSelfHostedDeployment,
-} from '@genfeedai/config';
+} from '@genfeedai/config/deployment';
 import { ConversationShellFeatureFlagService } from '@genfeedai/services/feature-flags/conversation-shell.service';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { logger } from '@services/core/logger.service';
