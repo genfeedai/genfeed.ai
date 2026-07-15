@@ -279,18 +279,34 @@ export class StripeSubscriptionCreditReconcilerService {
     lookup: SubscriptionCreditGrantLookup,
     context: SubscriptionCreditReconciliationContext,
   ): void {
-    if (
-      context.billingReason === 'subscription_create' &&
-      context.periodStart &&
-      context.periodEnd &&
-      context.subscription.type
-    ) {
-      lookup.legacyPeriod = {
-        end: context.periodEnd,
-        source: context.subscription.type,
-        start: context.periodStart,
-      };
+    if (context.billingReason !== 'subscription_create') {
+      return;
     }
+
+    const legacyPeriod = this.resolveLegacyPeriod(context);
+    if (legacyPeriod) {
+      lookup.legacyPeriod = legacyPeriod;
+    }
+  }
+
+  private resolveLegacyPeriod(
+    context: SubscriptionCreditReconciliationContext,
+  ): SubscriptionCreditGrantLookup['legacyPeriod'] {
+    if (!context.periodStart) {
+      return undefined;
+    }
+    if (!context.periodEnd) {
+      return undefined;
+    }
+    if (!context.subscription.type) {
+      return undefined;
+    }
+
+    return {
+      end: context.periodEnd,
+      source: context.subscription.type,
+      start: context.periodStart,
+    };
   }
 
   private async applyCreditTransaction(
