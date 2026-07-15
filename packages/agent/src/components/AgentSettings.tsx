@@ -7,7 +7,6 @@ import {
   type ChangeEvent,
   type ReactElement,
   useCallback,
-  useEffect,
   useState,
 } from 'react';
 import {
@@ -91,19 +90,6 @@ export function AgentSettings({
   const [hasPersistedOverrides, setHasPersistedOverrides] = useState(
     !isDefaultState,
   );
-
-  useEffect(() => {
-    setSelectedModel(initialSettings.defaultModel);
-    setPersona(initialSettings.persona);
-    setGenerationPriority(initialSettings.generationPriority);
-    setHasPersistedOverrides(!isDefaultState);
-    setSaveStatus('idle');
-  }, [
-    initialSettings.defaultModel,
-    initialSettings.generationPriority,
-    initialSettings.persona,
-    isDefaultState,
-  ]);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);

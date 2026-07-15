@@ -22,7 +22,7 @@ describe('AgentSettings', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: /^Fast\b/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^Fast/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -50,7 +50,7 @@ describe('AgentSettings', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'No model, persona, or generation priority overrides are saved yet.',
     );
-    expect(screen.getByRole('button', { name: /^Balanced\b/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^Balanced/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -68,7 +68,7 @@ describe('AgentSettings', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /^Budget\b/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Budget/ }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Agent persona' }), {
       target: { value: 'Keep every answer crisp.' },
     });

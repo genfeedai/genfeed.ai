@@ -96,7 +96,7 @@ describe('AgentConfigurationPage', () => {
   it('hydrates from protected brand context and the canonical current user', () => {
     render(<AgentConfigurationPage />);
 
-    expect(screen.getByRole('button', { name: /^Fast\b/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^Fast/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -198,7 +198,7 @@ describe('AgentConfigurationPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'No model, persona, or generation priority overrides are saved yet.',
     );
-    expect(screen.getByRole('button', { name: /^Balanced\b/ })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: /^Balanced/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
@@ -207,7 +207,7 @@ describe('AgentConfigurationPage', () => {
   it('saves through canonical scoped services and refreshes hydrated context', async () => {
     render(<AgentConfigurationPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /^Budget\b/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^Budget/ }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Agent persona' }), {
       target: { value: 'Stay concise.' },
     });
