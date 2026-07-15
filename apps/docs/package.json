@@ -24,8 +24,9 @@
     "dev:portless": "portless run --name docs.genfeed bun run dev:direct",
     "format:check": "prettier --check .",
     "format:fix": "prettier --write .",
-    "lint": "biome check app components content mdx-components.tsx next.config.mjs package.json tsconfig.json types styles README.md",
+    "lint": "biome check app components content tests mdx-components.tsx next.config.mjs vitest.config.ts package.json tsconfig.json types styles README.md",
     "start": "next start",
+    "test": "vitest run --config vitest.config.ts",
     "type-check": "tsc --noEmit"
   },
   "version": "0.0.0"
