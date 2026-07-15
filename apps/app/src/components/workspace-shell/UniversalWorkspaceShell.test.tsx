@@ -292,7 +292,10 @@ vi.mock('@ui/primitives/drawer', () => ({
 }));
 
 vi.mock('@/lib/workspace-shell/workspace-shell-telemetry', () => ({
+  captureWorkspaceShellError: vi.fn(),
+  captureWorkspaceShellOverlayAbandonment: vi.fn(),
   captureWorkspaceShellRestorationFailure: vi.fn(),
+  captureWorkspaceShellScopeCorrection: vi.fn(),
   captureWorkspaceShellTransition: vi.fn(),
 }));
 
