@@ -172,17 +172,31 @@ export class BatchGenerationCreationService {
       totalCount: batchItems.length,
     };
 
-    const batch = (await this.prisma.batch.create({
-      data: {
-        brandId: dto.brandId,
-        config: config as never,
-        isDeleted: false,
-        items: batchItems as never,
-        organizationId: orgId,
-        status: BatchStatus.COMPLETED as never,
-        userId,
-      },
-    })) as BatchWithConfig;
+    let batch: BatchWithConfig;
+    let createdBatchId: string | undefined;
+    try {
+      batch = (await this.prisma.batch.create({
+        data: {
+          brandId: dto.brandId,
+          config: config as never,
+          isDeleted: false,
+          items: batchItems as never,
+          organizationId: orgId,
+          status: BatchStatus.COMPLETED as never,
+          userId,
+        },
+      })) as BatchWithConfig;
+      createdBatchId = batch.id;
+
+      await this.linkManualReviewPosts(batch.id, batchItems, orgId);
+    } catch (error: unknown) {
+      await this.compensateManualReviewCreation(
+        createdBatchId,
+        batchItems,
+        orgId,
+      );
+      throw error;
+    }
 
     this.logger.log(`Manual review batch created: ${batch.id}`, {
       batchId: batch.id,
@@ -190,7 +204,6 @@ export class BatchGenerationCreationService {
       orgId,
     });
 
-    await this.linkManualReviewPosts(batch.id, batchItems, orgId);
     return this.summaryService.toBatchSummary(batch);
   }
 
@@ -228,60 +241,65 @@ export class BatchGenerationCreationService {
     orgId: string,
   ): Promise<BatchItemFull[]> {
     const batchItems: BatchItemFull[] = [];
-    for (const reviewItem of dto.items) {
-      const contentRunId = reviewItem.contentRunId
-        ? String(reviewItem.contentRunId)
-        : undefined;
-      const post = await this.postsService.create({
-        brand: dto.brandId,
-        contentRunId,
-        creativeVersion: reviewItem.creativeVersion,
-        description:
-          reviewItem.caption ??
-          reviewItem.prompt ??
-          'Review this asset before publishing',
-        hookVersion: reviewItem.hookVersion,
-        ingredients: reviewItem.ingredientId ? [reviewItem.ingredientId] : [],
-        label: reviewItem.label ?? `Review ${reviewItem.format} draft`,
-        organization: orgId,
-        platform: reviewItem.platform as never,
-        publishIntent: reviewItem.publishIntent,
-        promptUsed: reviewItem.prompt,
-        scheduleSlot: reviewItem.scheduleSlot,
-        sourceActionId: reviewItem.sourceActionId,
-        sourceWorkflowId: reviewItem.sourceWorkflowId,
-        sourceWorkflowName: reviewItem.sourceWorkflowName,
-        status: PostStatus.DRAFT,
-        user: userId,
-        variantId: reviewItem.variantId,
-      } as never);
+    try {
+      for (const reviewItem of dto.items) {
+        const contentRunId = reviewItem.contentRunId
+          ? String(reviewItem.contentRunId)
+          : undefined;
+        const post = await this.postsService.create({
+          brand: dto.brandId,
+          contentRunId,
+          creativeVersion: reviewItem.creativeVersion,
+          description:
+            reviewItem.caption ??
+            reviewItem.prompt ??
+            'Review this asset before publishing',
+          hookVersion: reviewItem.hookVersion,
+          ingredients: reviewItem.ingredientId ? [reviewItem.ingredientId] : [],
+          label: reviewItem.label ?? `Review ${reviewItem.format} draft`,
+          organization: orgId,
+          platform: reviewItem.platform as never,
+          publishIntent: reviewItem.publishIntent,
+          promptUsed: reviewItem.prompt,
+          scheduleSlot: reviewItem.scheduleSlot,
+          sourceActionId: reviewItem.sourceActionId,
+          sourceWorkflowId: reviewItem.sourceWorkflowId,
+          sourceWorkflowName: reviewItem.sourceWorkflowName,
+          status: PostStatus.DRAFT,
+          user: userId,
+          variantId: reviewItem.variantId,
+        } as never);
 
-      const postId = String((post as Record<string, unknown>).id ?? post.id);
+        const postId = String((post as Record<string, unknown>).id ?? post.id);
 
-      batchItems.push({
-        _id: crypto.randomUUID(),
-        caption: reviewItem.caption,
-        contentRunId,
-        creativeVersion: reviewItem.creativeVersion,
-        format: reviewItem.format as ContentFormat,
-        gateOverallScore: reviewItem.gateOverallScore,
-        gateReasons: reviewItem.gateReasons ?? [],
-        hookVersion: reviewItem.hookVersion,
-        mediaUrl: reviewItem.mediaUrl,
-        opportunitySourceType: reviewItem.opportunitySourceType,
-        opportunityTopic: reviewItem.opportunityTopic,
-        platform: reviewItem.platform,
-        postId,
-        publishIntent: reviewItem.publishIntent,
-        prompt: reviewItem.prompt,
-        reviewEvents: [],
-        scheduleSlot: reviewItem.scheduleSlot,
-        sourceActionId: reviewItem.sourceActionId,
-        sourceWorkflowId: reviewItem.sourceWorkflowId,
-        sourceWorkflowName: reviewItem.sourceWorkflowName,
-        status: BatchItemStatus.COMPLETED,
-        variantId: reviewItem.variantId,
-      });
+        batchItems.push({
+          _id: crypto.randomUUID(),
+          caption: reviewItem.caption,
+          contentRunId,
+          creativeVersion: reviewItem.creativeVersion,
+          format: reviewItem.format as ContentFormat,
+          gateOverallScore: reviewItem.gateOverallScore,
+          gateReasons: reviewItem.gateReasons ?? [],
+          hookVersion: reviewItem.hookVersion,
+          mediaUrl: reviewItem.mediaUrl,
+          opportunitySourceType: reviewItem.opportunitySourceType,
+          opportunityTopic: reviewItem.opportunityTopic,
+          platform: reviewItem.platform,
+          postId,
+          publishIntent: reviewItem.publishIntent,
+          prompt: reviewItem.prompt,
+          reviewEvents: [],
+          scheduleSlot: reviewItem.scheduleSlot,
+          sourceActionId: reviewItem.sourceActionId,
+          sourceWorkflowId: reviewItem.sourceWorkflowId,
+          sourceWorkflowName: reviewItem.sourceWorkflowName,
+          status: BatchItemStatus.COMPLETED,
+          variantId: reviewItem.variantId,
+        });
+      }
+    } catch (error: unknown) {
+      await this.compensateManualReviewCreation(undefined, batchItems, orgId);
+      throw error;
     }
     return batchItems;
   }
@@ -291,11 +309,11 @@ export class BatchGenerationCreationService {
     batchItems: BatchItemFull[],
     orgId: string,
   ): Promise<void> {
-    await Promise.all(
+    const results = await Promise.all(
       batchItems.map(async (item) => {
-        if (!item.postId) return;
+        if (!item.postId) return { count: 0 };
 
-        await this.prisma.post.updateMany({
+        return this.prisma.post.updateMany({
           data: {
             reviewBatchId: batchId,
             reviewItemId: item._id,
@@ -308,6 +326,47 @@ export class BatchGenerationCreationService {
         });
       }),
     );
+
+    if (results.some((result) => result.count !== 1)) {
+      throw new NotFoundException({
+        message:
+          'A manual review post disappeared before batch linking completed',
+      });
+    }
+  }
+
+  private async compensateManualReviewCreation(
+    batchId: string | undefined,
+    batchItems: BatchItemFull[],
+    orgId: string,
+  ): Promise<void> {
+    try {
+      const postIds = batchItems.flatMap((item) =>
+        item.postId ? [item.postId] : [],
+      );
+      if (postIds.length > 0) {
+        await this.prisma.post.updateMany({
+          data: { isDeleted: true },
+          where: {
+            id: { in: postIds },
+            isDeleted: false,
+            organizationId: orgId,
+          },
+        });
+      }
+      if (batchId) {
+        await this.prisma.batch.updateMany({
+          data: { isDeleted: true },
+          where: { id: batchId, isDeleted: false, organizationId: orgId },
+        });
+      }
+    } catch (cleanupError: unknown) {
+      this.logger.error('Manual review batch compensation failed', {
+        batchId,
+        cleanupError,
+        orgId,
+      });
+    }
   }
 
   private generateContentPlan(
@@ -349,9 +408,6 @@ export class BatchGenerationCreationService {
     total: number,
     contentMix: ContentMixConfig,
   ): Record<string, number> {
-    const counts: Record<string, number> = {};
-    let remaining = total;
-
     const formats: Array<{ key: ContentFormat; percent: number }> = [
       { key: ContentFormat.IMAGE, percent: contentMix.imagePercent },
       { key: ContentFormat.VIDEO, percent: contentMix.videoPercent },
@@ -360,17 +416,36 @@ export class BatchGenerationCreationService {
       { key: ContentFormat.STORY, percent: contentMix.storyPercent },
     ];
 
-    for (const format of formats) {
-      const count = Math.round((format.percent / 100) * total);
-      counts[format.key] = count;
-      remaining -= count;
+    const safeTotal = Math.max(0, Math.floor(total));
+    const percentTotal = formats.reduce(
+      (sum, format) => sum + Math.max(0, format.percent),
+      0,
+    );
+    if (percentTotal === 0) {
+      return Object.fromEntries(
+        formats.map((format, index) => [
+          format.key,
+          index === 0 ? safeTotal : 0,
+        ]),
+      );
     }
 
-    if (remaining !== 0) {
-      const largest = formats.reduce((a, b) =>
-        a.percent >= b.percent ? a : b,
-      );
-      counts[largest.key] = (counts[largest.key] ?? 0) + remaining;
+    const allocations = formats.map((format, index) => {
+      const exact = (Math.max(0, format.percent) / percentTotal) * safeTotal;
+      return { count: Math.floor(exact), fraction: exact % 1, format, index };
+    });
+    let remaining =
+      safeTotal - allocations.reduce((sum, item) => sum + item.count, 0);
+    const byRemainder = [...allocations].sort(
+      (a, b) => b.fraction - a.fraction || a.index - b.index,
+    );
+    for (let index = 0; remaining > 0; index++, remaining--) {
+      byRemainder[index % byRemainder.length].count++;
+    }
+
+    const counts: Record<string, number> = {};
+    for (const allocation of allocations) {
+      counts[allocation.format.key] = allocation.count;
     }
 
     return counts;

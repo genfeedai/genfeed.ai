@@ -16,6 +16,12 @@ import type { IBatchSummary } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+type BatchProcessingCounts = {
+  cancelled: boolean;
+  completedCount: number;
+  failedCount: number;
+};
+
 @Injectable()
 export class BatchGenerationProcessingService {
   constructor(
@@ -68,12 +74,17 @@ export class BatchGenerationProcessingService {
     const batchConfig = (batchRecord.config ?? {}) as BatchConfig;
     const batchItems = cloneBatchItems(batchRecord.items);
 
-    await options?.onBatchStarted?.({
-      batchId,
-      totalCount: batchConfig.totalCount ?? batchItems.length,
-    });
+    await this.invokeLifecycleCallback(
+      'onBatchStarted',
+      () =>
+        options?.onBatchStarted?.({
+          batchId,
+          totalCount: batchConfig.totalCount ?? batchItems.length,
+        }),
+      { batchId },
+    );
 
-    const { completedCount, failedCount } = await this.processItems(
+    const { cancelled, completedCount, failedCount } = await this.processItems(
       batchId,
       orgId,
       batchRecord,
@@ -81,6 +92,11 @@ export class BatchGenerationProcessingService {
       batchItems,
       options,
     );
+
+    if (cancelled) {
+      const cancelledBatch = await this.findScopedBatch(batchId, orgId);
+      return this.summaryService.toBatchSummary(cancelledBatch);
+    }
 
     const totalCount = batchConfig.totalCount ?? batchItems.length;
     const finalStatus =
@@ -99,14 +115,31 @@ export class BatchGenerationProcessingService {
       failedCount,
     };
 
-    const updatedBatch = (await this.prisma.batch.update({
+    const finalized = await this.prisma.batch.updateMany({
       data: {
         config: updatedConfig as never,
         items: batchItems as never,
         status: finalStatus as never,
       },
-      where: { id: batchId },
-    })) as BatchWithConfig;
+      where: {
+        id: batchId,
+        isDeleted: false,
+        organizationId: orgId,
+        status: BatchStatus.GENERATING as never,
+      },
+    });
+
+    if (finalized.count !== 1) {
+      const currentBatch = await this.findScopedBatch(batchId, orgId);
+      if (currentBatch.status === BatchStatus.CANCELLED) {
+        return this.summaryService.toBatchSummary(currentBatch);
+      }
+      throw new BadRequestException(
+        `Batch ${batchId} changed state while processing`,
+      );
+    }
+
+    const updatedBatch = await this.findScopedBatch(batchId, orgId);
 
     this.logger.log(`Batch processing complete: ${batchId}`, {
       batchId,
@@ -114,13 +147,18 @@ export class BatchGenerationProcessingService {
       failedCount,
       status: finalStatus,
     });
-    await options?.onBatchCompleted?.({
-      batchId,
-      completedCount,
-      failedCount,
-      status: finalStatus,
-      totalCount,
-    });
+    await this.invokeLifecycleCallback(
+      'onBatchCompleted',
+      () =>
+        options?.onBatchCompleted?.({
+          batchId,
+          completedCount,
+          failedCount,
+          status: finalStatus,
+          totalCount,
+        }),
+      { batchId },
+    );
     return this.summaryService.toBatchSummary(updatedBatch);
   }
 
@@ -131,10 +169,14 @@ export class BatchGenerationProcessingService {
     batchConfig: BatchConfig,
     batchItems: BatchItemFull[],
     options?: BatchProcessOptions,
-  ): Promise<{ completedCount: number; failedCount: number }> {
+  ): Promise<BatchProcessingCounts> {
     let completedCount = 0;
     let failedCount = 0;
     for (let i = 0; i < batchItems.length; i++) {
+      if (!(await this.isBatchGenerating(batchId, orgId))) {
+        return { cancelled: true, completedCount, failedCount };
+      }
+
       const item = batchItems[i];
 
       if (item.status !== BatchItemStatus.PENDING) {
@@ -150,15 +192,20 @@ export class BatchGenerationProcessingService {
             ? topics[i % topics.length]
             : `${item.format} content`;
 
-        await options?.onItemStarted?.({
-          batchId,
-          completedCount,
-          failedCount,
-          index: i,
-          item,
-          topic,
-          totalCount: batchConfig.totalCount ?? batchItems.length,
-        });
+        await this.invokeLifecycleCallback(
+          'onItemStarted',
+          () =>
+            options?.onItemStarted?.({
+              batchId,
+              completedCount,
+              failedCount,
+              index: i,
+              item,
+              topic,
+              totalCount: batchConfig.totalCount ?? batchItems.length,
+            }),
+          { batchId, itemId: item._id },
+        );
 
         const generated = await this.contentGeneratorService.generateContent(
           orgId,
@@ -198,17 +245,22 @@ export class BatchGenerationProcessingService {
         item.status = BatchItemStatus.COMPLETED;
         completedCount++;
 
-        await options?.onItemCompleted?.({
-          batchId,
-          completedCount,
-          failedCount,
-          index: i,
-          item,
-          postId,
-          previewText: item.caption,
-          topic,
-          totalCount: batchConfig.totalCount ?? batchItems.length,
-        });
+        await this.invokeLifecycleCallback(
+          'onItemCompleted',
+          () =>
+            options?.onItemCompleted?.({
+              batchId,
+              completedCount,
+              failedCount,
+              index: i,
+              item,
+              postId,
+              previewText: item.caption,
+              topic,
+              totalCount: batchConfig.totalCount ?? batchItems.length,
+            }),
+          { batchId, itemId: item._id },
+        );
       } catch (error: unknown) {
         item.status = BatchItemStatus.FAILED;
         item.error = error instanceof Error ? error.message : 'Unknown error';
@@ -220,21 +272,70 @@ export class BatchGenerationProcessingService {
         });
 
         const topics = batchConfig.topics ?? [];
-        await options?.onItemFailed?.({
-          batchId,
-          completedCount,
-          error: item.error,
-          failedCount,
-          index: i,
-          item,
-          topic:
-            topics.length > 0
-              ? topics[i % topics.length]
-              : `${item.format} content`,
-          totalCount: batchConfig.totalCount ?? batchItems.length,
-        });
+        await this.invokeLifecycleCallback(
+          'onItemFailed',
+          () =>
+            options?.onItemFailed?.({
+              batchId,
+              completedCount,
+              error: item.error,
+              failedCount,
+              index: i,
+              item,
+              topic:
+                topics.length > 0
+                  ? topics[i % topics.length]
+                  : `${item.format} content`,
+              totalCount: batchConfig.totalCount ?? batchItems.length,
+            }),
+          { batchId, itemId: item._id },
+        );
       }
     }
-    return { completedCount, failedCount };
+    return { cancelled: false, completedCount, failedCount };
+  }
+
+  private async findScopedBatch(
+    batchId: string,
+    orgId: string,
+  ): Promise<BatchWithConfig> {
+    return (await findOrThrow(
+      this.prisma.batch,
+      { where: { id: batchId, isDeleted: false, organizationId: orgId } },
+      'Batch',
+      batchId,
+    )) as BatchWithConfig;
+  }
+
+  private async isBatchGenerating(
+    batchId: string,
+    orgId: string,
+  ): Promise<boolean> {
+    const batch = await this.prisma.batch.findFirst({
+      select: { status: true },
+      where: {
+        id: batchId,
+        isDeleted: false,
+        organizationId: orgId,
+      },
+    });
+    return batch?.status === BatchStatus.GENERATING;
+  }
+
+  private async invokeLifecycleCallback(
+    callbackName: string,
+    callback: (() => Promise<void> | void) | undefined,
+    context: Record<string, unknown>,
+  ): Promise<void> {
+    if (!callback) return;
+
+    try {
+      await callback();
+    } catch (error: unknown) {
+      this.logger.error(`Batch lifecycle callback ${callbackName} failed`, {
+        ...context,
+        error,
+      });
+    }
   }
 }

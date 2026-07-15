@@ -22,6 +22,7 @@ describe('BatchGenerationService approval version pins', () => {
   let batchDelegate: {
     findFirst: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
   };
   let postDelegate: {
     findMany: ReturnType<typeof vi.fn>;
@@ -62,6 +63,13 @@ describe('BatchGenerationService approval version pins', () => {
           items: data.items,
         }),
       ),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        batchDelegate.findFirst.mockResolvedValue({
+          ...batchRecord,
+          ...data,
+        });
+        return Promise.resolve({ count: 1 });
+      }),
     };
     postDelegate = {
       findMany: vi.fn().mockResolvedValue([]),
@@ -131,9 +139,6 @@ describe('BatchGenerationService approval version pins', () => {
       status: BatchItemStatus.COMPLETED,
     };
     batchDelegate.findFirst.mockResolvedValue(createBatchRecord([item]));
-    batchDelegate.update.mockImplementation(({ data }) =>
-      Promise.resolve({ ...createBatchRecord([]), items: data.items }),
-    );
 
     const result = await service.approveItems(
       'batch-1',
@@ -170,7 +175,8 @@ describe('BatchGenerationService approval version pins', () => {
       },
     });
 
-    const persistedItems = batchDelegate.update.mock.calls[0]?.[0].data.items;
+    const persistedItems =
+      batchDelegate.updateMany.mock.calls[0]?.[0].data.items;
     expect(persistedItems).toEqual([
       expect.objectContaining({
         reviewDecision: 'approved',
@@ -212,7 +218,7 @@ describe('BatchGenerationService approval version pins', () => {
     ).rejects.toThrow('Canonical Post changed.');
 
     expect(postDelegate.updateMany).not.toHaveBeenCalled();
-    expect(batchDelegate.update).not.toHaveBeenCalled();
+    expect(batchDelegate.updateMany).not.toHaveBeenCalled();
   });
 
   it('rolls back Post reference state when the batch approval write fails', async () => {
@@ -237,7 +243,9 @@ describe('BatchGenerationService approval version pins', () => {
       }),
     };
     const transactionBatch = {
+      findFirst: vi.fn(),
       update: vi.fn().mockRejectedValue(new Error('batch write failed')),
+      updateMany: vi.fn().mockRejectedValue(new Error('batch write failed')),
     };
     const transaction = {
       batch: transactionBatch,
@@ -270,7 +278,7 @@ describe('BatchGenerationService approval version pins', () => {
       }),
     );
     expect(postDelegate.updateMany).not.toHaveBeenCalled();
-    expect(batchDelegate.update).not.toHaveBeenCalled();
+    expect(batchDelegate.updateMany).not.toHaveBeenCalled();
   });
 
   it('maps a missing canonical Post to the API NotFoundException convention', async () => {
@@ -295,7 +303,7 @@ describe('BatchGenerationService approval version pins', () => {
       detail: 'A canonical Post disappeared before approval completed.',
       title: 'Resource Not Found',
     });
-    expect(batchDelegate.update).not.toHaveBeenCalled();
+    expect(batchDelegate.updateMany).not.toHaveBeenCalled();
   });
 
   it('preserves legacy approval behavior for items without a canonical Post', async () => {
@@ -320,7 +328,7 @@ describe('BatchGenerationService approval version pins', () => {
       artifactReferenceService.createOrReuseVersionPin,
     ).not.toHaveBeenCalled();
     expect(postDelegate.updateMany).not.toHaveBeenCalled();
-    expect(batchDelegate.update).toHaveBeenCalledWith({
+    expect(batchDelegate.updateMany).toHaveBeenCalledWith({
       data: {
         items: [
           expect.objectContaining({
@@ -329,7 +337,11 @@ describe('BatchGenerationService approval version pins', () => {
           }),
         ],
       },
-      where: { id: 'batch-1' },
+      where: {
+        id: 'batch-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
     });
   });
 
