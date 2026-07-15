@@ -92,7 +92,7 @@ export class SchedulerPublishStateService {
               data: {
                 ...(input.update.error !== undefined && {
                   targetError: input.update.error
-                    ? (input.update.error as Prisma.InputJsonValue)
+                    ? this.toJson(input.update.error)
                     : Prisma.JsonNull,
                 }),
                 ...(input.update.externalId !== undefined && {
