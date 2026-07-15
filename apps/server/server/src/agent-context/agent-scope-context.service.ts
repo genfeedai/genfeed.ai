@@ -9,7 +9,6 @@ import {
   ForbiddenException,
   HttpException,
   HttpStatus,
-  Injectable,
 } from '@nestjs/common';
 import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
 
@@ -77,7 +76,6 @@ export interface MutateAgentScopeParams {
   userId: string;
 }
 
-@Injectable()
 export class AgentScopeContextService {
   constructor(
     private readonly prisma: Pick<

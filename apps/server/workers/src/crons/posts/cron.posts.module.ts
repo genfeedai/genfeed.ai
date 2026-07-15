@@ -34,12 +34,26 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
   exports: [CronPostsService],
   providers: [
     AgentArtifactReferenceService,
-    AgentScopeContextService,
     CronPostsService,
-    PublishApprovalsService,
     SystemWorkflowProvenanceService,
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
+    {
+      inject: [PrismaService, LoggerService],
+      provide: AgentScopeContextService,
+      useFactory: (prisma: PrismaService, logger: LoggerService) =>
+        new AgentScopeContextService(prisma, logger),
+    },
+    {
+      inject: [PrismaService, AgentArtifactReferenceService, LoggerService],
+      provide: PublishApprovalsService,
+      useFactory: (
+        prisma: PrismaService,
+        artifactReferenceService: AgentArtifactReferenceService,
+        logger: LoggerService,
+      ) =>
+        new PublishApprovalsService(prisma, artifactReferenceService, logger),
+    },
   ],
 })
 export class CronPostsModule {}

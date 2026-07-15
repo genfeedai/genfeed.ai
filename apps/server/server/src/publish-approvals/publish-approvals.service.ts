@@ -32,7 +32,6 @@ import {
   ForbiddenException,
   HttpException,
   HttpStatus,
-  Injectable,
 } from '@nestjs/common';
 import { AgentArtifactReferenceService } from '@server/agent-artifacts/agent-artifact-reference.service';
 import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
@@ -134,7 +133,6 @@ export interface PublishExecutionClaim {
   approval: IPublishApproval;
 }
 
-@Injectable()
 export class PublishApprovalsService {
   constructor(
     private readonly prisma: ServerPrisma,
