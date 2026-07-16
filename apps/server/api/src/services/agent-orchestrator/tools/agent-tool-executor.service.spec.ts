@@ -19,6 +19,10 @@ import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.con
 import { PostStatus, ReleaseStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Effect } from 'effect';
 import { of } from 'rxjs';
 
@@ -62,6 +66,7 @@ describe('AgentToolExecutorService', () => {
       findAll: vi.fn(),
       findOne: vi.fn(),
       handleYoutubePost: vi.fn(),
+      patch: vi.fn(),
     };
     const postGroupsService = {
       create: vi
@@ -102,6 +107,19 @@ describe('AgentToolExecutorService', () => {
             executionState: 'scheduled',
             id: 'target-2',
             platform: 'youtube',
+          },
+        ],
+      }),
+      scheduleTarget: vi.fn().mockResolvedValue({
+        id: 'release-1',
+        organizationId: '67a123456789012345678901',
+        status: ReleaseStatus.SCHEDULED,
+        targets: [
+          {
+            executionState: 'scheduled',
+            id: 'target-1',
+            platform: 'linkedin',
+            scheduledAt: '2099-07-18T09:00:00.000Z',
           },
         ],
       }),
@@ -953,6 +971,317 @@ describe('AgentToolExecutorService', () => {
         type: 'publish_post_card',
       }),
     ]);
+  });
+
+  it('schedules a canonical release target through the approval-backed scheduler', async () => {
+    const { postGroupsService, postsService, service } = createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: '67a123456789012345678931',
+      groupId: 'release-1',
+      id: 'target-1',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.SCHEDULE_POST,
+      {
+        postId: 'target-1',
+        scheduledAt: '2099-07-18T09:00:00.000Z',
+      },
+      scopedContext('67a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        creditsUsed: 1,
+        data: expect.objectContaining({
+          id: 'target-1',
+          releaseId: 'release-1',
+          scheduledAt: '2099-07-18T09:00:00.000Z',
+        }),
+        success: true,
+      }),
+    );
+    expect(postGroupsService.scheduleTarget).toHaveBeenCalledWith(
+      '67a123456789012345678901',
+      '67a123456789012345678902',
+      'release-1',
+      'target-1',
+      '2099-07-18T09:00:00.000Z',
+      expect.objectContaining({
+        agentContextSource: 'explicit',
+        agentContextVersion: 3,
+        agentThreadId: '67a123456789012345678999',
+      }),
+    );
+    expect(postsService.patch).not.toHaveBeenCalled();
+  });
+
+  it('fails closed with a remediation action for a legacy standalone draft', async () => {
+    const { postGroupsService, postsService, service } = createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: '67a123456789012345678931',
+      id: 'legacy-post-1',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.SCHEDULE_POST,
+      {
+        postId: 'legacy-post-1',
+        scheduledAt: '2099-07-18T09:00:00.000Z',
+      },
+      scopedContext('67a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          requiredAction: 'create_canonical_release',
+        }),
+        error: expect.stringContaining('legacy standalone draft'),
+        nextActions: [
+          expect.objectContaining({
+            ctas: [{ href: '/content/posts', label: 'Open posts' }],
+            type: 'schedule_post_card',
+          }),
+        ],
+        success: false,
+      }),
+    );
+    expect(postGroupsService.scheduleTarget).not.toHaveBeenCalled();
+    expect(postsService.patch).not.toHaveBeenCalled();
+  });
+
+  it('returns an actionable fail-closed result when canonical scheduling validation rejects', async () => {
+    const { postGroupsService, postsService, service } = createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: '67a123456789012345678931',
+      groupId: 'release-1',
+      id: 'target-1',
+    });
+    postGroupsService.scheduleTarget.mockRejectedValue(
+      new BadRequestException('Credential cred-1 is not connected.'),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.SCHEDULE_POST,
+      {
+        postId: 'target-1',
+        scheduledAt: '2099-07-18T09:00:00.000Z',
+      },
+      scopedContext('67a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        creditsUsed: 0,
+        error: 'Credential cred-1 is not connected.',
+        nextActions: [
+          expect.objectContaining({
+            ctas: [{ href: '/content/posts', label: 'Review post setup' }],
+            type: 'schedule_post_card',
+          }),
+        ],
+        success: false,
+      }),
+    );
+    expect(postsService.patch).not.toHaveBeenCalled();
+  });
+
+  it('logs unexpected canonical scheduling failures without exposing internal details', async () => {
+    const { loggerService, postGroupsService, postsService, service } =
+      createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: '67a123456789012345678931',
+      groupId: 'release-1',
+      id: 'target-1',
+    });
+    postGroupsService.scheduleTarget.mockRejectedValue(
+      new Error('Prisma connection detail with internal host'),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.SCHEDULE_POST,
+      {
+        postId: 'target-1',
+        scheduledAt: '2099-07-18T09:00:00.000Z',
+      },
+      scopedContext('67a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'The canonical release target could not be scheduled safely.',
+        success: false,
+      }),
+    );
+    expect(result.error).not.toContain('Prisma');
+    expect(loggerService.error).toHaveBeenCalledWith(
+      expect.stringContaining('Prisma connection detail'),
+      'AgentToolExecutorService',
+    );
+  });
+
+  it('does not expose 5xx HTTP exception details from canonical scheduling', async () => {
+    const { loggerService, postGroupsService, postsService, service } =
+      createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: '67a123456789012345678931',
+      groupId: 'release-1',
+      id: 'target-1',
+    });
+    postGroupsService.scheduleTarget.mockRejectedValue(
+      new InternalServerErrorException('Database host is db.internal'),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.SCHEDULE_POST,
+      {
+        postId: 'target-1',
+        scheduledAt: '2099-07-18T09:00:00.000Z',
+      },
+      scopedContext('67a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'The canonical release target could not be scheduled safely.',
+        success: false,
+      }),
+    );
+    expect(result.error).not.toContain('db.internal');
+    expect(loggerService.error).toHaveBeenCalled();
+  });
+
+  it('fails closed when the canonical scheduler omits the scheduled target', async () => {
+    const { postGroupsService, postsService, service } = createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: '67a123456789012345678931',
+      groupId: 'release-1',
+      id: 'target-1',
+    });
+    postGroupsService.scheduleTarget.mockResolvedValue({
+      id: 'release-1',
+      organizationId: '67a123456789012345678901',
+      status: ReleaseStatus.SCHEDULED,
+      targets: [],
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.SCHEDULE_POST,
+      {
+        postId: 'target-1',
+        scheduledAt: '2099-07-18T09:00:00.000Z',
+      },
+      scopedContext('67a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error:
+          'Canonical scheduler did not return the scheduled release target.',
+        success: false,
+      }),
+    );
+  });
+
+  it('fails closed when the canonical scheduler returns an unscheduled target', async () => {
+    const { postGroupsService, postsService, service } = createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: '67a123456789012345678931',
+      groupId: 'release-1',
+      id: 'target-1',
+    });
+    postGroupsService.scheduleTarget.mockResolvedValue({
+      id: 'release-1',
+      organizationId: '67a123456789012345678901',
+      status: ReleaseStatus.DRAFT,
+      targets: [
+        {
+          executionState: 'draft',
+          id: 'target-1',
+          platform: 'linkedin',
+        },
+      ],
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.SCHEDULE_POST,
+      {
+        postId: 'target-1',
+        scheduledAt: '2099-07-18T09:00:00.000Z',
+      },
+      scopedContext('67a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error:
+          'Canonical scheduler did not return the scheduled release target.',
+        success: false,
+      }),
+    );
+  });
+
+  it('sanitizes unexpected post lookup failures before canonical scheduling', async () => {
+    const { loggerService, postsService, service } = createService();
+    postsService.findOne.mockRejectedValue(
+      new Error('Post query failed against db.internal'),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.SCHEDULE_POST,
+      {
+        postId: 'target-1',
+        scheduledAt: '2099-07-18T09:00:00.000Z',
+      },
+      scopedContext('67a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'The canonical release target could not be scheduled safely.',
+        success: false,
+      }),
+    );
+    expect(result.error).not.toContain('db.internal');
+    expect(loggerService.error).toHaveBeenCalled();
+  });
+
+  it('rejects invalid schedule timestamps before loading a post', async () => {
+    const { postsService, service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.SCHEDULE_POST,
+      { postId: 'target-1', scheduledAt: 'not-a-date' },
+      scopedContext('67a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error:
+          'scheduledAt must be a valid ISO 8601 date and time with an explicit UTC offset.',
+        success: false,
+      }),
+    );
+    expect(postsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('rejects schedule timestamps without an explicit UTC offset', async () => {
+    const { postsService, service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.SCHEDULE_POST,
+      { postId: 'target-1', scheduledAt: '2099-07-18T09:00:00' },
+      scopedContext('67a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: expect.stringContaining('explicit UTC offset'),
+        success: false,
+      }),
+    );
+    expect(postsService.findOne).not.toHaveBeenCalled();
   });
 
   it('returns a generic integrations card when connection status has no platform', async () => {

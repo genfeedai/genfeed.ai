@@ -38,6 +38,10 @@ import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tool
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
+import {
+  readAgentScheduleValidationError,
+  SAFE_AGENT_SCHEDULE_ERROR,
+} from '@api/services/agent-orchestrator/tools/agent-schedule-error.util';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
@@ -109,6 +113,9 @@ import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
 import { firstValueFrom } from 'rxjs';
+import { z } from 'zod';
+
+const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
 
 export interface ToolExecutionContext {
   /** URLs of user-attached images from the chat message */
@@ -4418,46 +4425,110 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const postId = params.postId as string;
-    const scheduledAt = params.scheduledAt as string;
-
-    const post = await this.postsService.findOne({
-      _id: postId,
-      isDeleted: false,
-      organization: ctx.organizationId,
-    });
-
-    if (!post) {
+    const postId = this.readOptionalString(params.postId);
+    const scheduledAt = this.readOptionalString(params.scheduledAt);
+    if (!postId || !scheduledAt) {
       return {
         creditsUsed: 0,
-        error: `Post ${postId} not found`,
+        error: 'postId and scheduledAt are required to schedule a post.',
+        success: false,
+      };
+    }
+    if (!STRICT_SCHEDULE_DATE_SCHEMA.safeParse(scheduledAt).success) {
+      return {
+        creditsUsed: 0,
+        error:
+          'scheduledAt must be a valid ISO 8601 date and time with an explicit UTC offset.',
+        success: false,
+      };
+    }
+    const scheduledDate = new Date(scheduledAt);
+    if (scheduledDate.getTime() <= Date.now()) {
+      return {
+        creditsUsed: 0,
+        error: 'scheduledAt must be in the future.',
         success: false,
       };
     }
 
-    await this.assertPublishingScope(
-      ctx,
-      this.readOptionalString((post as { brand?: unknown }).brand),
-      'scheduled post',
-    );
+    let groupId: string | undefined;
+    try {
+      const post = await this.postsService.findOne({
+        _id: postId,
+        isDeleted: false,
+        organization: ctx.organizationId,
+      });
 
-    await this.postsService.patch(postId, {
-      agentContextSource: ctx.validatedScope?.source,
-      agentContextVersion: ctx.validatedScope?.contextVersion,
-      agentThreadId: ctx.validatedScope?.threadId,
-      scheduledDate: new Date(scheduledAt),
-      status: PostStatus.SCHEDULED,
-    } as never);
+      if (!post) {
+        return {
+          creditsUsed: 0,
+          error: `Post ${postId} not found`,
+          success: false,
+        };
+      }
 
-    return {
-      creditsUsed: 1,
-      data: {
-        id: postId,
-        scheduledAt,
-        status: PostStatus.SCHEDULED,
-      },
-      success: true,
-    };
+      await this.assertPublishingScope(
+        ctx,
+        this.readOptionalString(post.brandId) ??
+          this.readOptionalString(post.brand),
+        'scheduled post',
+      );
+
+      groupId = this.readOptionalString(post.groupId);
+      if (!groupId) {
+        return {
+          creditsUsed: 0,
+          data: {
+            id: postId,
+            requiredAction: 'create_canonical_release',
+          },
+          error:
+            'This legacy standalone draft cannot be scheduled safely. Open Posts and create a canonical release with an explicit platform and connected account.',
+          nextActions: [
+            {
+              ctas: [{ href: '/content/posts', label: 'Open posts' }],
+              description:
+                'Choose the destination and connected account in the canonical release composer before scheduling.',
+              id: `schedule-legacy-post-${postId}`,
+              title: 'Canonical release required',
+              type: 'schedule_post_card',
+            },
+          ],
+          success: false,
+        };
+      }
+
+      return await this.publishHandler.scheduleCanonicalPost({
+        ctx,
+        groupId,
+        postId,
+        scheduledAt: scheduledDate.toISOString(),
+      });
+    } catch (error: unknown) {
+      const validationError = readAgentScheduleValidationError(error);
+      if (!validationError) {
+        this.loggerService.error(
+          `Canonical schedule failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          this.constructorName,
+        );
+      }
+      return {
+        creditsUsed: 0,
+        data: { id: postId, ...(groupId ? { releaseId: groupId } : {}) },
+        error: validationError ?? SAFE_AGENT_SCHEDULE_ERROR,
+        nextActions: [
+          {
+            ctas: [{ href: '/content/posts', label: 'Review post setup' }],
+            description:
+              'Verify the release brand, platform, connected account, and future schedule before retrying.',
+            id: `schedule-post-failed-${postId}`,
+            title: 'Scheduling needs attention',
+            type: 'schedule_post_card',
+          },
+        ],
+        success: false,
+      };
+    }
   }
 
   private async createWorkflowFromRecurringScaffold(

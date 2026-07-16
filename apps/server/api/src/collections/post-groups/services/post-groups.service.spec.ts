@@ -35,6 +35,12 @@ type MockPostGroup = {
 };
 
 type MockPostTarget = {
+  agentContextSource: string | null;
+  agentContextVersion: number | null;
+  agentRunId: string | null;
+  agentStrategyId: string | null;
+  agentThreadId: string | null;
+  brandId: string | null;
   createdAt: Date;
   credentialId: string;
   externalId: string | null;
@@ -412,6 +418,401 @@ describe('PostGroupsService', () => {
     );
   });
 
+  it('schedules a canonical target with a version-bound approval in the same transaction', async () => {
+    const scheduledAt = '2026-07-09T12:00:00.000Z';
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        agentContextSource: null,
+        agentContextVersion: null,
+        agentThreadId: null,
+        groupId: 'group-1',
+        id: 'target-1',
+        publishApproval: null,
+        publishApprovalId: null,
+        scheduledDate: null,
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        agentContextSource: 'explicit',
+        agentContextVersion: 3,
+        agentThreadId: 'thread-1',
+        groupId: 'group-1',
+        id: 'target-1',
+        scheduledDate: new Date(scheduledAt),
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      }),
+    ]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status,
+          statusTransitions: data.statusTransitions,
+        }),
+      ),
+    );
+
+    const result = await service.scheduleTarget(
+      'org-1',
+      'user-1',
+      'group-1',
+      'target-1',
+      scheduledAt,
+      {
+        agentContextSource: 'explicit',
+        agentContextVersion: 3,
+        agentThreadId: 'thread-1',
+      },
+    );
+
+    expect(prisma.post.updateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        agentContextSource: 'explicit',
+        agentContextVersion: 3,
+        agentThreadId: 'thread-1',
+        scheduledDate: new Date(scheduledAt),
+        status: TargetExecutionState.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        targetValidationState: TargetValidationState.VALID,
+      }),
+      where: {
+        groupId: 'group-1',
+        id: 'target-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+        updatedAt: now,
+      },
+    });
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      contextVersion: 3,
+      mode: 'scheduled',
+      organizationId: 'org-1',
+      postId: 'target-1',
+      provenance: {
+        releaseId: 'group-1',
+        surface: 'agent-schedule-post',
+      },
+      transaction: prisma,
+    });
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+    expect(result.status).toBe(ReleaseStatus.SCHEDULED);
+    expect(result.targets?.[0]).toEqual(
+      expect.objectContaining({
+        id: 'target-1',
+        scheduledAt,
+      }),
+    );
+  });
+
+  it('replays an exact canonical schedule without mutating the target or creating a second queue job', async () => {
+    const scheduledAt = '2026-07-09T12:00:00.000Z';
+    const target = makeTarget({
+      agentContextSource: 'explicit',
+      agentContextVersion: 3,
+      agentThreadId: 'thread-1',
+      groupId: 'group-1',
+      id: 'target-1',
+      scheduledDate: new Date(scheduledAt),
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+    });
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.SCHEDULED }),
+    );
+    prisma.post.findFirst.mockResolvedValue(target);
+    prisma.post.findMany.mockResolvedValue([target]);
+    prisma.postGroup.update.mockImplementation(({ data }) =>
+      Promise.resolve(
+        makeGroup({
+          id: 'group-1',
+          status: data.status,
+          statusTransitions: data.statusTransitions,
+        }),
+      ),
+    );
+
+    await service.scheduleTarget(
+      'org-1',
+      'user-1',
+      'group-1',
+      'target-1',
+      scheduledAt,
+      {
+        agentContextSource: 'explicit',
+        agentContextVersion: 3,
+        agentThreadId: 'thread-1',
+      },
+    );
+
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid schedule destination scope before durable mutation', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    prisma.credential.findMany.mockResolvedValue([]);
+
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        '2026-07-09T12:00:00.000Z',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(prisma.postGroup.update).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unsupported canonical target platform before durable mutation', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        platform: 'unsupported-platform',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        '2026-07-09T12:00:00.000Z',
+      ),
+    ).rejects.toThrow('not supported');
+
+    expect(prisma.credential.findMany).not.toHaveBeenCalled();
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
+  it('rejects a disconnected canonical target credential before durable mutation', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    prisma.credential.findMany.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        id: 'cred-x',
+        isConnected: false,
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+      },
+    ]);
+
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        '2026-07-09T12:00:00.000Z',
+      ),
+    ).rejects.toThrow('not connected');
+
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
+  it('rejects a canonical target without a valid release brand before durable mutation', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({
+        brandId: null,
+        id: 'group-1',
+        status: ReleaseStatus.DRAFT,
+      }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        '2026-07-09T12:00:00.000Z',
+      ),
+    ).rejects.toThrow('missing a brand assignment');
+
+    expect(prisma.credential.findMany).not.toHaveBeenCalled();
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
+  it('rejects a target whose brand differs from its canonical release', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ brandId: 'brand-1', id: 'group-1' }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        brandId: 'brand-2',
+        groupId: 'group-1',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        '2026-07-09T12:00:00.000Z',
+      ),
+    ).rejects.toThrow('does not match its canonical release');
+
+    expect(prisma.credential.findMany).not.toHaveBeenCalled();
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale target write before binding an approval', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    prisma.post.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        '2026-07-09T12:00:00.000Z',
+      ),
+    ).rejects.toThrow('changed while scheduling');
+
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          groupId: 'group-1',
+          id: 'target-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          targetExecutionState: TargetExecutionState.DRAFT,
+          updatedAt: now,
+        }),
+      }),
+    );
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
+  it('keeps target mutation and approval binding in one rollback boundary', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
+    );
+    prisma.post.findFirst.mockResolvedValue(
+      makeTarget({
+        groupId: 'group-1',
+        id: 'target-1',
+        scheduledDate: null,
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    publishApprovalsService.createForCurrentPost.mockRejectedValue(
+      new Error('Version pin creation failed'),
+    );
+
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        '2026-07-09T12:00:00.000Z',
+      ),
+    ).rejects.toThrow('Version pin creation failed');
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.post.updateMany).toHaveBeenCalledTimes(1);
+    expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith(
+      expect.objectContaining({ transaction: prisma }),
+    );
+    expect(prisma.postGroup.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid and past schedule timestamps before querying or mutation', async () => {
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        'not-a-date',
+      ),
+    ).rejects.toThrow('valid ISO 8601');
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        '2026-07-08T22:25:13.000Z',
+      ),
+    ).rejects.toThrow('must be in the future');
+    await expect(
+      service.scheduleTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        '2026-07-09T12:00:00',
+      ),
+    ).rejects.toThrow('explicit UTC offset');
+
+    expect(prisma.postGroup.findFirst).not.toHaveBeenCalled();
+    expect(prisma.post.updateMany).not.toHaveBeenCalled();
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
   it('pauses eligible targets and rolls the group up to paused', async () => {
     prisma.postGroup.findFirst.mockResolvedValue(
       makeGroup({ id: 'group-1', status: ReleaseStatus.SCHEDULED }),
@@ -609,6 +1010,12 @@ function makeGroup(overrides: Partial<MockPostGroup> = {}): MockPostGroup {
 
 function makeTarget(overrides: Partial<MockPostTarget> = {}): MockPostTarget {
   return {
+    agentContextSource: null,
+    agentContextVersion: null,
+    agentRunId: null,
+    agentStrategyId: null,
+    agentThreadId: null,
+    brandId: 'brand-1',
     createdAt: new Date('2026-07-08T22:25:13.000Z'),
     credentialId: 'cred-x',
     externalId: null,

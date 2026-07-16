@@ -25,6 +25,13 @@ export interface PublishConfirmedContentInput {
   sourceActionId: string;
 }
 
+export interface ScheduleCanonicalPostInput {
+  ctx: AgentPublishContext;
+  groupId: string;
+  postId: string;
+  scheduledAt: string;
+}
+
 export interface AgentPublishIdempotencyInput {
   baseContent: string;
   contentId: string;

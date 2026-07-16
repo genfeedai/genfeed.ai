@@ -4,13 +4,15 @@ import {
   CredentialPlatform,
   IngredientCategory,
   ReleaseStatus,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
   AgentPublishIdempotencyInput,
   AgentToolResult,
   PublishConfirmedContentInput,
+  ScheduleCanonicalPostInput,
 } from '@genfeedai/interfaces';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 
 /**
  * Routes confirmed agent publishing through the canonical release scheduler.
@@ -20,6 +22,55 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class AgentPublishToolHandler {
   constructor(private readonly postGroupsService: PostGroupsService) {}
+
+  async scheduleCanonicalPost(
+    input: ScheduleCanonicalPostInput,
+  ): Promise<AgentToolResult> {
+    const release = await this.postGroupsService.scheduleTarget(
+      input.ctx.organizationId,
+      input.ctx.userId,
+      input.groupId,
+      input.postId,
+      input.scheduledAt,
+      {
+        agentContextSource: input.ctx.validatedScope?.source,
+        agentContextVersion: input.ctx.validatedScope?.contextVersion,
+        agentRunId: input.ctx.runId,
+        agentStrategyId: input.ctx.strategyId,
+        agentThreadId: input.ctx.validatedScope?.threadId,
+      },
+    );
+    const target = release.targets?.find(
+      (candidate) => candidate.id === input.postId,
+    );
+    if (!target || target.executionState !== TargetExecutionState.SCHEDULED) {
+      throw new ConflictException(
+        'Canonical scheduler did not return the scheduled release target.',
+      );
+    }
+
+    return {
+      creditsUsed: 1,
+      data: {
+        id: input.postId,
+        releaseId: release.id,
+        scheduledAt: target.scheduledAt ?? input.scheduledAt,
+        status: target.executionState,
+      },
+      nextActions: [
+        {
+          ctas: [{ href: '/content/posts', label: 'Open posts' }],
+          description:
+            'The canonical release target is approval-backed and will enter the normal publish queue when due.',
+          id: `scheduled-post-${input.postId}`,
+          scheduledAt: target.scheduledAt ?? input.scheduledAt,
+          title: 'Post scheduled',
+          type: 'schedule_post_card',
+        },
+      ],
+      success: true,
+    };
+  }
 
   async publishConfirmedContent(
     input: PublishConfirmedContentInput,

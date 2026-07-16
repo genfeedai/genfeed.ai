@@ -296,6 +296,39 @@ describe('CronPostsService', () => {
     });
   });
 
+  it('carries the canonical schedule approval identity into the worker queue contract', async () => {
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [
+        {
+          brandId: 'brand-1',
+          id: 'post-1',
+          organizationId: 'org-1',
+          publishApproval: {
+            artifactVersionPinId: 'pin-1',
+            id: 'approval-1',
+            operationId: 'operation-1',
+          },
+        },
+      ],
+      total: 1,
+    } as never);
+
+    await service.publishScheduledPosts();
+
+    expect(publishApprovalsService.markQueued).toHaveBeenCalledWith(
+      'approval-1',
+      'org-1',
+    );
+    expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+      versionPinId: 'pin-1',
+    });
+  });
+
   it('validates a queued pin against the same canonical Post before publishing', async () => {
     const post = {
       brandId: 'brand-1',
