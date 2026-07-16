@@ -46,6 +46,8 @@ Detailed docs: `.agents/README.md`
 6. Do not manually edit generated `dist/` artifacts.
 7. Respect package boundaries: shared logic in `packages/*`, app-specific code in `apps/*`.
 8. Enterprise code (`ee/`): enforce multi-tenancy query guards (`{ organizationId: orgId, isDeleted: false }`).
+9. Self-hosted code outside `ee/` is single-tenant by default; organization filtering is optional there.
+10. Soft deletes use `isDeleted: boolean`, never `deletedAt`.
 
 ## Decorator Boundary Rules
 
