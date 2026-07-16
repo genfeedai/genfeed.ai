@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
@@ -11,6 +11,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
+import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
@@ -53,8 +54,8 @@ import {
   CredentialPlatform,
   IngredientCategory,
   IngredientStatus,
-  PostCategory,
   PostStatus,
+  ReleaseStatus,
   Status,
   VoiceCloneStatus,
   VoiceProvider,
@@ -434,6 +435,7 @@ export class AgentToolExecutorService {
     private readonly adsResearchService: AdsResearchService | undefined,
     @Optional()
     private readonly brandInterviewService: BrandInterviewService | undefined,
+    private readonly postGroupsService: PostGroupsService,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
   ) {
@@ -3172,18 +3174,6 @@ export class AgentToolExecutorService {
     };
   }
 
-  private mapIngredientToPostCategory(category: unknown): PostCategory {
-    if (category === IngredientCategory.IMAGE) {
-      return PostCategory.IMAGE;
-    }
-
-    if (category === IngredientCategory.VIDEO) {
-      return PostCategory.VIDEO;
-    }
-
-    return PostCategory.POST;
-  }
-
   private normalizePlatforms(value: unknown): string[] {
     if (!Array.isArray(value)) {
       return [];
@@ -4315,10 +4305,21 @@ export class AgentToolExecutorService {
             ? [params.platform]
             : [],
       );
-      const scheduledAt =
+      const requestedScheduledAt =
         typeof params.scheduledAt === 'string' && params.scheduledAt.trim()
           ? params.scheduledAt.trim()
           : undefined;
+      const scheduledDate = requestedScheduledAt
+        ? new Date(requestedScheduledAt)
+        : undefined;
+      if (scheduledDate && Number.isNaN(scheduledDate.getTime())) {
+        return {
+          creditsUsed: 0,
+          error: 'scheduledAt must be a valid date and time.',
+          success: false,
+        };
+      }
+      const scheduledAt = scheduledDate?.toISOString();
 
       if (params.confirmed !== true) {
         return this.buildPublishCardResult(
@@ -4374,47 +4375,96 @@ export class AgentToolExecutorService {
         };
       }
 
-      const createdPlatforms = credentials
-        .map((credential) => String(credential.platform || '').toLowerCase())
-        .filter((platform) => platform.length > 0);
+      const createdPlatforms = Array.from(
+        new Set(
+          credentials
+            .map((credential) =>
+              String(credential.platform || '').toLowerCase(),
+            )
+            .filter((platform) => platform.length > 0),
+        ),
+      );
       const missingPlatforms = platforms.filter(
         (platform) => !createdPlatforms.includes(platform),
       );
-      const groupId = randomUUID();
-      const scheduledDate = scheduledAt ? new Date(scheduledAt) : undefined;
-      const postIds: string[] = [];
-
-      for (const credential of credentials) {
-        const platform = credential.platform as CredentialPlatform;
-        const post = await this.postsService.create({
-          ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
-          ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
-          agentContextSource: ctx.validatedScope?.source,
-          agentContextVersion: ctx.validatedScope?.contextVersion,
-          agentThreadId: ctx.validatedScope?.threadId,
-          brand: String(ingredient.brand),
-          category: this.mapIngredientToPostCategory(ingredient.category),
-          credential: String(credential.id),
-          description: caption ?? '',
-          groupId,
-          ingredients: [contentId],
-          label: (caption ?? '').trim().slice(0, 100) || 'Agent publish',
-          organization: ctx.organizationId,
-          platform,
-          scheduledDate,
-          source: 'agent',
-          status: scheduledDate ? PostStatus.SCHEDULED : PostStatus.PENDING,
-          user: ctx.userId,
-        } as never);
-
-        postIds.push(String((post as { id: string }).id));
-
-        if (platform === CredentialPlatform.YOUTUBE) {
-          await this.postsService.handleYoutubePost(post as never);
-        }
+      if (missingPlatforms.length > 0) {
+        return {
+          creditsUsed: 0,
+          data: {
+            availablePlatforms: createdPlatforms,
+            contentId,
+            missingPlatforms,
+          },
+          error: `Missing connected accounts for: ${missingPlatforms.join(', ')}.`,
+          success: false,
+        };
       }
 
-      const description = scheduledDate
+      const baseContent = this.resolvePublishBaseContent(caption, ingredient);
+      const sourceActionId = this.readOptionalString(params.sourceActionId);
+      const idempotencyKey = this.buildAgentPublishIdempotencyKey({
+        baseContent,
+        contentId,
+        organizationId: ctx.organizationId,
+        platforms,
+        scheduledAt,
+        sourceActionId,
+        threadId: ctx.threadId,
+        userId: ctx.userId,
+      });
+      const mediaKind = this.resolveReleaseMediaKind(ingredient.category);
+      const release = await this.postGroupsService.create(
+        ctx.organizationId,
+        ctx.userId,
+        {
+          baseContent,
+          brandId: String(ingredient.brand),
+          idempotencyKey,
+          media: [
+            {
+              assetId: contentId,
+              ...(mediaKind ? { kind: mediaKind } : {}),
+            },
+          ],
+          ...(scheduledAt
+            ? {
+                scheduledDate: scheduledAt,
+                status: ReleaseStatus.SCHEDULED,
+              }
+            : { status: ReleaseStatus.DRAFT }),
+          targets: credentials.map((credential, order) => ({
+            credentialId: String(credential.id),
+            order,
+            platform: credential.platform as CredentialPlatform,
+            ...(scheduledAt ? { scheduledDate: scheduledAt } : {}),
+          })),
+          timezone: 'UTC',
+          title: baseContent.slice(0, 100),
+        },
+        idempotencyKey,
+        {
+          agentContextSource: ctx.validatedScope?.source,
+          agentContextVersion: ctx.validatedScope?.contextVersion,
+          agentRunId: ctx.runId,
+          agentStrategyId: ctx.strategyId,
+          agentThreadId: ctx.validatedScope?.threadId,
+          source: 'agent',
+          sourceActionId,
+        },
+      );
+      const canonicalRelease = scheduledAt
+        ? release
+        : await this.postGroupsService.publishNow(
+            ctx.organizationId,
+            ctx.userId,
+            release.id,
+          );
+      const groupId = canonicalRelease.id;
+      const postIds = (canonicalRelease.targets ?? []).map((target) =>
+        String(target.id),
+      );
+
+      const description = scheduledAt
         ? `Scheduled ${postIds.length} post${postIds.length === 1 ? '' : 's'} for ${createdPlatforms.join(', ')}.`
         : `Queued ${postIds.length} post${postIds.length === 1 ? '' : 's'} for publishing on ${createdPlatforms.join(', ')}.`;
 
@@ -4441,12 +4491,9 @@ export class AgentToolExecutorService {
                   ]
                 : []),
             ],
-            description:
-              missingPlatforms.length > 0
-                ? `${description} Missing connected accounts for: ${missingPlatforms.join(', ')}.`
-                : description,
+            description,
             id: `published-posts-${groupId}`,
-            title: scheduledDate ? 'Posts scheduled' : 'Posts queued',
+            title: scheduledAt ? 'Posts scheduled' : 'Posts queued',
             type: 'content_preview_card' as const,
           },
         ],
@@ -4483,6 +4530,64 @@ export class AgentToolExecutorService {
       },
       success: true,
     };
+  }
+
+  private buildAgentPublishIdempotencyKey(input: {
+    baseContent: string;
+    contentId: string;
+    organizationId: string;
+    platforms: string[];
+    scheduledAt?: string;
+    sourceActionId?: string;
+    threadId?: string;
+    userId: string;
+  }): string {
+    const digest = createHash('sha256')
+      .update(
+        JSON.stringify({
+          ...input,
+          platforms: [...input.platforms].sort(),
+        }),
+      )
+      .digest('hex');
+    return `agent-publish:${digest}`;
+  }
+
+  private resolvePublishBaseContent(
+    caption: string | undefined,
+    ingredient: Record<string, unknown>,
+  ): string {
+    const candidates = [
+      caption,
+      this.readOptionalString(ingredient.label),
+      this.readOptionalString(ingredient.description),
+      this.readOptionalString(ingredient.assetLabel),
+      this.readOptionalString(ingredient.generationPrompt),
+    ];
+    const resolved = candidates.find((candidate) => Boolean(candidate?.trim()));
+    if (resolved) {
+      return resolved.trim();
+    }
+
+    const category = this.readOptionalString(ingredient.category) ?? 'content';
+    return `Selected ${category} asset`;
+  }
+
+  private resolveReleaseMediaKind(category: unknown): string | undefined {
+    if (
+      category === IngredientCategory.IMAGE ||
+      category === IngredientCategory.IMAGE_EDIT ||
+      category === IngredientCategory.GIF
+    ) {
+      return 'image';
+    }
+    if (
+      category === IngredientCategory.VIDEO ||
+      category === IngredientCategory.VIDEO_EDIT
+    ) {
+      return 'video';
+    }
+    return undefined;
   }
 
   private async schedulePost(

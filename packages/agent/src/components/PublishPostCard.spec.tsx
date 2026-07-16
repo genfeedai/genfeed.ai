@@ -58,4 +58,36 @@ describe('PublishPostCard', () => {
       screen.getByRole('button', { name: 'Confirm publish' }),
     ).toBeDisabled();
   });
+
+  it('normalizes a browser-local schedule before submitting the confirmed action', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(undefined);
+    const action: AgentUiAction = {
+      contentId: 'ingredient-3',
+      data: {
+        availablePlatforms: ['instagram'],
+      },
+      id: 'publish-card-3',
+      platforms: ['instagram'],
+      title: 'Schedule selected content',
+      type: 'publish_post_card',
+    };
+    const localSchedule = '2026-07-18T09:00';
+
+    render(<PublishPostCard action={action} onUiAction={onUiAction} />);
+
+    fireEvent.change(screen.getByLabelText('Schedule for later'), {
+      target: { value: localSchedule },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm schedule' }));
+    });
+
+    expect(onUiAction).toHaveBeenCalledWith('confirm_publish_post', {
+      caption: undefined,
+      contentId: 'ingredient-3',
+      platforms: ['instagram'],
+      scheduledAt: new Date(localSchedule).toISOString(),
+      sourceActionId: 'publish-card-3',
+    });
+  });
 });

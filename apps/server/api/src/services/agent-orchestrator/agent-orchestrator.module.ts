@@ -19,6 +19,7 @@ import { ImagesModule } from '@api/collections/images/images.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
+import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
@@ -90,6 +91,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => MarketplaceIntegrationModule),
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OrganizationsModule),
+    forwardRef(() => PostGroupsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => SettingsModule),
     forwardRef(() => SocialInboxModule),

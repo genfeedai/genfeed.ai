@@ -80,11 +80,18 @@ export function PublishPostCard({
     setIsSubmitting(true);
 
     try {
+      const scheduleInput = scheduledAt.trim();
+      const scheduleDate = scheduleInput ? new Date(scheduleInput) : undefined;
+      const normalizedScheduledAt = scheduleDate
+        ? Number.isNaN(scheduleDate.getTime())
+          ? scheduleInput
+          : scheduleDate.toISOString()
+        : undefined;
       await onUiAction('confirm_publish_post', {
         caption: caption.trim() || undefined,
         contentId: action.contentId,
         platforms: selectedPlatforms,
-        scheduledAt: scheduledAt.trim() || undefined,
+        scheduledAt: normalizedScheduledAt,
         sourceActionId: action.id,
       });
       setIsSubmitted(true);
