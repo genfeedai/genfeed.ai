@@ -489,7 +489,7 @@ function AppLayoutWithDynamicMenu({
     <ErrorBoundary
       fallback={legacyFallbackLayout}
       onError={(error) => {
-        openWorkspaceShellCircuit();
+        openWorkspaceShellCircuit('render');
         captureWorkspaceShellFallback('render_error');
         captureWorkspaceShellError('render', 'render_failed');
         logger.error('Conversation shell render failed', {

@@ -1,6 +1,9 @@
 locals {
   # Internal service URLs via Cloud Map (replace docker-compose http://files:3012).
   internal_env = [
+    # Production ECS is the hosted cloud deployment. Keep this explicit so
+    # server-side deployment-mode gates agree with the Vercel frontend.
+    { name = "GENFEED_CLOUD", value = "true" },
     { name = "GENFEEDAI_MICROSERVICES_FILES_URL", value = "http://files.genfeed.internal:${local.services.files.port}" },
     { name = "GENFEEDAI_MICROSERVICES_MCP_URL", value = "http://mcp.genfeed.internal:${local.services.mcp.port}" },
     { name = "GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL", value = "http://notifications.genfeed.internal:${local.services.notifications.port}" },

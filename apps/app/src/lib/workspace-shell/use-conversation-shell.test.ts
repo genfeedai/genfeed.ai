@@ -1,6 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  clearWorkspaceShellEvaluationCircuit,
   isWorkspaceShellCircuitOpen,
   openWorkspaceShellCircuit,
   useConversationShellEnabled,
@@ -25,12 +26,36 @@ describe('conversation shell session circuit breaker', () => {
     expect(isWorkspaceShellCircuitOpen()).toBe(false);
   });
 
-  it('fails the rest of the browser session to the legacy shell', () => {
-    openWorkspaceShellCircuit();
+  it('keeps a render failure on the legacy shell for the browser session', () => {
+    openWorkspaceShellCircuit('render');
 
     const { result } = renderHook(() => useConversationShellEnabled());
 
     expect(result.current).toBe(false);
+    expect(isWorkspaceShellCircuitOpen()).toBe(true);
+  });
+
+  it('clears an evaluation failure after the server enables the shell', () => {
+    openWorkspaceShellCircuit('evaluation');
+
+    clearWorkspaceShellEvaluationCircuit();
+
+    expect(isWorkspaceShellCircuitOpen()).toBe(false);
+  });
+
+  it('clears the legacy circuit value created before reasons were recorded', () => {
+    sessionStorage.setItem('genfeed:conversation-shell:circuit-open', '1');
+
+    clearWorkspaceShellEvaluationCircuit();
+
+    expect(isWorkspaceShellCircuitOpen()).toBe(false);
+  });
+
+  it('does not clear a render failure after a successful evaluation', () => {
+    openWorkspaceShellCircuit('render');
+
+    clearWorkspaceShellEvaluationCircuit();
+
     expect(isWorkspaceShellCircuitOpen()).toBe(true);
   });
 

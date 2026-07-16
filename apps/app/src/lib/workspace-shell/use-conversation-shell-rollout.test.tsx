@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   captureError: vi.fn(),
   captureFallback: vi.fn(),
   captureSession: vi.fn(),
+  clearEvaluationCircuit: vi.fn(),
   circuitOpen: false,
   evaluate: vi.fn(),
   getToken: vi.fn(),
@@ -57,6 +58,7 @@ vi.mock('./workspace-shell-telemetry', () => ({
 }));
 
 vi.mock('./use-conversation-shell', () => ({
+  clearWorkspaceShellEvaluationCircuit: mocks.clearEvaluationCircuit,
   isWorkspaceShellCircuitOpen: () => mocks.circuitOpen,
   openWorkspaceShellCircuit: mocks.openCircuit,
 }));
@@ -75,6 +77,7 @@ const ENABLED_EVALUATION = {
 describe('useConversationShellRollout', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.clearEvaluationCircuit.mockImplementation(() => undefined);
     mocks.circuitOpen = false;
   });
 
@@ -100,7 +103,7 @@ describe('useConversationShellRollout', () => {
 
     await waitFor(() => expect(result.current.isReady).toBe(true));
     expect(result.current.evaluation).toBeNull();
-    expect(mocks.openCircuit).toHaveBeenCalledTimes(1);
+    expect(mocks.openCircuit).toHaveBeenCalledWith('evaluation');
     expect(mocks.captureFallback).toHaveBeenCalledWith('evaluation_error');
     expect(mocks.captureError).toHaveBeenCalledWith(
       'evaluation',
@@ -108,7 +111,7 @@ describe('useConversationShellRollout', () => {
     );
   });
 
-  it('keeps an already failed browser session on the legacy shell', async () => {
+  it('keeps a render-failed browser session on the legacy shell', async () => {
     mocks.circuitOpen = true;
     mocks.evaluate.mockResolvedValue(ENABLED_EVALUATION);
 
@@ -117,6 +120,21 @@ describe('useConversationShellRollout', () => {
     await waitFor(() => expect(result.current.isReady).toBe(true));
     expect(result.current.evaluation).toBeNull();
     expect(mocks.captureSession).not.toHaveBeenCalled();
+  });
+
+  it('recovers a prior evaluation failure when the server enables the shell', async () => {
+    mocks.circuitOpen = true;
+    mocks.clearEvaluationCircuit.mockImplementation(() => {
+      mocks.circuitOpen = false;
+    });
+    mocks.evaluate.mockResolvedValue(ENABLED_EVALUATION);
+
+    const { result } = renderHook(() => useConversationShellRollout());
+
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+    expect(mocks.clearEvaluationCircuit).toHaveBeenCalledTimes(1);
+    expect(result.current.evaluation?.isEnabled).toBe(true);
+    expect(mocks.captureSession).toHaveBeenCalledTimes(1);
   });
 
   it('switches an enabled session to legacy on a server rollback poll', async () => {
@@ -143,7 +161,7 @@ describe('useConversationShellRollout', () => {
     });
 
     expect(result.current.evaluation?.isEnabled).toBe(false);
-    expect(mocks.openCircuit).toHaveBeenCalledTimes(1);
+    expect(mocks.openCircuit).toHaveBeenCalledWith('evaluation');
     expect(mocks.captureFallback).toHaveBeenCalledWith('server_rollback');
   });
 });

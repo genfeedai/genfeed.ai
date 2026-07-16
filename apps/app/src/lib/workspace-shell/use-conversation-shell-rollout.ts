@@ -15,6 +15,7 @@ import { logger } from '@services/core/logger.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
 import {
+  clearWorkspaceShellEvaluationCircuit,
   isWorkspaceShellCircuitOpen,
   openWorkspaceShellCircuit,
 } from './use-conversation-shell';
@@ -87,7 +88,7 @@ export function useConversationShellRollout(): ConversationShellRolloutState {
       reason: 'evaluation_error' | 'server_rollback',
       evaluation: ConversationShellEvaluation | null = null,
     ): void => {
-      openWorkspaceShellCircuit();
+      openWorkspaceShellCircuit('evaluation');
       captureWorkspaceShellFallback(reason);
       if (pollTimer) {
         clearInterval(pollTimer);
@@ -127,6 +128,9 @@ export function useConversationShellRollout(): ConversationShellRolloutState {
         }
 
         setWorkspaceShellTelemetryContext(evaluation);
+        if (evaluation.isEnabled) {
+          clearWorkspaceShellEvaluationCircuit();
+        }
         if (evaluation.isEnabled && isWorkspaceShellCircuitOpen()) {
           setState({ evaluation: null, isReady: true });
           return;
