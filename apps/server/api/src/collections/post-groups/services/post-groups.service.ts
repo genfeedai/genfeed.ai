@@ -44,7 +44,7 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-import type { ZodError } from 'zod';
+import { type ZodError, z } from 'zod';
 
 type SchedulerTx = Prisma.TransactionClient;
 
@@ -78,6 +78,12 @@ type SchedulerPostGroup = {
 };
 
 type SchedulerPostTarget = {
+  agentContextSource: string | null;
+  agentContextVersion: number | null;
+  agentRunId: string | null;
+  agentStrategyId: string | null;
+  agentThreadId: string | null;
+  brandId: string | null;
   createdAt: Date;
   credentialId: string;
   externalId: string | null;
@@ -115,11 +121,19 @@ const CREATE_ALLOWED_STATUSES = new Set<string>([
   ReleaseStatus.SCHEDULED,
 ]);
 
+const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
+
 const GROUP_ACTION_STATES = new Set<string>([
   TargetExecutionState.DRAFT,
   TargetExecutionState.SCHEDULED,
   TargetExecutionState.PAUSED,
   TargetExecutionState.FAILED,
+]);
+
+const SCHEDULABLE_TARGET_STATES = new Set<string>([
+  TargetExecutionState.DRAFT,
+  TargetExecutionState.PAUSED,
+  TargetExecutionState.SCHEDULED,
 ]);
 
 @Injectable()
@@ -304,6 +318,132 @@ export class PostGroupsService {
       group.id,
     );
     return this.toReleaseGroup(group, targets);
+  }
+
+  async scheduleTarget(
+    organizationId: string,
+    userId: string,
+    groupId: string,
+    targetId: string,
+    scheduledAt: string,
+    provenance?: PostGroupCreateProvenance,
+  ): Promise<IReleaseGroup> {
+    const scheduledDate = this.parseFutureScheduleDate(scheduledAt);
+
+    return this.prisma.$transaction(async (tx) => {
+      const group = await this.getGroupOrThrow(tx, organizationId, groupId);
+      const target = await this.getTargetOrThrow(
+        tx,
+        organizationId,
+        group.id,
+        targetId,
+      );
+
+      if (!SCHEDULABLE_TARGET_STATES.has(target.targetExecutionState)) {
+        throw new ConflictException(
+          `Channel target cannot be scheduled from ${target.targetExecutionState}.`,
+        );
+      }
+      if (!group.brandId) {
+        throw new BadRequestException(
+          'Canonical release target is missing a brand assignment.',
+        );
+      }
+      if (target.brandId !== group.brandId) {
+        throw new BadRequestException(
+          'Channel target brand does not match its canonical release.',
+        );
+      }
+
+      const platform = this.parseCredentialPlatform(target.platform);
+      const targetInput: ChannelTargetInput = {
+        credentialId: target.credentialId,
+        platform,
+        scheduledDate: scheduledDate.toISOString(),
+        settings: this.asRecord(target.targetSettings),
+        timezone: target.timezone,
+      };
+      const credentials = await this.resolveCredentials(tx, organizationId, [
+        targetInput,
+      ]);
+      await this.resolveBrandId(tx, organizationId, group.brandId, credentials);
+
+      const validation = validateChannelTargetSettings({
+        caption: group.baseContent,
+        credentialId: targetInput.credentialId,
+        media: this.toValidationMedia(this.asMedia(group.media)),
+        platform: targetInput.platform,
+        publishMode: 'scheduled',
+        settings: targetInput.settings ?? {},
+      });
+      if (!validation.valid) {
+        throw this.invalidTargetException(targetInput, validation);
+      }
+
+      const isExactReplay =
+        target.targetExecutionState === TargetExecutionState.SCHEDULED &&
+        target.scheduledDate?.getTime() === scheduledDate.getTime() &&
+        this.matchesScheduleProvenance(target, provenance);
+      if (!isExactReplay) {
+        const updated = await tx.post.updateMany({
+          data: {
+            ...(provenance?.agentContextSource && {
+              agentContextSource: provenance.agentContextSource,
+            }),
+            ...(provenance?.agentContextVersion !== undefined && {
+              agentContextVersion: provenance.agentContextVersion,
+            }),
+            ...(provenance?.agentRunId && {
+              agentRunId: provenance.agentRunId,
+            }),
+            ...(provenance?.agentStrategyId && {
+              agentStrategyId: provenance.agentStrategyId,
+            }),
+            ...(provenance?.agentThreadId && {
+              agentThreadId: provenance.agentThreadId,
+            }),
+            scheduledDate,
+            status: PostStatus.SCHEDULED,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
+            targetReadiness: validation.readiness
+              ? this.toJson(validation.readiness)
+              : Prisma.JsonNull,
+            targetValidationIssues: this.validationIssues(validation),
+            targetValidationState: validation.validationState,
+          },
+          where: {
+            groupId: group.id,
+            id: target.id,
+            isDeleted: false,
+            organizationId,
+            targetExecutionState: target.targetExecutionState,
+            updatedAt: target.updatedAt,
+          },
+        });
+        if (updated.count !== 1) {
+          throw new ConflictException(
+            'Channel target changed while scheduling. Refresh and retry.',
+          );
+        }
+      }
+
+      await this.publishApprovalsService.createForCurrentPost({
+        actorUserId: userId,
+        ...(provenance?.agentContextVersion !== undefined && {
+          contextVersion: provenance.agentContextVersion,
+        }),
+        mode: 'scheduled',
+        organizationId,
+        postId: target.id,
+        provenance: {
+          releaseId: group.id,
+          surface: 'agent-schedule-post',
+        },
+        transaction: tx,
+      });
+
+      return this.recalculateAndHydrate(tx, organizationId, group.id, userId);
+    });
   }
 
   async update(
@@ -1323,6 +1463,49 @@ export class PostGroupsService {
       return PostStatus.PUBLIC;
     }
     return status;
+  }
+
+  private parseCredentialPlatform(value: string): CredentialPlatform {
+    const platform = Object.values(CredentialPlatform).find(
+      (candidate) => candidate === value.toLowerCase(),
+    );
+    if (!platform) {
+      throw new BadRequestException(
+        `Channel target platform ${value} is not supported.`,
+      );
+    }
+    return platform;
+  }
+
+  private matchesScheduleProvenance(
+    target: SchedulerPostTarget,
+    provenance: PostGroupCreateProvenance | undefined,
+  ): boolean {
+    return (
+      (provenance?.agentContextSource === undefined ||
+        target.agentContextSource === provenance.agentContextSource) &&
+      (provenance?.agentContextVersion === undefined ||
+        target.agentContextVersion === provenance.agentContextVersion) &&
+      (provenance?.agentRunId === undefined ||
+        target.agentRunId === provenance.agentRunId) &&
+      (provenance?.agentStrategyId === undefined ||
+        target.agentStrategyId === provenance.agentStrategyId) &&
+      (provenance?.agentThreadId === undefined ||
+        target.agentThreadId === provenance.agentThreadId)
+    );
+  }
+
+  private parseFutureScheduleDate(value: string): Date {
+    if (!STRICT_SCHEDULE_DATE_SCHEMA.safeParse(value).success) {
+      throw new BadRequestException(
+        'scheduledAt must be a valid ISO 8601 date and time with an explicit UTC offset.',
+      );
+    }
+    const date = new Date(value);
+    if (date.getTime() <= Date.now()) {
+      throw new BadRequestException('scheduledAt must be in the future.');
+    }
+    return date;
   }
 
   private toDate(value: string | undefined | null): Date | null {

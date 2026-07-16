@@ -210,6 +210,68 @@ describe('PublishApprovalsService', () => {
     });
   });
 
+  it('reuses the exact scheduled approval scope without creating duplicate approval or operation identities', async () => {
+    const post = makePost({ publishApprovalId: 'approval-1' });
+    const existing = makeApproval({
+      scopeDigest: scopeDigest(),
+      status: PublishApprovalStatus.APPROVED,
+    });
+    const publishApproval = {
+      create: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(existing),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    };
+    const prisma = {
+      post: {
+        findFirst: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+      },
+      publishApproval,
+    };
+    const artifactReferenceService = {
+      createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
+    };
+    const service = new PublishApprovalsService(
+      prisma as never,
+      artifactReferenceService as unknown as AgentArtifactReferenceService,
+    );
+    const transaction = { post: prisma.post, publishApproval };
+
+    const first = await service.createForCurrentPost({
+      actorUserId: 'user-1',
+      contextVersion: 4,
+      mode: 'scheduled',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      transaction: transaction as never,
+    });
+    const replay = await service.createForCurrentPost({
+      actorUserId: 'user-1',
+      contextVersion: 4,
+      mode: 'scheduled',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      transaction: transaction as never,
+    });
+
+    expect(first.id).toBe('approval-1');
+    expect(replay.id).toBe(first.id);
+    expect(replay.operationId).toBe(first.operationId);
+    expect(publishApproval.create).not.toHaveBeenCalled();
+    expect(publishApproval.update).not.toHaveBeenCalled();
+    expect(prisma.post.update).toHaveBeenCalledTimes(2);
+    expect(prisma.post.update).toHaveBeenNthCalledWith(2, {
+      data: {
+        publishApprovalId: 'approval-1',
+        reviewDecision: 'APPROVED',
+        reviewVersionPinId: 'pin-1',
+      },
+      where: { id: 'post-1' },
+    });
+  });
+
   it('fails closed and invalidates when the canonical brand drifts', async () => {
     const approval = makeApproval();
     const publishApproval = {

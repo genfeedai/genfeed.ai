@@ -24,9 +24,11 @@ export interface PostAnalyticsSummary {
 export class PostEntity extends BaseEntity {
   declare readonly ingredients: string[];
   declare readonly credential: string;
+  declare readonly brandId: string;
   declare readonly user: string;
   declare readonly brand: string;
   declare readonly organization: string;
+  declare readonly groupId?: string | null;
   declare readonly children?: string[];
   declare readonly agentContextSource?: string;
   declare readonly agentContextVersion?: number;
