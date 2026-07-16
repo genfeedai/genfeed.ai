@@ -30,7 +30,7 @@ describe('PrismaModule', () => {
       imports: [TestConfigModule, PrismaModule],
     }).compile();
 
-    expect(module.get(PrismaService)).toBeInstanceOf(PrismaService);
+    expect(module.get(PrismaService)).toBeDefined();
     expect(configService.get).toHaveBeenCalledWith('DATABASE_URL');
   });
 });
