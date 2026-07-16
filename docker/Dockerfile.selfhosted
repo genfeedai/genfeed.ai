@@ -218,8 +218,8 @@ RUN bun --filter @genfeedai/app build
 FROM base AS runtime
 WORKDIR /app
 
-# Create data dirs + app user
-RUN mkdir -p /data/redis /data/files && \
+# Create persistent data dirs + app user
+RUN mkdir -p /data/redis /data/files /data/tmp/videos && \
     useradd -m -u 1001 appuser && \
     chown -R appuser:appuser /data
 

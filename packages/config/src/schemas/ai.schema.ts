@@ -117,7 +117,7 @@ export const newsApiSchema = {
  */
 export const darkroomSchema = {
   DARKROOM_CLOUDFRONT_DISTRIBUTION_ID: Joi.string().optional().allow(''),
-  DARKROOM_COMFYUI_URL: Joi.string().uri().optional(),
+  DARKROOM_COMFYUI_URL: Joi.string().uri().optional().allow(''),
   DARKROOM_S3_BUCKET: Joi.string().optional().default('darkroom.genfeed.ai'),
 };
 

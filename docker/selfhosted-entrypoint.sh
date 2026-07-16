@@ -30,6 +30,8 @@ export GENFEEDAI_API_URL=${GENFEEDAI_API_URL:-http://localhost:3010}
 export GENFEEDAI_MICROSERVICES_WORKERS_URL=${GENFEEDAI_MICROSERVICES_WORKERS_URL:-http://localhost:3013}
 export GENFEEDAI_APP_URL=${GENFEEDAI_APP_URL:-http://localhost:3000}
 export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3000}
+export GENFEED_STORAGE_PATH=${GENFEED_STORAGE_PATH:-/data/files}
+export TEMP_DIR=${TEMP_DIR:-/data/tmp/videos}
 
 # Community defaults to LOCAL mode: a seeded single-org workspace with no login
 # wall. Setting BETTER_AUTH_ENABLED=true turns on the local Better Auth handler.

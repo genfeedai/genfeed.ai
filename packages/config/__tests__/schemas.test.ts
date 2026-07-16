@@ -395,6 +395,16 @@ describe('Config Schemas', () => {
         expect(error.message).toContain('required');
       }
     });
+
+    it('should allow an empty optional ComfyUI URL from env templates', () => {
+      const schema = Joi.object(darkroomSchema);
+      const { error, value } = schema.validate({
+        DARKROOM_COMFYUI_URL: '',
+      });
+
+      expect(error).toBeUndefined();
+      expect(value.DARKROOM_COMFYUI_URL).toBe('');
+    });
   });
 
   describe('gpuFleetSchema', () => {

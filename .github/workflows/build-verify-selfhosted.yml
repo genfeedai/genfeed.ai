@@ -125,6 +125,11 @@ jobs:
             test -f /etc/ssl/certs/ca-certificates.crt || { echo "❌ CA bundle missing"; exit 1; }
             echo "  ✅ CA bundle present"
 
+            # Persistent runtime paths must be writable by the non-root app user.
+            test -w /data/files || { echo "❌ /data/files is not writable by appuser"; exit 1; }
+            test -w /data/tmp/videos || { echo "❌ /data/tmp/videos is not writable by appuser"; exit 1; }
+            echo "  ✅ persistent files + temp paths writable"
+
             # Open-core boundary — prove the built community image carries NO ee/
             # source and no @genfeedai/ee-billing package. This is the runtime proof
             # behind the static guard: even if a future COPY slipped ee/ in, the
@@ -154,12 +159,11 @@ jobs:
           # Retag the loaded verify image under the repo the compose file expects
           # so the stack runs THIS build with no registry pull.
           docker tag "${IMAGE_NAME}:test" "ghcr.io/${GITHUB_REPOSITORY}:selfhosted-verify"
-          # docker-compose.selfhosted.yml consumes `.env` for both compose
-          # interpolation (${GENFEED_IMAGE_TAG}) and the genfeed service's
-          # env_file. Pinning the tag is all it needs — the entrypoint defaults
-          # everything else (BETTER_AUTH_ENABLED=false -> LOCAL mode; DATABASE_URL
-          # from the compose Postgres defaults).
-          printf 'GENFEED_IMAGE_TAG=selfhosted-verify\n' > docker/.env
+          # Exercise the same environment template shipped in release bundles.
+          # This catches optional values represented as blank strings before
+          # publish, while still pinning compose to THIS locally built image.
+          cp docker/.env.example docker/.env
+          sed -i 's/^GENFEED_IMAGE_TAG=.*/GENFEED_IMAGE_TAG=selfhosted-verify/' docker/.env
 
       - name: Boot self-hosted stack + Postgres
         run: |
