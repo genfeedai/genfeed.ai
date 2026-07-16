@@ -53,6 +53,7 @@ echo "  primary: $primary"
 echo "  current: $current"
 
 copied=0
+failed=0
 skipped=0
 
 # Expand each glob relative to the primary worktree.
@@ -77,8 +78,16 @@ while IFS= read -r pattern || [ -n "$pattern" ]; do
     if cp "$primary/$rel" "$dest"; then
       echo "  + $rel"
       copied=$((copied + 1))
+    else
+      rm -f "$dest"
+      echo "  ! failed to copy $rel" >&2
+      failed=$((failed + 1))
     fi
   done
 done < "$include_file"
 
-echo "wt:sync — done ($copied copied, $skipped already present)"
+echo "wt:sync — done ($copied copied, $skipped already present, $failed failed)"
+
+if [ "$failed" -gt 0 ]; then
+  exit 1
+fi

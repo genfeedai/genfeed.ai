@@ -88,7 +88,7 @@
     "deps:update": "bunx npm-check-updates -u --deep --cooldown 3h --reject typescript && bun install",
     "dev": "bunx turbo run dev",
     "wt:sync": "bash scripts/sync-worktree-includes.sh",
-    "wt:setup": "git config alias.wt '!f(){ git worktree add \"$@\" && \"$(git rev-parse --show-toplevel)/scripts/sync-worktree-includes.sh\" \"$(git worktree list --porcelain | awk \"/^worktree /{w=\\$2} END{print w}\")\"; }; f' && echo 'Installed: use `git wt <path> [branch]` to add a worktree with env files copied.'",
+    "wt:setup": "git config alias.wt '!f(){ \"$(git rev-parse --show-toplevel)/scripts/git-wt.sh\" \"$@\"; }; f' && echo 'Installed: use `git wt <path> [branch]` to add a worktree with env files copied.'",
     "dev:admin:be": "bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/notifications",
     "dev:all": "bunx turbo run dev",
     "dev:app": "bunx turbo run dev --filter=@genfeedai/app",
