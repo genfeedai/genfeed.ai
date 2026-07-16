@@ -1,3 +1,4 @@
+import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
 import { render, screen } from '@testing-library/react';
 import HomeCredits from '@web-components/home/_credits';
 import { describe, expect, it, vi } from 'vitest';
@@ -51,25 +52,12 @@ describe('HomeCredits', () => {
   });
 
   it('formats credit amounts deterministically across runtime locales', () => {
-    const originalToLocaleString = Number.prototype.toLocaleString;
-    const toLocaleStringSpy = vi
-      .spyOn(Number.prototype, 'toLocaleString')
-      .mockImplementation(function (
-        this: number,
-        locales?: Intl.LocalesArgument,
-        options?: Intl.NumberFormatOptions,
-      ) {
-        return originalToLocaleString.call(this, locales ?? 'de-DE', options);
-      });
-
-    try {
+    withSimulatedNumberLocale('de-DE', () => {
       render(<HomeCredits />);
 
       expect(screen.getByText('$1,000')).toBeInTheDocument();
       expect(screen.getByText('100,000 credits')).toBeInTheDocument();
-    } finally {
-      toLocaleStringSpy.mockRestore();
-    }
+    });
   });
 
   it('surfaces the launch pricing note', () => {

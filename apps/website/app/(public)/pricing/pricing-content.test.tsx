@@ -1,3 +1,4 @@
+import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -98,25 +99,12 @@ describe('PricingContent launch pricing', () => {
   });
 
   it('formats public pricing numbers deterministically across runtime locales', () => {
-    const originalToLocaleString = Number.prototype.toLocaleString;
-    const toLocaleStringSpy = vi
-      .spyOn(Number.prototype, 'toLocaleString')
-      .mockImplementation(function (
-        this: number,
-        locales?: Intl.LocalesArgument,
-        options?: Intl.NumberFormatOptions,
-      ) {
-        return originalToLocaleString.call(this, locales ?? 'de-DE', options);
-      });
-
-    try {
+    withSimulatedNumberLocale('de-DE', () => {
       render(<PricingContent />);
 
       expect(screen.getByText('$1,000')).toBeInTheDocument();
       expect(screen.getByText('100,000 credits')).toBeInTheDocument();
       expect(screen.getByText('8,000 credits included')).toBeInTheDocument();
-    } finally {
-      toLocaleStringSpy.mockRestore();
-    }
+    });
   });
 });

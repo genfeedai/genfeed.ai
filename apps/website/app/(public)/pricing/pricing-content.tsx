@@ -137,6 +137,12 @@ function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   }
 
   if (plan.type === 'subscription') {
+    if (plan.includedCredits == null) {
+      return plan.label === 'Scale'
+        ? 'Unlimited seats'
+        : 'Monthly subscription';
+    }
+
     const credits = formatNumberWithCommas(plan.includedCredits);
 
     return plan.label === 'Scale'
