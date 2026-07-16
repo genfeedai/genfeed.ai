@@ -96,4 +96,31 @@ describe('PricingContent launch pricing', () => {
     // Cloud Teams has no launchPrice — its price renders un-struck.
     expect(screen.getByText('$499')).not.toHaveClass('line-through');
   });
+
+  it('formats public pricing numbers deterministically across runtime locales', () => {
+    const originalToLocaleString = Number.prototype.toLocaleString;
+    const toLocaleStringSpy = vi
+      .spyOn(Number.prototype, 'toLocaleString')
+      .mockImplementation(function (
+        this: number,
+        locales?: Intl.LocalesArgument,
+        options?: Intl.NumberFormatOptions,
+      ) {
+        return originalToLocaleString.call(
+          this,
+          locales ?? 'de-DE',
+          options,
+        );
+      });
+
+    try {
+      render(<PricingContent />);
+
+      expect(screen.getByText('$1,000')).toBeInTheDocument();
+      expect(screen.getByText('100,000 credits')).toBeInTheDocument();
+      expect(screen.getByText('8,000 credits included')).toBeInTheDocument();
+    } finally {
+      toLocaleStringSpy.mockRestore();
+    }
+  });
 });

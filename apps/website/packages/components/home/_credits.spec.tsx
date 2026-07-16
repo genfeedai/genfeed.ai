@@ -50,6 +50,32 @@ describe('HomeCredits', () => {
     expect(screen.getAllByText(/credits/i).length).toBeGreaterThan(0);
   });
 
+  it('formats credit amounts deterministically across runtime locales', () => {
+    const originalToLocaleString = Number.prototype.toLocaleString;
+    const toLocaleStringSpy = vi
+      .spyOn(Number.prototype, 'toLocaleString')
+      .mockImplementation(function (
+        this: number,
+        locales?: Intl.LocalesArgument,
+        options?: Intl.NumberFormatOptions,
+      ) {
+        return originalToLocaleString.call(
+          this,
+          locales ?? 'de-DE',
+          options,
+        );
+      });
+
+    try {
+      render(<HomeCredits />);
+
+      expect(screen.getByText('$1,000')).toBeInTheDocument();
+      expect(screen.getByText('100,000 credits')).toBeInTheDocument();
+    } finally {
+      toLocaleStringSpy.mockRestore();
+    }
+  });
+
   it('surfaces the launch pricing note', () => {
     render(<HomeCredits />);
 
