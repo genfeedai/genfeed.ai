@@ -24,6 +24,21 @@ export interface AgentArtifactCompletionMetadata
   artifactVersionPinIds?: string[];
 }
 
+interface AgentArtifactCompletionContext {
+  brandId?: string;
+  organizationId: string;
+  runId?: string;
+  scope?: { brandId?: string };
+}
+
+interface AgentArtifactRunMetadataWriter {
+  mergeMetadata(
+    id: string,
+    organizationId: string,
+    metadata: Record<string, unknown>,
+  ): Promise<void>;
+}
+
 export function mergeAgentArtifactCompletionMetadata(
   metadata: AgentArtifactCompletionMetadata[],
 ): AgentArtifactCompletionMetadata {
@@ -86,7 +101,7 @@ function buildReference(
  */
 export function buildAgentArtifactCompletionMetadata(
   data: Record<string, unknown> | undefined,
-  context: { brandId?: string; organizationId: string },
+  context: AgentArtifactCompletionContext,
 ): AgentArtifactCompletionMetadata {
   if (!data) {
     return {};
@@ -102,7 +117,12 @@ export function buildAgentArtifactCompletionMetadata(
     ].filter((id): id is string => id !== undefined);
     for (const recordId of ids) {
       references.push(
-        buildReference(kind, recordId, context.organizationId, context.brandId),
+        buildReference(
+          kind,
+          recordId,
+          context.organizationId,
+          context.brandId ?? context.scope?.brandId,
+        ),
       );
     }
   }
@@ -135,4 +155,30 @@ export function buildAgentArtifactCompletionMetadata(
         }
       : {}),
   };
+}
+
+export async function persistRunArtifacts(
+  writer: AgentArtifactRunMetadataWriter,
+  context: AgentArtifactCompletionContext,
+  metadata: AgentArtifactCompletionMetadata,
+): Promise<void> {
+  if (
+    !context.runId ||
+    (!metadata.artifactReferences?.length &&
+      !metadata.artifactVersionPinIds?.length)
+  ) {
+    return;
+  }
+
+  await writer.mergeMetadata(context.runId, context.organizationId, metadata);
+}
+
+export async function captureRunArtifacts(
+  writer: AgentArtifactRunMetadataWriter,
+  context: AgentArtifactCompletionContext,
+  data: Record<string, unknown> | undefined,
+): Promise<AgentArtifactCompletionMetadata> {
+  const metadata = buildAgentArtifactCompletionMetadata(data, context);
+  await persistRunArtifacts(writer, context, metadata);
+  return metadata;
 }
