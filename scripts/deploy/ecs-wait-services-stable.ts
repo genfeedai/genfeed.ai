@@ -30,8 +30,7 @@ export const SERVICE_EXIT = {
   API_FAILURE: 3,
   USAGE_ERROR: 5,
 } as const;
-export type ServiceExitCode =
-  (typeof SERVICE_EXIT)[keyof typeof SERVICE_EXIT];
+export type ServiceExitCode = (typeof SERVICE_EXIT)[keyof typeof SERVICE_EXIT];
 
 export interface ServiceDeployment {
   id: string | null;
@@ -374,7 +373,10 @@ export function createServiceGateway(client: ECSClient): ServiceGateway {
       }
 
       const found = new Map(
-        (response.services ?? []).map((service) => [service.serviceName, service]),
+        (response.services ?? []).map((service) => [
+          service.serviceName,
+          service,
+        ]),
       );
       const missing = services.filter((service) => !found.has(service));
       if (missing.length > 0) {
@@ -465,9 +467,7 @@ function splitList(raw: string): string[] {
 function positiveInteger(name: string, raw: string): number {
   const value = Number.parseInt(raw, 10);
   if (!Number.isInteger(value) || value <= 0) {
-    throw new UsageError(
-      `${name} must be a positive integer (got '${raw}')`,
-    );
+    throw new UsageError(`${name} must be a positive integer (got '${raw}')`);
   }
   return value;
 }

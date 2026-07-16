@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  parseServiceCliArgs,
+  SERVICE_EXIT,
   type ServiceGateway,
   type ServiceSnapshot,
-  SERVICE_EXIT,
-  parseServiceCliArgs,
   type TaskDiagnostic,
   waitForServicesStable,
 } from './ecs-wait-services-stable';
@@ -24,9 +24,7 @@ function deployment(
   };
 }
 
-function snapshot(
-  overrides: Partial<ServiceSnapshot> = {},
-): ServiceSnapshot {
+function snapshot(overrides: Partial<ServiceSnapshot> = {}): ServiceSnapshot {
   return {
     name: 'workers',
     desiredCount: 1,
@@ -103,10 +101,7 @@ describe('waitForServicesStable', () => {
 
   test('polls all services together until they stabilize', async () => {
     let now = 0;
-    const gateway = makeGateway([
-      [snapshot()],
-      [stableSnapshot()],
-    ]);
+    const gateway = makeGateway([[snapshot()], [stableSnapshot()]]);
     const result = await waitForServicesStable(gateway, {
       cluster: 'genfeed-production',
       services: ['workers'],

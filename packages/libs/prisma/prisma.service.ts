@@ -1,11 +1,7 @@
 import type { Prisma } from '@genfeedai/prisma';
 import { PrismaClient } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
-import {
-  Injectable,
-  type OnModuleDestroy,
-  type OnModuleInit,
-} from '@nestjs/common';
+import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { createPrismaPgConfig } from './prisma-pg-config';
 
@@ -41,7 +37,6 @@ type PrismaQueryEventClient = {
  * uses it directly) can depend on it without recreating the api↔workers
  * coupling this package exists to remove.
  */
-@Injectable()
 export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy
