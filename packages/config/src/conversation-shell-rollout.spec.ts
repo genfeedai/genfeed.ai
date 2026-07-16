@@ -44,30 +44,78 @@ describe('conversation shell rollout configuration', () => {
     });
   });
 
-  it('enables only explicitly targeted organizations in enabled cohorts', () => {
+  it('enables only explicitly targeted organizations outside SaaS', () => {
     const parsed = parseConversationShellRolloutConfig(validConfig());
 
     expect(
       evaluateConversationShellRollout(parsed, {
         client: 'web',
-        deployment: 'cloud',
+        deployment: 'self-hosted',
         organizationId: 'org-internal',
       }),
     ).toMatchObject({
       cohort: 'internal',
+      deploymentMode: 'community',
       isEnabled: true,
       reason: 'enabled',
     });
     expect(
       evaluateConversationShellRollout(parsed, {
         client: 'web',
-        deployment: 'cloud',
+        deployment: 'self-hosted',
         organizationId: 'org-unlisted',
       }),
     ).toMatchObject({
       cohort: null,
       isEnabled: false,
       reason: 'organization_not_targeted',
+    });
+  });
+
+  it('enables the agent-first shell for every SaaS organization', () => {
+    const parsed = parseConversationShellRolloutConfig(validConfig());
+
+    const evaluation = evaluateConversationShellRollout(
+      parsed,
+      {
+        client: 'web',
+        deployment: 'cloud',
+        organizationId: 'org-not-in-a-rollout-cohort',
+      },
+      new Date('2026-07-16T00:00:00.000Z'),
+    );
+
+    expect(evaluation).toMatchObject({
+      cohort: 'all',
+      deploymentMode: 'saas',
+      isEnabled: true,
+      reason: 'enabled',
+    });
+    expect(isConversationShellEvaluation(evaluation)).toBe(true);
+  });
+
+  it('keeps the global SaaS rollout behind its deployment switch', () => {
+    const parsed = parseConversationShellRolloutConfig(
+      validConfig({
+        enabledDeploymentModes: [
+          'community',
+          'desktop_self_hosted',
+          'desktop_cloud',
+        ],
+      }),
+    );
+
+    expect(
+      evaluateConversationShellRollout(parsed, {
+        client: 'web',
+        deployment: 'cloud',
+        organizationId: 'org-not-in-a-rollout-cohort',
+      }),
+    ).toMatchObject({
+      cohort: null,
+      deploymentMode: 'saas',
+      isEnabled: false,
+      reason: 'deployment_not_enabled',
     });
   });
 

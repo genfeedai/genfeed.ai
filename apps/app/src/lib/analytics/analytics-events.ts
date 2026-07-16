@@ -95,7 +95,11 @@ export type ConversationShellFallbackReason =
   | 'stale_overlay_reference'
   | 'unauthorized_overlay_reference';
 
-export type ConversationShellCohort = 'internal' | 'opt_in' | 'unassigned';
+export type ConversationShellCohort =
+  | 'all'
+  | 'internal'
+  | 'opt_in'
+  | 'unassigned';
 
 export type ConversationShellDeploymentMode =
   | 'community'

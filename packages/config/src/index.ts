@@ -15,6 +15,7 @@ export type {
   ConversationShellDeploymentMode,
   ConversationShellEvaluation,
   ConversationShellEvaluationAttributes,
+  ConversationShellEvaluationCohort,
   ConversationShellEvaluationReason,
   ConversationShellRolloutConfig,
   ConversationShellRolloutConfigParseResult,

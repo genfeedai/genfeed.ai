@@ -1,5 +1,9 @@
 import { FeatureFlagService } from '@api/feature-flag/feature-flag.service';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 function createConfigService(overrides: Record<string, string> = {}) {
   return {
@@ -185,6 +189,48 @@ describe('FeatureFlagService', () => {
     ).toMatchObject({
       isEnabled: false,
       reason: 'missing_attributes',
+    });
+  });
+
+  it('enables the agent-first shell for every SaaS organization', async () => {
+    vi.stubEnv('GENFEED_CLOUD', 'true');
+    const service = new FeatureFlagService(
+      createConfigService({
+        FEATURE_FLAG_DEFAULTS: JSON.stringify({
+          conversation_shell: {
+            configVersion: 'test-global-saas',
+            isEnabled: true,
+            enabledCohorts: ['internal'],
+            enabledDeploymentModes: [
+              'community',
+              'desktop_self_hosted',
+              'desktop_cloud',
+              'saas',
+            ],
+            organizations: {
+              internal: ['org-internal'],
+              opt_in: [],
+            },
+            rollbackRevision: 0,
+            schemaVersion: 1,
+          },
+        }),
+      }) as never,
+      { debug: vi.fn(), warn: vi.fn() } as never,
+    );
+
+    await service.init();
+
+    expect(
+      service.evaluateConversationShell({
+        client: 'web',
+        organizationId: 'org-created-after-rollout',
+      }),
+    ).toMatchObject({
+      cohort: 'all',
+      deploymentMode: 'saas',
+      isEnabled: true,
+      reason: 'enabled',
     });
   });
 

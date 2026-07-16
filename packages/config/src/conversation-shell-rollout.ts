@@ -22,6 +22,8 @@ export const CONVERSATION_SHELL_EVALUATION_REASONS = [
 export type ConversationShellCohort =
   (typeof CONVERSATION_SHELL_COHORTS)[number];
 
+export type ConversationShellEvaluationCohort = ConversationShellCohort | 'all';
+
 export type ConversationShellDeploymentMode =
   (typeof CONVERSATION_SHELL_DEPLOYMENT_ORDER)[number];
 
@@ -51,7 +53,7 @@ export interface ConversationShellEvaluationAttributes {
 }
 
 export interface ConversationShellEvaluation {
-  readonly cohort: ConversationShellCohort | null;
+  readonly cohort: ConversationShellEvaluationCohort | null;
   readonly configVersion: string | null;
   readonly deploymentMode: ConversationShellDeploymentMode;
   readonly isEnabled: boolean;
@@ -101,6 +103,7 @@ export function isConversationShellEvaluation(
   const rollbackRevision = value.rollbackRevision;
   const hasValidCohort =
     cohort === null ||
+    cohort === 'all' ||
     CONVERSATION_SHELL_COHORTS.some((candidate) => candidate === cohort);
   const hasValidConfigVersion =
     configVersion === null ||
@@ -322,6 +325,19 @@ export function evaluateConversationShellRollout(
 
   if (!parsed.config.isEnabled) {
     return { ...base, reason: 'disabled' };
+  }
+
+  if (deploymentMode === 'saas') {
+    if (!parsed.config.enabledDeploymentModes.includes(deploymentMode)) {
+      return { ...base, reason: 'deployment_not_enabled' };
+    }
+
+    return {
+      ...base,
+      cohort: 'all',
+      isEnabled: true,
+      reason: 'enabled',
+    };
   }
 
   const cohort = findOrganizationCohort(

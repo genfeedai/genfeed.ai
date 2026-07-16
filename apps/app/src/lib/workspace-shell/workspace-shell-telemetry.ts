@@ -26,7 +26,7 @@ let telemetryContext = UNKNOWN_TELEMETRY_CONTEXT;
 
 export function setWorkspaceShellTelemetryContext(
   evaluation: {
-    readonly cohort: 'internal' | 'opt_in' | null;
+    readonly cohort: 'all' | 'internal' | 'opt_in' | null;
     readonly configVersion: string | null;
     readonly deploymentMode:
       | 'community'

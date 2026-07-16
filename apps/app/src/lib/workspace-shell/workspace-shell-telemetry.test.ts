@@ -42,6 +42,28 @@ describe('workspace shell telemetry privacy contract', () => {
     );
   });
 
+  it('records the global SaaS cohort without treating it as internal', () => {
+    setWorkspaceShellTelemetryContext({
+      cohort: 'all',
+      configVersion: 'global-saas-1',
+      deploymentMode: 'saas',
+      rollbackRevision: 0,
+    });
+
+    captureWorkspaceShellSession();
+
+    expect(analytics.capture).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.CONVERSATION_SHELL_SESSION,
+      {
+        cohort: 'all',
+        configVersion: 'global-saas-1',
+        deploymentMode: 'saas',
+        isInternal: false,
+        rollbackRevision: 0,
+      },
+    );
+  });
+
   it('emits content-free safety, performance, and error properties', () => {
     captureWorkspaceShellRestorationFailure('invalid_overlay_reference');
     captureWorkspaceShellScopeCorrection('failure');

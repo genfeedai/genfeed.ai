@@ -293,7 +293,7 @@ describe('proxy', () => {
         if (url.endsWith('/feature-flags/conversation-shell?client=web')) {
           return new Response(
             JSON.stringify({
-              cohort: 'internal',
+              cohort: 'all',
               configVersion: 'internal-1',
               deploymentMode: 'saas',
               isEnabled: true,

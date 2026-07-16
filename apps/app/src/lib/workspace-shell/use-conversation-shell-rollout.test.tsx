@@ -62,7 +62,7 @@ vi.mock('./use-conversation-shell', () => ({
 }));
 
 const ENABLED_EVALUATION = {
-  cohort: 'internal' as const,
+  cohort: 'all' as const,
   configVersion: 'internal-1',
   deploymentMode: 'saas' as const,
   isEnabled: true,

@@ -1,6 +1,6 @@
 # Conversation-first shell rollout
 
-The conversation-first shell is a server-evaluated, organization-scoped rollout. Missing, malformed, unavailable, or contradictory configuration always resolves to the legacy shell. Do not use `NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS` to enable it.
+The conversation-first shell is server-evaluated. In SaaS, it is the default experience for every authenticated organization when the global switch and `saas` deployment mode are enabled. Community and Desktop continue to use explicit organization cohorts. Missing, malformed, unavailable, or contradictory configuration always resolves to the legacy shell. Do not use `NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS` to enable it.
 
 ## Rollout configuration
 
@@ -23,14 +23,14 @@ Set `FEATURE_FLAG_DEFAULTS` to a JSON object containing a `conversation_shell` d
 }
 ```
 
-An organization must appear in exactly one explicit cohort. The deployment list must be a prefix of this immutable order:
+Community and Desktop organizations must appear in exactly one explicit cohort. The deployment list must be a prefix of this immutable order:
 
 1. `community`
 2. `desktop_self_hosted`
 3. `desktop_cloud`
 4. `saas`
 
-This prevents SaaS from being enabled before Community and both Desktop modes. Cohort membership and deployment eligibility are both required. SaaS onboarding uses the same evaluation: enabled organizations enter agent-first onboarding; everyone else retains the classic wizard.
+This prevents SaaS from being enabled before Community and both Desktop modes. Cohort membership and deployment eligibility are both required outside SaaS. When `saas` is present, every authenticated SaaS organization receives the agent-first shell and agent-first onboarding. Set `isEnabled` to `false` for the global emergency rollback.
 
 ## Fail-closed behavior and rollback
 
@@ -58,7 +58,7 @@ Telemetry query version `1` emits bounded, content-free fields for:
 - first useful paint for shell and legacy, split by device and route class;
 - evaluation, render, restoration, and scope errors.
 
-Client events include only cohort, rollout version, deployment mode, rollback revision, enum-like outcomes, durations, and route classes. PostHog is SaaS-only and applies a final recursive deny-list scrub for prompt, message, content, credential, secret, text, and token keys. Self-hosted and Desktop do not add product-analytics call-home; their server-side safety counters remain in local operator logs. Server safety events retain the organization identifier required to join an event to its explicit rollout cohort, but omit user, thread, brand, message, artifact, credential, and content fields. Error details go to the existing error logger/Sentry path and are not copied into product analytics.
+Client events include only cohort, rollout version, deployment mode, rollback revision, enum-like outcomes, durations, and route classes. SaaS emits the bounded `all` cohort; Community and Desktop emit their explicit rollout cohort. PostHog is SaaS-only and applies a final recursive deny-list scrub for prompt, message, content, credential, secret, text, and token keys. Self-hosted and Desktop do not add product-analytics call-home; their server-side safety counters remain in local operator logs. Server safety events retain the organization identifier required to join an event to its explicit rollout cohort, but omit user, thread, brand, message, artifact, credential, and content fields. Error details go to the existing error logger/Sentry path and are not copied into product analytics.
 
 Never attach user IDs, thread IDs, artifact IDs, prompts, generated content, titles, messages, credentials, tokens, or exception text as rollout event properties. The existing SaaS analytics organization-group boundary remains unchanged.
 
@@ -84,7 +84,7 @@ The evaluator rejects partial or future windows. Every promotion requires 14 com
 - version-bound approval integrity: exact match `100%` across at least `100` attempts;
 - accessibility, responsive behavior, and live rollback rehearsal: manually evidenced as passed.
 
-Do not combine cohorts to satisfy denominators. Do not remove compatibility reads until every deployment cohort independently meets the compatibility threshold for its complete observation window. A code-complete release is not authorization for broad production enablement.
+Do not combine Community or Desktop cohorts to satisfy denominators. Do not remove compatibility reads until every applicable deployment cohort independently meets the compatibility threshold for its complete observation window. SaaS is globally enabled by product policy when its deployment switch is on.
 
 ## Ownership and evidence ledger
 
