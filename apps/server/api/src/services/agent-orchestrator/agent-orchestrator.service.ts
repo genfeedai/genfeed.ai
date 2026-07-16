@@ -57,8 +57,10 @@ import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools
 import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
 import {
   type AgentArtifactCompletionMetadata,
-  buildAgentArtifactCompletionMetadata,
+  buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
+  captureRunArtifacts,
   mergeAgentArtifactCompletionMetadata,
+  persistRunArtifacts,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
 import {
@@ -764,7 +766,11 @@ export class AgentOrchestratorService {
             ...(latestUiBlocks ? { uiBlocks: latestUiBlocks } : {}),
           };
 
-          await this.persistRunArtifactMetadata(context, artifactMetadata);
+          await persistRunArtifacts(
+            this.agentRunsService,
+            context,
+            artifactMetadata,
+          );
           await this.agentMessagesService.addMessage({
             brandId: context.scope?.brandId,
             content,
@@ -1022,12 +1028,7 @@ export class AgentOrchestratorService {
             },
           );
           const durationMs = Date.now() - startTime;
-          allArtifactMetadata.push(
-            buildAgentArtifactCompletionMetadata(result.data, {
-              brandId: context.scope?.brandId,
-              organizationId: context.organizationId,
-            }),
-          );
+          allArtifactMetadata.push(buildArtifactMetadata(result.data, context));
 
           if (result.nextActions?.length) {
             allUiActions.push(...result.nextActions);
@@ -1641,7 +1642,11 @@ export class AgentOrchestratorService {
             mergeAgentArtifactCompletionMetadata(allArtifactMetadata);
 
           // Save assistant message to DB
-          await this.persistRunArtifactMetadata(context, artifactMetadata);
+          await persistRunArtifacts(
+            this.agentRunsService,
+            context,
+            artifactMetadata,
+          );
           await this.agentMessagesService.addMessage({
             brandId: context.scope?.brandId,
             content,
@@ -1966,12 +1971,7 @@ export class AgentOrchestratorService {
           }
 
           const durationMs = Date.now() - startTime;
-          allArtifactMetadata.push(
-            buildAgentArtifactCompletionMetadata(result.data, {
-              brandId: context.scope?.brandId,
-              organizationId: context.organizationId,
-            }),
-          );
+          allArtifactMetadata.push(buildArtifactMetadata(result.data, context));
 
           if (result.nextActions?.length) {
             allUiActions.push(...result.nextActions);
@@ -2917,10 +2917,11 @@ export class AgentOrchestratorService {
         toolCalls: [{ status: summary.status, toolName }],
         uiActions: result.nextActions ?? [],
       });
-    const artifactMetadata = buildAgentArtifactCompletionMetadata(result.data, {
-      brandId: params.context.scope?.brandId,
-      organizationId: params.context.organizationId,
-    });
+    const artifactMetadata = await captureRunArtifacts(
+      this.agentRunsService,
+      params.context,
+      result.data,
+    );
     const assistantMetadata = {
       ...artifactMetadata,
       ...buildAgentScopeMetadata(params.context),
@@ -2935,7 +2936,6 @@ export class AgentOrchestratorService {
       uiActions: enhancedUiActions.uiActions,
     };
 
-    await this.persistRunArtifactMetadata(params.context, artifactMetadata);
     await this.agentMessagesService.addMessage({
       brandId: params.context.scope?.brandId,
       content: fullContent,
@@ -5030,12 +5030,10 @@ export class AgentOrchestratorService {
       params.toolCalls,
       enhancedUiActions.uiActions,
     );
-    const artifactMetadata = buildAgentArtifactCompletionMetadata(
+    const artifactMetadata = await captureRunArtifacts(
+      this.agentRunsService,
+      params.context,
       params.result.data,
-      {
-        brandId: params.context.scope?.brandId,
-        organizationId: params.context.organizationId,
-      },
     );
     const creditsRemaining =
       await this.creditsUtilsService.getOrganizationCreditsBalance(
@@ -5056,7 +5054,6 @@ export class AgentOrchestratorService {
       ...(latestUiBlocks ? { uiBlocks: latestUiBlocks } : {}),
     };
 
-    await this.persistRunArtifactMetadata(params.context, artifactMetadata);
     await this.agentMessagesService.addMessage({
       brandId: params.context.scope?.brandId,
       content: normalizedContent.content,
@@ -5295,25 +5292,6 @@ export class AgentOrchestratorService {
     }
 
     return trimmedResponseModel;
-  }
-
-  private async persistRunArtifactMetadata(
-    context: AgentChatContext,
-    metadata: AgentArtifactCompletionMetadata,
-  ): Promise<void> {
-    if (
-      !context.runId ||
-      (!metadata.artifactReferences?.length &&
-        !metadata.artifactVersionPinIds?.length)
-    ) {
-      return;
-    }
-
-    await this.agentRunsService.mergeMetadata(
-      context.runId,
-      context.organizationId,
-      metadata,
-    );
   }
 
   private async recordAgentResponseModel(params: {
