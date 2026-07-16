@@ -9,12 +9,14 @@ import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { PostStatus } from '@genfeedai/enums';
+import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
+import { PostStatus, ReleaseStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Effect } from 'effect';
@@ -60,6 +62,49 @@ describe('AgentToolExecutorService', () => {
       findAll: vi.fn(),
       findOne: vi.fn(),
       handleYoutubePost: vi.fn(),
+    };
+    const postGroupsService = {
+      create: vi
+        .fn()
+        .mockImplementation(
+          (
+            organizationId: string,
+            _userId: string,
+            input: CreateReleaseGroupInput,
+            _headerIdempotencyKey?: string,
+            _provenance?: Record<string, unknown>,
+          ) =>
+            Promise.resolve({
+              id: 'release-1',
+              organizationId,
+              status: input.status,
+              targets: input.targets.map((target, index) => ({
+                executionState:
+                  input.status === ReleaseStatus.SCHEDULED
+                    ? 'scheduled'
+                    : 'draft',
+                id: `target-${index + 1}`,
+                platform: target.platform,
+              })),
+            }),
+        ),
+      publishNow: vi.fn().mockResolvedValue({
+        id: 'release-1',
+        organizationId: '67a123456789012345678901',
+        status: ReleaseStatus.SCHEDULED,
+        targets: [
+          {
+            executionState: 'scheduled',
+            id: 'target-1',
+            platform: 'linkedin',
+          },
+          {
+            executionState: 'scheduled',
+            id: 'target-2',
+            platform: 'youtube',
+          },
+        ],
+      }),
     };
     const brandsService = {
       create: vi.fn().mockResolvedValue({ id: 'brand-1' }),
@@ -659,6 +704,9 @@ describe('AgentToolExecutorService', () => {
       agentGoalsService as never,
     );
     const dashboardHandler = new AgentDashboardToolHandler(undefined as never);
+    const publishHandler = new AgentPublishToolHandler(
+      postGroupsService as never,
+    );
     const agentScopeContextService = {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
       assertResourceBrand: vi.fn(),
@@ -673,6 +721,7 @@ describe('AgentToolExecutorService', () => {
       routeRewriteService,
       memoryGoalsHandler,
       dashboardHandler,
+      publishHandler,
       botsService as never,
       botsLivestreamService as never,
       campaignsService as never,
@@ -731,6 +780,7 @@ describe('AgentToolExecutorService', () => {
       organizationSettingsService,
       organizationsService,
       postAnalyticsService,
+      postGroupsService,
       postsService,
       recurringWorkflowId,
       service,
@@ -860,7 +910,7 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('returns a publish confirmation card for direct content publish requests', async () => {
+  it('preserves a naive wall time in the publish confirmation preview', async () => {
     const { credentialsService, ingredientsService, service } = createService();
 
     ingredientsService.findOne.mockResolvedValue({
@@ -884,6 +934,7 @@ describe('AgentToolExecutorService', () => {
       {
         caption: 'Ship this now',
         contentId: '67a123456789012345678930',
+        scheduledAt: '2026-07-18T09:00',
       },
       {
         organizationId: '67a123456789012345678901',
@@ -897,6 +948,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         contentId: '67a123456789012345678930',
         platforms: ['linkedin', 'twitter'],
+        scheduledAt: '2026-07-18T09:00',
         textContent: 'Ship this now',
         type: 'publish_post_card',
       }),
@@ -1115,9 +1167,14 @@ describe('AgentToolExecutorService', () => {
     ]);
   });
 
-  it('publishes accessible content across connected platforms after confirmation', async () => {
-    const { credentialsService, ingredientsService, postsService, service } =
-      createService();
+  it('publishes accessible content through the canonical release queue after confirmation', async () => {
+    const {
+      credentialsService,
+      ingredientsService,
+      postGroupsService,
+      postsService,
+      service,
+    } = createService();
 
     ingredientsService.findOne.mockResolvedValue({
       id: '67a123456789012345678940',
@@ -1134,14 +1191,6 @@ describe('AgentToolExecutorService', () => {
         platform: 'youtube',
       },
     ]);
-    postsService.create
-      .mockResolvedValueOnce({
-        id: '67a123456789012345678944',
-      })
-      .mockResolvedValueOnce({
-        id: '67a123456789012345678945',
-      });
-
     const result = await service.executeTool(
       AgentToolName.CREATE_POST,
       {
@@ -1149,6 +1198,7 @@ describe('AgentToolExecutorService', () => {
         confirmed: true,
         contentId: '67a123456789012345678940',
         platforms: ['linkedin', 'youtube'],
+        sourceActionId: 'publish-card-1',
       },
       {
         ...scopedContext('67a123456789012345678941'),
@@ -1159,13 +1209,263 @@ describe('AgentToolExecutorService', () => {
 
     expect(result.success).toBe(true);
     expect(result.creditsUsed).toBe(0);
-    expect(postsService.create).toHaveBeenCalledTimes(2);
-    expect(postsService.handleYoutubePost).toHaveBeenCalledTimes(1);
+    expect(postGroupsService.create).toHaveBeenCalledWith(
+      '67a123456789012345678901',
+      '67a123456789012345678902',
+      expect.objectContaining({
+        baseContent: 'Published from chat',
+        brandId: '67a123456789012345678941',
+        media: [
+          {
+            assetId: '67a123456789012345678940',
+            kind: 'video',
+          },
+        ],
+        status: ReleaseStatus.DRAFT,
+        targets: [
+          expect.objectContaining({
+            credentialId: '67a123456789012345678942',
+            platform: 'linkedin',
+          }),
+          expect.objectContaining({
+            credentialId: '67a123456789012345678943',
+            platform: 'youtube',
+          }),
+        ],
+      }),
+      expect.stringMatching(/^agent-publish:[a-f0-9]{64}$/),
+      expect.objectContaining({
+        agentRunId: '67a123456789012345678946',
+        agentStrategyId: '67a123456789012345678947',
+        agentThreadId: '67a123456789012345678999',
+        source: 'agent',
+        sourceActionId: 'publish-card-1',
+      }),
+    );
+    expect(postGroupsService.publishNow).toHaveBeenCalledWith(
+      '67a123456789012345678901',
+      '67a123456789012345678902',
+      'release-1',
+    );
+    expect(postsService.create).not.toHaveBeenCalled();
+    expect(postsService.handleYoutubePost).not.toHaveBeenCalled();
     expect(result.data).toMatchObject({
       contentId: '67a123456789012345678940',
       createdPlatforms: ['linkedin', 'youtube'],
+      postIds: ['target-1', 'target-2'],
       totalCreated: 2,
     });
+  });
+
+  it('creates a scheduled canonical release without publishing it early', async () => {
+    const {
+      credentialsService,
+      ingredientsService,
+      postGroupsService,
+      service,
+    } = createService();
+    ingredientsService.findOne.mockResolvedValue({
+      assetLabel: 'promo',
+      brand: '67a123456789012345678941',
+      category: 'image',
+      id: '67a123456789012345678940',
+    });
+    credentialsService.find.mockResolvedValue([
+      {
+        id: '67a123456789012345678942',
+        platform: 'instagram',
+      },
+    ]);
+    postGroupsService.create.mockResolvedValueOnce({
+      id: 'release-scheduled',
+      organizationId: '67a123456789012345678901',
+      status: ReleaseStatus.SCHEDULED,
+      targets: [
+        {
+          executionState: 'scheduled',
+          id: 'target-scheduled',
+          platform: 'instagram',
+        },
+      ],
+    });
+    const expectedScheduledAt = new Date('2026-07-18T09:00').toISOString();
+
+    const result = await service.executeTool(
+      AgentToolName.CREATE_POST,
+      {
+        confirmed: true,
+        contentId: '67a123456789012345678940',
+        platforms: ['instagram'],
+        scheduledAt: '2026-07-18T09:00',
+        sourceActionId: 'publish-card-scheduled',
+      },
+      scopedContext('67a123456789012345678941'),
+    );
+
+    expect(result.success).toBe(true);
+    expect(postGroupsService.create).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.objectContaining({
+        baseContent: 'promo',
+        scheduledDate: expectedScheduledAt,
+        status: ReleaseStatus.SCHEDULED,
+        targets: [
+          expect.objectContaining({
+            scheduledDate: expectedScheduledAt,
+          }),
+        ],
+      }),
+      expect.stringMatching(/^agent-publish:[a-f0-9]{64}$/),
+      expect.any(Object),
+    );
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
+    expect(result.data).toMatchObject({
+      postIds: ['target-scheduled'],
+      scheduledAt: expectedScheduledAt,
+      totalCreated: 1,
+    });
+  });
+
+  it('reuses the same release idempotency key for an exact confirmed-action retry', async () => {
+    const {
+      credentialsService,
+      ingredientsService,
+      postGroupsService,
+      service,
+    } = createService();
+    ingredientsService.findOne.mockResolvedValue({
+      brand: '67a123456789012345678941',
+      category: 'image',
+      id: '67a123456789012345678940',
+    });
+    credentialsService.find.mockResolvedValue([
+      {
+        id: '67a123456789012345678942',
+        platform: 'linkedin',
+      },
+    ]);
+    postGroupsService.publishNow.mockResolvedValue({
+      id: 'release-1',
+      organizationId: '67a123456789012345678901',
+      status: ReleaseStatus.SCHEDULED,
+      targets: [
+        {
+          executionState: 'scheduled',
+          id: 'target-1',
+          platform: 'linkedin',
+        },
+      ],
+    });
+    const parameters = {
+      caption: 'Retry-safe caption',
+      confirmed: true,
+      contentId: '67a123456789012345678940',
+      platforms: ['linkedin'],
+      sourceActionId: 'publish-card-retry',
+    };
+    const context = scopedContext('67a123456789012345678941');
+
+    await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
+    await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
+    await service.executeTool(
+      AgentToolName.CREATE_POST,
+      { ...parameters, sourceActionId: 'publish-card-distinct' },
+      context,
+    );
+
+    const firstKey = postGroupsService.create.mock.calls[0]?.[3];
+    const secondKey = postGroupsService.create.mock.calls[1]?.[3];
+    const distinctKey = postGroupsService.create.mock.calls[2]?.[3];
+    expect(firstKey).toMatch(/^agent-publish:[a-f0-9]{64}$/);
+    expect(secondKey).toBe(firstKey);
+    expect(distinctKey).not.toBe(firstKey);
+  });
+
+  it('fails closed when a confirmed caller omits sourceActionId', async () => {
+    const {
+      credentialsService,
+      ingredientsService,
+      postGroupsService,
+      service,
+    } = createService();
+    ingredientsService.findOne.mockResolvedValue({
+      brand: '67a123456789012345678941',
+      category: 'image',
+      id: '67a123456789012345678940',
+    });
+    credentialsService.find.mockResolvedValue([
+      {
+        id: '67a123456789012345678942',
+        platform: 'linkedin',
+      },
+    ]);
+    const parameters = {
+      caption: 'Deterministic fallback',
+      confirmed: true,
+      contentId: '67a123456789012345678940',
+      platforms: ['linkedin'],
+    };
+    const context = scopedContext('67a123456789012345678941');
+
+    const result = await service.executeTool(
+      AgentToolName.CREATE_POST,
+      parameters,
+      context,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error:
+          'sourceActionId is required to publish confirmed content safely.',
+        success: false,
+      }),
+    );
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
+  });
+
+  it('fails before creating a release when any requested platform is disconnected', async () => {
+    const {
+      credentialsService,
+      ingredientsService,
+      postGroupsService,
+      service,
+    } = createService();
+    ingredientsService.findOne.mockResolvedValue({
+      brand: '67a123456789012345678941',
+      category: 'image',
+      id: '67a123456789012345678940',
+    });
+    credentialsService.find.mockResolvedValue([
+      {
+        id: '67a123456789012345678942',
+        platform: 'linkedin',
+      },
+    ]);
+
+    const result = await service.executeTool(
+      AgentToolName.CREATE_POST,
+      {
+        confirmed: true,
+        contentId: '67a123456789012345678940',
+        platforms: ['linkedin', 'instagram'],
+        sourceActionId: 'publish-card-missing',
+      },
+      scopedContext('67a123456789012345678941'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          missingPlatforms: ['instagram'],
+        }),
+        error: 'Missing connected accounts for: instagram.',
+        success: false,
+      }),
+    );
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
   });
 
   it('rejects stale publishing scope before creating post records', async () => {
@@ -3345,6 +3645,7 @@ describe('AgentToolExecutorService', () => {
       ),
       new AgentMemoryGoalsToolHandler(undefined as never, undefined as never),
       new AgentDashboardToolHandler(undefined as never),
+      new AgentPublishToolHandler({} as never),
       {} as never,
       {} as never,
       {} as never,
@@ -3374,6 +3675,7 @@ describe('AgentToolExecutorService', () => {
       undefined as never, // votesService
       undefined as never, // adsResearchService
       undefined as never, // brandInterviewService
+      undefined as never, // agentScopeContextService
     );
 
     const result = await serviceWithoutScorer.executeTool(

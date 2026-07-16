@@ -220,6 +220,15 @@ describe('PostGroupsService', () => {
         title: 'Launch note',
       },
       'same-request',
+      {
+        agentContextSource: 'explicit',
+        agentContextVersion: 3,
+        agentRunId: 'run-1',
+        agentStrategyId: 'strategy-1',
+        agentThreadId: 'thread-1',
+        source: 'agent',
+        sourceActionId: 'publish-card-1',
+      },
     );
 
     expect(prisma.postGroup.create).toHaveBeenCalledWith(
@@ -233,8 +242,15 @@ describe('PostGroupsService', () => {
     expect(prisma.post.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          agentContextSource: 'explicit',
+          agentContextVersion: 3,
+          agentRunId: 'run-1',
+          agentStrategyId: 'strategy-1',
+          agentThreadId: 'thread-1',
           groupId: 'group-1',
+          source: 'agent',
           status: TargetExecutionState.SCHEDULED,
+          sourceActionId: 'publish-card-1',
           targetExecutionState: TargetExecutionState.SCHEDULED,
           targetValidationState: TargetValidationState.VALID,
         }),

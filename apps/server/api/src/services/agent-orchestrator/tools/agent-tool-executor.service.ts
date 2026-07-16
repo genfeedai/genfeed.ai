@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
@@ -37,6 +36,7 @@ import { MarketplaceInstallService } from '@api/marketplace-integration/marketpl
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -50,10 +50,8 @@ import {
   BotStatus,
   CampaignPlatform,
   CampaignType,
-  CredentialPlatform,
   IngredientCategory,
   IngredientStatus,
-  PostCategory,
   PostStatus,
   Status,
   VoiceCloneStatus,
@@ -377,6 +375,7 @@ export class AgentToolExecutorService {
     private readonly routeRewriteService: AgentRouteRewriteService,
     private readonly memoryGoalsHandler: AgentMemoryGoalsToolHandler,
     private readonly dashboardHandler: AgentDashboardToolHandler,
+    private readonly publishHandler: AgentPublishToolHandler,
     @Optional()
     @Inject('AGENT_BOTS_SERVICE')
     private readonly botsService: AgentBotsServiceLike | undefined,
@@ -3172,18 +3171,6 @@ export class AgentToolExecutorService {
     };
   }
 
-  private mapIngredientToPostCategory(category: unknown): PostCategory {
-    if (category === IngredientCategory.IMAGE) {
-      return PostCategory.IMAGE;
-    }
-
-    if (category === IngredientCategory.VIDEO) {
-      return PostCategory.VIDEO;
-    }
-
-    return PostCategory.POST;
-  }
-
   private normalizePlatforms(value: unknown): string[] {
     if (!Array.isArray(value)) {
       return [];
@@ -4315,22 +4302,32 @@ export class AgentToolExecutorService {
             ? [params.platform]
             : [],
       );
-      const scheduledAt =
+      const requestedScheduledAt =
         typeof params.scheduledAt === 'string' && params.scheduledAt.trim()
           ? params.scheduledAt.trim()
           : undefined;
-
+      const scheduledDate = requestedScheduledAt
+        ? new Date(requestedScheduledAt)
+        : undefined;
+      if (scheduledDate && Number.isNaN(scheduledDate.getTime())) {
+        return {
+          creditsUsed: 0,
+          error: 'scheduledAt must be a valid date and time.',
+          success: false,
+        };
+      }
       if (params.confirmed !== true) {
         return this.buildPublishCardResult(
           {
             caption,
             contentId,
             platforms,
-            scheduledAt,
+            scheduledAt: requestedScheduledAt,
           },
           ctx,
         );
       }
+      const scheduledAt = scheduledDate?.toISOString();
 
       const ingredient = await this.resolveIngredientForContent(
         contentId,
@@ -4364,94 +4361,26 @@ export class AgentToolExecutorService {
         organizationId: ctx.organizationId,
         platforms,
       });
-
-      if (credentials.length === 0) {
+      const sourceActionId = this.readOptionalString(params.sourceActionId);
+      if (!sourceActionId) {
         return {
           creditsUsed: 0,
           error:
-            'No connected social accounts are available for the selected platforms.',
+            'sourceActionId is required to publish confirmed content safely.',
           success: false,
         };
       }
 
-      const createdPlatforms = credentials
-        .map((credential) => String(credential.platform || '').toLowerCase())
-        .filter((platform) => platform.length > 0);
-      const missingPlatforms = platforms.filter(
-        (platform) => !createdPlatforms.includes(platform),
-      );
-      const groupId = randomUUID();
-      const scheduledDate = scheduledAt ? new Date(scheduledAt) : undefined;
-      const postIds: string[] = [];
-
-      for (const credential of credentials) {
-        const platform = credential.platform as CredentialPlatform;
-        const post = await this.postsService.create({
-          ...(ctx.runId ? { agentRunId: ctx.runId } : {}),
-          ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
-          agentContextSource: ctx.validatedScope?.source,
-          agentContextVersion: ctx.validatedScope?.contextVersion,
-          agentThreadId: ctx.validatedScope?.threadId,
-          brand: String(ingredient.brand),
-          category: this.mapIngredientToPostCategory(ingredient.category),
-          credential: String(credential.id),
-          description: caption ?? '',
-          groupId,
-          ingredients: [contentId],
-          label: (caption ?? '').trim().slice(0, 100) || 'Agent publish',
-          organization: ctx.organizationId,
-          platform,
-          scheduledDate,
-          source: 'agent',
-          status: scheduledDate ? PostStatus.SCHEDULED : PostStatus.PENDING,
-          user: ctx.userId,
-        } as never);
-
-        postIds.push(String((post as { id: string }).id));
-
-        if (platform === CredentialPlatform.YOUTUBE) {
-          await this.postsService.handleYoutubePost(post as never);
-        }
-      }
-
-      const description = scheduledDate
-        ? `Scheduled ${postIds.length} post${postIds.length === 1 ? '' : 's'} for ${createdPlatforms.join(', ')}.`
-        : `Queued ${postIds.length} post${postIds.length === 1 ? '' : 's'} for publishing on ${createdPlatforms.join(', ')}.`;
-
-      return {
-        creditsUsed: 0,
-        data: {
-          contentId,
-          createdPlatforms,
-          missingPlatforms,
-          postIds,
-          scheduledAt,
-          totalCreated: postIds.length,
-        },
-        nextActions: [
-          {
-            ctas: [
-              { href: '/content/posts', label: 'Open posts' },
-              ...(postIds[0]
-                ? [
-                    {
-                      href: `/analytics/posts?postId=${postIds[0]}`,
-                      label: 'Open analytics',
-                    },
-                  ]
-                : []),
-            ],
-            description:
-              missingPlatforms.length > 0
-                ? `${description} Missing connected accounts for: ${missingPlatforms.join(', ')}.`
-                : description,
-            id: `published-posts-${groupId}`,
-            title: scheduledDate ? 'Posts scheduled' : 'Posts queued',
-            type: 'content_preview_card' as const,
-          },
-        ],
-        success: true,
-      };
+      return this.publishHandler.publishConfirmedContent({
+        caption,
+        contentId,
+        credentials,
+        ctx,
+        ingredient,
+        platforms,
+        scheduledAt,
+        sourceActionId,
+      });
     }
 
     await this.assertPublishingScope(

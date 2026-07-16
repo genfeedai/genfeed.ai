@@ -23,6 +23,20 @@ interface PublishPostCardProps {
   ) => void | Promise<void>;
 }
 
+function toDatetimeLocalValue(value: string | undefined): string {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  const pad = (part: number): string => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function PublishPostCard({
   action,
   onUiAction,
@@ -38,7 +52,9 @@ export function PublishPostCard({
       : availablePlatforms;
 
   const [caption, setCaption] = useState(action.textContent ?? '');
-  const [scheduledAt, setScheduledAt] = useState(action.scheduledAt ?? '');
+  const [scheduledAt, setScheduledAt] = useState(() =>
+    toDatetimeLocalValue(action.scheduledAt),
+  );
   const [selectedPlatforms, setSelectedPlatforms] =
     useState<string[]>(initialPlatforms);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -80,11 +96,18 @@ export function PublishPostCard({
     setIsSubmitting(true);
 
     try {
+      const scheduleInput = scheduledAt.trim();
+      const scheduleDate = scheduleInput ? new Date(scheduleInput) : undefined;
+      const normalizedScheduledAt = scheduleDate
+        ? Number.isNaN(scheduleDate.getTime())
+          ? scheduleInput
+          : scheduleDate.toISOString()
+        : undefined;
       await onUiAction('confirm_publish_post', {
         caption: caption.trim() || undefined,
         contentId: action.contentId,
         platforms: selectedPlatforms,
-        scheduledAt: scheduledAt.trim() || undefined,
+        scheduledAt: normalizedScheduledAt,
         sourceActionId: action.id,
       });
       setIsSubmitted(true);

@@ -19,6 +19,7 @@ import { ImagesModule } from '@api/collections/images/images.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
+import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
@@ -41,6 +42,7 @@ import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrato
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
@@ -90,6 +92,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => MarketplaceIntegrationModule),
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OrganizationsModule),
+    forwardRef(() => PostGroupsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => SettingsModule),
     forwardRef(() => SocialInboxModule),
@@ -106,6 +109,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentCompletionCardBuilderService,
     AgentDashboardToolHandler,
     AgentMemoryGoalsToolHandler,
+    AgentPublishToolHandler,
     AgentOrchestratorService,
     AgentRouteRewriteService,
     AgentStreamEffectsService,

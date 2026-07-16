@@ -34,6 +34,7 @@ import type {
   IReleaseMediaReference,
   IReleaseTargetSummary,
   IScheduleStatusTransition,
+  PostGroupCreateProvenance,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { PostPublishQueueService } from '@genfeedai/server';
@@ -135,6 +136,7 @@ export class PostGroupsService {
     userId: string,
     body: unknown,
     headerIdempotencyKey?: string,
+    provenance?: PostGroupCreateProvenance,
   ): Promise<IReleaseGroup> {
     const input = this.parseCreateInput(body, headerIdempotencyKey);
 
@@ -216,6 +218,21 @@ export class PostGroupsService {
 
         const created = (await tx.post.create({
           data: {
+            ...(provenance?.agentContextSource && {
+              agentContextSource: provenance.agentContextSource,
+            }),
+            ...(provenance?.agentContextVersion !== undefined && {
+              agentContextVersion: provenance.agentContextVersion,
+            }),
+            ...(provenance?.agentRunId && {
+              agentRunId: provenance.agentRunId,
+            }),
+            ...(provenance?.agentStrategyId && {
+              agentStrategyId: provenance.agentStrategyId,
+            }),
+            ...(provenance?.agentThreadId && {
+              agentThreadId: provenance.agentThreadId,
+            }),
             brandId,
             credentialId: target.credentialId,
             description: input.baseContent,
@@ -225,6 +242,10 @@ export class PostGroupsService {
             order: target.order ?? index,
             organizationId,
             platform: target.platform,
+            ...(provenance?.source && { source: provenance.source }),
+            ...(provenance?.sourceActionId && {
+              sourceActionId: provenance.sourceActionId,
+            }),
             scheduledDate:
               this.toDate(target.scheduledDate) ?? group.scheduledAt,
             status: this.toPostStatus(status),
