@@ -59,11 +59,7 @@ describe('HomeCredits', () => {
         locales?: Intl.LocalesArgument,
         options?: Intl.NumberFormatOptions,
       ) {
-        return originalToLocaleString.call(
-          this,
-          locales ?? 'de-DE',
-          options,
-        );
+        return originalToLocaleString.call(this, locales ?? 'de-DE', options);
       });
 
     try {
