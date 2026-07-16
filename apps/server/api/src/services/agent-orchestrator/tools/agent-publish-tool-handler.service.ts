@@ -1,29 +1,17 @@
 import { createHash } from 'node:crypto';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { UsersService } from '@api/collections/users/services/users.service';
 import {
   CredentialPlatform,
   IngredientCategory,
   ReleaseStatus,
 } from '@genfeedai/enums';
-import type { AgentToolResult } from '@genfeedai/interfaces';
+import type {
+  AgentPublishIdempotencyInput,
+  AgentToolResult,
+  PublishConfirmedContentInput,
+} from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
-
-interface AgentPublishCredential {
-  id?: unknown;
-  platform?: unknown;
-}
-
-interface PublishConfirmedContentInput {
-  caption?: string;
-  contentId: string;
-  credentials: AgentPublishCredential[];
-  ctx: ToolExecutionContext;
-  ingredient: Record<string, unknown>;
-  platforms: string[];
-  scheduledAt?: string;
-  sourceActionId?: string;
-}
 
 /**
  * Routes confirmed agent publishing through the canonical release scheduler.
@@ -32,7 +20,10 @@ interface PublishConfirmedContentInput {
  */
 @Injectable()
 export class AgentPublishToolHandler {
-  constructor(private readonly postGroupsService: PostGroupsService) {}
+  constructor(
+    private readonly postGroupsService: PostGroupsService,
+    private readonly usersService: UsersService,
+  ) {}
 
   async publishConfirmedContent(
     input: PublishConfirmedContentInput,
@@ -80,6 +71,17 @@ export class AgentPublishToolHandler {
       };
     }
 
+    const canonicalUserId = await this.usersService.findMongoIdByAuthProviderId(
+      ctx.userId,
+    );
+    if (!canonicalUserId) {
+      return {
+        creditsUsed: 0,
+        error: 'The publishing user could not be resolved.',
+        success: false,
+      };
+    }
+
     const baseContent = this.resolvePublishBaseContent(caption, ingredient);
     const idempotencyKey = this.buildIdempotencyKey({
       baseContent,
@@ -89,12 +91,12 @@ export class AgentPublishToolHandler {
       scheduledAt,
       sourceActionId,
       threadId: ctx.threadId,
-      userId: ctx.userId,
+      userId: canonicalUserId,
     });
     const mediaKind = this.resolveReleaseMediaKind(ingredient.category);
     const release = await this.postGroupsService.create(
       ctx.organizationId,
-      ctx.userId,
+      canonicalUserId,
       {
         baseContent,
         brandId: String(ingredient.brand),
@@ -135,7 +137,7 @@ export class AgentPublishToolHandler {
       ? release
       : await this.postGroupsService.publishNow(
           ctx.organizationId,
-          ctx.userId,
+          canonicalUserId,
           release.id,
         );
     const groupId = canonicalRelease.id;
@@ -179,16 +181,7 @@ export class AgentPublishToolHandler {
     };
   }
 
-  private buildIdempotencyKey(input: {
-    baseContent: string;
-    contentId: string;
-    organizationId: string;
-    platforms: string[];
-    scheduledAt?: string;
-    sourceActionId?: string;
-    threadId?: string;
-    userId: string;
-  }): string {
+  private buildIdempotencyKey(input: AgentPublishIdempotencyInput): string {
     const digest = createHash('sha256')
       .update(
         JSON.stringify({

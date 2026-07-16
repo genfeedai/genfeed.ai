@@ -34,6 +34,7 @@ import type {
   IReleaseMediaReference,
   IReleaseTargetSummary,
   IScheduleStatusTransition,
+  PostGroupCreateProvenance,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { PostPublishQueueService } from '@genfeedai/server';
@@ -46,16 +47,6 @@ import {
 import type { ZodError } from 'zod';
 
 type SchedulerTx = Prisma.TransactionClient;
-
-export interface PostGroupCreateProvenance {
-  agentContextSource?: string;
-  agentContextVersion?: number;
-  agentRunId?: string;
-  agentStrategyId?: string;
-  agentThreadId?: string;
-  source?: string;
-  sourceActionId?: string;
-}
 
 type SchedulerCredential = {
   brandId: string | null;

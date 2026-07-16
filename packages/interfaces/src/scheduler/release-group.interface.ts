@@ -30,6 +30,17 @@ export type IReleaseTargetSummary = Partial<
   total: number;
 };
 
+/** Agent-side attribution persisted with every post target in a release. */
+export interface PostGroupCreateProvenance {
+  agentContextSource?: string;
+  agentContextVersion?: number;
+  agentRunId?: string;
+  agentStrategyId?: string;
+  agentThreadId?: string;
+  source?: string;
+  sourceActionId?: string;
+}
+
 /**
  * The canonical scheduler domain object: one composed piece of content and its
  * fan-out across channels. A single serialized `IReleaseGroup` is designed to

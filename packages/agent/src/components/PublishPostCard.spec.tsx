@@ -90,4 +90,28 @@ describe('PublishPostCard', () => {
       sourceActionId: 'publish-card-3',
     });
   });
+
+  it('renders a prefilled ISO schedule as a datetime-local value', () => {
+    const scheduledAt = '2026-07-18T09:00:00.000Z';
+    const scheduledDate = new Date(scheduledAt);
+    const pad = (part: number): string => String(part).padStart(2, '0');
+    const expectedLocalValue = `${scheduledDate.getFullYear()}-${pad(scheduledDate.getMonth() + 1)}-${pad(scheduledDate.getDate())}T${pad(scheduledDate.getHours())}:${pad(scheduledDate.getMinutes())}`;
+    const action: AgentUiAction = {
+      contentId: 'ingredient-4',
+      data: {
+        availablePlatforms: ['linkedin'],
+      },
+      id: 'publish-card-4',
+      platforms: ['linkedin'],
+      scheduledAt,
+      title: 'Schedule selected content',
+      type: 'publish_post_card',
+    };
+
+    render(<PublishPostCard action={action} />);
+
+    expect(screen.getByLabelText('Schedule for later')).toHaveValue(
+      expectedLocalValue,
+    );
+  });
 });

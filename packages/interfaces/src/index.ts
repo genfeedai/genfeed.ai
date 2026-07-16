@@ -4,6 +4,7 @@ export * from './admin/fleet.interface';
 export * from './admin/warmup-accounts.interface';
 export * from './ai/agent-artifact-reference.interface';
 export * from './ai/agent-campaign.interface';
+export * from './ai/agent-publish.interface';
 export * from './ai/agent-run.interface';
 export * from './ai/agent-scope-context.interface';
 export * from './ai/agent-strategy.interface';

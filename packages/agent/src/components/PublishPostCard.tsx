@@ -23,6 +23,20 @@ interface PublishPostCardProps {
   ) => void | Promise<void>;
 }
 
+function toDatetimeLocalValue(value: string | undefined): string {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  const pad = (part: number): string => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export function PublishPostCard({
   action,
   onUiAction,
@@ -38,7 +52,9 @@ export function PublishPostCard({
       : availablePlatforms;
 
   const [caption, setCaption] = useState(action.textContent ?? '');
-  const [scheduledAt, setScheduledAt] = useState(action.scheduledAt ?? '');
+  const [scheduledAt, setScheduledAt] = useState(() =>
+    toDatetimeLocalValue(action.scheduledAt),
+  );
   const [selectedPlatforms, setSelectedPlatforms] =
     useState<string[]>(initialPlatforms);
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -15,6 +15,7 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
 import { PostStatus, ReleaseStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -63,31 +64,30 @@ describe('AgentToolExecutorService', () => {
       handleYoutubePost: vi.fn(),
     };
     const postGroupsService = {
-      create: vi.fn().mockImplementation(
-        (
-          organizationId: string,
-          _userId: string,
-          input: {
-            status: ReleaseStatus;
-            targets: Array<{ platform: string }>;
-          },
-          _headerIdempotencyKey?: string,
-          _provenance?: Record<string, unknown>,
-        ) =>
-          Promise.resolve({
-            id: 'release-1',
-            organizationId,
-            status: input.status,
-            targets: input.targets.map((target, index) => ({
-              executionState:
-                input.status === ReleaseStatus.SCHEDULED
-                  ? 'scheduled'
-                  : 'draft',
-              id: `target-${index + 1}`,
-              platform: target.platform,
-            })),
-          }),
-      ),
+      create: vi
+        .fn()
+        .mockImplementation(
+          (
+            organizationId: string,
+            _userId: string,
+            input: CreateReleaseGroupInput,
+            _headerIdempotencyKey?: string,
+            _provenance?: Record<string, unknown>,
+          ) =>
+            Promise.resolve({
+              id: 'release-1',
+              organizationId,
+              status: input.status,
+              targets: input.targets.map((target, index) => ({
+                executionState:
+                  input.status === ReleaseStatus.SCHEDULED
+                    ? 'scheduled'
+                    : 'draft',
+                id: `target-${index + 1}`,
+                platform: target.platform,
+              })),
+            }),
+        ),
       publishNow: vi.fn().mockResolvedValue({
         id: 'release-1',
         organizationId: '67a123456789012345678901',
@@ -443,6 +443,7 @@ describe('AgentToolExecutorService', () => {
       }),
     };
     const usersService = {
+      findMongoIdByAuthProviderId: vi.fn().mockResolvedValue('user-db-1'),
       findOne: vi.fn().mockResolvedValue({ id: 'user-db-1' }),
       patch: vi.fn().mockResolvedValue({}),
     };
@@ -706,6 +707,7 @@ describe('AgentToolExecutorService', () => {
     const dashboardHandler = new AgentDashboardToolHandler(undefined as never);
     const publishHandler = new AgentPublishToolHandler(
       postGroupsService as never,
+      usersService as never,
     );
     const agentScopeContextService = {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
@@ -1209,7 +1211,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.creditsUsed).toBe(0);
     expect(postGroupsService.create).toHaveBeenCalledWith(
       '67a123456789012345678901',
-      '67a123456789012345678902',
+      'user-db-1',
       expect.objectContaining({
         baseContent: 'Published from chat',
         brandId: '67a123456789012345678941',
@@ -1242,7 +1244,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(postGroupsService.publishNow).toHaveBeenCalledWith(
       '67a123456789012345678901',
-      '67a123456789012345678902',
+      'user-db-1',
       'release-1',
     );
     expect(postsService.create).not.toHaveBeenCalled();
@@ -1366,14 +1368,21 @@ describe('AgentToolExecutorService', () => {
 
     await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
     await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
+    await service.executeTool(
+      AgentToolName.CREATE_POST,
+      { ...parameters, sourceActionId: 'publish-card-distinct' },
+      context,
+    );
 
     const firstKey = postGroupsService.create.mock.calls[0]?.[3];
     const secondKey = postGroupsService.create.mock.calls[1]?.[3];
+    const distinctKey = postGroupsService.create.mock.calls[2]?.[3];
     expect(firstKey).toMatch(/^agent-publish:[a-f0-9]{64}$/);
     expect(secondKey).toBe(firstKey);
+    expect(distinctKey).not.toBe(firstKey);
   });
 
-  it('builds a deterministic retry key when a non-UI caller omits sourceActionId', async () => {
+  it('fails closed when a confirmed caller omits sourceActionId', async () => {
     const {
       credentialsService,
       ingredientsService,
@@ -1391,18 +1400,6 @@ describe('AgentToolExecutorService', () => {
         platform: 'linkedin',
       },
     ]);
-    postGroupsService.publishNow.mockResolvedValue({
-      id: 'release-1',
-      organizationId: '67a123456789012345678901',
-      status: ReleaseStatus.SCHEDULED,
-      targets: [
-        {
-          executionState: 'scheduled',
-          id: 'target-1',
-          platform: 'linkedin',
-        },
-      ],
-    });
     const parameters = {
       caption: 'Deterministic fallback',
       confirmed: true,
@@ -1411,13 +1408,21 @@ describe('AgentToolExecutorService', () => {
     };
     const context = scopedContext('67a123456789012345678941');
 
-    await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
-    await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
+    const result = await service.executeTool(
+      AgentToolName.CREATE_POST,
+      parameters,
+      context,
+    );
 
-    const firstKey = postGroupsService.create.mock.calls[0]?.[3];
-    const secondKey = postGroupsService.create.mock.calls[1]?.[3];
-    expect(firstKey).toMatch(/^agent-publish:[a-f0-9]{64}$/);
-    expect(secondKey).toBe(firstKey);
+    expect(result).toEqual(
+      expect.objectContaining({
+        error:
+          'sourceActionId is required to publish confirmed content safely.',
+        success: false,
+      }),
+    );
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
   });
 
   it('fails before creating a release when any requested platform is disconnected', async () => {
@@ -1456,6 +1461,48 @@ describe('AgentToolExecutorService', () => {
           missingPlatforms: ['instagram'],
         }),
         error: 'Missing connected accounts for: instagram.',
+        success: false,
+      }),
+    );
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
+  });
+
+  it('fails before creating a release when the canonical user cannot be resolved', async () => {
+    const {
+      credentialsService,
+      ingredientsService,
+      postGroupsService,
+      service,
+      usersService,
+    } = createService();
+    ingredientsService.findOne.mockResolvedValue({
+      brand: '67a123456789012345678941',
+      category: 'image',
+      id: '67a123456789012345678940',
+    });
+    credentialsService.find.mockResolvedValue([
+      {
+        id: '67a123456789012345678942',
+        platform: 'linkedin',
+      },
+    ]);
+    usersService.findMongoIdByAuthProviderId.mockResolvedValueOnce(null);
+
+    const result = await service.executeTool(
+      AgentToolName.CREATE_POST,
+      {
+        confirmed: true,
+        contentId: '67a123456789012345678940',
+        platforms: ['linkedin'],
+        sourceActionId: 'publish-card-missing-user',
+      },
+      scopedContext('67a123456789012345678941'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'The publishing user could not be resolved.',
         success: false,
       }),
     );
@@ -3640,7 +3687,7 @@ describe('AgentToolExecutorService', () => {
       ),
       new AgentMemoryGoalsToolHandler(undefined as never, undefined as never),
       new AgentDashboardToolHandler(undefined as never),
-      new AgentPublishToolHandler({} as never),
+      new AgentPublishToolHandler({} as never, {} as never),
       {} as never,
       {} as never,
       {} as never,

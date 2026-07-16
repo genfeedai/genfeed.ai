@@ -4362,6 +4362,15 @@ export class AgentToolExecutorService {
         organizationId: ctx.organizationId,
         platforms,
       });
+      const sourceActionId = this.readOptionalString(params.sourceActionId);
+      if (!sourceActionId) {
+        return {
+          creditsUsed: 0,
+          error:
+            'sourceActionId is required to publish confirmed content safely.',
+          success: false,
+        };
+      }
 
       return this.publishHandler.publishConfirmedContent({
         caption,
@@ -4371,7 +4380,7 @@ export class AgentToolExecutorService {
         ingredient,
         platforms,
         scheduledAt,
-        sourceActionId: this.readOptionalString(params.sourceActionId),
+        sourceActionId,
       });
     }
 
