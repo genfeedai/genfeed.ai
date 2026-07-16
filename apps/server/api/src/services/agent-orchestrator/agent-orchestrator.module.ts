@@ -42,6 +42,7 @@ import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrato
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
@@ -108,6 +109,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AgentCompletionCardBuilderService,
     AgentDashboardToolHandler,
     AgentMemoryGoalsToolHandler,
+    AgentPublishToolHandler,
     AgentOrchestratorService,
     AgentRouteRewriteService,
     AgentStreamEffectsService,

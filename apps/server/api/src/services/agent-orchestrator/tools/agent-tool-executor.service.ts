@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
@@ -11,7 +10,6 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
@@ -38,6 +36,7 @@ import { MarketplaceInstallService } from '@api/marketplace-integration/marketpl
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -51,11 +50,9 @@ import {
   BotStatus,
   CampaignPlatform,
   CampaignType,
-  CredentialPlatform,
   IngredientCategory,
   IngredientStatus,
   PostStatus,
-  ReleaseStatus,
   Status,
   VoiceCloneStatus,
   VoiceProvider,
@@ -378,6 +375,7 @@ export class AgentToolExecutorService {
     private readonly routeRewriteService: AgentRouteRewriteService,
     private readonly memoryGoalsHandler: AgentMemoryGoalsToolHandler,
     private readonly dashboardHandler: AgentDashboardToolHandler,
+    private readonly publishHandler: AgentPublishToolHandler,
     @Optional()
     @Inject('AGENT_BOTS_SERVICE')
     private readonly botsService: AgentBotsServiceLike | undefined,
@@ -435,7 +433,6 @@ export class AgentToolExecutorService {
     private readonly adsResearchService: AdsResearchService | undefined,
     @Optional()
     private readonly brandInterviewService: BrandInterviewService | undefined,
-    private readonly postGroupsService: PostGroupsService,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
   ) {
@@ -4366,139 +4363,16 @@ export class AgentToolExecutorService {
         platforms,
       });
 
-      if (credentials.length === 0) {
-        return {
-          creditsUsed: 0,
-          error:
-            'No connected social accounts are available for the selected platforms.',
-          success: false,
-        };
-      }
-
-      const createdPlatforms = Array.from(
-        new Set(
-          credentials
-            .map((credential) =>
-              String(credential.platform || '').toLowerCase(),
-            )
-            .filter((platform) => platform.length > 0),
-        ),
-      );
-      const missingPlatforms = platforms.filter(
-        (platform) => !createdPlatforms.includes(platform),
-      );
-      if (missingPlatforms.length > 0) {
-        return {
-          creditsUsed: 0,
-          data: {
-            availablePlatforms: createdPlatforms,
-            contentId,
-            missingPlatforms,
-          },
-          error: `Missing connected accounts for: ${missingPlatforms.join(', ')}.`,
-          success: false,
-        };
-      }
-
-      const baseContent = this.resolvePublishBaseContent(caption, ingredient);
-      const sourceActionId = this.readOptionalString(params.sourceActionId);
-      const idempotencyKey = this.buildAgentPublishIdempotencyKey({
-        baseContent,
+      return this.publishHandler.publishConfirmedContent({
+        caption,
         contentId,
-        organizationId: ctx.organizationId,
+        credentials,
+        ctx,
+        ingredient,
         platforms,
         scheduledAt,
-        sourceActionId,
-        threadId: ctx.threadId,
-        userId: ctx.userId,
+        sourceActionId: this.readOptionalString(params.sourceActionId),
       });
-      const mediaKind = this.resolveReleaseMediaKind(ingredient.category);
-      const release = await this.postGroupsService.create(
-        ctx.organizationId,
-        ctx.userId,
-        {
-          baseContent,
-          brandId: String(ingredient.brand),
-          idempotencyKey,
-          media: [
-            {
-              assetId: contentId,
-              ...(mediaKind ? { kind: mediaKind } : {}),
-            },
-          ],
-          ...(scheduledAt
-            ? {
-                scheduledDate: scheduledAt,
-                status: ReleaseStatus.SCHEDULED,
-              }
-            : { status: ReleaseStatus.DRAFT }),
-          targets: credentials.map((credential, order) => ({
-            credentialId: String(credential.id),
-            order,
-            platform: credential.platform as CredentialPlatform,
-            ...(scheduledAt ? { scheduledDate: scheduledAt } : {}),
-          })),
-          timezone: 'UTC',
-          title: baseContent.slice(0, 100),
-        },
-        idempotencyKey,
-        {
-          agentContextSource: ctx.validatedScope?.source,
-          agentContextVersion: ctx.validatedScope?.contextVersion,
-          agentRunId: ctx.runId,
-          agentStrategyId: ctx.strategyId,
-          agentThreadId: ctx.validatedScope?.threadId,
-          source: 'agent',
-          sourceActionId,
-        },
-      );
-      const canonicalRelease = scheduledAt
-        ? release
-        : await this.postGroupsService.publishNow(
-            ctx.organizationId,
-            ctx.userId,
-            release.id,
-          );
-      const groupId = canonicalRelease.id;
-      const postIds = (canonicalRelease.targets ?? []).map((target) =>
-        String(target.id),
-      );
-
-      const description = scheduledAt
-        ? `Scheduled ${postIds.length} post${postIds.length === 1 ? '' : 's'} for ${createdPlatforms.join(', ')}.`
-        : `Queued ${postIds.length} post${postIds.length === 1 ? '' : 's'} for publishing on ${createdPlatforms.join(', ')}.`;
-
-      return {
-        creditsUsed: 0,
-        data: {
-          contentId,
-          createdPlatforms,
-          missingPlatforms,
-          postIds,
-          scheduledAt,
-          totalCreated: postIds.length,
-        },
-        nextActions: [
-          {
-            ctas: [
-              { href: '/content/posts', label: 'Open posts' },
-              ...(postIds[0]
-                ? [
-                    {
-                      href: `/analytics/posts?postId=${postIds[0]}`,
-                      label: 'Open analytics',
-                    },
-                  ]
-                : []),
-            ],
-            description,
-            id: `published-posts-${groupId}`,
-            title: scheduledAt ? 'Posts scheduled' : 'Posts queued',
-            type: 'content_preview_card' as const,
-          },
-        ],
-        success: true,
-      };
     }
 
     await this.assertPublishingScope(
@@ -4530,64 +4404,6 @@ export class AgentToolExecutorService {
       },
       success: true,
     };
-  }
-
-  private buildAgentPublishIdempotencyKey(input: {
-    baseContent: string;
-    contentId: string;
-    organizationId: string;
-    platforms: string[];
-    scheduledAt?: string;
-    sourceActionId?: string;
-    threadId?: string;
-    userId: string;
-  }): string {
-    const digest = createHash('sha256')
-      .update(
-        JSON.stringify({
-          ...input,
-          platforms: [...input.platforms].sort(),
-        }),
-      )
-      .digest('hex');
-    return `agent-publish:${digest}`;
-  }
-
-  private resolvePublishBaseContent(
-    caption: string | undefined,
-    ingredient: Record<string, unknown>,
-  ): string {
-    const candidates = [
-      caption,
-      this.readOptionalString(ingredient.label),
-      this.readOptionalString(ingredient.description),
-      this.readOptionalString(ingredient.assetLabel),
-      this.readOptionalString(ingredient.generationPrompt),
-    ];
-    const resolved = candidates.find((candidate) => Boolean(candidate?.trim()));
-    if (resolved) {
-      return resolved.trim();
-    }
-
-    const category = this.readOptionalString(ingredient.category) ?? 'content';
-    return `Selected ${category} asset`;
-  }
-
-  private resolveReleaseMediaKind(category: unknown): string | undefined {
-    if (
-      category === IngredientCategory.IMAGE ||
-      category === IngredientCategory.IMAGE_EDIT ||
-      category === IngredientCategory.GIF
-    ) {
-      return 'image';
-    }
-    if (
-      category === IngredientCategory.VIDEO ||
-      category === IngredientCategory.VIDEO_EDIT
-    ) {
-      return 'video';
-    }
-    return undefined;
   }
 
   private async schedulePost(

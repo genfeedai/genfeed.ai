@@ -9,6 +9,7 @@ import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
+import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
 import {
   AgentToolExecutorService,
@@ -703,6 +704,9 @@ describe('AgentToolExecutorService', () => {
       agentGoalsService as never,
     );
     const dashboardHandler = new AgentDashboardToolHandler(undefined as never);
+    const publishHandler = new AgentPublishToolHandler(
+      postGroupsService as never,
+    );
     const agentScopeContextService = {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
       assertResourceBrand: vi.fn(),
@@ -717,6 +721,7 @@ describe('AgentToolExecutorService', () => {
       routeRewriteService,
       memoryGoalsHandler,
       dashboardHandler,
+      publishHandler,
       botsService as never,
       botsLivestreamService as never,
       campaignsService as never,
@@ -746,7 +751,6 @@ describe('AgentToolExecutorService', () => {
       {} as never, // votesService
       adsResearchService as never,
       brandInterviewService as never,
-      postGroupsService as never,
       agentScopeContextService as never,
     );
 
@@ -3636,6 +3640,7 @@ describe('AgentToolExecutorService', () => {
       ),
       new AgentMemoryGoalsToolHandler(undefined as never, undefined as never),
       new AgentDashboardToolHandler(undefined as never),
+      new AgentPublishToolHandler({} as never),
       {} as never,
       {} as never,
       {} as never,
@@ -3665,7 +3670,6 @@ describe('AgentToolExecutorService', () => {
       undefined as never, // votesService
       undefined as never, // adsResearchService
       undefined as never, // brandInterviewService
-      {} as never, // postGroupsService
       undefined as never, // agentScopeContextService
     );
 
