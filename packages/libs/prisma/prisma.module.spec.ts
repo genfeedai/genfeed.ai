@@ -2,7 +2,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Global, Module } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 
 const configService = {
@@ -21,15 +21,12 @@ const configService = {
 class TestConfigModule {}
 
 describe('PrismaModule', () => {
-  let module: TestingModule | undefined;
-
-  afterEach(async () => {
-    await module?.close();
+  afterEach(() => {
     vi.clearAllMocks();
   });
 
   it('creates PrismaService without treating constructor options as DI', async () => {
-    module = await Test.createTestingModule({
+    const module = await Test.createTestingModule({
       imports: [TestConfigModule, PrismaModule],
     }).compile();
 
