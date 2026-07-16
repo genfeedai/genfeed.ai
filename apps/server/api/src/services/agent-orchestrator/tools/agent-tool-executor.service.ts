@@ -4316,19 +4316,18 @@ export class AgentToolExecutorService {
           success: false,
         };
       }
-      const scheduledAt = scheduledDate?.toISOString();
-
       if (params.confirmed !== true) {
         return this.buildPublishCardResult(
           {
             caption,
             contentId,
             platforms,
-            scheduledAt,
+            scheduledAt: requestedScheduledAt,
           },
           ctx,
         );
       }
+      const scheduledAt = scheduledDate?.toISOString();
 
       const ingredient = await this.resolveIngredientForContent(
         contentId,

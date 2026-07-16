@@ -910,7 +910,7 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('returns a publish confirmation card for direct content publish requests', async () => {
+  it('preserves a naive wall time in the publish confirmation preview', async () => {
     const { credentialsService, ingredientsService, service } = createService();
 
     ingredientsService.findOne.mockResolvedValue({
@@ -934,6 +934,7 @@ describe('AgentToolExecutorService', () => {
       {
         caption: 'Ship this now',
         contentId: '67a123456789012345678930',
+        scheduledAt: '2026-07-18T09:00',
       },
       {
         organizationId: '67a123456789012345678901',
@@ -947,6 +948,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         contentId: '67a123456789012345678930',
         platforms: ['linkedin', 'twitter'],
+        scheduledAt: '2026-07-18T09:00',
         textContent: 'Ship this now',
         type: 'publish_post_card',
       }),
