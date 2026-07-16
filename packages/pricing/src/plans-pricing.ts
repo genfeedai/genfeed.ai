@@ -103,7 +103,10 @@ export const BASE_MARGIN_PERCENT = 70;
 export const MAX_MARGIN_MULTIPLIER = 10;
 export const BYOK_FEE_PER_CREDIT =
   BYOK_CREDIT_VALUE_DOLLARS * (BYOK_FEE_PERCENTAGE / 100);
-const PRICING_NUMBER_FORMATTER = new Intl.NumberFormat('en-US');
+
+function formatPricingNumber(value: number): string {
+  return value.toLocaleString('en-US');
+}
 
 /**
  * Process-scoped margin multiplier applied on top of the base provider-cost
@@ -396,7 +399,7 @@ export function formatPrice(price: number | null): string {
   if (price === 0) {
     return 'Free';
   }
-  return `$${PRICING_NUMBER_FORMATTER.format(price)}`;
+  return `$${formatPricingNumber(price)}`;
 }
 
 /**
@@ -414,7 +417,7 @@ export function formatOutputs(
     parts.push(`${outputs.videoMinutes} min video`);
   }
   if (outputs.images) {
-    parts.push(`${PRICING_NUMBER_FORMATTER.format(outputs.images)} images`);
+    parts.push(`${formatPricingNumber(outputs.images)} images`);
   }
   if (outputs.voiceMinutes) {
     parts.push(`${outputs.voiceMinutes} min voice`);

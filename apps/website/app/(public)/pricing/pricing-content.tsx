@@ -131,7 +131,7 @@ function getDisplayName(label: string): string {
   return label;
 }
 
-function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
+export function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   if (plan.type === 'payg') {
     return 'No monthly fee, buy credit packs as you go';
   }

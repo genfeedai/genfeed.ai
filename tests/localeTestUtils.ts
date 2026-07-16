@@ -2,8 +2,16 @@ import { vi } from 'vitest';
 
 export function withSimulatedNumberLocale(
   locale: Intl.LocalesArgument,
+  assertion: () => Promise<void>,
+): Promise<void>;
+export function withSimulatedNumberLocale(
+  locale: Intl.LocalesArgument,
   assertion: () => void,
-): void {
+): void;
+export function withSimulatedNumberLocale(
+  locale: Intl.LocalesArgument,
+  assertion: () => void | Promise<void>,
+): void | Promise<void> {
   const originalToLocaleString = Number.prototype.toLocaleString;
   const toLocaleStringSpy = vi
     .spyOn(Number.prototype, 'toLocaleString')
@@ -16,8 +24,17 @@ export function withSimulatedNumberLocale(
     });
 
   try {
-    assertion();
-  } finally {
+    const result = assertion();
+
+    if (result instanceof Promise) {
+      return result.finally(() => {
+        toLocaleStringSpy.mockRestore();
+      });
+    }
+
     toLocaleStringSpy.mockRestore();
+  } catch (error) {
+    toLocaleStringSpy.mockRestore();
+    throw error;
   }
 }
