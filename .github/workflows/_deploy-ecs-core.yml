@@ -255,7 +255,7 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: tofu init -input=false
 
-      - name: Register migration, workflow migration, boot-smoke + credential-backfill task definitions
+      - name: Register migration, backfill, and boot-smoke task definitions
         working-directory: ${{ env.TF_DIR }}
         run: |
           tofu apply -input=false -auto-approve \
@@ -265,6 +265,8 @@ jobs:
             -target=aws_ecs_task_definition.workflow_backfill \
             -target=aws_cloudwatch_log_group.boot_smoke \
             -target=aws_ecs_task_definition.boot_smoke \
+            -target=aws_cloudwatch_log_group.worker_boot_smoke \
+            -target=aws_ecs_task_definition.worker_boot_smoke \
             -target=aws_cloudwatch_log_group.credential_backfill \
             -target=aws_ecs_task_definition.credential_backfill \
             -var="image_tag=${{ steps.image.outputs.sha }}" \
@@ -356,20 +358,62 @@ jobs:
             --timeout-seconds 600 \
             --stop-on-timeout
 
+      - name: Workers boot smoke — verify queue runtime boots
+        id: worker-boot-smoke
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          CLUSTER=$(tofu output -raw cluster_name)
+          TASK_DEFINITION=$(tofu output -raw worker_boot_smoke_task_definition_arn)
+          SUBNETS=$(tofu output -json task_subnets | jq -r 'join(",")')
+          SG=$(tofu output -raw task_security_group)
+          bun "${GITHUB_WORKSPACE}/scripts/deploy/ecs-run-task-and-wait.ts" \
+            --phase worker-boot-smoke \
+            --cluster "$CLUSTER" \
+            --task-definition "$TASK_DEFINITION" \
+            --subnets "$SUBNETS" \
+            --security-groups "$SG" \
+            --timeout-seconds 900 \
+            --stop-on-timeout
+
+      - name: Print workers boot-smoke logs on failure
+        if: ${{ failure() && steps.worker-boot-smoke.outcome == 'failure' }}
+        run: |
+          aws logs tail "/ecs/genfeed-production/worker-boot-smoke" \
+            --since 30m --format short | tail -n 300 || true
+
       - name: Tofu apply (roll services to new image)
         working-directory: ${{ env.TF_DIR }}
         run: tofu apply -input=false -auto-approve -var="image_tag=${{ steps.image.outputs.sha }}" -var="enable_dns_cutover=true"
 
       - name: Wait for services stable
+        id: wait-services
         working-directory: ${{ env.TF_DIR }}
         run: |
           set -euo pipefail
           CLUSTER=$(tofu output -raw cluster_name)
+          SERVICES=$(tofu output -json service_names | jq -r 'join(",")')
+          bun "${GITHUB_WORKSPACE}/scripts/deploy/ecs-wait-services-stable.ts" \
+            --cluster "$CLUSTER" \
+            --services "$SERVICES" \
+            --timeout-seconds 1200 \
+            --poll-seconds 15
+
+      - name: Print active service logs on rollout failure
+        if: ${{ failure() && steps.wait-services.outcome == 'failure' }}
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -u
+          CLUSTER=$(tofu output -raw cluster_name)
           for svc in $(tofu output -json service_names | jq -r '.[]'); do
-            echo "waiting: $svc"
-            aws ecs wait services-stable --cluster "$CLUSTER" --services "$svc"
+            desired=$(aws ecs describe-services --cluster "$CLUSTER" --services "$svc" \
+              --query 'services[0].desiredCount' --output text 2>/dev/null || echo 0)
+            [ "$desired" = "0" ] && continue
+            echo "::group::Recent CloudWatch logs — $svc"
+            aws logs tail "/ecs/genfeed-production/$svc" \
+              --since 30m --format short | tail -n 160 || true
+            echo "::endgroup::"
           done
-          echo "All services stable."
 
       - name: Run credential-encryption backfill (post-rollout, gated after services stable)
         # BLOCKING: encrypts legacy plaintext credential secrets at rest via the compiled

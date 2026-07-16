@@ -236,3 +236,71 @@ resource "aws_ecs_task_definition" "boot_smoke" {
     }
   }])
 }
+
+# Workers have a separate Nest application graph and health server, so the API
+# boot smoke cannot prove that the queue/cron runtime starts. Run this task
+# before Terraform rolls the workers service; a DI/import/startup regression
+# then fails with a dedicated CloudWatch log instead of churning ECS tasks.
+resource "aws_cloudwatch_log_group" "worker_boot_smoke" {
+  name              = "/ecs/${local.name_prefix}/worker-boot-smoke"
+  retention_in_days = 30
+}
+
+resource "aws_ecs_task_definition" "worker_boot_smoke" {
+  family                   = "${local.name_prefix}-worker-boot-smoke"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = local.services.workers.cpu
+  memory                   = local.services.workers.mem
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  container_definitions = jsonencode([{
+    name      = "worker-boot-smoke"
+    image     = local.image
+    essential = true
+    command = [
+      "bash",
+      "-lc",
+      <<-EOT
+      set -uo pipefail
+      bun --filter ${local.services.workers.filter} start:prod &
+      pid=$!
+      cleanup() {
+        kill "$pid" 2>/dev/null || true
+      }
+      trap cleanup EXIT
+
+      for i in $(seq 1 72); do
+        if ! kill -0 "$pid" 2>/dev/null; then
+          wait "$pid"
+          exit "$?"
+        fi
+        if curl -fsS http://127.0.0.1:${local.services.workers.port}/v1/health >/dev/null; then
+          echo 'Boot smoke OK - workers served /v1/health.'
+          trap - EXIT
+          cleanup
+          exit 0
+        fi
+        sleep 10
+      done
+
+      echo 'Workers did not serve /v1/health within boot-smoke window' >&2
+      exit 1
+      EOT
+    ]
+    secrets = local.service_task_secrets
+    environment = concat(local.internal_env, [
+      { name = "PORT", value = tostring(local.services.workers.port) },
+      { name = "SERVICE_NAME", value = "workers" },
+    ])
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.worker_boot_smoke.name
+        "awslogs-region"        = var.region
+        "awslogs-stream-prefix" = "worker-boot-smoke"
+      }
+    }
+  }])
+}
