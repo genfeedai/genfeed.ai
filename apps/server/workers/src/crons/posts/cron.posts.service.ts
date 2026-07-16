@@ -25,9 +25,13 @@ import {
   PostCategory,
   PostFrequency,
   PostStatus,
+  TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import type { AgentScopeSource } from '@genfeedai/interfaces';
+import type {
+  AgentScopeSource,
+  IChannelTargetError,
+} from '@genfeedai/interfaces';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
 import {
   AgentArtifactReferenceService,
@@ -38,6 +42,11 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+import {
+  SchedulerPublishStateService,
+  type SchedulerPublishTargetUpdate,
+  type SchedulerPublishTransitionGuard,
+} from '@workers/services/scheduler-publish-state.service';
 
 type CronPostChild = {
   id?: unknown;
@@ -79,6 +88,7 @@ export class CronPostsService {
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
     private readonly publishApprovalsService: PublishApprovalsService,
+    private readonly schedulerPublishStateService: SchedulerPublishStateService,
   ) {}
 
   /**
@@ -301,7 +311,12 @@ export class CronPostsService {
       error: errorMessage,
       postId: post.id,
     });
-    await this.attemptRetry(post, false, errorMessage);
+    await this.attemptRetry(
+      post,
+      false,
+      errorMessage,
+      'publish_validation_failed',
+    );
     this.emitPublishFailedWebhook(post, errorMessage);
 
     return this.createFailedResult('', errorMessage);
@@ -460,6 +475,108 @@ export class CronPostsService {
     return undefined;
   }
 
+  private async persistPublishState(
+    post: PostEntity,
+    update: SchedulerPublishTargetUpdate,
+    reason?: string,
+    guard?: SchedulerPublishTransitionGuard,
+  ): Promise<boolean> {
+    const handled = await this.schedulerPublishStateService.transitionPost(
+      post,
+      update,
+      reason,
+      guard,
+    );
+    if (handled) {
+      return true;
+    }
+
+    if (guard?.expectedWorkflowExecutionId) {
+      this.logger.warn(
+        'Skipped guarded publish fallback without a durable tenant identity',
+        {
+          expectedWorkflowExecutionId: guard.expectedWorkflowExecutionId,
+          postId: post.id.toString(),
+        },
+      );
+      return false;
+    }
+
+    await this.postsService.patch(post.id.toString(), {
+      ...(update.error !== undefined && { targetError: update.error }),
+      ...(update.externalId !== undefined && {
+        externalId: update.externalId,
+      }),
+      ...(update.externalShortcode !== undefined && {
+        externalShortcode: update.externalShortcode,
+      }),
+      ...(update.lastAttemptAt !== undefined && {
+        lastAttemptAt: update.lastAttemptAt,
+      }),
+      ...(update.publicationDate !== undefined && {
+        publicationDate: update.publicationDate,
+      }),
+      ...(update.publishedAt !== undefined && {
+        publishedAt: update.publishedAt,
+      }),
+      ...(update.retryCount !== undefined && {
+        retryCount: update.retryCount,
+      }),
+      status: update.status,
+      targetExecutionState: update.executionState,
+      ...(update.url !== undefined && { url: update.url }),
+      ...(update.workflowExecutionId !== undefined && {
+        workflowExecutionId: update.workflowExecutionId,
+      }),
+    } as never);
+    return true;
+  }
+
+  private createTargetError(
+    code: string,
+    message: string,
+    isRetryable: boolean,
+  ): IChannelTargetError {
+    return {
+      code,
+      failedAt: new Date().toISOString(),
+      isRetryable,
+      message,
+    };
+  }
+
+  private errorCode(error: unknown): string {
+    const message = this.errorMessage(error).toLowerCase();
+    const rawCode =
+      error && typeof error === 'object' && 'code' in error
+        ? String((error as { code?: unknown }).code ?? '').toLowerCase()
+        : '';
+    const classificationText = `${rawCode} ${message}`;
+    if (
+      classificationText.includes('rate limit') ||
+      classificationText.includes('429')
+    ) {
+      return 'rate_limited';
+    }
+    if (
+      classificationText.includes('timeout') ||
+      classificationText.includes('timed out') ||
+      classificationText.includes('etimedout')
+    ) {
+      return 'timeout';
+    }
+    if (/\b(500|502|503|504)\b/.test(classificationText)) {
+      return 'provider_unavailable';
+    }
+    return rawCode.replace(/[^a-z0-9]+/g, '_') || 'provider_error';
+  }
+
+  private errorMessage(error: unknown): string {
+    return error instanceof Error
+      ? error.message
+      : String(error || 'Post failed');
+  }
+
   /**
    * Publish a single post using the appropriate platform publisher
    */
@@ -468,7 +585,9 @@ export class CronPostsService {
 
     // Mark post as PROCESSING immediately to prevent race conditions and show user feedback
     // lastAttemptAt enforces 60s backoff between attempts
-    await this.postsService.patch(post.id.toString(), {
+    await this.persistPublishState(post, {
+      error: null,
+      executionState: TargetExecutionState.PUBLISHING,
       lastAttemptAt: new Date(),
       status: PostStatus.PROCESSING,
     });
@@ -483,6 +602,7 @@ export class CronPostsService {
     ]);
     const postBrandId = this.readPostString(post, ['brandId', 'brand']);
     const postUserId = this.readPostString(post, ['userId', 'user']);
+    let workflowExecutionId: string | undefined;
 
     try {
       // Get credential
@@ -492,7 +612,19 @@ export class CronPostsService {
 
       if (!credential) {
         this.logger.error(`${url} credential not found`, { postId: post.id });
-        await this.postsService.patch(post.id, { status: PostStatus.FAILED });
+        await this.persistPublishState(
+          post,
+          {
+            error: this.createTargetError(
+              'credential_not_found',
+              'Credential not found',
+              false,
+            ),
+            executionState: TargetExecutionState.FAILED,
+            status: PostStatus.FAILED,
+          },
+          'Credential not found',
+        );
         this.emitPublishFailedWebhook(post, 'Credential not found');
         return this.createFailedResult('', 'Credential not found');
       }
@@ -506,7 +638,19 @@ export class CronPostsService {
         this.logger.error(`${url} organization not found`, {
           postId: post.id,
         });
-        await this.postsService.patch(post.id, { status: PostStatus.FAILED });
+        await this.persistPublishState(
+          post,
+          {
+            error: this.createTargetError(
+              'organization_not_found',
+              'Organization not found',
+              false,
+            ),
+            executionState: TargetExecutionState.FAILED,
+            status: PostStatus.FAILED,
+          },
+          'Organization not found',
+        );
         this.emitPublishFailedWebhook(post, 'Organization not found');
         return this.createFailedResult('', 'Organization not found');
       }
@@ -524,7 +668,19 @@ export class CronPostsService {
           postId: post.id,
         });
 
-        await this.postsService.patch(post.id, { status: PostStatus.FAILED });
+        await this.persistPublishState(
+          post,
+          {
+            error: this.createTargetError(
+              'quota_exceeded',
+              'Quota exceeded',
+              false,
+            ),
+            executionState: TargetExecutionState.FAILED,
+            status: PostStatus.FAILED,
+          },
+          'Quota exceeded',
+        );
         await this.logQuotaExceededActivity(
           post,
           quotaCheck,
@@ -547,7 +703,19 @@ export class CronPostsService {
           platform: credential.platform,
           postId: post.id,
         });
-        await this.postsService.patch(post.id, { status: PostStatus.FAILED });
+        await this.persistPublishState(
+          post,
+          {
+            error: this.createTargetError(
+              'unsupported_platform',
+              'Unsupported platform',
+              false,
+            ),
+            executionState: TargetExecutionState.FAILED,
+            status: PostStatus.FAILED,
+          },
+          'Unsupported platform',
+        );
         this.emitPublishFailedWebhook(post, 'Unsupported platform', platform);
         return this.createFailedResult(platform, 'Unsupported platform');
       }
@@ -564,50 +732,76 @@ export class CronPostsService {
 
       // Publish using the platform publisher, with a durable workflow execution
       // record so scheduled publishing is inspectable as a system workflow.
-      const { result } = await this.systemWorkflowProvenanceService.runAction(
-        {
-          actionType: 'publish-post',
-          canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
-          description:
-            'Publishes due scheduled posts through the connected brand credential.',
-          failureMessage: (publishResult) =>
-            publishResult.success
-              ? undefined
-              : publishResult.error || 'Scheduled post publishing failed',
-          inputValues: {
-            brandId: postBrandId ?? '',
+      const { provenance, result } =
+        await this.systemWorkflowProvenanceService.runAction<PublishResult>(
+          {
+            actionType: 'publish-post',
+            canonicalId: SYSTEM_WORKFLOW_ACTION_IDS.SCHEDULED_POST_PUBLISHING,
+            description:
+              'Publishes due scheduled posts through the connected brand credential.',
+            failureMessage: (publishResult) =>
+              publishResult.success
+                ? undefined
+                : publishResult.error || 'Scheduled post publishing failed',
+            inputValues: {
+              brandId: postBrandId ?? '',
+              platform: credential.platform,
+              postId: post.id.toString(),
+              scheduledDate:
+                post.scheduledDate instanceof Date
+                  ? post.scheduledDate.toISOString()
+                  : post.scheduledDate,
+            },
+            label: 'Scheduled Post Publishing',
+            metadata: {
+              credentialId: credential.id?.toString?.() ?? credential.id,
+              hasThreadChildren: Boolean(post.children?.length),
+            },
+            organizationId: postOrganizationId ?? '',
+            postIds: [post.id.toString()],
+            schedule: '*/15 * * * *',
+            source: 'CronPostsService.publishSinglePost',
+            trigger: WorkflowExecutionTrigger.SCHEDULED,
+            userId: postUserId,
+          },
+          (currentProvenance) => {
+            workflowExecutionId = currentProvenance.executionId;
+            return publisher.publish(context);
+          },
+        );
+      workflowExecutionId = provenance.executionId;
+      const transitionGuard: SchedulerPublishTransitionGuard = {
+        expectedWorkflowExecutionId: workflowExecutionId,
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      };
+
+      if (result.success) {
+        if (!result.externalId) {
+          this.logger.warn(`${url} provider returned no external id`, {
             platform: credential.platform,
             postId: post.id.toString(),
-            scheduledDate:
-              post.scheduledDate instanceof Date
-                ? post.scheduledDate.toISOString()
-                : post.scheduledDate,
-          },
-          label: 'Scheduled Post Publishing',
-          metadata: {
-            credentialId: credential.id?.toString?.() ?? credential.id,
-            hasThreadChildren: Boolean(post.children?.length),
-          },
-          organizationId: postOrganizationId ?? '',
-          postIds: [post.id.toString()],
-          schedule: '*/15 * * * *',
-          source: 'CronPostsService.publishSinglePost',
-          trigger: WorkflowExecutionTrigger.SCHEDULED,
-          userId: postUserId,
-        },
-        () => publisher.publish(context),
-      );
-
-      if (result.success && result.externalId) {
+          });
+        }
         // Check if this is a PENDING post (e.g., TikTok deferred verification)
         if (result.status === PostStatus.PENDING) {
           // Store publish_id temporarily, mark as PENDING
           // Cron job will verify and update to PUBLIC once platform confirms
-          await this.postsService.patch(post.id, {
-            externalId: result.externalId, // publish_id stored here temporarily
-            status: PostStatus.PENDING,
-            // Do NOT set publicationDate yet - not actually published
-          });
+          const persisted = await this.persistPublishState(
+            post,
+            {
+              error: null,
+              executionState: TargetExecutionState.PUBLISHING,
+              externalId: result.externalId,
+              status: PostStatus.PENDING,
+              url: result.url || null,
+              workflowExecutionId,
+            },
+            undefined,
+            transitionGuard,
+          );
+          if (!persisted) {
+            return result;
+          }
 
           this.logger.log(
             `${url} post marked PENDING for deferred verification`,
@@ -622,22 +816,55 @@ export class CronPostsService {
         }
 
         // Immediate success - update post with external ID and status
-        await this.postsService.patch(post.id, {
-          externalId: result.externalId,
-          externalShortcode: result.externalShortcode ?? undefined,
-          publicationDate: new Date(),
-          status: PostStatus.PUBLIC,
-        });
+        const publishedAt = new Date();
+        const persisted = await this.persistPublishState(
+          post,
+          {
+            error: null,
+            executionState: TargetExecutionState.PUBLISHED,
+            externalId: result.externalId,
+            externalShortcode: result.externalShortcode ?? null,
+            publicationDate: publishedAt,
+            publishedAt,
+            status: PostStatus.PUBLIC,
+            url: result.url || null,
+            workflowExecutionId,
+          },
+          undefined,
+          transitionGuard,
+        );
+        if (!persisted) {
+          return result;
+        }
 
         // Handle thread children (for platforms that support threads)
         const children = (post.children || []) as unknown as PostDocument[];
-        if (children.length > 0 && publisher.supportsThreads) {
+        if (
+          children.length > 0 &&
+          publisher.supportsThreads &&
+          result.externalId
+        ) {
           if (publisher.publishThreadChildren) {
-            await publisher.publishThreadChildren(
-              context,
-              children,
-              result.externalId,
-            );
+            try {
+              await publisher.publishThreadChildren(
+                context,
+                children,
+                result.externalId,
+              );
+            } catch (error: unknown) {
+              const errorMessage = this.errorMessage(error);
+              this.logger.error(
+                `${url} failed to publish thread children after parent success`,
+                {
+                  childrenCount: children.length,
+                  error: errorMessage,
+                  externalId: result.externalId,
+                  platform: credential.platform,
+                  postId: post.id.toString(),
+                },
+              );
+              await this.failChildren(post, errorMessage);
+            }
           } else {
             this.logger.warn(
               `${url} platform supports threads but publishThreadChildren not implemented`,
@@ -664,12 +891,13 @@ export class CronPostsService {
           post,
           result,
           credential.platform,
+          workflowExecutionId,
         );
       }
 
       return result;
     } catch (error: unknown) {
-      return await this.handlePublishError(post, error);
+      return await this.handlePublishError(post, error, workflowExecutionId);
     }
   }
 
@@ -681,15 +909,35 @@ export class CronPostsService {
     post: PostEntity,
     canRetry: boolean,
     errorMessage: string,
-  ): Promise<boolean> {
+    errorCode = this.errorCode(errorMessage),
+    workflowExecutionId?: string,
+  ): Promise<boolean | undefined> {
     const url = `${this.constructorName} attemptRetry`;
     const currentRetryCount = post.retryCount || 0;
 
     if (canRetry) {
-      await this.postsService.patch(post.id.toString(), {
-        lastAttemptAt: new Date(),
-        retryCount: currentRetryCount + 1,
-      });
+      const targetError = this.createTargetError(errorCode, errorMessage, true);
+      const persisted = await this.persistPublishState(
+        post,
+        {
+          error: targetError,
+          executionState: TargetExecutionState.SCHEDULED,
+          lastAttemptAt: new Date(),
+          retryCount: currentRetryCount + 1,
+          status: PostStatus.SCHEDULED,
+          ...(workflowExecutionId ? { workflowExecutionId } : {}),
+        },
+        errorMessage,
+        workflowExecutionId
+          ? {
+              expectedWorkflowExecutionId: workflowExecutionId,
+              priorExecutionStates: [TargetExecutionState.PUBLISHING],
+            }
+          : undefined,
+      );
+      if (!persisted) {
+        return undefined;
+      }
 
       this.logger.log(
         `${url} will retry post (attempt ${currentRetryCount + 1}/${this.MAX_RETRY_ATTEMPTS}) after ${this.RETRY_BACKOFF_SECONDS}s backoff`,
@@ -700,10 +948,26 @@ export class CronPostsService {
     }
 
     // Max retries reached - mark parent and children as failed
-    await this.postsService.patch(post.id.toString(), {
-      lastAttemptAt: new Date(),
-      status: PostStatus.FAILED,
-    });
+    const persisted = await this.persistPublishState(
+      post,
+      {
+        error: this.createTargetError(errorCode, errorMessage, false),
+        executionState: TargetExecutionState.FAILED,
+        lastAttemptAt: new Date(),
+        status: PostStatus.FAILED,
+        ...(workflowExecutionId ? { workflowExecutionId } : {}),
+      },
+      errorMessage,
+      workflowExecutionId
+        ? {
+            expectedWorkflowExecutionId: workflowExecutionId,
+            priorExecutionStates: [TargetExecutionState.PUBLISHING],
+          }
+        : undefined,
+    );
+    if (!persisted) {
+      return undefined;
+    }
     await this.failChildren(post, 'Parent post failed');
     await this.logFailedActivity(post, errorMessage);
 
@@ -717,15 +981,19 @@ export class CronPostsService {
     post: PostEntity,
     result: PublishResult,
     platform: CredentialPlatform | string,
+    workflowExecutionId?: string,
   ): Promise<PublishResult> {
     const currentRetryCount = post.retryCount || 0;
-    const canRetry = currentRetryCount < this.MAX_RETRY_ATTEMPTS;
+    const isRetryable = this.isRetryableError(result.error);
+    const canRetry = isRetryable && currentRetryCount < this.MAX_RETRY_ATTEMPTS;
     const errorMessage = result.error || 'Max retries reached';
 
     const scheduledForRetry = await this.attemptRetry(
       post,
       canRetry,
       errorMessage,
+      this.errorCode(result.error),
+      workflowExecutionId,
     );
 
     if (scheduledForRetry) {
@@ -738,6 +1006,10 @@ export class CronPostsService {
       };
     }
 
+    if (scheduledForRetry === undefined) {
+      return result;
+    }
+
     this.emitPublishFailedWebhook(post, errorMessage, platform);
     return result;
   }
@@ -748,12 +1020,13 @@ export class CronPostsService {
   private async handlePublishError(
     post: PostEntity,
     error: unknown,
+    workflowExecutionId?: string,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const currentRetryCount = post.retryCount || 0;
     const isRetryable = this.isRetryableError(error);
     const canRetry = isRetryable && currentRetryCount < this.MAX_RETRY_ATTEMPTS;
-    const errorMessage = (error as Error)?.message || 'Post failed';
+    const errorMessage = this.errorMessage(error);
 
     this.logger.error(`${url} failed to publish post`, {
       canRetry,
@@ -767,6 +1040,8 @@ export class CronPostsService {
       post,
       canRetry,
       errorMessage,
+      this.errorCode(error),
+      workflowExecutionId,
     );
 
     if (scheduledForRetry) {
@@ -777,6 +1052,10 @@ export class CronPostsService {
         success: false,
         url: '',
       };
+    }
+
+    if (scheduledForRetry === undefined) {
+      return this.createFailedResult('', errorMessage);
     }
 
     this.emitPublishFailedWebhook(post, errorMessage);
@@ -828,16 +1107,17 @@ export class CronPostsService {
       '504',
     ];
 
-    const errorMessage = (error as Error)?.message?.toLowerCase() || '';
+    const errorMessage = this.errorMessage(error).toLowerCase();
     const errorCode =
       error && typeof error === 'object' && 'code' in error
         ? String((error as { code?: unknown }).code ?? '')
         : '';
+    const normalizedErrorCode = errorCode.toLowerCase();
 
     return retryableErrorPatterns.some(
       (pattern) =>
         errorMessage.includes(pattern.toLowerCase()) ||
-        errorCode.includes(pattern),
+        normalizedErrorCode.includes(pattern.toLowerCase()),
     );
   }
 

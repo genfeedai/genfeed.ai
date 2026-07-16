@@ -45,7 +45,7 @@ function flattenSqlValue(value: unknown): { sql: string; values: unknown[] } {
  * Stub `Prisma` namespace covering every member actually read as a VALUE
  * (not just a TypeScript type) anywhere in apps/server/api/src:
  * `Prisma.sql`, `Prisma.raw`, `Prisma.empty`, `Prisma.join`, `Prisma.Sql`,
- * `Prisma.PrismaClientKnownRequestError`. Everything else the codebase
+ * `Prisma.JsonNull`, `Prisma.PrismaClientKnownRequestError`. Everything else the codebase
  * writes as `Prisma.XWhereInput` etc. is a type, erased at compile time —
  * it needs no runtime stub.
  */
@@ -72,6 +72,7 @@ export class MockPrismaClientKnownRequestError extends Error {
 
 export const mockPrismaNamespace = {
   empty: createSql(''),
+  JsonNull: Object.freeze({ __prismaNull: 'JsonNull' }),
   join: (values: unknown[], separator = ',') => {
     const flattened = values.map((value) => flattenSqlValue(value));
     return createSql(

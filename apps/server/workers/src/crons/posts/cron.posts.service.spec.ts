@@ -6,7 +6,11 @@ import { SystemWorkflowProvenanceService } from '@api/collections/workflows/serv
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import {
   AgentArtifactReferenceService,
   AgentScopeContextService,
@@ -16,6 +20,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
+import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 const APPROVAL_JOB_IDENTITY = {
   approvalId: 'approval-1',
@@ -47,6 +52,9 @@ describe('CronPostsService', () => {
     claimForExecution: ReturnType<typeof vi.fn>;
     completeExecution: ReturnType<typeof vi.fn>;
     markQueued: ReturnType<typeof vi.fn>;
+  };
+  let schedulerPublishStateService: {
+    transitionPost: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -88,6 +96,9 @@ describe('CronPostsService', () => {
       claimForExecution: vi.fn().mockResolvedValue({ alreadyPublished: false }),
       completeExecution: vi.fn().mockResolvedValue(undefined),
       markQueued: vi.fn().mockResolvedValue(undefined),
+    };
+    schedulerPublishStateService = {
+      transitionPost: vi.fn().mockResolvedValue(false),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -172,6 +183,10 @@ describe('CronPostsService', () => {
         {
           provide: PublishApprovalsService,
           useValue: publishApprovalsService,
+        },
+        {
+          provide: SchedulerPublishStateService,
+          useValue: schedulerPublishStateService,
         },
       ],
     }).compile();
@@ -533,10 +548,19 @@ describe('CronPostsService', () => {
       }),
     );
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
-    expect(postsService.patch).toHaveBeenCalledWith('post-1', {
-      lastAttemptAt: expect.any(Date),
-      status: PostStatus.FAILED,
-    });
+    expect(postsService.patch).toHaveBeenCalledWith(
+      'post-1',
+      expect.objectContaining({
+        lastAttemptAt: expect.any(Date),
+        status: PostStatus.FAILED,
+        targetExecutionState: 'failed',
+        targetError: expect.objectContaining({
+          code: 'publish_validation_failed',
+          isRetryable: false,
+          message: 'Agent context is stale.',
+        }),
+      }),
+    );
     expect(
       publishEventWebhookService.emitLegacyPostFailed,
     ).toHaveBeenCalledWith(
@@ -603,6 +627,147 @@ describe('CronPostsService', () => {
         post,
         url: 'https://x.com/example/status/tweet-1',
       }),
+    );
+  });
+
+  it('persists a grouped provider success even when the provider omits its id', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      groupId: 'group-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        externalId: null,
+        platform: CredentialPlatform.TWITTER,
+        status: PostStatus.PUBLIC,
+        success: true,
+        url: '',
+      }),
+      supportsThreads: false,
+    });
+
+    await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
+      2,
+      post,
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: null,
+        status: PostStatus.PUBLIC,
+        workflowExecutionId: 'execution-1',
+      }),
+      undefined,
+      {
+        expectedWorkflowExecutionId: 'execution-1',
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
+    );
+    expect(loggerService.warn).toHaveBeenCalledWith(
+      expect.stringContaining('provider returned no external id'),
+      expect.objectContaining({ postId: 'post-1' }),
+    );
+  });
+
+  it('records a retryable grouped provider failure as scheduled with structured error state', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      groupId: 'group-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      retryCount: 0,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        error: '429 rate limit',
+        externalId: null,
+        platform: CredentialPlatform.TWITTER,
+        status: PostStatus.FAILED,
+        success: false,
+        url: '',
+      }),
+      supportsThreads: false,
+    });
+
+    const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({ status: PostStatus.SCHEDULED, success: false }),
+    );
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
+      2,
+      post,
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'rate_limited',
+          isRetryable: true,
+        }),
+        executionState: TargetExecutionState.SCHEDULED,
+        retryCount: 1,
+        status: PostStatus.SCHEDULED,
+        workflowExecutionId: 'execution-1',
+      }),
+      '429 rate limit',
+      {
+        expectedWorkflowExecutionId: 'execution-1',
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
     );
   });
 

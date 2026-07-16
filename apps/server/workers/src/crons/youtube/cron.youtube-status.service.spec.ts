@@ -5,10 +5,11 @@ import {
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus, TargetExecutionState } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
+import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 describe('CronYoutubeStatusService', () => {
   let service: CronYoutubeStatusService;
@@ -22,6 +23,9 @@ describe('CronYoutubeStatusService', () => {
     emitLegacyPostPublished: ReturnType<typeof vi.fn>;
   };
   let provenanceService: { runAction: ReturnType<typeof vi.fn> };
+  let schedulerPublishStateService: {
+    transitionPost: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     postsService = {
@@ -37,15 +41,28 @@ describe('CronYoutubeStatusService', () => {
     };
     provenanceService = {
       runAction: vi.fn(
-        async (_input: unknown, action: () => Promise<unknown>) => ({
-          provenance: {
+        async (
+          _input: unknown,
+          action: (provenance: {
+            executionId: string;
+            workflowId: string;
+            workflowLabel: string;
+          }) => Promise<unknown>,
+        ) => {
+          const provenance = {
             executionId: 'execution-1',
             workflowId: 'workflow-1',
             workflowLabel: 'YouTube Status Reconciliation',
-          },
-          result: await action(),
-        }),
+          };
+          return {
+            provenance,
+            result: await action(provenance),
+          };
+        },
       ),
+    };
+    schedulerPublishStateService = {
+      transitionPost: vi.fn().mockResolvedValue(true),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -75,10 +92,49 @@ describe('CronYoutubeStatusService', () => {
           provide: PublishEventWebhookService,
           useValue: publishEventWebhookService,
         },
+        {
+          provide: SchedulerPublishStateService,
+          useValue: schedulerPublishStateService,
+        },
       ],
     }).compile();
 
     service = module.get<CronYoutubeStatusService>(CronYoutubeStatusService);
+  });
+
+  it('rolls a grouped public video into canonical target state', async () => {
+    const post = {
+      brand: 'brand-1',
+      credential: 'credential-1',
+      externalId: 'video-4',
+      groupId: 'group-1',
+      id: 'post-4',
+      organization: 'org-1',
+      status: PostStatus.PRIVATE,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValue({ docs: [post] });
+    youtubeService.getVideoStatus.mockResolvedValue({
+      privacyStatus: 'public',
+    });
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+
+    await service.checkScheduledYoutubeVideos();
+
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
+      post,
+      expect.objectContaining({
+        status: PostStatus.PUBLIC,
+        url: 'https://www.youtube.com/watch?v=video-4',
+        workflowExecutionId: 'execution-1',
+      }),
+      'YouTube reports public',
+      {
+        expectedWorkflowExecutionId: 'execution-1',
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
+    );
+    expect(postsService.patch).not.toHaveBeenCalled();
   });
 
   it('should be defined', () => {
@@ -110,9 +166,11 @@ describe('CronYoutubeStatusService', () => {
       }),
       expect.any(Function),
     );
-    expect(postsService.patch).toHaveBeenCalledWith(
-      'post-1',
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
+      post,
       expect.objectContaining({ status: PostStatus.PUBLIC }),
+      'YouTube reports public',
+      expect.any(Object),
     );
     expect(
       publishEventWebhookService.emitLegacyPostPublished,
@@ -124,6 +182,32 @@ describe('CronYoutubeStatusService', () => {
         url: 'https://www.youtube.com/watch?v=video-1',
       }),
     );
+  });
+
+  it('suppresses the published webhook when the canonical transition is stale', async () => {
+    const post = {
+      _id: 'post-stale',
+      brand: 'brand-1',
+      credential: 'credential-1',
+      externalId: 'video-stale',
+      groupId: 'group-1',
+      id: 'post-stale',
+      organization: 'org-1',
+      status: PostStatus.PRIVATE,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValue({ docs: [post] });
+    youtubeService.getVideoStatus.mockResolvedValue({
+      privacyStatus: 'public',
+    });
+    schedulerPublishStateService.transitionPost.mockResolvedValue(false);
+
+    await service.checkScheduledYoutubeVideos();
+
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalled();
+    expect(
+      publishEventWebhookService.emitLegacyPostPublished,
+    ).not.toHaveBeenCalled();
   });
 
   it('does not record an execution when the status is unchanged', async () => {

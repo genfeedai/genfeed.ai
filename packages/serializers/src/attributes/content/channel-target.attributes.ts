@@ -23,6 +23,7 @@ export const channelTargetAttributes = createEntityAttributes([
   'retryCount',
   'lastAttemptAt',
   'publishedAt',
+  'workflowExecutionId',
   'idempotencyKey',
   'order',
   'attachments',

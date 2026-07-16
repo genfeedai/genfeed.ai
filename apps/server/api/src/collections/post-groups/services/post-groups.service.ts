@@ -20,6 +20,7 @@ import {
 import {
   CredentialPlatform,
   PostStatus,
+  PublishApprovalStatus,
   ReleaseAttachmentKind,
   ReleaseStatus,
   TargetExecutionState,
@@ -27,6 +28,7 @@ import {
 } from '@genfeedai/enums';
 import type {
   IChannelTarget,
+  IPublishApproval,
   IReleaseAttachment,
   IReleaseGroup,
   IReleaseMediaReference,
@@ -86,6 +88,7 @@ type SchedulerPostTarget = {
   order: number;
   platform: string;
   publishedAt: Date | null;
+  publishApprovalId: string | null;
   retryCount: number;
   scheduledDate: Date | null;
   targetAttachments: Prisma.JsonValue;
@@ -99,6 +102,7 @@ type SchedulerPostTarget = {
   timezone: string;
   updatedAt: Date;
   url: string | null;
+  workflowExecutionId: string | null;
 };
 
 type ChannelValidationMedia = NonNullable<
@@ -385,7 +389,7 @@ export class PostGroupsService {
   ): Promise<IReleaseGroup> {
     const input = this.parseTargetInput(body);
 
-    const release = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const group = await this.getGroupOrThrow(tx, organizationId, groupId);
       const existing = await this.getTargetOrThrow(
         tx,
@@ -417,6 +421,62 @@ export class PostGroupsService {
         );
       }
 
+      const isManualRetry =
+        existing.targetExecutionState === TargetExecutionState.FAILED &&
+        input.executionState === TargetExecutionState.SCHEDULED;
+      let manualRetryApproval: IPublishApproval | undefined;
+      if (isManualRetry) {
+        const approval =
+          await this.publishApprovalsService.createForCurrentPost({
+            actorUserId: userId,
+            mode: 'scheduled',
+            organizationId,
+            postId: targetId,
+            provenance: {
+              releaseId: groupId,
+              surface: 'post-groups-manual-retry',
+            },
+            transaction: tx,
+          });
+        const provenance = {
+          ...approval.provenance,
+          manualRetryCommand: {
+            releaseId: groupId,
+            requestedByUserId: userId,
+            targetId,
+            version: 1,
+          },
+        };
+        await tx.publishApproval.update({
+          data: { provenance: this.toJson(provenance) },
+          where: { id: approval.id },
+        });
+        manualRetryApproval = { ...approval, provenance };
+      } else if (
+        existing.targetExecutionState === TargetExecutionState.SCHEDULED &&
+        input.executionState === TargetExecutionState.SCHEDULED &&
+        existing.publishApprovalId
+      ) {
+        const row = await tx.publishApproval.findFirst({
+          where: {
+            id: existing.publishApprovalId,
+            organizationId,
+            postId: targetId,
+          },
+        });
+        if (row) {
+          const approval = this.publishApprovalsService.toPublicInterface(row);
+          if (
+            (approval.status === PublishApprovalStatus.APPROVED ||
+              approval.status === PublishApprovalStatus.QUEUED ||
+              approval.status === PublishApprovalStatus.FAILED) &&
+            approval.provenance.manualRetryCommand
+          ) {
+            manualRetryApproval = approval;
+          }
+        }
+      }
+
       await tx.post.update({
         data: {
           ...(input.error !== undefined && {
@@ -427,6 +487,11 @@ export class PostGroupsService {
           ...(input.executionState !== undefined && {
             status: input.executionState,
             targetExecutionState: input.executionState,
+          }),
+          ...(isManualRetry && {
+            lastAttemptAt: null,
+            retryCount: 0,
+            targetError: Prisma.JsonNull,
           }),
           ...(input.externalProviderId !== undefined && {
             externalId: input.externalProviderId,
@@ -474,7 +539,15 @@ export class PostGroupsService {
         where: { id: existing.id },
       });
 
-      return this.recalculateAndHydrate(tx, organizationId, group.id, userId);
+      return {
+        manualRetryApproval,
+        release: await this.recalculateAndHydrate(
+          tx,
+          organizationId,
+          group.id,
+          userId,
+        ),
+      };
     });
     if (
       input.scheduledDate !== undefined ||
@@ -488,7 +561,26 @@ export class PostGroupsService {
         userId,
       );
     }
-    return release;
+    if (result.manualRetryApproval) {
+      const approval = result.manualRetryApproval;
+      if (approval.status !== PublishApprovalStatus.QUEUED) {
+        await this.publishApprovalsService.markQueued(
+          approval.id,
+          organizationId,
+          userId,
+        );
+      }
+      await this.postPublishQueueService.enqueue({
+        approvalId: approval.id,
+        operationId: approval.operationId,
+        organizationId,
+        postId: targetId,
+        source: 'manual_retry',
+        userId,
+        versionPinId: approval.artifactVersionPinId,
+      });
+    }
+    return result.release;
   }
 
   cancel(
@@ -1132,6 +1224,7 @@ export class PostGroupsService {
       url: target.url,
       validationIssues: target.targetValidationIssues,
       validationState: target.targetValidationState as TargetValidationState,
+      workflowExecutionId: target.workflowExecutionId,
     };
   }
 
