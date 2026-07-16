@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { UsersService } from '@api/collections/users/services/users.service';
 import {
   CredentialPlatform,
   IngredientCategory,
@@ -20,10 +19,7 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class AgentPublishToolHandler {
-  constructor(
-    private readonly postGroupsService: PostGroupsService,
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly postGroupsService: PostGroupsService) {}
 
   async publishConfirmedContent(
     input: PublishConfirmedContentInput,
@@ -71,17 +67,6 @@ export class AgentPublishToolHandler {
       };
     }
 
-    const canonicalUserId = await this.usersService.findMongoIdByAuthProviderId(
-      ctx.userId,
-    );
-    if (!canonicalUserId) {
-      return {
-        creditsUsed: 0,
-        error: 'The publishing user could not be resolved.',
-        success: false,
-      };
-    }
-
     const baseContent = this.resolvePublishBaseContent(caption, ingredient);
     const idempotencyKey = this.buildIdempotencyKey({
       baseContent,
@@ -91,12 +76,12 @@ export class AgentPublishToolHandler {
       scheduledAt,
       sourceActionId,
       threadId: ctx.threadId,
-      userId: canonicalUserId,
+      userId: ctx.userId,
     });
     const mediaKind = this.resolveReleaseMediaKind(ingredient.category);
     const release = await this.postGroupsService.create(
       ctx.organizationId,
-      canonicalUserId,
+      ctx.userId,
       {
         baseContent,
         brandId: String(ingredient.brand),
@@ -137,7 +122,7 @@ export class AgentPublishToolHandler {
       ? release
       : await this.postGroupsService.publishNow(
           ctx.organizationId,
-          canonicalUserId,
+          ctx.userId,
           release.id,
         );
     const groupId = canonicalRelease.id;

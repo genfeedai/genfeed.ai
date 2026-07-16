@@ -443,7 +443,6 @@ describe('AgentToolExecutorService', () => {
       }),
     };
     const usersService = {
-      findMongoIdByAuthProviderId: vi.fn().mockResolvedValue('user-db-1'),
       findOne: vi.fn().mockResolvedValue({ id: 'user-db-1' }),
       patch: vi.fn().mockResolvedValue({}),
     };
@@ -707,7 +706,6 @@ describe('AgentToolExecutorService', () => {
     const dashboardHandler = new AgentDashboardToolHandler(undefined as never);
     const publishHandler = new AgentPublishToolHandler(
       postGroupsService as never,
-      usersService as never,
     );
     const agentScopeContextService = {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
@@ -1211,7 +1209,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.creditsUsed).toBe(0);
     expect(postGroupsService.create).toHaveBeenCalledWith(
       '67a123456789012345678901',
-      'user-db-1',
+      '67a123456789012345678902',
       expect.objectContaining({
         baseContent: 'Published from chat',
         brandId: '67a123456789012345678941',
@@ -1244,7 +1242,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(postGroupsService.publishNow).toHaveBeenCalledWith(
       '67a123456789012345678901',
-      'user-db-1',
+      '67a123456789012345678902',
       'release-1',
     );
     expect(postsService.create).not.toHaveBeenCalled();
@@ -1461,48 +1459,6 @@ describe('AgentToolExecutorService', () => {
           missingPlatforms: ['instagram'],
         }),
         error: 'Missing connected accounts for: instagram.',
-        success: false,
-      }),
-    );
-    expect(postGroupsService.create).not.toHaveBeenCalled();
-    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
-  });
-
-  it('fails before creating a release when the canonical user cannot be resolved', async () => {
-    const {
-      credentialsService,
-      ingredientsService,
-      postGroupsService,
-      service,
-      usersService,
-    } = createService();
-    ingredientsService.findOne.mockResolvedValue({
-      brand: '67a123456789012345678941',
-      category: 'image',
-      id: '67a123456789012345678940',
-    });
-    credentialsService.find.mockResolvedValue([
-      {
-        id: '67a123456789012345678942',
-        platform: 'linkedin',
-      },
-    ]);
-    usersService.findMongoIdByAuthProviderId.mockResolvedValueOnce(null);
-
-    const result = await service.executeTool(
-      AgentToolName.CREATE_POST,
-      {
-        confirmed: true,
-        contentId: '67a123456789012345678940',
-        platforms: ['linkedin'],
-        sourceActionId: 'publish-card-missing-user',
-      },
-      scopedContext('67a123456789012345678941'),
-    );
-
-    expect(result).toEqual(
-      expect.objectContaining({
-        error: 'The publishing user could not be resolved.',
         success: false,
       }),
     );
@@ -3687,7 +3643,7 @@ describe('AgentToolExecutorService', () => {
       ),
       new AgentMemoryGoalsToolHandler(undefined as never, undefined as never),
       new AgentDashboardToolHandler(undefined as never),
-      new AgentPublishToolHandler({} as never, {} as never),
+      new AgentPublishToolHandler({} as never),
       {} as never,
       {} as never,
       {} as never,
