@@ -183,10 +183,7 @@ function AppLayoutWithDynamicMenu({
       routeClass: workspaceShellRoute?.telemetryClass ?? 'management',
       shellMode: 'conversation',
     });
-  }, [
-    isWorkspaceShellReady,
-    workspaceShellRoute?.telemetryClass,
-  ]);
+  }, [isWorkspaceShellReady, workspaceShellRoute?.telemetryClass]);
 
   const renderConversations = useCallback(
     () =>

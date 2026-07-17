@@ -111,10 +111,7 @@ export default function OrgLandingContent() {
     if (brands.length === 0) {
       replace(
         isSaaS()
-          ? createOrganizationAppRoute(
-              orgSlug,
-              APP_ROUTES.AGENT.ONBOARDING,
-            )
+          ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
           : APP_ROUTES.ONBOARDING.ROOT,
       );
       return;

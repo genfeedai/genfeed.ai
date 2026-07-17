@@ -1,7 +1,4 @@
-import {
-  getClientSurface,
-  getDeployment,
-} from '@genfeedai/config/deployment';
+import { getClientSurface, getDeployment } from '@genfeedai/config/deployment';
 import {
   ANALYTICS_EVENTS,
   type AnalyticsOutcome,

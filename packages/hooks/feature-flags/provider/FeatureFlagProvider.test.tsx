@@ -68,10 +68,7 @@ describe('FeatureFlagProvider', () => {
     }
 
     render(
-      <FeatureFlagProvider
-        defaults={{}}
-        overrides={{ server_override: true }}
-      >
+      <FeatureFlagProvider defaults={{}} overrides={{ server_override: true }}>
         <Probe />
       </FeatureFlagProvider>,
     );

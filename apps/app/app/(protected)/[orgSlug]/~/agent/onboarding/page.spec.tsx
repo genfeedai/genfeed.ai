@@ -50,5 +50,4 @@ describe('ChatOnboardingPage', () => {
       'flex-col',
     );
   });
-
 });

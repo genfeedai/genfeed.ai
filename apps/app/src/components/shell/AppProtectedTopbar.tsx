@@ -25,10 +25,7 @@ import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
-import {
-  HiBars3,
-  HiXMark,
-} from 'react-icons/hi2';
+import { HiBars3, HiXMark } from 'react-icons/hi2';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import {
   appendSearchParamsToHref,

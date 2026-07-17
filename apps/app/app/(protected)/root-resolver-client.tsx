@@ -73,10 +73,7 @@ export default function ProtectedRootResolver() {
         }
 
         replace(
-          createOrganizationAppRoute(
-            agentOrgSlug,
-            APP_ROUTES.AGENT.ONBOARDING,
-          ),
+          createOrganizationAppRoute(agentOrgSlug, APP_ROUTES.AGENT.ONBOARDING),
         );
         return;
       }

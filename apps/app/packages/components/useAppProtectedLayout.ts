@@ -208,7 +208,7 @@ export function useAppProtectedLayout(
     insertAfterLabel: POSTS_INSERT_AFTER_LABEL,
     items: APP_MENU_ITEMS,
   });
-  const { orgHref, orgSlug, brandSlug } = useOrgUrl();
+  const { orgSlug, brandSlug } = useOrgUrl();
 
   const agentApiService = useMemo(() => {
     if (!shouldInitAgentApiService) {

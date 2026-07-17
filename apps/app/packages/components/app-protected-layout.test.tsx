@@ -696,7 +696,9 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.queryByText('Canonical studio content')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Canonical studio content'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('universal-workspace-shell'),
@@ -712,7 +714,9 @@ describe('AppProtectedLayout', () => {
 
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(screen.getByTestId('universal-workspace-shell')).toBeInTheDocument();
-    expect(universalShellSpy).toHaveBeenCalledTimes(shellAttemptsAfterFailure + 1);
+    expect(universalShellSpy).toHaveBeenCalledTimes(
+      shellAttemptsAfterFailure + 1,
+    );
     consoleError.mockRestore();
   });
 

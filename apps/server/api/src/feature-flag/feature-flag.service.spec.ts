@@ -98,5 +98,4 @@ describe('FeatureFlagService', () => {
 
     expect(service.isEnabled('dashboard', { id: 'user-123' })).toBe(true);
   });
-
 });
