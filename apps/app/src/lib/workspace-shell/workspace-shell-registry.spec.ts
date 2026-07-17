@@ -160,7 +160,7 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/studio/fastlane'),
     ).toMatchObject({
-      adapter: { key: 'studio-specialized', status: 'dedicated-route' },
+      adapter: { key: 'studio-specialized', status: 'placeholder' },
       mode: 'canvas',
     });
   });

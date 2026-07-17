@@ -423,6 +423,15 @@ vi.mock('@genfeedai/config/license', () => ({
 }));
 
 vi.mock('@genfeedai/config/deployment', () => ({
+  getClientSurface: () =>
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL?.trim() === '1' ? 'desktop' : 'web',
+  getDeployment: () => {
+    const cloudFlag = process.env.NEXT_PUBLIC_GENFEED_CLOUD?.trim();
+
+    return cloudFlag === '1' || cloudFlag?.toLowerCase() === 'true'
+      ? 'cloud'
+      : 'self-hosted';
+  },
   isDesktopClient: () => process.env.NEXT_PUBLIC_DESKTOP_SHELL?.trim() === '1',
   isSaaS: () => {
     const cloudFlag = process.env.NEXT_PUBLIC_GENFEED_CLOUD?.trim();
@@ -1204,7 +1213,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps editor routes inside the agent-first shell while skipping editor-only providers', async () => {
-    mockPathname.value = '/editor/new';
+    mockPathname.value = '/org-123/brand-123/editor/new';
 
     render(
       <AppProtectedLayout>
@@ -1231,7 +1240,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps workflow editor detail routes inside the agent-first shell', async () => {
-    mockPathname.value = '/workflows/workflow-123';
+    mockPathname.value = '/org-123/brand-123/workflows/workflow-123';
 
     render(
       <AppProtectedLayout>
