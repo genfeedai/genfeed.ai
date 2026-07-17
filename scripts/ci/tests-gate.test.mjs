@@ -61,6 +61,17 @@ test('fails when an applicable job is unexpectedly skipped', () => {
   ]);
 });
 
+test('reports a scope failure when its outputs are empty', () => {
+  const result = evaluate({
+    TEST_SCOPE_APP: '',
+    TEST_SCOPE_API: '',
+    TEST_SCOPE_RESULT: 'failure',
+  });
+
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.failures, ['Test scope failure']);
+});
+
 test('switches full-suite applicability without accepting missing matrix jobs', () => {
   const result = evaluate({
     FULL_SUITE: 'true',

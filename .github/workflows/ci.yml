@@ -750,4 +750,4 @@ jobs:
           TEST_API_CHANGED_RESULT: ${{ needs.test-api-changed.result }}
           OPENAPI_DRIFT_RESULT: ${{ needs.openapi-drift.result }}
           BUILD_RESULT: ${{ needs.build.result }}
-        run: node scripts/ci/tests-gate.mjs
+        run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"

@@ -14,7 +14,7 @@ const ALWAYS_APPLICABLE_JOBS = [
 
 function parseBoolean(value, name) {
   if (value === 'true') return true;
-  if (value === 'false') return false;
+  if (value === 'false' || value === '') return false;
   throw new Error(`${name} must be "true" or "false"; received "${value}"`);
 }
 
