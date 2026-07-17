@@ -277,6 +277,8 @@ jobs:
         run: bun run check:public-packages
       - name: Package Release Scripts
         run: bunx vitest run --config scripts/package-release/vitest.config.ts
+      - name: CI Workflow Contract
+        run: node --test scripts/ci/tests-gate.test.mjs
       # Fail the build if the committed Prisma model metadata (enum-field-map)
       # has drifted from schema.prisma — soft-delete filtering + enum
       # normalization under the Prisma 7 driver adapter depend on it, and it
@@ -706,3 +708,47 @@ jobs:
           else
             bun run build
           fi
+
+  # Stable aggregate for the test/build portion of pull-request CI. Every
+  # upstream job is declared explicitly so an expression error that leaves an
+  # applicable job skipped cannot produce a false-green gate. Full-suite and
+  # changed-test jobs are mutually exclusive; scope-filtered skips are accepted
+  # only when the scope detector marked them non-applicable.
+  tests-gate:
+    name: Tests Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs:
+      - test-scope
+      - test-packages
+      - test-server-services
+      - test-web-desktop-mobile
+      - test-extensions
+      - test-app
+      - test-app-changed
+      - test-api
+      - test-api-changed
+      - openapi-drift
+      - build
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Aggregate test and build results
+        env:
+          TEST_SCOPE_APP: ${{ needs.test-scope.outputs.app }}
+          TEST_SCOPE_API: ${{ needs.test-scope.outputs.api }}
+          FULL_SUITE: ${{ contains(github.event.pull_request.labels.*.name, 'full-suite') }}
+          TEST_SCOPE_RESULT: ${{ needs.test-scope.result }}
+          TEST_PACKAGES_RESULT: ${{ needs.test-packages.result }}
+          TEST_SERVER_SERVICES_RESULT: ${{ needs.test-server-services.result }}
+          TEST_WEB_DESKTOP_MOBILE_RESULT: ${{ needs.test-web-desktop-mobile.result }}
+          TEST_EXTENSIONS_RESULT: ${{ needs.test-extensions.result }}
+          TEST_APP_RESULT: ${{ needs.test-app.result }}
+          TEST_APP_CHANGED_RESULT: ${{ needs.test-app-changed.result }}
+          TEST_API_RESULT: ${{ needs.test-api.result }}
+          TEST_API_CHANGED_RESULT: ${{ needs.test-api-changed.result }}
+          OPENAPI_DRIFT_RESULT: ${{ needs.openapi-drift.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        shell: bash
+        run: node scripts/ci/tests-gate.mjs | tee -a "$GITHUB_STEP_SUMMARY"
