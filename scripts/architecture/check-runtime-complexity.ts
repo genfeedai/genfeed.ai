@@ -25,9 +25,7 @@ const THRESHOLDS = {
 const EXCLUSION_RULES = [
   {
     matches: (file: string) =>
-      /(?:^|\/)(?:__fixtures__|fixtures|test-data|testdata)(?:\/|$)/.test(
-        file,
-      ),
+      /(?:^|\/)(?:__fixtures__|fixtures|test-data|testdata)(?:\/|$)/.test(file),
     reason: 'fixture or test-data source',
   },
   {
@@ -147,8 +145,9 @@ function countPhysicalLines(contents: string): number {
 }
 
 function nodeLine(sourceFile: ts.SourceFile, node: ts.Node): number {
-  return sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-    .line + 1;
+  return (
+    sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
+  );
 }
 
 function nodeSpan(sourceFile: ts.SourceFile, node: ts.Node): number {
@@ -374,11 +373,7 @@ export function discoverChangedRuntimeFiles(
     );
   }
 
-  return result.stdout
-    .split('\n')
-    .map(normalize)
-    .filter(Boolean)
-    .sort();
+  return result.stdout.split('\n').map(normalize).filter(Boolean).sort();
 }
 
 type CliOptions = {
