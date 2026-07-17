@@ -628,14 +628,18 @@ function readTrack(
 }
 
 function addDuplicateIdViolations(
-  tracks: IEditorTrack[],
+  tracks: unknown[],
   violations: EditorExportContractViolation[],
 ): void {
   const trackIds = new Set<string>();
   const clipIds = new Set<string>();
 
   tracks.forEach((track, trackIndex) => {
-    if (trackIds.has(track.id)) {
+    if (!isRecord(track)) {
+      return;
+    }
+
+    if (isNonEmptyString(track.id) && trackIds.has(track.id)) {
       addViolation(
         violations,
         `tracks[${trackIndex}].id`,
@@ -643,10 +647,20 @@ function addDuplicateIdViolations(
         `Editor export track id "${track.id}" is duplicated.`,
       );
     }
-    trackIds.add(track.id);
+    if (isNonEmptyString(track.id)) {
+      trackIds.add(track.id);
+    }
+
+    if (!Array.isArray(track.clips)) {
+      return;
+    }
 
     track.clips.forEach((clip, clipIndex) => {
-      if (clipIds.has(clip.id)) {
+      if (!isRecord(clip)) {
+        return;
+      }
+
+      if (isNonEmptyString(clip.id) && clipIds.has(clip.id)) {
         addViolation(
           violations,
           `tracks[${trackIndex}].clips[${clipIndex}].id`,
@@ -654,7 +668,9 @@ function addDuplicateIdViolations(
           `Editor export clip id "${clip.id}" is duplicated.`,
         );
       }
-      clipIds.add(clip.id);
+      if (isNonEmptyString(clip.id)) {
+        clipIds.add(clip.id);
+      }
     });
   });
 }
@@ -717,6 +733,8 @@ export function buildValidatedEditorExportContract(
   const totalDurationFrames = isPositiveInteger(project.totalDurationFrames)
     ? project.totalDurationFrames
     : 0;
+  const rawTracks = Array.isArray(project.tracks) ? project.tracks : [];
+  addDuplicateIdViolations(rawTracks, violations);
   const tracks = Array.isArray(project.tracks)
     ? project.tracks
         .map((track, index) =>
@@ -724,8 +742,6 @@ export function buildValidatedEditorExportContract(
         )
         .filter((track): track is IEditorTrack => track !== null)
     : [];
-
-  addDuplicateIdViolations(tracks, violations);
 
   const hasVideoClip = tracks.some(
     (track) => track.type === EditorTrackType.VIDEO && track.clips.length > 0,
