@@ -14,6 +14,8 @@ import {
 } from '../../fixtures/test-data.fixture';
 import { WorkflowPage } from '../../pages/workflow.page';
 
+const BRAND_BASE = '/test-org/brand-1';
+
 test.describe('Core Automation Loop', () => {
   test.beforeEach(async ({ automationPage }) => {
     await mockActiveSubscription(automationPage, {
@@ -29,9 +31,11 @@ test.describe('Core Automation Loop', () => {
   test('workflow library stays available inside the agent-first canvas', async ({
     automationPage,
   }) => {
-    await automationPage.goto('/workflows');
+    await automationPage.goto(`${BRAND_BASE}/workflows`);
 
-    await expect(automationPage).toHaveURL(/\/workflows$/);
+    await expect(automationPage).toHaveURL(
+      /\/test-org\/brand-1\/workflows$/,
+    );
     await expect(
       automationPage.getByTestId('sidebar-shell').first(),
     ).toHaveAttribute('data-shell-section-label', 'Workspace');
