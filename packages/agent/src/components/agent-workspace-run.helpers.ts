@@ -186,7 +186,13 @@ export function selectRunId(
   currentId: string | null,
   runs: AgentRunSummary[],
 ): string | null {
-  return runs.find((run) => run.id === currentId)?.id ?? runs[0]?.id ?? null;
+  const selectedRun = runs.find((run) => run.id === currentId);
+  if (selectedRun) {
+    return selectedRun.id;
+  }
+
+  const [firstRun] = runs;
+  return firstRun ? firstRun.id : null;
 }
 
 export function replaceRunInPage(
