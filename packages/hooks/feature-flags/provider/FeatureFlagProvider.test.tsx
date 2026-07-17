@@ -19,8 +19,8 @@ describe('FeatureFlagProvider', () => {
 
     render(
       <FeatureFlagProvider
-        defaults={{ conversation_shell: true, other: true }}
-        overrides={{ conversation_shell: false }}
+        defaults={{ other: true, server_override: true }}
+        overrides={{ server_override: false }}
         ready={false}
       >
         <Consumer />
@@ -28,7 +28,7 @@ describe('FeatureFlagProvider', () => {
     );
 
     expect(screen.getByTestId('flags')).toHaveTextContent(
-      JSON.stringify({ conversation_shell: false, other: true }),
+      JSON.stringify({ other: true, server_override: false }),
     );
     expect(screen.getByTestId('ready')).toHaveTextContent('false');
   });
@@ -68,17 +68,14 @@ describe('FeatureFlagProvider', () => {
     }
 
     render(
-      <FeatureFlagProvider
-        defaults={{}}
-        overrides={{ conversation_shell: true }}
-      >
+      <FeatureFlagProvider defaults={{}} overrides={{ server_override: true }}>
         <Probe />
       </FeatureFlagProvider>,
     );
 
     expect(screen.getByText('override content')).toBeDefined();
     expect(status).toEqual({
-      flags: { conversation_shell: true },
+      flags: { server_override: true },
       isConfigured: false,
     });
   });

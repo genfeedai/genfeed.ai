@@ -252,7 +252,6 @@ describe('event taxonomy', () => {
         'content_write_prompt_generated',
         'conversation_shell_approval',
         'conversation_shell_error',
-        'conversation_shell_fallback',
         'conversation_shell_overlay_abandonment',
         'conversation_shell_performance',
         'conversation_shell_restoration_failure',

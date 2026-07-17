@@ -21,7 +21,6 @@ export const ANALYTICS_EVENTS = {
   CONTENT_WRITE_BLANK_DRAFT_STARTED: 'content_write_blank_draft_started',
   CONTENT_WRITE_OPENED: 'content_write_opened',
   CONTENT_WRITE_PROMPT_GENERATED: 'content_write_prompt_generated',
-  CONVERSATION_SHELL_FALLBACK: 'conversation_shell_fallback',
   CONVERSATION_SHELL_APPROVAL: 'conversation_shell_approval',
   CONVERSATION_SHELL_ERROR: 'conversation_shell_error',
   CONVERSATION_SHELL_OVERLAY_ABANDONMENT:
@@ -83,23 +82,12 @@ export type ConversationShellTransition =
   | 'overlay_dismiss'
   | 'overlay_open';
 
-export type ConversationShellFallbackReason =
-  | 'dedicated_route'
-  | 'evaluation_error'
+export type ConversationShellRestorationFailureReason =
   | 'invalid_overlay'
   | 'invalid_overlay_reference'
   | 'invalid_thread'
-  | 'registry_miss'
-  | 'render_error'
-  | 'server_rollback'
   | 'stale_overlay_reference'
   | 'unauthorized_overlay_reference';
-
-export type ConversationShellCohort =
-  | 'all'
-  | 'internal'
-  | 'opt_in'
-  | 'unassigned';
 
 export type ConversationShellDeploymentMode =
   | 'community'
@@ -109,11 +97,7 @@ export type ConversationShellDeploymentMode =
   | 'unknown';
 
 export interface ConversationShellTelemetryContext {
-  readonly cohort: ConversationShellCohort;
-  readonly configVersion: string;
   readonly deploymentMode: ConversationShellDeploymentMode;
-  readonly isInternal: boolean;
-  readonly rollbackRevision: number;
 }
 
 /**
@@ -131,18 +115,8 @@ export interface AnalyticsEventProperties {
     readonly transition: ConversationShellTransition;
   } & ConversationShellTelemetryContext;
   [ANALYTICS_EVENTS.CONVERSATION_SHELL_SESSION]: ConversationShellTelemetryContext;
-  [ANALYTICS_EVENTS.CONVERSATION_SHELL_FALLBACK]: {
-    readonly reason: ConversationShellFallbackReason;
-  } & ConversationShellTelemetryContext;
   [ANALYTICS_EVENTS.CONVERSATION_SHELL_RESTORATION_FAILURE]: {
-    readonly reason: Extract<
-      ConversationShellFallbackReason,
-      | 'invalid_overlay'
-      | 'invalid_overlay_reference'
-      | 'invalid_thread'
-      | 'stale_overlay_reference'
-      | 'unauthorized_overlay_reference'
-    >;
+    readonly reason: ConversationShellRestorationFailureReason;
   } & ConversationShellTelemetryContext;
   [ANALYTICS_EVENTS.CONVERSATION_SHELL_SCOPE_CORRECTION]: {
     readonly outcome: AnalyticsOutcome;
@@ -165,7 +139,7 @@ export interface AnalyticsEventProperties {
     readonly durationMs: number;
     readonly metric: 'first_useful_paint';
     readonly routeClass: 'agent' | 'management' | 'product';
-    readonly shellMode: 'conversation' | 'legacy';
+    readonly shellMode: 'conversation';
   } & ConversationShellTelemetryContext;
   [ANALYTICS_EVENTS.CONVERSATION_SHELL_ERROR]: {
     readonly code:
@@ -173,7 +147,7 @@ export interface AnalyticsEventProperties {
       | 'request_failed'
       | 'restoration_failed'
       | 'scope_sync_failed';
-    readonly stage: 'evaluation' | 'render' | 'restoration' | 'scope';
+    readonly stage: 'render' | 'restoration' | 'scope';
   } & ConversationShellTelemetryContext;
   [ANALYTICS_EVENTS.SIGNUP_STARTED]: {
     readonly hasCloudHandoff: boolean;

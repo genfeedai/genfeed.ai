@@ -16,19 +16,17 @@ import {
 import { STUDIO_MENU_ITEMS } from '@app-config/studio-menu-items.config';
 import { WORKFLOWS_MENU_ITEMS } from '@app-config/workflows-menu-items.config';
 import {
-  AGENT_PANEL_OPEN_KEY,
   AgentApiService,
   useAgentChatStore,
   useAgentPageContext,
 } from '@genfeedai/agent';
-import { isDesktopClient, isSaaS } from '@genfeedai/config/deployment';
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import { isEEEnabled } from '@genfeedai/config/license';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
   COMPOSE_ROUTES,
 } from '@genfeedai/constants';
-import { useAgentOAuthConnect } from '@genfeedai/hooks/agent/use-agent-oauth-connect';
 import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -42,13 +40,6 @@ import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useMenuItems } from '@hooks/ui/use-menu-items';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
-import {
-  getAgentOverlayCoordinationState,
-  isDesktopAgentViewport,
-  setCoordinatedAgentPanelOpen,
-  subscribeAgentOverlayCoordination,
-  subscribeDesktopAgentViewport,
-} from '@services/core/agent-overlay-coordination.service';
 import {
   useParams,
   usePathname,
@@ -70,7 +61,6 @@ import {
   withTaskContextHref,
 } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
-import { useConversationShellEnabled } from '@/lib/workspace-shell/use-conversation-shell';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 
@@ -97,10 +87,6 @@ export function isProtectedWorkspaceRoute(pathname: string): boolean {
     pathname === APP_ROUTES.OVERVIEW.ROOT ||
     pathname.startsWith(`${APP_ROUTE_PREFIXES.WORKSPACE}/`)
   );
-}
-
-function isTerminalDockAvailable(): boolean {
-  return !isSaaS();
 }
 
 export function useAppProtectedLayout(
@@ -163,16 +149,11 @@ export function useAppProtectedLayout(
     pathname.startsWith(APP_ROUTE_PREFIXES.ORCHESTRATION);
   const isEditorRoute = pathname.startsWith(APP_ROUTE_PREFIXES.EDITOR);
   const isAnalyticsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.ANALYTICS);
-  const isConversationShellEnabled = useConversationShellEnabled();
   const workspaceShellRoute = useMemo(
     () => resolveWorkspaceShellRoute(rawPathname),
     [rawPathname],
   );
-  const isUniversalWorkspaceShell = Boolean(
-    isConversationShellEnabled &&
-      workspaceShellRoute &&
-      workspaceShellRoute.mode !== 'dedicated',
-  );
+  const isUniversalWorkspaceShell = Boolean(workspaceShellRoute);
 
   const currentApp: AppContext = isStudioRoute
     ? 'studio'
@@ -198,19 +179,11 @@ export function useAppProtectedLayout(
                         ? 'agent'
                         : 'workspace';
 
-  const shouldMountLegacyAgentPanel =
-    isTerminalDockAvailable() &&
-    !isEditorCanvasRoute &&
-    !isMoodboardRoute &&
-    !isConversationRoute;
-  const shouldMountAgentPanel =
-    shouldMountLegacyAgentPanel && !isUniversalWorkspaceShell;
   const shouldInitAgentApiService =
-    shouldMountAgentPanel || isConversationRoute || isUniversalWorkspaceShell;
+    isConversationRoute || isUniversalWorkspaceShell;
 
   const { push, refresh } = useRouter();
   const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useOptionalAuth();
-  const isAuthReadyForAgentPanel = isAuthLoaded && isSignedIn;
   const prevIsSignedInRef = useRef(false);
   useEffect(() => {
     if (isSignedIn && !prevIsSignedInRef.current) {
@@ -236,10 +209,10 @@ export function useAppProtectedLayout(
     insertAfterLabel: POSTS_INSERT_AFTER_LABEL,
     items: APP_MENU_ITEMS,
   });
-  const { orgHref, orgSlug, brandSlug } = useOrgUrl();
+  const { orgSlug, brandSlug } = useOrgUrl();
 
   const agentApiService = useMemo(() => {
-    if (!shouldInitAgentApiService) {
+    if (!shouldInitAgentApiService || !isAuthLoaded || !isSignedIn) {
       return null;
     }
 
@@ -248,7 +221,7 @@ export function useAppProtectedLayout(
       getToken: async (options) =>
         resolveAuthToken(getTokenRef.current, options),
     });
-  }, [shouldInitAgentApiService]);
+  }, [isAuthLoaded, isSignedIn, shouldInitAgentApiService]);
 
   const menuItems = useMemo(
     () =>
@@ -293,93 +266,7 @@ export function useAppProtectedLayout(
 
   const [conversationActions, setConversationActions] =
     useState<ReactNode>(null);
-  const isAgentOpen = useAgentChatStore((s) => s.isOpen);
-  const beginOverlaySession = useAgentChatStore((s) => s.beginOverlaySession);
-  const endOverlaySession = useAgentChatStore((s) => s.endOverlaySession);
-  const setIsOpen = useAgentChatStore((s) => s.setIsOpen);
-  const toggleAgent = useAgentChatStore((s) => s.toggleOpen);
   const threads = useAgentChatStore((s) => s.threads);
-
-  useEffect(() => {
-    if (!shouldMountAgentPanel) {
-      return;
-    }
-
-    const stored = localStorage.getItem(AGENT_PANEL_OPEN_KEY);
-    if (stored !== null) {
-      setIsOpen(stored === 'true');
-    }
-  }, [setIsOpen, shouldMountAgentPanel]);
-
-  useEffect(() => {
-    setCoordinatedAgentPanelOpen(shouldMountAgentPanel && isAgentOpen);
-  }, [isAgentOpen, shouldMountAgentPanel]);
-
-  useEffect(
-    () => () => {
-      setCoordinatedAgentPanelOpen(false);
-    },
-    [],
-  );
-
-  useEffect(() => {
-    if (!shouldMountAgentPanel || typeof window === 'undefined') {
-      return undefined;
-    }
-
-    const handledOverlayIds = new Set<string>();
-    let handledAgentRequestVersion =
-      getAgentOverlayCoordinationState().agentOpenRequestVersion;
-    const syncOverlayCoordination = (): void => {
-      const coordination = getAgentOverlayCoordinationState();
-      const activeOverlayIds = new Set(coordination.activeEntityOverlayIds);
-      const shouldCoordinateOverlays = isDesktopAgentViewport();
-
-      if (shouldCoordinateOverlays) {
-        for (const overlayId of activeOverlayIds) {
-          if (!handledOverlayIds.has(overlayId)) {
-            beginOverlaySession(overlayId);
-            handledOverlayIds.add(overlayId);
-          }
-        }
-      }
-
-      for (const overlayId of handledOverlayIds) {
-        if (!shouldCoordinateOverlays || !activeOverlayIds.has(overlayId)) {
-          endOverlaySession(overlayId);
-          handledOverlayIds.delete(overlayId);
-        }
-      }
-
-      if (handledAgentRequestVersion !== coordination.agentOpenRequestVersion) {
-        handledAgentRequestVersion = coordination.agentOpenRequestVersion;
-        if (shouldCoordinateOverlays) {
-          setIsOpen(true);
-        }
-      }
-    };
-
-    const unsubscribe = subscribeAgentOverlayCoordination(
-      syncOverlayCoordination,
-    );
-    const unsubscribeDesktopViewport = subscribeDesktopAgentViewport(
-      syncOverlayCoordination,
-    );
-    syncOverlayCoordination();
-
-    return () => {
-      unsubscribe();
-      unsubscribeDesktopViewport();
-      for (const overlayId of handledOverlayIds) {
-        endOverlaySession(overlayId);
-      }
-    };
-  }, [
-    beginOverlaySession,
-    endOverlaySession,
-    setIsOpen,
-    shouldMountAgentPanel,
-  ]);
 
   const role = useUserRole();
   const { enabledCategories, isLoading: isEnabledCategoriesLoading } =
@@ -389,17 +276,6 @@ export function useAppProtectedLayout(
 
   // Sync route context into the agent store
   useAgentPageContext(role);
-
-  // Shared with the dedicated /agent workspace page so the floating agent
-  // panel's oauth_connect_card actually connects (previously it received no
-  // handler and was a no-op outside /agent).
-  const handleOAuthConnect = useAgentOAuthConnect({
-    isOnboarding: isFocusedOnboardingRoute,
-  });
-
-  const handleNavigateToBilling = useCallback(() => {
-    push(orgHref(isEEEnabled() ? '/settings/billing' : '/settings/credits'));
-  }, [push, orgHref]);
 
   const handleNavigate = useCallback(
     (path: string) => {
@@ -609,7 +485,6 @@ export function useAppProtectedLayout(
     isStudioRoute,
     isWorkflowsRoute,
     isWorkspaceRoute,
-    isConversationShellEnabled,
     isUniversalWorkspaceShell,
     workspaceShellRoute,
     hasSecondaryTopbar,
@@ -619,12 +494,7 @@ export function useAppProtectedLayout(
     brandSlug,
     // agent
     agentApiService,
-    isAuthReadyForAgentPanel,
-    isAgentOpen,
-    toggleAgent,
     threads,
-    shouldMountAgentPanel,
-    shouldMountLegacyAgentPanel,
     // menu items
     agentMenuItems,
     adminMenuItems,
@@ -645,8 +515,6 @@ export function useAppProtectedLayout(
     setConversationActions,
     // handlers
     handleNavigate,
-    handleNavigateToBilling,
-    handleOAuthConnect,
     handleOpenCommandPalette,
     // banners
     isLowCreditsBannerEnabled,

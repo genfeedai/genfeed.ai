@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import {
   captureWorkspaceShellError,
@@ -6,7 +6,6 @@ import {
   captureWorkspaceShellRestorationFailure,
   captureWorkspaceShellScopeCorrection,
   captureWorkspaceShellSession,
-  setWorkspaceShellTelemetryContext,
 } from './workspace-shell-telemetry';
 
 const analytics = vi.hoisted(() => ({ capture: vi.fn() }));
@@ -19,47 +18,33 @@ vi.mock('@/lib/analytics', async (importOriginal) => ({
 describe('workspace shell telemetry privacy contract', () => {
   beforeEach(() => {
     analytics.capture.mockReset();
-    setWorkspaceShellTelemetryContext({
-      cohort: 'internal',
-      configVersion: 'internal-1',
-      deploymentMode: 'community',
-      rollbackRevision: 2,
-    });
+    vi.unstubAllEnvs();
   });
 
-  it('adds only bounded rollout context to shell sessions', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('adds only bounded permanent-shell context to sessions', () => {
     captureWorkspaceShellSession();
 
     expect(analytics.capture).toHaveBeenCalledWith(
       ANALYTICS_EVENTS.CONVERSATION_SHELL_SESSION,
       {
-        cohort: 'internal',
-        configVersion: 'internal-1',
         deploymentMode: 'community',
-        isInternal: true,
-        rollbackRevision: 2,
       },
     );
   });
 
-  it('records the global SaaS cohort without treating it as internal', () => {
-    setWorkspaceShellTelemetryContext({
-      cohort: 'all',
-      configVersion: 'global-saas-1',
-      deploymentMode: 'saas',
-      rollbackRevision: 0,
-    });
+  it('records the permanent SaaS shell deployment mode', () => {
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
 
     captureWorkspaceShellSession();
 
     expect(analytics.capture).toHaveBeenCalledWith(
       ANALYTICS_EVENTS.CONVERSATION_SHELL_SESSION,
       {
-        cohort: 'all',
-        configVersion: 'global-saas-1',
         deploymentMode: 'saas',
-        isInternal: false,
-        rollbackRevision: 0,
       },
     );
   });

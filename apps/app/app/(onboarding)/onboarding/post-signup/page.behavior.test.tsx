@@ -398,7 +398,7 @@ describe('PostSignupPage behavior', () => {
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
   });
 
-  it('falls back to the wizard when no SaaS org slug can be resolved', async () => {
+  it('returns to protected bootstrap when no SaaS org slug can be resolved', async () => {
     isSaaSMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([]);
@@ -406,11 +406,11 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand');
+      expect(locationState.href).toBe('/');
     });
   });
 
-  it('keeps plan checkout returns on the wizard even on SaaS (preserves #1421)', async () => {
+  it('returns SaaS plan checkout to agent-first onboarding', async () => {
     isSaaSMock.mockReturnValue(true);
     isEEEnabledMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
@@ -434,7 +434,7 @@ describe('PostSignupPage behavior', () => {
         quantity: null,
         stripePriceId: 'price_123',
         successUrl:
-          'http://localhost/onboarding/brand?checkout=completed&checkoutKind=plan',
+          'http://localhost/acme/~/agent/onboarding?checkout=completed&checkoutKind=plan',
       });
     });
     expect(locationState.href).toBe('https://checkout.stripe.test/session');

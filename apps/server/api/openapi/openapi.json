@@ -29824,29 +29824,6 @@
         ]
       }
     },
-    "/feature-flags/conversation-shell": {
-      "get": {
-        "operationId": "FeatureFlagController.evaluateConversationShell",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "client",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "FeatureFlag"
-        ]
-      }
-    },
     "/folders": {
       "get": {
         "operationId": "FoldersController.findAll",
