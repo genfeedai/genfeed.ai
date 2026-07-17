@@ -28,9 +28,7 @@ function evaluate(env = {}) {
 }
 
 function runGateCli(env = {}) {
-  const gatePath = fileURLToPath(
-    new URL('./tests-gate.mjs', import.meta.url),
-  );
+  const gatePath = fileURLToPath(new URL('./tests-gate.mjs', import.meta.url));
 
   return spawnSync(process.execPath, [gatePath], {
     env: { ...process.env, ...ALL_SUCCESS_ENV, ...env },

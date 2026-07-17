@@ -31,8 +31,16 @@ function readResult(env, key) {
 export function createTestsGateJobs(env) {
   const testScopeResult = readResult(env, 'TEST_SCOPE_RESULT');
   const allowEmptyScope = testScopeResult !== 'success';
-  const appScope = parseBoolean(env.TEST_SCOPE_APP, 'TEST_SCOPE_APP', allowEmptyScope);
-  const apiScope = parseBoolean(env.TEST_SCOPE_API, 'TEST_SCOPE_API', allowEmptyScope);
+  const appScope = parseBoolean(
+    env.TEST_SCOPE_APP,
+    'TEST_SCOPE_APP',
+    allowEmptyScope,
+  );
+  const apiScope = parseBoolean(
+    env.TEST_SCOPE_API,
+    'TEST_SCOPE_API',
+    allowEmptyScope,
+  );
   const fullSuite = parseBoolean(env.FULL_SUITE, 'FULL_SUITE');
 
   return [
