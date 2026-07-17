@@ -35,7 +35,7 @@ vi.mock('../agent-workspace-context', () => ({
 }));
 
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import ChatOnboardingPage, * as PageModule from './page';
 
 runPageModuleTests('app/(protected)/agent/onboarding/page', PageModule);
@@ -51,11 +51,4 @@ describe('ChatOnboardingPage', () => {
     );
   });
 
-  it('offers a classic-wizard fallback link', () => {
-    render(<ChatOnboardingPage />);
-    const fallbackLink = screen.getByRole('link', {
-      name: /prefer a form\? use the classic setup/i,
-    });
-    expect(fallbackLink).toHaveAttribute('href', '/onboarding');
-  });
 });

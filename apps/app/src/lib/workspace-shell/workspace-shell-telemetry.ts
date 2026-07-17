@@ -1,7 +1,11 @@
 import {
+  getClientSurface,
+  getDeployment,
+} from '@genfeedai/config/deployment';
+import {
   ANALYTICS_EVENTS,
   type AnalyticsOutcome,
-  type ConversationShellFallbackReason,
+  type ConversationShellRestorationFailureReason,
   type ConversationShellState,
   type ConversationShellTelemetryContext,
   type ConversationShellTransition,
@@ -14,43 +18,27 @@ type WorkspaceShellOverlayTelemetryClass =
   | 'shell_preview'
   | 'workflow_picker';
 
-const UNKNOWN_TELEMETRY_CONTEXT: ConversationShellTelemetryContext = {
-  cohort: 'unassigned',
-  configVersion: 'unconfigured',
-  deploymentMode: 'unknown',
-  isInternal: false,
-  rollbackRevision: 0,
-};
+function getWorkspaceShellTelemetryContext(): ConversationShellTelemetryContext {
+  const client = getClientSurface();
+  const deployment = getDeployment();
+  const deploymentMode =
+    client === 'desktop'
+      ? deployment === 'cloud'
+        ? 'desktop_cloud'
+        : 'desktop_self_hosted'
+      : deployment === 'cloud'
+        ? 'saas'
+        : 'community';
 
-let telemetryContext = UNKNOWN_TELEMETRY_CONTEXT;
-
-export function setWorkspaceShellTelemetryContext(
-  evaluation: {
-    readonly cohort: 'all' | 'internal' | 'opt_in' | null;
-    readonly configVersion: string | null;
-    readonly deploymentMode:
-      | 'community'
-      | 'desktop_cloud'
-      | 'desktop_self_hosted'
-      | 'saas';
-    readonly rollbackRevision: number | null;
-  } | null,
-): void {
-  telemetryContext = evaluation
-    ? {
-        cohort: evaluation.cohort ?? 'unassigned',
-        configVersion: evaluation.configVersion ?? 'unconfigured',
-        deploymentMode: evaluation.deploymentMode,
-        isInternal: evaluation.cohort === 'internal',
-        rollbackRevision: evaluation.rollbackRevision ?? 0,
-      }
-    : UNKNOWN_TELEMETRY_CONTEXT;
+  return {
+    deploymentMode,
+  };
 }
 
 export function captureWorkspaceShellSession(): void {
   captureAnalyticsEvent(
     ANALYTICS_EVENTS.CONVERSATION_SHELL_SESSION,
-    telemetryContext,
+    getWorkspaceShellTelemetryContext(),
   );
 }
 
@@ -60,31 +48,17 @@ export function captureWorkspaceShellTransition(properties: {
   readonly transition: ConversationShellTransition;
 }): void {
   captureAnalyticsEvent(ANALYTICS_EVENTS.CONVERSATION_SHELL_TRANSITION, {
-    ...telemetryContext,
+    ...getWorkspaceShellTelemetryContext(),
     ...properties,
   });
 }
 
-export function captureWorkspaceShellFallback(
-  reason: ConversationShellFallbackReason,
-): void {
-  captureAnalyticsEvent(ANALYTICS_EVENTS.CONVERSATION_SHELL_FALLBACK, {
-    ...telemetryContext,
-    reason,
-  });
-}
-
 export function captureWorkspaceShellRestorationFailure(
-  reason:
-    | 'invalid_overlay'
-    | 'invalid_overlay_reference'
-    | 'invalid_thread'
-    | 'stale_overlay_reference'
-    | 'unauthorized_overlay_reference',
+  reason: ConversationShellRestorationFailureReason,
 ): void {
   captureAnalyticsEvent(
     ANALYTICS_EVENTS.CONVERSATION_SHELL_RESTORATION_FAILURE,
-    { ...telemetryContext, reason },
+    { ...getWorkspaceShellTelemetryContext(), reason },
   );
 }
 
@@ -92,7 +66,7 @@ export function captureWorkspaceShellScopeCorrection(
   outcome: AnalyticsOutcome,
 ): void {
   captureAnalyticsEvent(ANALYTICS_EVENTS.CONVERSATION_SHELL_SCOPE_CORRECTION, {
-    ...telemetryContext,
+    ...getWorkspaceShellTelemetryContext(),
     outcome,
     source: 'surface_adapter',
   });
@@ -103,7 +77,7 @@ export function captureWorkspaceShellOverlayAbandonment(
 ): void {
   captureAnalyticsEvent(
     ANALYTICS_EVENTS.CONVERSATION_SHELL_OVERLAY_ABANDONMENT,
-    { ...telemetryContext, overlayClass },
+    { ...getWorkspaceShellTelemetryContext(), overlayClass },
   );
 }
 
@@ -113,7 +87,7 @@ export function captureWorkspaceShellApproval(properties: {
   readonly outcome: AnalyticsOutcome;
 }): void {
   captureAnalyticsEvent(ANALYTICS_EVENTS.CONVERSATION_SHELL_APPROVAL, {
-    ...telemetryContext,
+    ...getWorkspaceShellTelemetryContext(),
     ...properties,
   });
 }
@@ -122,17 +96,17 @@ export function captureWorkspaceShellPerformance(properties: {
   readonly deviceClass: 'desktop' | 'mobile';
   readonly durationMs: number;
   readonly routeClass: 'agent' | 'management' | 'product';
-  readonly shellMode: 'conversation' | 'legacy';
+  readonly shellMode: 'conversation';
 }): void {
   captureAnalyticsEvent(ANALYTICS_EVENTS.CONVERSATION_SHELL_PERFORMANCE, {
-    ...telemetryContext,
+    ...getWorkspaceShellTelemetryContext(),
     ...properties,
     metric: 'first_useful_paint',
   });
 }
 
 export function captureWorkspaceShellError(
-  stage: 'evaluation' | 'render' | 'restoration' | 'scope',
+  stage: 'render' | 'restoration' | 'scope',
   code:
     | 'render_failed'
     | 'request_failed'
@@ -140,7 +114,7 @@ export function captureWorkspaceShellError(
     | 'scope_sync_failed',
 ): void {
   captureAnalyticsEvent(ANALYTICS_EVENTS.CONVERSATION_SHELL_ERROR, {
-    ...telemetryContext,
+    ...getWorkspaceShellTelemetryContext(),
     code,
     stage,
   });

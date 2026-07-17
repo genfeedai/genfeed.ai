@@ -311,14 +311,14 @@ function registerRoutes(
 const PERSONAL_ROUTE_REGISTRATIONS = [
   ...registerRoutes(['/'], {
     fallback: '/',
-    mode: 'dedicated',
+    mode: 'canvas',
     scope: 'personal',
     surfaceKey: 'protected-bootstrap',
     telemetryClass: 'management',
   }),
   ...registerRoutes(['/settings', '/settings/help'], {
     fallback: '/settings',
-    mode: 'dedicated',
+    mode: 'canvas',
     scope: 'personal',
     surfaceKey: 'personal-settings',
     telemetryClass: 'management',
@@ -371,7 +371,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     ],
     {
       fallback: '/:orgSlug/~/agent',
-      mode: 'dedicated',
+      mode: 'canvas',
       scope: 'organization',
       surfaceKey: 'agent-onboarding',
       telemetryClass: 'management',
@@ -395,7 +395,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     ],
     {
       fallback: '/:orgSlug/~/settings',
-      mode: 'dedicated',
+      mode: 'canvas',
       scope: 'organization',
       surfaceKey: 'organization-settings',
       telemetryClass: 'management',
@@ -411,7 +411,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   }),
   ...registerRoutes(['/:orgSlug/~/studio', '/:orgSlug/~/studio/:type'], {
     fallback: '/:orgSlug/~/studio',
-    mode: 'dedicated',
+    mode: 'canvas',
     scope: 'organization',
     surfaceKey: 'studio',
     switcherItems: ['studio'],
@@ -474,7 +474,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     ],
     {
       fallback: '/:orgSlug/~/editor',
-      mode: 'dedicated',
+      mode: 'canvas',
       scope: 'organization',
       surfaceKey: 'editor',
       telemetryClass: 'management',
@@ -541,7 +541,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     ],
     {
       fallback: '/:orgSlug/:brandSlug/agent',
-      mode: 'dedicated',
+      mode: 'canvas',
       scope: 'brand',
       surfaceKey: 'agent-onboarding',
       telemetryClass: 'management',
@@ -602,7 +602,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     ],
     {
       fallback: '/:orgSlug/:brandSlug/studio/image',
-      mode: 'dedicated',
+      mode: 'canvas',
       scope: 'brand',
       surfaceKey: 'studio-specialized',
       switcherItems: ['studio'],
@@ -631,7 +631,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     ],
     {
       fallback: '/:orgSlug/:brandSlug/editor',
-      mode: 'dedicated',
+      mode: 'canvas',
       scope: 'brand',
       surfaceKey: 'editor',
       telemetryClass: 'management',
@@ -681,7 +681,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ),
   ...registerRoutes(['/:orgSlug/:brandSlug/posts/composer'], {
     fallback: '/:orgSlug/:brandSlug/posts',
-    mode: 'dedicated',
+    mode: 'canvas',
     scope: 'brand',
     surfaceKey: 'post-composer',
     telemetryClass: 'management',
@@ -770,7 +770,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     ],
     {
       fallback: '/:orgSlug/:brandSlug/orchestration/overview',
-      mode: 'dedicated',
+      mode: 'canvas',
       scope: 'brand',
       surfaceKey: 'orchestration-management',
       telemetryClass: 'management',
@@ -787,7 +787,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     ],
     {
       fallback: '/:orgSlug/:brandSlug/settings',
-      mode: 'dedicated',
+      mode: 'canvas',
       scope: 'brand',
       surfaceKey: 'brand-settings',
       telemetryClass: 'management',
@@ -802,7 +802,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
     ],
     {
       fallback: '/:orgSlug/:brandSlug/workspace/overview',
-      mode: 'dedicated',
+      mode: 'canvas',
       scope: 'brand',
       surfaceKey: 'lab',
       telemetryClass: 'management',
@@ -875,7 +875,7 @@ const ADMIN_ROUTE_PATTERNS = [
 
 const ADMIN_ROUTE_REGISTRATIONS = registerRoutes(ADMIN_ROUTE_PATTERNS, {
   fallback: '/admin',
-  mode: 'dedicated',
+  mode: 'canvas',
   scope: 'platform-admin',
   surfaceKey: 'platform-admin',
   switcherItems: ['admin'],
@@ -987,21 +987,6 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
     safeFallback: 'same-canonical-url',
     scope: 'organization',
     telemetryClass: 'workflow_picker',
-  }),
-  Object.freeze({
-    accessPolicy: 'organization-member',
-    adapter: Object.freeze({ key: 'terminal-dock', status: 'dedicated-route' }),
-    allowedShellModes: Object.freeze(['dedicated'] as const),
-    availability: 'legacy-shell',
-    canonicalUrl: null,
-    deployments: Object.freeze(['self-hosted-web', 'desktop'] as const),
-    key: 'terminal-dock',
-    kind: 'chrome',
-    launchTarget: 'dedicated-route',
-    restoration: URL_RESTORATION_POLICY,
-    safeFallback: 'same-canonical-url',
-    scope: 'organization',
-    telemetryClass: 'legacy_chrome',
   }),
 ] as const satisfies readonly WorkspaceShellAuxiliaryRegistration[]);
 

@@ -398,7 +398,7 @@ describe('PostSignupPage behavior', () => {
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
   });
 
-  it('falls back to the wizard when no SaaS org slug can be resolved', async () => {
+  it('returns to protected bootstrap when no SaaS org slug can be resolved', async () => {
     isSaaSMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);
     getMyOrganizationsMock.mockResolvedValue([]);
@@ -406,7 +406,7 @@ describe('PostSignupPage behavior', () => {
     render(<PostSignupPage />);
 
     await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand');
+      expect(locationState.href).toBe('/');
     });
   });
 

@@ -47,13 +47,13 @@ describe('useFeatureFlag', () => {
     expect(result.current).toBe(true);
   });
 
-  it('keeps ordinary OSS flags on when only the conversation shell override is configured', () => {
+  it('keeps ordinary OSS flags on when only another override is configured', () => {
     function Wrapper({ children }: { children: ReactNode }) {
       return createElement(
         FeatureFlagProvider,
         {
           defaults: {},
-          overrides: { conversation_shell: true },
+          overrides: { server_override: true },
         },
         children,
       );
@@ -64,46 +64,6 @@ describe('useFeatureFlag', () => {
     });
 
     expect(result.current).toBe(true);
-  });
-
-  it('fails the conversation shell closed when no provider is configured', () => {
-    const { result } = renderHook(() => useFeatureFlag('conversation_shell'));
-
-    expect(result.current).toBe(false);
-  });
-
-  it('fails the conversation shell closed when configured defaults omit the flag', () => {
-    const { result } = renderHook(() => useFeatureFlag('conversation_shell'), {
-      wrapper: createWrapper({ some_other_flag: true }),
-    });
-
-    expect(result.current).toBe(false);
-  });
-
-  it('disables the conversation shell only when explicitly configured false', () => {
-    const { result } = renderHook(() => useFeatureFlag('conversation_shell'), {
-      wrapper: createWrapper({ conversation_shell: false }),
-    });
-
-    expect(result.current).toBe(false);
-  });
-
-  it('keeps the conversation shell on when explicitly configured true', () => {
-    const { result } = renderHook(() => useFeatureFlag('conversation_shell'), {
-      wrapper: createWrapper({ conversation_shell: true }),
-    });
-
-    expect(result.current).toBe(true);
-  });
-
-  it('fails the conversation shell closed when environment defaults are invalid', () => {
-    vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
-
-    const { result } = renderHook(() => useFeatureFlag('conversation_shell'), {
-      wrapper: createWrapper(),
-    });
-
-    expect(result.current).toBe(false);
   });
 
   it('returns false when environment defaults are invalid', () => {

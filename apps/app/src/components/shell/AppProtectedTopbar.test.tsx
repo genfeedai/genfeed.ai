@@ -12,7 +12,6 @@ const mockPathname = vi.hoisted(() => ({
 const mockAccessState = vi.hoisted(() => ({
   isSuperAdmin: false,
 }));
-const mockConversationShell = vi.hoisted(() => ({ enabled: false }));
 const originalLocation = window.location;
 
 vi.mock('@genfeedai/enums', () => ({
@@ -69,10 +68,6 @@ vi.mock(
     useAccessState: () => mockAccessState,
   }),
 );
-
-vi.mock('@/lib/workspace-shell/use-conversation-shell', () => ({
-  useConversationShellEnabled: () => mockConversationShell.enabled,
-}));
 
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
@@ -187,7 +182,6 @@ describe('AppProtectedTopbar', () => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace/overview';
     mockAccessState.isSuperAdmin = false;
-    mockConversationShell.enabled = false;
     appSwitcherSpy.mockClear();
     brandSwitcherSpy.mockClear();
     mockPush.mockClear();
@@ -344,7 +338,6 @@ describe('AppProtectedTopbar', () => {
   });
 
   it('launches switcher destinations through the trusted shell resolver', () => {
-    mockConversationShell.enabled = true;
     mockSearchParams = new URLSearchParams([
       ['taskId', 'task-1'],
       ['taskSource', 'workspace'],
@@ -380,51 +373,16 @@ describe('AppProtectedTopbar', () => {
     });
   });
 
-  it('renders the cloud sync indicator beside the terminal dock control', () => {
-    render(<AppProtectedTopbar isAgentCollapsed onAgentToggle={vi.fn()} />);
-
-    const terminalButton = screen.getByRole('button', {
-      name: 'Open terminal dock',
-    });
-    const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
-
-    expect(
-      terminalButton.compareDocumentPosition(cloudSyncIndicator) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  it('does not infer SaaS mode from the hosted app hostname', () => {
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { ...originalLocation, hostname: 'app.genfeed.ai' },
-      writable: true,
-    });
-
-    render(<AppProtectedTopbar isAgentCollapsed onAgentToggle={vi.fn()} />);
-
-    expect(
-      screen.getByRole('button', { name: 'Open terminal dock' }),
-    ).toBeInTheDocument();
-  });
-
   it('places credits first in the right-side control cluster', () => {
-    render(<AppProtectedTopbar isAgentCollapsed onAgentToggle={vi.fn()} />);
+    render(<AppProtectedTopbar />);
 
-    const terminalButton = screen.getByRole('button', {
-      name: 'Open terminal dock',
-    });
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const switcher = screen.getByTestId('app-switcher');
     const topbarEnd = screen.getByTestId('topbar-end');
     const credits = screen.getByTestId('topbar-credits-bar');
 
     expect(
-      credits.compareDocumentPosition(terminalButton) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      terminalButton.compareDocumentPosition(cloudSyncIndicator) &
+      credits.compareDocumentPosition(cloudSyncIndicator) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(

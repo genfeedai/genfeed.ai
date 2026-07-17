@@ -65,14 +65,23 @@ export default function ProtectedRootResolver() {
       const agentOrgSlug =
         getBrandOrganizationSlug(selectedBrand) ||
         getBrandOrganizationSlug(brands[0]);
-      replace(
-        isSaaS() && agentOrgSlug
-          ? createOrganizationAppRoute(
-              agentOrgSlug,
-              APP_ROUTES.AGENT.ONBOARDING,
-            )
-          : `/onboarding/${getResumeStep(completedSteps)}`,
-      );
+      if (isSaaS()) {
+        if (!agentOrgSlug) {
+          hasStartedRef.current = false;
+          setStatusMessage('Preparing your agent workspace...');
+          return;
+        }
+
+        replace(
+          createOrganizationAppRoute(
+            agentOrgSlug,
+            APP_ROUTES.AGENT.ONBOARDING,
+          ),
+        );
+        return;
+      }
+
+      replace(`/onboarding/${getResumeStep(completedSteps)}`);
       return;
     }
 
@@ -120,6 +129,12 @@ export default function ProtectedRootResolver() {
         hasOrganization && fallbackOrgSlug
           ? `/${fallbackOrgSlug}/~/overview`
           : '/onboarding';
+    }
+
+    if (isSaaS() && nextUrl === '/onboarding') {
+      hasStartedRef.current = false;
+      setStatusMessage('Preparing your agent workspace...');
+      return;
     }
 
     setStatusMessage(nextMessage);

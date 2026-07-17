@@ -48,9 +48,7 @@ export function FeatureFlagProvider({
   const value = useMemo<FeatureFlagContextValue>(
     () => ({
       flags: { ...resolvedDefaults.flags, ...overrides },
-      // Server-resolved overrides are independent from public defaults. In
-      // particular, the conversation shell rollout must not make unrelated
-      // OSS feature flags fail closed when no public defaults are configured.
+      // Server-resolved overrides are independent from public defaults.
       isConfigured: resolvedDefaults.isConfigured,
       isReady: ready,
     }),

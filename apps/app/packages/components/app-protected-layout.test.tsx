@@ -1,9 +1,3 @@
-import {
-  notifyEntityOverlayClosed,
-  notifyEntityOverlayOpened,
-  requestAgentFromEntityOverlay,
-  setCoordinatedAgentPanelOpen,
-} from '@services/core/agent-overlay-coordination.service';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { type ReactNode, useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,33 +8,23 @@ const {
   appLayoutSpy,
   appSidebarSpy,
   agentThreadListSpy,
-  agentPanelSpy,
-  beginOverlaySessionSpy,
   commandPaletteOpenSpy,
   dispatchOpenTaskComposerSpy,
-  endOverlaySessionSpy,
-  featureFlagState,
+  shellState,
   onboardingGuardSpy,
   lowCreditsBannerSpy,
   protectedProvidersSpy,
-  setIsOpenSpy,
-  toggleOpenSpy,
   universalShellSpy,
 } = vi.hoisted(() => ({
-  agentPanelSpy: vi.fn(),
   agentThreadListSpy: vi.fn(),
   appLayoutSpy: vi.fn(),
   appSidebarSpy: vi.fn(),
-  beginOverlaySessionSpy: vi.fn(),
   commandPaletteOpenSpy: vi.fn(),
   dispatchOpenTaskComposerSpy: vi.fn(),
-  endOverlaySessionSpy: vi.fn(),
-  featureFlagState: { conversationShell: false, shellThrows: false },
+  shellState: { shellThrows: false },
   lowCreditsBannerSpy: vi.fn(),
   onboardingGuardSpy: vi.fn(),
   protectedProvidersSpy: vi.fn(),
-  setIsOpenSpy: vi.fn(),
-  toggleOpenSpy: vi.fn(),
   universalShellSpy: vi.fn(),
 }));
 
@@ -330,19 +314,6 @@ vi.mock('next/dynamic', () => ({
       };
     }
 
-    if (source.includes('AgentPanel')) {
-      return function LazyAgentPanelStub(props: { isActive?: boolean }) {
-        agentPanelSpy(props);
-        return (
-          <div
-            data-testid="agent-panel"
-            data-is-active={String(props.isActive)}
-            data-prompt-layout-mode="surface-fixed"
-          />
-        );
-      };
-    }
-
     if (source.includes('UniversalWorkspaceShell')) {
       return function LazyUniversalWorkspaceShellStub({
         children,
@@ -350,7 +321,7 @@ vi.mock('next/dynamic', () => ({
         children: ReactNode;
       }) {
         universalShellSpy();
-        if (featureFlagState.shellThrows) {
+        if (shellState.shellThrows) {
           throw new Error('workspace shell render failed');
         }
         return <div data-testid="universal-workspace-shell">{children}</div>;
@@ -368,16 +339,10 @@ vi.mock('next/dynamic', () => ({
 }));
 
 vi.mock('@genfeedai/agent', () => ({
-  AGENT_PANEL_OPEN_KEY: 'genfeed:agent-open',
   AgentApiService: class AgentApiService {},
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
-      beginOverlaySession: beginOverlaySessionSpy,
-      endOverlaySession: endOverlaySessionSpy,
-      isOpen: false,
-      setIsOpen: setIsOpenSpy,
       threads: [],
-      toggleOpen: toggleOpenSpy,
     }),
   useAgentPageContext: vi.fn(),
 }));
@@ -427,10 +392,7 @@ vi.mock(
 );
 
 vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
-  useFeatureFlag: (flagKey: string) =>
-    flagKey === 'conversation_shell'
-      ? featureFlagState.conversationShell
-      : true,
+  useFeatureFlag: () => true,
 }));
 
 vi.mock('@providers/protected-providers/protected-providers', () => ({
@@ -513,8 +475,7 @@ vi.mock('@services/core/agent-overlay-coordination.service', async () => {
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockPathname.value = '/workspace';
-    featureFlagState.conversationShell = false;
-    featureFlagState.shellThrows = false;
+    shellState.shellThrows = false;
     sessionStorage.clear();
     mockBrandState.brandId = 'brand-123';
     mockRouteParams.brandSlug = 'brand-123';
@@ -523,20 +484,13 @@ describe('AppProtectedLayout', () => {
     enabledCategoriesState.isLoading = false;
     appLayoutSpy.mockClear();
     appSidebarSpy.mockClear();
-    beginOverlaySessionSpy.mockClear();
-    endOverlaySessionSpy.mockClear();
-    agentPanelSpy.mockClear();
     agentThreadListSpy.mockClear();
     commandPaletteOpenSpy.mockClear();
     dispatchOpenTaskComposerSpy.mockClear();
     onboardingGuardSpy.mockClear();
     lowCreditsBannerSpy.mockClear();
     protectedProvidersSpy.mockClear();
-    setIsOpenSpy.mockClear();
-    toggleOpenSpy.mockClear();
     universalShellSpy.mockClear();
-    notifyEntityOverlayClosed('ingredient-overlay');
-    setCoordinatedAgentPanelOpen(false);
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
     Object.defineProperty(window, 'location', {
@@ -583,7 +537,7 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
   });
 
-  it('wires default shell chrome through the protected app shell', () => {
+  it('wires the agent-first shell through the protected app shell', async () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
@@ -624,9 +578,9 @@ describe('AppProtectedLayout', () => {
       }),
     );
     expect(onboardingGuardSpy).toHaveBeenCalled();
-    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
-    expect(screen.getByTestId('agent-panel-rail')).toBeInTheDocument();
-    expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
+    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 
   it('keeps the org switcher visible in SaaS mode', () => {
@@ -704,8 +658,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('mounts the flagged universal shell without the legacy terminal dock', async () => {
-    featureFlagState.conversationShell = true;
+  it('mounts the universal shell without the legacy terminal dock', async () => {
     mockPathname.value = '/org-123/brand-123/studio/image';
 
     render(
@@ -730,9 +683,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('restores the exact legacy dock when the flagged shell fails to render', () => {
-    featureFlagState.conversationShell = true;
-    featureFlagState.shellThrows = true;
+  it('keeps render failures inside the agent-first error boundary', () => {
+    shellState.shellThrows = true;
     mockPathname.value = '/org-123/brand-123/studio/image';
     const consoleError = vi
       .spyOn(console, 'error')
@@ -744,23 +696,13 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.getByText('Canonical studio content')).toBeInTheDocument();
-    expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
+    expect(screen.queryByText('Canonical studio content')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('universal-workspace-shell'),
     ).not.toBeInTheDocument();
-    expect(appLayoutSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        agentPanel: expect.anything(),
-      }),
-    );
-    expect(appLayoutSpy.mock.lastCall?.[0]).toHaveProperty(
-      'isWorkspaceShell',
-      false,
-    );
-
     const shellAttemptsAfterFailure = universalShellSpy.mock.calls.length;
-    featureFlagState.shellThrows = false;
+    shellState.shellThrows = false;
     view.unmount();
     render(
       <AppProtectedLayout>
@@ -768,11 +710,9 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('universal-workspace-shell'),
-    ).not.toBeInTheDocument();
-    expect(universalShellSpy).toHaveBeenCalledTimes(shellAttemptsAfterFailure);
+    expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
+    expect(screen.getByTestId('universal-workspace-shell')).toBeInTheDocument();
+    expect(universalShellSpy).toHaveBeenCalledTimes(shellAttemptsAfterFailure + 1);
     consoleError.mockRestore();
   });
 
@@ -914,7 +854,6 @@ describe('AppProtectedLayout', () => {
       'Campaign',
     ],
   ] as const)('feeds canonical root and leaf breadcrumb metadata on %s', (pathname, rootLabel, leafLabel) => {
-    featureFlagState.conversationShell = true;
     mockPathname.value = pathname;
 
     render(
@@ -950,7 +889,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('mounts the embedded agent rail outside /agent routes', () => {
+  it('does not mount the legacy embedded agent rail', async () => {
     mockPathname.value = '/workspace';
 
     render(
@@ -959,9 +898,9 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.getByTestId('agent-panel-rail')).toBeInTheDocument();
-    expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
-    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
   });
 
   it('hides the terminal dock on hosted cloud', () => {
@@ -983,7 +922,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('does not infer cloud deployment from the hosted app hostname', () => {
+  it('does not restore the terminal dock from the hosted app hostname', () => {
     Object.defineProperty(window, 'location', {
       configurable: true,
       value: { ...originalLocation, hostname: 'app.genfeed.ai' },
@@ -997,7 +936,7 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(screen.getByTestId('agent-panel-rail')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
   });
 
   it('disables prompt bar and elements providers on workspace home routes', () => {
@@ -1252,35 +1191,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('syncs typed overlay visibility state for the embedded workspace rail', () => {
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
-
-    notifyEntityOverlayOpened('ingredient-overlay');
-    notifyEntityOverlayClosed('ingredient-overlay');
-
-    expect(beginOverlaySessionSpy).toHaveBeenCalledWith('ingredient-overlay');
-    expect(endOverlaySessionSpy).toHaveBeenCalledWith('ingredient-overlay');
-  });
-
-  it('handles typed open-agent requests from active entity inspection', () => {
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
-
-    notifyEntityOverlayOpened('ingredient-overlay');
-    requestAgentFromEntityOverlay('ingredient-overlay');
-
-    expect(setIsOpenSpy).toHaveBeenCalledWith(true);
-    notifyEntityOverlayClosed('ingredient-overlay');
-  });
-
-  it('skips editor-only providers and streak bridge on editor canvas routes', () => {
+  it('keeps editor routes inside the agent-first shell while skipping editor-only providers', async () => {
     mockPathname.value = '/editor/new';
 
     render(
@@ -1296,15 +1207,18 @@ describe('AppProtectedLayout', () => {
         includePromptBarProvider: false,
       }),
     );
-    expect(appLayoutSpy).not.toHaveBeenCalled();
-    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ isWorkspaceShell: true }),
+    );
+    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
+    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('streak-notifications-bridge'),
     ).not.toBeInTheDocument();
   });
 
-  it('keeps workflow editor detail routes outside the generic app shell', () => {
+  it('keeps workflow editor detail routes inside the agent-first shell', async () => {
     mockPathname.value = '/workflows/workflow-123';
 
     render(
@@ -1313,10 +1227,12 @@ describe('AppProtectedLayout', () => {
       </AppProtectedLayout>,
     );
 
-    expect(appLayoutSpy).not.toHaveBeenCalled();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ isWorkspaceShell: true }),
+    );
     expect(screen.getByText('Workflow editor')).toBeInTheDocument();
-    expect(screen.queryByTestId('app-sidebar')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
+    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 });

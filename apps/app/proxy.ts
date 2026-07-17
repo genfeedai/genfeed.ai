@@ -1,5 +1,4 @@
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
-import { isConversationShellEvaluation } from '@genfeedai/config/conversation-shell-rollout';
 import {
   isCloudDeployment,
   isDesktopClient,
@@ -466,31 +465,6 @@ async function shouldRedirectSignedInUserToOnboarding(
   return !ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
 }
 
-async function isConversationShellOnboardingEnabled(
-  token: string,
-): Promise<boolean> {
-  try {
-    const response = await fetch(
-      `${getApiBaseUrl()}/feature-flags/conversation-shell?client=web`,
-      {
-        cache: 'no-store',
-        headers: {
-          Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-    if (!response.ok) {
-      return false;
-    }
-
-    const evaluation: unknown = await response.json();
-    return isConversationShellEvaluation(evaluation) && evaluation.isEnabled;
-  } catch {
-    return false;
-  }
-}
-
 // Matches the org-scoped agent onboarding surface and its threaded children,
 // e.g. `/acme/~/agent/onboarding` and `/acme/~/agent/onboarding/<threadId>`.
 const AGENT_ONBOARDING_PATH_RE = /^\/[^/]+\/~\/agent\/onboarding(?:\/|$)/;
@@ -500,9 +474,9 @@ function isAgentOnboardingPath(pathname: string): boolean {
 }
 
 // Resolve the org-scoped agent onboarding destination for an incomplete user.
-// Agent-first onboarding is available only to enabled SaaS cohorts; callers
-// fall back to the wizard (`ONBOARDING_PATH`) when evaluation or slug resolution
-// fails.
+// SaaS uses this route unconditionally. If slug resolution is temporarily
+// unavailable, callers keep the user inside the protected agent-first bootstrap
+// instead of switching to the classic wizard.
 async function resolveAgentOnboardingRedirect(
   token: string,
   cacheKey?: string | null,
@@ -679,6 +653,8 @@ async function redirectSignedInUserToDefaultRoute(
         }
         return response;
       }
+
+      return redirectDroppingSearch(req, '/');
     }
 
     return redirectDroppingSearch(req, ONBOARDING_PATH);
@@ -864,10 +840,10 @@ export async function proxy(req: NextRequest) {
     }
 
     if (await shouldRedirectSignedInUserToOnboarding(token)) {
-      // Community/Desktop keep the form wizard. SaaS agent-first onboarding
-      // consumes the same server-evaluated organization cohort as the shell;
-      // missing or failed evaluation immediately retains the classic wizard.
-      if (!isSaaS() || !(await isConversationShellOnboardingEnabled(token))) {
+      // Community/Desktop keep the form wizard until their local/BYOK
+      // onboarding path reaches parity. SaaS always uses agent-first
+      // onboarding; there is no rollout flag or legacy-shell kill switch.
+      if (!isSaaS()) {
         return redirectPreservingSearch(req, ONBOARDING_PATH);
       }
 
@@ -890,7 +866,7 @@ export async function proxy(req: NextRequest) {
         return response;
       }
 
-      return redirectPreservingSearch(req, ONBOARDING_PATH);
+      return NextResponse.next();
     }
 
     if (pathname === '/') {

@@ -42,9 +42,7 @@ describe('workspace shell trusted registry', () => {
         /^(authenticated|brand-member|organization-member|platform-admin)$/,
       );
       expect(route.allowedShellModes).toEqual([route.mode]);
-      expect(route.availability).toBe(
-        route.mode === 'dedicated' ? 'always' : 'conversation-shell',
-      );
+      expect(route.availability).toBe('conversation-shell');
       expect(route.canonicalUrl).toMatch(/^\//);
       expect(route.breadcrumb.rootLabel).not.toHaveLength(0);
       expect(route.breadcrumb.leafLabel).not.toHaveLength(0);
@@ -127,12 +125,12 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/posts/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
     ['/:orgSlug/:brandSlug/orchestration/skills', 'canvas'],
-    ['/:orgSlug/:brandSlug/studio/batch', 'dedicated'],
-    ['/:orgSlug/:brandSlug/studio/clips', 'dedicated'],
-    ['/:orgSlug/:brandSlug/studio/fastlane', 'dedicated'],
-    ['/:orgSlug/:brandSlug/settings/publishing', 'dedicated'],
-    ['/:orgSlug/~/settings/billing', 'dedicated'],
-    ['/admin/administration/users', 'dedicated'],
+    ['/:orgSlug/:brandSlug/studio/batch', 'canvas'],
+    ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
+    ['/:orgSlug/:brandSlug/studio/fastlane', 'canvas'],
+    ['/:orgSlug/:brandSlug/settings/publishing', 'canvas'],
+    ['/:orgSlug/~/settings/billing', 'canvas'],
+    ['/admin/administration/users', 'canvas'],
   ] as const)('classifies %s as %s', (pattern, mode) => {
     expect(
       resolveWorkspaceShellRoute(materializeRoutePattern(pattern))?.mode,
@@ -146,7 +144,7 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/workflows/configuration'),
     ).toMatchObject({
-      mode: 'dedicated',
+      mode: 'canvas',
       surfaceKey: 'orchestration-management',
     });
   });
@@ -163,7 +161,7 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/studio/fastlane'),
     ).toMatchObject({
       adapter: { key: 'studio-specialized', status: 'dedicated-route' },
-      mode: 'dedicated',
+      mode: 'canvas',
     });
   });
 
@@ -261,7 +259,7 @@ describe('workspace shell trusted registry', () => {
     );
   });
 
-  it('keeps notifications and deployment-specific dock chrome explicit', () => {
+  it('keeps notifications and trusted overlays explicit', () => {
     expect(
       getWorkspaceShellOverlayRegistration('library-picker'),
     ).toMatchObject({
@@ -297,13 +295,10 @@ describe('workspace shell trusted registry', () => {
       telemetryClass: 'workflow_picker',
     });
     expect(
-      WORKSPACE_SHELL_AUXILIARY_REGISTRY.find(
-        (registration) => registration.key === 'terminal-dock',
+      WORKSPACE_SHELL_AUXILIARY_REGISTRY.some(
+        (registration) => registration.kind === 'chrome',
       ),
-    ).toMatchObject({
-      deployments: ['self-hosted-web', 'desktop'],
-      kind: 'chrome',
-    });
+    ).toBe(false);
   });
 
   it('is immutable and rejects untrusted registry keys', () => {

@@ -109,7 +109,14 @@ export default function OrgLandingContent() {
     }
 
     if (brands.length === 0) {
-      replace(APP_ROUTES.ONBOARDING.ROOT);
+      replace(
+        isSaaS()
+          ? createOrganizationAppRoute(
+              orgSlug,
+              APP_ROUTES.AGENT.ONBOARDING,
+            )
+          : APP_ROUTES.ONBOARDING.ROOT,
+      );
       return;
     }
 

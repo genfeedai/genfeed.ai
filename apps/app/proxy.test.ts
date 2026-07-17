@@ -290,22 +290,6 @@ describe('proxy', () => {
           );
         }
 
-        if (url.endsWith('/feature-flags/conversation-shell?client=web')) {
-          return new Response(
-            JSON.stringify({
-              cohort: 'all',
-              configVersion: 'internal-1',
-              deploymentMode: 'saas',
-              isEnabled: true,
-              evaluatedAt: '2026-07-15T00:00:00.000Z',
-              reason: 'enabled',
-              rollbackRevision: 0,
-              schemaVersion: 1,
-            }),
-            { status: 200 },
-          );
-        }
-
         if (url.endsWith('/organizations/mine')) {
           return new Response(
             JSON.stringify([{ isActive: true, slug: 'acme' }]),
@@ -360,37 +344,9 @@ describe('proxy', () => {
       );
     });
 
-    it('fails SaaS onboarding closed to the classic wizard when cohort evaluation fails', async () => {
+    it('does not consult a runtime flag before opening SaaS agent onboarding', async () => {
       vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
       mockIncompleteUser();
-      fetchMock.mockImplementation(async (input: string | URL) => {
-        const url = String(input);
-
-        if (url.endsWith('/auth/token')) {
-          return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
-            status: 200,
-          });
-        }
-        if (url.endsWith('/auth/bootstrap')) {
-          return new Response(
-            JSON.stringify({
-              access: { brandId: 'brand_1', isOnboardingCompleted: false },
-              brands: [{ id: 'brand_1', slug: 'default' }],
-              currentUser: {
-                id: 'user_1',
-                isOnboardingCompleted: false,
-                onboardingStepsCompleted: [],
-              },
-            }),
-            { status: 200 },
-          );
-        }
-        if (url.includes('/feature-flags/conversation-shell')) {
-          return new Response('unavailable', { status: 503 });
-        }
-
-        return new Response('not found', { status: 404 });
-      });
 
       const { default: proxy } = await import('./proxy');
       const response = await proxy(
@@ -399,7 +355,11 @@ describe('proxy', () => {
       );
 
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding',
+        'http://localhost:3000/acme/~/agent/onboarding',
+      );
+      expect(fetchMock).not.toHaveBeenCalledWith(
+        expect.stringContaining('/feature-flags/'),
+        expect.anything(),
       );
     });
 
