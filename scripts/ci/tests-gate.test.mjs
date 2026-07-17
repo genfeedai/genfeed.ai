@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -26,6 +27,17 @@ function evaluate(env = {}) {
   return evaluateTestsGate(createTestsGateJobs({ ...ALL_SUCCESS_ENV, ...env }));
 }
 
+function runGateCli(env = {}) {
+  const gatePath = fileURLToPath(
+    new URL('./tests-gate.mjs', import.meta.url),
+  );
+
+  return spawnSync(process.execPath, [gatePath], {
+    env: { ...process.env, ...ALL_SUCCESS_ENV, ...env },
+    encoding: 'utf8',
+  });
+}
+
 test('passes when applicable jobs succeed and intentional skips are explicit', () => {
   const result = evaluate();
 
@@ -43,6 +55,13 @@ test('fails when an applicable upstream job fails', () => {
 
   assert.equal(result.passed, false);
   assert.deepEqual(result.failures, ['Package tests failure']);
+});
+
+test('exits non-zero when an applicable upstream job fails', () => {
+  const result = runGateCli({ TEST_PACKAGES_RESULT: 'failure' });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /Gate failures: Package tests failure\./);
 });
 
 test('fails when an upstream job is cancelled', () => {
@@ -115,4 +134,9 @@ test('keeps the workflow contract stable', () => {
   ]) {
     assert.match(workflow, new RegExp(`^      - ${job}$`, 'm'));
   }
+
+  assert.match(
+    workflow,
+    /^ {8}shell: bash\n {8}run: node scripts\/ci\/tests-gate\.mjs \| tee -a "\$GITHUB_STEP_SUMMARY"$/m,
+  );
 });
