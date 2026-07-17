@@ -12,9 +12,9 @@ const ALWAYS_APPLICABLE_JOBS = [
   ['Build', 'BUILD_RESULT'],
 ];
 
-function parseBoolean(value, name) {
+function parseBoolean(value, name, allowEmpty = false) {
   if (value === 'true') return true;
-  if (value === 'false' || value === '') return false;
+  if (value === 'false' || (allowEmpty && value === '')) return false;
   throw new Error(`${name} must be "true" or "false"; received "${value}"`);
 }
 
@@ -29,14 +29,16 @@ function readResult(env, key) {
 }
 
 export function createTestsGateJobs(env) {
-  const appScope = parseBoolean(env.TEST_SCOPE_APP, 'TEST_SCOPE_APP');
-  const apiScope = parseBoolean(env.TEST_SCOPE_API, 'TEST_SCOPE_API');
+  const testScopeResult = readResult(env, 'TEST_SCOPE_RESULT');
+  const allowEmptyScope = testScopeResult !== 'success';
+  const appScope = parseBoolean(env.TEST_SCOPE_APP, 'TEST_SCOPE_APP', allowEmptyScope);
+  const apiScope = parseBoolean(env.TEST_SCOPE_API, 'TEST_SCOPE_API', allowEmptyScope);
   const fullSuite = parseBoolean(env.FULL_SUITE, 'FULL_SUITE');
 
   return [
     {
       name: 'Test scope',
-      result: readResult(env, 'TEST_SCOPE_RESULT'),
+      result: testScopeResult,
       applicable: true,
     },
     ...ALWAYS_APPLICABLE_JOBS.map(([name, key]) => ({

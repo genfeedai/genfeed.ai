@@ -91,6 +91,17 @@ test('reports a scope failure when its outputs are empty', () => {
   assert.deepEqual(result.failures, ['Test scope failure']);
 });
 
+test('fails closed when a successful scope job omits its outputs', () => {
+  const result = runGateCli({
+    TEST_SCOPE_APP: '',
+    TEST_SCOPE_API: '',
+    TEST_SCOPE_RESULT: 'success',
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /TEST_SCOPE_APP must be "true" or "false"/);
+});
+
 test('switches full-suite applicability without accepting missing matrix jobs', () => {
   const result = evaluate({
     FULL_SUITE: 'true',
