@@ -662,19 +662,25 @@ function addDuplicateIdViolations(
 function buildAssetManifest(
   tracks: IEditorTrack[],
 ): IEditorExportAssetReference[] {
-  return tracks.flatMap((track) => {
-    if (track.type === EditorTrackType.TEXT) {
-      return [];
-    }
+  const assetTracks = tracks.filter(
+    (
+      track,
+    ): track is IEditorTrack & {
+      type: EditorTrackType.AUDIO | EditorTrackType.VIDEO;
+    } =>
+      track.type === EditorTrackType.AUDIO ||
+      track.type === EditorTrackType.VIDEO,
+  );
 
-    return track.clips.map((clip) => ({
+  return assetTracks.flatMap((track) =>
+    track.clips.map((clip) => ({
       clipId: clip.id,
       ingredientId: clip.ingredientId,
       ingredientUrl: clip.ingredientUrl,
       trackId: track.id,
       type: track.type,
-    }));
-  });
+    })),
+  );
 }
 
 export function buildValidatedEditorExportContract(
