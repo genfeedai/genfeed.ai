@@ -2,8 +2,8 @@ import { spawnSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -101,6 +101,7 @@ function duplicateValues(values: string[]): string[] {
 export function validateApiE2eTierManifest(
   discoveredFiles: string[],
   manifest: ApiE2eTierManifest = API_E2E_TIER_MANIFEST,
+  tier: ApiE2eTier = 'full',
 ): string[] {
   const discovered = new Set(discoveredFiles);
   const coreDuplicates = duplicateValues(manifest.coreFiles);
@@ -122,7 +123,7 @@ export function validateApiE2eTierManifest(
   }
 
   for (const exclusion of manifest.exclusions) {
-    if (!discovered.has(exclusion.file)) {
+    if (tier === 'full' && !discovered.has(exclusion.file)) {
       errors.push(`Excluded file is not discoverable: ${exclusion.file}`);
     }
     if (exclusion.reason.trim().length === 0) {
@@ -152,6 +153,7 @@ export function buildApiE2eTierPlan(options: {
   const manifestErrors = validateApiE2eTierManifest(
     discoveredFiles,
     manifest,
+    options.tier,
   );
 
   if (manifestErrors.length > 0) {
@@ -162,9 +164,7 @@ export function buildApiE2eTierPlan(options: {
     );
   }
 
-  const excludedPaths = new Set(
-    manifest.exclusions.map(({ file }) => file),
-  );
+  const excludedPaths = new Set(manifest.exclusions.map(({ file }) => file));
   const selectedFiles =
     options.tier === 'core'
       ? [...manifest.coreFiles]
@@ -172,8 +172,7 @@ export function buildApiE2eTierPlan(options: {
 
   return {
     discoveredFiles,
-    excludedFiles:
-      options.tier === 'full' ? [...manifest.exclusions] : [],
+    excludedFiles: options.tier === 'full' ? [...manifest.exclusions] : [],
     selectedFiles,
     tier: options.tier,
   };
@@ -198,10 +197,7 @@ function readVitestReport(reportPath: string): VitestJsonReport {
   return JSON.parse(readFileSync(reportPath, 'utf8')) as VitestJsonReport;
 }
 
-function writeRunReport(
-  reportPath: string,
-  report: ApiE2eRunReport,
-): void {
+function writeRunReport(reportPath: string, report: ApiE2eRunReport): void {
   mkdirSync(path.dirname(reportPath), { recursive: true });
   writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
 }
@@ -302,7 +298,9 @@ function runApiE2eTier(options: CliOptions): number {
         .length ??
       0;
   } else if (vitestExitCode === 0) {
-    console.error('[api-e2e] Vitest exited cleanly without writing its JSON report.');
+    console.error(
+      '[api-e2e] Vitest exited cleanly without writing its JSON report.',
+    );
     vitestExitCode = 1;
   }
 

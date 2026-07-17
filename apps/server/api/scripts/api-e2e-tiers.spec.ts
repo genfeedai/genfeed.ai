@@ -2,12 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { ApiE2eTierManifest } from './api-e2e-tiers.manifest';
 import {
   buildApiE2eTierPlan,
   discoverApiE2eSpecs,
   validateApiE2eTierManifest,
 } from './api-e2e-tiers';
+import type { ApiE2eTierManifest } from './api-e2e-tiers.manifest';
 
 const testDirectories: string[] = [];
 
@@ -61,13 +61,16 @@ describe('API E2E tiers', () => {
       'test/integration/new.integration.spec.ts',
     ];
     const rootDir = createFixture(files);
-    const tierManifest = manifest(['test/e2e/core.e2e-spec.ts'], [
-      {
-        file: 'test/integration/excluded.integration.spec.ts',
-        reason: 'Requires a hermetic replacement.',
-        trackingIssue: 71,
-      },
-    ]);
+    const tierManifest = manifest(
+      ['test/e2e/core.e2e-spec.ts'],
+      [
+        {
+          file: 'test/integration/excluded.integration.spec.ts',
+          reason: 'Requires a hermetic replacement.',
+          trackingIssue: 71,
+        },
+      ],
+    );
 
     expect(
       buildApiE2eTierPlan({
@@ -94,13 +97,16 @@ describe('API E2E tiers', () => {
     expect(
       validateApiE2eTierManifest(
         files,
-        manifest([], [
-          {
-            file: files[0]!,
-            reason: ' ',
-            trackingIssue: 0,
-          },
-        ]),
+        manifest(
+          [],
+          [
+            {
+              file: files[0]!,
+              reason: ' ',
+              trackingIssue: 0,
+            },
+          ],
+        ),
       ),
     ).toEqual([
       `Excluded file has no reason: ${files[0]}`,
@@ -112,17 +118,51 @@ describe('API E2E tiers', () => {
     expect(
       validateApiE2eTierManifest(
         ['test/e2e/renamed.e2e-spec.ts'],
-        manifest(['test/e2e/missing.e2e-spec.ts'], [
-          {
-            file: 'test/integration/missing.integration.spec.ts',
-            reason: 'Pending repair.',
-            trackingIssue: 71,
-          },
-        ]),
+        manifest(
+          ['test/e2e/missing.e2e-spec.ts'],
+          [
+            {
+              file: 'test/integration/missing.integration.spec.ts',
+              reason: 'Pending repair.',
+              trackingIssue: 71,
+            },
+          ],
+        ),
       ),
     ).toEqual([
       'Core file is not discoverable: test/e2e/missing.e2e-spec.ts',
       'Excluded file is not discoverable: test/integration/missing.integration.spec.ts',
     ]);
+  });
+
+  it('does not fail the required core tier when a full-tier exclusion is deleted', () => {
+    const rootDir = createFixture(['test/e2e/core.e2e-spec.ts']);
+    const tierManifest = manifest(
+      ['test/e2e/core.e2e-spec.ts'],
+      [
+        {
+          file: 'test/integration/deleted.integration.spec.ts',
+          reason: 'Pending repair.',
+          trackingIssue: 71,
+        },
+      ],
+    );
+
+    expect(
+      buildApiE2eTierPlan({
+        manifest: tierManifest,
+        rootDir,
+        tier: 'core',
+      }).selectedFiles,
+    ).toEqual(['test/e2e/core.e2e-spec.ts']);
+    expect(() =>
+      buildApiE2eTierPlan({
+        manifest: tierManifest,
+        rootDir,
+        tier: 'full',
+      }),
+    ).toThrow(
+      'Excluded file is not discoverable: test/integration/deleted.integration.spec.ts',
+    );
   });
 });
