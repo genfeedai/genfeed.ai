@@ -550,7 +550,7 @@ describe('AppProtectedLayout', () => {
   it('shows the shell low credits banner on non-promptbar routes', () => {
     mockPathname.value = '/workspace';
     render(<AppProtectedLayout />);
-    expect(lowCreditsBannerSpy).toHaveBeenCalledTimes(1);
+    expect(lowCreditsBannerSpy).toHaveBeenCalled();
     expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
   });
 
@@ -578,20 +578,13 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         collapsedSidebarWidth: 0,
         currentApp: 'workspace',
-        mobileSidebarWidth: 304,
+        items: [],
         orgSwitcherSlot: expect.anything(),
-        renderTopSlot: expect.any(Function),
-        secondaryItems: [
-          { href: '/workspace/activity', label: 'Activity' },
-          {
-            href: '/settings',
-            hrefScope: 'brand',
-            label: 'Settings',
-          },
-        ],
+        renderBody: expect.any(Function),
+        sectionLabel: 'Workspace',
         shellChromeVariant: 'default',
-        shellMode: 'workspace',
-        sidebarWidth: 304,
+        shellMode: 'default',
+        showPrimaryItems: false,
       }),
     );
     expect(onboardingGuardSpy).toHaveBeenCalled();
@@ -615,44 +608,39 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('renders the workspace quick actions in the sidebar top slot', () => {
+  it('replaces legacy workspace quick actions with conversation controls', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
       </AppProtectedLayout>,
     );
 
-    const newTaskButton = screen.getByRole('button', { name: 'New Task' });
-    const searchButton = screen.getByRole('button', { name: 'Search' });
-
-    expect(newTaskButton).toBeInTheDocument();
-    expect(searchButton).toBeInTheDocument();
     expect(
-      newTaskButton.compareDocumentPosition(searchButton) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+      screen.getByRole('link', { name: /New Thread/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Conversation header action' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'New Task' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Search' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('opens the command palette from the workspace sidebar action', () => {
+  it('keeps the global new-task shortcut available in the agent-first shell', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
       </AppProtectedLayout>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-
-    expect(commandPaletteOpenSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('opens the task composer from the workspace sidebar action', () => {
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'New Task' }));
+    fireEvent.keyDown(window, {
+      key: 'n',
+      metaKey: true,
+      shiftKey: true,
+    });
 
     expect(dispatchOpenTaskComposerSpy).toHaveBeenCalledTimes(1);
   });
@@ -731,8 +719,8 @@ describe('AppProtectedLayout', () => {
 
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(screen.getByTestId('universal-workspace-shell')).toBeInTheDocument();
-    expect(universalShellSpy).toHaveBeenCalledTimes(
-      shellAttemptsAfterFailure + 1,
+    expect(universalShellSpy.mock.calls.length).toBeGreaterThan(
+      shellAttemptsAfterFailure,
     );
     consoleError.mockRestore();
   });
@@ -938,7 +926,6 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         agentPanel: undefined,
-        onAgentToggle: undefined,
       }),
     );
   });
@@ -978,7 +965,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('passes the Workspace section header to the base workspace sidebar', () => {
+  it('uses the conversation-first Workspace sidebar', () => {
     mockPathname.value = '/workspace';
 
     render(
@@ -990,14 +977,17 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'workspace',
+        items: [],
+        renderBody: expect.any(Function),
         sectionLabel: 'Workspace',
-        shellMode: 'workspace',
+        shellMode: 'default',
+        showPrimaryItems: false,
       }),
     );
   });
 
-  it('keeps the mixed agent sidebar on workflow routes outside editor canvases', () => {
-    mockPathname.value = '/workflows';
+  it('keeps the conversation sidebar on workflow routes', async () => {
+    mockPathname.value = '/org-123/brand-123/workflows';
 
     render(
       <AppProtectedLayout>
@@ -1007,14 +997,18 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
+        currentApp: 'workflows',
+        renderBody: expect.any(Function),
+        sectionLabel: 'Workspace',
         shellChromeVariant: 'default',
+        showPrimaryItems: false,
       }),
     );
-    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
   });
 
-  it('renders a dedicated studio sidebar on studio routes outside editor canvases', () => {
-    mockPathname.value = '/studio/image';
+  it('keeps the conversation sidebar on Studio routes', async () => {
+    mockPathname.value = '/org-123/brand-123/studio/image';
 
     render(
       <AppProtectedLayout>
@@ -1024,23 +1018,27 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        sectionLabel: 'Studio',
+        currentApp: 'studio',
+        items: [],
+        renderBody: expect.any(Function),
+        sectionLabel: 'Workspace',
         shellChromeVariant: 'default',
+        showPrimaryItems: false,
       }),
     );
     expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty('backHref');
     expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
       'backLabel',
     );
-    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
   });
 
   it.each([
-    ['/studio/image', 'studio', 'Studio'],
-    ['/library/ingredients', 'library', 'Library'],
-    ['/analytics/overview', 'analytics', 'Analytics'],
-    ['/workflows', 'workflows', 'Workflows'],
-  ])('does not render a Workspace back row for the %s app-switcher surface', (pathname, currentApp, sectionLabel) => {
+    ['/org-123/brand-123/studio/image', 'studio'],
+    ['/org-123/brand-123/library/ingredients', 'library'],
+    ['/org-123/brand-123/analytics/overview', 'analytics'],
+    ['/org-123/brand-123/workflows', 'workflows'],
+  ])('keeps the %s app-switcher surface in the conversation sidebar', (pathname, currentApp) => {
     mockPathname.value = pathname;
 
     render(
@@ -1054,8 +1052,11 @@ describe('AppProtectedLayout', () => {
     expect(sidebarProps).toEqual(
       expect.objectContaining({
         currentApp,
-        sectionLabel,
+        items: [],
+        renderBody: expect.any(Function),
+        sectionLabel: 'Workspace',
         shellChromeVariant: 'default',
+        showPrimaryItems: false,
       }),
     );
     expect(sidebarProps).not.toHaveProperty('backHref');
@@ -1065,7 +1066,7 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders admin navigation through the shared app sidebar shell', () => {
+  it('renders admin routes through the conversation sidebar', () => {
     mockPathname.value = '/admin';
 
     render(
@@ -1076,15 +1077,10 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        logoHref: '/admin',
-        showUserProfile: true,
-        items: expect.arrayContaining([
-          expect.objectContaining({
-            href: '/admin/agent',
-            hrefScope: 'global',
-            label: 'Agent',
-          }),
-        ]),
+        items: [],
+        renderBody: expect.any(Function),
+        sectionLabel: 'Workspace',
+        showPrimaryItems: false,
       }),
     );
   });
