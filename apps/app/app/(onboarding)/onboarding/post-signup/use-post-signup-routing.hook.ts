@@ -57,62 +57,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const proactiveLeadId = authUser?.publicMetadata?.proactiveLeadId;
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
 
-  // Base href for post-checkout returns. SaaS resumes in agent-first
-  // onboarding; Community/Desktop retain the deterministic wizard until their
-  // local/BYOK onboarding reaches parity.
-  const resolveCheckoutReturnHref = useCallback(async (): Promise<string> => {
-    if (proactiveLeadId) {
-      return '/onboarding/proactive';
-    }
-
-    const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
-    const hasCompletedAllOnboardingSteps =
-      currentUser?.isOnboardingCompleted === true ||
-      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
-
-    if (hasCompletedAllOnboardingSteps) {
-      return '/';
-    }
-
-    const resumeStep = getResumeStep(completedSteps);
-    const storedBrandDomain = localStorage.getItem(
-      ONBOARDING_STORAGE_KEYS.brandDomain,
-    );
-    const onboardingHref = buildOnboardingResumeHref(
-      resumeStep,
-      storedBrandDomain,
-    );
-
-    if (!isSaaS()) {
-      return onboardingHref;
-    }
-
-    const token = await resolveAuthToken(getToken);
-    if (!token) {
-      return '/';
-    }
-
-    const organizations = await OrganizationsService.getInstance(token)
-      .getMyOrganizations()
-      .catch((error) => {
-        logger.error(
-          'Failed to resolve organizations for post-signup routing',
-          error,
-        );
-        return [];
-      });
-    const activeOrganization =
-      organizations.find((organization) => organization.isActive) ??
-      organizations[0];
-
-    return activeOrganization?.slug
-      ? createOrganizationAppRoute(
-          activeOrganization.slug,
-          APP_ROUTES.AGENT.ONBOARDING,
-        )
-      : '/';
-  }, [currentUser, getToken, proactiveLeadId]);
-
   // Resolve the active organization slug so we can build the org-scoped agent
   // onboarding route. Missing SaaS scope returns to the protected bootstrap,
   // never to the classic wizard.
@@ -138,6 +82,38 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
     return activeOrganization?.slug ?? null;
   }, [getToken]);
+
+  // Base href for post-checkout returns. SaaS resumes in agent-first
+  // onboarding; Community/Desktop retain the deterministic wizard until their
+  // local/BYOK onboarding reaches parity.
+  const resolveCheckoutReturnHref = useCallback(async (): Promise<string> => {
+    if (proactiveLeadId) {
+      return '/onboarding/proactive';
+    }
+
+    const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
+    const hasCompletedAllOnboardingSteps =
+      currentUser?.isOnboardingCompleted === true ||
+      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
+
+    if (hasCompletedAllOnboardingSteps) {
+      return '/';
+    }
+
+    const onboardingHref = buildOnboardingResumeHref(
+      getResumeStep(completedSteps),
+      localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
+    );
+
+    if (!isSaaS()) {
+      return onboardingHref;
+    }
+
+    const orgSlug = await resolveActiveOrgSlug();
+    return orgSlug
+      ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
+      : '/';
+  }, [currentUser, proactiveLeadId, resolveActiveOrgSlug]);
 
   // Default first-run destination. Agent-first onboarding is the cloud SaaS
   // default; self-hosted/desktop keep the form wizard because the agent

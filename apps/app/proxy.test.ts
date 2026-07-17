@@ -265,7 +265,11 @@ describe('proxy', () => {
   });
 
   describe('agent-first onboarding (SaaS)', () => {
-    const mockIncompleteUser = () =>
+    const mockIncompleteUser = (
+      organizations: Array<{ isActive: boolean; slug: string }> = [
+        { isActive: true, slug: 'acme' },
+      ],
+    ) =>
       fetchMock.mockImplementation(async (input: string | URL) => {
         const url = String(input);
 
@@ -291,10 +295,7 @@ describe('proxy', () => {
         }
 
         if (url.endsWith('/organizations/mine')) {
-          return new Response(
-            JSON.stringify([{ isActive: true, slug: 'acme' }]),
-            { status: 200 },
-          );
+          return new Response(JSON.stringify(organizations), { status: 200 });
         }
 
         return new Response('not found', { status: 404 });
@@ -361,6 +362,20 @@ describe('proxy', () => {
         expect.stringContaining('/feature-flags/'),
         expect.anything(),
       );
+    });
+
+    it('contains incomplete SaaS users at protected root while organization provisioning is pending', async () => {
+      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+      mockIncompleteUser([]);
+
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeSignedInRequest('/settings'),
+        {} as never,
+      );
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe('http://localhost:3000/');
     });
 
     it('does not route cloud-connected desktop users into web agent onboarding', async () => {

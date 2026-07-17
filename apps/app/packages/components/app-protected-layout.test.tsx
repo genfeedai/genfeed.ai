@@ -21,7 +21,7 @@ const {
   appSidebarSpy: vi.fn(),
   commandPaletteOpenSpy: vi.fn(),
   dispatchOpenTaskComposerSpy: vi.fn(),
-  shellState: { shellThrows: false },
+  shellState: { isShellThrowing: false },
   lowCreditsBannerSpy: vi.fn(),
   onboardingGuardSpy: vi.fn(),
   protectedProvidersSpy: vi.fn(),
@@ -321,7 +321,7 @@ vi.mock('next/dynamic', () => ({
         children: ReactNode;
       }) {
         universalShellSpy();
-        if (shellState.shellThrows) {
+        if (shellState.isShellThrowing) {
           throw new Error('workspace shell render failed');
         }
         return <div data-testid="universal-workspace-shell">{children}</div>;
@@ -345,6 +345,14 @@ vi.mock('@genfeedai/agent', () => ({
       threads: [],
     }),
   useAgentPageContext: vi.fn(),
+}));
+
+vi.mock('@/hooks/useOptionalAuth', () => ({
+  useOptionalAuth: () => ({
+    getToken: vi.fn().mockResolvedValue('token'),
+    isLoaded: true,
+    isSignedIn: true,
+  }),
 }));
 
 vi.mock('@hooks/auth/use-is-super-admin/use-is-super-admin', () => ({
@@ -475,7 +483,7 @@ vi.mock('@services/core/agent-overlay-coordination.service', async () => {
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockPathname.value = '/workspace';
-    shellState.shellThrows = false;
+    shellState.isShellThrowing = false;
     sessionStorage.clear();
     mockBrandState.brandId = 'brand-123';
     mockRouteParams.brandSlug = 'brand-123';
@@ -684,7 +692,7 @@ describe('AppProtectedLayout', () => {
   });
 
   it('keeps render failures inside the agent-first error boundary', () => {
-    shellState.shellThrows = true;
+    shellState.isShellThrowing = true;
     mockPathname.value = '/org-123/brand-123/studio/image';
     const consoleError = vi
       .spyOn(console, 'error')
@@ -704,7 +712,7 @@ describe('AppProtectedLayout', () => {
       screen.queryByTestId('universal-workspace-shell'),
     ).not.toBeInTheDocument();
     const shellAttemptsAfterFailure = universalShellSpy.mock.calls.length;
-    shellState.shellThrows = false;
+    shellState.isShellThrowing = false;
     view.unmount();
     render(
       <AppProtectedLayout>

@@ -866,7 +866,9 @@ export async function proxy(req: NextRequest) {
         return response;
       }
 
-      return NextResponse.next();
+      return pathname === '/'
+        ? NextResponse.next()
+        : redirectPreservingSearch(req, '/');
     }
 
     if (pathname === '/') {

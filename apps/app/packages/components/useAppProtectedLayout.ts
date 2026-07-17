@@ -182,7 +182,7 @@ export function useAppProtectedLayout(
     isConversationRoute || isUniversalWorkspaceShell;
 
   const { push, refresh } = useRouter();
-  const { getToken, isSignedIn } = useOptionalAuth();
+  const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useOptionalAuth();
   const prevIsSignedInRef = useRef(false);
   useEffect(() => {
     if (isSignedIn && !prevIsSignedInRef.current) {
@@ -211,7 +211,7 @@ export function useAppProtectedLayout(
   const { orgSlug, brandSlug } = useOrgUrl();
 
   const agentApiService = useMemo(() => {
-    if (!shouldInitAgentApiService) {
+    if (!shouldInitAgentApiService || !isAuthLoaded || !isSignedIn) {
       return null;
     }
 
@@ -220,7 +220,7 @@ export function useAppProtectedLayout(
       getToken: async (options) =>
         resolveAuthToken(getTokenRef.current, options),
     });
-  }, [shouldInitAgentApiService]);
+  }, [isAuthLoaded, isSignedIn, shouldInitAgentApiService]);
 
   const menuItems = useMemo(
     () =>
