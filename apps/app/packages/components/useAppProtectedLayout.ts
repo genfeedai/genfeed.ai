@@ -21,6 +21,7 @@ import {
   useAgentPageContext,
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
+import { isEEEnabled } from '@genfeedai/config/license';
 import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
