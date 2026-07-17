@@ -26,12 +26,21 @@ test.describe('Core Automation Loop', () => {
     await mockNodeTypes(automationPage, testNodeTypes);
   });
 
-  test('workflow library shows the main automation entry points', async ({
+  test('workflow library stays available inside the agent-first canvas', async ({
     automationPage,
   }) => {
     await automationPage.goto('/workflows');
 
     await expect(automationPage).toHaveURL(/\/workflows$/);
+    await expect(
+      automationPage.getByTestId('sidebar-shell').first(),
+    ).toHaveAttribute('data-shell-section-label', 'Workspace');
+    await expect(
+      automationPage.getByTestId('universal-workspace-shell'),
+    ).toHaveAttribute('data-workspace-surface', 'workflows');
+    await expect(
+      automationPage.getByTestId('workspace-canvas-layout'),
+    ).toBeVisible();
     await expect(
       automationPage.getByRole('heading', { name: 'Workflows' }),
     ).toBeVisible();
@@ -44,11 +53,6 @@ test.describe('Core Automation Loop', () => {
     await expect(
       automationPage.getByRole('link', { name: 'Autopilot' }).first(),
     ).toHaveAttribute('href', /\/orchestration\/autopilot$/);
-    await expect(
-      automationPage
-        .getByText('No workflows yet')
-        .or(automationPage.getByText(testWorkflows[0].name)),
-    ).toBeVisible();
   });
 
   test('template install flows into the editor bootstrap path', async ({
