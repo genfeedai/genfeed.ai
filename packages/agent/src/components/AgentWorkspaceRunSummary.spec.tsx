@@ -241,4 +241,21 @@ describe('AgentWorkspaceRunSummary', () => {
     expect(apiService.listRunsEffect).toHaveBeenCalledTimes(2);
     expect(apiService.getRunEffect).toHaveBeenCalledTimes(2);
   });
+
+  it('keeps the loaded detail visible when a run action fails', async () => {
+    const run = createRun();
+    const apiService = createApiService({
+      cancelRunEffect: vi.fn(() => Effect.fail('unavailable')),
+      getRunEffect: vi.fn(() => Effect.succeed(run)),
+      listRunsEffect: vi.fn(() => Effect.succeed(createPage([run]))),
+    });
+
+    render(<AgentWorkspaceRunSummary apiService={apiService as never} />);
+
+    await screen.findByLabelText('Cancel Long content run');
+    fireEvent.click(screen.getByLabelText('Cancel Long content run'));
+
+    await screen.findByText('Failed to cancel agent run.');
+    expect(screen.getByText('web_search')).toBeInTheDocument();
+  });
 });

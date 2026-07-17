@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { sanitizeAgentRunForSerialization } from './agent-run.helper';
+import {
+  sanitizeAgentRunCollectionForSerialization,
+  sanitizeAgentRunForSerialization,
+} from './agent-run.helper';
 
 describe('sanitizeAgentRunForSerialization', () => {
   it('keeps operator provenance while removing provider payloads and secrets', () => {
@@ -56,5 +59,57 @@ describe('sanitizeAgentRunForSerialization', () => {
       { status: 'completed', toolName: 'web_search' },
     ]);
     expect(sanitized.error).toBe('Request failed with Bearer [REDACTED]');
+  });
+
+  it('preserves absent fields and normalizes malformed structured values', () => {
+    expect(sanitizeAgentRunForSerialization({ id: 'run-1' })).toEqual({
+      id: 'run-1',
+    });
+
+    expect(
+      sanitizeAgentRunForSerialization({
+        id: 'run-2',
+        label: 42,
+        metadata: 'invalid',
+        steps: { id: 'not-an-array' },
+        toolCalls: null,
+      }),
+    ).toEqual({
+      id: 'run-2',
+      label: 42,
+      metadata: {},
+      steps: [],
+      toolCalls: [],
+    });
+  });
+
+  it('bounds public text fields and sanitizes each collection item', () => {
+    const collection = sanitizeAgentRunCollectionForSerialization({
+      docs: [
+        {
+          id: 'run-1',
+          label: 'l'.repeat(300),
+          objective: 'o'.repeat(1_100),
+          summary: 's'.repeat(2_100),
+        },
+        {
+          id: 'run-2',
+          metadata: {
+            agentScope: 'invalid',
+            source: 'agent',
+          },
+        },
+      ],
+      total: 2,
+    });
+
+    expect(collection.total).toBe(2);
+    expect(collection.docs[0]?.label).toHaveLength(240);
+    expect(collection.docs[0]?.objective).toHaveLength(1_000);
+    expect(collection.docs[0]?.summary).toHaveLength(2_000);
+    expect(collection.docs[1]?.metadata).toEqual({
+      agentScope: {},
+      source: 'agent',
+    });
   });
 });
