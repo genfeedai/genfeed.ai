@@ -299,6 +299,31 @@ describe('EditorRenderService', () => {
       );
     });
 
+    it('should reject contract-valid audio tracks that the current renderer cannot consume', async () => {
+      editorProjectsService.findForRender.mockResolvedValue(
+        makeProject([
+          makeTrack(EditorTrackType.VIDEO),
+          {
+            ...makeTrack(EditorTrackType.AUDIO),
+            id: 'audio-track',
+            clips: [
+              {
+                ...makeTrack(EditorTrackType.AUDIO).clips[0],
+                id: 'audio-clip',
+              },
+            ],
+          },
+        ]),
+      );
+
+      await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
+        'Audio tracks require the multi-track renderer',
+      );
+      expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
+      expect(sharedService.saveDocuments).not.toHaveBeenCalled();
+      expect(fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
+
     it('should throw NotFoundException when source video not found', async () => {
       ingredientsService.findOne.mockResolvedValue(null);
 

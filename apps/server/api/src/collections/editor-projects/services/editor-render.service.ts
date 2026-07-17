@@ -133,6 +133,9 @@ export class EditorRenderService {
     const videoTracks = project.tracks.filter(
       (t) => t.type === EditorTrackType.VIDEO,
     );
+    const audioTracks = project.tracks.filter(
+      (t) => t.type === EditorTrackType.AUDIO,
+    );
     const textTracks = project.tracks.filter(
       (t) => t.type === EditorTrackType.TEXT,
     );
@@ -159,6 +162,12 @@ export class EditorRenderService {
     if (videoTrack.clips.length > 1) {
       throw new UnprocessableEntityException(
         'Multi-clip timelines are not yet supported. Please use a single video clip.',
+      );
+    }
+
+    if (audioTracks.length > 0) {
+      throw new UnprocessableEntityException(
+        'Audio tracks require the multi-track renderer and cannot be rendered by the current version.',
       );
     }
 
