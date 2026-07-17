@@ -129,8 +129,7 @@ export function AgentWorkspaceRunSummary({
         ),
       )
         .then(
-          (run) =>
-            updateIfRequestActive(signal, () => setSelectedRun(run)),
+          (run) => updateIfRequestActive(signal, () => setSelectedRun(run)),
           (error) =>
             updateIfRequestActive(signal, () =>
               setDetailError(
@@ -325,9 +324,7 @@ export function AgentWorkspaceRunSummary({
                             {run.label || 'Untitled run'}
                           </p>
                           <p className="mt-1 truncate text-xs text-muted-foreground">
-                            {formatRunTimestamp(
-                              run.startedAt ?? run.createdAt,
-                            )}
+                            {formatRunTimestamp(run.startedAt ?? run.createdAt)}
                           </p>
                         </div>
                         <AgentRunStatusBadge status={run.status} />

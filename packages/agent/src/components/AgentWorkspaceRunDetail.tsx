@@ -76,10 +76,9 @@ function AgentRunCancelAction({
   actionRunId,
   onCancel,
   run,
-}: Pick<
-  AgentWorkspaceRunDetailProps,
-  'actionRunId' | 'onCancel'
-> & { run: AgentRunSummary }): ReactElement | null {
+}: Pick<AgentWorkspaceRunDetailProps, 'actionRunId' | 'onCancel'> & {
+  run: AgentRunSummary;
+}): ReactElement | null {
   if (!isRunCancellable(run.status)) {
     return null;
   }
@@ -151,11 +150,7 @@ function AgentRunProgress({ run }: { run: AgentRunSummary }): ReactElement {
   );
 }
 
-function AgentRunFailure({
-  error,
-}: {
-  error?: string;
-}): ReactElement | null {
+function AgentRunFailure({ error }: { error?: string }): ReactElement | null {
   if (!error) {
     return null;
   }
