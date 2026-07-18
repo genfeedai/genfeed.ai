@@ -259,6 +259,19 @@ jobs:
           cache-turbo: 'false'
       - name: Architecture Guards
         run: bun run check:architecture
+      - name: Runtime Complexity
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          elif git rev-parse HEAD~1 >/dev/null 2>&1; then
+            BASE="HEAD~1"
+          else
+            echo "No parent commit available; skipping changed-file runtime complexity guard"
+            exit 0
+          fi
+          bun run check:runtime-complexity -- --base "$BASE"
+      - name: Runtime Complexity Fixtures
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-runtime-complexity.test.ts
       - name: DI Value Imports
         run: bun run check:di-value-imports
       - name: Desktop Schema Drift
