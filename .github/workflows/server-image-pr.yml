@@ -4,7 +4,8 @@ on:
   pull_request:
     paths:
       - 'apps/server/**'
-      - 'packages/workflows/**'
+      - 'packages/**'
+      - 'ee/packages/billing/**'
       - 'docker/Dockerfile.server'
       - 'bun.lock'
       - 'package.json'

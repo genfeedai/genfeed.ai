@@ -48,7 +48,12 @@ export default defineConfig({
     // (vitest 4 removed environmentMatchGlobs.)
     environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.spec.ts', 'src/**/*.test.ts', 'src/**/*.test.tsx'],
+    include: [
+      'src/**/*.spec.ts',
+      'src/**/*.spec.tsx',
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+    ],
     setupFiles: ['./vitest.setup.ts'],
     testTimeout: 15000,
   },
