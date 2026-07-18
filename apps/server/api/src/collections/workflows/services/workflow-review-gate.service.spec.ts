@@ -118,12 +118,36 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
     expect(executionsService.updateNodeResult).not.toHaveBeenCalled();
   });
 
-  it('allows exactly one resolution when a human and timeout sweep race', async () => {
+  it.each([
+    'human',
+    'timeout',
+  ] as const)('allows exactly one resolution when %s wins a human/timeout race', async (winner) => {
+    executionsService.findOne.mockResolvedValue(
+      buildExecution({
+        metadata: {
+          pendingApproval: {
+            autoApproveIfNoResponse: false,
+            nodeId: NODE_ID,
+            notifyChannels: [],
+            requestedAt: new Date().toISOString(),
+            timeoutHours: 1,
+          },
+        },
+      }),
+    );
+
+    let releaseWinner!: () => void;
+    const winnerCanFinish = new Promise<void>((resolve) => {
+      releaseWinner = resolve;
+    });
     executionsService.claimPendingReviewGate
-      .mockResolvedValueOnce(true)
+      .mockImplementationOnce(async () => {
+        await winnerCanFinish;
+        return true;
+      })
       .mockResolvedValueOnce(false);
 
-    const [humanResolution, timeoutResolution] = await Promise.all([
+    const resolveAsHuman = () =>
       service.submitReviewGateApproval(
         WORKFLOW_ID,
         EXECUTION_ID,
@@ -132,18 +156,51 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
         NODE_ID,
         false,
         'needs changes',
-      ),
+      );
+    const resolveAsTimeout = () =>
       service.resolveTimedOutReviewGate(
         WORKFLOW_ID,
         EXECUTION_ID,
         ORGANIZATION_ID,
         NODE_ID,
-      ),
+      );
+
+    const winningResolution =
+      winner === 'human' ? resolveAsHuman() : resolveAsTimeout();
+    await vi.waitFor(() =>
+      expect(executionsService.claimPendingReviewGate).toHaveBeenCalledTimes(1),
+    );
+
+    const losingResolution =
+      winner === 'human' ? resolveAsTimeout() : resolveAsHuman();
+    await vi.waitFor(() =>
+      expect(executionsService.claimPendingReviewGate).toHaveBeenCalledTimes(2),
+    );
+    releaseWinner();
+
+    const [winningResult, losingResult] = await Promise.allSettled([
+      winningResolution,
+      losingResolution,
     ]);
 
-    expect(humanResolution.status).toBe('rejected');
-    expect(timeoutResolution).toBeNull();
-    expect(executionsService.claimPendingReviewGate).toHaveBeenCalledTimes(2);
+    expect(winningResult).toMatchObject({
+      status: 'fulfilled',
+      value:
+        winner === 'human'
+          ? expect.objectContaining({ status: 'rejected' })
+          : expect.objectContaining({ resolution: 'rejected' }),
+    });
+    if (winner === 'human') {
+      expect(losingResult).toMatchObject({
+        status: 'fulfilled',
+        value: null,
+      });
+    } else {
+      expect(losingResult).toMatchObject({
+        reason: expect.any(BadRequestException),
+        status: 'rejected',
+      });
+    }
     expect(executionsService.updateNodeResult).toHaveBeenCalledTimes(1);
     expect(executionsService.completeExecution).toHaveBeenCalledTimes(1);
     expect(prisma.workflow.update).toHaveBeenCalledTimes(1);

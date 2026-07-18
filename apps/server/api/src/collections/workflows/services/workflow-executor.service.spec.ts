@@ -213,7 +213,9 @@ describe('WorkflowExecutorService', () => {
       'execution-1',
       3,
     );
-    expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenLastCalledWith(
+    expect(
+      websocketService.publishBackgroundTaskUpdate,
+    ).toHaveBeenLastCalledWith(
       expect.objectContaining({
         progress: 100,
         resultId: 'execution-1',
