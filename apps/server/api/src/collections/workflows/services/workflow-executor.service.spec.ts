@@ -23,7 +23,6 @@ describe('WorkflowExecutorService', () => {
     warn: vi.fn(),
   };
   const engineAdapter = {
-    applyScheduledDigestCharge: vi.fn(),
     applyRuntimeInputValues: vi.fn(),
     convertToExecutableWorkflow: vi.fn(),
     executeWorkflow: vi.fn(),
@@ -61,6 +60,7 @@ describe('WorkflowExecutorService', () => {
 
   it('executes a multi-node manual workflow through persistence and completion', async () => {
     const firstOutput = { draft: 'Ready to publish' };
+    const executedWorkflows: ExecutableWorkflow[] = [];
     const executableWorkflow: ExecutableWorkflow = {
       edges: [
         {
@@ -128,23 +128,10 @@ describe('WorkflowExecutorService', () => {
 
     engineAdapter.executeWorkflow.mockImplementation(
       async (workflow: ExecutableWorkflow) => {
+        executedWorkflows.push(workflow);
         const node = workflow.nodes.find((candidate) => !candidate.isLocked);
         if (!node) {
           throw new Error('Expected one executable node');
-        }
-
-        if (node.id === 'publish-node') {
-          const virtualInput = workflow.nodes.find(
-            (candidate) => candidate.id === '__input_content',
-          );
-          expect(virtualInput?.cachedOutput).toEqual(firstOutput);
-          expect(workflow.edges).toContainEqual(
-            expect.objectContaining({
-              source: '__input_content',
-              target: 'publish-node',
-              targetHandle: 'content',
-            }),
-          );
         }
 
         const nodeResult: NodeExecutionResult = {
@@ -194,6 +181,26 @@ describe('WorkflowExecutorService', () => {
       }),
     ]);
     expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(2);
+    const publishWorkflow = executedWorkflows.find((workflow) =>
+      workflow.nodes.some(
+        (candidate) => candidate.id === 'publish-node' && !candidate.isLocked,
+      ),
+    );
+    if (!publishWorkflow) {
+      throw new Error('Expected the publish-node execution workflow');
+    }
+    expect(
+      publishWorkflow.nodes.find(
+        (candidate) => candidate.id === '__input_content',
+      )?.cachedOutput,
+    ).toEqual(firstOutput);
+    expect(publishWorkflow.edges).toContainEqual(
+      expect.objectContaining({
+        source: '__input_content',
+        target: 'publish-node',
+        targetHandle: 'content',
+      }),
+    );
     expect(executionsService.createExecution).toHaveBeenCalledWith(
       'user-1',
       'org-1',
