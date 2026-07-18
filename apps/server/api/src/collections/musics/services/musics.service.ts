@@ -30,7 +30,7 @@ export class MusicsService extends BaseService<
     if (createDto.status === IngredientStatus.GENERATED) {
       return this.ingredientsService.create(
         createDto as unknown as Parameters<IngredientsService['create']>[0],
-      ) as Promise<MusicDocument>;
+      ) as unknown as Promise<MusicDocument>;
     }
 
     return super.create(createDto, populate);
@@ -45,7 +45,7 @@ export class MusicsService extends BaseService<
       return this.ingredientsService.patch(
         id,
         updateDto as Parameters<IngredientsService['patch']>[1],
-      ) as Promise<MusicDocument>;
+      ) as unknown as Promise<MusicDocument>;
     }
 
     return super.patch(id, updateDto, populate);
