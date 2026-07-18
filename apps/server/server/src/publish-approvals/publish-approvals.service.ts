@@ -16,11 +16,16 @@ import {
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
+  ClaimPublishExecutionParams,
+  CompletePublishExecutionParams,
+  CreateCurrentPostPublishApprovalParams,
+  CreatePostPublishApprovalParams,
   IPublishApproval,
   IPublishApprovalDestination,
   IPublishApprovalPolicy,
   IPublishApprovalStatusTransition,
   IPublishScheduleIntent,
+  PublishExecutionClaim,
 } from '@genfeedai/interfaces';
 import {
   type Prisma,
@@ -35,6 +40,14 @@ import {
 } from '@nestjs/common';
 import { AgentArtifactReferenceService } from '@server/agent-artifacts/agent-artifact-reference.service';
 import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
+
+export type {
+  ClaimPublishExecutionParams,
+  CompletePublishExecutionParams,
+  CreateCurrentPostPublishApprovalParams,
+  CreatePostPublishApprovalParams,
+  PublishExecutionClaim,
+} from '@genfeedai/interfaces';
 
 class PublishApprovalNotFoundException extends HttpException {
   constructor(resource: string, identifier: string) {
@@ -57,6 +70,13 @@ const ACTIVE_APPROVAL_STATUSES = [
   PublishApprovalStatus.EXECUTING,
   PublishApprovalStatus.FAILED,
 ] as const;
+
+const ACTIVATABLE_APPROVAL_STATUSES = [
+  ...ACTIVE_APPROVAL_STATUSES,
+  PublishApprovalStatus.PUBLISHED,
+] as const;
+
+const PUBLISH_EXECUTION_LEASE_MS = 15 * 60 * 1000;
 
 type PublishApprovalRow = {
   actorUserId: string;
@@ -102,37 +122,6 @@ type ApprovalPost = {
   timezone: string;
 };
 
-export interface CreatePostPublishApprovalParams {
-  actorUserId: string;
-  body: unknown;
-  organizationId: string;
-  provenance?: Record<string, unknown>;
-  transaction?: Prisma.TransactionClient;
-}
-
-export interface ClaimPublishExecutionParams {
-  approvalId: string;
-  operationId?: string;
-  organizationId: string;
-  postId: string;
-  versionPinId?: string;
-}
-
-export interface CreateCurrentPostPublishApprovalParams {
-  actorUserId: string;
-  contextVersion?: number;
-  mode: 'immediate' | 'scheduled';
-  organizationId: string;
-  postId: string;
-  provenance?: Record<string, unknown>;
-  transaction?: Prisma.TransactionClient;
-}
-
-export interface PublishExecutionClaim {
-  alreadyPublished: boolean;
-  approval: IPublishApproval;
-}
-
 export class PublishApprovalsService {
   constructor(
     private readonly prisma: Pick<
@@ -156,15 +145,21 @@ export class PublishApprovalsService {
     organizationId: string,
     postId: string,
   ): Promise<void> {
-    const executing = await this.prisma.publishApproval.findFirst({
-      select: { id: true },
+    const executing = (await this.prisma.publishApproval.findFirst({
       where: {
         organizationId,
         postId,
         status: PublishApprovalStatus.EXECUTING,
       },
-    });
+    })) as PublishApprovalRow | null;
     if (executing) {
+      if (
+        executing.updatedAt.getTime() + PUBLISH_EXECUTION_LEASE_MS <=
+        Date.now()
+      ) {
+        await this.resetExpiredExecution(executing);
+        return;
+      }
       throw new ConflictException(
         'Cannot edit approved publish scope while provider execution is in flight.',
       );
@@ -172,7 +167,7 @@ export class PublishApprovalsService {
   }
 
   async createForCurrentPost(
-    params: CreateCurrentPostPublishApprovalParams,
+    params: CreateCurrentPostPublishApprovalParams<Prisma.TransactionClient>,
   ): Promise<IPublishApproval> {
     const post = await this.getPostOrThrow(
       params.organizationId,
@@ -207,7 +202,7 @@ export class PublishApprovalsService {
   }
 
   async createForPost(
-    params: CreatePostPublishApprovalParams,
+    params: CreatePostPublishApprovalParams<Prisma.TransactionClient>,
   ): Promise<IPublishApproval> {
     const client = params.transaction ?? this.prisma;
     const input = this.parseCreateInput(params.body);
@@ -417,34 +412,37 @@ export class PublishApprovalsService {
     params: ClaimPublishExecutionParams,
   ): Promise<PublishExecutionClaim> {
     try {
-      const approval = await this.getApprovalOrThrow(
+      let approval = await this.getApprovalOrThrow(
         params.organizationId,
         params.approvalId,
         params.postId,
       );
-      if (params.operationId && params.operationId !== approval.operationId) {
+      if (params.operationId !== approval.operationId) {
         throw new ConflictException(
           'Queued publish operation identity is stale.',
         );
       }
-      if (
-        params.versionPinId &&
-        params.versionPinId !== approval.artifactVersionPinId
-      ) {
+      if (params.versionPinId !== approval.artifactVersionPinId) {
         throw new ConflictException(
           'Queued artifact version identity is stale.',
         );
       }
-      if (
-        this.parseStatus(approval.status) === PublishApprovalStatus.PUBLISHED
-      ) {
+      const initialStatus = this.parseStatus(approval.status);
+      if (initialStatus === PublishApprovalStatus.PUBLISHED) {
         this.recordApprovalTelemetry(
           'execute',
           'success',
           'matched',
           params.organizationId,
         );
-        return { alreadyPublished: true, approval: this.toInterface(approval) };
+        return {
+          approval: this.toInterface(approval),
+          executionStartedAt: null,
+          isAlreadyPublished: true,
+        };
+      }
+      if (initialStatus === PublishApprovalStatus.EXECUTING) {
+        approval = await this.resetExpiredExecution(approval);
       }
 
       const post = await this.getPostOrThrow(
@@ -480,8 +478,10 @@ export class PublishApprovalsService {
         throw error;
       }
 
+      const executionStartedAt = new Date();
       const claimed = await this.prisma.publishApproval.updateMany({
         data: {
+          lastError: null,
           status: PublishApprovalStatus.EXECUTING,
           statusTransitions: this.toJson([
             ...this.readTransitions(approval.statusTransitions),
@@ -490,11 +490,13 @@ export class PublishApprovalsService {
               PublishApprovalStatus.EXECUTING,
             ),
           ]),
+          updatedAt: executionStartedAt,
         },
         where: {
           id: approval.id,
           organizationId: approval.organizationId,
           status: PublishApprovalStatus.QUEUED,
+          updatedAt: approval.updatedAt,
         },
       });
       if (claimed.count !== 1) {
@@ -508,7 +510,11 @@ export class PublishApprovalsService {
         params.approvalId,
         params.postId,
       );
-      return { alreadyPublished: false, approval: this.toInterface(updated) };
+      return {
+        approval: this.toInterface(updated),
+        executionStartedAt: updated.updatedAt.toISOString(),
+        isAlreadyPublished: false,
+      };
     } catch (error: unknown) {
       this.recordApprovalTelemetry(
         'execute',
@@ -521,23 +527,14 @@ export class PublishApprovalsService {
   }
 
   async completeExecution(
-    approvalId: string,
-    organizationId: string,
-    success: boolean,
-    error?: string,
+    params: CompletePublishExecutionParams,
   ): Promise<IPublishApproval> {
-    const approval = await this.transitionStatus(
-      approvalId,
-      organizationId,
-      success ? PublishApprovalStatus.PUBLISHED : PublishApprovalStatus.FAILED,
-      undefined,
-      error,
-    );
+    const approval = await this.completeClaimedExecution(params);
     this.recordApprovalTelemetry(
       'execute',
-      success ? 'success' : 'failure',
+      params.isSuccessful ? 'success' : 'failure',
       'matched',
-      organizationId,
+      params.organizationId,
     );
     return approval;
   }
@@ -608,6 +605,133 @@ export class PublishApprovalsService {
       'success',
       'not_applicable',
       organizationId,
+    );
+  }
+
+  private async completeClaimedExecution(
+    params: CompletePublishExecutionParams,
+  ): Promise<IPublishApproval> {
+    const current = await this.getApprovalOrThrow(
+      params.organizationId,
+      params.approvalId,
+    );
+    if (current.operationId !== params.operationId) {
+      throw new ConflictException(
+        'Publish completion operation identity is stale.',
+      );
+    }
+    if (current.artifactVersionPinId !== params.versionPinId) {
+      throw new ConflictException(
+        'Publish completion artifact version identity is stale.',
+      );
+    }
+
+    const from = this.parseStatus(current.status);
+    const next = params.isSuccessful
+      ? PublishApprovalStatus.PUBLISHED
+      : PublishApprovalStatus.FAILED;
+    if (from === next) {
+      return this.toInterface(current);
+    }
+    if (from !== PublishApprovalStatus.EXECUTING) {
+      throw new ConflictException(
+        `Publish approval cannot complete from ${from}.`,
+      );
+    }
+
+    const executionStartedAt = this.parseExecutionStartedAt(
+      params.executionStartedAt,
+    );
+    if (current.updatedAt.getTime() !== executionStartedAt.getTime()) {
+      throw new ConflictException(
+        'Publish execution lease is stale or has been reclaimed.',
+      );
+    }
+
+    const failureReason = params.isSuccessful
+      ? undefined
+      : (params.error ?? 'Provider execution failed.');
+    const completed = await this.prisma.publishApproval.updateMany({
+      data: {
+        ...(params.isSuccessful ? { executedAt: new Date() } : {}),
+        lastError: failureReason ?? null,
+        status: next,
+        statusTransitions: this.toJson([
+          ...this.readTransitions(current.statusTransitions),
+          this.transition(from, next, undefined, failureReason),
+        ]),
+      },
+      where: {
+        artifactVersionPinId: params.versionPinId,
+        id: current.id,
+        operationId: params.operationId,
+        organizationId: params.organizationId,
+        status: PublishApprovalStatus.EXECUTING,
+        updatedAt: executionStartedAt,
+      },
+    });
+    if (completed.count !== 1) {
+      throw new ConflictException(
+        'Publish execution lease changed before completion.',
+      );
+    }
+
+    const updated = await this.getApprovalOrThrow(
+      params.organizationId,
+      params.approvalId,
+    );
+    return this.toInterface(updated);
+  }
+
+  private async resetExpiredExecution(
+    approval: PublishApprovalRow,
+  ): Promise<PublishApprovalRow> {
+    const expiresAt = approval.updatedAt.getTime() + PUBLISH_EXECUTION_LEASE_MS;
+    if (expiresAt > Date.now()) {
+      throw new ConflictException(
+        'Publish approval is already executing with an active lease.',
+      );
+    }
+
+    const resetAt = new Date();
+    const reason = 'Expired publish execution lease was reset for retry.';
+    const reset = await this.prisma.publishApproval.updateMany({
+      data: {
+        lastError: reason,
+        status: PublishApprovalStatus.QUEUED,
+        statusTransitions: this.toJson([
+          ...this.readTransitions(approval.statusTransitions),
+          this.transition(
+            PublishApprovalStatus.EXECUTING,
+            PublishApprovalStatus.FAILED,
+            undefined,
+            reason,
+          ),
+          this.transition(
+            PublishApprovalStatus.FAILED,
+            PublishApprovalStatus.QUEUED,
+            undefined,
+            'Retry queued after expired execution lease.',
+          ),
+        ]),
+        updatedAt: resetAt,
+      },
+      where: {
+        id: approval.id,
+        organizationId: approval.organizationId,
+        status: PublishApprovalStatus.EXECUTING,
+        updatedAt: approval.updatedAt,
+      },
+    });
+    if (reset.count !== 1) {
+      throw new ConflictException(
+        'Publish execution lease changed before it could be reset.',
+      );
+    }
+    return this.getApprovalOrThrow(
+      approval.organizationId,
+      approval.id,
+      approval.postId,
     );
   }
 
@@ -776,23 +900,30 @@ export class PublishApprovalsService {
     approval: PublishApprovalRow,
     client: PublishApprovalTransaction = this.prisma,
   ): Promise<void> {
-    const status = this.parseStatus(approval.status);
-    if (
-      status === PublishApprovalStatus.INVALIDATED ||
-      status === PublishApprovalStatus.CANCELLED
-    ) {
-      throw new ConflictException(
-        'The matching approval was revoked; create a new version before approval.',
-      );
-    }
-    await client.post.update({
+    const activated = await client.post.updateMany({
       data: {
         publishApprovalId: approval.id,
         reviewDecision: 'APPROVED',
         reviewVersionPinId: approval.artifactVersionPinId,
       },
-      where: { id: post.id },
+      where: {
+        id: post.id,
+        isDeleted: false,
+        organizationId: post.organizationId,
+        publishApprovals: {
+          some: {
+            id: approval.id,
+            organizationId: approval.organizationId,
+            status: { in: [...ACTIVATABLE_APPROVAL_STATUSES] },
+          },
+        },
+      },
     });
+    if (activated.count !== 1) {
+      throw new ConflictException(
+        'The matching approval is no longer eligible for activation.',
+      );
+    }
   }
 
   private async getPostOrThrow(
@@ -927,6 +1058,16 @@ export class PublishApprovalsService {
       );
     }
     return result.data;
+  }
+
+  private parseExecutionStartedAt(value: string): Date {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== value) {
+      throw new ConflictException(
+        'Publish execution lease timestamp is invalid.',
+      );
+    }
+    return parsed;
   }
 
   private readDestinations(

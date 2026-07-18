@@ -227,6 +227,7 @@ describe('PublishApprovalsService', () => {
       post: {
         findFirst: vi.fn().mockResolvedValue(post),
         update: vi.fn().mockResolvedValue(post),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       publishApproval,
     };
@@ -261,15 +262,73 @@ describe('PublishApprovalsService', () => {
     expect(replay.operationId).toBe(first.operationId);
     expect(publishApproval.create).not.toHaveBeenCalled();
     expect(publishApproval.update).not.toHaveBeenCalled();
-    expect(prisma.post.update).toHaveBeenCalledTimes(2);
-    expect(prisma.post.update).toHaveBeenNthCalledWith(2, {
-      data: {
-        publishApprovalId: 'approval-1',
-        reviewDecision: 'APPROVED',
-        reviewVersionPinId: 'pin-1',
-      },
-      where: { id: 'post-1' },
+    expect(prisma.post.updateMany).toHaveBeenCalledTimes(2);
+    expect(prisma.post.updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: {
+          publishApprovalId: 'approval-1',
+          reviewDecision: 'APPROVED',
+          reviewVersionPinId: 'pin-1',
+        },
+        where: expect.objectContaining({
+          id: 'post-1',
+          organizationId: 'org-1',
+          publishApprovals: {
+            some: expect.objectContaining({ id: 'approval-1' }),
+          },
+        }),
+      }),
+    );
+  });
+
+  it('fails an idempotent replay when approval eligibility changes before attach', async () => {
+    const existing = makeApproval({
+      scopeDigest: scopeDigest(),
+      status: PublishApprovalStatus.APPROVED,
     });
+    const publishApproval = {
+      findFirst: vi.fn().mockResolvedValue(existing),
+    };
+    const post = {
+      findFirst: vi.fn().mockResolvedValue(makePost()),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    };
+    const service = new PublishApprovalsService(
+      { post, publishApproval } as never,
+      {
+        createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
+      } as unknown as AgentArtifactReferenceService,
+    );
+
+    await expect(
+      service.createForCurrentPost({
+        actorUserId: 'user-1',
+        contextVersion: 4,
+        mode: 'scheduled',
+        organizationId: 'org-1',
+        postId: 'post-1',
+        transaction: { post, publishApproval } as never,
+      }),
+    ).rejects.toThrow('no longer eligible for activation');
+
+    expect(post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          publishApprovals: {
+            some: expect.objectContaining({
+              id: 'approval-1',
+              status: {
+                in: expect.arrayContaining([
+                  PublishApprovalStatus.APPROVED,
+                  PublishApprovalStatus.PUBLISHED,
+                ]),
+              },
+            }),
+          },
+        }),
+      }),
+    );
   });
 
   it('fails closed and invalidates when the canonical brand drifts', async () => {
@@ -351,7 +410,8 @@ describe('PublishApprovalsService', () => {
       versionPinId: 'pin-1',
     });
 
-    expect(claim.alreadyPublished).toBe(true);
+    expect(claim.isAlreadyPublished).toBe(true);
+    expect(claim.executionStartedAt).toBeNull();
     expect(prisma.publishApproval.updateMany).not.toHaveBeenCalled();
     expect(
       artifactReferenceService.assertVersionPinCurrent,
@@ -361,43 +421,312 @@ describe('PublishApprovalsService', () => {
   it.each([
     [true, PublishApprovalStatus.PUBLISHED, 'success'],
     [false, PublishApprovalStatus.FAILED, 'failure'],
-  ] as const)('records provider completion telemetry for success=%s', async (isSuccess, completedStatus, outcome) => {
+  ] as const)(
+    'records provider completion telemetry for success=%s',
+    async (isSuccess, completedStatus, outcome) => {
+      const executing = makeApproval({
+        status: PublishApprovalStatus.EXECUTING,
+      });
+      const completed = makeApproval({ status: completedStatus });
+      const publishApproval = {
+        findFirst: vi
+          .fn()
+          .mockResolvedValueOnce(executing)
+          .mockResolvedValueOnce(completed),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      };
+      const logger = { log: vi.fn() };
+      const service = new PublishApprovalsService(
+        { publishApproval } as never,
+        {} as AgentArtifactReferenceService,
+        logger as never,
+      );
+
+      await service.completeExecution({
+        approvalId: 'approval-1',
+        ...(!isSuccess ? { error: 'provider failed' } : {}),
+        executionStartedAt: NOW.toISOString(),
+        isSuccessful: isSuccess,
+        operationId: 'operation-1',
+        organizationId: 'org-1',
+        versionPinId: 'pin-1',
+      });
+
+      expect(publishApproval.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ status: completedStatus }),
+        }),
+      );
+      expect(logger.log).toHaveBeenCalledWith('conversation_shell_approval', {
+        action: 'execute',
+        integrity: 'matched',
+        organizationId: 'org-1',
+        outcome,
+        telemetryQueryVersion: 1,
+      });
+    },
+  );
+
+  it('allows only one queued execution claimant', async () => {
+    const approval = makeApproval({ scopeDigest: scopeDigest() });
+    const publishApproval = {
+      findFirst: vi.fn().mockResolvedValue(approval),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    };
+    const service = new PublishApprovalsService(
+      {
+        credential: {
+          findFirst: vi.fn().mockResolvedValue({ id: 'credential-1' }),
+        },
+        member: { findFirst: vi.fn().mockResolvedValue({ id: 'member-1' }) },
+        organization: {
+          findFirst: vi.fn().mockResolvedValue({ userId: 'user-1' }),
+        },
+        post: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue(makePost({ publishApprovalId: 'approval-1' })),
+        },
+        publishApproval,
+      } as never,
+      {
+        assertVersionPinCurrent: vi.fn(),
+      } as unknown as AgentArtifactReferenceService,
+    );
+
+    await expect(
+      service.claimForExecution({
+        approvalId: 'approval-1',
+        operationId: 'operation-1',
+        organizationId: 'org-1',
+        postId: 'post-1',
+        versionPinId: 'pin-1',
+      }),
+    ).rejects.toThrow('already executing');
+
+    expect(publishApproval.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: PublishApprovalStatus.QUEUED,
+          updatedAt: NOW,
+        }),
+      }),
+    );
+  });
+
+  it('resets an expired execution lease before claiming a retry', async () => {
+    const expiredAt = new Date('2026-07-13T20:00:00.000Z');
     const executing = makeApproval({
+      scopeDigest: scopeDigest(),
       status: PublishApprovalStatus.EXECUTING,
+      updatedAt: expiredAt,
     });
-    const completed = makeApproval({ status: completedStatus });
+    const queued = makeApproval({
+      lastError: 'Expired publish execution lease was reset for retry.',
+      scopeDigest: scopeDigest(),
+      status: PublishApprovalStatus.QUEUED,
+      updatedAt: NOW,
+    });
+    const reclaimed = makeApproval({
+      scopeDigest: scopeDigest(),
+      status: PublishApprovalStatus.EXECUTING,
+      updatedAt: new Date('2026-07-18T15:00:00.000Z'),
+    });
     const publishApproval = {
       findFirst: vi
         .fn()
         .mockResolvedValueOnce(executing)
-        .mockResolvedValueOnce(completed),
+        .mockResolvedValueOnce(queued)
+        .mockResolvedValueOnce(reclaimed),
+      updateMany: vi
+        .fn()
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 1 }),
+    };
+    const service = new PublishApprovalsService(
+      {
+        credential: {
+          findFirst: vi.fn().mockResolvedValue({ id: 'credential-1' }),
+        },
+        member: { findFirst: vi.fn().mockResolvedValue({ id: 'member-1' }) },
+        organization: {
+          findFirst: vi.fn().mockResolvedValue({ userId: 'user-1' }),
+        },
+        post: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue(makePost({ publishApprovalId: 'approval-1' })),
+        },
+        publishApproval,
+      } as never,
+      {
+        assertVersionPinCurrent: vi.fn(),
+      } as unknown as AgentArtifactReferenceService,
+    );
+
+    const claim = await service.claimForExecution({
+      approvalId: 'approval-1',
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      versionPinId: 'pin-1',
+    });
+
+    expect(claim.isAlreadyPublished).toBe(false);
+    expect(claim.executionStartedAt).toBe(reclaimed.updatedAt.toISOString());
+    expect(publishApproval.updateMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          lastError: 'Expired publish execution lease was reset for retry.',
+          status: PublishApprovalStatus.QUEUED,
+        }),
+        where: expect.objectContaining({
+          status: PublishApprovalStatus.EXECUTING,
+          updatedAt: expiredAt,
+        }),
+      }),
+    );
+    expect(publishApproval.updateMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: PublishApprovalStatus.EXECUTING,
+        }),
+        where: expect.objectContaining({
+          status: PublishApprovalStatus.QUEUED,
+          updatedAt: NOW,
+        }),
+      }),
+    );
+  });
+
+  it('releases post mutability after an execution lease expires', async () => {
+    const expired = makeApproval({
+      status: PublishApprovalStatus.EXECUTING,
+      updatedAt: new Date('2026-07-13T20:00:00.000Z'),
+    });
+    const publishApproval = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValueOnce(expired)
+        .mockResolvedValueOnce(
+          makeApproval({ status: PublishApprovalStatus.QUEUED }),
+        ),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
-    const logger = { log: vi.fn() };
     const service = new PublishApprovalsService(
       { publishApproval } as never,
       {} as AgentArtifactReferenceService,
-      logger as never,
     );
 
-    await service.completeExecution(
-      'approval-1',
-      'org-1',
-      isSuccess,
-      isSuccess ? undefined : 'provider failed',
+    await expect(
+      service.assertPostMutable('org-1', 'post-1'),
+    ).resolves.toBeUndefined();
+
+    expect(publishApproval.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: PublishApprovalStatus.QUEUED,
+        }),
+        where: expect.objectContaining({
+          status: PublishApprovalStatus.EXECUTING,
+          updatedAt: expired.updatedAt,
+        }),
+      }),
+    );
+  });
+
+  it('rejects completion from a stale execution lease', async () => {
+    const publishApproval = {
+      findFirst: vi.fn().mockResolvedValue(
+        makeApproval({
+          status: PublishApprovalStatus.EXECUTING,
+          updatedAt: NOW,
+        }),
+      ),
+      updateMany: vi.fn(),
+    };
+    const service = new PublishApprovalsService(
+      { publishApproval } as never,
+      {} as AgentArtifactReferenceService,
+    );
+
+    await expect(
+      service.completeExecution({
+        approvalId: 'approval-1',
+        executionStartedAt: '2026-07-13T21:59:00.000Z',
+        isSuccessful: true,
+        operationId: 'operation-1',
+        organizationId: 'org-1',
+        versionPinId: 'pin-1',
+      }),
+    ).rejects.toThrow('lease is stale or has been reclaimed');
+
+    expect(publishApproval.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a status transition that loses its optimistic-lock race', async () => {
+    const publishApproval = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue(
+          makeApproval({ status: PublishApprovalStatus.APPROVED }),
+        ),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    };
+    const service = new PublishApprovalsService(
+      { publishApproval } as never,
+      {} as AgentArtifactReferenceService,
+    );
+
+    await expect(service.markQueued('approval-1', 'org-1')).rejects.toThrow(
+      `changed concurrently; expected status ${PublishApprovalStatus.APPROVED}`,
     );
 
     expect(publishApproval.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ status: completedStatus }),
+        where: {
+          id: 'approval-1',
+          organizationId: 'org-1',
+          status: PublishApprovalStatus.APPROVED,
+        },
       }),
     );
-    expect(logger.log).toHaveBeenCalledWith('conversation_shell_approval', {
-      action: 'execute',
-      integrity: 'matched',
-      organizationId: 'org-1',
-      outcome,
-      telemetryQueryVersion: 1,
+  });
+
+  it('clears every post approval marker when invalidating queued approval state', async () => {
+    const approval = makeApproval();
+    const post = { updateMany: vi.fn().mockResolvedValue({ count: 1 }) };
+    const publishApproval = {
+      findMany: vi.fn().mockResolvedValue([approval]),
+      update: vi.fn().mockResolvedValue(approval),
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) =>
+        callback({ post, publishApproval }),
+      ),
+      publishApproval,
+    };
+    const service = new PublishApprovalsService(
+      prisma as never,
+      {} as AgentArtifactReferenceService,
+    );
+
+    await service.invalidatePost(
+      'org-1',
+      'post-1',
+      'Canonical publish scope changed.',
+      'user-1',
+    );
+
+    expect(post.updateMany).toHaveBeenCalledWith({
+      data: {
+        publishApprovalId: null,
+        reviewDecision: null,
+        reviewVersionPinId: null,
+      },
+      where: { id: 'post-1', organizationId: 'org-1' },
     });
   });
 

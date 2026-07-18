@@ -181,6 +181,7 @@ export class CronPostsService {
     job: PostPublishJobData,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    let executionStartedAt = '';
     try {
       if (!job.approvalId || !job.operationId || !job.versionPinId) {
         throw new Error(
@@ -195,7 +196,7 @@ export class CronPostsService {
         postId: job.postId,
         versionPinId: job.versionPinId,
       });
-      if (claim.alreadyPublished) {
+      if (claim.isAlreadyPublished) {
         return {
           externalId: this.readPostString(post, ['externalId']) ?? null,
           platform: post.platform,
@@ -204,18 +205,25 @@ export class CronPostsService {
           url: this.readPostString(post, ['url']) ?? '',
         };
       }
+      if (!claim.executionStartedAt) {
+        throw new Error('Publish execution claim did not return a lease.');
+      }
+      executionStartedAt = claim.executionStartedAt;
       await this.assertPublishVersionPin(post, job.versionPinId);
     } catch (error: unknown) {
       return this.handleTerminalPublishValidationFailure(post, error);
     }
     const result = await this.publishSinglePost(post);
 
-    await this.publishApprovalsService.completeExecution(
-      job.approvalId,
-      job.organizationId,
-      result.success,
-      result.error,
-    );
+    await this.publishApprovalsService.completeExecution({
+      approvalId: job.approvalId,
+      ...(result.error ? { error: result.error } : {}),
+      executionStartedAt,
+      isSuccessful: result.success,
+      operationId: job.operationId,
+      organizationId: job.organizationId,
+      versionPinId: job.versionPinId,
+    });
 
     if (result.success) {
       await this.activitiesService.create(

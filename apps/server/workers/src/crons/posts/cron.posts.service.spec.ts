@@ -93,7 +93,10 @@ describe('CronPostsService', () => {
       }),
     };
     publishApprovalsService = {
-      claimForExecution: vi.fn().mockResolvedValue({ alreadyPublished: false }),
+      claimForExecution: vi.fn().mockResolvedValue({
+        executionStartedAt: '2026-07-07T09:56:00.000Z',
+        isAlreadyPublished: false,
+      }),
       completeExecution: vi.fn().mockResolvedValue(undefined),
       markQueued: vi.fn().mockResolvedValue(undefined),
     };
@@ -661,6 +664,14 @@ describe('CronPostsService', () => {
         url: 'https://x.com/example/status/tweet-1',
       }),
     );
+    expect(publishApprovalsService.completeExecution).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      executionStartedAt: '2026-07-07T09:56:00.000Z',
+      isSuccessful: true,
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      versionPinId: 'pin-1',
+    });
   });
 
   it('persists a grouped provider success even when the provider omits its id', async () => {

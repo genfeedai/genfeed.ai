@@ -2,18 +2,18 @@ import type {
   BatchPipelineConfig,
   PipelineConfig,
 } from '@api/services/content-orchestration/content-orchestration.service';
-import { CONTENT_PIPELINE_QUEUE } from '@genfeedai/queue-contracts';
+import {
+  CONTENT_PIPELINE_QUEUE,
+  type ContentPipelineJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
-export interface ContentqueryJobData {
-  type: 'generate-and-publish' | 'batch-generate';
-  config: PipelineConfig | BatchPipelineConfig;
-  personaId: string;
-  organizationId: string;
-}
+type ContentPipelineJobDataWithConfig = ContentPipelineJobData<
+  PipelineConfig | BatchPipelineConfig
+>;
 
 @Injectable()
 export class ContentqueryQueueService {
@@ -28,7 +28,7 @@ export class ContentqueryQueueService {
 
     // Use idempotencyKey as BullMQ jobId to prevent duplicates on retry
     if (config.idempotencyKey) {
-      jobOptions['jobId'] = config.idempotencyKey;
+      jobOptions.jobId = config.idempotencyKey;
     }
 
     const job = await this.contentqueryQueue.add(
@@ -38,7 +38,7 @@ export class ContentqueryQueueService {
         organizationId: config.organizationId,
         personaId: config.personaId,
         type: 'generate-and-publish',
-      } satisfies ContentqueryJobData,
+      } satisfies ContentPipelineJobDataWithConfig,
       jobOptions,
     );
 
@@ -49,7 +49,7 @@ export class ContentqueryQueueService {
       stepCount: config.steps.length,
     });
 
-    return job.id!;
+    return this.requireJobId(job.id);
   }
 
   async queueBatchGenerate(config: BatchPipelineConfig): Promise<string> {
@@ -58,7 +58,7 @@ export class ContentqueryQueueService {
       organizationId: config.organizationId,
       personaId: config.personaId,
       type: 'batch-generate',
-    } satisfies ContentqueryJobData);
+    } satisfies ContentPipelineJobDataWithConfig);
 
     this.logger.log('Queued batch-generate job', {
       count: config.count,
@@ -66,7 +66,7 @@ export class ContentqueryQueueService {
       personaId: config.personaId,
     });
 
-    return job.id!;
+    return this.requireJobId(job.id);
   }
 
   async getJobsByPersona(
@@ -90,7 +90,7 @@ export class ContentqueryQueueService {
 
     return jobs
       .filter((job) => {
-        const data = job.data as ContentqueryJobData;
+        const data = job.data as ContentPipelineJobDataWithConfig;
         return (
           data.personaId === personaId && data.organizationId === organizationId
         );
@@ -98,11 +98,18 @@ export class ContentqueryQueueService {
       .slice(0, 50)
       .map((job) => ({
         createdAt: new Date(job.timestamp).toISOString(),
-        id: job.id!,
+        id: this.requireJobId(job.id),
         status:
           job.returnvalue?.status ?? (job.failedReason ? 'failed' : 'pending'),
-        type: (job.data as ContentqueryJobData).type,
+        type: (job.data as ContentPipelineJobDataWithConfig).type,
       }));
+  }
+
+  private requireJobId(jobId: string | undefined): string {
+    if (!jobId) {
+      throw new Error('Content pipeline queue did not return a job id.');
+    }
+    return jobId;
   }
 }
 
