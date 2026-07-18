@@ -118,6 +118,95 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
     expect(executionsService.updateNodeResult).not.toHaveBeenCalled();
   });
 
+  it.each([
+    'human',
+    'timeout',
+  ] as const)('allows exactly one resolution when %s wins a human/timeout race', async (winner) => {
+    executionsService.findOne.mockResolvedValue(
+      buildExecution({
+        metadata: {
+          pendingApproval: {
+            autoApproveIfNoResponse: false,
+            nodeId: NODE_ID,
+            notifyChannels: [],
+            requestedAt: new Date().toISOString(),
+            timeoutHours: 1,
+          },
+        },
+      }),
+    );
+
+    let releaseWinner!: () => void;
+    const winnerCanFinish = new Promise<void>((resolve) => {
+      releaseWinner = resolve;
+    });
+    executionsService.claimPendingReviewGate
+      .mockImplementationOnce(async () => {
+        await winnerCanFinish;
+        return true;
+      })
+      .mockResolvedValueOnce(false);
+
+    const resolveAsHuman = () =>
+      service.submitReviewGateApproval(
+        WORKFLOW_ID,
+        EXECUTION_ID,
+        'user-1',
+        ORGANIZATION_ID,
+        NODE_ID,
+        false,
+        'needs changes',
+      );
+    const resolveAsTimeout = () =>
+      service.resolveTimedOutReviewGate(
+        WORKFLOW_ID,
+        EXECUTION_ID,
+        ORGANIZATION_ID,
+        NODE_ID,
+      );
+
+    const winningResolution =
+      winner === 'human' ? resolveAsHuman() : resolveAsTimeout();
+    await vi.waitFor(() =>
+      expect(executionsService.claimPendingReviewGate).toHaveBeenCalledTimes(1),
+    );
+
+    const losingResolution =
+      winner === 'human' ? resolveAsTimeout() : resolveAsHuman();
+    void losingResolution.catch(() => undefined);
+    await vi.waitFor(() =>
+      expect(executionsService.claimPendingReviewGate).toHaveBeenCalledTimes(2),
+    );
+    releaseWinner();
+
+    const [winningResult, losingResult] = await Promise.allSettled([
+      winningResolution,
+      losingResolution,
+    ]);
+
+    expect(winningResult).toMatchObject({
+      status: 'fulfilled',
+      value:
+        winner === 'human'
+          ? expect.objectContaining({ status: 'rejected' })
+          : expect.objectContaining({ resolution: 'rejected' }),
+    });
+    if (winner === 'human') {
+      expect(losingResult).toMatchObject({
+        status: 'fulfilled',
+        value: null,
+      });
+    } else {
+      expect(losingResult).toMatchObject({
+        reason: expect.any(BadRequestException),
+        status: 'rejected',
+      });
+    }
+    expect(executionsService.updateNodeResult).toHaveBeenCalledTimes(1);
+    expect(executionsService.completeExecution).toHaveBeenCalledTimes(1);
+    expect(prisma.workflow.update).toHaveBeenCalledTimes(1);
+  });
+
   it('resolves a rejection normally when the claim succeeds', async () => {
     const result = await service.submitReviewGateApproval(
       WORKFLOW_ID,

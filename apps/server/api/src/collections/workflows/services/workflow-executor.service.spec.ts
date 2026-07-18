@@ -2,6 +2,11 @@ import {
   EXECUTABLE_WORKFLOW_SELECT,
   WorkflowExecutorService,
 } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import type {
+  ExecutableWorkflow,
+  NodeExecutionResult,
+} from '@genfeedai/workflows/engine';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowExecutorService', () => {
@@ -24,14 +29,17 @@ describe('WorkflowExecutorService', () => {
   };
   const executionsService = {
     completeExecution: vi.fn(),
+    createExecution: vi.fn(),
     findOne: vi.fn(),
     getRuntimeState: vi.fn(),
     setCreditsUsed: vi.fn(),
     setFailedNodeId: vi.fn(),
+    startExecution: vi.fn(),
     updateExecutionMetadata: vi.fn(),
     updateNodeResult: vi.fn(),
   };
   const websocketService = {
+    emit: vi.fn(),
     publishBackgroundTaskUpdate: vi.fn(),
     publishWorkflowStatus: vi.fn(),
   };
@@ -47,6 +55,180 @@ describe('WorkflowExecutorService', () => {
       engineAdapter as never,
       executionsService as never,
       websocketService as never,
+    );
+  });
+
+  it('executes a multi-node manual workflow through persistence and completion', async () => {
+    const firstOutput = { draft: 'Ready to publish' };
+    const executedWorkflows: ExecutableWorkflow[] = [];
+    const executableWorkflow: ExecutableWorkflow = {
+      edges: [
+        {
+          id: 'draft-publish',
+          source: 'draft-node',
+          target: 'publish-node',
+          targetHandle: 'content',
+        },
+      ],
+      id: 'workflow-1',
+      lockedNodeIds: [],
+      nodes: [
+        {
+          config: {},
+          id: 'draft-node',
+          inputs: [],
+          label: 'Draft',
+          type: 'generate',
+        },
+        {
+          config: {},
+          id: 'publish-node',
+          inputs: [],
+          label: 'Publish',
+          type: 'publish',
+        },
+      ],
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+
+    prisma.workflow.findFirst.mockResolvedValue({
+      config: {},
+      edges: executableWorkflow.edges,
+      id: 'workflow-1',
+      inputVariables: [],
+      label: 'Multi-node workflow',
+      metadata: {},
+      mongoId: null,
+      nodes: [],
+      organizationId: 'org-1',
+      steps: [],
+      userId: 'user-1',
+    });
+    prisma.workflow.update.mockResolvedValue({ id: 'workflow-1' });
+    engineAdapter.convertToExecutableWorkflow.mockReturnValue(
+      executableWorkflow,
+    );
+    engineAdapter.applyRuntimeInputValues.mockReturnValue(executableWorkflow);
+    executionsService.createExecution.mockResolvedValue({ id: 'execution-1' });
+    executionsService.startExecution.mockResolvedValue({
+      id: 'execution-1',
+    });
+    executionsService.updateExecutionMetadata.mockResolvedValue({
+      id: 'execution-1',
+    });
+    executionsService.updateNodeResult.mockResolvedValue({
+      id: 'execution-1',
+      progress: 50,
+    });
+    executionsService.completeExecution.mockResolvedValue({
+      id: 'execution-1',
+      metadata: {},
+    });
+
+    engineAdapter.executeWorkflow.mockImplementation(
+      async (workflow: ExecutableWorkflow) => {
+        executedWorkflows.push(workflow);
+        const node = workflow.nodes.find((candidate) => !candidate.isLocked);
+        if (!node) {
+          throw new Error('Expected one executable node');
+        }
+
+        const nodeResult: NodeExecutionResult = {
+          completedAt: new Date(),
+          creditsUsed: node.id === 'draft-node' ? 2 : 1,
+          nodeId: node.id,
+          output:
+            node.id === 'draft-node'
+              ? firstOutput
+              : { published: true, source: firstOutput.draft },
+          retryCount: 0,
+          startedAt: new Date(),
+          status: 'completed',
+        };
+
+        return {
+          completedAt: new Date(),
+          nodeResults: new Map([[node.id, nodeResult]]),
+          runId: 'execution-1',
+          startedAt: new Date(),
+          status: 'completed' as const,
+          totalCreditsUsed: nodeResult.creditsUsed,
+          workflowId: workflow.id,
+        };
+      },
+    );
+
+    const result = await service.executeManualWorkflow(
+      'workflow-1',
+      'user-1',
+      'org-1',
+      { topic: 'launch' },
+    );
+
+    expect(result.status).toBe(WorkflowExecutionStatus.COMPLETED);
+    expect(result.totalCreditsUsed).toBe(3);
+    expect(result.nodeResults).toEqual([
+      expect.objectContaining({
+        nodeId: 'draft-node',
+        output: firstOutput,
+        status: WorkflowExecutionStatus.COMPLETED,
+      }),
+      expect.objectContaining({
+        nodeId: 'publish-node',
+        output: { published: true, source: firstOutput.draft },
+        status: WorkflowExecutionStatus.COMPLETED,
+      }),
+    ]);
+    expect(engineAdapter.executeWorkflow).toHaveBeenCalledTimes(2);
+    const publishWorkflow = executedWorkflows.find((workflow) =>
+      workflow.nodes.some(
+        (candidate) => candidate.id === 'publish-node' && !candidate.isLocked,
+      ),
+    );
+    if (!publishWorkflow) {
+      throw new Error('Expected the publish-node execution workflow');
+    }
+    expect(
+      publishWorkflow.nodes.find(
+        (candidate) => candidate.id === '__input_content',
+      )?.cachedOutput,
+    ).toEqual(firstOutput);
+    expect(publishWorkflow.edges).toContainEqual(
+      expect.objectContaining({
+        source: '__input_content',
+        target: 'publish-node',
+        targetHandle: 'content',
+      }),
+    );
+    expect(executionsService.createExecution).toHaveBeenCalledWith(
+      'user-1',
+      'org-1',
+      expect.objectContaining({
+        inputValues: { topic: 'launch' },
+        workflow: 'workflow-1',
+      }),
+    );
+    expect(executionsService.startExecution).toHaveBeenCalledWith(
+      'execution-1',
+    );
+    expect(executionsService.completeExecution).toHaveBeenCalledWith(
+      'execution-1',
+      undefined,
+    );
+    expect(executionsService.setCreditsUsed).toHaveBeenCalledWith(
+      'execution-1',
+      3,
+    );
+    expect(
+      websocketService.publishBackgroundTaskUpdate,
+    ).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        progress: 100,
+        resultId: 'execution-1',
+        status: 'completed',
+        taskId: 'execution-1',
+      }),
     );
   });
 
