@@ -18,6 +18,7 @@ describe('MusicsService', () => {
   let markFirstAssetGenerated: ReturnType<typeof vi.fn>;
   let service: MusicsService;
   let ingredientDelegate: {
+    create: ReturnType<typeof vi.fn>;
     findFirst: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
   };
@@ -25,6 +26,11 @@ describe('MusicsService', () => {
   beforeEach(async () => {
     markFirstAssetGenerated = vi.fn().mockResolvedValue(undefined);
     ingredientDelegate = {
+      create: vi.fn().mockResolvedValue({
+        id: 'music-1',
+        organizationId: 'org-1',
+        status: 'GENERATED',
+      }),
       findFirst: vi.fn().mockResolvedValue({
         id: 'music-1',
         organizationId: 'org-1',
@@ -76,6 +82,23 @@ describe('MusicsService', () => {
     });
 
     expect(markFirstAssetGenerated).not.toHaveBeenCalled();
+  });
+
+  it('uses create-context population for a GENERATED create by default', async () => {
+    await service.create({
+      status: IngredientStatus.GENERATED,
+      text: 'Ambient focus track',
+    });
+
+    expect(ingredientDelegate.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          brand: expect.any(Object),
+          metadata: expect.any(Object),
+          prompt: expect.any(Object),
+        }),
+      }),
+    );
   });
 
   it('preserves requested population for a GENERATED update', async () => {

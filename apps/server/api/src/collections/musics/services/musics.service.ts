@@ -25,7 +25,7 @@ export class MusicsService extends BaseService<
 
   override async create(
     createDto: CreateMusicDto,
-    populate: (string | PopulateOption)[] | 'none' = [],
+    populate?: (string | PopulateOption)[] | 'none',
   ): Promise<MusicDocument> {
     if (createDto.status === IngredientStatus.GENERATED) {
       return this.ingredientsService.create(
