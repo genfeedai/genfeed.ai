@@ -198,6 +198,20 @@ Object.defineProperty(window, 'scrollTo', {
 // Mock fetch
 global.fetch = vi.fn();
 
+// Prevent indirect imports of @genfeedai/auth-client from mounting Better
+// Auth's browser session store. Its broadcast refresh timer can outlive jsdom
+// and throw from cleanupBroadcastSetup after an otherwise successful UI suite.
+vi.mock('better-auth/react', () => ({
+  createAuthClient: () => ({
+    $fetch: vi.fn().mockResolvedValue({ data: null }),
+    getSession: vi.fn().mockResolvedValue({ data: null }),
+    signIn: { email: vi.fn(), magicLink: vi.fn(), social: vi.fn() },
+    signOut: vi.fn(),
+    signUp: { email: vi.fn() },
+    useSession: vi.fn(() => ({ data: null, error: null, isPending: false })),
+  }),
+}));
+
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',

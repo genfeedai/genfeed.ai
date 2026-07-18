@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import type { BrandDetailLatestImagesProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
@@ -11,6 +12,8 @@ import Link from 'next/link';
 export default function BrandDetailLatestImages({
   images,
 }: BrandDetailLatestImagesProps) {
+  const isStudioEnabled = useFeatureFlag('studio');
+
   return (
     <Card>
       <div className="flex justify-between items-center mb-4">
@@ -45,7 +48,9 @@ export default function BrandDetailLatestImages({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >
-          <Link href={`${EnvironmentService.apps.app}/studio/image`}>
+          <Link
+            href={`${EnvironmentService.apps.app}${isStudioEnabled ? '/studio/image' : '/agent/new'}`}
+          >
             Create an Image
           </Link>
         </Button>

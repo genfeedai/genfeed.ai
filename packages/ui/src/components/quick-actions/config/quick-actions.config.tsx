@@ -448,10 +448,10 @@ export const createVariationAction = (
     handler,
     {
       icon: <HiSquaresPlus className={ICON_CLASS} />,
-      id: 'create-variation',
-      label: 'Create Variation',
+      id: 'remix',
+      label: 'Remix',
       showInMenu: true,
-      tooltip: 'Create Image Variation',
+      tooltip: 'Remix this image',
       tooltipPosition: 'top',
     },
     isLoading,

@@ -16,10 +16,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import {
-  buildTrendAgentHref,
-  buildTrendStudioHref,
-} from '@utils/url/desktop-loop-url.util';
+import { buildTrendAgentHref } from '@utils/url/desktop-loop-url.util';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -184,17 +181,10 @@ export default function TrendDetail({
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Button
-          label="Generate From Trend"
+          label="Remix in Agent"
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.SM}
           icon={<HiOutlineSparkles className="size-4" />}
-          onClick={() => router.push(buildTrendStudioHref(trend))}
-        />
-        <Button
-          label="Open In Agent"
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.SM}
-          icon={<HiOutlineFire className="size-4" />}
           onClick={() => router.push(buildTrendAgentHref(trend))}
         />
       </div>

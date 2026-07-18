@@ -13827,6 +13827,23 @@
         ],
         "type": "object"
       },
+      "VerifyMcpConnectionDto": {
+        "properties": {
+          "key": {
+            "description": "Copy-once Genfeed API key used only for this bounded MCP verification.",
+            "example": "gf_live_...",
+            "maxLength": 256,
+            "minLength": 32,
+            "pattern": "^gf_(live|test)_[A-Za-z0-9_-]+$",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "type": "object"
+      },
       "VerifyReceiptDto": {
         "properties": {
           "receiptId": {
@@ -19258,6 +19275,45 @@
           }
         ],
         "summary": "Rotate an API key",
+        "tags": [
+          "API Keys"
+        ]
+      }
+    },
+    "/api-keys/{apiKeyId}/verify-mcp": {
+      "post": {
+        "operationId": "ApiKeysController.verifyMcpConnection",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "apiKeyId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyMcpConnectionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Bounded MCP tool-discovery verification result"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify a selected API key against the configured MCP service",
         "tags": [
           "API Keys"
         ]

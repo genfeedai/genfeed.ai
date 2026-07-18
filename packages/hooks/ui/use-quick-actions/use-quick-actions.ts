@@ -67,7 +67,7 @@ const ACTION_SECTION_BY_ID: Partial<Record<string, MenuSection>> = {
   clone: 'Transform',
   'convert-to-preset': 'Transform',
   'convert-to-video': 'Transform',
-  'create-variation': 'Transform',
+  remix: 'Transform',
   delete: 'Danger',
   download: 'Library',
   edit: 'Library',
@@ -519,7 +519,7 @@ export function useQuickActions({
 
     return selectPrimaryActions(
       actionMap,
-      ['see-details', 'create-variation', 'use-as-video-reference'],
+      ['see-details', 'remix', 'use-as-video-reference'],
       'convert-to-video',
       ['download', 'publish', 'share'],
     );

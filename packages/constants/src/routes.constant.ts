@@ -1,5 +1,6 @@
 export const APP_ROUTES = {
   ROOT: '/',
+  CONNECT: '/connect',
   LOGIN: '/login',
   LOGOUT: '/logout',
   MANAGED_CREDITS_SUCCESS: '/managed-credits/success',

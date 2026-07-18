@@ -1,12 +1,3 @@
-let mockCloudMode = true;
-vi.mock('@genfeedai/config', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/config')>();
-  return {
-    ...actual,
-    isCloudDeployment: () => mockCloudMode,
-  };
-});
-
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { UNLIMITED_SEATS_FAIR_USE_CEILING } from '@api/collections/organization-settings/utils/seat-policy.util';
@@ -50,7 +41,8 @@ describe('MemberCreditsGuard', () => {
   let membersService: { findAll: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    mockCloudMode = true;
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
     organizationSettingsService = { findOne: vi.fn() };
     membersService = { findAll: vi.fn() };
 
@@ -65,6 +57,7 @@ describe('MemberCreditsGuard', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('returns true when under the free solo seat limit', async () => {
@@ -151,7 +144,7 @@ describe('MemberCreditsGuard', () => {
   });
 
   it('never seat-gates outside managed cloud', async () => {
-    mockCloudMode = false;
+    vi.stubEnv('GENFEED_CLOUD', undefined);
 
     await expect(guard.canActivate(createContext())).resolves.toBe(true);
     expect(organizationSettingsService.findOne).not.toHaveBeenCalled();

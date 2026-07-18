@@ -33,10 +33,10 @@ Load `build/chrome-mv3-dev` in Brave (Developer Mode → Load unpacked) during d
 
 ### Environment Configuration
 
-- **Development**: Extension connects to `genfeed.localhost` for authentication
+- **Development**: The extension uses `genfeed.localhost` for authentication
 - **Production**: Extension connects to `genfeed.ai` for authentication
 - **Dark Mode**: Enabled by default for better user experience
-- **Authentication**: Extension opens GenFeed sign in or free signup in the browser
+- **Authentication**: The extension opens GenFeed in your browser so you can sign in or sign up for free
 
 ### Scripts
 

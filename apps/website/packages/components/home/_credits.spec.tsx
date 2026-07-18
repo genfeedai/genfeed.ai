@@ -1,3 +1,4 @@
+import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
 import { render, screen } from '@testing-library/react';
 import HomeCredits from '@web-components/home/_credits';
 import { describe, expect, it, vi } from 'vitest';
@@ -48,6 +49,15 @@ describe('HomeCredits', () => {
 
     expect(screen.getAllByText(/^\$\d/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/credits/i).length).toBeGreaterThan(0);
+  });
+
+  it('formats credit amounts deterministically across runtime locales', () => {
+    withSimulatedNumberLocale('de-DE', () => {
+      render(<HomeCredits />);
+
+      expect(screen.getByText('$1,000')).toBeInTheDocument();
+      expect(screen.getByText('100,000 credits')).toBeInTheDocument();
+    });
   });
 
   it('surfaces the launch pricing note', () => {

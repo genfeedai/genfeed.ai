@@ -1,5 +1,4 @@
 import { APP_ROUTES } from '@genfeedai/constants';
-import { IngredientCategory } from '@genfeedai/enums';
 import type {
   TrendItem,
   TrendSourceItem,
@@ -19,37 +18,6 @@ function buildQuery(params: Record<string, string | undefined>): string {
   return query ? `?${query}` : '';
 }
 
-export function resolveTrendStudioType(
-  trend: Pick<TrendItem, 'metadata'>,
-): IngredientCategory.IMAGE | IngredientCategory.VIDEO {
-  const trendType = trend.metadata?.trendType;
-
-  if (trendType === 'video' || trendType === 'sound') {
-    return IngredientCategory.VIDEO;
-  }
-
-  return IngredientCategory.IMAGE;
-}
-
-export function buildTrendStudioHref(
-  trend: Pick<TrendItem, 'topic' | 'platform' | 'metadata'>,
-): string {
-  const type = resolveTrendStudioType(trend);
-  const promptParts = [
-    `Create a ${trend.platform} concept inspired by the trend "${trend.topic}".`,
-    trend.metadata?.sampleContent
-      ? `Use this as inspiration: ${trend.metadata.sampleContent}`
-      : undefined,
-    trend.metadata?.creatorHandle
-      ? `Reference creator context: ${trend.metadata.creatorHandle}.`
-      : undefined,
-  ];
-
-  return `/studio/${type}${buildQuery({
-    text: promptParts.filter(Boolean).join(' '),
-  })}`;
-}
-
 export function buildAgentPromptHref(prompt: string): string {
   return `${APP_ROUTES.AGENT.NEW}${buildQuery({ prompt })}`;
 }
@@ -60,28 +28,6 @@ export function buildTrendAgentHref(
   return buildAgentPromptHref(
     `Help me turn the ${trend.platform} trend "${trend.topic}" into my next piece of content. Summarize the opportunity and suggest the best next step.`,
   );
-}
-
-function buildSourcePrompt(trend: TrendItem, source: TrendSourceItem): string {
-  const parts = [
-    `Create a ${source.platform} remix inspired by this source content.`,
-    `Trend: "${trend.topic}".`,
-    source.title ? `Title: "${source.title}".` : undefined,
-    source.text ? `Source text: "${source.text}".` : undefined,
-    source.authorHandle ? `Creator: @${source.authorHandle}.` : undefined,
-    `Source URL: ${source.sourceUrl}.`,
-  ];
-
-  return parts.filter(Boolean).join(' ');
-}
-
-export function buildTrendSourceStudioHref(
-  trend: TrendItem,
-  source: TrendSourceItem,
-): string {
-  return `/studio/video${buildQuery({
-    text: buildSourcePrompt(trend, source),
-  })}`;
 }
 
 export function buildTrendSourceAgentHref(

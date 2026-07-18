@@ -16,10 +16,10 @@ interface HeroMetric {
 }
 
 const HERO_METRICS: HeroMetric[] = [
-  { label: 'generated for launch', value: '42 assets' },
-  { label: 'covered in one pass', value: '9 channels' },
-  { label: 'estimated output cost', value: '$184' },
-  { label: 'best hook rate', value: '31%' },
+  { label: 'approved for launch', value: '42 assets' },
+  { label: 'published from one brief', value: '9 channels' },
+  { label: 'held for human review', value: '3 drafts' },
+  { label: 'measured in analytics', value: '31% hook rate' },
 ];
 
 const HERO_WALL_ITEMS = [
@@ -74,28 +74,36 @@ const HERO_WALL_ITEMS = [
 ] as const;
 
 export default function HomeHero(): React.ReactElement {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
-
   return (
     <section className="relative overflow-hidden border-b border-edge/5 bg-background">
       <div className="container mx-auto px-6">
         <div className="grid min-h-[calc(100svh-5.5rem)] items-center gap-12 py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.95fr)] lg:gap-14 lg:py-16 xl:gap-20">
           <div className="max-w-[42rem] self-center">
+            <Text className="mb-5 text-xs font-bold uppercase tracking-[0.16em] text-surface/65">
+              Distribution infrastructure for AI agents
+            </Text>
             <Heading
               as="h1"
-              className="hero-headline max-w-[42rem] whitespace-normal text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.035em] text-surface sm:whitespace-nowrap sm:text-5xl md:text-[3.5rem] lg:text-[3.5rem] xl:text-[4rem] 2xl:text-[4.5rem]"
+              className="hero-headline max-w-[44rem] text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.035em] text-surface sm:text-5xl md:text-[3.5rem] lg:text-[3.5rem] xl:text-[4rem] 2xl:text-[4.5rem]"
             >
-              <span className="block">One prompt.</span>
-              <span className="block text-surface/60">Publish everywhere.</span>
+              Your product deserves to be discovered.
             </Heading>
 
             <Text
               as="p"
-              className="hero-description mt-6 max-w-xl text-base leading-7 text-surface/62 md:text-lg"
+              className="mt-6 text-xl font-semibold tracking-[-0.02em] text-surface md:text-2xl"
             >
-              It becomes the full internet campaign: images, reels, ads,
-              articles, captions, newsletters, voice, clips, and the readout
-              that tells you what worked.
+              One prompt. Publish everywhere.
+            </Text>
+
+            <Text
+              as="p"
+              className="hero-description mt-4 max-w-2xl text-base leading-7 text-surface/62 md:text-lg"
+            >
+              Connect Claude Code, Codex, or any MCP client. Genfeed turns your
+              product brief into platform-native content, distributes it across
+              every channel, and brings approvals, scheduling, and performance
+              back into one control plane.
             </Text>
 
             <HStack className="mt-8 flex-wrap gap-3">
@@ -103,11 +111,15 @@ export default function HomeHero(): React.ReactElement {
                 asChild
                 size={ButtonSize.PUBLIC}
                 className="hero-cta"
-                trackingData={{ action: 'signup_payg_hero' }}
+                trackingData={{ action: 'connect_mcp_hero' }}
                 trackingName="hero_cta_click"
               >
-                <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                  Create now
+                <a
+                  href={EnvironmentService.mcpConnectHref}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Connect MCP
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
@@ -162,7 +174,7 @@ export default function HomeHero(): React.ReactElement {
 
             <div className="relative z-10 mx-3 -mt-12 overflow-hidden rounded-md bg-edge/10 shadow-border-strong lg:mx-8">
               <p className="border-b border-edge/5 bg-background/95 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-surface/45 backdrop-blur">
-                Sample campaign readout
+                Sample distribution readout
               </p>
               <div className="grid sm:grid-cols-4">
                 {HERO_METRICS.map((metric) => (

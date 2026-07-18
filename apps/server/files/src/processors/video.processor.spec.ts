@@ -1,5 +1,6 @@
 import { VideoProcessor } from '@files/processors/video.processor';
 import { JOB_TYPES, type JobType } from '@files/queues/queue.constants';
+import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
 import { VideoTransition } from '@genfeedai/enums';
 import { RedisService } from '@libs/redis/redis.service';
@@ -171,11 +172,21 @@ describe('VideoProcessor', () => {
 
     redisService = module.get(RedisService);
 
+    const videoMergeJobService = new VideoMergeJobService(
+      ffmpegService as unknown as never,
+      s3Service as unknown as never,
+      webSocketService as unknown as never,
+      redisService,
+      loggerService as unknown as never,
+    );
+
     // VideoProcessor constructor order: FFmpegService, HookRemixService,
-    // S3Service, WebSocketService, RedisService, LoggerService
+    // VideoMergeJobService, S3Service, WebSocketService, RedisService,
+    // LoggerService
     processor = new VideoProcessor(
       ffmpegService as unknown as never,
       hookRemixService as unknown as never,
+      videoMergeJobService,
       s3Service as unknown as never,
       webSocketService as unknown as never,
       redisService,

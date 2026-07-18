@@ -7,6 +7,7 @@ import {
   INTERNAL_CREDIT_COSTS,
   VIDEO_CREDIT_COSTS,
 } from '@helpers/business/pricing/pricing.helper';
+import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import type { OutputFormat } from '@props/website/home.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
@@ -124,7 +125,7 @@ export default function HomeFormats(): React.ReactElement {
                     {format.title}
                   </Heading>
                   <Text className="shrink-0 text-xs font-semibold uppercase tracking-[0.12em] text-surface/45">
-                    from {format.credits.toLocaleString()} credits
+                    from {formatNumberWithCommas(format.credits)} credits
                   </Text>
                 </div>
                 <Text className="text-sm leading-6 text-surface/55">

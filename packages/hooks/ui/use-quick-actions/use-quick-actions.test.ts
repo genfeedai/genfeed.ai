@@ -97,7 +97,7 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
     handler ? createAction('use-prompt', 'Use Prompt') : null,
   ),
   createVariationAction: vi.fn((_ingredient, handler) =>
-    handler ? createAction('create-variation', 'Create Variation') : null,
+    handler ? createAction('remix', 'Remix') : null,
   ),
   createVideoAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('convert-to-video', 'Convert to Video') : null,
@@ -207,7 +207,7 @@ describe('useQuickActions', () => {
 
     expect(result.current.primaryActions.map((action) => action.id)).toEqual([
       'see-details',
-      'create-variation',
+      'remix',
       'use-as-video-reference',
     ]);
   });
@@ -226,7 +226,7 @@ describe('useQuickActions', () => {
 
     expect(result.current.primaryActions.map((action) => action.id)).toEqual([
       'see-details',
-      'create-variation',
+      'remix',
       'convert-to-video',
     ]);
   });

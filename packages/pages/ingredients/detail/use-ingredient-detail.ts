@@ -7,6 +7,7 @@ import {
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IngredientDetailProps } from '@props/content/ingredient.props';
 import {
@@ -27,6 +28,7 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { brandId, credentials } = useBrand();
+  const isStudioEnabled = useFeatureFlag('studio');
 
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const notificationsService = useMemo(
@@ -97,11 +99,13 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
     onSeeDetails: (detailIngredient: IIngredient) => {
       openIngredientOverlay(detailIngredient);
     },
-    onUseAsVideoReference: (refIngredient: IIngredient) => {
-      router.push(
-        `/studio/video?referenceImageId=${refIngredient.id}&format=${refIngredient.ingredientFormat}`,
-      );
-    },
+    onUseAsVideoReference: isStudioEnabled
+      ? (refIngredient: IIngredient) => {
+          router.push(
+            `/studio/video?referenceImageId=${refIngredient.id}&format=${refIngredient.ingredientFormat}`,
+          );
+        }
+      : undefined,
   });
 
   const findChildIngredients = useCallback(

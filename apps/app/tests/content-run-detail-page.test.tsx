@@ -1,13 +1,15 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import ContentRunDetailPage from '@pages/content-runs/detail/content-run-detail';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findOne = vi.fn();
+const createRemixPack = vi.fn();
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
+    createRemixPack,
     findOne,
   }),
 }));
@@ -105,10 +107,14 @@ describe('ContentRunDetailPage', () => {
     expect(
       screen.getByText('Variant A is outperforming replies.'),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Remix/i })).toHaveAttribute(
-      'href',
-      '/acme/main/posts/remix',
-    );
+    expect(
+      screen.queryByRole('link', { name: /Remix/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Create remix pack from this content run',
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Publish/i })).toHaveAttribute(
       'href',
       '/acme/main/posts',
@@ -117,5 +123,28 @@ describe('ContentRunDetailPage', () => {
       'href',
       '/acme/main/analytics/posts',
     );
+  });
+
+  it('creates a remix pack from the exact authorized content run', async () => {
+    const updatedRun = {
+      _id: 'run-1',
+      brief: { angle: 'AI workflow proof' },
+      status: 'completed',
+      variants: [],
+    };
+    createRemixPack.mockResolvedValue(updatedRun);
+
+    render(<ContentRunDetailPage runId="run-1" />);
+
+    await screen.findByRole('heading', { name: 'AI workflow proof' });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Create remix pack from this content run',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(createRemixPack).toHaveBeenCalledWith('run-1');
+    });
   });
 });

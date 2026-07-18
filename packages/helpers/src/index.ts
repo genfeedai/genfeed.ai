@@ -11,6 +11,7 @@ export * from './email/system-email.helper';
 export * from './formatting/cn/cn.util';
 export * from './generation-controls.helper';
 export * from './generation-eta.helper';
+export * from './integrations/connect-genfeed.helper';
 export * from './media/provenance/provenance.helper';
 export * from './model-capability.helper';
 export * from './publisher/publishing-diagnostics.helper';

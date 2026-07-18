@@ -6,6 +6,7 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/interfaces/utils/filters.interface';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
@@ -39,6 +40,8 @@ export default function IngredientsLayoutToolbar({
   onFiltersChange,
   onUpload,
 }: IngredientsLayoutToolbarProps) {
+  const isStudioEnabled = useFeatureFlag('studio');
+
   return (
     <div className="flex items-center gap-2">
       <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
@@ -72,18 +75,20 @@ export default function IngredientsLayoutToolbar({
         </PrimitiveButton>
       )}
 
-      {scope !== PageScope.SUPERADMIN && config.showStudioLink && (
-        <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
-          <Link
-            href={`${EnvironmentService.apps.app}/studio/${ingredientCategory?.replace('s', '')?.toLowerCase()}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <HiArrowTopRightOnSquare />
-            Studio
-          </Link>
-        </PrimitiveButton>
-      )}
+      {isStudioEnabled &&
+        scope !== PageScope.SUPERADMIN &&
+        config.showStudioLink && (
+          <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
+            <Link
+              href={`${EnvironmentService.apps.app}/studio/${ingredientCategory?.replace('s', '')?.toLowerCase()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <HiArrowTopRightOnSquare />
+              Studio
+            </Link>
+          </PrimitiveButton>
+        )}
     </div>
   );
 }

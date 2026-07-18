@@ -57,11 +57,15 @@ export function NodeButton({
 export function NodeIconButton({
   className,
   children,
+  title,
+  'aria-label': ariaLabel,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement>): React.JSX.Element {
   return (
     <Button
+      ariaLabel={ariaLabel ?? title}
       className={cn('p-1.5 hover:bg-muted transition flex-shrink-0', className)}
+      title={title}
       variant={ButtonVariant.UNSTYLED}
       {...props}
     >

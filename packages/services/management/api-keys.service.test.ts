@@ -1,15 +1,20 @@
 import { ApiKeyCategory } from '@genfeedai/enums';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
-import { ApiKeysService } from '@services/management/api-keys.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  ApiKeysService,
+  ConnectGenfeedRequestError,
+} from '@services/management/api-keys.service';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@services/core/base.service');
 
 type ApiKeysServiceInternals = ApiKeysService & {
+  baseURL: string;
   instance: {
     post: ReturnType<typeof vi.fn>;
   };
   mapOne: ReturnType<typeof vi.fn>;
+  token: string;
 };
 
 describe('ApiKeysService', () => {
@@ -19,6 +24,10 @@ describe('ApiKeysService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new ApiKeysService(mockToken);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('constructor', () => {
@@ -112,6 +121,66 @@ describe('ApiKeysService', () => {
 
       expect(post).toHaveBeenCalledWith('/key-1/rotate');
       expect(mapOne).toHaveBeenCalledWith(responseDocument);
+    });
+
+    it('verifies an MCP connection through the selected key endpoint', async () => {
+      const serviceWithInternals =
+        service as unknown as ApiKeysServiceInternals;
+      const result = {
+        keyId: 'key-1',
+        publishing: { connectedAccountCount: 1, isReady: true },
+        status: 'connected' as const,
+        verifiedAt: '2026-07-18T12:00:00.000Z',
+      };
+      Object.defineProperties(serviceWithInternals, {
+        baseURL: { value: 'https://api.genfeed.ai/v1/api-keys' },
+        token: { value: mockToken },
+      });
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        json: vi.fn().mockResolvedValue(result),
+        ok: true,
+        status: 200,
+      } as unknown as Response);
+
+      await expect(
+        service.verifyMcpConnection('key-1', {
+          key: 'gf_test_secret-value',
+        }),
+      ).resolves.toEqual(result);
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/v1/api-keys/key-1/verify-mcp',
+        {
+          body: JSON.stringify({ key: 'gf_test_secret-value' }),
+          headers: {
+            Authorization: `Bearer ${mockToken}`,
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+        },
+      );
+    });
+
+    it('throws a sanitized status error without retaining the key', async () => {
+      const serviceWithInternals =
+        service as unknown as ApiKeysServiceInternals;
+      Object.defineProperties(serviceWithInternals, {
+        baseURL: { value: 'https://api.genfeed.ai/v1/api-keys' },
+        token: { value: mockToken },
+      });
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: false,
+        status: 400,
+      } as Response);
+
+      const error = await service
+        .verifyMcpConnection('key-1', {
+          key: 'gf_test_secret-value',
+        })
+        .catch((reason: unknown) => reason);
+
+      expect(error).toBeInstanceOf(ConnectGenfeedRequestError);
+      expect(error).toMatchObject({ status: 400 });
+      expect(JSON.stringify(error)).not.toContain('gf_test_secret-value');
     });
   });
 });

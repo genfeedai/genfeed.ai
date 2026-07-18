@@ -7,6 +7,7 @@
     "forceConsistentCasingInFileNames": true,
     "inlineSources": true,
     "sourceMap": true,
+    "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",

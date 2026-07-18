@@ -4,7 +4,7 @@ import { WorkflowNodeStatus } from '@genfeedai/enums';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
-} from '@genfeedai/workflow-ui/stores';
+} from '@genfeedai/workflows/ui/stores';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';

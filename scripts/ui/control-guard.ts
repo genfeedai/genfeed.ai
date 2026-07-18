@@ -74,7 +74,7 @@ export const ALLOWLIST = {
     '/navigation/',
     '/feedback/',
     '/src/components/ui/',
-    'packages/workflow-ui/',
+    'packages/workflows/src/ui/',
   ],
 
   /**

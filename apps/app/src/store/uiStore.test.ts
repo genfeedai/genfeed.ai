@@ -1,4 +1,4 @@
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import { useUIStore } from '@genfeedai/workflows/ui/stores';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('useUIStore', () => {
