@@ -103,7 +103,7 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
 const buildSyncUrl = (
   apiEndpoint: string,
   path: string,
-  cursor?: string,
+  cursor?: string | null,
 ): string =>
   cursor
     ? `${apiEndpoint}${path}?cursor=${encodeURIComponent(cursor)}`
@@ -384,7 +384,7 @@ export class ThreadSyncService {
     localUserId: string;
     session: IDesktopSession;
     signal: AbortSignal;
-    threadsCursor?: string;
+    threadsCursor?: string | null;
   }): Promise<{ errors: string[]; pushedCount: number }> {
     const {
       apiEndpoint,
@@ -465,7 +465,7 @@ export class ThreadSyncService {
     result: SyncResult;
     session: IDesktopSession;
     signal: AbortSignal;
-    threadsCursor?: string;
+    threadsCursor?: string | null;
   }): Promise<{ errors: string[] }> {
     const {
       apiEndpoint,
@@ -518,7 +518,7 @@ export class ThreadSyncService {
 
   private async pullBrandManifest(opts: {
     apiEndpoint: string;
-    brandManifestCursor?: string;
+    brandManifestCursor?: string | null;
     result: SyncResult;
     session: IDesktopSession;
     signal: AbortSignal;
