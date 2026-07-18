@@ -603,6 +603,70 @@ describe('AgentApiService', () => {
       );
     });
 
+    it('uses explicit filters and derives empty pagination when links are absent', async () => {
+      mockOk({ data: [] });
+      const service = makeService();
+
+      await expect(
+        Effect.runPromise(
+          service.listRunsEffect({ limit: 5, status: 'failed' }),
+        ),
+      ).resolves.toEqual({
+        pagination: { limit: 5, page: 1, pages: 0, total: 0 },
+        runs: [],
+      });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/runs?limit=5&page=1&status=failed',
+        expect.any(Object),
+      );
+    });
+
+    it('preserves the requested page in fallback pagination', async () => {
+      mockOk({
+        data: [
+          {
+            attributes: { label: 'Older run', status: 'completed' },
+            id: 'run-11',
+            type: 'agent-run',
+          },
+        ],
+      });
+      const service = makeService();
+
+      await expect(
+        Effect.runPromise(service.listRunsEffect({ limit: 10, page: 2 })),
+      ).resolves.toEqual({
+        pagination: { limit: 10, page: 2, pages: 2, total: 11 },
+        runs: [{ id: 'run-11', label: 'Older run', status: 'completed' }],
+      });
+    });
+
+    it('keeps empty fallback pagination internally consistent', async () => {
+      mockOk({ data: [] });
+      const service = makeService();
+
+      await expect(
+        Effect.runPromise(service.listRunsEffect({ limit: 10, page: 2 })),
+      ).resolves.toEqual({
+        pagination: { limit: 10, page: 2, pages: 1, total: 10 },
+        runs: [],
+      });
+    });
+
+    it('omits empty optional run filters', async () => {
+      mockOk({ data: [] });
+      const service = makeService();
+
+      await Effect.runPromise(
+        service.listRunsEffect({ brandId: '', status: '' }),
+      );
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/runs?limit=10&page=1',
+        expect.any(Object),
+      );
+    });
+
     it('fetches detail and retries within the selected brand', async () => {
       const run = { id: 'run-1', status: 'pending' };
       mockJsonApiResource(run, 'agent-run');

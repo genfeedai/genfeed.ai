@@ -92,15 +92,15 @@ function writeManifest() {
       notarization: {
         afterSign: build.afterSign,
         requiredEnvironment: [
-          'APPLE_ID',
-          'APPLE_APP_SPECIFIC_PASSWORD',
-          'APPLE_TEAM_ID',
+          'APPLE_API_KEY',
+          'APPLE_API_KEY_ID',
+          'APPLE_API_ISSUER',
         ],
       },
       signing: {
         certificateEnvironment: [
-          'APPLE_SIGNING_CERTIFICATE_BASE64',
-          'APPLE_SIGNING_CERTIFICATE_PASSWORD',
+          'DEVELOPER_ID_P12_BASE64',
+          'DEVELOPER_ID_P12_PASSWORD',
         ],
         entitlements: mac.entitlements,
       },

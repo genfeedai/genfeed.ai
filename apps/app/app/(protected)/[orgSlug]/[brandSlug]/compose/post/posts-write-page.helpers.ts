@@ -180,24 +180,3 @@ export async function generateDesktopContent(params: {
     type: getDesktopContentType(params.mode),
   });
 }
-
-export async function queueDesktopPostSync(params: {
-  bridge: IGenfeedDesktopBridge;
-  generated: IDesktopGeneratedContent;
-  mode: 'post' | 'thread';
-  prompt: string;
-  title: string;
-}): Promise<void> {
-  await params.bridge.sync.queueJob(
-    'post-draft',
-    JSON.stringify({
-      content: params.generated.content,
-      generatedId: params.generated.id,
-      mode: params.mode,
-      platform: params.generated.platform,
-      prompt: params.prompt,
-      title: params.title,
-      type: params.generated.type,
-    }),
-  );
-}

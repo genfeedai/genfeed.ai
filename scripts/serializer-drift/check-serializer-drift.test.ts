@@ -230,6 +230,231 @@ describe('check-serializer-drift', () => {
     expect(result.matchedCount).toBe(1);
   });
 
+  it('matches schemas whose canonical serializer uses a renamed basename', () => {
+    writeFixture(
+      'packages/prisma/prisma/schema.prisma',
+      'model Skill {\n  id String @id\n  label String\n}',
+    );
+    writeFixture(
+      'apps/server/api/src/collections/skills/schemas/skill.schema.ts',
+      "export type { Skill as SkillDocument } from '@genfeedai/prisma';",
+    );
+    writeFixture(
+      'packages/serializers/src/attributes/content/content-skill.attributes.ts',
+      [
+        "import { createEntityAttributes } from '@genfeedai/helpers';",
+        "export const skillAttributes = createEntityAttributes(['label']);",
+      ].join('\n'),
+    );
+    writeFixture(
+      'packages/serializers/src/configs/content/content-skill.config.ts',
+      [
+        "import { skillAttributes } from '@serializers/attributes/content/content-skill.attributes';",
+        "export const skillSerializerConfig = { attributes: skillAttributes, type: 'skill' };",
+      ].join('\n'),
+    );
+    writeFixture(
+      'packages/serializers/src/server/content/content-skill.serializer.ts',
+      [
+        "import { buildSerializer } from '@serializers/builders';",
+        "import { skillSerializerConfig } from '@serializers/configs/content/content-skill.config';",
+        "export const { ContentSkillSerializer } = buildSerializer('server', skillSerializerConfig);",
+      ].join('\n'),
+    );
+
+    const result = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.matchedPairKeys).toEqual(['skill:Skill']);
+  });
+
+  it('discovers serializers declared as nested relationship contracts', () => {
+    writeFixture(
+      'packages/prisma/prisma/schema.prisma',
+      [
+        'model Template {',
+        '  id String @id',
+        '  label String',
+        '}',
+        'model TemplateMetadata {',
+        '  id String @id',
+        '  label String',
+        '}',
+      ].join('\n'),
+    );
+    writeFixture(
+      'apps/server/api/src/collections/templates/schemas/template.schema.ts',
+      "export type { Template as TemplateDocument } from '@genfeedai/prisma';",
+    );
+    writeFixture(
+      'apps/server/api/src/collections/templates/schemas/template-metadata.schema.ts',
+      "export type { TemplateMetadata as TemplateMetadataDocument } from '@genfeedai/prisma';",
+    );
+    writeFixture(
+      'packages/serializers/src/attributes/content/template.attributes.ts',
+      [
+        "import { createEntityAttributes } from '@genfeedai/helpers';",
+        "export const templateAttributes = createEntityAttributes(['label']);",
+      ].join('\n'),
+    );
+    writeFixture(
+      'packages/serializers/src/attributes/content/template-metadata.attributes.ts',
+      [
+        "import { createEntityAttributes } from '@genfeedai/helpers';",
+        "export const templateMetadataAttributes = createEntityAttributes(['label']);",
+      ].join('\n'),
+    );
+    writeFixture(
+      'packages/serializers/src/configs/content/template.config.ts',
+      [
+        "import { templateAttributes } from '@serializers/attributes/content/template.attributes';",
+        "import { templateMetadataAttributes } from '@serializers/attributes/content/template-metadata.attributes';",
+        'export const templateSerializerConfig = {',
+        '  attributes: templateAttributes,',
+        '  relationships: {',
+        '    metadata: {',
+        '      attributes: templateMetadataAttributes,',
+        "      type: 'template-metadata',",
+        '    },',
+        '  },',
+        "  type: 'template',",
+        '};',
+      ].join('\n'),
+    );
+    writeFixture(
+      'packages/serializers/src/server/content/template.serializer.ts',
+      [
+        "import { buildSerializer } from '@serializers/builders';",
+        "import { templateSerializerConfig } from '@serializers/configs/content/template.config';",
+        "export const { TemplateSerializer } = buildSerializer('server', templateSerializerConfig);",
+      ].join('\n'),
+    );
+
+    const result = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.matchedPairKeys).toEqual([
+      'template-metadata:TemplateMetadata',
+      'template:Template',
+    ]);
+    expect(result.serializerCount).toBe(2);
+  });
+
+  it('requires reasons for intentionally unserialized schemas', () => {
+    writeFixture(
+      'packages/prisma/prisma/schema.prisma',
+      [
+        'model Lead {',
+        '  id String @id',
+        '}',
+        'model Widget {',
+        '  id String @id',
+        '  label String',
+        '}',
+      ].join('\n'),
+    );
+    writeFixture(
+      'apps/server/api/src/collections/leads/schemas/lead.schema.ts',
+      "export type { Lead as LeadDocument } from '@genfeedai/prisma';",
+    );
+    writeFixture(
+      'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
+      "export type { Widget as WidgetDocument } from '@genfeedai/prisma';",
+    );
+    writeSerializerTriplet({ fields: ['label'] });
+
+    const classified = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+      unserializedSchemas: {
+        'lead:Lead': 'Internal onboarding persistence.',
+      },
+    });
+    expect(classified.errors).toHaveLength(0);
+    expect(classified.classifiedUnserializedCount).toBe(1);
+    expect(classified.unclassifiedUnmatchedCount).toBe(0);
+
+    const unclassified = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+      unserializedSchemas: {},
+    });
+    expect(unclassified.errors).toContain(
+      'Unmatched schema lead:Lead needs a reason in INTENTIONALLY_UNSERIALIZED_SCHEMAS',
+    );
+  });
+
+  it('rejects intentional-unserialized entries after a serializer is added', () => {
+    writeBaseFixture();
+    writeFixture(
+      'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
+      "export type { Widget as WidgetDocument } from '@genfeedai/prisma';",
+    );
+    writeSerializerTriplet({ fields: ['label'] });
+
+    const result = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+      unserializedSchemas: {
+        'widget:Widget': 'No longer true.',
+      },
+    });
+
+    expect(result.errors).toContain(
+      'Intentional unserialized contract widget:Widget is stale: schema now has a serializer',
+    );
+  });
+
+  it('does not let an intentional-unserialized entry hide ambiguous serializers', () => {
+    writeBaseFixture();
+    writeFixture(
+      'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
+      "export type { Widget as WidgetDocument } from '@genfeedai/prisma';",
+    );
+    writeSerializerTriplet({ fields: ['label'] });
+    writeFixture(
+      'packages/serializers/src/attributes/other/widget.attributes.ts',
+      [
+        "import { createEntityAttributes } from '@genfeedai/helpers';",
+        "export const widgetAttributes = createEntityAttributes(['label']);",
+      ].join('\n'),
+    );
+    writeFixture(
+      'packages/serializers/src/configs/other/widget.config.ts',
+      [
+        "import { widgetAttributes } from '@serializers/attributes/other/widget.attributes';",
+        "export const widgetSerializerConfig = { attributes: widgetAttributes, type: 'widget' };",
+      ].join('\n'),
+    );
+    writeFixture(
+      'packages/serializers/src/server/other/widget.serializer.ts',
+      [
+        "import { buildSerializer } from '@serializers/builders';",
+        "import { widgetSerializerConfig } from '@serializers/configs/other/widget.config';",
+        "export const { WidgetSerializer } = buildSerializer('server', widgetSerializerConfig);",
+      ].join('\n'),
+    );
+
+    const result = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+      unserializedSchemas: {
+        'widget:Widget': 'Must not suppress an ambiguous serializer match.',
+      },
+    });
+
+    expect(result.errors).toContain(
+      'Ambiguous serializer contract for widget:Widget: multiple canonical server serializer triplets found',
+    );
+    expect(result.classifiedUnserializedCount).toBe(0);
+  });
+
   it('reports serializer fields that have no model, document, or relationship backing', () => {
     writeBaseFixture();
     writeFixture(

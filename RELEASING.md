@@ -85,13 +85,16 @@ That tag triggers `.github/workflows/desktop-release.yml`, which now:
 - uploads the artifact to the workflow run
 - creates or updates the GitHub release for `desktop-v1.2.3` and attaches the artifact automatically
 
+Required GitHub Actions variables:
+
+- `APPLE_API_ISSUER_ID`
+- `APPLE_API_KEY_ID`
+
 Required GitHub Actions secrets:
 
-- `APPLE_ID`
-- `APPLE_APP_SPECIFIC_PASSWORD`
-- `APPLE_TEAM_ID`
-- `APPLE_SIGNING_CERTIFICATE_BASE64`
-- `APPLE_SIGNING_CERTIFICATE_PASSWORD`
+- `APPLE_API_PRIVATE_KEY_P8_BASE64`
+- `DEVELOPER_ID_P12_BASE64`
+- `DEVELOPER_ID_P12_PASSWORD`
 
 ## Mobile Release
 

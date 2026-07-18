@@ -1,5 +1,6 @@
 import type {
   IDesktopSession,
+  IDesktopSyncConsent,
   IDesktopSyncState,
   IDesktopThread,
   IDesktopWorkspace,
@@ -86,9 +87,12 @@ interface SidebarProps {
   onNewThread: () => void;
   onOpenWorkspace: () => void;
   onLogout: () => void;
+  onConnectCloud: () => void;
+  onReviewSyncConsent: () => void;
   onTriggerSync: () => void;
   session: IDesktopSession | null;
   syncErrors: string[];
+  syncConsent: IDesktopSyncConsent;
   syncState: IDesktopSyncState;
   threads: IDesktopThread[];
   workspaces: IDesktopWorkspace[];
@@ -107,9 +111,12 @@ export function Sidebar({
   onNewThread,
   onOpenWorkspace,
   onLogout,
+  onConnectCloud,
+  onReviewSyncConsent,
   onTriggerSync,
   session,
   syncErrors,
+  syncConsent,
   syncState,
   threads,
   workspaces,
@@ -208,9 +215,12 @@ export function Sidebar({
         isSyncing={isSyncing}
         lastSyncAt={lastSyncAt}
         onLogout={onLogout}
+        onConnectCloud={onConnectCloud}
+        onReviewSyncConsent={onReviewSyncConsent}
         onTriggerSync={onTriggerSync}
         session={session}
         syncErrors={syncErrors}
+        syncConsent={syncConsent}
         syncState={syncState}
       />
     </aside>

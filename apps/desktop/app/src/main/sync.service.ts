@@ -34,6 +34,14 @@ const ASSET_RESIDENCIES = [
   'upload-pending',
 ] as const;
 const ASSET_UPLOAD_POLICIES = ['full', 'metadata-only', 'never'] as const;
+const RETIRED_GENERIC_CLOUD_JOB_TYPES = [
+  'generateContent',
+  'generateHooks',
+  'post-draft',
+  'publishPost',
+  'runAgent',
+  'runWorkflow',
+] as const;
 
 const isOneOf = <T extends string>(
   value: string | undefined,
@@ -53,6 +61,14 @@ export class DesktopSyncService {
   constructor(private readonly prisma: PrismaClient) {}
 
   async init(): Promise<void> {
+    await this.prisma.desktopSyncJob.deleteMany({
+      where: {
+        type: {
+          in: [...RETIRED_GENERIC_CLOUD_JOB_TYPES],
+        },
+      },
+    });
+
     const [assetRows, brandRows, cloudOrganizationRows, jobRows, opRows] =
       await Promise.all([
         this.prisma.desktopAsset.findMany({
@@ -475,37 +491,6 @@ export class DesktopSyncService {
     for (const cloudAsset of manifest.assets) {
       await this.applyCloudAsset(cloudAsset);
     }
-  }
-
-  async queueJob(
-    type: string,
-    payload: string,
-    workspaceId?: string,
-  ): Promise<IDesktopSyncJob> {
-    const now = toIso();
-    const row = {
-      createdAt: now,
-      error: null,
-      id: randomUUID(),
-      payload,
-      retryCount: 0,
-      status: 'pending',
-      type,
-      updatedAt: now,
-      workspaceId: workspaceId ?? null,
-    };
-
-    await this.prisma.desktopSyncJob.upsert({
-      create: row,
-      update: row,
-      where: {
-        id: row.id,
-      },
-    });
-
-    const job = this.toSyncJob(row);
-    this.jobs.set(job.id, job);
-    return job;
   }
 
   async queueOp(

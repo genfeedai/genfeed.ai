@@ -62,7 +62,11 @@ const URL_RESTORATION_POLICY = Object.freeze({
   searchParams: 'preserve-opaque',
 } as const satisfies WorkspaceShellRestorationPolicy);
 
-const RESERVED_SCOPED_ROUTE_PREFIXES = Object.freeze(['admin', 'settings']);
+const RESERVED_SCOPED_ROUTE_PREFIXES = Object.freeze([
+  'admin',
+  'connect',
+  'settings',
+]);
 
 const ACCESS_POLICY_BY_SCOPE = Object.freeze({
   brand: 'brand-member',
@@ -316,6 +320,13 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
     surfaceKey: 'protected-bootstrap',
     telemetryClass: 'management',
   }),
+  ...registerRoutes(['/connect'], {
+    fallback: '/connect',
+    mode: 'canvas',
+    scope: 'personal',
+    surfaceKey: 'connect-genfeed-resolver',
+    telemetryClass: 'management',
+  }),
   ...registerRoutes(['/settings', '/settings/help'], {
     fallback: '/settings',
     mode: 'canvas',
@@ -326,6 +337,13 @@ const PERSONAL_ROUTE_REGISTRATIONS = [
 ] as const;
 
 const ORGANIZATION_ROUTE_REGISTRATIONS = [
+  ...registerRoutes(['/:orgSlug/~/connect'], {
+    fallback: '/:orgSlug/~/connect',
+    mode: 'canvas',
+    scope: 'organization',
+    surfaceKey: 'connect-genfeed',
+    telemetryClass: 'management',
+  }),
   ...registerRoutes(['/:orgSlug/~/overview'], {
     adapter: {
       key: 'organization-workspace-overview',
@@ -1074,7 +1092,11 @@ function hasRequiredPathScope(
         !hasReservedPrefix && (segments.length === 1 || segments[1] === '~')
       );
     case 'personal':
-      return pathname === '/' || pathname.startsWith('/settings');
+      return (
+        pathname === '/' ||
+        pathname === '/connect' ||
+        pathname.startsWith('/settings')
+      );
     case 'platform-admin':
       return pathname === '/admin' || pathname.startsWith('/admin/');
   }

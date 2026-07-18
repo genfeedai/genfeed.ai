@@ -7,6 +7,7 @@ import type {
   IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
 import { lazy, type ReactElement, Suspense } from 'react';
+import CloudConnectionNotice from './components/CloudConnectionNotice';
 import type { NavView } from './nav-view';
 import type { DesktopAgentRunHandoff } from './views/AgentsView';
 
@@ -62,10 +63,12 @@ interface MainViewProps {
   brands: IDesktopBrand[];
   cloudOrganizations: IDesktopCloudOrganization[];
   isOnline: boolean;
+  hasCloudSession: boolean;
   pendingTrend: IDesktopTrendHandoff | null;
   selectedWorkspace: IDesktopWorkspace | null;
   selectedWorkspaceId: string | null;
   onCreateThread: () => IDesktopThread;
+  onConnectCloud: () => void;
   onSendMessage: (threadId: string, message: IDesktopMessage) => void;
   onSetStatus: (threadId: string, status: 'awaiting-response' | 'idle') => void;
   onTrendConsumed: () => void;
@@ -80,10 +83,12 @@ function MainView({
   brands,
   cloudOrganizations,
   isOnline,
+  hasCloudSession,
   pendingTrend,
   selectedWorkspace,
   selectedWorkspaceId,
   onCreateThread,
+  onConnectCloud,
   onSendMessage,
   onSetStatus,
   onTrendConsumed,
@@ -100,6 +105,7 @@ function MainView({
       pendingTrend={pendingTrend}
       brands={brands}
       cloudOrganizations={cloudOrganizations}
+      hasCloudSession={hasCloudSession}
       thread={activeThread}
       workspaceId={selectedWorkspaceId}
     />
@@ -114,10 +120,23 @@ function MainView({
       content = <TerminalView workspaceId={selectedWorkspaceId} />;
       break;
     case 'workflows':
-      content = <WorkflowsView isOnline={isOnline} />;
+      content = (
+        <WorkflowsView
+          hasCloudSession={hasCloudSession}
+          isOnline={isOnline}
+          onConnectCloud={onConnectCloud}
+        />
+      );
       break;
     case 'agents':
-      content = <AgentsView isOnline={isOnline} onRunHandoff={onRunHandoff} />;
+      content = (
+        <AgentsView
+          hasCloudSession={hasCloudSession}
+          isOnline={isOnline}
+          onConnectCloud={onConnectCloud}
+          onRunHandoff={onRunHandoff}
+        />
+      );
       break;
     case 'mission-control':
       content = <MissionControlView onStartNewThread={onNewThread} />;
@@ -127,12 +146,17 @@ function MainView({
       break;
     case 'analytics':
       content = (
-        <AnalyticsView isOnline={isOnline} workspaceId={selectedWorkspaceId} />
+        <AnalyticsView
+          hasCloudSession={hasCloudSession}
+          isOnline={isOnline}
+          workspaceId={selectedWorkspaceId}
+        />
       );
       break;
     case 'library':
       content = (
         <LibraryView
+          hasCloudSession={hasCloudSession}
           isOnline={isOnline}
           workspace={selectedWorkspace}
           workspaceId={selectedWorkspaceId}
@@ -142,6 +166,7 @@ function MainView({
     case 'trends':
       content = (
         <TrendsView
+          hasCloudSession={hasCloudSession}
           isOnline={isOnline}
           onGenerateFromTrend={onGenerateFromTrend}
         />
@@ -151,10 +176,19 @@ function MainView({
       content = conversationView;
   }
 
+  const showsCloudActions = ['agents', 'conversation', 'workflows'].includes(
+    activeView,
+  );
+
   return (
-    <Suspense fallback={<div className="desktop-loading" />}>
-      {content}
-    </Suspense>
+    <>
+      {!hasCloudSession && showsCloudActions ? (
+        <CloudConnectionNotice onConnect={onConnectCloud} />
+      ) : null}
+      <Suspense fallback={<div className="desktop-loading" />}>
+        {content}
+      </Suspense>
+    </>
   );
 }
 

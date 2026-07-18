@@ -15,6 +15,19 @@ Canonical JSON:API serializer package for the Genfeed monorepo.
 - Prefer `@genfeedai/serializers` for all new code.
 - Do not recreate serializer configs or builders under `packages/client`.
 
+## Drift Coverage
+
+Run `bun run check:serializer-drift` after changing a Prisma-backed document or
+serializer. The guard discovers canonical flat triplets, known renamed
+triplets, and serializers embedded in relationship configs.
+
+Prisma-backed documents without a standalone public serializer must have an
+explicit reason in `INTENTIONALLY_UNSERIALIZED_SCHEMAS`. This includes analytics
+storage models consumed by aggregate serializers, such as `ArticleAnalytics`
+and `PostAnalytics`. The guard fails when a schema is unclassified, when
+multiple serializers ambiguously target one schema, or when an exception
+becomes stale.
+
 ## Why
 
 The repo previously had overlapping serializer surfaces in both `packages/serializers`
