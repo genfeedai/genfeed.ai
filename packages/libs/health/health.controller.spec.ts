@@ -13,6 +13,10 @@ describe('HealthController', () => {
     controller = module.get<HealthController>(HealthController);
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
@@ -29,14 +33,17 @@ describe('HealthController', () => {
       expect(result).not.toHaveProperty('uptime');
     });
 
-    it('should return different timestamps on multiple calls', async () => {
+    it('should return different timestamps on multiple calls', () => {
+      vi.useFakeTimers().setSystemTime(new Date('2024-01-01T00:00:00.000Z'));
       const result1 = controller.check();
 
-      await new Promise((resolve) => setTimeout(resolve, 1));
-
+      vi.setSystemTime(new Date('2024-01-01T00:00:00.001Z'));
       const result2 = controller.check();
 
       expect(result1.timestamp).not.toBe(result2.timestamp);
+      expect(new Date(result2.timestamp).getTime()).toBeGreaterThan(
+        new Date(result1.timestamp).getTime(),
+      );
     });
   });
 
