@@ -1,4 +1,12 @@
 export {
+  getActionOriginContext,
+  normalizeActionOrigin,
+  resolveNestedActionOrigin,
+  runWithActionOrigin,
+  sanitizeActionOriginContext,
+  withActionOriginMetadata,
+} from './action-origin/action-origin.context';
+export {
   AgentArtifactReferenceService,
   type AgentArtifactReferenceTelemetryContext,
   type AgentArtifactReferenceTransaction,

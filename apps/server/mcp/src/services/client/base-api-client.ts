@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
@@ -33,6 +35,13 @@ export class BaseApiClient {
       headers: {
         Authorization: `Bearer ${this.bearerToken}`,
         'Content-Type': 'application/json',
+        ...(this.bearerToken
+          ? {
+              [MCP_ACTION_ORIGIN_PROOF_HEADER]: createHash('sha256')
+                .update(this.bearerToken)
+                .digest('base64url'),
+            }
+          : {}),
       },
       timeout: 30000,
     });

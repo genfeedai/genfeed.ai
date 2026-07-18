@@ -48,6 +48,7 @@ import { ContentQualityScorerService } from '@api/services/content-quality/conte
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { isEEEnabled } from '@genfeedai/config';
 import {
+  ActionOrigin,
   AgentType,
   BotCategory,
   BotPlatform,
@@ -93,7 +94,11 @@ import {
   serializeAgentBrand,
   serializeAgentBrands,
 } from '@genfeedai/serializers';
-import { AgentScopeContextService } from '@genfeedai/server';
+import {
+  AgentScopeContextService,
+  resolveNestedActionOrigin,
+  runWithActionOrigin,
+} from '@genfeedai/server';
 import {
   type CanonicalToolDefinition,
   getToolsForRole,
@@ -750,6 +755,17 @@ export class AgentToolExecutorService {
   }
 
   async executeTool(
+    toolName: AgentToolName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return runWithActionOrigin(
+      resolveNestedActionOrigin(ActionOrigin.AGENT),
+      () => this.executeToolWithActionOrigin(toolName, parameters, context),
+    );
+  }
+
+  private async executeToolWithActionOrigin(
     toolName: AgentToolName,
     parameters: Record<string, unknown>,
     context: ToolExecutionContext,

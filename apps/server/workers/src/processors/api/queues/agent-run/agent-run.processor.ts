@@ -15,8 +15,9 @@ import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
-import { AgentRunStatus } from '@genfeedai/enums';
+import { ActionOrigin, AgentRunStatus } from '@genfeedai/enums';
 import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
+import { runWithActionOrigin } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject, Optional } from '@nestjs/common';
@@ -112,6 +113,15 @@ export class AgentRunProcessor extends WorkerHost {
   }
 
   async process(job: Job<AgentRunJobData>): Promise<void> {
+    return runWithActionOrigin(
+      job.data.actionContext ?? { origin: ActionOrigin.AGENT },
+      () => this.processWithActionOrigin(job),
+    );
+  }
+
+  private async processWithActionOrigin(
+    job: Job<AgentRunJobData>,
+  ): Promise<void> {
     const { data } = job;
     const url = `${this.logContext} process`;
 

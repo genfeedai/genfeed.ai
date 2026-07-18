@@ -76,6 +76,7 @@ export class ApiKeyAuthGuard implements CanActivate {
       id: apiKey.userId,
       publicMetadata: {
         apiKeyId,
+        actionOrigin: this.apiKeysService.resolveActionOrigin(apiKey),
         brand: apiKey.organizationId, // Default to org
         isApiKey: true,
         organization: apiKey.organizationId,

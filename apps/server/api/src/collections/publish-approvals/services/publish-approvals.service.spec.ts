@@ -1,11 +1,15 @@
 import { createHash } from 'node:crypto';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import {
+  ActionOrigin,
   CredentialPlatform,
   PublishApprovalPolicyId,
   PublishApprovalStatus,
 } from '@genfeedai/enums';
-import type { AgentArtifactReferenceService } from '@genfeedai/server';
+import {
+  type AgentArtifactReferenceService,
+  runWithActionOrigin,
+} from '@genfeedai/server';
 
 const NOW = new Date('2026-07-13T22:00:00.000Z');
 
@@ -154,14 +158,25 @@ describe('PublishApprovalsService', () => {
       logger as never,
     );
 
-    const approval = await service.createForCurrentPost({
-      actorUserId: 'user-1',
-      mode: 'scheduled',
-      organizationId: 'org-1',
-      postId: 'post-1',
-      provenance: { surface: 'review-queue' },
-      transaction: transaction as never,
-    });
+    const approval = await runWithActionOrigin(
+      {
+        actorUserId: 'user-1',
+        apiKeyId: 'key-1',
+        origin: ActionOrigin.MCP,
+      },
+      () =>
+        service.createForCurrentPost({
+          actorUserId: 'user-1',
+          mode: 'scheduled',
+          organizationId: 'org-1',
+          postId: 'post-1',
+          provenance: {
+            origin: ActionOrigin.UI,
+            surface: 'review-queue',
+          },
+          transaction: transaction as never,
+        }),
+    );
 
     expect(approval).toEqual(
       expect.objectContaining({
@@ -181,6 +196,12 @@ describe('PublishApprovalsService', () => {
           version: 1,
         },
         postId: 'post-1',
+        provenance: expect.objectContaining({
+          actorUserId: 'user-1',
+          apiKeyId: 'key-1',
+          origin: ActionOrigin.MCP,
+          surface: 'review-queue',
+        }),
         scheduleIntent: {
           kind: 'scheduled',
           scheduledAt: '2026-07-14T10:00:00.000Z',
@@ -205,6 +226,7 @@ describe('PublishApprovalsService', () => {
       action: 'approve',
       integrity: 'matched',
       organizationId: 'org-1',
+      origin: ActionOrigin.MCP,
       outcome: 'success',
       telemetryQueryVersion: 1,
     });
@@ -396,6 +418,7 @@ describe('PublishApprovalsService', () => {
       action: 'execute',
       integrity: 'matched',
       organizationId: 'org-1',
+      origin: ActionOrigin.UNKNOWN,
       outcome,
       telemetryQueryVersion: 1,
     });

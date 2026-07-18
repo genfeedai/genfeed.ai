@@ -14,7 +14,12 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { ApiKeyCategory } from '@genfeedai/enums';
+import {
+  ActionOrigin,
+  API_KEY_ACTION_ORIGIN_METADATA_KEY,
+  API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
+  ApiKeyCategory,
+} from '@genfeedai/enums';
 import { ApiKeyFullSerializer, ApiKeySerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -52,6 +57,43 @@ export class ApiKeysController {
     );
 
     return match ?? ApiKeyCategory.GENFEEDAI;
+  }
+
+  private withoutReservedOriginMetadata(
+    metadata: Record<string, unknown> | undefined,
+  ): Record<string, unknown> | undefined {
+    if (!metadata) {
+      return undefined;
+    }
+    const {
+      [API_KEY_ACTION_ORIGIN_METADATA_KEY]: _actionOrigin,
+      [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: _actionOriginProof,
+      ...safeMetadata
+    } = metadata;
+    return safeMetadata;
+  }
+
+  private trustedExistingOriginMetadata(
+    apiKey: Parameters<ApiKeysService['resolveActionOrigin']>[0],
+  ): Record<string, unknown> {
+    const origin = this.apiKeysService.resolveActionOrigin(apiKey);
+    if (origin !== ActionOrigin.CLI && origin !== ActionOrigin.UI) {
+      return {};
+    }
+    const metadata =
+      apiKey.metadata &&
+      typeof apiKey.metadata === 'object' &&
+      !Array.isArray(apiKey.metadata)
+        ? (apiKey.metadata as Record<string, unknown>)
+        : {};
+    const proof = metadata[API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY];
+
+    return {
+      [API_KEY_ACTION_ORIGIN_METADATA_KEY]: origin,
+      ...(typeof proof === 'string'
+        ? { [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: proof }
+        : {}),
+    };
   }
 
   @Post()
@@ -93,6 +135,7 @@ export class ApiKeysController {
 
     const { apiKey, plainKey } = await this.apiKeysService.createWithKey({
       ...createApiKeyDto,
+      metadata: this.withoutReservedOriginMetadata(createApiKeyDto.metadata),
       organizationId: publicMetadata.organization,
       userId: publicMetadata.user,
     });
@@ -207,10 +250,17 @@ export class ApiKeysController {
       });
     }
 
-    const updatedKey = await this.apiKeysService.patch(
-      apiKeyId,
-      updateApiKeyDto,
-    );
+    const updatedKey = await this.apiKeysService.patch(apiKeyId, {
+      ...updateApiKeyDto,
+      ...(updateApiKeyDto.metadata !== undefined
+        ? {
+            metadata: {
+              ...this.withoutReservedOriginMetadata(updateApiKeyDto.metadata),
+              ...this.trustedExistingOriginMetadata(existingKey),
+            },
+          }
+        : {}),
+    });
     return serializeSingle(request, ApiKeySerializer, updatedKey);
   }
 
@@ -244,28 +294,38 @@ export class ApiKeysController {
       });
     }
 
-    const metadata =
+    const existingMetadata =
       existingKey.metadata &&
       typeof existingKey.metadata === 'object' &&
       !Array.isArray(existingKey.metadata)
         ? (existingKey.metadata as Record<string, unknown>)
         : undefined;
+    const metadata = this.withoutReservedOriginMetadata(existingMetadata);
+    const existingOrigin = this.apiKeysService.resolveActionOrigin(existingKey);
+    const trustedOrigin =
+      existingOrigin === ActionOrigin.CLI || existingOrigin === ActionOrigin.UI
+        ? existingOrigin
+        : undefined;
 
-    const { apiKey, plainKey } = await this.apiKeysService.rotateWithKey(
-      apiKeyId,
-      {
-        allowedIps: existingKey.allowedIps,
-        category: this.toApiKeyCategory(existingKey.category),
-        description: existingKey.description ?? undefined,
-        expiresAt: existingKey.expiresAt?.toISOString(),
-        label: existingKey.label,
-        metadata,
-        organizationId: publicMetadata.organization,
-        rateLimit: existingKey.rateLimit ?? undefined,
-        scopes: existingKey.scopes,
-        userId: publicMetadata.user,
-      },
-    );
+    const replacementInput = {
+      allowedIps: existingKey.allowedIps,
+      category: this.toApiKeyCategory(existingKey.category),
+      description: existingKey.description ?? undefined,
+      expiresAt: existingKey.expiresAt?.toISOString(),
+      label: existingKey.label,
+      metadata,
+      organizationId: publicMetadata.organization,
+      rateLimit: existingKey.rateLimit ?? undefined,
+      scopes: existingKey.scopes,
+      userId: publicMetadata.user,
+    };
+    const { apiKey, plainKey } = trustedOrigin
+      ? await this.apiKeysService.rotateWithKey(
+          apiKeyId,
+          replacementInput,
+          trustedOrigin,
+        )
+      : await this.apiKeysService.rotateWithKey(apiKeyId, replacementInput);
 
     return serializeSingle(request, ApiKeyFullSerializer, {
       ...apiKey,

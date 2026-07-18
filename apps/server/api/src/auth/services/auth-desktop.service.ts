@@ -10,7 +10,7 @@ import {
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
+import { ActionOrigin, ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
 import {
   BadRequestException,
   Injectable,
@@ -205,19 +205,22 @@ export class AuthDesktopService {
       throw new BadRequestException('Invalid desktop authorization code');
     }
 
-    const { plainKey } = await this.apiKeysService.createWithKey({
-      category: ApiKeyCategory.GENFEEDAI,
-      description: 'Auto-generated key for Genfeed Desktop',
-      expiresAt: new Date(Date.now() + DESKTOP_SESSION_TTL_MS).toISOString(),
-      label: 'Desktop',
-      metadata: {
-        kind: 'desktop-session',
+    const { plainKey } = await this.apiKeysService.createWithKey(
+      {
+        category: ApiKeyCategory.GENFEEDAI,
+        description: 'Auto-generated key for Genfeed Desktop',
+        expiresAt: new Date(Date.now() + DESKTOP_SESSION_TTL_MS).toISOString(),
+        label: 'Desktop',
+        metadata: {
+          kind: 'desktop-session',
+        },
+        organizationId: record.organizationId,
+        rateLimit: 120,
+        scopes: record.scopes,
+        userId: record.userId,
       },
-      organizationId: record.organizationId,
-      rateLimit: 120,
-      scopes: record.scopes,
-      userId: record.userId,
-    });
+      ActionOrigin.UI,
+    );
 
     return {
       issuedAt: new Date().toISOString(),

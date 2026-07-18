@@ -6,11 +6,17 @@ import {
 } from '@api/collections/workflows/system-workflow.contract';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ActionOrigin,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/enums';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
+import {
+  resolveNestedActionOrigin,
+  runWithActionOrigin,
+  withActionOriginMetadata,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -159,6 +165,16 @@ export class SystemWorkflowProvenanceService {
   ) {}
 
   async runAction<T>(
+    input: SystemWorkflowActionInput<T>,
+    action: (provenance: SystemWorkflowProvenance) => Promise<T>,
+  ): Promise<SystemWorkflowActionResult<T>> {
+    return runWithActionOrigin(
+      resolveNestedActionOrigin(ActionOrigin.WORKFLOW),
+      () => this.runActionWithOrigin(input, action),
+    );
+  }
+
+  private async runActionWithOrigin<T>(
     input: SystemWorkflowActionInput<T>,
     action: (provenance: SystemWorkflowProvenance) => Promise<T>,
   ): Promise<SystemWorkflowActionResult<T>> {
@@ -339,14 +355,14 @@ export class SystemWorkflowProvenanceService {
         organizationId: input.organizationId,
         result: {
           inputValues: this.toJsonRecord(input.inputValues ?? {}),
-          metadata: {
+          metadata: withActionOriginMetadata({
             ...(input.metadata ?? {}),
             actionType: input.actionType,
             canonicalId: input.canonicalId,
             source: input.source,
             systemWorkflowAction: true,
             workflowLabel: input.workflowLabel,
-          },
+          }),
           nodeResults: [
             {
               input: this.toJsonRecord(input.inputValues ?? {}),
@@ -385,14 +401,14 @@ export class SystemWorkflowProvenanceService {
         error: input.error,
         result: {
           inputValues: this.toJsonRecord(input.input.inputValues ?? {}),
-          metadata: {
+          metadata: withActionOriginMetadata({
             ...(input.input.metadata ?? {}),
             actionType: input.input.actionType,
             canonicalId: input.input.canonicalId,
             failed: didFail,
             source: input.input.source,
             systemWorkflowAction: true,
-          },
+          }),
           nodeResults: [
             {
               completedAt: completedAt.toISOString(),

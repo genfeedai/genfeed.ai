@@ -1,8 +1,13 @@
+import { ActionOrigin } from '@genfeedai/enums';
 import {
   POST_PUBLISH_JOB_NAME,
   POST_PUBLISH_QUEUE,
 } from '@genfeedai/queue-contracts';
-import { PostPublishQueueService, SERVER_TOKENS } from '@genfeedai/server';
+import {
+  PostPublishQueueService,
+  runWithActionOrigin,
+  SERVER_TOKENS,
+} from '@genfeedai/server';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test } from '@nestjs/testing';
 
@@ -109,6 +114,50 @@ describe('PostPublishQueueService', () => {
         operationId: 'operation-1',
       }),
       expect.objectContaining({ jobId: 'operation-1' }),
+    );
+  });
+
+  it('propagates the trusted initiating action across queue retries', async () => {
+    await runWithActionOrigin(
+      {
+        actorUserId: 'user-1',
+        apiKeyId: 'key-1',
+        origin: ActionOrigin.MCP,
+      },
+      () =>
+        service.enqueue({
+          organizationId: 'org-1',
+          postId: 'post-1',
+          source: 'publish_now',
+        }),
+    );
+
+    expect(queue.add).toHaveBeenCalledWith(
+      POST_PUBLISH_JOB_NAME,
+      expect.objectContaining({
+        actionContext: {
+          actorUserId: 'user-1',
+          apiKeyId: 'key-1',
+          origin: ActionOrigin.MCP,
+        },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('marks scheduled sweeps as workflow-originated', async () => {
+    await service.enqueue({
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(queue.add).toHaveBeenCalledWith(
+      POST_PUBLISH_JOB_NAME,
+      expect.objectContaining({
+        actionContext: { origin: ActionOrigin.WORKFLOW },
+      }),
+      expect.anything(),
     );
   });
 

@@ -33,6 +33,11 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import {
+  getActionOriginContext,
+  normalizeActionOrigin,
+  withActionOriginMetadata,
+} from '@server/action-origin/action-origin.context';
 import { AgentArtifactReferenceService } from '@server/agent-artifacts/agent-artifact-reference.service';
 import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
 
@@ -338,11 +343,20 @@ export class PublishApprovalsService {
             organizationId: post.organizationId,
             policy: this.toJson(input.policy),
             postId: post.id,
-            provenance: this.toJson({
-              contractVersion: 1,
-              source: 'typed-publish-approval',
-              ...(params.provenance ?? {}),
-            }),
+            provenance: this.toJson(
+              withActionOriginMetadata(
+                {
+                  contractVersion: 1,
+                  source: 'typed-publish-approval',
+                  ...(params.provenance ?? {}),
+                },
+                {
+                  ...getActionOriginContext(),
+                  actorUserId:
+                    getActionOriginContext().actorUserId ?? params.actorUserId,
+                },
+              ),
+            ),
             scheduleIntent: this.toJson(input.scheduleIntent),
             scopeDigest,
             status: PublishApprovalStatus.APPROVED,
@@ -621,6 +635,7 @@ export class PublishApprovalsService {
       action,
       integrity,
       organizationId,
+      origin: getActionOriginContext().origin,
       outcome,
       telemetryQueryVersion: 1,
     });
@@ -1035,6 +1050,7 @@ export class PublishApprovalsService {
   }
 
   private toInterface(row: PublishApprovalRow): IPublishApproval {
+    const provenance = this.asRecord(row.provenance);
     return {
       actorUserId: row.actorUserId,
       artifactVersionPinId: row.artifactVersionPinId,
@@ -1050,7 +1066,16 @@ export class PublishApprovalsService {
       organizationId: row.organizationId,
       policy: this.readPolicy(row.policy),
       postId: row.postId,
-      provenance: this.asRecord(row.provenance),
+      provenance: withActionOriginMetadata(provenance, {
+        actorUserId:
+          typeof provenance.actorUserId === 'string'
+            ? provenance.actorUserId
+            : row.actorUserId,
+        ...(typeof provenance.apiKeyId === 'string'
+          ? { apiKeyId: provenance.apiKeyId }
+          : {}),
+        origin: normalizeActionOrigin(provenance.origin),
+      }),
       scheduleIntent: this.readScheduleIntent(row.scheduleIntent),
       scopeDigest: row.scopeDigest,
       status: this.parseStatus(row.status),

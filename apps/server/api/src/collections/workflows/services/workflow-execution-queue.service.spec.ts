@@ -7,7 +7,8 @@ import type {
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
-import { WorkflowStatus } from '@genfeedai/enums';
+import { ActionOrigin, WorkflowStatus } from '@genfeedai/enums';
+import { runWithActionOrigin } from '@genfeedai/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
@@ -77,6 +78,7 @@ describe('WorkflowExecutionQueueService', () => {
       expect(mockQueue.add).toHaveBeenCalledWith(
         'trigger',
         {
+          actionContext: { origin: ActionOrigin.UNKNOWN },
           triggerEvent: event,
           type: 'trigger',
         },
@@ -84,6 +86,29 @@ describe('WorkflowExecutionQueueService', () => {
           attempts: 1,
           removeOnComplete: 200,
         }),
+      );
+    });
+
+    it('propagates MCP action context with a trigger job', async () => {
+      await runWithActionOrigin(
+        {
+          actorUserId: 'user-1',
+          apiKeyId: 'key-1',
+          origin: ActionOrigin.MCP,
+        },
+        () => service.queueTriggerEvent(createTriggerEvent()),
+      );
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'trigger',
+        expect.objectContaining({
+          actionContext: {
+            actorUserId: 'user-1',
+            apiKeyId: 'key-1',
+            origin: ActionOrigin.MCP,
+          },
+        }),
+        expect.anything(),
       );
     });
 
@@ -125,6 +150,7 @@ describe('WorkflowExecutionQueueService', () => {
       expect(mockQueue.add).toHaveBeenCalledWith(
         'delay-resume',
         {
+          actionContext: { origin: ActionOrigin.UNKNOWN },
           delayResumeData: data,
           type: 'delay-resume',
         },
@@ -173,7 +199,11 @@ describe('WorkflowExecutionQueueService', () => {
         'workflow-schedule:wf-1',
         { pattern: '0 7 * * *', tz: 'Europe/Amsterdam' },
         {
-          data: { type: 'scheduled-fire', workflowId: 'wf-1' },
+          data: {
+            actionContext: { origin: ActionOrigin.WORKFLOW },
+            type: 'scheduled-fire',
+            workflowId: 'wf-1',
+          },
           name: 'scheduled-fire',
           opts: expect.objectContaining({ attempts: 1 }),
         },

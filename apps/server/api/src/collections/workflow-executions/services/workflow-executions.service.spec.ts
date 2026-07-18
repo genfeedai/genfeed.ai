@@ -1,5 +1,9 @@
-import { WorkflowExecutionStatus as SharedWorkflowExecutionStatus } from '@genfeedai/enums';
+import {
+  ActionOrigin,
+  WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
+} from '@genfeedai/enums';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
+import { runWithActionOrigin } from '@genfeedai/server';
 import { WorkflowExecutionsService } from './workflow-executions.service';
 
 describe('WorkflowExecutionsService', () => {
@@ -12,6 +16,7 @@ describe('WorkflowExecutionsService', () => {
   const makeService = () => {
     const workflowExecution = {
       create: vi.fn().mockResolvedValue({ id: 'execution-1' }),
+      findFirst: vi.fn(),
       findUnique: vi.fn().mockResolvedValue({
         result: {},
         startedAt: new Date('2026-06-29T00:00:00.000Z'),
@@ -88,6 +93,55 @@ describe('WorkflowExecutionsService', () => {
         }),
       }),
     );
+  });
+
+  it('stores trusted action provenance with workflow execution metadata', async () => {
+    const { prisma, service } = makeService();
+
+    await runWithActionOrigin(
+      {
+        actorUserId: 'user-1',
+        apiKeyId: 'key-1',
+        origin: ActionOrigin.MCP,
+      },
+      () =>
+        service.createExecution('user-1', 'org-1', {
+          metadata: { origin: ActionOrigin.UI, surface: 'mcp-tool' },
+          workflow: 'workflow-1',
+        }),
+    );
+
+    expect(prisma.workflowExecution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          result: expect.objectContaining({
+            metadata: {
+              actorUserId: 'user-1',
+              apiKeyId: 'key-1',
+              origin: ActionOrigin.MCP,
+              surface: 'mcp-tool',
+            },
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('serializes legacy workflow executions with explicit unknown origin', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecution.findFirst.mockResolvedValue({
+      id: 'execution-legacy',
+      result: { metadata: { surface: 'legacy' } },
+    });
+
+    await expect(
+      service.findOne({ id: 'execution-legacy' }),
+    ).resolves.toMatchObject({
+      metadata: {
+        origin: ActionOrigin.UNKNOWN,
+        surface: 'legacy',
+      },
+    });
   });
 
   it('counts execution stats using Prisma enum casing from database rows', async () => {

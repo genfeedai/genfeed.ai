@@ -10,7 +10,12 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { isCloudDeployment } from '@genfeedai/config';
-import { ApiKeyScope } from '@genfeedai/enums';
+import {
+  ActionOrigin,
+  API_KEY_ACTION_ORIGIN_METADATA_KEY,
+  API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
+  ApiKeyScope,
+} from '@genfeedai/enums';
 import { getApiRateLimitForTier } from '@genfeedai/pricing';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
@@ -100,6 +105,7 @@ export class ApiKeysService extends BaseService<
       userId: string;
       organizationId: string;
     },
+    trustedOrigin?: ActionOrigin.CLI | ActionOrigin.UI,
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
     const scopes = createApiKeyDto.scopes ?? [...DEFAULT_API_KEY_SCOPES];
     this.assertValidScopes(scopes);
@@ -113,6 +119,11 @@ export class ApiKeysService extends BaseService<
       isRevoked: false,
       key: hashedKey,
       keyFingerprint,
+      metadata: this.buildApiKeyMetadata(
+        createApiKeyDto,
+        keyFingerprint,
+        trustedOrigin,
+      ),
       rateLimit: createApiKeyDto.rateLimit || 60,
       scopes,
       usageCount: 0,
@@ -130,8 +141,11 @@ export class ApiKeysService extends BaseService<
       userId: string;
       organizationId: string;
     },
+    trustedOrigin?: ActionOrigin.CLI | ActionOrigin.UI,
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
-    const replacement = await this.createWithKey(createApiKeyDto);
+    const replacement = trustedOrigin
+      ? await this.createWithKey(createApiKeyDto, trustedOrigin)
+      : await this.createWithKey(createApiKeyDto);
 
     try {
       await this.revoke(keyId);
@@ -251,6 +265,89 @@ export class ApiKeysService extends BaseService<
         lastUsedIp: ip,
       },
     });
+  }
+
+  resolveActionOrigin(apiKey: ApiKeyDocument): ActionOrigin {
+    const metadata =
+      apiKey.metadata &&
+      typeof apiKey.metadata === 'object' &&
+      !Array.isArray(apiKey.metadata)
+        ? (apiKey.metadata as Record<string, unknown>)
+        : {};
+    const origin = metadata[API_KEY_ACTION_ORIGIN_METADATA_KEY];
+    const proof = metadata[API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY];
+    if (
+      (origin !== ActionOrigin.CLI && origin !== ActionOrigin.UI) ||
+      typeof proof !== 'string'
+    ) {
+      return ActionOrigin.API;
+    }
+
+    const expected = this.signActionOrigin(
+      origin,
+      apiKey.userId,
+      apiKey.organizationId,
+      apiKey.keyFingerprint,
+    );
+    if (!expected || expected.length !== proof.length) {
+      return ActionOrigin.API;
+    }
+
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(proof))
+      ? origin
+      : ActionOrigin.API;
+  }
+
+  private buildApiKeyMetadata(
+    dto: Pick<CreateApiKeyDto, 'metadata'> & {
+      organizationId: string;
+      userId: string;
+    },
+    keyFingerprint: string,
+    trustedOrigin?: ActionOrigin.CLI | ActionOrigin.UI,
+  ): Record<string, unknown> | undefined {
+    const {
+      [API_KEY_ACTION_ORIGIN_METADATA_KEY]: _untrustedOrigin,
+      [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: _untrustedProof,
+      ...safeMetadata
+    } = dto.metadata ?? {};
+    if (!trustedOrigin) {
+      return dto.metadata ? safeMetadata : undefined;
+    }
+
+    const proof = this.signActionOrigin(
+      trustedOrigin,
+      dto.userId,
+      dto.organizationId,
+      keyFingerprint,
+    );
+    if (!proof) {
+      return Object.keys(safeMetadata).length > 0 ? safeMetadata : undefined;
+    }
+    return {
+      ...safeMetadata,
+      [API_KEY_ACTION_ORIGIN_METADATA_KEY]: trustedOrigin,
+      [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: proof,
+    };
+  }
+
+  private signActionOrigin(
+    origin: ActionOrigin.CLI | ActionOrigin.UI,
+    userId: string,
+    organizationId: string,
+    keyFingerprint: string | null,
+  ): string | undefined {
+    const secret =
+      this.configService.get('GENFEEDAI_API_KEY') ||
+      this.configService.get('BETTER_AUTH_SECRET');
+    if (typeof secret !== 'string' || secret.length === 0) {
+      return undefined;
+    }
+
+    return crypto
+      .createHmac('sha256', secret)
+      .update(`${origin}:${userId}:${organizationId}:${keyFingerprint ?? ''}`)
+      .digest('base64url');
   }
 
   /**

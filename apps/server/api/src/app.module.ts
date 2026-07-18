@@ -133,6 +133,7 @@ import { WebhooksModule } from '@api/endpoints/webhooks/webhooks.module';
 import { FeatureFlagModule } from '@api/feature-flag/feature-flag.module';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
+import { ActionOriginInterceptor } from '@api/helpers/interceptors/action-origin/action-origin.interceptor';
 import { MemoryModule } from '@api/helpers/memory/memory.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
@@ -495,6 +496,10 @@ import { SentryModule } from '@sentry/nestjs/setup';
     {
       provide: APP_INTERCEPTOR,
       useClass: LocalIdentityInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ActionOriginInterceptor,
     },
   ],
 })
