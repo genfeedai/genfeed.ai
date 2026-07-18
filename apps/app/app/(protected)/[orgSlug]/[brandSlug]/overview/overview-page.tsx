@@ -32,7 +32,6 @@ import {
   HiOutlineDocumentText,
   HiOutlineHome,
   HiOutlinePhoto,
-  HiOutlinePlayCircle,
   HiOutlineSparkles,
 } from 'react-icons/hi2';
 import {
@@ -398,15 +397,6 @@ export default function OverviewPageContent({
         icon: HiOutlineChartBar,
         id: 'analytics',
         label: 'Analytics',
-      },
-      {
-        color: 'bg-secondary text-muted-foreground',
-        cta: 'Open Remix',
-        description: 'Turn winners into follow-ups and fresh variants',
-        href: APP_ROUTES.POSTS.REMIX,
-        icon: HiOutlinePlayCircle,
-        id: 'remix',
-        label: 'Remix',
       },
       {
         color: 'bg-secondary text-muted-foreground',

@@ -6,7 +6,6 @@ export type AppContext =
   | 'workspace'
   | 'agent'
   | 'research'
-  | 'remix'
   | 'library'
   | 'messages'
   | 'posts'

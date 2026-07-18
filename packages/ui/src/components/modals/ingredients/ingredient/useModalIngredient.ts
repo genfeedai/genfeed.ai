@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   useConfirmModal,
   usePostModal,
@@ -13,6 +14,7 @@ import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/for
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
@@ -31,6 +33,8 @@ import {
   isImageIngredient,
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
+import { buildContextualRemixHref } from '@genfeedai/utils/url/contextual-remix-url.util';
+import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -46,6 +50,7 @@ export function useModalIngredient({
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const { credentials } = useBrand();
+  const isStudioEnabled = useFeatureFlag('studio');
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const getIngredientsService = useAuthedService((token: string) =>
@@ -155,10 +160,14 @@ export function useModalIngredient({
         [field]: value,
       };
 
-      setLocalIngredient((prev) => ({
-        ...prev!,
-        metadata: updatedMetadata,
-      }));
+      setLocalIngredient((prev) =>
+        prev
+          ? {
+              ...prev,
+              metadata: updatedMetadata,
+            }
+          : prev,
+      );
 
       setIsUpdating(true);
 
@@ -171,10 +180,14 @@ export function useModalIngredient({
       } catch (err) {
         logger.error('Failed to update metadata', err);
         setError('Failed to update');
-        setLocalIngredient((prev) => ({
-          ...prev!,
-          metadata: originalMetadata,
-        }));
+        setLocalIngredient((prev) =>
+          prev
+            ? {
+                ...prev,
+                metadata: originalMetadata,
+              }
+            : prev,
+        );
 
         setIsUpdating(false);
       }
@@ -191,10 +204,14 @@ export function useModalIngredient({
       const fieldKey = field as keyof IIngredient;
       const originalValue = localIngredient[fieldKey];
 
-      setLocalIngredient((prev) => ({
-        ...prev!,
-        [field]: value,
-      }));
+      setLocalIngredient((prev) =>
+        prev
+          ? {
+              ...prev,
+              [field]: value,
+            }
+          : prev,
+      );
 
       setIsUpdating(true);
 
@@ -209,10 +226,14 @@ export function useModalIngredient({
         logger.error('Failed to update sharing settings', err);
         setError('Failed to update sharing settings');
 
-        setLocalIngredient((prev) => ({
-          ...prev!,
-          [field]: originalValue,
-        }));
+        setLocalIngredient((prev) =>
+          prev
+            ? {
+                ...prev,
+                [field]: originalValue,
+              }
+            : prev,
+        );
 
         setIsUpdating(false);
       }
@@ -266,7 +287,15 @@ export function useModalIngredient({
       }
 
       closeModal(ModalEnum.INGREDIENT);
-      push(href(`/studio/image?referenceImageId=${image.id}`));
+      push(
+        href(
+          buildContextualRemixHref(APP_ROUTES.POSTS.REMIX, {
+            kind: 'ingredient',
+            recordId: image.id,
+            recordVersion: image.version?.toString(),
+          }),
+        ),
+      );
     },
     [notificationsService, push, href],
   );
@@ -281,6 +310,12 @@ export function useModalIngredient({
         return notificationsService.info('No prompt available to use');
       }
 
+      if (!isStudioEnabled) {
+        closeModal(ModalEnum.INGREDIENT);
+        push(href(buildAgentPromptHref(ingredientToUse.promptText)));
+        return;
+      }
+
       const isIngredientVideo =
         ingredientToUse.category === IngredientCategory.VIDEO;
       const targetRoute = isIngredientVideo ? '/studio/video' : '/studio/image';
@@ -293,7 +328,7 @@ export function useModalIngredient({
         },
       );
     },
-    [notificationsService, push, href],
+    [href, isStudioEnabled, notificationsService, push],
   );
 
   const getServiceForType = useCallback(
@@ -370,10 +405,14 @@ export function useModalIngredient({
         notificationsService.success('Scope updated successfully');
       } else if (localIngredient) {
         const originalScope = localIngredient.scope;
-        setLocalIngredient((prev) => ({
-          ...prev!,
-          scope,
-        }));
+        setLocalIngredient((prev) =>
+          prev
+            ? {
+                ...prev,
+                scope,
+              }
+            : prev,
+        );
         setIsUpdating(true);
 
         try {
@@ -387,10 +426,14 @@ export function useModalIngredient({
         } catch (err) {
           logger.error('Failed to update scope', err);
           setError('Failed to update scope');
-          setLocalIngredient((prev) => ({
-            ...prev!,
-            scope: originalScope,
-          }));
+          setLocalIngredient((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  scope: originalScope,
+                }
+              : prev,
+          );
           setIsUpdating(false);
         }
       }
