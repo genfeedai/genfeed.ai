@@ -54,6 +54,34 @@ describe('EnvironmentService', () => {
     });
   });
 
+  describe('MCP endpoint', () => {
+    it('returns the hosted endpoint in cloud deployments', () => {
+      delete process.env.NEXT_PUBLIC_MCP_ENDPOINT;
+      process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+
+      expect(EnvironmentService.mcpEndpoint).toBe(
+        'https://mcp.genfeed.ai/mcp',
+      );
+    });
+
+    it('returns the canonical local endpoint when self-hosted', () => {
+      delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
+      delete process.env.NEXT_PUBLIC_MCP_ENDPOINT;
+
+      expect(EnvironmentService.mcpEndpoint).toBe(
+        'http://localhost:3014/mcp',
+      );
+    });
+
+    it('uses a configured public endpoint without a trailing slash', () => {
+      process.env.NEXT_PUBLIC_MCP_ENDPOINT = 'https://mcp.example.com/mcp/';
+
+      expect(EnvironmentService.mcpEndpoint).toBe(
+        'https://mcp.example.com/mcp',
+      );
+    });
+  });
+
   describe('WebSocket endpoints', () => {
     it('returns default WS endpoint when NEXT_PUBLIC_WS_ENDPOINT is not set', () => {
       delete process.env.NEXT_PUBLIC_WS_ENDPOINT;
