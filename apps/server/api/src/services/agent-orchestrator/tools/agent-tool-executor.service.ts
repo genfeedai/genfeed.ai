@@ -94,11 +94,7 @@ import {
   serializeAgentBrand,
   serializeAgentBrands,
 } from '@genfeedai/serializers';
-import {
-  AgentScopeContextService,
-  resolveNestedActionOrigin,
-  runWithActionOrigin,
-} from '@genfeedai/server';
+import { AgentScopeContextService, resolveNestedActionOrigin, runWithActionOrigin } from '@genfeedai/server';
 import {
   type CanonicalToolDefinition,
   getToolsForRole,
