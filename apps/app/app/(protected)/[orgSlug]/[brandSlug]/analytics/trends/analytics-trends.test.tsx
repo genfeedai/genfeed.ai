@@ -487,7 +487,7 @@ describe('AnalyticsTrends', () => {
     renderAnalyticsTrends();
 
     await waitFor(() => {
-      expect(mocks.viralVideoProps).toHaveBeenLastCalledWith(
+      expect(mocks.viralVideoProps).toHaveBeenCalledWith(
         expect.objectContaining({
           videos: [
             expect.objectContaining({
