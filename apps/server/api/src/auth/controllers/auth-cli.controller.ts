@@ -8,7 +8,7 @@ import {
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
+import { ActionOrigin, ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
 import { Controller, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -105,14 +105,20 @@ export class AuthCliController {
       ? CLI_ADMIN_SCOPES
       : CLI_STANDARD_SCOPES;
 
-    const { plainKey } = await this.apiKeysService.createWithKey({
-      category: ApiKeyCategory.GENFEEDAI,
-      description: 'Auto-generated key for gf CLI',
-      label: 'CLI',
-      organizationId,
-      scopes,
-      userId,
-    });
+    const { plainKey } = await this.apiKeysService.createWithKey(
+      {
+        category: ApiKeyCategory.GENFEEDAI,
+        description: 'Auto-generated key for gf CLI',
+        label: 'CLI',
+        metadata: {
+          kind: 'cli-session',
+        },
+        organizationId,
+        scopes,
+        userId,
+      },
+      ActionOrigin.CLI,
+    );
 
     return { key: plainKey };
   }

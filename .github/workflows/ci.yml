@@ -595,7 +595,7 @@ jobs:
   test-api-changed:
     name: Test API (changed)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     needs: [trust, test-scope]
     # Focused per-diff tests: master push (post-merge) and every PR without the
     # `full-suite` label. Labeled PRs run the full matrix, avoiding double work.

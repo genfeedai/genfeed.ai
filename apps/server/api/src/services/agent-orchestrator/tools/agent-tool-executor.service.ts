@@ -42,12 +42,22 @@ import {
   readAgentScheduleValidationError,
   SAFE_AGENT_SCHEDULE_ERROR,
 } from '@api/services/agent-orchestrator/tools/agent-schedule-error.util';
+import {
+  readAdsChannel,
+  readAdsMetric,
+  readAdsPlatform,
+  readAdsSource,
+  readAdsTimeframe,
+  readOptionalNumber,
+  readOptionalString,
+} from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { isEEEnabled } from '@genfeedai/config';
 import {
+  ActionOrigin,
   AgentType,
   BotCategory,
   BotPlatform,
@@ -93,7 +103,11 @@ import {
   serializeAgentBrand,
   serializeAgentBrands,
 } from '@genfeedai/serializers';
-import { AgentScopeContextService } from '@genfeedai/server';
+import {
+  AgentScopeContextService,
+  resolveNestedActionOrigin,
+  runWithActionOrigin,
+} from '@genfeedai/server';
 import {
   type CanonicalToolDefinition,
   getToolsForRole,
@@ -724,8 +738,8 @@ export class AgentToolExecutorService {
     }
 
     const brand = await this.resolveWorkflowBrand(params, ctx);
-    const schedule = this.readOptionalString(params.schedule);
-    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
+    const schedule = readOptionalString(params.schedule);
+    const timezone = readOptionalString(params.timezone) ?? 'UTC';
 
     await this.workflowsService.patch(workflowId, {
       brandId: brand && brand.id ? String(brand.id) : workflow.brandId,
@@ -754,8 +768,18 @@ export class AgentToolExecutorService {
     parameters: Record<string, unknown>,
     context: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const startTime = Date.now();
+    return runWithActionOrigin(
+      resolveNestedActionOrigin(ActionOrigin.AGENT),
+      () => this.executeToolWithActionOrigin(toolName, parameters, context),
+    );
+  }
 
+  private async executeToolWithActionOrigin(
+    toolName: AgentToolName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const startTime = Date.now();
     try {
       if (context.threadId) {
         if (!context.validatedScope || !this.agentScopeContextService) {
@@ -821,7 +845,7 @@ export class AgentToolExecutorService {
       throw new Error('Validated agent scope is required for tool execution.');
     }
 
-    const parameterBrandId = this.readOptionalString(parameters.brandId);
+    const parameterBrandId = readOptionalString(parameters.brandId);
     if (parameterBrandId && parameterBrandId !== scope.brandId) {
       throw new Error(
         'Tool brand parameters must match the validated thread brand scope.',
@@ -849,7 +873,7 @@ export class AgentToolExecutorService {
     const attributes = this.isPlainRecord(data?.attributes)
       ? data.attributes
       : undefined;
-    return this.readOptionalString(
+    return readOptionalString(
       attributes?.[key] ?? data?.[key] ?? response[key],
     );
   }
@@ -1177,7 +1201,7 @@ export class AgentToolExecutorService {
     const category = this.readToolCategory(params.category);
     const includeParameters = params.includeParameters === true;
     const limit = this.readToolCatalogLimit(params.limit);
-    const query = this.readOptionalString(params.query)?.toLowerCase();
+    const query = readOptionalString(params.query)?.toLowerCase();
 
     let tools = this.resolveToolCatalogTools(surface, role);
 
@@ -1301,7 +1325,7 @@ export class AgentToolExecutorService {
   }
 
   private readToolCatalogLimit(value: unknown): number {
-    const explicitLimit = this.readOptionalNumber(value);
+    const explicitLimit = readOptionalNumber(value);
     if (explicitLimit === undefined) {
       return 80;
     }
@@ -2953,7 +2977,7 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const workflowId = this.readOptionalString(params.workflowId);
+    const workflowId = readOptionalString(params.workflowId);
     if (!workflowId) {
       return {
         creditsUsed: 0,
@@ -2991,7 +3015,7 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const workflowId = this.readOptionalString(params.workflowId);
+    const workflowId = readOptionalString(params.workflowId);
     if (!workflowId) {
       return {
         creditsUsed: 0,
@@ -3022,7 +3046,7 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const workflowId = this.readOptionalString(params.workflowId);
+    const workflowId = readOptionalString(params.workflowId);
     const enabled =
       typeof params.enabled === 'boolean' ? params.enabled : undefined;
 
@@ -3034,8 +3058,8 @@ export class AgentToolExecutorService {
       };
     }
 
-    const schedule = this.readOptionalString(params.schedule);
-    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
+    const schedule = readOptionalString(params.schedule);
+    const timezone = readOptionalString(params.timezone) ?? 'UTC';
     if (enabled === true && !schedule) {
       return {
         creditsUsed: 0,
@@ -3081,11 +3105,11 @@ export class AgentToolExecutorService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const query = new URLSearchParams();
-    const workflowId = this.readOptionalString(params.workflowId);
-    const status = this.readOptionalString(params.status);
-    const trigger = this.readOptionalString(params.trigger);
-    const limit = this.readOptionalNumber(params.limit) ?? 20;
-    const offset = this.readOptionalNumber(params.offset) ?? 0;
+    const workflowId = readOptionalString(params.workflowId);
+    const status = readOptionalString(params.status);
+    const trigger = readOptionalString(params.trigger);
+    const limit = readOptionalNumber(params.limit) ?? 20;
+    const offset = readOptionalNumber(params.offset) ?? 0;
 
     query.set('limit', String(limit));
     query.set('offset', String(offset));
@@ -3114,7 +3138,7 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const runId = this.readOptionalString(params.runId);
+    const runId = readOptionalString(params.runId);
     if (!runId) {
       return {
         creditsUsed: 0,
@@ -3434,7 +3458,7 @@ export class AgentToolExecutorService {
 
       this.assertResourceScope(
         ctx,
-        this.readOptionalString(post.brand),
+        readOptionalString(post.brand),
         'selected post',
       );
 
@@ -3485,7 +3509,7 @@ export class AgentToolExecutorService {
 
       this.assertResourceScope(
         ctx,
-        this.readOptionalString(ingredient.brand),
+        readOptionalString(ingredient.brand),
         'selected content',
       );
 
@@ -3772,19 +3796,18 @@ export class AgentToolExecutorService {
 
     const brandContext = await this.resolveAdsBrandContext(params, ctx);
     const filters: AdsResearchFilters = {
-      adAccountId: this.readOptionalString(params.adAccountId),
+      adAccountId: readOptionalString(params.adAccountId),
       brandId: brandContext.brandId,
       brandName: brandContext.brandName,
-      channel: this.readAdsChannel(params.channel),
-      credentialId: this.readOptionalString(params.credentialId),
-      industry:
-        this.readOptionalString(params.industry) ?? brandContext.industry,
-      limit: this.readOptionalNumber(params.limit),
-      loginCustomerId: this.readOptionalString(params.loginCustomerId),
-      metric: this.readAdsMetric(params.metric),
-      platform: this.readAdsPlatform(params.platform),
-      source: this.readAdsSource(params.source) ?? 'all',
-      timeframe: this.readAdsTimeframe(params.timeframe),
+      channel: readAdsChannel(params.channel),
+      credentialId: readOptionalString(params.credentialId),
+      industry: readOptionalString(params.industry) ?? brandContext.industry,
+      limit: readOptionalNumber(params.limit),
+      loginCustomerId: readOptionalString(params.loginCustomerId),
+      metric: readAdsMetric(params.metric),
+      platform: readAdsPlatform(params.platform),
+      source: readAdsSource(params.source) ?? 'all',
+      timeframe: readAdsTimeframe(params.timeframe),
     };
 
     const result = await this.adsResearchService.listAds(
@@ -3854,8 +3877,8 @@ export class AgentToolExecutorService {
       };
     }
 
-    const source = this.readAdsSource(params.source);
-    const adId = this.readOptionalString(params.adId);
+    const source = readAdsSource(params.source);
+    const adId = readOptionalString(params.adId);
 
     if (!source || source === 'all' || !adId) {
       return {
@@ -3868,12 +3891,12 @@ export class AgentToolExecutorService {
     const detail = await this.adsResearchService.getAdDetail(
       ctx.organizationId,
       {
-        adAccountId: this.readOptionalString(params.adAccountId),
-        channel: this.readAdsChannel(params.channel),
-        credentialId: this.readOptionalString(params.credentialId),
+        adAccountId: readOptionalString(params.adAccountId),
+        channel: readAdsChannel(params.channel),
+        credentialId: readOptionalString(params.credentialId),
         id: adId,
-        loginCustomerId: this.readOptionalString(params.loginCustomerId),
-        platform: this.readAdsPlatform(params.platform),
+        loginCustomerId: readOptionalString(params.loginCustomerId),
+        platform: readAdsPlatform(params.platform),
         source,
       },
     );
@@ -4051,9 +4074,9 @@ export class AgentToolExecutorService {
 
     const launchPrep = await this.adsResearchService.prepareCampaignForReview({
       ...baseInput,
-      campaignName: this.readOptionalString(params.campaignName),
+      campaignName: readOptionalString(params.campaignName),
       createWorkflow: params.createWorkflow === true,
-      dailyBudget: this.readOptionalNumber(params.dailyBudget),
+      dailyBudget: readOptionalNumber(params.dailyBudget),
     });
 
     return {
@@ -4094,56 +4117,6 @@ export class AgentToolExecutorService {
     };
   }
 
-  private readOptionalString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.trim().length > 0
-      ? value.trim()
-      : undefined;
-  }
-
-  private readOptionalNumber(value: unknown): number | undefined {
-    return typeof value === 'number' && Number.isFinite(value)
-      ? value
-      : undefined;
-  }
-
-  private readAdsSource(value: unknown): AdsResearchSource | undefined {
-    return value === 'public' || value === 'my_accounts' || value === 'all'
-      ? value
-      : undefined;
-  }
-
-  private readAdsPlatform(value: unknown): AdsResearchPlatform | undefined {
-    return value === 'meta' || value === 'google' ? value : undefined;
-  }
-
-  private readAdsChannel(value: unknown): AdsChannel | undefined {
-    return value === 'all' ||
-      value === 'search' ||
-      value === 'display' ||
-      value === 'youtube'
-      ? value
-      : undefined;
-  }
-
-  private readAdsMetric(value: unknown): AdsResearchFilters['metric'] {
-    return value === 'performanceScore' ||
-      value === 'ctr' ||
-      value === 'roas' ||
-      value === 'conversions' ||
-      value === 'spendEfficiency'
-      ? value
-      : undefined;
-  }
-
-  private readAdsTimeframe(value: unknown): AdsResearchFilters['timeframe'] {
-    return value === 'last_7_days' ||
-      value === 'last_30_days' ||
-      value === 'last_90_days' ||
-      value === 'all_time'
-      ? value
-      : undefined;
-  }
-
   private async resolveAdsBrandContext(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -4152,7 +4125,7 @@ export class AgentToolExecutorService {
     brandName?: string;
     industry?: string;
   }> {
-    const explicitBrandId = this.readOptionalString(params.brandId);
+    const explicitBrandId = readOptionalString(params.brandId);
     const fallbackBrandId = ctx.brandId;
     const brandLookupId = explicitBrandId ?? fallbackBrandId;
 
@@ -4176,12 +4149,12 @@ export class AgentToolExecutorService {
     return {
       brandId: String(brandRecord.id ?? brandLookupId),
       brandName:
-        this.readOptionalString(brandRecord.name) ??
-        this.readOptionalString(brandRecord.label),
+        readOptionalString(brandRecord.name) ??
+        readOptionalString(brandRecord.label),
       industry:
-        this.readOptionalString(brandRecord.industry) ??
-        this.readOptionalString(brandRecord.niche) ??
-        this.readOptionalString(brandRecord.category),
+        readOptionalString(brandRecord.industry) ??
+        readOptionalString(brandRecord.niche) ??
+        readOptionalString(brandRecord.category),
     };
   }
 
@@ -4206,8 +4179,8 @@ export class AgentToolExecutorService {
       }
     | { error: string }
   > {
-    const source = this.readAdsSource(params.source);
-    const adId = this.readOptionalString(params.adId);
+    const source = readAdsSource(params.source);
+    const adId = readOptionalString(params.adId);
 
     if (!source || source === 'all' || !adId) {
       return { error: 'adId and source are required for ads remix actions.' };
@@ -4216,18 +4189,17 @@ export class AgentToolExecutorService {
     const brandContext = await this.resolveAdsBrandContext(params, ctx);
 
     return {
-      adAccountId: this.readOptionalString(params.adAccountId),
+      adAccountId: readOptionalString(params.adAccountId),
       adId,
       brandId: brandContext.brandId,
       brandName: brandContext.brandName,
-      channel: this.readAdsChannel(params.channel),
-      credentialId: this.readOptionalString(params.credentialId),
-      industry:
-        this.readOptionalString(params.industry) ?? brandContext.industry,
-      loginCustomerId: this.readOptionalString(params.loginCustomerId),
-      objective: this.readOptionalString(params.objective),
+      channel: readAdsChannel(params.channel),
+      credentialId: readOptionalString(params.credentialId),
+      industry: readOptionalString(params.industry) ?? brandContext.industry,
+      loginCustomerId: readOptionalString(params.loginCustomerId),
+      objective: readOptionalString(params.objective),
       organizationId: ctx.organizationId,
-      platform: this.readAdsPlatform(params.platform),
+      platform: readAdsPlatform(params.platform),
       source,
       userId: ctx.userId,
     };
@@ -4351,7 +4323,7 @@ export class AgentToolExecutorService {
 
       await this.assertPublishingScope(
         ctx,
-        this.readOptionalString(ingredient.brand),
+        readOptionalString(ingredient.brand),
         'selected content',
       );
 
@@ -4368,7 +4340,7 @@ export class AgentToolExecutorService {
         organizationId: ctx.organizationId,
         platforms,
       });
-      const sourceActionId = this.readOptionalString(params.sourceActionId);
+      const sourceActionId = readOptionalString(params.sourceActionId);
       if (!sourceActionId) {
         return {
           creditsUsed: 0,
@@ -4425,8 +4397,8 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const postId = this.readOptionalString(params.postId);
-    const scheduledAt = this.readOptionalString(params.scheduledAt);
+    const postId = readOptionalString(params.postId);
+    const scheduledAt = readOptionalString(params.scheduledAt);
     if (!postId || !scheduledAt) {
       return {
         creditsUsed: 0,
@@ -4469,12 +4441,11 @@ export class AgentToolExecutorService {
 
       await this.assertPublishingScope(
         ctx,
-        this.readOptionalString(post.brandId) ??
-          this.readOptionalString(post.brand),
+        readOptionalString(post.brandId) ?? readOptionalString(post.brand),
         'scheduled post',
       );
 
-      groupId = this.readOptionalString(post.groupId);
+      groupId = readOptionalString(post.groupId);
       if (!groupId) {
         return {
           creditsUsed: 0,
@@ -4546,7 +4517,7 @@ export class AgentToolExecutorService {
       requestedContentType === 'newsletter'
         ? requestedContentType
         : 'image';
-    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
+    const timezone = readOptionalString(params.timezone) ?? 'UTC';
     const requestedCount =
       typeof params.count === 'number'
         ? params.count
@@ -4769,8 +4740,8 @@ export class AgentToolExecutorService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const confirmed = params.confirmed === true;
-    const schedule = this.readOptionalString(params.schedule);
-    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
+    const schedule = readOptionalString(params.schedule);
+    const timezone = readOptionalString(params.timezone) ?? 'UTC';
 
     let source: OfficialWorkflowSource | null =
       typeof params.sourceId === 'string' &&
@@ -5538,12 +5509,12 @@ export class AgentToolExecutorService {
       !hasGraphPayload &&
       typeof params.description === 'string' &&
       params.description.trim().length > 0;
-    const timezone = this.readOptionalString(params.timezone) ?? 'UTC';
+    const timezone = readOptionalString(params.timezone) ?? 'UTC';
     const trigger =
       typeof params.trigger === 'string' && params.trigger.trim()
         ? params.trigger
         : WorkflowTrigger.MANUAL;
-    const schedule = this.readOptionalString(params.schedule);
+    const schedule = readOptionalString(params.schedule);
     const isScheduleEnabled =
       typeof params.isScheduleEnabled === 'boolean'
         ? params.isScheduleEnabled
@@ -8147,21 +8118,19 @@ export class AgentToolExecutorService {
     organizationSettings: unknown,
   ): AgentClipRunIdentity {
     const explicitAvatarId =
-      this.readOptionalString(params.avatarId) ??
-      this.readOptionalString(params.heygenAvatarId);
+      readOptionalString(params.avatarId) ??
+      readOptionalString(params.heygenAvatarId);
     const explicitVoiceId =
-      this.readOptionalString(params.voiceId) ??
-      this.readOptionalString(params.heygenVoiceId);
+      readOptionalString(params.voiceId) ??
+      readOptionalString(params.heygenVoiceId);
     const brandRecord = this.readObjectRecord(brand);
     const brandAgentConfig = this.readObjectRecord(brandRecord?.agentConfig);
-    const brandAvatarId = this.readOptionalString(
-      brandAgentConfig?.heygenAvatarId,
-    );
+    const brandAvatarId = readOptionalString(brandAgentConfig?.heygenAvatarId);
     const brandVoiceId =
-      this.readOptionalString(brandAgentConfig?.heygenVoiceId) ??
+      readOptionalString(brandAgentConfig?.heygenVoiceId) ??
       this.readHeygenVoiceIdFromDefaultRef(brandAgentConfig?.defaultVoiceRef) ??
       (this.isHeygenProvider(brandAgentConfig?.defaultVoiceProvider)
-        ? this.readOptionalString(brandAgentConfig?.defaultVoiceId)
+        ? readOptionalString(brandAgentConfig?.defaultVoiceId)
         : undefined);
     const orgSettingsRecord = this.readObjectRecord(organizationSettings);
     const organizationVoiceId =
@@ -8169,7 +8138,7 @@ export class AgentToolExecutorService {
         orgSettingsRecord?.defaultVoiceRef,
       ) ??
       (this.isHeygenProvider(orgSettingsRecord?.defaultVoiceProvider)
-        ? this.readOptionalString(orgSettingsRecord?.defaultVoiceId)
+        ? readOptionalString(orgSettingsRecord?.defaultVoiceId)
         : undefined);
 
     const source: AgentClipRunIdentitySource =
@@ -8186,12 +8155,12 @@ export class AgentToolExecutorService {
     return this.createClipIdentity({
       avatarId,
       avatarProvider:
-        this.readOptionalString(params.avatarProvider) ??
+        readOptionalString(params.avatarProvider) ??
         (avatarId ? VoiceProvider.HEYGEN : undefined),
       source,
       voiceId,
       voiceProvider:
-        this.readOptionalString(params.voiceProvider) ??
+        readOptionalString(params.voiceProvider) ??
         (voiceId ? VoiceProvider.HEYGEN : undefined),
     });
   }
@@ -8294,7 +8263,7 @@ export class AgentToolExecutorService {
       return undefined;
     }
 
-    return this.readOptionalString(ref.externalVoiceId);
+    return readOptionalString(ref.externalVoiceId);
   }
 
   private isHeygenProvider(value: unknown): boolean {
@@ -9105,7 +9074,7 @@ export class AgentToolExecutorService {
       };
     }
 
-    const brandId = this.readOptionalString(params.brandId);
+    const brandId = readOptionalString(params.brandId);
     if (!brandId) {
       return {
         creditsUsed: 0,
@@ -9164,8 +9133,8 @@ export class AgentToolExecutorService {
       };
     }
 
-    const interviewId = this.readOptionalString(params.interviewId);
-    const answer = this.readOptionalString(params.answer);
+    const interviewId = readOptionalString(params.interviewId);
+    const answer = readOptionalString(params.answer);
 
     if (!interviewId || !answer) {
       return {
@@ -9225,7 +9194,7 @@ export class AgentToolExecutorService {
       };
     }
 
-    const interviewId = this.readOptionalString(params.interviewId);
+    const interviewId = readOptionalString(params.interviewId);
     if (!interviewId) {
       return {
         creditsUsed: 0,
@@ -9265,7 +9234,7 @@ export class AgentToolExecutorService {
       };
     }
 
-    const brandId = this.readOptionalString(params.brandId);
+    const brandId = readOptionalString(params.brandId);
     if (!brandId) {
       return {
         creditsUsed: 0,

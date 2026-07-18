@@ -1,3 +1,5 @@
+import { ActionOrigin } from '@genfeedai/enums';
+import { runWithActionOrigin } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -135,6 +137,32 @@ describe('AgentRunQueueService', () => {
         expect.any(String),
         expect.any(Object),
         expect.objectContaining({ jobId: 'agent-run-custom-run-99' }),
+      );
+    });
+
+    it('preserves an MCP initiator in the queued agent action context', async () => {
+      queue.getJob.mockResolvedValue(null);
+      queue.add.mockResolvedValue({ id: 'agent-run-run-abc123' });
+
+      await runWithActionOrigin(
+        {
+          actorUserId: 'user-1',
+          apiKeyId: 'key-1',
+          origin: ActionOrigin.MCP,
+        },
+        () => service.queueRun(makeJobData()),
+      );
+
+      expect(queue.add).toHaveBeenCalledWith(
+        'execute-agent-run',
+        expect.objectContaining({
+          actionContext: {
+            actorUserId: 'user-1',
+            apiKeyId: 'key-1',
+            origin: ActionOrigin.MCP,
+          },
+        }),
+        expect.anything(),
       );
     });
   });

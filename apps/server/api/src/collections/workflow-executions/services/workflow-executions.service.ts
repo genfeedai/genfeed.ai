@@ -9,9 +9,16 @@ import type {
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { WorkflowExecutionStatus as SharedWorkflowExecutionStatus } from '@genfeedai/enums';
+import {
+  type ActionOriginContext,
+  WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
+} from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
+import {
+  normalizeActionOrigin,
+  withActionOriginMetadata,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -80,6 +87,43 @@ export class WorkflowExecutionsService extends BaseService<
     readonly logger: LoggerService,
   ) {
     super(prisma, 'workflowExecution', logger);
+  }
+
+  protected override normalizeDocument(
+    document: unknown,
+  ): WorkflowExecutionDocument {
+    const normalized = super.normalizeDocument(
+      document,
+    ) as WorkflowExecutionDocument;
+    if (!normalized || typeof normalized !== 'object') {
+      return normalized;
+    }
+
+    const result = parseResult(normalized.result);
+    const metadata =
+      result.metadata &&
+      typeof result.metadata === 'object' &&
+      !Array.isArray(result.metadata)
+        ? { ...(result.metadata as Record<string, unknown>) }
+        : {};
+    const storedContext: ActionOriginContext = {
+      ...(typeof metadata.actorUserId === 'string'
+        ? { actorUserId: metadata.actorUserId }
+        : {}),
+      ...(typeof metadata.apiKeyId === 'string'
+        ? { apiKeyId: metadata.apiKeyId }
+        : {}),
+      origin: normalizeActionOrigin(metadata.origin),
+    };
+    const normalizedMetadata = withActionOriginMetadata(
+      metadata,
+      storedContext,
+    );
+
+    result.metadata = normalizedMetadata;
+    normalized.result = result;
+    normalized.metadata = normalizedMetadata;
+    return normalized;
   }
 
   async findOne(
@@ -199,7 +243,7 @@ export class WorkflowExecutionsService extends BaseService<
         organizationId,
         result: {
           inputValues: dto.inputValues ?? {},
-          metadata: dto.metadata ?? {},
+          metadata: withActionOriginMetadata(dto.metadata),
           nodeResults: [],
           progress: 0,
           trigger: dto.trigger ?? null,
@@ -210,7 +254,7 @@ export class WorkflowExecutionsService extends BaseService<
       } as never,
     });
 
-    return result as unknown as WorkflowExecutionDocument;
+    return this.normalizeDocument(result);
   }
 
   @HandleErrors('start execution', 'workflow-executions')

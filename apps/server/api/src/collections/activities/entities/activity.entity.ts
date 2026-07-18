@@ -1,5 +1,6 @@
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import type {
+  ActionOrigin,
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
@@ -19,6 +20,9 @@ export class ActivityEntity extends BaseEntity {
 
   declare readonly key: ActivityKey | string | null;
   declare readonly source: ActivitySource | string | null;
+  declare readonly origin: ActionOrigin;
+  declare readonly actorUserId: string | null;
+  declare readonly apiKeyId: string | null;
   declare readonly value: string | null;
   declare readonly entityModel: ActivityEntityModel | string | null;
   declare readonly entityId: string | null;
