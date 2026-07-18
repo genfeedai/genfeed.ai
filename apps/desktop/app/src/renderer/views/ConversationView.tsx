@@ -21,6 +21,7 @@ import { useConversationState } from './useConversationState';
 interface ConversationViewProps {
   brands: IDesktopBrand[];
   cloudOrganizations: IDesktopCloudOrganization[];
+  isCloudConnected: boolean;
   onCreateThread: () => IDesktopThread;
   onSendMessage: (threadId: string, message: IDesktopMessage) => void;
   onSetStatus: (threadId: string, status: 'awaiting-response' | 'idle') => void;
@@ -36,6 +37,7 @@ export const ConversationView = ({
   onSetStatus,
   brands,
   cloudOrganizations,
+  isCloudConnected,
   pendingTrend,
   onTrendConsumed,
   thread,
@@ -104,6 +106,7 @@ export const ConversationView = ({
   } = useConversationSend({
     contentType,
     input,
+    isCloudConnected,
     isGenerating,
     onCreateThread,
     onSendMessage,
@@ -162,6 +165,7 @@ export const ConversationView = ({
           <ConversationComposerToolbar
             contentType={contentType}
             input={input}
+            isCloudConnected={isCloudConnected}
             onContentTypeChange={
               setContentType as (v: DesktopContentType) => void
             }

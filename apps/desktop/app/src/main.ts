@@ -10,10 +10,12 @@ import type {
   IDesktopBootstrap,
   IDesktopBrandManifest,
   IDesktopContentRunDraft,
+  IDesktopDataResult,
   IDesktopDataService,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
   IDesktopSyncOpAck,
+  IDesktopSyncConsentInput,
   IDesktopTerminalCreateOptions,
   IDesktopWorkflowGenerationOptions,
   IDesktopWorkspaceCloudLinkInput,
@@ -53,6 +55,10 @@ import { DesktopPrismaService } from './main/prisma.service';
 import { DesktopSessionService } from './main/session.service';
 import { DesktopShortcutsService } from './main/shortcuts.service';
 import { DesktopSyncService } from './main/sync.service';
+import {
+  DesktopSyncConsentService,
+  getAccountScopedSyncCursorKey,
+} from './main/sync-consent.service';
 import { DesktopTelemetryService } from './main/telemetry.service';
 import { DesktopTerminalService } from './main/terminal.service';
 import { DesktopTrayService } from './main/tray.service';
@@ -75,6 +81,7 @@ let sessionService: DesktopSessionService;
 let workspaceService: DesktopWorkspaceService;
 let filesService: DesktopFilesService;
 let syncService: DesktopSyncService;
+let syncConsentService: DesktopSyncConsentService;
 let terminalService: DesktopTerminalService;
 let generationService: DesktopGenerationService;
 let cloudService: DesktopCloudService;
@@ -92,7 +99,10 @@ let isQuitting = false;
 const isSmokeTest =
   process.argv.includes('--smoke-test') ||
   process.env.GENFEED_DESKTOP_SMOKE_TEST === '1';
-const smokeUserDataDir = isSmokeTest
+const isVisualQa =
+  process.argv.includes('--visual-qa') ||
+  process.env.GENFEED_DESKTOP_VISUAL_QA === '1';
+const smokeUserDataDir = isSmokeTest || isVisualQa
   ? fs.mkdtempSync(path.join(os.tmpdir(), 'genfeed-desktop-smoke-'))
   : null;
 
@@ -129,12 +139,15 @@ const DESKTOP_AUTHORITY: IDesktopAuthoritySummary = {
   ],
 };
 const OFFLINE_MODE_KEY = 'desktop.offline.mode';
-const ONBOARDING_COMPLETED_KEY = 'onboarding.completed';
-const SYNC_THREADS_CURSOR_KEY = 'sync.threads.cursor';
 const ACTIVE_WORKSPACE_ID_KEY = 'desktop.workspace.activeId';
 
 function getSyncCursorKey(scope: DesktopSyncCursorScope = 'threads'): string {
-  return scope === 'threads' ? SYNC_THREADS_CURSOR_KEY : `sync.${scope}.cursor`;
+  const cloudUserId = sessionService.getSession()?.userId;
+  if (!cloudUserId) {
+    throw new Error('Connect Genfeed Cloud before accessing sync state.');
+  }
+
+  return getAccountScopedSyncCursorKey(cloudUserId, scope);
 }
 
 function getBetterAuthId(): string | null {
@@ -278,6 +291,7 @@ const getBootstrap = (): IDesktopBootstrap => {
     brands: syncService.listBrands(),
     recents: workspaceService.listRecents(),
     session,
+    syncConsent: syncConsentService.getConsent(session),
     syncState: syncService.getState(),
     workspaces,
   };
@@ -287,10 +301,13 @@ const getBootstrap = (): IDesktopBootstrap => {
 };
 
 const runDataService = async <T>(
-  callback: (service: IDesktopDataService) => Promise<T>,
+  callback: (
+    service: IDesktopDataService,
+  ) => Promise<IDesktopDataResult<T>>,
 ): Promise<T> => {
   try {
-    return await callback(getDataService());
+    const result = await callback(getDataService());
+    return result.data;
   } catch (error) {
     if (isLocalProviderRequiredError(error)) {
       throw new Error(CLOUD_CREDITS_OR_LOCAL_PROVIDER_ERROR);
@@ -434,6 +451,97 @@ const openAndActivateWorkspace = async () => {
   return workspace;
 };
 
+const waitForVisualQaPaint = async (): Promise<void> => {
+  await new Promise((resolve) => setTimeout(resolve, 1_000));
+};
+
+const captureVisualQaScreenshot = async (
+  outputDirectory: string,
+  filename: string,
+): Promise<void> => {
+  if (!mainWindow) {
+    throw new Error('Desktop visual QA window is unavailable.');
+  }
+
+  await waitForVisualQaPaint();
+  const image = await mainWindow.webContents.capturePage();
+  fs.mkdirSync(outputDirectory, { recursive: true });
+  fs.writeFileSync(path.join(outputDirectory, filename), image.toPNG());
+};
+
+const reloadVisualQaWindow = async (): Promise<void> => {
+  if (!mainWindow) {
+    throw new Error('Desktop visual QA window is unavailable.');
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const webContents = mainWindow?.webContents;
+    if (!webContents) {
+      reject(new Error('Desktop visual QA web contents are unavailable.'));
+      return;
+    }
+
+    const handleFinished = () => {
+      webContents.off('did-fail-load', handleFailed);
+      resolve();
+    };
+    const handleFailed = (
+      _event: unknown,
+      code: number,
+      description: string,
+    ) => {
+      webContents.off('did-finish-load', handleFinished);
+      reject(
+        new Error(
+          `Desktop visual QA reload failed (${String(code)}): ${description}`,
+        ),
+      );
+    };
+    webContents.once('did-finish-load', handleFinished);
+    webContents.once('did-fail-load', handleFailed);
+    webContents.reload();
+  });
+};
+
+const captureVisualQa = async (): Promise<void> => {
+  const outputDirectory = process.env.GENFEED_DESKTOP_VISUAL_QA_DIR;
+  if (!outputDirectory || !mainWindow) {
+    throw new Error('GENFEED_DESKTOP_VISUAL_QA_DIR is required.');
+  }
+
+  await captureVisualQaScreenshot(outputDirectory, 'first-run.png');
+
+  isOfflineMode = true;
+  kvService.setValueSync(OFFLINE_MODE_KEY, '1');
+  await emitBootstrap();
+  await captureVisualQaScreenshot(
+    outputDirectory,
+    'account-less-workspace.png',
+  );
+
+  await reloadVisualQaWindow();
+  await captureVisualQaScreenshot(
+    outputDirectory,
+    'returning-account-less.png',
+  );
+
+  const session: IDesktopBootstrap['session'] = {
+    issuedAt: new Date().toISOString(),
+    token: 'visual-qa-session-token',
+    userEmail: 'desktop-visual-qa@genfeed.local',
+    userId: 'desktop-visual-qa-user',
+    userName: 'Desktop Visual QA',
+  };
+  await sessionService.setSession(session);
+  await localIdentityService.setBetterAuthId(session.userId);
+  await persistDeviceIdentity(session);
+  isOfflineMode = false;
+  kvService.setValueSync(OFFLINE_MODE_KEY, '0');
+  await emitSession();
+  await emitBootstrap();
+  await captureVisualQaScreenshot(outputDirectory, 'reconnect-consent.png');
+};
+
 const handleAuthCallback = async (rawUrl: string): Promise<void> => {
   const session = await sessionService.handleCallback(rawUrl);
 
@@ -457,8 +565,6 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
 
   await localIdentityService.setBetterAuthId(session.userId);
   await persistDeviceIdentity(session);
-  isOfflineMode = false;
-  await kvService.setValue(OFFLINE_MODE_KEY, '0');
   await emitSession();
   await emitBootstrap();
   void new Notification({
@@ -805,19 +911,6 @@ const registerIpcHandlers = (): void => {
     syncService.getState(),
   );
   ipcMain.handle(
-    DESKTOP_IPC_CHANNELS.syncQueueJob,
-    async (
-      _event: unknown,
-      type: string,
-      payload: string,
-      workspaceId?: string,
-    ) => {
-      const job = await syncService.queueJob(type, payload, workspaceId);
-      await emitBootstrap();
-      return job;
-    },
-  );
-  ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncQueueOp,
     async (
       _event: unknown,
@@ -848,15 +941,24 @@ const registerIpcHandlers = (): void => {
     },
   );
 
-  // Onboarding
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.appGetOnboardingState, async () => ({
-    completed: kvService.getValueSync(ONBOARDING_COMPLETED_KEY) === '1',
-  }));
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.appSetOnboardingCompleted, async () => {
-    kvService.setValueSync(ONBOARDING_COMPLETED_KEY, '1');
-  });
-
   // Sync cursor (durable storage in main-process KV)
+  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetConsent, async () =>
+    syncConsentService.getConsent(sessionService.getSession()),
+  );
+  ipcMain.handle(
+    DESKTOP_IPC_CHANNELS.syncSetConsent,
+    async (_event: unknown, input: IDesktopSyncConsentInput) => {
+      const consent = await syncConsentService.setConsent(
+        sessionService.getSession(),
+        input,
+      );
+      await emitBootstrap();
+      if (consent.status === 'granted') {
+        mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.syncThreadsRequested);
+      }
+      return consent;
+    },
+  );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncGetCursor,
     async (_event: unknown, scope?: DesktopSyncCursorScope) =>
@@ -947,6 +1049,7 @@ app.whenReady().then(async () => {
   const prismaClient = prismaService.getClient();
   kvService = new DesktopKvService(prismaClient);
   await kvService.init();
+  syncConsentService = new DesktopSyncConsentService(kvService);
   localIdentityService = new LocalIdentityService(kvService);
   await localIdentityService.initialize();
   await prismaService.bootstrapLocalIdentity(
@@ -1002,7 +1105,7 @@ app.whenReady().then(async () => {
   cloudService = new DesktopCloudService(environment, () =>
     sessionService.getSession(),
   );
-  localService = new DesktopLocalService(prismaClient);
+  localService = new DesktopLocalService(prismaClient, generationService);
   draftsService = new DesktopDraftsService(workspaceService);
   appShellService = new DesktopAppShellService(
     environment,
@@ -1020,6 +1123,19 @@ app.whenReady().then(async () => {
   registerProtocolHandling();
   registerIpcHandlers();
   await createWindow();
+
+  if (isVisualQa) {
+    try {
+      await captureVisualQa();
+      app.exit(0);
+    } catch (error) {
+      process.stderr.write(
+        `[desktop] visual QA capture failed: ${error instanceof Error ? error.stack || error.message : String(error)}\n`,
+      );
+      app.exit(1);
+    }
+    return;
+  }
 
   if (mainWindow) {
     trayService.initialize(mainWindow, emitQuickGenerate);

@@ -85,11 +85,21 @@ jobs:
       - name: Build macOS release artifact
         run: bun run --filter=@genfeedai/desktop release:mac
 
+      - name: Capture packaged visual QA
+        run: bun run --filter=@genfeedai/desktop visual:qa:release
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v7
         with:
           name: genfeed-desktop-macos
           path: apps/desktop/app/release/*
+          if-no-files-found: error
+
+      - name: Upload visual QA screenshots
+        uses: actions/upload-artifact@v7
+        with:
+          name: genfeed-desktop-visual-qa
+          path: apps/desktop/app/release/visual-qa/*.png
           if-no-files-found: error
 
   publish-desktop-release:

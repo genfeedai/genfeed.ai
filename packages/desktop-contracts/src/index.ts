@@ -84,17 +84,16 @@ export const DESKTOP_IPC_CHANNELS = {
   notify: 'desktop:notify',
   openFileDialog: 'desktop:openFileDialog',
   quickGenerate: 'desktop:quickGenerate',
-  appGetOnboardingState: 'desktop:app:getOnboardingState',
-  appSetOnboardingCompleted: 'desktop:app:setOnboardingCompleted',
   syncApplyBrandManifest: 'desktop:sync:applyBrandManifest',
   syncAckOps: 'desktop:sync:ackOps',
+  syncGetConsent: 'desktop:sync:getConsent',
   syncGetCursor: 'desktop:sync:getCursor',
   syncGetJobs: 'desktop:sync:getJobs',
   syncGetOps: 'desktop:sync:getOps',
   syncGetState: 'desktop:sync:getState',
-  syncQueueJob: 'desktop:sync:queueJob',
   syncQueueOp: 'desktop:sync:queueOp',
   syncRecordAssetSync: 'desktop:sync:recordAssetSync',
+  syncSetConsent: 'desktop:sync:setConsent',
   syncSetCursor: 'desktop:sync:setCursor',
   syncThreadsRequested: 'desktop:sync:threadsRequested',
   syncTriggerThreads: 'desktop:sync:triggerThreads',
@@ -233,6 +232,12 @@ export type DesktopAssetKind = 'audio' | 'document' | 'image' | 'video';
 export type DesktopAssetUploadPolicy = 'full' | 'metadata-only' | 'never';
 
 export type DesktopSyncCursorScope = 'brandManifest' | 'threads';
+
+export type DesktopSyncConsentStatus =
+  | 'declined'
+  | 'granted'
+  | 'not-required'
+  | 'pending';
 
 export type DesktopAssetUploadMode = 'api-proxy' | 'presigned-put';
 
@@ -441,6 +446,18 @@ export interface IDesktopSyncState {
   runningCount: number;
 }
 
+export interface IDesktopSyncConsent {
+  allowFullAssetUploads: boolean;
+  cloudUserId?: string;
+  decidedAt?: string;
+  status: DesktopSyncConsentStatus;
+}
+
+export interface IDesktopSyncConsentInput {
+  allowFullAssetUploads: boolean;
+  status: 'declined' | 'granted';
+}
+
 /* ─── Local Generation ─── */
 
 export type DesktopGenerationProviderKind =
@@ -553,16 +570,10 @@ export interface IDesktopLocalOrganization {
   slug: string;
 }
 
-export type IDesktopDataResult<T> =
-  | {
-      data: T;
-      status: 'success';
-    }
-  | {
-      message: string;
-      status: 'queued_offline';
-      syncJobId: string;
-    };
+export type IDesktopDataResult<T> = {
+  data: T;
+  status: 'success';
+};
 
 export interface IDesktopDataService {
   generateContent: (
@@ -619,6 +630,7 @@ export interface IDesktopBootstrap {
   brands: IDesktopBrand[];
   recents: IDesktopRecentItem[];
   session: IDesktopSession | null;
+  syncConsent: IDesktopSyncConsent;
   syncState: IDesktopSyncState;
   workspaces: IDesktopWorkspace[];
 }
@@ -932,24 +944,16 @@ export interface IGenfeedDesktopBridge {
   notifications: {
     notify: (title: string, body: string) => Promise<void>;
   };
-  onboarding: {
-    getState: () => Promise<{ completed: boolean }>;
-    setCompleted: () => Promise<void>;
-  };
   platform: string;
   sync: {
     ackOps: (ops: IDesktopSyncOpAck[]) => Promise<void>;
     applyBrandManifest: (manifest: IDesktopBrandManifest) => Promise<void>;
+    getConsent: () => Promise<IDesktopSyncConsent>;
     getCursor: (scope?: DesktopSyncCursorScope) => Promise<string | null>;
     getJobs: (workspaceId?: string) => Promise<IDesktopSyncJob[]>;
     getOps: (workspaceId?: string) => Promise<IDesktopSyncOp[]>;
     getState: () => Promise<IDesktopSyncState>;
     onSyncThreadsRequested: (callback: () => void) => () => void;
-    queueJob: (
-      type: string,
-      payload: string,
-      workspaceId?: string,
-    ) => Promise<IDesktopSyncJob>;
     queueOp: (
       entityType: string,
       entityId: string,
@@ -959,6 +963,9 @@ export interface IGenfeedDesktopBridge {
       baseVersion?: string,
     ) => Promise<IDesktopSyncOp>;
     recordAssetSync: (update: IDesktopAssetSyncUpdate) => Promise<void>;
+    setConsent: (
+      input: IDesktopSyncConsentInput,
+    ) => Promise<IDesktopSyncConsent>;
     setCursor: (
       cursor: string,
       scope?: DesktopSyncCursorScope,

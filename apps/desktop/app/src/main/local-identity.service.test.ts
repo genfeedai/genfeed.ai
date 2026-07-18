@@ -46,4 +46,20 @@ describe('LocalIdentityService', () => {
     expect(service.getBetterAuthId()).toBe('cloud-user-1');
     expect(kv.values.get('local.user.betterAuthId')).toBe('cloud-user-1');
   });
+
+  it('keeps local attribution stable when a different cloud account connects', async () => {
+    const kv = createKvMock({
+      'local.device.id': 'device-1',
+      'local.user.betterAuthId': 'cloud-user-1',
+      'local.user.id': 'local-user-1',
+    });
+    const service = new LocalIdentityService(kv);
+
+    await service.initialize();
+    await service.setBetterAuthId('cloud-user-2');
+
+    expect(service.getLocalUserId()).toBe('local-user-1');
+    expect(service.getLocalDeviceId()).toBe('device-1');
+    expect(service.getBetterAuthId()).toBe('cloud-user-2');
+  });
 });

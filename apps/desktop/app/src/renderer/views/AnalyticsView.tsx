@@ -7,6 +7,7 @@ import { useCallback, useEffect, useReducer } from 'react';
 type DaysRange = 7 | 30 | 90;
 
 interface AnalyticsViewProps {
+  isCloudConnected: boolean;
   isOnline: boolean;
   workspaceId: string | null;
 }
@@ -67,10 +68,12 @@ function analyticsReducer(
 }
 
 export const AnalyticsView = ({
+  isCloudConnected,
   isOnline,
   workspaceId,
 }: AnalyticsViewProps) => {
   const [state, dispatch] = useReducer(analyticsReducer, initialAnalyticsState);
+  const hasDataAccess = isOnline || !isCloudConnected;
   const { analytics, draftStats, isLoading, error, days } = state;
 
   const loadAnalytics = useCallback(async () => {
@@ -90,7 +93,7 @@ export const AnalyticsView = ({
           .length,
       };
 
-      if (!isOnline) {
+      if (!hasDataAccess) {
         dispatch({ type: 'FETCH_SUCCESS', analytics: null, draftStats });
         return;
       }
@@ -103,7 +106,7 @@ export const AnalyticsView = ({
         error: err instanceof Error ? err.message : 'Failed to load analytics',
       });
     }
-  }, [days, isOnline, workspaceId]);
+  }, [days, hasDataAccess, workspaceId]);
 
   useEffect(() => {
     void loadAnalytics();
@@ -129,7 +132,7 @@ export const AnalyticsView = ({
       </div>
 
       {isLoading && <p className="muted-text">Loading analytics...</p>}
-      {!isLoading && !isOnline && (
+      {!isLoading && !hasDataAccess && (
         <>
           <DesktopResilienceState
             actionLabel="Retry"
@@ -141,7 +144,7 @@ export const AnalyticsView = ({
           <DesktopDraftStatsGrid draftStats={draftStats} />
         </>
       )}
-      {!isLoading && isOnline && error && (
+      {!isLoading && hasDataAccess && error && (
         <DesktopResilienceState
           actionLabel="Retry"
           details={error}
@@ -151,7 +154,7 @@ export const AnalyticsView = ({
         />
       )}
 
-      {!isLoading && isOnline && !error && analytics && (
+      {!isLoading && hasDataAccess && !error && analytics && (
         <>
           <div className="stats-grid">
             <div className="stat-card">

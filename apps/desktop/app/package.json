@@ -116,7 +116,8 @@
     "smoke": "bun run electron:install-binary && bun run native:rebuild && bun run build && ELECTRON_RUN_AS_NODE= electron dist/main.js --smoke-test",
     "start": "bun run electron:install-binary && bun run native:rebuild && ELECTRON_RUN_AS_NODE= electron dist/main.js",
     "test": "bun test ./src/**/*.test.ts && vitest run --config vitest.config.ts",
-    "type-check": "rm -rf .next && next typegen && bunx tsc --noEmit"
+    "type-check": "rm -rf .next && next typegen && bunx tsc --noEmit",
+    "visual:qa:release": "node ./scripts/capture-visual-qa.cjs"
   },
   "type": "module",
   "version": "0.1.0"

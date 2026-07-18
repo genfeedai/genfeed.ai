@@ -18,6 +18,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 interface TrendsViewProps {
+  isCloudConnected: boolean;
   isOnline: boolean;
   onGenerateFromTrend: (trend: IDesktopTrendHandoff) => void;
 }
@@ -36,6 +37,7 @@ function toDesktopContentPlatform(
 }
 
 export const TrendsView = ({
+  isCloudConnected,
   isOnline,
   onGenerateFromTrend,
 }: TrendsViewProps) => {
@@ -43,12 +45,13 @@ export const TrendsView = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [platform, setPlatform] = useState<string>('twitter');
+  const hasDataAccess = isOnline || !isCloudConnected;
 
   const loadTrends = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    if (!isOnline) {
+    if (!hasDataAccess) {
       setTrends([]);
       setLoading(false);
       return;
@@ -62,7 +65,7 @@ export const TrendsView = ({
     } finally {
       setLoading(false);
     }
-  }, [isOnline, platform]);
+  }, [hasDataAccess, platform]);
 
   useEffect(() => {
     void loadTrends();
@@ -92,7 +95,7 @@ export const TrendsView = ({
       </div>
 
       {loading && <p className="muted-text">Loading trends...</p>}
-      {!loading && !isOnline && (
+      {!loading && !hasDataAccess && (
         <DesktopResilienceState
           actionLabel="Retry"
           details="Trend discovery needs a cloud connection. Local drafts and desktop generation stay available while the network is down."
@@ -101,7 +104,7 @@ export const TrendsView = ({
           title="Trend discovery is offline"
         />
       )}
-      {!loading && isOnline && error && (
+      {!loading && hasDataAccess && error && (
         <DesktopResilienceState
           actionLabel="Retry"
           details={error}
@@ -111,7 +114,7 @@ export const TrendsView = ({
         />
       )}
 
-      {!loading && isOnline && !error && trends.length === 0 && (
+      {!loading && hasDataAccess && !error && trends.length === 0 && (
         <DesktopResilienceState
           details={`No ${PLATFORM_LABELS[platform]} trends are available yet. Try another platform or refresh after the next sync.`}
           kind="empty"
@@ -119,7 +122,7 @@ export const TrendsView = ({
         />
       )}
 
-      {!loading && isOnline && !error && trends.length > 0 && (
+      {!loading && hasDataAccess && !error && trends.length > 0 && (
         <div className="trends-list">
           {trends.map((trend) => (
             <div className="trend-card panel-card" key={trend.id}>

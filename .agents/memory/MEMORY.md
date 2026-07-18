@@ -12,6 +12,7 @@
 - [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
 - [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
 - [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation is local-first; cloud connect is optional
+- [Desktop First Run and Sync Consent](project_desktop_first_run.md) — shared auth presentation, one account-less/cloud workspace, and per-account sync consent
 - [TS6.0/Prisma-7 build regression](project_ts6_prisma7_build_regression.md) — **BUILD REGRESSION RESOLVED 2026-06-03** (CI green @ 2e66b0aa8). Root cause was outdated turbo cache + mv-dist-src hack, not ~2020 real errors; removed the hack + fixed ~7 Prisma-7 Document interfaces. Stage 4 + migration-apply still pending.
 - **Deployment Modes & Auth Baseline (2026-06-29)** — canonical 3-mode model (SaaS / Community / Desktop as `deployment × client` axes) locked in [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md). Better Auth is now the active auth baseline across modes after #769/#866; platform admin access uses `users.platformRole`; headless API keys remain tracked under #747/#878. Multi-tenancy stays EE/SaaS; managed credits cloud-only; Community = funnel charter. Supersedes the auth half of #95.
 

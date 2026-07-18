@@ -17,6 +17,7 @@ interface UseConversationSendParams {
   contentType: DesktopContentType;
   input: string;
   isGenerating: boolean;
+  isCloudConnected: boolean;
   onCreateThread: () => IDesktopThread;
   onSendMessage: (threadId: string, message: IDesktopMessage) => void;
   onSetStatus: (threadId: string, status: 'awaiting-response' | 'idle') => void;
@@ -38,6 +39,7 @@ export function useConversationSend({
   contentType,
   input,
   isGenerating,
+  isCloudConnected,
   onCreateThread,
   onSendMessage,
   onSetStatus,
@@ -144,6 +146,15 @@ export function useConversationSend({
     };
 
     onSendMessage(currentThread.id, userMessage);
+
+    if (!isCloudConnected && publishIntent === 'publish') {
+      onSetStatus(currentThread.id, 'idle');
+      setError(
+        'This draft is saved locally. Connect Genfeed Cloud before publishing.',
+      );
+      return;
+    }
+
     onSetStatus(currentThread.id, 'awaiting-response');
     setIsGenerating(true);
 
@@ -160,11 +171,13 @@ export function useConversationSend({
         type: contentType,
       });
 
-      let hooks: string[] = [];
-      try {
-        hooks = await window.genfeedDesktop.cloud.generateHooks(input.trim());
-      } catch {
-        hooks = generated.hooks ?? [];
+      let hooks = generated.hooks ?? [];
+      if (isCloudConnected && hooks.length === 0) {
+        try {
+          hooks = await window.genfeedDesktop.cloud.generateHooks(input.trim());
+        } catch {
+          hooks = [];
+        }
       }
 
       let publishResult: IDesktopPublishResult | undefined;
@@ -227,6 +240,7 @@ export function useConversationSend({
     contentType,
     input,
     isGenerating,
+    isCloudConnected,
     onCreateThread,
     onSendMessage,
     onSetStatus,
@@ -245,6 +259,11 @@ export function useConversationSend({
       return;
     }
 
+    if (!isCloudConnected) {
+      setError('Connect Genfeed Cloud before publishing this local draft.');
+      return;
+    }
+
     const publishResult = await window.genfeedDesktop.cloud.publishPost({
       content: selectedDraft.generatedContent.content,
       draftId: selectedDraft.generatedContent.id,
@@ -260,7 +279,7 @@ export function useConversationSend({
       'Published',
       `Content published to ${publishResult.platform}.`,
     );
-  }, [persistDraft, selectedDraft]);
+  }, [isCloudConnected, persistDraft, selectedDraft, setError]);
 
   const handleFilesDropped = useCallback(
     (paths: string[]) => {

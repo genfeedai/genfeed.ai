@@ -13,10 +13,13 @@ export type SyncState = {
 };
 
 export function useSyncEngine(opts: {
+  allowFullAssetUploads: boolean;
   apiEndpoint: string;
   localUserId: string | null;
   session: IDesktopSession | null;
 }): SyncState & { triggerSync: () => void } {
+  const localUserId = opts.localUserId;
+  const sessionUserId = opts.session?.userId;
   const [state, setState] = useState<SyncState>({
     errors: [],
     isSyncing: false,
@@ -29,12 +32,14 @@ export function useSyncEngine(opts: {
   });
 
   const runSync = useCallback(async () => {
-    const { apiEndpoint, localUserId, session } = optsRef.current;
+    const { allowFullAssetUploads, apiEndpoint, localUserId, session } =
+      optsRef.current;
     if (!session || !localUserId) return;
 
     setState((prev) => ({ ...prev, errors: [], isSyncing: true }));
     try {
       const result = await syncService.run({
+        allowFullAssetUploads,
         apiEndpoint,
         localUserId,
         session,
@@ -56,6 +61,12 @@ export function useSyncEngine(opts: {
   const triggerSync = useCallback(() => {
     void runSync();
   }, [runSync]);
+
+  useEffect(() => {
+    if (sessionUserId && localUserId) {
+      void runSync();
+    }
+  }, [localUserId, runSync, sessionUserId]);
 
   // Subscribe to main-process triggered syncs (sign-in, focus)
   useEffect(() => {

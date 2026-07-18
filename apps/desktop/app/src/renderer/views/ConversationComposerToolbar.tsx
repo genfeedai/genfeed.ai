@@ -68,6 +68,7 @@ const UNLINKED_BRAND_VALUE = '__no_cloud_brand__';
 type ConversationComposerToolbarProps = {
   contentType: DesktopContentType;
   input: string;
+  isCloudConnected: boolean;
   onContentTypeChange: (value: DesktopContentType) => void;
   onBrandLink: (brandId: string, organizationId?: string) => Promise<void>;
   onImportAssets: () => Promise<void>;
@@ -87,6 +88,7 @@ type ConversationComposerToolbarProps = {
 export function ConversationComposerToolbar({
   contentType,
   input,
+  isCloudConnected,
   brands,
   cloudOrganizations,
   onContentTypeChange,
@@ -172,7 +174,11 @@ export function ConversationComposerToolbar({
           </SelectTrigger>
           <SelectContent>
             {PUBLISH_INTENT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
+              <SelectItem
+                disabled={option.value === 'publish' && !isCloudConnected}
+                key={option.value}
+                value={option.value}
+              >
                 {option.label}
               </SelectItem>
             ))}

@@ -20,7 +20,13 @@ describe('TrendsView', () => {
   });
 
   it('shows an offline state without calling the cloud API', async () => {
-    render(<TrendsView isOnline={false} onGenerateFromTrend={vi.fn()} />);
+    render(
+      <TrendsView
+        isCloudConnected
+        isOnline={false}
+        onGenerateFromTrend={vi.fn()}
+      />,
+    );
 
     await waitFor(() =>
       expect(
@@ -34,7 +40,13 @@ describe('TrendsView', () => {
   it('shows a retryable API failure state', async () => {
     cloudApi.getTrends.mockRejectedValue(new Error('API unavailable'));
 
-    render(<TrendsView isOnline onGenerateFromTrend={vi.fn()} />);
+    render(
+      <TrendsView
+        isCloudConnected
+        isOnline
+        onGenerateFromTrend={vi.fn()}
+      />,
+    );
 
     await waitFor(() =>
       expect(screen.getByText('Unable to load trends')).toBeInTheDocument(),
@@ -48,7 +60,13 @@ describe('TrendsView', () => {
   it('shows an empty state for a successful empty trends response', async () => {
     cloudApi.getTrends.mockResolvedValue([]);
 
-    render(<TrendsView isOnline onGenerateFromTrend={vi.fn()} />);
+    render(
+      <TrendsView
+        isCloudConnected
+        isOnline
+        onGenerateFromTrend={vi.fn()}
+      />,
+    );
 
     await waitFor(() =>
       expect(screen.getByText('No trends found')).toBeInTheDocument(),

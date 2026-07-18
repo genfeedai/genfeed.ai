@@ -113,20 +113,6 @@ function TrendRemixPageContent() {
             mode,
             topic: remixTopic,
           });
-          await desktopBridge.sync
-            .queueJob(
-              'post-draft',
-              JSON.stringify({
-                content: generated.content,
-                generatedId: generated.id,
-                mode,
-                platform: generated.platform,
-                prompt: remixTopic,
-                title: topic || 'Twitter remix',
-                type: generated.type,
-              }),
-            )
-            .catch(() => undefined);
           notificationsService.success(
             mode === 'thread'
               ? 'Thread remix draft created'

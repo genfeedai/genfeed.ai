@@ -22,10 +22,17 @@ const LIFECYCLE_COLORS: Record<string, string> = {
 };
 
 interface WorkflowsViewProps {
+  isCloudConnected: boolean;
   isOnline: boolean;
+  onConnectCloud: () => void;
 }
 
-export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
+export const WorkflowsView = ({
+  isCloudConnected,
+  isOnline,
+  onConnectCloud,
+}: WorkflowsViewProps) => {
+  const hasDataAccess = isOnline || !isCloudConnected;
   const [workflows, setWorkflows] = useState<IDesktopWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +42,7 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
     setLoading(true);
     setError(null);
 
-    if (!isOnline) {
+    if (!hasDataAccess) {
       setWorkflows([]);
       setLoading(false);
       return;
@@ -49,7 +56,7 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
     } finally {
       setLoading(false);
     }
-  }, [isOnline]);
+  }, [hasDataAccess]);
 
   useEffect(() => {
     void loadWorkflows();
@@ -57,6 +64,11 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
 
   const handleRun = useCallback(
     async (workflowId: string, batch?: boolean) => {
+      if (!isCloudConnected) {
+        onConnectCloud();
+        return;
+      }
+
       setRunningId(workflowId);
       setError(null);
 
@@ -78,7 +90,7 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
         setRunningId(null);
       }
     },
-    [isOnline],
+    [isCloudConnected, isOnline, onConnectCloud],
   );
 
   return (
@@ -97,7 +109,7 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
       </div>
 
       {loading && <p className="muted-text">Loading workflows...</p>}
-      {!loading && !isOnline && (
+      {!loading && !hasDataAccess && (
         <DesktopResilienceState
           actionLabel="Retry"
           details="Cloud workflows require a network connection. Local drafting remains available until the desktop app reconnects."
@@ -106,7 +118,7 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
           title="Workflows are offline"
         />
       )}
-      {!loading && isOnline && error && (
+      {!loading && hasDataAccess && error && (
         <DesktopResilienceState
           actionLabel="Retry"
           details={error}
@@ -116,7 +128,7 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
         />
       )}
 
-      {!loading && isOnline && !error && workflows.length === 0 && (
+      {!loading && hasDataAccess && !error && workflows.length === 0 && (
         <DesktopResilienceState
           details="No workflows are available for this workspace. Create workflows in the web builder, then refresh desktop."
           kind="empty"
@@ -124,7 +136,7 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
         />
       )}
 
-      {isOnline && !error && workflows.length > 0 ? (
+      {hasDataAccess && !error && workflows.length > 0 ? (
         <div className="workflows-grid">
           {workflows.map((wf) => (
             <div className="workflow-card panel-card" key={wf.id}>
@@ -165,17 +177,29 @@ export const WorkflowsView = ({ isOnline }: WorkflowsViewProps) => {
                 <Button
                   className="small"
                   disabled={runningId === wf.id}
-                  onClick={() => void handleRun(wf.id)}
+                  onClick={() =>
+                    isCloudConnected
+                      ? void handleRun(wf.id)
+                      : onConnectCloud()
+                  }
                   type="button"
                   variant={ButtonVariant.DEFAULT}
                 >
-                  {runningId === wf.id ? 'Running…' : '▶ Run'}
+                  {runningId === wf.id
+                    ? 'Running…'
+                    : isCloudConnected
+                      ? '▶ Run'
+                      : 'Connect Cloud to run'}
                 </Button>
                 {wf.supportsBatch && (
                   <Button
                     className="small"
                     disabled={runningId === wf.id}
-                    onClick={() => void handleRun(wf.id, true)}
+                    onClick={() =>
+                      isCloudConnected
+                        ? void handleRun(wf.id, true)
+                        : onConnectCloud()
+                    }
                     type="button"
                     variant={ButtonVariant.GHOST}
                   >

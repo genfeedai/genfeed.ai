@@ -11,6 +11,10 @@ import {
   upsertSyncLogEntry,
 } from '../db/pglite';
 import { queryThreads, upsertMessages, upsertThread } from '../db/threads';
+import {
+  canSyncAssetMetadata,
+  canUploadAssetContent,
+} from './asset-sync-policy';
 
 export type SyncResult = {
   assetUploadCount: number;
@@ -229,17 +233,17 @@ export class ThreadSyncService {
   }
 
   private async pushAssets(opts: {
+    allowFullAssetUploads: boolean;
     apiEndpoint: string;
     session: IDesktopSession;
   }): Promise<{ errors: string[]; pushedCount: number; uploadCount: number }> {
-    const { apiEndpoint, session } = opts;
+    const { allowFullAssetUploads, apiEndpoint, session } = opts;
     const errors: string[] = [];
     let uploadCount = 0;
     const assets = await window.genfeedDesktop.files.listAssets();
     const syncableAssets = assets.filter(
       (asset: IDesktopAsset) =>
-        asset.uploadPolicy !== 'never' &&
-        asset.origin !== 'cloud-generation' &&
+        canSyncAssetMetadata(asset) &&
         (!asset.cloudId ||
           asset.residency === 'upload-pending' ||
           (asset.uploadPolicy === 'full' && asset.residency !== 'synced')),
@@ -301,7 +305,13 @@ export class ThreadSyncService {
       }
 
       const asset = assetById.get(pushedAsset.localAssetId);
-      if (asset?.uploadPolicy !== 'full') {
+      if (
+        !asset ||
+        !canUploadAssetContent(
+          asset.uploadPolicy,
+          allowFullAssetUploads,
+        )
+      ) {
         continue;
       }
 
@@ -335,11 +345,12 @@ export class ThreadSyncService {
   }
 
   async run(opts: {
+    allowFullAssetUploads: boolean;
     apiEndpoint: string;
     localUserId: string;
     session: IDesktopSession;
   }): Promise<SyncResult> {
-    const { apiEndpoint, localUserId, session } = opts;
+    const { allowFullAssetUploads, apiEndpoint, localUserId, session } = opts;
     const errors: string[] = [];
     let assetUploadCount = 0;
     let pushedMetadataCount = 0;
@@ -411,7 +422,7 @@ export class ThreadSyncService {
       }
 
       const [assetResult, opResult] = await Promise.all([
-        this.pushAssets({ apiEndpoint, session }),
+        this.pushAssets({ allowFullAssetUploads, apiEndpoint, session }),
         this.pushSyncOps({ apiEndpoint, session }),
       ]);
 

@@ -18,6 +18,11 @@ packaged Electron shell.
 - No-API launch enters local/offline mode without requiring a server clone.
 - Browser sign-in deep link preserves a valid session and rejects invalid or
   replayed callbacks.
+- First-run auth exposes browser PKCE plus **Continue without an account**, with
+  no embedded credential form or auth webview.
+- Account-less and signed-in users render the same agent-first workspace shell.
+- Reconnect requires explicit sync consent; `uploadPolicy=never` assets remain
+  local and full asset upload remains separately enabled.
 - Workspace selection, recent workspaces, drafts, and content-run handoff survive
   app restart.
 - Local generation provider setup keeps the API key out of renderer-visible
@@ -34,5 +39,8 @@ packaged Electron shell.
 - Link the passing `Desktop QA` workflow run for the candidate branch or PR.
 - Link the `Desktop Release` workflow run for the signed macOS artifact.
 - Attach or reference the generated `genfeed-desktop-release.json` manifest.
+- Attach the `genfeed-desktop-visual-qa` artifact containing `first-run.png`,
+  `account-less-workspace.png`, `returning-account-less.png`, and
+  `reconnect-consent.png`, captured from the packaged `.app`.
 - Record macOS runner version, release tag or commit SHA, signing/notarization
   result, and any deferred manual checklist item.
