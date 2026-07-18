@@ -2,7 +2,7 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import HomeContent from '@public/(home)/home-content';
 import type { Metadata, ResolvingMetadata } from 'next';
 
-export const HOME_PAGE_TITLE =
+const HOME_PAGE_TITLE =
   'Genfeed.ai | Distribution infrastructure for AI agents';
 
 export async function generateMetadata(
