@@ -60,6 +60,10 @@ export default defineConfig({
         replacement: packagePath('ui', 'src/components/constants'),
       },
       {
+        find: /^@ui\/lib\/(.*)$/,
+        replacement: packagePath('ui', 'src/lib/$1'),
+      },
+      {
         find: /^@ui\/primitives\/(.*)$/,
         replacement: packagePath('ui', 'src/primitives/$1'),
       },
