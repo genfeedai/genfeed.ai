@@ -83,7 +83,7 @@ COPY --from=files-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 RUN bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
 COPY --from=files-pruned /app/out/full/ .
-RUN bun -e "import { bundle } from '@remotion/bundler'; await bundle({entryPoint:'apps/server/files/src/remotion/index.tsx',outDir:'apps/server/files/remotion-bundle',publicDir:null,rootDir:'apps/server/files'});"
+RUN bun -e "import { bundle } from '@remotion/bundler'; import { resolve } from 'node:path'; await bundle({entryPoint:resolve('apps/server/files/src/remotion/index.tsx'),outDir:resolve('apps/server/files/remotion-bundle'),publicDir:null,rootDir:resolve('apps/server/files')});"
 RUN test -x "$(find /app/node_modules/.remotion/chrome-headless-shell -type f -name chrome-headless-shell -print -quit)"
 RUN bun run build --filter=@genfeedai/files
 EXPOSE 3012

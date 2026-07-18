@@ -149,7 +149,7 @@ COPY configs/ configs/
 COPY packages/ packages/
 COPY apps/server/ apps/server/
 
-RUN bun -e "import { bundle } from '@remotion/bundler'; await bundle({entryPoint:'apps/server/files/src/remotion/index.tsx',outDir:'apps/server/files/remotion-bundle',publicDir:null,rootDir:'apps/server/files'});"
+RUN bun -e "import { bundle } from '@remotion/bundler'; import { resolve } from 'node:path'; await bundle({entryPoint:resolve('apps/server/files/src/remotion/index.tsx'),outDir:resolve('apps/server/files/remotion-bundle'),publicDir:null,rootDir:resolve('apps/server/files')});"
 
 # Build the shared packages that downstream project references resolve through
 # package exports before the parallel batch. A clean Docker context has no host

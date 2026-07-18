@@ -119,7 +119,7 @@ COPY apps/server/ apps/server/
 
 # Bundle the pinned composition during the image build so the first customer
 # render does not pay a webpack startup penalty.
-RUN bun -e "import { bundle } from '@remotion/bundler'; await bundle({entryPoint:'apps/server/files/src/remotion/index.tsx',outDir:'apps/server/files/remotion-bundle',publicDir:null,rootDir:'apps/server/files'});"
+RUN bun -e "import { bundle } from '@remotion/bundler'; import { resolve } from 'node:path'; await bundle({entryPoint:resolve('apps/server/files/src/remotion/index.tsx'),outDir:resolve('apps/server/files/remotion-bundle'),publicDir:null,rootDir:resolve('apps/server/files')});"
 
 # Patch nest-cli.json AFTER copying source (the COPY above would overwrite any earlier patch)
 # Disable deleteOutDir so parallel builds don't wipe each other's outputs from apps/server/dist/

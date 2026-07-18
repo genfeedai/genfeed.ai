@@ -209,6 +209,8 @@ export class EditorProjectsService extends BaseService<
       },
       where: {
         id,
+        isDeleted: false,
+        organizationId: existing.organizationId,
         AND: {
           config: {
             path: ['status'],
@@ -263,6 +265,8 @@ export class EditorProjectsService extends BaseService<
       },
       where: {
         id,
+        isDeleted: false,
+        organizationId: existing.organizationId,
         AND: {
           config: {
             path: ['status'],
