@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
 import type { ImgHTMLAttributes } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,29 +27,72 @@ vi.mock('@services/core/environment.service', () => ({
       app: 'https://app.genfeed.ai',
     },
     calendly: 'https://calendly.com/genfeed/demo',
+    mcpConnectHref: 'https://app.genfeed.ai/connect',
   },
 }));
 
 describe('HomeHero', () => {
-  it('renders one primary heading with both CTAs', () => {
+  it('leads with the developer distribution promise and CTA hierarchy', () => {
     render(<HomeHero />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(
-      screen.getByRole('link', { name: /create now/i }),
+      screen.getByRole('heading', {
+        level: 1,
+        name: /your product deserves to be discovered\./i,
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /book a demo/i }),
+      screen.getByText(/distribution infrastructure for ai agents/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(/one prompt\. publish everywhere\./i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/connect claude code, codex, or any mcp client/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('link').map((link) => link.textContent?.trim()),
+    ).toEqual(['Connect MCP', 'Book a Demo']);
   });
 
-  it('points the primary CTA at the pay-as-you-go sign-up', () => {
+  it('points the primary CTA at the canonical Connect Genfeed flow', () => {
     render(<HomeHero />);
 
-    expect(screen.getByRole('link', { name: /create now/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /connect mcp/i })).toHaveAttribute(
       'href',
-      expect.stringContaining('plan=payg'),
+      'https://app.genfeed.ai/connect',
     );
+  });
+
+  it('tracks Connect MCP separately from Book a Demo', () => {
+    const listener = vi.fn();
+    window.addEventListener('genfeed:marketing:button-click', listener);
+    render(<HomeHero />);
+
+    fireEvent.click(screen.getByRole('link', { name: /connect mcp/i }));
+    fireEvent.click(screen.getByRole('link', { name: /book a demo/i }));
+
+    expect(listener).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        detail: {
+          trackingData: { action: 'connect_mcp_hero' },
+          trackingName: 'hero_cta_click',
+        },
+      }),
+    );
+    expect(listener).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        detail: {
+          trackingData: { action: 'book_demo_hero' },
+          trackingName: 'hero_cta_click',
+        },
+      }),
+    );
+
+    window.removeEventListener('genfeed:marketing:button-click', listener);
   });
 
   it('renders a CDN-backed generated output wall instead of static wall art', () => {

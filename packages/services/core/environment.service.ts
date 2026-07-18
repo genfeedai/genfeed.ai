@@ -240,6 +240,10 @@ export const EnvironmentService = {
     process.env.NEXT_PUBLIC_CALENDLY_URL ||
     'https://calendly.com/vincent-genfeed/30min',
 
+  get mcpConnectHref(): string {
+    return `${this.apps.app}/connect`;
+  },
+
   get cdnUrl(): string {
     return (
       getDesktopEnvironmentOverrides().cdnUrl ||
