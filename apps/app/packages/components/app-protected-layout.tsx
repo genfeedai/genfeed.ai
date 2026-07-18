@@ -20,7 +20,6 @@ import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import {
-  cloneElement,
   type ReactNode,
   Suspense,
   useCallback,
@@ -31,12 +30,7 @@ import {
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
-  openWorkspaceShellCircuit,
-  useConversationShellEvaluationReady,
-} from '@/lib/workspace-shell/use-conversation-shell';
-import {
   captureWorkspaceShellError,
-  captureWorkspaceShellFallback,
   captureWorkspaceShellPerformance,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
@@ -47,35 +41,12 @@ import {
   useAppProtectedLayout,
 } from './useAppProtectedLayout';
 
-type AgentPanelProps = {
-  apiService: AgentApiService;
-  authReady?: boolean;
-  isActive?: boolean;
-  onNavigateToBilling?: () => void;
-  onOAuthConnect?: (platform: string) => void | Promise<void>;
-  onSelectCreditPack?: (pack: {
-    label: string;
-    price: string;
-    credits: number;
-  }) => void;
-};
-
 type AgentThreadListProps = {
   apiService: AgentApiService;
   isActive?: boolean;
   onActionsChange?: (actions: ReactNode) => void;
   onNavigate?: (path: string) => void;
 };
-
-const LazyAgentPanel = dynamic<AgentPanelProps>(
-  () => import('@genfeedai/agent').then((mod) => mod.AgentPanel),
-  {
-    loading: () => (
-      <div data-prompt-layout-mode="surface-fixed" data-testid="agent-panel" />
-    ),
-    ssr: false,
-  },
-);
 
 const LazyAgentThreadList = dynamic<AgentThreadListProps>(
   () => import('@genfeedai/agent').then((mod) => mod.AgentThreadList),
@@ -165,12 +136,7 @@ function AppLayoutWithDynamicMenu({
     orgSlug,
     brandSlug,
     agentApiService,
-    isAuthReadyForAgentPanel,
-    isAgentOpen,
-    toggleAgent,
     threads,
-    shouldMountAgentPanel,
-    shouldMountLegacyAgentPanel,
     agentMenuItems,
     adminMenuItems,
     analyticsMenuItems,
@@ -187,17 +153,12 @@ function AppLayoutWithDynamicMenu({
     conversationActions,
     setConversationActions,
     handleNavigate,
-    handleNavigateToBilling,
-    handleOAuthConnect,
     handleOpenCommandPalette,
     isLowCreditsBannerEnabled,
     isDesktopShell,
-    isConversationShellEnabled,
     isUniversalWorkspaceShell,
     workspaceShellRoute,
   } = useAppProtectedLayout(initialBootstrap);
-  const isConversationShellEvaluationReady =
-    useConversationShellEvaluationReady();
   const isWorkspaceShellReady =
     isUniversalWorkspaceShell && agentApiService !== null;
   const hasCapturedPerformanceRef = useRef(false);
@@ -205,8 +166,7 @@ function AppLayoutWithDynamicMenu({
   useEffect(() => {
     if (
       hasCapturedPerformanceRef.current ||
-      !isConversationShellEvaluationReady ||
-      (isUniversalWorkspaceShell && !isWorkspaceShellReady) ||
+      !isWorkspaceShellReady ||
       typeof performance === 'undefined'
     ) {
       return;
@@ -221,14 +181,9 @@ function AppLayoutWithDynamicMenu({
           : 'desktop',
       durationMs: Math.max(0, Math.round(performance.now())),
       routeClass: workspaceShellRoute?.telemetryClass ?? 'management',
-      shellMode: isWorkspaceShellReady ? 'conversation' : 'legacy',
+      shellMode: 'conversation',
     });
-  }, [
-    isConversationShellEvaluationReady,
-    isUniversalWorkspaceShell,
-    isWorkspaceShellReady,
-    workspaceShellRoute?.telemetryClass,
-  ]);
+  }, [isWorkspaceShellReady, workspaceShellRoute?.telemetryClass]);
 
   const renderConversations = useCallback(
     () =>
@@ -326,29 +281,6 @@ function AppLayoutWithDynamicMenu({
       : isAdminRoute
         ? AdminAppProtectedTopbar
         : AppProtectedTopbar;
-  const legacyMenuComponent = useMemo(() => {
-    if (isEditorCanvasRoute || isFocusedOnboardingRoute || isMoodboardRoute) {
-      return undefined;
-    }
-    if (!menuComponent) {
-      return undefined;
-    }
-
-    return cloneElement(menuComponent, {
-      isUniversalWorkspaceShell: false,
-    });
-  }, [
-    isEditorCanvasRoute,
-    isFocusedOnboardingRoute,
-    isMoodboardRoute,
-    menuComponent,
-  ]);
-  const legacyTopbarComponent =
-    isEditorCanvasRoute || isFocusedOnboardingRoute || isMoodboardRoute
-      ? undefined
-      : isAdminRoute
-        ? AdminAppProtectedTopbar
-        : AppProtectedTopbar;
   const topbarChromeVariant = 'default';
   const navigationMenuItems = isAdminRoute
     ? adminMenuItems
@@ -371,49 +303,6 @@ function AppLayoutWithDynamicMenu({
                     : isOrgRoute
                       ? orgMenuItems
                       : menuItems;
-  const agentPanelContent = agentApiService ? (
-    <LazyAgentPanel
-      apiService={agentApiService}
-      authReady={isAuthReadyForAgentPanel}
-      isActive={isAgentOpen}
-      onNavigateToBilling={handleNavigateToBilling}
-      onOAuthConnect={handleOAuthConnect}
-    />
-  ) : undefined;
-  const agentPanel = shouldMountAgentPanel ? agentPanelContent : undefined;
-  const legacyAgentPanel = shouldMountLegacyAgentPanel
-    ? agentPanelContent
-    : undefined;
-  const shouldRestoreLegacyPanelBeforeShellReady =
-    isUniversalWorkspaceShell &&
-    !isWorkspaceShellReady &&
-    shouldMountLegacyAgentPanel;
-  const visibleAgentPanel = shouldRestoreLegacyPanelBeforeShellReady
-    ? legacyAgentPanel
-    : agentPanel;
-  const fallbackTelemetryReasonRef = useRef<
-    'dedicated_route' | 'registry_miss' | null
-  >(null);
-
-  useEffect(() => {
-    if (!isConversationShellEnabled || isUniversalWorkspaceShell) {
-      fallbackTelemetryReasonRef.current = null;
-      return;
-    }
-
-    const reason = workspaceShellRoute ? 'dedicated_route' : 'registry_miss';
-    if (fallbackTelemetryReasonRef.current === reason) {
-      return;
-    }
-
-    fallbackTelemetryReasonRef.current = reason;
-    captureWorkspaceShellFallback(reason);
-  }, [
-    isConversationShellEnabled,
-    isUniversalWorkspaceShell,
-    workspaceShellRoute,
-  ]);
-
   const lowCreditsBanner =
     isEEEnabled() &&
     isLowCreditsBannerEnabled &&
@@ -440,13 +329,6 @@ function AppLayoutWithDynamicMenu({
       topbarChromeVariant={topbarChromeVariant}
       hasSecondaryTopbar={hasSecondaryTopbar}
       menuItems={navigationMenuItems}
-      agentPanel={visibleAgentPanel}
-      isAgentCollapsed={!isAgentOpen}
-      onAgentToggle={
-        shouldMountAgentPanel || shouldRestoreLegacyPanelBeforeShellReady
-          ? toggleAgent
-          : undefined
-      }
       orgSlug={orgSlug}
       isWorkspaceShell={isWorkspaceShellReady}
     >
@@ -454,43 +336,16 @@ function AppLayoutWithDynamicMenu({
         <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
           {children}
         </LazyUniversalWorkspaceShell>
+      ) : isUniversalWorkspaceShell ? (
+        <LazyLoadingFallback variant="grid" />
       ) : (
         children
       )}
     </AppLayout>
   );
-  const legacyFallbackLayout =
-    isEditorCanvasRoute || isMoodboardRoute ? (
-      <div className="min-h-screen overflow-hidden bg-background">
-        {shellBanner}
-        {children}
-      </div>
-    ) : (
-      <AppLayout
-        agentPanel={legacyAgentPanel}
-        bannerComponent={shellBanner}
-        breadcrumb={workspaceShellRoute?.breadcrumb}
-        brandSlug={brandSlug}
-        currentApp={currentApp}
-        hasSecondaryTopbar={hasSecondaryTopbar}
-        isAgentCollapsed={!isAgentOpen}
-        menuComponent={legacyMenuComponent}
-        menuItems={navigationMenuItems}
-        onAgentToggle={shouldMountLegacyAgentPanel ? toggleAgent : undefined}
-        orgSlug={orgSlug}
-        shellChromeVariant={shellChromeVariant}
-        topbarChromeVariant={topbarChromeVariant}
-        topbarComponent={legacyTopbarComponent}
-      >
-        {children}
-      </AppLayout>
-    );
   const guardedMainLayout = isWorkspaceShellReady ? (
     <ErrorBoundary
-      fallback={legacyFallbackLayout}
       onError={(error) => {
-        openWorkspaceShellCircuit('render');
-        captureWorkspaceShellFallback('render_error');
         captureWorkspaceShellError('render', 'render_failed');
         logger.error('Conversation shell render failed', {
           error,
@@ -503,19 +358,6 @@ function AppLayoutWithDynamicMenu({
   ) : (
     mainLayout
   );
-
-  if (!isWorkspaceShellReady && (isEditorCanvasRoute || isMoodboardRoute)) {
-    return (
-      <CommandPaletteProvider>
-        <CommandPaletteInitializer />
-        <div className="min-h-screen overflow-hidden bg-background">
-          {shellBanner}
-          {children}
-        </div>
-        <LazyCommandPalette />
-      </CommandPaletteProvider>
-    );
-  }
 
   return (
     <>

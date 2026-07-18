@@ -173,7 +173,7 @@ RUN set -e; \
     bun --filter @genfeedai/helpers build; \
     bun --filter @genfeedai/integrations build; \
     bun --filter @genfeedai/serializers build; \
-    bun --filter @genfeedai/workflows build
+    bun --filter @genfeedai/workflows build:server
 
 # Disable deleteOutDir for parallel builds
 RUN sed -i 's/"deleteOutDir": true/"deleteOutDir": false/' apps/server/nest-cli.json

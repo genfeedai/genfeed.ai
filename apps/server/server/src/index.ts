@@ -77,6 +77,7 @@ export type {
 } from './collections/models/model-record.types';
 export {
   type ClaimPublishExecutionParams,
+  type CompletePublishExecutionParams,
   type CreateCurrentPostPublishApprovalParams,
   type CreatePostPublishApprovalParams,
   PublishApprovalsService,

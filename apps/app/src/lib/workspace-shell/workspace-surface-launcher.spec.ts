@@ -39,7 +39,7 @@ describe('workspace surface launcher', () => {
     ).toBe('/other/~/overview');
   });
 
-  it('uses dedicated navigation for settings and strips shell authority params', () => {
+  it('uses canvas navigation for settings and strips overlay authority', () => {
     expect(
       resolveWorkspaceSurfaceLaunch({
         currentHref: '/acme/~/agent/thread-1',
@@ -47,9 +47,9 @@ describe('workspace surface launcher', () => {
           '/acme/~/settings/billing?overlay=shell-preview&thread=thread-1',
       }),
     ).toMatchObject({
-      announcement: 'Opening organization settings as a dedicated route.',
-      href: '/acme/~/settings/billing',
-      mode: 'dedicated',
+      announcement: 'Opening organization settings in canvas mode.',
+      href: '/acme/~/settings/billing?thread=thread-1',
+      mode: 'canvas',
     });
   });
 

@@ -1,5 +1,8 @@
 import LibraryRemixSurface from '@/features/library-remix/LibraryRemixSurface';
-import { LIBRARY_REMIX_SOURCE_QUERY_KEY } from '@/features/library-remix/library-remix-reference';
+import {
+  LIBRARY_REMIX_SOURCE_QUERY_KEY,
+  LIBRARY_REMIX_SOURCE_VERSION_QUERY_KEY,
+} from '@/features/library-remix/library-remix-reference';
 import TrendRemixPage from './trend-remix-page';
 
 type PostsRemixPageProps = {
@@ -31,12 +34,15 @@ export default async function PostsRemixPage({
   }
 
   const sourceArtifact = resolvedSearchParams[LIBRARY_REMIX_SOURCE_QUERY_KEY];
+  const sourceVersion =
+    resolvedSearchParams[LIBRARY_REMIX_SOURCE_VERSION_QUERY_KEY];
   const threadId = resolvedSearchParams.thread;
 
   if (typeof sourceArtifact !== 'string' || !sourceArtifact.trim()) {
     return (
       <LibraryRemixSurface
         sourceArtifact={null}
+        sourceVersion={null}
         threadId={typeof threadId === 'string' ? threadId : null}
       />
     );
@@ -45,6 +51,7 @@ export default async function PostsRemixPage({
   return (
     <LibraryRemixSurface
       sourceArtifact={sourceArtifact}
+      sourceVersion={typeof sourceVersion === 'string' ? sourceVersion : null}
       threadId={typeof threadId === 'string' ? threadId : null}
     />
   );

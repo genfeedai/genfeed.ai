@@ -94,7 +94,7 @@ export default function HomeFooter(): React.ReactElement {
         variant="default"
         showNewsletter
         showBookCall
-        brandTagline="The AI studio for content. Start free, pay as you go for what you create."
+        brandTagline="Open-source distribution infrastructure for AI agents. Review, publish, and measure every output."
       />
     </footer>
   );

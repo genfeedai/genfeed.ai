@@ -151,14 +151,18 @@ describe('workspace overlay launcher', () => {
     });
   });
 
-  it('keeps dedicated and external locations outside overlay state', () => {
+  it('opens overlays on canvas routes and rejects external locations', () => {
     expect(
       resolveWorkspaceOverlayLaunch({
         currentHref: '/acme/~/settings/billing',
         invocation: 'user',
         overlay: SHELL_PREVIEW_OVERLAY,
       }),
-    ).toMatchObject({ history: 'none', overlay: null });
+    ).toMatchObject({
+      history: 'push',
+      href: '/acme/~/settings/billing?overlay=shell-preview',
+      overlay: SHELL_PREVIEW_OVERLAY,
+    });
     expect(
       resolveWorkspaceOverlayLaunch({
         currentHref: 'https://untrusted.example/workspace',

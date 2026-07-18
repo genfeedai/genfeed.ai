@@ -21,6 +21,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../interfaces/src/$1'),
       },
       {
+        find: /^@genfeedai\/pricing$/,
+        replacement: path.resolve(__dirname, '../pricing/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/pricing\/(.*)$/,
+        replacement: path.resolve(__dirname, '../pricing/src/$1'),
+      },
+      {
         find: /^@genfeedai\/types$/,
         replacement: path.resolve(__dirname, '../types/src/index.ts'),
       },
@@ -28,12 +36,25 @@ export default defineConfig({
         find: /^@genfeedai\/types\/(.*)$/,
         replacement: path.resolve(__dirname, '../types/src/$1'),
       },
+      // NOTE: do NOT alias @genfeedai/ui to its src — its source uses an internal
+      // `@ui/*` alias the /ui specs can't resolve. Let it resolve via node_modules
+      // to the built dist (turbo `test` dependsOn ^build), matching the former
+      // standalone workflow UI package.
     ],
   },
   test: {
-    environment: 'node',
+    // Whole-package jsdom: the /ui React specs need a DOM, and jsdom is a
+    // superset the engine/nodes/generation logic specs run fine under.
+    // (vitest 4 removed environmentMatchGlobs.)
+    environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
+    include: [
+      'src/**/*.spec.ts',
+      'src/**/*.spec.tsx',
+      'src/**/*.test.ts',
+      'src/**/*.test.tsx',
+    ],
+    setupFiles: ['./vitest.setup.ts'],
     testTimeout: 15000,
   },
 });

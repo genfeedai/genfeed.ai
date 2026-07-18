@@ -8,7 +8,7 @@ import {
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
 const DEFAULT_DOCS_URL = 'https://docs.genfeed.ai';
 const DEFAULT_MCP_URL = 'https://mcp.genfeed.ai/mcp';
-const API_KEY_SETTINGS_PATH = '/settings/api-keys';
+const CONNECT_GENFEED_PATH = '/connect';
 const DOCS_GUIDE_PATH = '/api-reference/mcp';
 
 function escapeHtml(value: string): string {
@@ -25,7 +25,6 @@ function trimTrailingSlash(value: string): string {
 }
 
 function readEnv(name: string): string | undefined {
-  // biome-ignore lint/style/noProcessEnv: MCP setup docs need deploy-time endpoint overrides before Nest config is available.
   return process.env[name];
 }
 
@@ -55,12 +54,12 @@ function buildAgentSetupPrompt(params: {
 
 Endpoint: ${mcpUrl}
 Authentication env var: GENFEED_API_KEY
-API key settings: ${apiKeysUrl}
+Guided connection flow: ${apiKeysUrl}
 
 Do this end to end:
 1. Detect whether Claude Code, Codex, or both are installed.
 2. Check whether GENFEED_API_KEY is available in the shell environment.
-3. If the key is missing, ask me to export it locally or send me to the API key settings URL above. Do not request or paste the key into source-controlled files, command history, logs, or this chat.
+3. If the key is missing, ask me to export it locally or send me to the guided connection URL above. Do not request or paste the key into source-controlled files, command history, logs, or this chat.
 4. Configure Genfeed as a remote Streamable HTTP MCP server:
    - Claude Code: claude mcp add --transport http genfeed --scope user ${mcpUrl} --header "Authorization: Bearer $GENFEED_API_KEY"
    - Codex: codex mcp add genfeed --url ${mcpUrl} --bearer-token-env-var GENFEED_API_KEY
@@ -91,11 +90,11 @@ export function renderSetupPage(): string {
   const mcpUrl = getPublicMcpUrl();
   const appUrl = getPublicAppUrl();
   const docsUrl = getPublicDocsUrl();
-  const apiKeysUrl = `${appUrl}${API_KEY_SETTINGS_PATH}`;
+  const connectUrl = `${appUrl}${CONNECT_GENFEED_PATH}`;
   const docsGuideUrl = `${docsUrl}${DOCS_GUIDE_PATH}`;
 
   const mcpUrlSafe = escapeHtml(mcpUrl);
-  const apiKeysUrlSafe = escapeHtml(apiKeysUrl);
+  const connectUrlSafe = escapeHtml(connectUrl);
   const docsUrlSafe = escapeHtml(docsUrl);
   const docsGuideUrlSafe = escapeHtml(docsGuideUrl);
   const claudeCommandSafe = escapeHtml(
@@ -108,7 +107,7 @@ export function renderSetupPage(): string {
 url = "${mcpUrl}"
 bearer_token_env_var = "GENFEED_API_KEY"`);
   const agentSetupPromptSafe = escapeHtml(
-    buildAgentSetupPrompt({ apiKeysUrl, mcpUrl }),
+    buildAgentSetupPrompt({ apiKeysUrl: connectUrl, mcpUrl }),
   );
 
   return `<!doctype html>
@@ -585,7 +584,7 @@ pre.command {
       <a class="nav-link" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Docs</a>
       <a class="nav-link" href="/v1/config" rel="noopener noreferrer">Config</a>
       <a class="nav-link" href="/v1/health" rel="noopener noreferrer">Health</a>
-      <a class="${ui.buttonPrimary}" href="${apiKeysUrlSafe}" rel="noopener noreferrer">API keys</a>
+      <a class="${ui.buttonPrimary}" href="${connectUrlSafe}" rel="noopener noreferrer">Connect Genfeed</a>
     </div>
   </nav>
 
@@ -595,7 +594,7 @@ pre.command {
       <h1>Genfeed MCP.<em>Claude + Codex.</em></h1>
       <p class="lede">Connect AI clients to Genfeed content, workflows, publishing, analytics, and ads with an API key.</p>
       <div class="hero-actions">
-        <a class="${ui.buttonPrimary}" href="${apiKeysUrlSafe}" rel="noopener noreferrer">Create API key</a>
+        <a class="${ui.buttonPrimary}" href="${connectUrlSafe}" rel="noopener noreferrer">Start guided setup</a>
         <a class="${ui.buttonSecondary}" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Read MCP docs</a>
       </div>
     </div>
@@ -758,7 +757,7 @@ pre.command {
         <p class="meta-label">Authentication</p>
         <h3>Bearer token</h3>
         <p>Send <code class="${ui.inlineCode}">Authorization: Bearer gf_live_xxx</code> with every request.</p>
-        <a href="${apiKeysUrlSafe}" rel="noopener noreferrer">Manage keys</a>
+        <a href="${connectUrlSafe}" rel="noopener noreferrer">Open guided setup</a>
       </article>
       <article class="${ui.infoCard}">
         <p class="meta-label">Transport</p>

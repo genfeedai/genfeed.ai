@@ -19,7 +19,7 @@ import replicateSchemas from '@genfeedai/types/replicate/schemas.json';
 ## Related Packages
 
 - `@genfeedai/pricing`
-- `@genfeedai/workflow-ui`
+- `@genfeedai/workflows/ui`
 
 ## Build Faster with Genfeed
 

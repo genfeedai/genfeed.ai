@@ -15,10 +15,10 @@ import { LuArrowRight, LuCheck } from 'react-icons/lu';
 const EYEBROW_CLASS =
   'text-xs font-bold uppercase tracking-widest text-surface/65';
 
-const CREATOR_BENEFITS: AudienceBenefit[] = [
-  { label: '10x your output, three posts a week becomes thirty' },
-  { label: 'Save 15+ hours a week you used to spend editing' },
-  { label: 'Track revenue per post, not just likes' },
+const DEVELOPER_BENEFITS: AudienceBenefit[] = [
+  { label: 'Use Claude Code, Codex, or any MCP client' },
+  { label: 'Review and approve content before it ships' },
+  { label: 'Track performance across every channel' },
 ];
 
 const AGENCY_BENEFITS: AudienceBenefit[] = [
@@ -28,7 +28,6 @@ const AGENCY_BENEFITS: AudienceBenefit[] = [
 ];
 
 export default function HomeAudiences(): React.ReactElement {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
   const proPlan = getProPlan();
   const proPlanPrice = proPlan.launchPrice ?? proPlan.price;
   const proPlanCopy =
@@ -48,11 +47,11 @@ export default function HomeAudiences(): React.ReactElement {
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
           >
-            For creators and agencies.
+            For developers and distribution teams.
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-            Start self-serve as a creator, or bring your whole client roster and
-            let AI run the creative volume.
+            Connect your AI client self-serve, or bring your whole client roster
+            and run distribution through one supervised control plane.
           </Text>
         </VStack>
 
@@ -60,13 +59,15 @@ export default function HomeAudiences(): React.ReactElement {
           <div className="flex flex-col gap-5 bg-background p-8">
             <HStack className="items-center gap-2 text-surface/72">
               <HiUser className="size-4" />
-              <Text className={EYEBROW_CLASS}>Solo creators</Text>
+              <Text className={EYEBROW_CLASS}>
+                Developers &amp; solo operators
+              </Text>
             </HStack>
             <Heading as="h3" className="text-2xl font-semibold text-surface">
-              Post daily without a team.
+              Keep your AI client. Add a control plane.
             </Heading>
             <ul className="flex flex-col gap-3">
-              {CREATOR_BENEFITS.map((benefit) => (
+              {DEVELOPER_BENEFITS.map((benefit) => (
                 <li key={benefit.label} className="flex items-start gap-3">
                   <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/72">
@@ -82,19 +83,23 @@ export default function HomeAudiences(): React.ReactElement {
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
-                trackingData={{ action: 'signup_creators_audience' }}
+                trackingData={{ action: 'connect_mcp_audience' }}
                 trackingName="audience_cta_click"
               >
-                <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                  Create now
+                <a
+                  href={EnvironmentService.mcpConnectHref}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  Connect MCP
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
               <Link
-                href="/use-cases/creators"
+                href="/mcp"
                 className="text-sm font-medium text-surface/72 underline-offset-4 hover:text-surface hover:underline"
               >
-                Genfeed for creators →
+                Explore the MCP server →
               </Link>
             </HStack>
           </div>

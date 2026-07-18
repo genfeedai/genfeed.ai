@@ -53,11 +53,12 @@ describe('useLibraryRemixSource', () => {
         id: 'ingredient-1',
         ingredientUrl: 'https://cdn.example/ingredient-1.jpg',
         organization: 'org-1',
+        version: 7,
       } as IIngredient,
     ]);
 
     const { result } = renderHook(() =>
-      useLibraryRemixSource('ingredient:ingredient-1'),
+      useLibraryRemixSource('ingredient:ingredient-1', '7'),
     );
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
@@ -67,8 +68,28 @@ describe('useLibraryRemixSource', () => {
       kind: 'ingredient',
       organizationId: 'org-1',
       recordId: 'ingredient-1',
+      recordVersion: '7',
       serializer: 'ingredient',
     });
+  });
+
+  it('rejects a source whose canonical version changed after selection', async () => {
+    mocks.findIngredients.mockResolvedValue([
+      {
+        brand: 'brand-1',
+        category: IngredientCategory.IMAGE,
+        id: 'ingredient-1',
+        organization: 'org-1',
+        version: 8,
+      } as IIngredient,
+    ]);
+
+    const { result } = renderHook(() =>
+      useLibraryRemixSource('ingredient:ingredient-1', '7'),
+    );
+
+    await waitFor(() => expect(result.current.status).toBe('stale'));
+    expect(result.current.record).toBeNull();
   });
 
   it('rejects a canonical asset that is outside the effective brand', async () => {

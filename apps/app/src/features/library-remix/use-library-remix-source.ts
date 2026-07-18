@@ -59,6 +59,7 @@ function isIngredientInScope(
 
 export function useLibraryRemixSource(
   sourceArtifact: string | null | undefined,
+  sourceVersion?: string | null,
 ): UseLibraryRemixSourceResult {
   const { brandId, isReady, organizationId } = useBrand();
   const [reloadVersion, setReloadVersion] = useState(0);
@@ -88,10 +89,14 @@ export function useLibraryRemixSource(
         return;
       }
 
-      const reference = parseLibraryRemixSource(sourceArtifact, {
-        brandId,
-        organizationId,
-      });
+      const reference = parseLibraryRemixSource(
+        sourceArtifact,
+        {
+          brandId,
+          organizationId,
+        },
+        sourceVersion,
+      );
       if (!reference) {
         setState({ record: null, reference: null, status: 'invalid' });
         return;
@@ -130,6 +135,13 @@ export function useLibraryRemixSource(
           setState({ record: null, reference, status: 'permission-denied' });
           return;
         }
+        if (
+          reference.recordVersion &&
+          ingredient.version?.toString() !== reference.recordVersion
+        ) {
+          setState({ record: null, reference, status: 'stale' });
+          return;
+        }
 
         setState({ record: ingredient, reference, status: 'ready' });
       } catch (error) {
@@ -156,6 +168,7 @@ export function useLibraryRemixSource(
       isReady,
       organizationId,
       sourceArtifact,
+      sourceVersion,
     ],
   );
 

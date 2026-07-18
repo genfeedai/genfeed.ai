@@ -6,6 +6,7 @@ import { JobLifecyclePublisherService } from '@files/services/job-lifecycle-publ
 import { S3Service } from '@files/services/s3/s3.service';
 import { ThumbnailsModule } from '@files/services/thumbnails/thumbnails.module';
 import { UploadModule } from '@files/services/upload/upload.module';
+import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
 import { YtDlpModule } from '@files/services/ytdlp/ytdlp.module';
 import { BullModule } from '@nestjs/bullmq';
@@ -20,6 +21,7 @@ import { Module } from '@nestjs/common';
     S3Service,
     ThumbnailsModule,
     UploadModule,
+    VideoMergeJobService,
     WebSocketService,
     YtDlpModule,
   ],
@@ -37,6 +39,11 @@ import { Module } from '@nestjs/common';
       { name: QUEUE_NAMES.FILE_PROCESSING },
     ),
   ],
-  providers: [S3Service, WebSocketService, JobLifecyclePublisherService],
+  providers: [
+    S3Service,
+    VideoMergeJobService,
+    WebSocketService,
+    JobLifecyclePublisherService,
+  ],
 })
 export class ServicesModule {}

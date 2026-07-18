@@ -1,7 +1,10 @@
 import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
-import { type EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
+import {
+  buildValidatedEditorExportContract,
+  EditorExportContractValidationError,
+} from '@api/collections/editor-projects/utils/editor-export-contract.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -18,7 +21,10 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
-import type { IFileProcessingParams } from '@genfeedai/interfaces';
+import type {
+  IEditorExportCompositionSnapshot,
+  IFileProcessingParams,
+} from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -47,14 +53,33 @@ export class EditorRenderService {
 
   async render(id: string, orgId: string, user: User): Promise<RenderResult> {
     const publicMetadata = user.publicMetadata as Record<string, string>;
-
-    // Atomic CAS: only transitions DRAFT/COMPLETED/FAILED -> RENDERING
-    const project = await this.editorProjectsService.markAsRendering(id, orgId);
+    const projectForValidation = await this.editorProjectsService.findForRender(
+      id,
+      orgId,
+    );
+    let snapshot: IEditorExportCompositionSnapshot;
 
     try {
-      this.validateMvpConstraints(project);
+      snapshot =
+        buildValidatedEditorExportContract(projectForValidation).snapshot;
+    } catch (error: unknown) {
+      if (error instanceof EditorExportContractValidationError) {
+        throw new UnprocessableEntityException({
+          code: 'editor_export_contract_invalid',
+          message: error.message,
+          violations: error.violations,
+        });
+      }
+      throw error;
+    }
 
-      const renderParams = await this.extractRenderParams(project, orgId);
+    this.validateCurrentRendererCapability(snapshot);
+
+    // Atomic CAS: only transitions DRAFT/COMPLETED/FAILED -> RENDERING
+    await this.editorProjectsService.markAsRendering(id, orgId);
+
+    try {
+      const renderParams = await this.extractRenderParams(snapshot, orgId);
 
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
@@ -102,9 +127,14 @@ export class EditorRenderService {
     }
   }
 
-  private validateMvpConstraints(project: EditorProjectDocument): void {
+  private validateCurrentRendererCapability(
+    project: IEditorExportCompositionSnapshot,
+  ): void {
     const videoTracks = project.tracks.filter(
       (t) => t.type === EditorTrackType.VIDEO,
+    );
+    const audioTracks = project.tracks.filter(
+      (t) => t.type === EditorTrackType.AUDIO,
     );
     const textTracks = project.tracks.filter(
       (t) => t.type === EditorTrackType.TEXT,
@@ -135,6 +165,12 @@ export class EditorRenderService {
       );
     }
 
+    if (audioTracks.length > 0) {
+      throw new UnprocessableEntityException(
+        'Audio tracks require the multi-track renderer and cannot be rendered by the current version.',
+      );
+    }
+
     if (textTracks.length > 1) {
       throw new UnprocessableEntityException(
         'Only 1 text track is supported for rendering in the current version.',
@@ -149,19 +185,24 @@ export class EditorRenderService {
   }
 
   private async extractRenderParams(
-    project: EditorProjectDocument,
+    project: IEditorExportCompositionSnapshot,
     orgId: string,
   ) {
     const videoTrack = project.tracks.find(
       (t) => t.type === EditorTrackType.VIDEO,
-    )!;
+    );
+    if (!videoTrack) {
+      throw new UnprocessableEntityException(
+        'Project must have at least 1 video track to render',
+      );
+    }
     const textTrack = project.tracks.find(
       (t) => t.type === EditorTrackType.TEXT,
     );
 
     const clip = videoTrack.clips[0];
     const videoId = clip.ingredientId;
-    const fps = project.settings?.fps || 30;
+    const fps = project.settings.fps;
 
     // Validate source video ownership
     const video = await this.ingredientsService.findOne({
@@ -197,21 +238,22 @@ export class EditorRenderService {
     // Check for text overlay
     const textClip =
       textTrack && textTrack.clips.length > 0 ? textTrack.clips[0] : undefined;
-    const hasTextOverlay = !!textClip?.textOverlay?.text;
-    const textLabel = hasTextOverlay ? textClip!.textOverlay!.text : '';
+    const textOverlay = textClip?.textOverlay;
+    const hasTextOverlay = Boolean(textOverlay?.text);
+    const textLabel = textOverlay?.text ?? '';
 
     const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
 
     let jobType: string;
     let jobParams: IFileProcessingParams;
 
-    if (hasTextOverlay) {
+    if (textOverlay?.text) {
       jobType = 'add-text-overlay';
       jobParams = {
         height,
         inputPath: videoUrl,
-        position: textClip!.textOverlay!.position || 'top',
-        text: textClip!.textOverlay!.text,
+        position: this.toCurrentRendererTextPosition(textOverlay.position.y),
+        text: textOverlay.text,
         width,
         ...(isTrimmed ? { endTime, startTime } : {}),
       };
@@ -242,6 +284,18 @@ export class EditorRenderService {
       videoId,
       width,
     };
+  }
+
+  private toCurrentRendererTextPosition(
+    yPercentage: number,
+  ): 'bottom' | 'center' | 'top' {
+    if (yPercentage <= 33) {
+      return 'top';
+    }
+    if (yPercentage >= 67) {
+      return 'bottom';
+    }
+    return 'center';
   }
 
   private handleAsyncCompletion(
