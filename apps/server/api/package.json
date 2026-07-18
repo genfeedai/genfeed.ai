@@ -94,7 +94,7 @@
     "test": "vitest run --config vitest.config.ts",
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
     "test:cov": "vitest run --coverage --config vitest.config.ts",
-    "test:e2e": "bun run scripts/api-e2e-tiers.ts full",
+    "test:e2e": "bun run test:e2e:full",
     "test:e2e:core": "bun run scripts/api-e2e-tiers.ts core",
     "test:e2e:cov": "vitest run --coverage --config vitest.config.e2e.ts",
     "test:e2e:full": "bun run scripts/api-e2e-tiers.ts full",

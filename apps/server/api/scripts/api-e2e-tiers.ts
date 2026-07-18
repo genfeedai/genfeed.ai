@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -112,31 +113,33 @@ export function validateApiE2eTierManifest(
   if (coreDuplicates.length > 0) {
     errors.push(`Duplicate core files: ${coreDuplicates.join(', ')}`);
   }
-  if (exclusionDuplicates.length > 0) {
-    errors.push(`Duplicate exclusions: ${exclusionDuplicates.join(', ')}`);
-  }
-
   for (const file of manifest.coreFiles) {
     if (!discovered.has(file)) {
       errors.push(`Core file is not discoverable: ${file}`);
     }
   }
 
-  for (const exclusion of manifest.exclusions) {
-    if (tier === 'full' && !discovered.has(exclusion.file)) {
-      errors.push(`Excluded file is not discoverable: ${exclusion.file}`);
+  if (tier === 'full') {
+    if (exclusionDuplicates.length > 0) {
+      errors.push(`Duplicate exclusions: ${exclusionDuplicates.join(', ')}`);
     }
-    if (exclusion.reason.trim().length === 0) {
-      errors.push(`Excluded file has no reason: ${exclusion.file}`);
-    }
-    if (
-      !Number.isSafeInteger(exclusion.trackingIssue) ||
-      exclusion.trackingIssue <= 0
-    ) {
-      errors.push(`Excluded file has no tracking issue: ${exclusion.file}`);
-    }
-    if (manifest.coreFiles.includes(exclusion.file)) {
-      errors.push(`Core file cannot also be excluded: ${exclusion.file}`);
+
+    for (const exclusion of manifest.exclusions) {
+      if (!discovered.has(exclusion.file)) {
+        errors.push(`Excluded file is not discoverable: ${exclusion.file}`);
+      }
+      if (exclusion.reason.trim().length === 0) {
+        errors.push(`Excluded file has no reason: ${exclusion.file}`);
+      }
+      if (
+        !Number.isSafeInteger(exclusion.trackingIssue) ||
+        exclusion.trackingIssue <= 0
+      ) {
+        errors.push(`Excluded file has no tracking issue: ${exclusion.file}`);
+      }
+      if (manifest.coreFiles.includes(exclusion.file)) {
+        errors.push(`Core file cannot also be excluded: ${exclusion.file}`);
+      }
     }
   }
 
@@ -258,6 +261,7 @@ function runApiE2eTier(options: CliOptions): number {
   }
 
   mkdirSync(reportDirectory, { recursive: true });
+  rmSync(vitestReportPath, { force: true });
   const result = spawnSync(
     'bunx',
     [

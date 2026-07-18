@@ -92,7 +92,8 @@ describe('API E2E tiers', () => {
   });
 
   it('requires every exclusion to have a reason and tracking issue', () => {
-    const files = ['test/integration/excluded.integration.spec.ts'];
+    const excludedFile = 'test/integration/excluded.integration.spec.ts';
+    const files = [excludedFile];
 
     expect(
       validateApiE2eTierManifest(
@@ -101,7 +102,7 @@ describe('API E2E tiers', () => {
           [],
           [
             {
-              file: files[0]!,
+              file: excludedFile,
               reason: ' ',
               trackingIssue: 0,
             },
@@ -164,5 +165,32 @@ describe('API E2E tiers', () => {
     ).toThrow(
       'Excluded file is not discoverable: test/integration/deleted.integration.spec.ts',
     );
+  });
+
+  it('does not validate full-tier exclusion metadata for the core tier', () => {
+    const rootDir = createFixture(['test/e2e/core.e2e-spec.ts']);
+    const tierManifest = manifest(
+      ['test/e2e/core.e2e-spec.ts'],
+      [
+        {
+          file: 'test/e2e/core.e2e-spec.ts',
+          reason: ' ',
+          trackingIssue: 0,
+        },
+        {
+          file: 'test/e2e/core.e2e-spec.ts',
+          reason: ' ',
+          trackingIssue: 0,
+        },
+      ],
+    );
+
+    expect(
+      buildApiE2eTierPlan({
+        manifest: tierManifest,
+        rootDir,
+        tier: 'core',
+      }).selectedFiles,
+    ).toEqual(['test/e2e/core.e2e-spec.ts']);
   });
 });
