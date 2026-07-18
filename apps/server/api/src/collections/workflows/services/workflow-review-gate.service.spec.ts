@@ -173,6 +173,7 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
 
     const losingResolution =
       winner === 'human' ? resolveAsTimeout() : resolveAsHuman();
+    void losingResolution.catch(() => undefined);
     await vi.waitFor(() =>
       expect(executionsService.claimPendingReviewGate).toHaveBeenCalledTimes(2),
     );
