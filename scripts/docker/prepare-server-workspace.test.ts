@@ -154,13 +154,11 @@ describe('prepare-server-workspace', () => {
     );
   });
 
-  function writeRootManifest(
-    manifest: {
-      dependencies?: Record<string, string>;
-      scripts?: Record<string, string>;
-      workspaces: string[];
-    },
-  ): void {
+  function writeRootManifest(manifest: {
+    dependencies?: Record<string, string>;
+    scripts?: Record<string, string>;
+    workspaces: string[];
+  }): void {
     writeJson('package.json', {
       name: 'fixture',
       private: true,
@@ -168,10 +166,7 @@ describe('prepare-server-workspace', () => {
     });
   }
 
-  function writeWorkspace(
-    workspacePath: string,
-    manifest: TestManifest,
-  ): void {
+  function writeWorkspace(workspacePath: string, manifest: TestManifest): void {
     writeJson(`${workspacePath}/package.json`, {
       private: true,
       ...manifest,
@@ -181,11 +176,7 @@ describe('prepare-server-workspace', () => {
   function writeJson(relativePath: string, value: object): void {
     const absolutePath = path.join(repoRoot, relativePath);
     mkdirSync(path.dirname(absolutePath), { recursive: true });
-    writeFileSync(
-      absolutePath,
-      `${JSON.stringify(value, null, 2)}\n`,
-      'utf8',
-    );
+    writeFileSync(absolutePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
   }
 });
 

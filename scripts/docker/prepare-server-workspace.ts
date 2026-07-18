@@ -4,8 +4,8 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
-  readFileSync,
   readdirSync,
+  readFileSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -18,8 +18,6 @@ const DEPENDENCY_SECTIONS = [
   'peerDependencies',
 ] as const;
 const SERVER_WORKSPACE_PREFIX = 'apps/server/';
-
-type DependencySection = (typeof DEPENDENCY_SECTIONS)[number];
 
 type PackageManifest = {
   dependencies?: Record<string, string>;
@@ -346,10 +344,7 @@ function parseArgs(argv: string[]): PrepareServerWorkspaceOptions {
     }
 
     if (current === '--seed-workspace' && next) {
-      args.seedWorkspacePaths = [
-        ...(args.seedWorkspacePaths ?? []),
-        next,
-      ];
+      args.seedWorkspacePaths = [...(args.seedWorkspacePaths ?? []), next];
       index += 1;
     }
   }
