@@ -165,14 +165,14 @@ describe('ApiAccessGuard', () => {
       vi.stubEnv('GENFEED_CLOUD', undefined);
     });
 
-    it.each([SubscriptionTier.FREE, SubscriptionTier.BYOK])(
-      'allows %s tier off cloud (no managed tiers/billing)',
-      (tier) => {
-        vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);
-        const ctx = buildContext(buildUser());
-        expect(guard.canActivate(ctx)).toBe(true);
-      },
-    );
+    it.each([
+      SubscriptionTier.FREE,
+      SubscriptionTier.BYOK,
+    ])('allows %s tier off cloud (no managed tiers/billing)', (tier) => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);
+      const ctx = buildContext(buildUser());
+      expect(guard.canActivate(ctx)).toBe(true);
+    });
 
     it('allows even with no user off cloud', () => {
       const ctx = buildContext(null);
