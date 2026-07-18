@@ -270,7 +270,11 @@ describe('WorkflowExecutionQueueService', () => {
         'workflow-schedule:wf-1',
         { pattern: '0 7 * * *', tz: 'Europe/Amsterdam' },
         expect.objectContaining({
-          data: { type: 'scheduled-fire', workflowId: 'wf-1' },
+          data: {
+            actionContext: { origin: ActionOrigin.WORKFLOW },
+            type: 'scheduled-fire',
+            workflowId: 'wf-1',
+          },
           name: 'scheduled-fire',
         }),
       );

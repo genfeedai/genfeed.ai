@@ -8,6 +8,7 @@ import { WorkflowExecutionsService } from './workflow-executions.service';
 
 describe('WorkflowExecutionsService', () => {
   const logger = {
+    debug: vi.fn(),
     error: vi.fn(),
     log: vi.fn(),
     warn: vi.fn(),
