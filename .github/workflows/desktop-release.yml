@@ -101,7 +101,6 @@ jobs:
               --key "$APPLE_API_KEY" \
               --key-id "$APPLE_API_KEY_ID" \
               --issuer "$APPLE_API_ISSUER" \
-              --team-id "$APPLE_TEAM_ID" \
               --wait \
               --timeout 30m
             xcrun stapler staple "$dmg"
