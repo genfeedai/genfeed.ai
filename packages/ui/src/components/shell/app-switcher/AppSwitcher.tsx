@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
 import type { AppContext, AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type {
   AppSwitcherNavigationTarget,
@@ -16,7 +17,6 @@ import { useMemo, useRef, useState } from 'react';
 import {
   HiChevronDown,
   HiLockClosed,
-  HiOutlineArrowPathRoundedSquare,
   HiOutlineArrowTrendingUp,
   HiOutlineBriefcase,
   HiOutlineChartBarSquare,
@@ -132,17 +132,6 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         route: createScopedAppRoute({ brandPath: '/studio/image' }),
       },
       {
-        description: 'Adapt winners.',
-        icon: HiOutlineArrowPathRoundedSquare,
-        id: 'remix',
-        itemKey: 'create-remix',
-        label: 'Remix',
-        route: createScopedAppRoute({
-          brandPath: '/posts/remix',
-          organizationPath: '/posts',
-        }),
-      },
-      {
         description: 'Use source assets.',
         icon: HiOutlineRectangleStack,
         id: 'library',
@@ -206,7 +195,6 @@ const PRIMARY_APP_ITEM_KEYS = [
   'home-messages',
   'trends-research',
   'create-studio',
-  'create-remix',
   'create-library',
   'publish',
   'analytics-overview',
@@ -446,6 +434,7 @@ export function AppSwitcher({
   showAdmin = false,
   variant = 'icon',
 }: AppSwitcherProps) {
+  const isStudioEnabled = useFeatureFlag('studio');
   const preventTriggerAutoFocusRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -504,13 +493,18 @@ export function AppSwitcher({
     setNavigationAnnouncement(announcement ?? 'Opening app.');
   };
 
-  const sections = useMemo(
-    () =>
-      showAdmin
-        ? [...APP_SWITCHER_SECTIONS, ADMIN_APP_SWITCHER_SECTION]
-        : APP_SWITCHER_SECTIONS,
-    [showAdmin],
-  );
+  const sections = useMemo(() => {
+    const availableSections = APP_SWITCHER_SECTIONS.map((section) => ({
+      ...section,
+      apps: section.apps.filter(
+        (app) => app.id !== 'studio' || isStudioEnabled,
+      ),
+    })).filter((section) => section.apps.length > 0);
+
+    return showAdmin
+      ? [...availableSections, ADMIN_APP_SWITCHER_SECTION]
+      : availableSections;
+  }, [isStudioEnabled, showAdmin]);
   const apps = useMemo(
     () => sections.flatMap((section) => section.apps),
     [sections],

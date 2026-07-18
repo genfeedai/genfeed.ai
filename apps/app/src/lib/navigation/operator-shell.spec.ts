@@ -149,4 +149,17 @@ describe('operator-shell helpers', () => {
       '/compose/newsletter?taskExecutionPath=caption_generation&taskId=task-99&taskOutputType=newsletter&taskSource=workspace&taskTitle=Draft+weekly+founder+issue',
     );
   });
+
+  it('routes generation tasks to Agent when Studio is unavailable', () => {
+    const task = {
+      executionPathUsed: 'video_generation',
+      id: 'task-100',
+      outputType: 'video',
+      title: 'Generate launch teaser',
+    } as Task;
+
+    expect(buildTaskLaunchHref(task, 'generate', { studio: false })).toBe(
+      '/agent/new?taskExecutionPath=video_generation&taskId=task-100&taskOutputType=video&taskSource=workspace&taskTitle=Generate+launch+teaser',
+    );
+  });
 });

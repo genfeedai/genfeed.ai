@@ -12,17 +12,6 @@ import {
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 
-// Keep the deployment function togglable so both cloud (enforced) and
-// non-cloud (bypassed) paths are exercised.
-let mockCloudMode = true;
-vi.mock('@genfeedai/config', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/config')>();
-  return {
-    ...actual,
-    isCloudDeployment: () => mockCloudMode,
-  };
-});
-
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getIsSuperAdmin: vi.fn(),
   getSubscriptionTier: vi.fn(),
@@ -54,7 +43,8 @@ describe('ApiAccessGuard', () => {
   };
 
   beforeEach(async () => {
-    mockCloudMode = true;
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
     mockLogger = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -77,6 +67,7 @@ describe('ApiAccessGuard', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   it('is defined', () => {
@@ -171,13 +162,14 @@ describe('ApiAccessGuard', () => {
 
   describe('self-hosted / community / desktop (bypassed)', () => {
     beforeEach(() => {
-      mockCloudMode = false;
+      vi.stubEnv('GENFEED_CLOUD', undefined);
     });
 
-    it('allows free tier off cloud (no tiers/billing)', () => {
-      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(
-        SubscriptionTier.FREE,
-      );
+    it.each([
+      SubscriptionTier.FREE,
+      SubscriptionTier.BYOK,
+    ])('allows %s tier off cloud (no managed tiers/billing)', (tier) => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);
       const ctx = buildContext(buildUser());
       expect(guard.canActivate(ctx)).toBe(true);
     });

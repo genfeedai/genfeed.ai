@@ -1,7 +1,6 @@
 import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
 import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/update-editor-project.dto';
 import type { EditorProjectDocument } from '@api/collections/editor-projects/schemas/editor-project.schema';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
@@ -33,15 +32,6 @@ export class EditorProjectsService extends BaseService<
     return this.isProjectObject(value) ? value : {};
   }
 
-  private readProjectStatus(project: {
-    config?: unknown;
-  }): EditorProjectStatus | undefined {
-    const status = this.readProjectConfig(project.config).status;
-    return typeof status === 'string'
-      ? (status as EditorProjectStatus)
-      : undefined;
-  }
-
   private mergeProjectStatus(
     project: { config?: unknown },
     status: EditorProjectStatus,
@@ -50,6 +40,19 @@ export class EditorProjectsService extends BaseService<
       ...this.readProjectConfig(project.config),
       status,
     };
+  }
+
+  async findForRender(
+    id: string,
+    organizationId: string,
+  ): Promise<EditorProjectDocument> {
+    const project = await findOrThrow(
+      this.prisma.editorProject,
+      { where: { id, isDeleted: false, organizationId } },
+      'Project',
+    );
+
+    return this.normalizeDocument(project);
   }
 
   /**

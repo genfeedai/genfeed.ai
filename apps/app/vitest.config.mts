@@ -11,6 +11,16 @@ export default mergeConfig(
     resolve: {
       alias: [
         {
+          // Resolve Better Auth to a timer-free test implementation before
+          // dependency externalization. Runtime vi.mock interception no longer
+          // covers the package-local realpath used by Better Auth 1.6.23.
+          find: /^better-auth\/react$/,
+          replacement: path.resolve(
+            __dirname,
+            './tests/better-auth-react.stub.ts',
+          ),
+        },
+        {
           find: 'server-only',
           replacement: path.resolve(__dirname, './tests/server-only.stub.ts'),
         },

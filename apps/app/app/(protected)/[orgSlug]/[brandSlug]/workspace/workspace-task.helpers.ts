@@ -197,8 +197,11 @@ export function formatTaskStatus(task: Task): string {
   }
 }
 
-export function getAdvancedToolHref(task: Task): string {
-  return buildTaskLaunchHref(task, 'auto');
+export function getAdvancedToolHref(
+  task: Task,
+  isStudioEnabled = true,
+): string {
+  return buildTaskLaunchHref(task, 'auto', { studio: isStudioEnabled });
 }
 
 export function getTaskStateDotClass(task: Task): string {

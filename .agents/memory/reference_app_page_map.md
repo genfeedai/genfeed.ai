@@ -6,12 +6,12 @@ type: reference
 
 # App Page Map
 
-Last audited: 2026-07-15.
+Last audited: 2026-07-18.
 
-Conversation-shell parity baseline: the 206 canonical protected route patterns
+Conversation-shell parity baseline: the 208 canonical protected route patterns
 accepted in `architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md`, plus the
 organization workflow-run detail route added by #1703, for a current executable
-denominator of 207 patterns. Two intentional hard-cut families remain outside
+denominator of 209 patterns. Two intentional hard-cut families remain outside
 the denominator. The app switcher is only a discovery subset.
 
 Source of truth:
@@ -24,7 +24,7 @@ Source of truth:
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
 - App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
 
-The application registry mirrors all 207 parity-eligible patterns below and
+The application registry mirrors all 209 parity-eligible patterns below and
 keeps Notifications plus the Community/Desktop terminal dock as explicit
 trusted non-route surfaces. The two hard-cut families remain outside it.
 
@@ -44,13 +44,17 @@ Current primary modules:
 - Agent
 - Messages
 - Research
-- Studio
-- Remix
 - Library
 - Publish
 - Analytics
 
-Admin is role-gated and can be surfaced separately. Deep views like Discovery, Socials, Ads, Batch, Review, Calendar, Scheduled, Post Analytics, Trend Analytics, and Repeat are internal navigation or contextual actions, not app-switcher modules.
+Studio is capability-gated: it defaults off in the SaaS web app and remains on
+for Desktop and self-hosted deployments. Remix is a contextual action tied to a
+specific finding, asset, post, or content run rather than an app-switcher
+module. Admin is role-gated and can be surfaced separately. Deep views like
+Discovery, Socials, Ads, Batch, Review, Calendar, Scheduled, Post Analytics,
+Trend Analytics, and Repeat are internal navigation or contextual actions, not
+app-switcher modules.
 
 ## Shell Surfaces
 
@@ -61,7 +65,6 @@ The protected shell currently recognizes these app contexts:
 - `messages`
 - `research`
 - `studio`
-- `remix`
 - `library`
 - `posts`
 - `analytics`
@@ -409,7 +412,10 @@ Admin organization/administration:
 ## Review Notes
 
 - `Messages` is intentionally a full app/module for global social DM.
+- `Remix` is not a top-level page concept. It is a contextual action inside
+  Research, Publish, Analytics, Library, and authorized content-run outputs;
+  `/posts/remix` remains a canonical Publish child route for typed handoffs.
 - `Repeat` is not a top-level page concept. It should be a contextual feature/action inside Research, Publish, Analytics, Studio, or Library output views.
 - `Discovery`, `Socials`, and `Ads` are Research internal pages.
-- `Batch` is Studio internal navigation.
+- `Batch` is Studio internal navigation when the Studio capability is enabled.
 - `Compose` and `Editor` are creation/editor surfaces but should not appear as primary app-switcher modules unless product taxonomy changes.

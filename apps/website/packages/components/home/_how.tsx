@@ -11,21 +11,27 @@ const EYEBROW_CLASS =
 const HOW_STEPS: HowStep[] = [
   {
     description:
-      'Describe the campaign, brand, or product. One prompt sets the direction for everything that follows.',
+      'Keep Claude Code or Codex as your workbench. Connect once through the standard MCP transport.',
     step: '01',
-    title: 'Start from a brief',
+    title: 'Create in your AI client',
   },
   {
     description:
-      'Images, reels, ads, articles, captions, voice, and clips, produced from that single brief, on brand.',
+      'Curated, scoped actions send assets and distribution work into the right brand workspace.',
     step: '02',
-    title: 'Generate every format',
+    title: 'Route through Genfeed',
   },
   {
     description:
-      'Ship across every channel, then see which posts and ads actually drove results.',
+      'Review the output, enforce brand policy, and require human approval before consequential actions.',
     step: '03',
-    title: 'Publish and track',
+    title: 'Approve and publish',
+  },
+  {
+    description:
+      'Track channel performance, content outcomes, and the full audit trail in one analytics layer.',
+    step: '04',
+    title: 'Measure what shipped',
   },
 ];
 
@@ -34,22 +40,26 @@ export default function HomeHow(): React.ReactElement {
     <section id="how" className="gen-section-spacing-lg border-b border-edge/5">
       <div className="container mx-auto px-6">
         <VStack className="mb-10 max-w-3xl gap-4">
-          <Text className={EYEBROW_CLASS}>How it works</Text>
+          <Text className={EYEBROW_CLASS}>Agent to outcome</Text>
           <Heading
+            id="distribution-loop-heading"
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
           >
-            Brief in, campaign out.
+            Your AI client creates. Genfeed controls distribution.
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-            Three steps. No tool-switching, no production bottleneck between the
-            idea and the post.
+            Claude Code and Codex stay focused on the work. Genfeed adds scoped
+            MCP actions, approvals, publishing, and analytics around it.
           </Text>
         </VStack>
 
-        <div className="grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-3">
+        <ol
+          aria-labelledby="distribution-loop-heading"
+          className="grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-4"
+        >
           {HOW_STEPS.map((item) => (
-            <div
+            <li
               key={item.step}
               className="flex flex-col gap-3 bg-background p-8"
             >
@@ -62,9 +72,9 @@ export default function HomeHow(): React.ReactElement {
               <Text className="text-sm leading-6 text-surface/70">
                 {item.description}
               </Text>
-            </div>
+            </li>
           ))}
-        </div>
+        </ol>
       </div>
     </section>
   );

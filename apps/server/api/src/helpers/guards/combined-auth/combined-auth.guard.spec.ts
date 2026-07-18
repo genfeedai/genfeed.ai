@@ -9,17 +9,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockedMode = vi.hoisted(() => ({
   betterAuthEnabled: true,
-  selfHosted: false,
 }));
-
-vi.mock('@genfeedai/config', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/config')>();
-
-  return {
-    ...actual,
-    isSelfHostedDeployment: () => mockedMode.selfHosted,
-  };
-});
 
 vi.mock('@genfeedai/auth-client/server', () => ({
   isBetterAuthEnabled: () => mockedMode.betterAuthEnabled,
@@ -55,7 +45,8 @@ describe('CombinedAuthGuard', () => {
   const instantiateGuard = async (
     mode: 'cloud' | 'hybrid' | 'local' = 'cloud',
   ) => {
-    mockedMode.selfHosted = mode !== 'cloud';
+    vi.stubEnv('GENFEED_CLOUD', mode === 'cloud' ? '1' : undefined);
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
     mockedMode.betterAuthEnabled = mode !== 'local';
     vi.resetModules();
 
@@ -100,8 +91,8 @@ describe('CombinedAuthGuard', () => {
   });
 
   afterAll(() => {
-    mockedMode.selfHosted = false;
     mockedMode.betterAuthEnabled = true;
+    vi.unstubAllEnvs();
   });
 
   it('is defined', () => {

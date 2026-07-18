@@ -19,11 +19,11 @@ export const metadata = createAppMetadata({
   metadataBase: 'https://genfeed.ai',
   overrides: {
     keywords:
-      'genfeed,genfeed.ai,ai content generation,b2b content,video generation,image generation,ai avatars,content automation,marketing automation,ai agents',
+      'genfeed,genfeed.ai,MCP,AI agent distribution,Claude Code,Codex,content publishing,content analytics,self-hosted AI',
     openGraph: {
       description,
       images: {
-        alt: 'Genfeed.ai - AI-powered content generation platform',
+        alt: 'Genfeed.ai - distribution infrastructure for AI agents',
         height: 836,
         type: 'image/jpeg',
         url: cards.default,
@@ -57,11 +57,11 @@ const organizationJsonLd = {
   description,
   foundingDate: '2024',
   knowsAbout: [
-    'AI content generation',
-    'video generation',
-    'image generation',
-    'content marketing',
-    'marketing automation',
+    'Model Context Protocol',
+    'AI agent distribution',
+    'content approvals',
+    'multi-platform publishing',
+    'content analytics',
   ],
   logo: cdnAsset('/assets/logo.png'),
   name: 'Genfeed',

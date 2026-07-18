@@ -5,7 +5,7 @@ import { Code, Pre } from '@genfeedai/ui';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
-} from '@genfeedai/workflow-ui/stores';
+} from '@genfeedai/workflows/ui/stores';
 import {
   Collapsible,
   CollapsibleContent,

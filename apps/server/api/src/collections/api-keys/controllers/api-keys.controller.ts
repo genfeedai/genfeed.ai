@@ -2,7 +2,9 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ApiKeysQueryDto } from '@api/collections/api-keys/dto/api-keys-query.dto';
 import { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
+import { VerifyMcpConnectionDto } from '@api/collections/api-keys/dto/verify-mcp-connection.dto';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { McpConnectionVerificationService } from '@api/collections/api-keys/services/mcp-connection-verification.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -43,7 +45,10 @@ import type { Request } from 'express';
 @ApiBearerAuth()
 @AutoSwagger()
 export class ApiKeysController {
-  constructor(private readonly apiKeysService: ApiKeysService) {}
+  constructor(
+    private readonly apiKeysService: ApiKeysService,
+    private readonly mcpConnectionVerificationService: McpConnectionVerificationService,
+  ) {}
 
   private toApiKeyCategory(category: string): ApiKeyCategory {
     const normalized = category.toLowerCase().replaceAll('_', '');
@@ -270,6 +275,31 @@ export class ApiKeysController {
     return serializeSingle(request, ApiKeyFullSerializer, {
       ...apiKey,
       key: plainKey,
+    });
+  }
+
+  @Post(':apiKeyId/verify-mcp')
+  @UseGuards(ApiAccessGuard)
+  @RateLimit({ limit: 10, windowMs: 60000 })
+  @ApiOperation({
+    summary: 'Verify a selected API key against the configured MCP service',
+  })
+  @ApiResponse({
+    description: 'Bounded MCP tool-discovery verification result',
+    status: HttpStatus.OK,
+  })
+  async verifyMcpConnection(
+    @CurrentUser() user: User,
+    @Param('apiKeyId') apiKeyId: string,
+    @Body() dto: VerifyMcpConnectionDto,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+
+    return this.mcpConnectionVerificationService.verify({
+      apiKeyId,
+      organizationId: publicMetadata.organization,
+      plainKey: dto.key,
+      userId: publicMetadata.user,
     });
   }
 

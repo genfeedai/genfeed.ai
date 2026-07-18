@@ -13,6 +13,7 @@ import {
   websitePlans,
 } from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
@@ -104,7 +105,7 @@ const OUTPUT_COSTS: OutputCostRow[] = [
 ];
 
 function formatCredits(credits: number): string {
-  return `${credits.toLocaleString()} credits`;
+  return `${formatNumberWithCommas(credits)} credits`;
 }
 
 function formatCreditsDollars(credits: number): string {
@@ -130,13 +131,19 @@ function getDisplayName(label: string): string {
   return label;
 }
 
-function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
+export function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   if (plan.type === 'payg') {
     return 'No monthly fee, buy credit packs as you go';
   }
 
   if (plan.type === 'subscription') {
-    const credits = plan.includedCredits?.toLocaleString();
+    if (plan.includedCredits == null) {
+      return plan.label === 'Scale'
+        ? 'Unlimited seats'
+        : 'Monthly subscription';
+    }
+
+    const credits = formatNumberWithCommas(plan.includedCredits);
 
     return plan.label === 'Scale'
       ? `Unlimited seats + ${credits} credits`
@@ -370,10 +377,10 @@ export default function PricingContent() {
                 className="flex items-baseline justify-between gap-4 bg-background px-5 py-4"
               >
                 <span className="text-sm font-semibold text-surface">
-                  ${creditPackPrice(pack).toLocaleString()}
+                  ${formatNumberWithCommas(creditPackPrice(pack))}
                 </span>
                 <span className="text-sm text-surface/60">
-                  {creditPackTotalCredits(pack).toLocaleString()} credits
+                  {formatNumberWithCommas(creditPackTotalCredits(pack))} credits
                 </span>
               </div>
             ))}
