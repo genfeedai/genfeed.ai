@@ -399,6 +399,7 @@ export const App = () => {
     !isDismissedReconnect &&
     bootstrap.betterAuthId !== null &&
     bootstrap.session === null;
+  const activeCloudUserId = bootstrap.session?.userId;
 
   /* ─── Render ─── */
 
@@ -482,17 +483,17 @@ export const App = () => {
           />
         </main>
       </div>
-      {bootstrap.session !== null &&
+      {activeCloudUserId !== undefined &&
         (bootstrap.syncConsent.status === 'pending' ||
           isSyncConsentReviewOpen) && (
           <CloudSyncConsentDialog
             isSaving={isSyncConsentSaving}
             onDecide={(input) =>
-              void handleSyncConsent(bootstrap.session.userId, input)
+              void handleSyncConsent(activeCloudUserId, input)
             }
             onDismiss={() =>
               handleSyncConsentDismiss(
-                bootstrap.session.userId,
+                activeCloudUserId,
                 bootstrap.syncConsent.status,
               )
             }
