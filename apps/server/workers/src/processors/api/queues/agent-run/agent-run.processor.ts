@@ -115,13 +115,11 @@ export class AgentRunProcessor extends WorkerHost {
   async process(job: Job<AgentRunJobData>): Promise<void> {
     return runWithActionOrigin(
       job.data.actionContext ?? { origin: ActionOrigin.AGENT },
-      () => this.processWithActionOrigin(job),
+      () => this.processRun(job),
     );
   }
 
-  private async processWithActionOrigin(
-    job: Job<AgentRunJobData>,
-  ): Promise<void> {
+  private async processRun(job: Job<AgentRunJobData>): Promise<void> {
     const { data } = job;
     const url = `${this.logContext} process`;
 

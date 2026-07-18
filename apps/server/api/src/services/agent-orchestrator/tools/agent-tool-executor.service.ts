@@ -93,7 +93,12 @@ import type {
   ValidatedAgentScope,
 } from '@genfeedai/interfaces';
 import { AgentToolName, toAgentScopeMetadata } from '@genfeedai/interfaces';
-import type { AdsResearchFilters } from '@genfeedai/interfaces/integrations/ads-research.interface';
+import type {
+  AdsChannel,
+  AdsResearchFilters,
+  AdsResearchPlatform,
+  AdsResearchSource,
+} from '@genfeedai/interfaces/integrations/ads-research.interface';
 import {
   serializeAgentBrand,
   serializeAgentBrands,
