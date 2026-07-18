@@ -78,7 +78,8 @@ export class GenerateClipsDto {
 
   @ValidateIf(
     (dto: GenerateClipsDto) =>
-      (dto.mode ?? DEFAULT_CLIP_RESULT_MODE) === 'avatar',
+      (dto.mode ?? DEFAULT_CLIP_RESULT_MODE) === 'avatar' ||
+      dto.avatarId !== undefined,
   )
   @IsString()
   @ApiProperty({
@@ -89,7 +90,8 @@ export class GenerateClipsDto {
 
   @ValidateIf(
     (dto: GenerateClipsDto) =>
-      (dto.mode ?? DEFAULT_CLIP_RESULT_MODE) === 'avatar',
+      (dto.mode ?? DEFAULT_CLIP_RESULT_MODE) === 'avatar' ||
+      dto.voiceId !== undefined,
   )
   @IsString()
   @ApiProperty({

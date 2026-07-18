@@ -17,6 +17,7 @@ const makeJobData = (
   language: 'en',
   maxClips: 3,
   minViralityScore: 0.8,
+  mode: 'avatar',
   orgId: 'org-456',
   projectId: 'project-xyz',
   userId: 'user-2',
@@ -180,6 +181,14 @@ describe('ClipFactoryQueueService', () => {
             voiceId: undefined,
           }),
         ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(queue.add).not.toHaveBeenCalled();
+    });
+
+    it('should reject unknown generation modes before queueing', async () => {
+      await expect(
+        service.enqueue(makeJobData({ mode: 'unknown' as never })),
       ).rejects.toBeInstanceOf(BadRequestException);
 
       expect(queue.add).not.toHaveBeenCalled();

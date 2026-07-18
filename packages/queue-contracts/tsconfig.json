@@ -12,7 +12,9 @@
     "outDir": "./dist",
     "paths": {
       "@genfeedai/enums": ["../enums/src/index.ts"],
-      "@genfeedai/enums/*": ["../enums/src/*"]
+      "@genfeedai/enums/*": ["../enums/src/*"],
+      "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
+      "@genfeedai/interfaces/*": ["../interfaces/src/*"]
     },
     "rootDir": "./src",
     "skipLibCheck": true,
@@ -23,6 +25,9 @@
   "references": [
     {
       "path": "../enums"
+    },
+    {
+      "path": "../interfaces"
     }
   ]
 }

@@ -1,6 +1,7 @@
 import {
   formatSrtTimestamp,
   generateClipSrt,
+  isTranscriptSegment,
   type TranscriptSegment,
 } from './clip-srt.util';
 
@@ -10,6 +11,20 @@ const SEGMENTS: TranscriptSegment[] = [
   { end: 25, start: 20, text: 'Second highlight sentence' },
   { end: 60, start: 40, text: 'Outro line' },
 ];
+
+describe('isTranscriptSegment', () => {
+  it('accepts complete numeric transcript segments', () => {
+    expect(
+      isTranscriptSegment({ end: 2, start: 1, text: 'Valid segment' }),
+    ).toBe(true);
+  });
+
+  it('rejects malformed transcript segments', () => {
+    expect(isTranscriptSegment({ end: '2', start: 1, text: 'Invalid' })).toBe(
+      false,
+    );
+  });
+});
 
 describe('formatSrtTimestamp', () => {
   it('formats zero as the SRT epoch', () => {

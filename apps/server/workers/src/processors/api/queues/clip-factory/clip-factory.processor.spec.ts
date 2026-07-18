@@ -29,6 +29,7 @@ function makeJobData(
     language: 'en',
     maxClips: 10,
     minViralityScore: 50,
+    mode: 'avatar',
     orgId: '507f1f77bcf86cd799439011',
     projectId: '507f1f77bcf86cd799439012',
     userId: '507f1f77bcf86cd799439013',
@@ -280,6 +281,38 @@ describe('ClipFactoryProcessor', () => {
         transcriptSegments: transcriptionResult.segments,
       }),
     );
+  });
+
+  it('should reject unknown generation modes before starting the pipeline', async () => {
+    await expect(
+      processor.process(makeJob(makeJobData({ mode: 'unknown' as never }))),
+    ).rejects.toThrow('Unknown clip generation mode');
+
+    expect(clipProjectsService.patch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: 'failed' }),
+    );
+    expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
+  });
+
+  it('should reject avatar jobs without credentials before starting the pipeline', async () => {
+    await expect(
+      processor.process(
+        makeJob(
+          makeJobData({
+            avatarId: undefined,
+            mode: 'avatar',
+            voiceId: undefined,
+          }),
+        ),
+      ),
+    ).rejects.toThrow('requires avatarId and voiceId');
+
+    expect(clipProjectsService.patch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: 'failed' }),
+    );
+    expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
   });
 
   describe('files service URL resolution', () => {

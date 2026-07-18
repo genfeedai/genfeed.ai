@@ -920,6 +920,15 @@
             "default": 15,
             "description": "Minimum clip duration in seconds",
             "type": "number"
+          },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClipResultMode"
+              }
+            ],
+            "default": "avatar",
+            "description": "Clip generation mode"
           }
         },
         "type": "object"
@@ -1916,7 +1925,7 @@
       "CreateClipProjectFromYoutubeDto": {
         "properties": {
           "avatarId": {
-            "description": "Avatar ID for clip generation",
+            "description": "Avatar ID for avatar-mode clip generation",
             "type": "string"
           },
           "avatarProvider": {
@@ -1942,12 +1951,21 @@
             "description": "Minimum virality score threshold (1-100)",
             "type": "number"
           },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClipResultMode"
+              }
+            ],
+            "default": "avatar",
+            "description": "Clip generation mode"
+          },
           "name": {
             "description": "Optional project name",
             "type": "string"
           },
           "voiceId": {
-            "description": "Voice ID for clip generation",
+            "description": "Voice ID for avatar-mode clip generation",
             "type": "string"
           },
           "youtubeUrl": {
@@ -1957,9 +1975,7 @@
           }
         },
         "required": [
-          "youtubeUrl",
-          "avatarId",
-          "voiceId"
+          "youtubeUrl"
         ],
         "type": "object"
       },
@@ -6129,7 +6145,7 @@
       "GenerateClipsDto": {
         "properties": {
           "avatarId": {
-            "description": "Avatar ID for clip generation",
+            "description": "Avatar ID for avatar-mode clip generation",
             "type": "string"
           },
           "avatarProvider": {
@@ -6147,6 +6163,15 @@
             },
             "type": "array"
           },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClipResultMode"
+              }
+            ],
+            "default": "avatar",
+            "description": "Clip generation mode"
+          },
           "selectedHighlightIds": {
             "description": "IDs of selected highlights to generate clips from",
             "example": [
@@ -6159,15 +6184,13 @@
             "type": "array"
           },
           "voiceId": {
-            "description": "Voice ID for clip generation",
+            "description": "Voice ID for avatar-mode clip generation",
             "type": "string"
           }
         },
         "required": [
           "selectedHighlightIds",
-          "editedHighlights",
-          "avatarId",
-          "voiceId"
+          "editedHighlights"
         ],
         "type": "object"
       },

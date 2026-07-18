@@ -5,6 +5,10 @@ import {
   isSupportedAvatarVideoProviderName,
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
 } from '@genfeedai/queue-contracts';
+import {
+  DEFAULT_CLIP_RESULT_MODE,
+  isClipResultMode,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -20,7 +24,11 @@ export class ClipFactoryQueueService {
   ) {}
 
   async enqueue(data: ClipFactoryJobData): Promise<string> {
-    const mode = data.mode ?? 'avatar';
+    const mode = data.mode ?? DEFAULT_CLIP_RESULT_MODE;
+
+    if (!isClipResultMode(mode)) {
+      throw new BadRequestException(`Unknown clip generation mode "${mode}".`);
+    }
 
     if (mode === 'avatar') {
       if (!data.avatarId || !data.voiceId) {
@@ -41,9 +49,14 @@ export class ClipFactoryQueueService {
       }
     }
 
-    const job = await this.clipFactoryQueue.add(CLIP_FACTORY_JOB_NAME, data, {
-      jobId: `clip-factory-${data.projectId}`,
-    });
+    const jobData: ClipFactoryJobData = { ...data, mode };
+    const job = await this.clipFactoryQueue.add(
+      CLIP_FACTORY_JOB_NAME,
+      jobData,
+      {
+        jobId: `clip-factory-${data.projectId}`,
+      },
+    );
 
     this.logger.log(`${this.logContext} enqueued`, {
       jobId: job.id,

@@ -6,7 +6,7 @@
  * 2. Transcribe via WhisperService (Replicate)
  * 3. Detect highlights via OpenRouter LLM
  * 4. Filter by minViralityScore
- * 5. Generate avatar clips via AvatarVideoProvider (HeyGen, etc.)
+ * 5. Generate clips using the requested avatar or raw-cut mode
  * 6. Update ClipProject status throughout
  */
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
@@ -17,6 +17,10 @@ import {
   CLIP_FACTORY_QUEUE,
   ClipFactoryJobData,
 } from '@genfeedai/queue-contracts';
+import {
+  DEFAULT_CLIP_RESULT_MODE,
+  isClipResultMode,
+} from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -48,6 +52,7 @@ export class ClipFactoryProcessor extends WorkerHost {
   async process(job: Job<ClipFactoryJobData>): Promise<void> {
     const { data } = job;
     const { projectId } = data;
+    const mode = data.mode ?? DEFAULT_CLIP_RESULT_MODE;
 
     this.logger.log(`${this.logContext} starting pipeline`, {
       jobId: job.id,
@@ -56,6 +61,16 @@ export class ClipFactoryProcessor extends WorkerHost {
     });
 
     try {
+      if (!isClipResultMode(mode)) {
+        throw new Error(`Unknown clip generation mode "${mode}".`);
+      }
+
+      if (mode === 'avatar' && (!data.avatarId || !data.voiceId)) {
+        throw new Error(
+          'Avatar clip generation requires avatarId and voiceId.',
+        );
+      }
+
       // Stage 1: Download audio via files microservice
       await this.updateProject(projectId, {
         progress: 5,
@@ -125,11 +140,11 @@ export class ClipFactoryProcessor extends WorkerHost {
         status: 'clipping',
       });
 
-      // Stage 5: Generate avatar clips
+      // Stage 5: Generate clips using the requested mode
       const result = await this.clipGenerationService.generateClips({
         avatarId: data.avatarId,
         highlights: filteredHighlights,
-        mode: data.mode ?? 'avatar',
+        mode,
         orgId: data.orgId,
         projectId,
         provider: data.avatarProvider,
