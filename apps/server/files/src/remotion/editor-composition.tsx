@@ -18,24 +18,21 @@ export interface EditorCompositionProps extends Record<string, unknown> {
   snapshot: IEditorExportCompositionSnapshot;
 }
 
-function buildCssFilter(effects: IEditorEffect[]): string {
+const CSS_FILTER_BUILDERS: Partial<
+  Record<IEditorEffect['type'], (intensity: number) => string>
+> = {
+  blur: (intensity) => `blur(${(intensity / 100) * 20}px)`,
+  brightness: (intensity) => `brightness(${(intensity / 50) * 100}%)`,
+  contrast: (intensity) => `contrast(${(intensity / 50) * 100}%)`,
+  grayscale: (intensity) => `grayscale(${intensity}%)`,
+  saturation: (intensity) => `saturate(${(intensity / 50) * 100}%)`,
+  sepia: (intensity) => `sepia(${intensity}%)`,
+};
+
+export function buildCssFilter(effects: IEditorEffect[]): string {
   const filters = effects.flatMap((effect) => {
-    switch (effect.type) {
-      case 'blur':
-        return [`blur(${(effect.intensity / 100) * 20}px)`];
-      case 'brightness':
-        return [`brightness(${(effect.intensity / 50) * 100}%)`];
-      case 'contrast':
-        return [`contrast(${(effect.intensity / 50) * 100}%)`];
-      case 'saturation':
-        return [`saturate(${(effect.intensity / 50) * 100}%)`];
-      case 'grayscale':
-        return [`grayscale(${effect.intensity}%)`];
-      case 'sepia':
-        return [`sepia(${effect.intensity}%)`];
-      default:
-        return [];
-    }
+    const builder = CSS_FILTER_BUILDERS[effect.type];
+    return builder ? [builder(effect.intensity)] : [];
   });
 
   return filters.length === 0 ? 'none' : filters.join(' ');
@@ -69,35 +66,65 @@ function transitionProgress(
   );
 }
 
-function applyTransition(
-  style: CSSProperties,
-  transition: IEditorTransition | undefined,
-  progress: number,
-  direction: 'in' | 'out',
-): void {
-  if (!transition || transition.type === 'none') {
-    return;
+export function buildTransitionStyle(
+  frame: number,
+  clip: IEditorClip,
+): CSSProperties {
+  const transitions = [
+    {
+      direction: 'in' as const,
+      progress: transitionProgress(
+        frame,
+        clip.transitionIn,
+        'in',
+        clip.durationFrames,
+      ),
+      transition: clip.transitionIn,
+    },
+    {
+      direction: 'out' as const,
+      progress: transitionProgress(
+        frame,
+        clip.transitionOut,
+        'out',
+        clip.durationFrames,
+      ),
+      transition: clip.transitionOut,
+    },
+  ];
+  let opacity = 1;
+  let wipeLeft = 0;
+  let wipeRight = 0;
+  const transforms: string[] = [];
+
+  for (const { direction, progress, transition } of transitions) {
+    if (!transition || transition.type === 'none') {
+      continue;
+    }
+
+    const visibleProgress = direction === 'in' ? progress : 1 - progress;
+    if (transition.type === 'fade' || transition.type === 'dissolve') {
+      opacity = Math.min(opacity, visibleProgress);
+    } else if (transition.type === 'slide') {
+      const offset =
+        direction === 'in' ? (1 - progress) * 100 : -progress * 100;
+      transforms.push(`translateX(${offset}%)`);
+    } else if (transition.type === 'wipe') {
+      if (direction === 'in') {
+        wipeRight = Math.max(wipeRight, (1 - progress) * 100);
+      } else {
+        wipeLeft = Math.max(wipeLeft, progress * 100);
+      }
+    }
   }
 
-  const visibleProgress = direction === 'in' ? progress : 1 - progress;
-  switch (transition.type) {
-    case 'fade':
-    case 'dissolve':
-      style.opacity = Math.min(
-        typeof style.opacity === 'number' ? style.opacity : 1,
-        visibleProgress,
-      );
-      break;
-    case 'slide':
-      style.transform = `translateX(${direction === 'in' ? (1 - progress) * 100 : -progress * 100}%)`;
-      break;
-    case 'wipe':
-      style.clipPath =
-        direction === 'in'
-          ? `inset(0 ${(1 - progress) * 100}% 0 0)`
-          : `inset(0 0 0 ${progress * 100}%)`;
-      break;
-  }
+  return {
+    ...(opacity < 1 ? { opacity } : {}),
+    ...(transforms.length > 0 ? { transform: transforms.join(' ') } : {}),
+    ...(wipeLeft > 0 || wipeRight > 0
+      ? { clipPath: `inset(0 ${wipeRight}% 0 ${wipeLeft}%)` }
+      : {}),
+  };
 }
 
 function VisualLayer({
@@ -110,20 +137,8 @@ function VisualLayer({
   const frame = useCurrentFrame();
   const style: CSSProperties = {
     filter: buildCssFilter(clip.effects),
+    ...buildTransitionStyle(frame, clip),
   };
-
-  applyTransition(
-    style,
-    clip.transitionIn,
-    transitionProgress(frame, clip.transitionIn, 'in', clip.durationFrames),
-    'in',
-  );
-  applyTransition(
-    style,
-    clip.transitionOut,
-    transitionProgress(frame, clip.transitionOut, 'out', clip.durationFrames),
-    'out',
-  );
 
   return <AbsoluteFill style={style}>{children}</AbsoluteFill>;
 }

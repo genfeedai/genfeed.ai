@@ -128,6 +128,9 @@ const createMockJob = <T = VideoJobData>(
 
 describe('VideoProcessor', () => {
   let processor: VideoProcessor;
+  let remotionRenderJobService: {
+    process: ReturnType<typeof vi.fn>;
+  };
   let ffmpegService: MockFFmpegService;
   let s3Service: MockS3Service;
   let webSocketService: MockWebSocketService;
@@ -179,7 +182,7 @@ describe('VideoProcessor', () => {
       redisService,
       loggerService as unknown as never,
     );
-    const remotionRenderJobService = {
+    remotionRenderJobService = {
       process: vi.fn().mockResolvedValue({ success: true }),
     };
 

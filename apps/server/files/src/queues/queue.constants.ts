@@ -70,4 +70,6 @@ export interface JobConfig {
   attempts: number;
   delay: number;
   defaultPriority: JobPriority;
+  removeOnComplete?: number | { age: number; count: number };
+  removeOnFail?: number | { age: number; count: number };
 }

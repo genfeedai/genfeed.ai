@@ -83,9 +83,11 @@ const VIDEO_JOB_CONFIGS: Partial<Record<JobType, JobConfig>> = {
     delay: 2000,
   },
   [JOB_TYPES.RENDER_EDITOR_COMPOSITION]: {
-    attempts: 1,
+    attempts: 2,
     defaultPriority: JOB_PRIORITY.NORMAL,
     delay: 5000,
+    removeOnComplete: { age: 3600, count: 1000 },
+    removeOnFail: { age: 86400, count: 5000 },
   },
 };
 
@@ -178,6 +180,8 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
       JOB_TYPES.RENDER_EDITOR_COMPOSITION,
       data,
       'editor composition',
+      undefined,
+      data.id,
     );
   }
 }

@@ -1,7 +1,11 @@
 vi.mock('node:fs', () => ({
   statSync: vi.fn().mockReturnValue({ size: 4096 }),
 }));
+vi.mock('node:fs/promises', () => ({
+  rm: vi.fn().mockResolvedValue(undefined),
+}));
 
+import { rm } from 'node:fs/promises';
 import { JOB_TYPES } from '@files/queues/queue.constants';
 import { BRANDED_AVATAR_RENDER_FIXTURE } from '@files/services/remotion/fixtures/branded-avatar.fixture';
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
@@ -41,17 +45,29 @@ describe('RemotionRenderJobService', () => {
     ingredientId: 'output-123',
     metadata: { websocketUrl: '/videos/output-123' },
     organizationId: 'org-123',
-    params: BRANDED_AVATAR_RENDER_FIXTURE,
+    params: {
+      ...BRANDED_AVATAR_RENDER_FIXTURE,
+      editorRender: {
+        authProviderUserId: 'auth-user',
+        ingredientId: 'output-123',
+        jobId: 'job-123',
+        metadataId: 'metadata-123',
+        projectId: 'project-123',
+        room: 'user-room',
+      },
+    },
     room: 'user-room',
     type: JOB_TYPES.RENDER_EDITOR_COMPOSITION,
     userId: 'database-user',
   } as unknown as VideoJobData;
 
-  const makeJob = (): Job<VideoJobData> =>
+  const makeJob = (attemptsMade = 1): Job<VideoJobData> =>
     ({
+      attemptsMade,
       data,
       id: 'job-123',
       name: JOB_TYPES.RENDER_EDITOR_COMPOSITION,
+      opts: { attempts: 2 },
       updateProgress: vi.fn().mockResolvedValue(undefined),
     }) as unknown as Job<VideoJobData>;
 
@@ -102,9 +118,10 @@ describe('RemotionRenderJobService', () => {
       url: 'https://cdn.example.com/videos/output-123.mp4',
       width: 1080,
     });
-    expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-      '/tmp/editor-render-output/composition.mp4',
-    );
+    expect(rm).toHaveBeenCalledWith('/tmp/editor-render-output', {
+      force: true,
+      recursive: true,
+    });
   });
 
   it('publishes a failed terminal event and removes temporary output', async () => {
@@ -121,8 +138,25 @@ describe('RemotionRenderJobService', () => {
       'video-processing-complete',
       expect.objectContaining({ status: 'failed' }),
     );
-    expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-      '/tmp/editor-render-output/composition.mp4',
+    expect(rm).toHaveBeenCalledWith('/tmp/editor-render-output', {
+      force: true,
+      recursive: true,
+    });
+  });
+
+  it('leaves a retryable first-attempt failure non-terminal', async () => {
+    remotionRendererService.render.mockRejectedValueOnce(
+      new Error('transient renderer failure'),
+    );
+
+    await expect(makeService().process(makeJob(0))).rejects.toThrow(
+      'transient renderer failure',
+    );
+
+    expect(webSocketService.emitError).not.toHaveBeenCalled();
+    expect(redisService.publish).not.toHaveBeenCalledWith(
+      'video-processing-complete',
+      expect.objectContaining({ status: 'failed' }),
     );
   });
 });

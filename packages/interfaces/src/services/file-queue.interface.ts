@@ -4,7 +4,10 @@
  */
 
 import type { JobState } from '@genfeedai/enums';
-import type { IEditorRenderJobParams } from '../editor/editor-export-contract.interface';
+import type {
+  IEditorRenderCorrelation,
+  IEditorRenderJobParams,
+} from '../editor/editor-export-contract.interface';
 
 export interface IFileProcessingJob {
   id?: string;
@@ -15,7 +18,10 @@ export interface IFileProcessingJob {
   organizationId: string;
   room?: string;
   priority?: number;
-  params?: IEditorRenderJobParams | IFileProcessingParams;
+  params?:
+    | IEditorFileProcessingParams
+    | IEditorRenderJobParams
+    | IFileProcessingParams;
   url?: string;
   filePath?: string;
   delay?: number;
@@ -35,6 +41,10 @@ export interface IFileProcessingParams {
   isDeleteOutputEnabled?: boolean;
   [key: string]: unknown;
 }
+
+export type IEditorFileProcessingParams = IEditorRenderJobParams & {
+  editorRender: IEditorRenderCorrelation;
+};
 
 export interface IFrameInput {
   url: string;

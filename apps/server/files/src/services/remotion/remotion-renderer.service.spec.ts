@@ -1,5 +1,7 @@
 vi.mock('node:fs', () => ({
-  existsSync: vi.fn().mockReturnValue(true),
+  existsSync: vi
+    .fn()
+    .mockImplementation((filePath: string) => !filePath.endsWith('index.html')),
 }));
 
 vi.mock('@remotion/bundler', () => ({

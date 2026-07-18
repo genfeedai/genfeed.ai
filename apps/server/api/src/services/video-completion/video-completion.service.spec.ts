@@ -1,5 +1,8 @@
+import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
 import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -11,6 +14,19 @@ describe('VideoCompletionService', () => {
   let redisService: vi.Mocked<RedisService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
   let metadataService: vi.Mocked<MetadataService>;
+  let editorProjectsService: {
+    findRenderingProjects: ReturnType<typeof vi.fn>;
+    markAsCompleted: ReturnType<typeof vi.fn>;
+    markAsFailed: ReturnType<typeof vi.fn>;
+    readRenderProvenance: ReturnType<typeof vi.fn>;
+  };
+  let fileQueueService: {
+    getJobStatus: ReturnType<typeof vi.fn>;
+  };
+  let notificationsPublisher: {
+    publishMediaFailed: ReturnType<typeof vi.fn>;
+    publishVideoComplete: ReturnType<typeof vi.fn>;
+  };
 
   const mockIngredientId = '507f1f77bcf86cd799439011';
   const mockUserId = '507f1f77bcf86cd799439012';
@@ -21,9 +37,31 @@ describe('VideoCompletionService', () => {
   }
 
   beforeEach(async () => {
+    editorProjectsService = {
+      findRenderingProjects: vi.fn().mockResolvedValue([]),
+      markAsCompleted: vi.fn().mockResolvedValue(undefined),
+      markAsFailed: vi.fn().mockResolvedValue(undefined),
+      readRenderProvenance: vi.fn(),
+    };
+    fileQueueService = {
+      getJobStatus: vi.fn(),
+    };
+    notificationsPublisher = {
+      publishMediaFailed: vi.fn().mockResolvedValue(undefined),
+      publishVideoComplete: vi.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         VideoCompletionService,
+        {
+          provide: EditorProjectsService,
+          useValue: editorProjectsService,
+        },
+        {
+          provide: FileQueueService,
+          useValue: fileQueueService,
+        },
         {
           provide: RedisService,
           useValue: {
@@ -43,6 +81,10 @@ describe('VideoCompletionService', () => {
           useValue: {
             patch: vi.fn(),
           },
+        },
+        {
+          provide: NotificationsPublisherService,
+          useValue: notificationsPublisher,
         },
         {
           provide: LoggerService,
@@ -80,6 +122,55 @@ describe('VideoCompletionService', () => {
   });
 
   describe('handleVideoCompletion', () => {
+    it('atomically completes an editor render from its durable event', async () => {
+      const editorRender = {
+        authProviderUserId: 'auth-user',
+        ingredientId: mockIngredientId,
+        jobId: 'job-123',
+        metadataId: 'metadata-123',
+        projectId: 'project-123',
+        room: 'user-auth-user',
+      };
+      const output = {
+        durationFrames: 300,
+        durationSeconds: 10,
+        fps: 30,
+        height: 1080,
+        rendererVersion: 'remotion@4.0.486',
+        s3Key: 'videos/output.mp4',
+        size: 4096,
+        url: 'https://cdn.example.com/videos/output.mp4',
+        width: 1920,
+      };
+
+      await service.onModuleInit();
+      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+        .calls[0][1];
+      await subscribeCallback({
+        editorRender,
+        ingredientId: mockIngredientId,
+        organizationId: mockOrganizationId,
+        result: output,
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+      });
+
+      expect(editorProjectsService.markAsCompleted).toHaveBeenCalledWith(
+        'project-123',
+        mockIngredientId,
+        output,
+        'job-123',
+      );
+      expect(metadataService.patch).toHaveBeenCalledWith('metadata-123', {
+        duration: 10,
+        height: 1080,
+        label: 'Editor Render',
+        size: 4096,
+        width: 1920,
+      });
+      expect(notificationsPublisher.publishVideoComplete).toHaveBeenCalled();
+    });
+
     it('should update ingredient status to COMPLETED on successful processing', async () => {
       const mockData = {
         ingredientId: mockIngredientId.toString(),
@@ -343,5 +434,48 @@ describe('VideoCompletionService', () => {
         },
       );
     });
+  });
+
+  it('reconciles a completed editor render after a missed Redis event', async () => {
+    const editorRender = {
+      authProviderUserId: 'auth-user',
+      ingredientId: mockIngredientId,
+      jobId: 'job-123',
+      metadataId: 'metadata-123',
+      projectId: 'project-123',
+      room: 'user-auth-user',
+    };
+    const output = {
+      durationFrames: 300,
+      durationSeconds: 10,
+      fps: 30,
+      height: 1080,
+      rendererVersion: 'remotion@4.0.486',
+      s3Key: 'videos/output.mp4',
+      size: 4096,
+      url: 'https://cdn.example.com/videos/output.mp4',
+      width: 1920,
+    };
+    editorProjectsService.findRenderingProjects.mockResolvedValue([
+      { id: 'project-123', organizationId: mockOrganizationId },
+    ]);
+    editorProjectsService.readRenderProvenance.mockReturnValue({
+      job: editorRender,
+      queuedAt: new Date().toISOString(),
+    });
+    fileQueueService.getJobStatus.mockResolvedValue({
+      jobId: 'job-123',
+      result: output,
+      state: 'completed',
+    });
+
+    await service.reconcileEditorRenders();
+
+    expect(editorProjectsService.markAsCompleted).toHaveBeenCalledWith(
+      'project-123',
+      mockIngredientId,
+      output,
+      'job-123',
+    );
   });
 });

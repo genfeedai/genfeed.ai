@@ -1,6 +1,9 @@
 import type { JobPriority, JobType } from '@files/queues/queue.constants';
 import type { VideoEaseCurve, VideoTransition } from '@genfeedai/enums';
-import type { IEditorRenderJobParams } from '@genfeedai/interfaces';
+import type {
+  IEditorRenderCorrelation,
+  IEditorRenderJobParams,
+} from '@genfeedai/interfaces';
 
 export interface BaseJobData {
   id: string;
@@ -75,6 +78,7 @@ export interface VideoProcessingParams {
   assetManifest?: IEditorRenderJobParams['assetManifest'];
   rendererVersion?: IEditorRenderJobParams['rendererVersion'];
   snapshot?: IEditorRenderJobParams['snapshot'];
+  editorRender?: IEditorRenderCorrelation;
 
   // Resize params
   width?: number;

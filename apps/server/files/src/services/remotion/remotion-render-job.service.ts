@@ -1,4 +1,5 @@
 import { statSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { RemotionRendererService } from '@files/services/remotion/remotion-renderer.service';
@@ -10,6 +11,7 @@ import type {
 } from '@files/shared/interfaces/job.interface';
 import {
   EDITOR_RENDERER_VERSION,
+  type IEditorRenderCorrelation,
   type IEditorRenderJobParams,
   type IEditorRenderOutputMetadata,
 } from '@genfeedai/interfaces';
@@ -20,6 +22,9 @@ import { Injectable } from '@nestjs/common';
 import type { Job } from 'bullmq';
 
 type EditorRenderResult = JobResult & IEditorRenderOutputMetadata;
+type EditorRenderParams = IEditorRenderJobParams & {
+  editorRender: IEditorRenderCorrelation;
+};
 
 @Injectable()
 export class RemotionRenderJobService {
@@ -44,7 +49,7 @@ export class RemotionRenderJobService {
     const params = this.readParams(job.data);
     const tempPath = this.ffmpegService.getTempPath(
       'editor-render',
-      ingredientId,
+      `${ingredientId}-${job.id}`,
     );
     const outputPath = path.join(tempPath, 'composition.mp4');
 
@@ -89,50 +94,82 @@ export class RemotionRenderJobService {
         authProviderUserId,
         room,
       );
-      await this.redisService.publish('video-processing-complete', {
-        ingredientId,
-        organizationId,
-        result,
-        status: 'completed',
-        timestamp: new Date().toISOString(),
-        userId,
-      });
-      await this.ffmpegService.cleanupTempFiles(outputPath);
-
+      await this.redisService
+        .publish('video-processing-complete', {
+          editorRender: params.editorRender,
+          ingredientId,
+          organizationId,
+          result,
+          status: 'completed',
+          timestamp: new Date().toISOString(),
+          userId,
+        })
+        .catch((error: unknown) => {
+          this.logger.warn(
+            'Failed to publish editor render completion event',
+            error,
+          );
+        });
       return result;
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Editor Remotion render failed: ${message}`);
-      this.webSocketService.emitError(
-        metadata.websocketUrl,
-        message,
-        authProviderUserId,
-        room,
-      );
-      await this.redisService.publish('video-processing-complete', {
-        error: message,
-        ingredientId,
-        organizationId,
-        status: 'failed',
-        timestamp: new Date().toISOString(),
-        userId,
-      });
-      await this.ffmpegService.cleanupTempFiles(outputPath);
+      const configuredAttempts = job.opts.attempts ?? 1;
+      // BullMQ 5 increments attemptsMade in moveToFailed, after the processor
+      // rejects. Inside this catch it is therefore zero-based.
+      const isFinalAttempt = job.attemptsMade + 1 >= configuredAttempts;
+      if (isFinalAttempt) {
+        this.webSocketService.emitError(
+          metadata.websocketUrl,
+          message,
+          authProviderUserId,
+          room,
+        );
+        await this.redisService
+          .publish('video-processing-complete', {
+            editorRender: params.editorRender,
+            error: message,
+            ingredientId,
+            organizationId,
+            status: 'failed',
+            timestamp: new Date().toISOString(),
+            userId,
+          })
+          .catch((publishError: unknown) => {
+            this.logger.warn(
+              'Failed to publish editor render failure event',
+              publishError,
+            );
+          });
+      }
       throw error;
+    } finally {
+      await rm(tempPath, { force: true, recursive: true }).catch(
+        (error: unknown) => {
+          this.logger.warn(
+            'Failed to remove editor render temp directory',
+            error,
+          );
+        },
+      );
     }
   }
 
-  private readParams(data: VideoJobData): IEditorRenderJobParams {
-    const { assetManifest, rendererVersion, snapshot } = data.params;
+  private readParams(data: VideoJobData): EditorRenderParams {
+    const { assetManifest, editorRender, rendererVersion, snapshot } =
+      data.params;
 
     if (
       !assetManifest ||
+      !editorRender ||
       !snapshot ||
       rendererVersion !== EDITOR_RENDERER_VERSION
     ) {
-      throw new Error('Editor render job is missing its validated snapshot.');
+      throw new Error(
+        'Editor render job is missing its validated snapshot or completion correlation.',
+      );
     }
 
-    return { assetManifest, rendererVersion, snapshot };
+    return { assetManifest, editorRender, rendererVersion, snapshot };
   }
 }

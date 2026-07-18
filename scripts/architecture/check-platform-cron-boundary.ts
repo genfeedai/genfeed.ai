@@ -90,6 +90,13 @@ export type CronBoundaryOptions = {
 
 export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
   {
+    file: 'apps/server/api/src/services/video-completion/video-completion.service.ts',
+    id: 'editor-render-reconciliation',
+    methodName: 'reconcileEditorRenders',
+    reason:
+      'Platform recovery for durable editor render completion after missed Redis pub/sub events or API restarts.',
+  },
+  {
     file: 'apps/server/api/src/collections/trends/services/trends-warmup.service.ts',
     id: 'trends-warmup',
     methodName: 'warmGlobalTrendDatasets',

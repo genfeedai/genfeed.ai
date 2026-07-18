@@ -8,8 +8,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition } from '@remotion/renderer';
+import { VERSION as INSTALLED_REMOTION_VERSION } from 'remotion/version';
 
 const COMPOSITION_ID = 'EditorComposition';
+const RENDER_TIMEOUT_MS = 15 * 60 * 1000;
 
 @Injectable()
 export class RemotionRendererService {
@@ -22,6 +24,12 @@ export class RemotionRendererService {
     outputLocation: string,
     onProgress: (progress: number) => void,
   ): Promise<void> {
+    const expectedVersion = EDITOR_RENDERER_VERSION.replace('remotion@', '');
+    if (INSTALLED_REMOTION_VERSION !== expectedVersion) {
+      throw new Error(
+        `Installed Remotion version ${INSTALLED_REMOTION_VERSION} does not match ${expectedVersion}.`,
+      );
+    }
     if (params.rendererVersion !== EDITOR_RENDERER_VERSION) {
       throw new Error(
         `Unsupported editor renderer version: ${params.rendererVersion}`,
@@ -50,7 +58,7 @@ export class RemotionRendererService {
       outputLocation,
       overwrite: true,
       serveUrl,
-      timeoutInMilliseconds: 120000,
+      timeoutInMilliseconds: RENDER_TIMEOUT_MS,
     });
   }
 
@@ -63,6 +71,15 @@ export class RemotionRendererService {
   }
 
   private async createBundle(): Promise<string> {
+    const prebuiltBundle = this.resolvePrebuiltBundle();
+    if (prebuiltBundle) {
+      this.logger.log('Using prebuilt editor Remotion bundle', {
+        prebuiltBundle,
+        rendererVersion: EDITOR_RENDERER_VERSION,
+      });
+      return prebuiltBundle;
+    }
+
     const entryPoint = this.resolveEntryPoint();
     this.logger.log('Bundling pinned editor Remotion composition', {
       entryPoint,
@@ -75,6 +92,17 @@ export class RemotionRendererService {
       rootDir: path.resolve(path.dirname(entryPoint), '../..'),
       webpackOverride: (config) => config,
     });
+  }
+
+  private resolvePrebuiltBundle(): string | undefined {
+    const candidates = [
+      path.resolve(process.cwd(), 'remotion-bundle'),
+      path.resolve(process.cwd(), 'apps/server/files/remotion-bundle'),
+    ];
+
+    return candidates.find((candidate) =>
+      existsSync(path.join(candidate, 'index.html')),
+    );
   }
 
   private resolveEntryPoint(): string {
