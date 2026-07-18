@@ -32,12 +32,21 @@ export const CLIP_FACTORY_JOB_NAME = 'clip-factory-run';
 /** Default concurrency — one long-running pipeline per worker. */
 export const CLIP_FACTORY_CONCURRENCY = 2;
 
+export const CLIP_FACTORY_MODES = ['avatar', 'raw-cut'] as const;
+
+export type ClipFactoryMode = (typeof CLIP_FACTORY_MODES)[number];
+
 export interface ClipFactoryJobData {
   projectId: string;
   youtubeUrl: string;
-  avatarId: string;
-  voiceId: string;
-  avatarProvider: SupportedAvatarVideoProviderName;
+  /** Defaults to avatar for backward-compatible producers. */
+  mode?: ClipFactoryMode;
+  /** Required only when mode is avatar. */
+  avatarId?: string;
+  /** Required only when mode is avatar. */
+  voiceId?: string;
+  /** Required only when mode is avatar. */
+  avatarProvider?: SupportedAvatarVideoProviderName;
   maxClips: number;
   minViralityScore: number;
   language: string;

@@ -10,6 +10,7 @@ import {
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import { type ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import type { TranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
@@ -37,6 +38,7 @@ import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-q
 import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
+import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
 import type {
   ClipReadyAction,
   JsonApiCollectionResponse,
@@ -77,6 +79,20 @@ interface ClipPublishHandoffResponse {
   payload: Awaited<ReturnType<PublishHandoffService['preparePublishHandoff']>>;
 }
 
+function isTranscriptSegment(value: unknown): value is TranscriptSegment {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const segment = value as Record<string, unknown>;
+
+  return (
+    typeof segment.start === 'number' &&
+    typeof segment.end === 'number' &&
+    typeof segment.text === 'string'
+  );
+}
+
 @AutoSwagger()
 @ApiTags('clip-projects')
 @ApiBearerAuth()
@@ -102,8 +118,8 @@ export class ClipProjectsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
-      'Create a clip project from a YouTube URL. Downloads audio, transcribes, detects highlights, and generates AI avatar clips asynchronously.',
-    summary: 'YouTube → AI Clip Factory',
+      'Create a clip project from a YouTube URL. Downloads audio, transcribes, detects highlights, and generates avatar or raw-cut clips asynchronously.',
+    summary: 'YouTube → Clip Factory',
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createFromYoutube(
@@ -119,6 +135,7 @@ export class ClipProjectsController {
     const orgId = publicMetadata.organization;
     const userId = publicMetadata.user;
     const estimatedClips = dto.maxClips ?? 10;
+    const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
 
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
@@ -160,6 +177,7 @@ export class ClipProjectsController {
       language: dto.language ?? 'en',
       maxClips: estimatedClips,
       minViralityScore: dto.minViralityScore ?? 50,
+      mode,
       orgId,
       projectId,
       userId,
@@ -293,7 +311,7 @@ export class ClipProjectsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
-      'Generate avatar video clips for selected highlights. Expensive step (N credits, one per clip).',
+      'Generate avatar or deterministic raw-cut video clips for selected highlights. Expensive step (N credits, one per clip).',
     summary: 'Generate clips from selected highlights',
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -305,6 +323,7 @@ export class ClipProjectsController {
     const publicMetadata = getPublicMetadata(user);
     const orgId = publicMetadata.organization;
     const userId = publicMetadata.user;
+    const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
 
     const project = await this.clipProjectsService.findOne({
       _id: projectId,
@@ -358,9 +377,15 @@ export class ClipProjectsController {
     const result = await this.clipGenerationService.generateClips({
       avatarId: dto.avatarId,
       highlights: selectedEditedHighlights,
+      mode,
       orgId,
       projectId,
       provider: dto.avatarProvider ?? 'heygen',
+      sourceVideoS3Key: project.sourceVideoS3Key,
+      sourceVideoUrl: project.sourceVideoUrl,
+      transcriptSegments: Array.isArray(project.transcriptSegments)
+        ? project.transcriptSegments.filter(isTranscriptSegment)
+        : [],
       transcriptText: project.transcriptText,
       userId,
       voiceId: dto.voiceId,
@@ -368,7 +393,7 @@ export class ClipProjectsController {
 
     if (result.queuedClipCount === 0) {
       await this.clipProjectsService.patch(projectId, {
-        error: 'Clip generation failed before any provider job was queued.',
+        error: 'Clip generation failed before any generation job was queued.',
         progress: 100,
         status: 'failed',
       });

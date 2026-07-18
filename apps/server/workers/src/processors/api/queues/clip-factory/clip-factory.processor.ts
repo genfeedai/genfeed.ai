@@ -129,9 +129,12 @@ export class ClipFactoryProcessor extends WorkerHost {
       const result = await this.clipGenerationService.generateClips({
         avatarId: data.avatarId,
         highlights: filteredHighlights,
+        mode: data.mode ?? 'avatar',
         orgId: data.orgId,
         projectId,
         provider: data.avatarProvider,
+        sourceVideoUrl: data.youtubeUrl,
+        transcriptSegments: transcription.segments,
         transcriptText: transcription.text,
         userId: data.userId,
         voiceId: data.voiceId,
@@ -139,13 +142,13 @@ export class ClipFactoryProcessor extends WorkerHost {
 
       this.logger.log(`${this.logContext} clips generated`, {
         clipResultIds: result.clipResultIds.length,
+        generationJobs: result.providerJobIds.filter(Boolean).length,
         projectId,
-        providerJobs: result.providerJobIds.filter(Boolean).length,
       });
 
       if (result.queuedClipCount === 0) {
         await this.updateProject(projectId, {
-          error: 'Clip generation failed before any provider job was queued.',
+          error: 'Clip generation failed before any generation job was queued.',
           progress: 100,
           status: 'failed',
         });

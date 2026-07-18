@@ -173,6 +173,7 @@ describe('ClipProjectsController', () => {
         expect.objectContaining({
           maxClips: 12,
           minViralityScore: 70,
+          mode: 'avatar',
           projectId,
           youtubeUrl: dto.youtubeUrl,
         }),
@@ -204,9 +205,52 @@ describe('ClipProjectsController', () => {
       expect(clipProjectsService.create).not.toHaveBeenCalled();
       expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
     });
+
+    it('should queue raw-cut projects without avatar credentials', async () => {
+      const dto: CreateClipProjectFromYoutubeDto = {
+        mode: 'raw-cut',
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      };
+
+      vi.mocked(clipProjectsService.create).mockResolvedValue({
+        id: projectId,
+      } as ClipProjectDocument);
+      clipFactoryQueueService.enqueue.mockResolvedValue('clip-factory-job-1');
+
+      await controller.createFromYoutube(currentUser as never, dto);
+
+      expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          avatarId: undefined,
+          mode: 'raw-cut',
+          voiceId: undefined,
+        }),
+      );
+    });
   });
 
   describe('CreateClipProjectFromYoutubeDto validation', () => {
+    it('should require avatar credentials when mode is omitted', () => {
+      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      });
+
+      const errors = validateSync(dto);
+
+      expect(errors.map((error) => error.property)).toEqual(
+        expect.arrayContaining(['avatarId', 'voiceId']),
+      );
+    });
+
+    it('should accept raw-cut mode without avatar credentials', () => {
+      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
+        mode: 'raw-cut',
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      });
+
+      expect(validateSync(dto)).toEqual([]);
+    });
+
     it('should reject non-youtube URLs', () => {
       const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
         avatarId: 'avatar-1',
@@ -261,6 +305,29 @@ describe('ClipProjectsController', () => {
         editedHighlights,
         selectedHighlightIds: ['highlight-1'],
         voiceId: 'voice-1',
+      });
+
+      expect(validateSync(dto)).toEqual([]);
+    });
+
+    it('should require avatar credentials when mode is omitted', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        editedHighlights,
+        selectedHighlightIds: ['highlight-1'],
+      });
+
+      const errors = validateSync(dto);
+
+      expect(errors.map((error) => error.property)).toEqual(
+        expect.arrayContaining(['avatarId', 'voiceId']),
+      );
+    });
+
+    it('should accept raw-cut mode without avatar credentials', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        editedHighlights,
+        mode: 'raw-cut',
+        selectedHighlightIds: ['highlight-1'],
       });
 
       expect(validateSync(dto)).toEqual([]);
@@ -343,6 +410,7 @@ describe('ClipProjectsController', () => {
             title: 'Edited title',
           }),
         ],
+        mode: 'avatar',
       }),
     );
     expect(clipProjectsService.patch).toHaveBeenCalledTimes(1);
@@ -387,12 +455,58 @@ describe('ClipProjectsController', () => {
       2,
       projectId,
       expect.objectContaining({
-        error: 'Clip generation failed before any provider job was queued.',
+        error: 'Clip generation failed before any generation job was queued.',
         progress: 100,
         status: 'failed',
       }),
     );
     expect(result.status).toBe('failed');
+  });
+
+  it('should forward raw-cut mode and source context without avatar credentials', async () => {
+    const project = {
+      ...createProject(projectId, organizationId),
+      sourceVideoS3Key: 'uploads/source.mp4',
+      sourceVideoUrl: 'https://cdn.example.com/source.mp4',
+      transcriptSegments: [
+        { end: 45, start: 15, text: 'Original summary' },
+        { end: 'invalid', start: 45, text: 'Ignored malformed segment' },
+      ],
+    } as ClipProjectDocument;
+    const dto: GenerateClipsDto = {
+      editedHighlights: [
+        {
+          id: 'highlight-1',
+          summary: 'Edited summary',
+          title: 'Edited title',
+        },
+      ],
+      mode: 'raw-cut',
+      selectedHighlightIds: ['highlight-1'],
+    };
+
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+    vi.mocked(clipProjectsService.patch).mockResolvedValue(project);
+    vi.mocked(clipGenerationService.generateClips).mockResolvedValue({
+      clipResultIds: ['clip-result-1'],
+      providerJobIds: ['raw-cut-job-1'],
+      queuedClipCount: 1,
+    });
+
+    await controller.generateClips(currentUser as never, projectId, dto);
+
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        avatarId: undefined,
+        mode: 'raw-cut',
+        sourceVideoS3Key: 'uploads/source.mp4',
+        sourceVideoUrl: 'https://cdn.example.com/source.mp4',
+        transcriptSegments: [
+          { end: 45, start: 15, text: 'Original summary' },
+        ],
+        voiceId: undefined,
+      }),
+    );
   });
 
   it('creates an editor handoff for a ready clip result', async () => {

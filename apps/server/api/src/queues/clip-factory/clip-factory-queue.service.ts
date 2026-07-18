@@ -20,12 +20,25 @@ export class ClipFactoryQueueService {
   ) {}
 
   async enqueue(data: ClipFactoryJobData): Promise<string> {
-    if (!isSupportedAvatarVideoProviderName(data.avatarProvider)) {
-      throw new BadRequestException(
-        `Avatar video provider "${data.avatarProvider}" is not available. Supported providers: ${SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES.join(
-          ', ',
-        )}.`,
-      );
+    const mode = data.mode ?? 'avatar';
+
+    if (mode === 'avatar') {
+      if (!data.avatarId || !data.voiceId) {
+        throw new BadRequestException(
+          'Avatar clip generation requires avatarId and voiceId.',
+        );
+      }
+
+      if (
+        !data.avatarProvider ||
+        !isSupportedAvatarVideoProviderName(data.avatarProvider)
+      ) {
+        throw new BadRequestException(
+          `Avatar video provider "${data.avatarProvider ?? 'unknown'}" is not available. Supported providers: ${SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES.join(
+            ', ',
+          )}.`,
+        );
+      }
     }
 
     const job = await this.clipFactoryQueue.add(CLIP_FACTORY_JOB_NAME, data, {

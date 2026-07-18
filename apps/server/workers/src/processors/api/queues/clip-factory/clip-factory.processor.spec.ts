@@ -230,7 +230,7 @@ describe('ClipFactoryProcessor', () => {
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
-        error: 'Clip generation failed before any provider job was queued.',
+        error: 'Clip generation failed before any generation job was queued.',
         status: 'failed',
       }),
     );
@@ -266,7 +266,19 @@ describe('ClipFactoryProcessor', () => {
     await processor.process(makeJob(makeJobData({ avatarProvider: 'heygen' })));
 
     expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
-      expect.objectContaining({ provider: 'heygen' }),
+      expect.objectContaining({ mode: 'avatar', provider: 'heygen' }),
+    );
+  });
+
+  it('should pass raw-cut source and transcript context to clip generation', async () => {
+    await processor.process(makeJob(makeJobData({ mode: 'raw-cut' })));
+
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'raw-cut',
+        sourceVideoUrl: 'https://www.youtube.com/watch?v=test123',
+        transcriptSegments: transcriptionResult.segments,
+      }),
     );
   });
 
