@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -157,32 +158,40 @@ const createService = () => {
     warn: vi.fn(),
   } as unknown as LoggerService;
 
-  const service = new ImageGenerationService(
-    configService as never,
+  const providerDispatchService = new ImageGenerationProviderDispatchService(
     activitiesService as never,
-    assetsService as never,
-    brandsService as never,
     comfyUIService as never,
-    creditsUtilsService as never,
     failedGenerationService as never,
     filesClientService as never,
     falService as never,
-    pollingService as never,
     imagesService as never,
-    ingredientsService as never,
-    organizationSettingsService as never,
     klingAIService as never,
     leonardoaiService as never,
     loggerService,
     metadataService as never,
+    promptBuilderService as never,
+    replicateService as never,
+    sharedService as never,
+    websocketService as never,
+  );
+
+  const service = new ImageGenerationService(
+    configService as never,
+    assetsService as never,
+    brandsService as never,
+    creditsUtilsService as never,
+    pollingService as never,
+    providerDispatchService,
+    imagesService as never,
+    ingredientsService as never,
+    organizationSettingsService as never,
+    loggerService,
     modelRegistrationService as never,
     modelsService as never,
     promptBuilderService as never,
     promptsService as never,
-    replicateService as never,
     routerService as never,
     sharedService as never,
-    websocketService as never,
   );
 
   return {
