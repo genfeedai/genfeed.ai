@@ -230,9 +230,7 @@ describe('ConnectGenfeedFlow', () => {
       screen.getByRole('button', { name: 'Verify MCP connection' }),
     );
 
-    expect(
-      await screen.findByText('Connection verified'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Connection verified')).toBeInTheDocument();
     expect(
       screen.getByText(
         'List my Genfeed brands, then create a draft social post for review. Do not publish it.',
@@ -250,14 +248,12 @@ describe('ConnectGenfeedFlow', () => {
   });
 
   it('shows copy-once key output and missing publishing readiness guidance', async () => {
-    mocks.findAll
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([
-        {
-          ...activeKey(),
-          id: 'key-2',
-        },
-      ]);
+    mocks.findAll.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        ...activeKey(),
+        id: 'key-2',
+      },
+    ]);
     mocks.verifyMcpConnection.mockResolvedValue({
       keyId: 'key-2',
       publishing: { connectedAccountCount: 0, isReady: false },
@@ -270,9 +266,7 @@ describe('ConnectGenfeedFlow', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: /create scoped mcp key/i }),
     );
-    expect(
-      await screen.findByText(CREATED_TEST_KEY),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(CREATED_TEST_KEY)).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole('button', { name: 'Verify MCP connection' }),
     );

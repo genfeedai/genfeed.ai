@@ -24,13 +24,7 @@ import { Input } from '@ui/primitives/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   HiArrowRight,
   HiCheckCircle,
@@ -121,10 +115,7 @@ export default function ConnectGenfeedFlow() {
   );
 
   const trackStep = useCallback(
-    (
-      step: ConnectGenfeedStep,
-      outcome?: 'failure' | 'success',
-    ) => {
+    (step: ConnectGenfeedStep, outcome?: 'failure' | 'success') => {
       captureAnalyticsEvent(ANALYTICS_EVENTS.CONNECT_GENFEED_STEP, {
         client,
         deployment,
@@ -475,9 +466,7 @@ export default function ConnectGenfeedFlow() {
                         className="size-4"
                       />
                     }
-                    onClick={() =>
-                      void copyText('API key', createdPlainKey)
-                    }
+                    onClick={() => void copyText('API key', createdPlainKey)}
                     variant={ButtonVariant.SECONDARY}
                     withWrapper={false}
                   >
@@ -507,10 +496,7 @@ export default function ConnectGenfeedFlow() {
               <Button
                 ariaLabel="Copy environment variable command"
                 icon={
-                  <HiClipboardDocument
-                    aria-hidden="true"
-                    className="size-4"
-                  />
+                  <HiClipboardDocument aria-hidden="true" className="size-4" />
                 }
                 onClick={() =>
                   void copyText(
@@ -556,21 +542,17 @@ export default function ConnectGenfeedFlow() {
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
               <h2 className="text-xs font-medium">
-                {client === 'codex' ? 'Equivalent config.toml' : 'Configuration'}
+                {client === 'codex'
+                  ? 'Equivalent config.toml'
+                  : 'Configuration'}
               </h2>
               <Button
                 ariaLabel="Copy MCP configuration"
                 icon={
-                  <HiClipboardDocument
-                    aria-hidden="true"
-                    className="size-4"
-                  />
+                  <HiClipboardDocument aria-hidden="true" className="size-4" />
                 }
                 onClick={() =>
-                  void copyText(
-                    'MCP configuration',
-                    instructions.configuration,
-                  )
+                  void copyText('MCP configuration', instructions.configuration)
                 }
                 variant={ButtonVariant.GHOST}
               />
@@ -603,9 +585,7 @@ export default function ConnectGenfeedFlow() {
               <Input
                 autoComplete="off"
                 id="connect-genfeed-key"
-                onChange={(event) =>
-                  setVerificationSecret(event.target.value)
-                }
+                onChange={(event) => setVerificationSecret(event.target.value)}
                 placeholder="gf_live_..."
                 type="password"
                 value={verificationSecret}
@@ -690,9 +670,7 @@ export default function ConnectGenfeedFlow() {
           description={
             verification.publishing.isReady
               ? `${verification.publishing.connectedAccountCount} connected publishing account${
-                  verification.publishing.connectedAccountCount === 1
-                    ? ''
-                    : 's'
+                  verification.publishing.connectedAccountCount === 1 ? '' : 's'
                 } ready.`
               : 'Your MCP connection works, but no publishing integration is connected yet.'
           }

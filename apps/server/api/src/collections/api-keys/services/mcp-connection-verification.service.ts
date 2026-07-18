@@ -97,15 +97,18 @@ export class McpConnectionVerificationService {
     }
 
     const verifiedAt = new Date().toISOString();
-    const connectedAccountCount =
-      await this.credentialsService.countConnected(input.organizationId);
+    const connectedAccountCount = await this.credentialsService.countConnected(
+      input.organizationId,
+    );
     const latestApiKey = await this.apiKeysService.findOne({
       id: input.apiKeyId,
       isRevoked: false,
       organizationId: input.organizationId,
       userId: input.userId,
     });
-    const metadata = this.readMetadata(latestApiKey?.metadata ?? apiKey.metadata);
+    const metadata = this.readMetadata(
+      latestApiKey?.metadata ?? apiKey.metadata,
+    );
 
     await this.apiKeysService.patch(input.apiKeyId, {
       metadata: {
@@ -203,9 +206,7 @@ export class McpConnectionVerificationService {
         return null;
       }
 
-      this.logger.warn(
-        'MCP tool-registry mirror returned an invalid response',
-      );
+      this.logger.warn('MCP tool-registry mirror returned an invalid response');
     } catch (error: unknown) {
       const authFailure = this.readAuthFailure(error);
       if (authFailure) {

@@ -59,18 +59,14 @@ describe('EnvironmentService', () => {
       delete process.env.NEXT_PUBLIC_MCP_ENDPOINT;
       process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
 
-      expect(EnvironmentService.mcpEndpoint).toBe(
-        'https://mcp.genfeed.ai/mcp',
-      );
+      expect(EnvironmentService.mcpEndpoint).toBe('https://mcp.genfeed.ai/mcp');
     });
 
     it('returns the canonical local endpoint when self-hosted', () => {
       delete process.env.NEXT_PUBLIC_GENFEED_CLOUD;
       delete process.env.NEXT_PUBLIC_MCP_ENDPOINT;
 
-      expect(EnvironmentService.mcpEndpoint).toBe(
-        'http://localhost:3014/mcp',
-      );
+      expect(EnvironmentService.mcpEndpoint).toBe('http://localhost:3014/mcp');
     });
 
     it('uses a configured public endpoint without a trailing slash', () => {
