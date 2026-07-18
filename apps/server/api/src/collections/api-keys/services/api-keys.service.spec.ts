@@ -41,6 +41,7 @@ function createValidationHarness(): ApiKeysValidationHarness {
   service.computeFingerprint = vi.fn().mockReturnValue('fingerprint');
   Object.defineProperty(service, 'logger', { value: { error: vi.fn() } });
   Object.defineProperty(service, 'configService', {
+    configurable: true,
     value: {
       get: vi.fn((key: string) =>
         key === 'GENFEEDAI_API_KEY' ? 'test-signing-secret' : undefined,
