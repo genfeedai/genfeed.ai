@@ -49,11 +49,12 @@ export class BaseApiClient {
 
   setBearerToken(token: string): void {
     this.bearerToken = token;
-    this.http.defaults.headers.Authorization = `Bearer ${token}`;
     if (token) {
+      this.http.defaults.headers.Authorization = `Bearer ${token}`;
       this.http.defaults.headers[MCP_ACTION_ORIGIN_PROOF_HEADER] =
         this.createActionOriginProof(token);
     } else {
+      delete this.http.defaults.headers.Authorization;
       delete this.http.defaults.headers[MCP_ACTION_ORIGIN_PROOF_HEADER];
     }
   }
