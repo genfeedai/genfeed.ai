@@ -16,7 +16,7 @@ import { LibraryViewHeader } from './LibraryViewHeader';
 type SortBy = 'date' | 'votes';
 
 interface LibraryViewProps {
-  isCloudConnected: boolean;
+  hasCloudSession: boolean;
   isOnline: boolean;
   workspace: IDesktopWorkspace | null;
   workspaceId: string | null;
@@ -140,13 +140,13 @@ function libraryReducer(
 }
 
 export const LibraryView = ({
-  isCloudConnected,
+  hasCloudSession,
   isOnline,
   workspace,
   workspaceId,
 }: LibraryViewProps) => {
   const [state, dispatch] = useReducer(libraryReducer, initialState);
-  const hasDataAccess = isOnline || !isCloudConnected;
+  const hasDataAccess = isOnline || !hasCloudSession;
 
   const {
     assets,

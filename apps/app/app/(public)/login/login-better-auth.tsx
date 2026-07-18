@@ -301,41 +301,41 @@ export default function LoginBetterAuth({
       <AuthActionSurface
         actions={
           <>
-          <Button
-            type="button"
-            variant={ButtonVariant.OUTLINE}
-            onClick={() => handleSocialSignIn('google')}
-            icon={<FcGoogle className="size-4" aria-hidden="true" />}
-            isLoading={isSocialSubmitting}
-            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            Continue with Google
-          </Button>
+            <Button
+              type="button"
+              variant={ButtonVariant.OUTLINE}
+              onClick={() => handleSocialSignIn('google')}
+              icon={<FcGoogle className="size-4" aria-hidden="true" />}
+              isLoading={isSocialSubmitting}
+              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+              withWrapper={false}
+            >
+              Continue with Google
+            </Button>
 
-          <Button
-            asChild
-            variant={ButtonVariant.OUTLINE}
-            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            <Link href={magicLinkHref}>
-              <Sparkles className="size-4" aria-hidden="true" />
-              <span>Magic Link</span>
-            </Link>
-          </Button>
+            <Button
+              asChild
+              variant={ButtonVariant.OUTLINE}
+              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+              withWrapper={false}
+            >
+              <Link href={magicLinkHref}>
+                <Sparkles className="size-4" aria-hidden="true" />
+                <span>Magic Link</span>
+              </Link>
+            </Button>
 
-          <Button
-            asChild
-            variant={ButtonVariant.OUTLINE}
-            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            <Link href={passwordHref}>
-              <KeyRound className="size-4" aria-hidden="true" />
-              <span>Email / Password</span>
-            </Link>
-          </Button>
+            <Button
+              asChild
+              variant={ButtonVariant.OUTLINE}
+              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+              withWrapper={false}
+            >
+              <Link href={passwordHref}>
+                <KeyRound className="size-4" aria-hidden="true" />
+                <span>Email / Password</span>
+              </Link>
+            </Button>
           </>
         }
         description="Sign in to Genfeed"

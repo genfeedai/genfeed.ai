@@ -63,7 +63,7 @@ interface MainViewProps {
   brands: IDesktopBrand[];
   cloudOrganizations: IDesktopCloudOrganization[];
   isOnline: boolean;
-  isCloudConnected: boolean;
+  hasCloudSession: boolean;
   pendingTrend: IDesktopTrendHandoff | null;
   selectedWorkspace: IDesktopWorkspace | null;
   selectedWorkspaceId: string | null;
@@ -83,7 +83,7 @@ function MainView({
   brands,
   cloudOrganizations,
   isOnline,
-  isCloudConnected,
+  hasCloudSession,
   pendingTrend,
   selectedWorkspace,
   selectedWorkspaceId,
@@ -105,7 +105,7 @@ function MainView({
       pendingTrend={pendingTrend}
       brands={brands}
       cloudOrganizations={cloudOrganizations}
-      isCloudConnected={isCloudConnected}
+      hasCloudSession={hasCloudSession}
       thread={activeThread}
       workspaceId={selectedWorkspaceId}
     />
@@ -122,7 +122,7 @@ function MainView({
     case 'workflows':
       content = (
         <WorkflowsView
-          isCloudConnected={isCloudConnected}
+          hasCloudSession={hasCloudSession}
           isOnline={isOnline}
           onConnectCloud={onConnectCloud}
         />
@@ -131,7 +131,7 @@ function MainView({
     case 'agents':
       content = (
         <AgentsView
-          isCloudConnected={isCloudConnected}
+          hasCloudSession={hasCloudSession}
           isOnline={isOnline}
           onConnectCloud={onConnectCloud}
           onRunHandoff={onRunHandoff}
@@ -147,7 +147,7 @@ function MainView({
     case 'analytics':
       content = (
         <AnalyticsView
-          isCloudConnected={isCloudConnected}
+          hasCloudSession={hasCloudSession}
           isOnline={isOnline}
           workspaceId={selectedWorkspaceId}
         />
@@ -156,7 +156,7 @@ function MainView({
     case 'library':
       content = (
         <LibraryView
-          isCloudConnected={isCloudConnected}
+          hasCloudSession={hasCloudSession}
           isOnline={isOnline}
           workspace={selectedWorkspace}
           workspaceId={selectedWorkspaceId}
@@ -166,7 +166,7 @@ function MainView({
     case 'trends':
       content = (
         <TrendsView
-          isCloudConnected={isCloudConnected}
+          hasCloudSession={hasCloudSession}
           isOnline={isOnline}
           onGenerateFromTrend={onGenerateFromTrend}
         />
@@ -182,7 +182,7 @@ function MainView({
 
   return (
     <>
-      {!isCloudConnected && showsCloudActions ? (
+      {!hasCloudSession && showsCloudActions ? (
         <CloudConnectionNotice onConnect={onConnectCloud} />
       ) : null}
       <Suspense fallback={<div className="desktop-loading" />}>

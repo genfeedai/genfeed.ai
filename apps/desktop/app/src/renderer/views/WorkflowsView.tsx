@@ -22,17 +22,17 @@ const LIFECYCLE_COLORS: Record<string, string> = {
 };
 
 interface WorkflowsViewProps {
-  isCloudConnected: boolean;
+  hasCloudSession: boolean;
   isOnline: boolean;
   onConnectCloud: () => void;
 }
 
 export const WorkflowsView = ({
-  isCloudConnected,
+  hasCloudSession,
   isOnline,
   onConnectCloud,
 }: WorkflowsViewProps) => {
-  const hasDataAccess = isOnline || !isCloudConnected;
+  const hasDataAccess = isOnline || !hasCloudSession;
   const [workflows, setWorkflows] = useState<IDesktopWorkflow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +64,7 @@ export const WorkflowsView = ({
 
   const handleRun = useCallback(
     async (workflowId: string, batch?: boolean) => {
-      if (!isCloudConnected) {
+      if (!hasCloudSession) {
         onConnectCloud();
         return;
       }
@@ -90,7 +90,7 @@ export const WorkflowsView = ({
         setRunningId(null);
       }
     },
-    [isCloudConnected, isOnline, onConnectCloud],
+    [hasCloudSession, isOnline, onConnectCloud],
   );
 
   return (
@@ -178,14 +178,14 @@ export const WorkflowsView = ({
                   className="small"
                   disabled={runningId === wf.id}
                   onClick={() =>
-                    isCloudConnected ? void handleRun(wf.id) : onConnectCloud()
+                    hasCloudSession ? void handleRun(wf.id) : onConnectCloud()
                   }
                   type="button"
                   variant={ButtonVariant.DEFAULT}
                 >
                   {runningId === wf.id
                     ? 'Running…'
-                    : isCloudConnected
+                    : hasCloudSession
                       ? '▶ Run'
                       : 'Connect Cloud to run'}
                 </Button>
@@ -194,7 +194,7 @@ export const WorkflowsView = ({
                     className="small"
                     disabled={runningId === wf.id}
                     onClick={() =>
-                      isCloudConnected
+                      hasCloudSession
                         ? void handleRun(wf.id, true)
                         : onConnectCloud()
                     }

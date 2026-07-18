@@ -179,13 +179,13 @@ function AgentRunOutput({
 
 const AgentCard = ({
   agent,
-  isCloudConnected,
+  hasCloudSession,
   onRunHandoff,
   onRun,
   runningAgentId,
 }: {
   agent: IDesktopAgent;
-  isCloudConnected: boolean;
+  hasCloudSession: boolean;
   onRunHandoff?: (handoff: DesktopAgentRunHandoff) => void;
   onRun: (id: string) => void;
   runningAgentId: string | null;
@@ -248,7 +248,7 @@ const AgentCard = ({
           >
             {isRunning
               ? 'Running…'
-              : isCloudConnected
+              : hasCloudSession
                 ? '▶ Run'
                 : 'Connect Cloud to run'}
           </Button>
@@ -419,19 +419,19 @@ const initialAgentsState: AgentsState = {
 };
 
 interface AgentsViewProps {
-  isCloudConnected: boolean;
+  hasCloudSession: boolean;
   isOnline: boolean;
   onConnectCloud: () => void;
   onRunHandoff?: (handoff: DesktopAgentRunHandoff) => void;
 }
 
 export const AgentsView = ({
-  isCloudConnected,
+  hasCloudSession,
   isOnline,
   onConnectCloud,
   onRunHandoff,
 }: AgentsViewProps) => {
-  const hasDataAccess = isOnline || !isCloudConnected;
+  const hasDataAccess = isOnline || !hasCloudSession;
   const [state, dispatch] = useReducer(agentsReducer, initialAgentsState);
   const { agents, loading, error, runningAgentId } = state;
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -521,7 +521,7 @@ export const AgentsView = ({
 
   const handleRunAgent = useCallback(
     async (agentId: string) => {
-      if (!isCloudConnected) {
+      if (!hasCloudSession) {
         onConnectCloud();
         return;
       }
@@ -571,7 +571,7 @@ export const AgentsView = ({
         dispatch({ type: 'RUN_DONE' });
       }
     },
-    [agents, isCloudConnected, isOnline, loadAgents, onConnectCloud],
+    [agents, hasCloudSession, isOnline, loadAgents, onConnectCloud],
   );
 
   return (
@@ -625,7 +625,7 @@ export const AgentsView = ({
           {agents.map((agent) => (
             <AgentCard
               agent={agent}
-              isCloudConnected={isCloudConnected}
+              hasCloudSession={hasCloudSession}
               key={agent.id}
               onRunHandoff={onRunHandoff}
               onRun={(id) => void handleRunAgent(id)}

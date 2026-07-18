@@ -7,7 +7,7 @@ import { useCallback, useEffect, useReducer } from 'react';
 type DaysRange = 7 | 30 | 90;
 
 interface AnalyticsViewProps {
-  isCloudConnected: boolean;
+  hasCloudSession: boolean;
   isOnline: boolean;
   workspaceId: string | null;
 }
@@ -68,12 +68,12 @@ function analyticsReducer(
 }
 
 export const AnalyticsView = ({
-  isCloudConnected,
+  hasCloudSession,
   isOnline,
   workspaceId,
 }: AnalyticsViewProps) => {
   const [state, dispatch] = useReducer(analyticsReducer, initialAnalyticsState);
-  const hasDataAccess = isOnline || !isCloudConnected;
+  const hasDataAccess = isOnline || !hasCloudSession;
   const { analytics, draftStats, isLoading, error, days } = state;
 
   const loadAnalytics = useCallback(async () => {

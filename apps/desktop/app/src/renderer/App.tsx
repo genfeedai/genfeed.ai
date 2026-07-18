@@ -442,7 +442,7 @@ export const App = () => {
             activeView={activeView}
             activeThread={activeThread}
             isOnline={isOnline}
-            isCloudConnected={bootstrap.session !== null}
+            hasCloudSession={bootstrap.session !== null}
             pendingTrend={pendingTrend}
             brands={bootstrap.brands}
             cloudOrganizations={bootstrap.cloudOrganizations}

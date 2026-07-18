@@ -65,7 +65,7 @@ describe('AgentsView', () => {
 
     render(
       <AgentsView
-        isCloudConnected
+        hasCloudSession
         isOnline
         onConnectCloud={vi.fn()}
         onRunHandoff={onRunHandoff}
@@ -97,7 +97,7 @@ describe('AgentsView', () => {
       status: 'pending',
     });
 
-    render(<AgentsView isCloudConnected isOnline onConnectCloud={vi.fn()} />);
+    render(<AgentsView hasCloudSession isOnline onConnectCloud={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole('button', { name: '▶ Run' }));
 
@@ -117,7 +117,7 @@ describe('AgentsView', () => {
     const onConnectCloud = vi.fn();
     render(
       <AgentsView
-        isCloudConnected={false}
+        hasCloudSession={false}
         isOnline={false}
         onConnectCloud={onConnectCloud}
       />,

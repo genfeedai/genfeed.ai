@@ -17,7 +17,7 @@ interface UseConversationSendParams {
   contentType: DesktopContentType;
   input: string;
   isGenerating: boolean;
-  isCloudConnected: boolean;
+  hasCloudSession: boolean;
   onCreateThread: () => IDesktopThread;
   onSendMessage: (threadId: string, message: IDesktopMessage) => void;
   onSetStatus: (threadId: string, status: 'awaiting-response' | 'idle') => void;
@@ -39,7 +39,7 @@ export function useConversationSend({
   contentType,
   input,
   isGenerating,
-  isCloudConnected,
+  hasCloudSession,
   onCreateThread,
   onSendMessage,
   onSetStatus,
@@ -147,7 +147,7 @@ export function useConversationSend({
 
     onSendMessage(currentThread.id, userMessage);
 
-    if (!isCloudConnected && publishIntent === 'publish') {
+    if (!hasCloudSession && publishIntent === 'publish') {
       onSetStatus(currentThread.id, 'idle');
       setError(
         'This draft is saved locally. Connect Genfeed Cloud before publishing.',
@@ -172,7 +172,7 @@ export function useConversationSend({
       });
 
       let hooks = generated.hooks ?? [];
-      if (isCloudConnected && hooks.length === 0) {
+      if (hasCloudSession && hooks.length === 0) {
         try {
           hooks = await window.genfeedDesktop.cloud.generateHooks(input.trim());
         } catch {
@@ -240,7 +240,7 @@ export function useConversationSend({
     contentType,
     input,
     isGenerating,
-    isCloudConnected,
+    hasCloudSession,
     onCreateThread,
     onSendMessage,
     onSetStatus,
@@ -259,7 +259,7 @@ export function useConversationSend({
       return;
     }
 
-    if (!isCloudConnected) {
+    if (!hasCloudSession) {
       setError('Connect Genfeed Cloud before publishing this local draft.');
       return;
     }
@@ -279,7 +279,7 @@ export function useConversationSend({
       'Published',
       `Content published to ${publishResult.platform}.`,
     );
-  }, [isCloudConnected, persistDraft, selectedDraft, setError]);
+  }, [hasCloudSession, persistDraft, selectedDraft, setError]);
 
   const handleFilesDropped = useCallback(
     (paths: string[]) => {

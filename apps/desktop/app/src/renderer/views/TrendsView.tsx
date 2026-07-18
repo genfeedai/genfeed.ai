@@ -18,7 +18,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 };
 
 interface TrendsViewProps {
-  isCloudConnected: boolean;
+  hasCloudSession: boolean;
   isOnline: boolean;
   onGenerateFromTrend: (trend: IDesktopTrendHandoff) => void;
 }
@@ -37,7 +37,7 @@ function toDesktopContentPlatform(
 }
 
 export const TrendsView = ({
-  isCloudConnected,
+  hasCloudSession,
   isOnline,
   onGenerateFromTrend,
 }: TrendsViewProps) => {
@@ -45,7 +45,7 @@ export const TrendsView = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [platform, setPlatform] = useState<string>('twitter');
-  const hasDataAccess = isOnline || !isCloudConnected;
+  const hasDataAccess = isOnline || !hasCloudSession;
 
   const loadTrends = useCallback(async () => {
     setLoading(true);

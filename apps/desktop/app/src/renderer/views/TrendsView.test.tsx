@@ -22,7 +22,7 @@ describe('TrendsView', () => {
   it('shows an offline state without calling the cloud API', async () => {
     render(
       <TrendsView
-        isCloudConnected
+        hasCloudSession
         isOnline={false}
         onGenerateFromTrend={vi.fn()}
       />,
@@ -41,7 +41,7 @@ describe('TrendsView', () => {
     cloudApi.getTrends.mockRejectedValue(new Error('API unavailable'));
 
     render(
-      <TrendsView isCloudConnected isOnline onGenerateFromTrend={vi.fn()} />,
+      <TrendsView hasCloudSession isOnline onGenerateFromTrend={vi.fn()} />,
     );
 
     await waitFor(() =>
@@ -57,7 +57,7 @@ describe('TrendsView', () => {
     cloudApi.getTrends.mockResolvedValue([]);
 
     render(
-      <TrendsView isCloudConnected isOnline onGenerateFromTrend={vi.fn()} />,
+      <TrendsView hasCloudSession isOnline onGenerateFromTrend={vi.fn()} />,
     );
 
     await waitFor(() =>

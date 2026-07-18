@@ -1,5 +1,5 @@
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { AuthActionSurfaceProps } from '@genfeedai/props/layout/auth-action-surface.props';
-import { cn } from '@ui/lib/utils';
 
 /**
  * Host-agnostic auth chooser presentation.
