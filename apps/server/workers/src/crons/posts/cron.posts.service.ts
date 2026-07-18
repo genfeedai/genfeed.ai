@@ -211,6 +211,33 @@ export class CronPostsService {
       executionStartedAt = claim.executionStartedAt;
       await this.assertPublishVersionPin(post, job.versionPinId);
     } catch (error: unknown) {
+      if (executionStartedAt) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Publish validation failed';
+        try {
+          await this.publishApprovalsService.completeExecution({
+            approvalId: job.approvalId,
+            error: errorMessage,
+            executionStartedAt,
+            isSuccessful: false,
+            operationId: job.operationId,
+            organizationId: job.organizationId,
+            versionPinId: job.versionPinId,
+          });
+        } catch (completionError: unknown) {
+          this.logger.error(
+            'Failed to release publish approval after validation rejection',
+            {
+              approvalId: job.approvalId,
+              error:
+                completionError instanceof Error
+                  ? completionError.message
+                  : 'Unknown publish completion error',
+              postId: post.id,
+            },
+          );
+        }
+      }
       return this.handleTerminalPublishValidationFailure(post, error);
     }
     const result = await this.publishSinglePost(post);

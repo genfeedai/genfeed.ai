@@ -417,6 +417,15 @@ describe('CronPostsService', () => {
     );
     expect(credentialsService.findOne).not.toHaveBeenCalled();
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
+    expect(publishApprovalsService.completeExecution).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      error: 'Canonical Post digest no longer matches pin.',
+      executionStartedAt: '2026-07-07T09:56:00.000Z',
+      isSuccessful: false,
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      versionPinId: 'pin-1',
+    });
   });
 
   it('rejects a queued pin when the durable Post pin was removed', async () => {

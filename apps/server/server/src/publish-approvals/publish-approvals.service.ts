@@ -647,6 +647,12 @@ export class PublishApprovalsService {
         'Publish execution lease is stale or has been reclaimed.',
       );
     }
+    if (
+      executionStartedAt.getTime() + PUBLISH_EXECUTION_LEASE_MS <=
+      Date.now()
+    ) {
+      throw new ConflictException('Publish execution lease has expired.');
+    }
 
     const failureReason = params.isSuccessful
       ? undefined

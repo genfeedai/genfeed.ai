@@ -8,7 +8,7 @@ import {
 } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 type ContentPipelineJobDataWithConfig = ContentPipelineJobData<
@@ -107,7 +107,9 @@ export class ContentqueryQueueService {
 
   private requireJobId(jobId: string | undefined): string {
     if (!jobId) {
-      throw new Error('Content pipeline queue did not return a job id.');
+      throw new InternalServerErrorException(
+        'Content pipeline queue did not return a job id.',
+      );
     }
     return jobId;
   }
