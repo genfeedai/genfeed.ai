@@ -476,6 +476,7 @@ describe('AnalyticsTrends', () => {
     mocks.findAllVideos.mockResolvedValue([
       makeVideo({
         brand: undefined,
+        createdAt: new Date().toISOString(),
         evaluation: undefined,
         id: 'video-without-analytics',
         metadataLabel: undefined,
