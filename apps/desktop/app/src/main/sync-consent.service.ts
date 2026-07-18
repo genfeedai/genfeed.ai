@@ -52,7 +52,8 @@ export class DesktopSyncConsentService {
       return {
         ...consent,
         allowFullAssetUploads:
-          consent.status === 'granted' && consent.allowFullAssetUploads === true,
+          consent.status === 'granted' &&
+          consent.allowFullAssetUploads === true,
       };
     } catch {
       return pendingConsent(session.userId);

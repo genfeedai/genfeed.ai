@@ -14,8 +14,8 @@ import type {
   IDesktopDataService,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
-  IDesktopSyncOpAck,
   IDesktopSyncConsentInput,
+  IDesktopSyncOpAck,
   IDesktopTerminalCreateOptions,
   IDesktopWorkflowGenerationOptions,
   IDesktopWorkspaceCloudLinkInput,
@@ -102,9 +102,10 @@ const isSmokeTest =
 const isVisualQa =
   process.argv.includes('--visual-qa') ||
   process.env.GENFEED_DESKTOP_VISUAL_QA === '1';
-const smokeUserDataDir = isSmokeTest || isVisualQa
-  ? fs.mkdtempSync(path.join(os.tmpdir(), 'genfeed-desktop-smoke-'))
-  : null;
+const smokeUserDataDir =
+  isSmokeTest || isVisualQa
+    ? fs.mkdtempSync(path.join(os.tmpdir(), 'genfeed-desktop-smoke-'))
+    : null;
 
 if (smokeUserDataDir) {
   app.setPath('userData', smokeUserDataDir);
@@ -301,9 +302,7 @@ const getBootstrap = (): IDesktopBootstrap => {
 };
 
 const runDataService = async <T>(
-  callback: (
-    service: IDesktopDataService,
-  ) => Promise<IDesktopDataResult<T>>,
+  callback: (service: IDesktopDataService) => Promise<IDesktopDataResult<T>>,
 ): Promise<T> => {
   try {
     const result = await callback(getDataService());

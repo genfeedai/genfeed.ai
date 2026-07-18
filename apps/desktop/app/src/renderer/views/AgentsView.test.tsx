@@ -97,13 +97,7 @@ describe('AgentsView', () => {
       status: 'pending',
     });
 
-    render(
-      <AgentsView
-        isCloudConnected
-        isOnline
-        onConnectCloud={vi.fn()}
-      />,
-    );
+    render(<AgentsView isCloudConnected isOnline onConnectCloud={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole('button', { name: '▶ Run' }));
 

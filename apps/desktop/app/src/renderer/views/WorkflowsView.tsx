@@ -178,9 +178,7 @@ export const WorkflowsView = ({
                   className="small"
                   disabled={runningId === wf.id}
                   onClick={() =>
-                    isCloudConnected
-                      ? void handleRun(wf.id)
-                      : onConnectCloud()
+                    isCloudConnected ? void handleRun(wf.id) : onConnectCloud()
                   }
                   type="button"
                   variant={ButtonVariant.DEFAULT}

@@ -203,9 +203,7 @@ export const App = () => {
     apiEndpoint: bootstrap.environment.apiEndpoint,
     localUserId,
     session:
-      bootstrap.syncConsent.status === 'granted'
-        ? bootstrap.session
-        : null,
+      bootstrap.syncConsent.status === 'granted' ? bootstrap.session : null,
   });
 
   /* ─── Bootstrap ─── */
@@ -395,10 +393,7 @@ export const App = () => {
 
   /* ─── Render ─── */
 
-  const entrySurface = getDesktopEntrySurface(
-    bootstrap,
-    isBootstrapLoaded,
-  );
+  const entrySurface = getDesktopEntrySurface(bootstrap, isBootstrapLoaded);
 
   if (entrySurface === 'loading') {
     return <div className="desktop-loading" />;

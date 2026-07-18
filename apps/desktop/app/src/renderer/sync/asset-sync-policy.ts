@@ -6,9 +6,7 @@ import type {
 export function canSyncAssetMetadata(
   asset: Pick<IDesktopAsset, 'origin' | 'uploadPolicy'>,
 ): boolean {
-  return (
-    asset.uploadPolicy !== 'never' && asset.origin !== 'cloud-generation'
-  );
+  return asset.uploadPolicy !== 'never' && asset.origin !== 'cloud-generation';
 }
 
 export function canUploadAssetContent(

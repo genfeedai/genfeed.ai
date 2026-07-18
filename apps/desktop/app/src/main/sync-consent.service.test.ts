@@ -79,8 +79,8 @@ describe('DesktopSyncConsentService', () => {
     expect(getAccountScopedSyncCursorKey('cloud-user-1')).toBe(
       'sync.threads.cloud-user-1.cursor',
     );
-    expect(
-      getAccountScopedSyncCursorKey('cloud-user-2', 'brandManifest'),
-    ).toBe('sync.brandManifest.cloud-user-2.cursor');
+    expect(getAccountScopedSyncCursorKey('cloud-user-2', 'brandManifest')).toBe(
+      'sync.brandManifest.cloud-user-2.cursor',
+    );
   });
 });

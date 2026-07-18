@@ -5,9 +5,7 @@ import CloudSyncConsentDialog from './CloudSyncConsentDialog';
 describe('CloudSyncConsentDialog', () => {
   it('defaults to metadata-only sync and requires an explicit decision', () => {
     const onDecide = vi.fn();
-    render(
-      <CloudSyncConsentDialog isSaving={false} onDecide={onDecide} />,
-    );
+    render(<CloudSyncConsentDialog isSaving={false} onDecide={onDecide} />);
 
     expect(
       screen.getByText(
@@ -26,9 +24,7 @@ describe('CloudSyncConsentDialog', () => {
 
   it('passes full asset permission only after the checkbox is selected', () => {
     const onDecide = vi.fn();
-    render(
-      <CloudSyncConsentDialog isSaving={false} onDecide={onDecide} />,
-    );
+    render(<CloudSyncConsentDialog isSaving={false} onDecide={onDecide} />);
 
     fireEvent.click(
       screen.getByRole('checkbox', { name: 'Allow full asset uploads' }),

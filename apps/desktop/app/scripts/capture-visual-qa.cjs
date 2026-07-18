@@ -38,17 +38,19 @@ if (!executable) {
 
 fs.rmSync(outputDirectory, { force: true, recursive: true });
 
-const child = spawn(path.join(executableDirectory, executable.name), [
-  '--visual-qa',
-], {
-  env: {
-    ...process.env,
-    ELECTRON_RUN_AS_NODE: '',
-    GENFEED_DESKTOP_VISUAL_QA: '1',
-    GENFEED_DESKTOP_VISUAL_QA_DIR: outputDirectory,
+const child = spawn(
+  path.join(executableDirectory, executable.name),
+  ['--visual-qa'],
+  {
+    env: {
+      ...process.env,
+      ELECTRON_RUN_AS_NODE: '',
+      GENFEED_DESKTOP_VISUAL_QA: '1',
+      GENFEED_DESKTOP_VISUAL_QA_DIR: outputDirectory,
+    },
+    stdio: 'inherit',
   },
-  stdio: 'inherit',
-});
+);
 
 const timeout = setTimeout(() => {
   child.kill('SIGTERM');

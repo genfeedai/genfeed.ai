@@ -74,19 +74,19 @@ function SidebarFooter({
         !isSyncing &&
         syncErrors.length === 0 &&
         lastSyncAt && (
-        <div className="sync-indicator sync-indicator-success">
-          <span>Synced {timeAgo(lastSyncAt)}</span>
-          <Button
-            className="sync-manual-btn"
-            onClick={onTriggerSync}
-            title="Sync now"
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-          >
-            ⟳
-          </Button>
-        </div>
-      )}
+          <div className="sync-indicator sync-indicator-success">
+            <span>Synced {timeAgo(lastSyncAt)}</span>
+            <Button
+              className="sync-manual-btn"
+              onClick={onTriggerSync}
+              title="Sync now"
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+            >
+              ⟳
+            </Button>
+          </div>
+        )}
 
       {session && !isCollapsed && syncState.pendingCount > 0 && (
         <div className="sync-indicator">

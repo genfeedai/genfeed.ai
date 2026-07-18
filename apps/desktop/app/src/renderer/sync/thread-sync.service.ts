@@ -307,10 +307,7 @@ export class ThreadSyncService {
       const asset = assetById.get(pushedAsset.localAssetId);
       if (
         !asset ||
-        !canUploadAssetContent(
-          asset.uploadPolicy,
-          allowFullAssetUploads,
-        )
+        !canUploadAssetContent(asset.uploadPolicy, allowFullAssetUploads)
       ) {
         continue;
       }

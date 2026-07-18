@@ -41,11 +41,7 @@ describe('TrendsView', () => {
     cloudApi.getTrends.mockRejectedValue(new Error('API unavailable'));
 
     render(
-      <TrendsView
-        isCloudConnected
-        isOnline
-        onGenerateFromTrend={vi.fn()}
-      />,
+      <TrendsView isCloudConnected isOnline onGenerateFromTrend={vi.fn()} />,
     );
 
     await waitFor(() =>
@@ -61,11 +57,7 @@ describe('TrendsView', () => {
     cloudApi.getTrends.mockResolvedValue([]);
 
     render(
-      <TrendsView
-        isCloudConnected
-        isOnline
-        onGenerateFromTrend={vi.fn()}
-      />,
+      <TrendsView isCloudConnected isOnline onGenerateFromTrend={vi.fn()} />,
     );
 
     await waitFor(() =>

@@ -74,11 +74,7 @@ const createPrismaMock = (rows: Array<Record<string, unknown>> = []) => {
       },
     },
     desktopSyncJob: {
-      deleteMany: async ({
-        where,
-      }: {
-        where: { type: { in: string[] } };
-      }) => {
+      deleteMany: async ({ where }: { where: { type: { in: string[] } } }) => {
         for (const [id, row] of syncJobs) {
           if (where.type.in.includes(String(row.type))) {
             syncJobs.delete(id);
