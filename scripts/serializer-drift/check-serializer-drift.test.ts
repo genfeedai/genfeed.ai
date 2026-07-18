@@ -411,6 +411,50 @@ describe('check-serializer-drift', () => {
     );
   });
 
+  it('does not let an intentional-unserialized entry hide ambiguous serializers', () => {
+    writeBaseFixture();
+    writeFixture(
+      'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
+      "export type { Widget as WidgetDocument } from '@genfeedai/prisma';",
+    );
+    writeSerializerTriplet({ fields: ['label'] });
+    writeFixture(
+      'packages/serializers/src/attributes/other/widget.attributes.ts',
+      [
+        "import { createEntityAttributes } from '@genfeedai/helpers';",
+        "export const widgetAttributes = createEntityAttributes(['label']);",
+      ].join('\n'),
+    );
+    writeFixture(
+      'packages/serializers/src/configs/other/widget.config.ts',
+      [
+        "import { widgetAttributes } from '@serializers/attributes/other/widget.attributes';",
+        "export const widgetSerializerConfig = { attributes: widgetAttributes, type: 'widget' };",
+      ].join('\n'),
+    );
+    writeFixture(
+      'packages/serializers/src/server/other/widget.serializer.ts',
+      [
+        "import { buildSerializer } from '@serializers/builders';",
+        "import { widgetSerializerConfig } from '@serializers/configs/other/widget.config';",
+        "export const { WidgetSerializer } = buildSerializer('server', widgetSerializerConfig);",
+      ].join('\n'),
+    );
+
+    const result = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+      unserializedSchemas: {
+        'widget:Widget': 'Must not suppress an ambiguous serializer match.',
+      },
+    });
+
+    expect(result.errors).toContain(
+      'Ambiguous serializer contract for widget:Widget: multiple canonical server serializer triplets found',
+    );
+    expect(result.classifiedUnserializedCount).toBe(0);
+  });
+
   it('reports serializer fields that have no model, document, or relationship backing', () => {
     writeBaseFixture();
     writeFixture(

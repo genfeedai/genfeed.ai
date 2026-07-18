@@ -22,10 +22,11 @@ serializer. The guard discovers canonical flat triplets, known renamed
 triplets, and serializers embedded in relationship configs.
 
 Prisma-backed documents without a standalone public serializer must have an
-explicit reason in `INTENTIONALLY_UNSERIALIZED_SCHEMAS`. This includes internal
-workflow records such as `Lead` and analytics storage models consumed by
-aggregate serializers, such as `ArticleAnalytics` and `PostAnalytics`. The
-guard fails when a schema is unclassified or when an exception becomes stale.
+explicit reason in `INTENTIONALLY_UNSERIALIZED_SCHEMAS`. This includes analytics
+storage models consumed by aggregate serializers, such as `ArticleAnalytics`
+and `PostAnalytics`. The guard fails when a schema is unclassified, when
+multiple serializers ambiguously target one schema, or when an exception
+becomes stale.
 
 ## Why
 

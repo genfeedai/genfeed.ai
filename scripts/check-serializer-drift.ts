@@ -31,7 +31,7 @@ const SERIALIZER_ROOT = 'packages/serializers/src';
  * coverage grows — running `bun run check:serializer-drift` prints the current
  * "Matched schema/serializer pairs" count.
  */
-const SERIALIZER_MATCH_FLOOR = 102;
+const SERIALIZER_MATCH_FLOOR = 103;
 
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
   analytic: 'analytics',
@@ -633,6 +633,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'dashboard-layout:DashboardLayout': [],
   'evaluation:Evaluation': [],
   'font-family:FontFamilyRecord': [],
+  'lead:Lead': [],
   'link:Link': [],
   'member:Member': [],
   'mood-board:MoodBoard': [],
@@ -802,8 +803,7 @@ const ANALYTICS_MODEL_REASON =
 export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'ad-bulk-upload-job:AdBulkUploadJob': OPERATIONAL_MODEL_REASON,
   'ad-creative-mapping:AdCreativeMapping': INTERNAL_MODEL_REASON,
-  'ad-optimization-audit-log:AdOptimizationAuditLog':
-    OPERATIONAL_MODEL_REASON,
+  'ad-optimization-audit-log:AdOptimizationAuditLog': OPERATIONAL_MODEL_REASON,
   'ad-optimization-config:AdOptimizationConfig': INTERNAL_MODEL_REASON,
   'ad-optimization-recommendation:AdOptimizationRecommendation':
     INTERNAL_MODEL_REASON,
@@ -811,8 +811,7 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'agent-goal:AgentGoal': INTERNAL_MODEL_REASON,
   'agent-memory:AgentMemory': INTERNAL_MODEL_REASON,
   'agent-message:AgentMessage': INTERNAL_MODEL_REASON,
-  'agent-strategy-opportunity:AgentStrategyOpportunity':
-    ANALYTICS_MODEL_REASON,
+  'agent-strategy-opportunity:AgentStrategyOpportunity': ANALYTICS_MODEL_REASON,
   'agent-strategy-report:AgentStrategyReport': ANALYTICS_MODEL_REASON,
   'agent-thread-event:AgentThreadEvent': OPERATIONAL_MODEL_REASON,
   'agent-thread-snapshot:AgentThreadSnapshot': OPERATIONAL_MODEL_REASON,
@@ -830,7 +829,6 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'customer:Customer': INTERNAL_MODEL_REASON,
   'forecast:Forecast': ANALYTICS_MODEL_REASON,
   'gif:Ingredient': INTERNAL_MODEL_REASON,
-  'lead:Lead': INTERNAL_MODEL_REASON,
   'link-click:LinkClick': ANALYTICS_MODEL_REASON,
   'mcp-approval:McpApproval': OPERATIONAL_MODEL_REASON,
   'pattern-playbook:PatternPlaybook': INTERNAL_MODEL_REASON,
@@ -843,8 +841,7 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'template-usage:TemplateUsage': ANALYTICS_MODEL_REASON,
   'thread-context-state:ThreadContextState': INTERNAL_MODEL_REASON,
   'trend-remix-lineage:TrendRemixLineage': ANALYTICS_MODEL_REASON,
-  'trend-source-reference-link:TrendSourceReferenceLink':
-    INTERNAL_MODEL_REASON,
+  'trend-source-reference-link:TrendSourceReferenceLink': INTERNAL_MODEL_REASON,
   'trend-source-reference-snapshot:TrendSourceReferenceSnapshot':
     INTERNAL_MODEL_REASON,
   'trend-source-reference:TrendSourceReference': INTERNAL_MODEL_REASON,
@@ -1738,29 +1735,24 @@ function collectNestedSerializerContracts(
 
   const imports = parseNamedImports(configContent);
   const contracts: SerializerInfo[] = [];
-  const relationshipRegex =
-    /^[ \t]*([A-Za-z_]\w*)[ \t]*:[ \t]*\{/gm;
+  const relationshipRegex = /^[ \t]*([A-Za-z_]\w*)[ \t]*:[ \t]*\{/gm;
   let relationshipMatch = relationshipRegex.exec(relationshipsBody);
 
   while (relationshipMatch) {
-    const openIndex = relationshipsBody.indexOf(
-      '{',
-      relationshipMatch.index,
-    );
-    const relationshipBody = extractBalancedBlock(
-      relationshipsBody,
-      openIndex,
-    );
+    const openIndex = relationshipsBody.indexOf('{', relationshipMatch.index);
+    const relationshipBody = extractBalancedBlock(relationshipsBody, openIndex);
     if (!relationshipBody) {
       relationshipMatch = relationshipRegex.exec(relationshipsBody);
       continue;
     }
     relationshipRegex.lastIndex = openIndex + relationshipBody.length + 2;
 
-    const basename =
-      /\btype\s*:\s*['"]([^'"]+)['"]/.exec(relationshipBody)?.[1];
-    const attributeName =
-      /\battributes\s*:\s*([A-Za-z_]\w*)/.exec(relationshipBody)?.[1];
+    const basename = /\btype\s*:\s*['"]([^'"]+)['"]/.exec(
+      relationshipBody,
+    )?.[1];
+    const attributeName = /\battributes\s*:\s*([A-Za-z_]\w*)/.exec(
+      relationshipBody,
+    )?.[1];
     const attributeImport = attributeName
       ? imports.get(attributeName)
       : undefined;
@@ -2194,19 +2186,28 @@ export function runCheckSerializerDrift(
       const discoveredSchemaKeys = new Set(
         discovered.schemas.map((schema) => projectionKey(schema)),
       );
-      const unmatchedSchemaKeys = new Set(
-        unmatchedSchemas.map(({ schema }) => projectionKey(schema)),
+      const missingSerializerSchemas = unmatchedSchemas.filter(
+        ({ reason }) =>
+          reason === 'No canonical server serializer triplet found',
       );
-      for (const key of unmatchedSchemaKeys) {
+      const missingSerializerSchemaKeys = new Set(
+        missingSerializerSchemas.map(({ schema }) => projectionKey(schema)),
+      );
+      for (const { reason, schema } of unmatchedSchemas) {
+        if (reason === 'Multiple canonical server serializer triplets found') {
+          errors.push(
+            `Ambiguous serializer contract for ${projectionKey(schema)}: multiple canonical server serializer triplets found`,
+          );
+        }
+      }
+      for (const key of missingSerializerSchemaKeys) {
         if (!unserializedSchemaContract[key]?.trim()) {
           errors.push(
             `Unmatched schema ${key} needs a reason in INTENTIONALLY_UNSERIALIZED_SCHEMAS`,
           );
         }
       }
-      for (const [key, reason] of Object.entries(
-        unserializedSchemaContract,
-      )) {
+      for (const [key, reason] of Object.entries(unserializedSchemaContract)) {
         if (!reason.trim()) {
           errors.push(
             `Intentional unserialized contract ${key} needs a non-empty reason`,
@@ -2215,7 +2216,7 @@ export function runCheckSerializerDrift(
           errors.push(
             `Intentional unserialized contract ${key} is stale: schema was not discovered`,
           );
-        } else if (!unmatchedSchemaKeys.has(key)) {
+        } else if (!missingSerializerSchemaKeys.has(key)) {
           errors.push(
             `Intentional unserialized contract ${key} is stale: schema now has a serializer`,
           );
@@ -2238,7 +2239,9 @@ export function runCheckSerializerDrift(
   }
 
   const classifiedUnserializedCount = unmatchedSchemas.filter(
-    ({ schema }) => unserializedSchemaContract[projectionKey(schema)]?.trim(),
+    ({ reason, schema }) =>
+      reason === 'No canonical server serializer triplet found' &&
+      unserializedSchemaContract[projectionKey(schema)]?.trim(),
   ).length;
 
   return {
