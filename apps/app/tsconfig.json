@@ -111,34 +111,6 @@
         "../../packages/next-config/tailwind.config.base.ts"
       ],
       "@genfeedai/ui": ["../../packages/ui/src/index.ts"],
-      "@genfeedai/workflow-ui": ["../../packages/workflow-ui/src/index.ts"],
-      "@genfeedai/workflow-ui/canvas": [
-        "../../packages/workflow-ui/src/canvas/index.ts"
-      ],
-      "@genfeedai/workflow-ui/hooks": [
-        "../../packages/workflow-ui/src/hooks/index.ts"
-      ],
-      "@genfeedai/workflow-ui/lib": [
-        "../../packages/workflow-ui/src/lib/index.ts"
-      ],
-      "@genfeedai/workflow-ui/nodes": [
-        "../../packages/workflow-ui/src/nodes/index.ts"
-      ],
-      "@genfeedai/workflow-ui/panels": [
-        "../../packages/workflow-ui/src/panels/index.ts"
-      ],
-      "@genfeedai/workflow-ui/provider": [
-        "../../packages/workflow-ui/src/provider/index.ts"
-      ],
-      "@genfeedai/workflow-ui/stores": [
-        "../../packages/workflow-ui/src/stores/index.ts"
-      ],
-      "@genfeedai/workflow-ui/toolbar": [
-        "../../packages/workflow-ui/src/toolbar/index.ts"
-      ],
-      "@genfeedai/workflow-ui/ui": [
-        "../../packages/workflow-ui/src/ui/index.ts"
-      ],
       "@helpers/*": ["../../packages/helpers/src/*"],
       "@hooks/*": ["../../packages/hooks/*"],
       "@models/*": ["../../packages/models/*"],

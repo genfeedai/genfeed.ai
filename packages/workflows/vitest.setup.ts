@@ -12,5 +12,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  cleanup();
+  if (typeof document !== 'undefined') {
+    cleanup();
+  }
 });
