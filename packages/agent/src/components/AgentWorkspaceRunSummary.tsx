@@ -118,6 +118,7 @@ export function AgentWorkspaceRunSummary({
   const loadRunDetail = useCallback((): Promise<void> => {
     detailRequestRef.current?.abort();
     if (!isRunDetailLoadable(authReady, isExpanded, selectedRunId)) {
+      setIsDetailLoading(false);
       setSelectedRun(null);
       setDetailError(null);
       return Promise.resolve();

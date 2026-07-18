@@ -34,11 +34,12 @@ function createFallbackAgentRunPagination(
 ): AgentRunPage['pagination'] {
   const limit = params.limit ?? 10;
   const page = params.page ?? 1;
+  const total = (page - 1) * limit + runs.length;
   return {
     limit,
     page,
-    pages: runs.length === 0 && page === 1 ? 0 : page,
-    total: (page - 1) * limit + runs.length,
+    pages: Math.ceil(total / limit),
+    total,
   };
 }
 

@@ -641,6 +641,18 @@ describe('AgentApiService', () => {
       });
     });
 
+    it('keeps empty fallback pagination internally consistent', async () => {
+      mockOk({ data: [] });
+      const service = makeService();
+
+      await expect(
+        Effect.runPromise(service.listRunsEffect({ limit: 10, page: 2 })),
+      ).resolves.toEqual({
+        pagination: { limit: 10, page: 2, pages: 1, total: 10 },
+        runs: [],
+      });
+    });
+
     it('omits empty optional run filters', async () => {
       mockOk({ data: [] });
       const service = makeService();
