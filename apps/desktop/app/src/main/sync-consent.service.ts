@@ -15,11 +15,48 @@ export function getAccountScopedSyncCursorKey(
   return `sync.${scope}.${cloudUserId}.cursor`;
 }
 
+export function assertActiveSyncAccount(
+  session: IDesktopSession | null,
+  cloudUserId: string,
+): IDesktopSession {
+  if (!session || session.userId !== cloudUserId) {
+    throw new Error(
+      'The active Genfeed Cloud account changed. Restart sync and try again.',
+    );
+  }
+
+  return session;
+}
+
 const pendingConsent = (cloudUserId: string): IDesktopSyncConsent => ({
-  allowFullAssetUploads: false,
+  hasFullAssetUploadConsent: false,
   cloudUserId,
   status: 'pending',
 });
+
+function normalizeStoredConsent(
+  stored: string,
+  cloudUserId: string,
+): IDesktopSyncConsent | null {
+  try {
+    const consent = JSON.parse(stored) as IDesktopSyncConsent;
+    if (
+      consent.cloudUserId !== cloudUserId ||
+      !['declined', 'granted'].includes(consent.status)
+    ) {
+      return null;
+    }
+
+    return {
+      ...consent,
+      hasFullAssetUploadConsent:
+        consent.status === 'granted' &&
+        consent.hasFullAssetUploadConsent === true,
+    };
+  } catch {
+    return null;
+  }
+}
 
 export class DesktopSyncConsentService {
   constructor(private readonly database: DesktopKvService) {}
@@ -27,7 +64,7 @@ export class DesktopSyncConsentService {
   getConsent(session: IDesktopSession | null): IDesktopSyncConsent {
     if (!session) {
       return {
-        allowFullAssetUploads: false,
+        hasFullAssetUploadConsent: false,
         status: 'not-required',
       };
     }
@@ -40,24 +77,10 @@ export class DesktopSyncConsentService {
       return pendingConsent(session.userId);
     }
 
-    try {
-      const consent = JSON.parse(stored) as IDesktopSyncConsent;
-      if (
-        consent.cloudUserId !== session.userId ||
-        !['declined', 'granted'].includes(consent.status)
-      ) {
-        return pendingConsent(session.userId);
-      }
-
-      return {
-        ...consent,
-        allowFullAssetUploads:
-          consent.status === 'granted' &&
-          consent.allowFullAssetUploads === true,
-      };
-    } catch {
-      return pendingConsent(session.userId);
-    }
+    return (
+      normalizeStoredConsent(stored, session.userId) ??
+      pendingConsent(session.userId)
+    );
   }
 
   async setConsent(
@@ -69,8 +92,8 @@ export class DesktopSyncConsentService {
     }
 
     const consent: IDesktopSyncConsent = {
-      allowFullAssetUploads:
-        input.status === 'granted' && input.allowFullAssetUploads,
+      hasFullAssetUploadConsent:
+        input.status === 'granted' && input.hasFullAssetUploadConsent,
       cloudUserId: session.userId,
       decidedAt: new Date().toISOString(),
       status: input.status,

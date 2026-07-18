@@ -19,9 +19,13 @@ Electron. Local data must not begin syncing merely because PKCE completed.
 
 - Keep the account-less choice persisted and skip the auth interstitial on
   later launches.
+- Package and serve `apps/desktop/app` as the Electron app shell. Do not point
+  Desktop build/dev scripts at `apps/app`; the Desktop renderer owns local
+  PGlite, native bridge, first-run, and sync-consent behavior.
 - Keep the local user/device IDs stable when a cloud account is connected.
 - Persist sync consent per cloud user; a different cloud account requires a new
-  decision.
+  decision. Carry the initiating cloud user ID through sync mutation IPC and
+  reject stale writes after the active account changes.
 - Sync threads and metadata only after consent is granted.
 - Upload full asset bytes only when consent allows it and the asset has
   `uploadPolicy=full`; never upload `uploadPolicy=never` assets.

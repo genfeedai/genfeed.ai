@@ -1,9 +1,10 @@
 const { spawn } = require('node:child_process');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
 const releaseDirectory = path.resolve(__dirname, '..', 'release');
-const outputDirectory = path.join(releaseDirectory, 'visual-qa');
+const outputDirectory = path.resolve(__dirname, '..', 'visual-qa');
 
 function findPackagedApp(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -54,7 +55,18 @@ const child = spawn(
 
 const timeout = setTimeout(() => {
   child.kill('SIGTERM');
+  setTimeout(() => {
+    if (child.exitCode === null) {
+      child.kill('SIGKILL');
+    }
+  }, 5_000).unref();
 }, 60_000);
+
+child.on('error', (error) => {
+  clearTimeout(timeout);
+  process.stderr.write(`Desktop visual QA failed to start: ${error.message}\n`);
+  process.exit(1);
+});
 
 child.on('exit', (code, signal) => {
   clearTimeout(timeout);
@@ -76,5 +88,22 @@ child.on('exit', (code, signal) => {
   );
   if (missing.length > 0) {
     throw new Error(`Missing visual QA screenshots: ${missing.join(', ')}`);
+  }
+
+  const hashes = new Set();
+  for (const filename of expected) {
+    const screenshot = fs.readFileSync(path.join(outputDirectory, filename));
+    if (screenshot.byteLength < 10_000) {
+      throw new Error(
+        `Visual QA screenshot is unexpectedly small: ${filename}`,
+      );
+    }
+    hashes.add(crypto.createHash('sha256').update(screenshot).digest('hex'));
+  }
+
+  if (hashes.size < 3) {
+    throw new Error(
+      'Visual QA screenshots do not prove three distinct desktop states.',
+    );
   }
 });

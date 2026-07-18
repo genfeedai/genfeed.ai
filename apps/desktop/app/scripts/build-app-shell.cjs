@@ -4,7 +4,7 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 
 const desktopRoot = path.resolve(__dirname, '..');
-const appRoot = path.resolve(desktopRoot, '../../app');
+const appRoot = desktopRoot;
 const apiEndpoint =
   process.env.GENFEED_DESKTOP_API_URL || 'https://api.genfeed.ai/v1';
 const apiBaseUrl = apiEndpoint.replace(/\/v1\/?$/, '');

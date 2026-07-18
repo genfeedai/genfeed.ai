@@ -447,14 +447,14 @@ export interface IDesktopSyncState {
 }
 
 export interface IDesktopSyncConsent {
-  allowFullAssetUploads: boolean;
+  hasFullAssetUploadConsent: boolean;
   cloudUserId?: string;
   decidedAt?: string;
   status: DesktopSyncConsentStatus;
 }
 
 export interface IDesktopSyncConsentInput {
-  allowFullAssetUploads: boolean;
+  hasFullAssetUploadConsent: boolean;
   status: 'declined' | 'granted';
 }
 
@@ -946,10 +946,16 @@ export interface IGenfeedDesktopBridge {
   };
   platform: string;
   sync: {
-    ackOps: (ops: IDesktopSyncOpAck[]) => Promise<void>;
-    applyBrandManifest: (manifest: IDesktopBrandManifest) => Promise<void>;
+    ackOps: (cloudUserId: string, ops: IDesktopSyncOpAck[]) => Promise<void>;
+    applyBrandManifest: (
+      cloudUserId: string,
+      manifest: IDesktopBrandManifest,
+    ) => Promise<void>;
     getConsent: () => Promise<IDesktopSyncConsent>;
-    getCursor: (scope?: DesktopSyncCursorScope) => Promise<string | null>;
+    getCursor: (
+      cloudUserId: string,
+      scope?: DesktopSyncCursorScope,
+    ) => Promise<string | null>;
     getJobs: (workspaceId?: string) => Promise<IDesktopSyncJob[]>;
     getOps: (workspaceId?: string) => Promise<IDesktopSyncOp[]>;
     getState: () => Promise<IDesktopSyncState>;
@@ -962,11 +968,16 @@ export interface IGenfeedDesktopBridge {
       workspaceId?: string,
       baseVersion?: string,
     ) => Promise<IDesktopSyncOp>;
-    recordAssetSync: (update: IDesktopAssetSyncUpdate) => Promise<void>;
+    recordAssetSync: (
+      cloudUserId: string,
+      update: IDesktopAssetSyncUpdate,
+    ) => Promise<void>;
     setConsent: (
+      cloudUserId: string,
       input: IDesktopSyncConsentInput,
     ) => Promise<IDesktopSyncConsent>;
     setCursor: (
+      cloudUserId: string,
       cursor: string,
       scope?: DesktopSyncCursorScope,
     ) => Promise<void>;

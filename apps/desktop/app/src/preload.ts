@@ -174,14 +174,22 @@ const desktopBridge: IGenfeedDesktopBridge = {
   },
   platform: process.platform,
   sync: {
-    ackOps: async (ops) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncAckOps, ops),
-    applyBrandManifest: async (manifest) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncApplyBrandManifest, manifest),
+    ackOps: async (cloudUserId, ops) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncAckOps, cloudUserId, ops),
+    applyBrandManifest: async (cloudUserId, manifest) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncApplyBrandManifest,
+        cloudUserId,
+        manifest,
+      ),
     getConsent: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetConsent),
-    getCursor: async (scope) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetCursor, scope),
+    getCursor: async (cloudUserId, scope) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncGetCursor,
+        cloudUserId,
+        scope,
+      ),
     getJobs: async (workspaceId) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetJobs, workspaceId),
     getOps: async (workspaceId) =>
@@ -210,12 +218,25 @@ const desktopBridge: IGenfeedDesktopBridge = {
         workspaceId,
         baseVersion,
       ),
-    recordAssetSync: async (update) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncRecordAssetSync, update),
-    setConsent: async (input) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncSetConsent, input),
-    setCursor: async (cursor: string, scope) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncSetCursor, cursor, scope),
+    recordAssetSync: async (cloudUserId, update) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncRecordAssetSync,
+        cloudUserId,
+        update,
+      ),
+    setConsent: async (cloudUserId, input) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncSetConsent,
+        cloudUserId,
+        input,
+      ),
+    setCursor: async (cloudUserId, cursor: string, scope) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncSetCursor,
+        cloudUserId,
+        cursor,
+        scope,
+      ),
     triggerThreads: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncTriggerThreads),
   },

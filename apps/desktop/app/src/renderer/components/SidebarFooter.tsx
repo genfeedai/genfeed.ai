@@ -121,7 +121,8 @@ function SidebarFooter({
               {session?.userName ?? (session ? 'User' : 'Local workspace')}
             </span>
             <span className="user-email">
-              {session?.userEmail ?? 'On this device'}
+              {session?.userEmail ??
+                (session ? 'Connected to Genfeed Cloud' : 'On this device')}
             </span>
           </div>
         </div>

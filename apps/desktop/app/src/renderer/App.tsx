@@ -1,4 +1,5 @@
 import type {
+  DesktopSyncConsentStatus,
   IDesktopBootstrap,
   IDesktopSession,
   IDesktopSyncConsentInput,
@@ -15,6 +16,7 @@ import { getDesktopEntrySurface } from './desktop-entry-surface';
 import { useThreads } from './hooks/useThreads';
 import MainView from './MainView';
 import type { NavView } from './nav-view';
+import { hasActiveAccountSyncConsent } from './sync/active-sync-consent';
 import { useSyncEngine } from './sync/useSyncEngine';
 import { initializeRendererTelemetry } from './telemetry';
 import type { DesktopAgentRunHandoff } from './views/AgentsView';
@@ -63,7 +65,7 @@ const emptyBootstrap: IDesktopBootstrap = {
   recents: [],
   session: null,
   syncConsent: {
-    allowFullAssetUploads: false,
+    hasFullAssetUploadConsent: false,
     status: 'not-required',
   },
   syncState: {
@@ -179,17 +181,21 @@ export const App = () => {
     threads,
   } = useThreads(selectedWorkspaceId, localUserId);
 
+  const hasActiveSyncConsent = hasActiveAccountSyncConsent(
+    bootstrap.session,
+    bootstrap.syncConsent,
+  );
   const {
     errors: syncErrors,
     isSyncing,
     lastSyncAt,
     triggerSync,
   } = useSyncEngine({
-    allowFullAssetUploads: bootstrap.syncConsent.allowFullAssetUploads,
+    hasFullAssetUploadConsent:
+      hasActiveSyncConsent && bootstrap.syncConsent.hasFullAssetUploadConsent,
     apiEndpoint: bootstrap.environment.apiEndpoint,
     localUserId,
-    session:
-      bootstrap.syncConsent.status === 'granted' ? bootstrap.session : null,
+    session: hasActiveSyncConsent ? bootstrap.session : null,
   });
 
   /* ─── Bootstrap ─── */
@@ -270,10 +276,13 @@ export const App = () => {
   }, []);
 
   const handleSyncConsent = useCallback(
-    async (input: IDesktopSyncConsentInput) => {
+    async (
+      cloudUserId: string,
+      input: IDesktopSyncConsentInput,
+    ): Promise<void> => {
       dispatch({ type: 'SET_SYNC_CONSENT_SAVING', payload: true });
       try {
-        await window.genfeedDesktop.sync.setConsent(input);
+        await window.genfeedDesktop.sync.setConsent(cloudUserId, input);
         dispatch({ type: 'SET_SYNC_CONSENT_REVIEW', payload: false });
       } catch (error) {
         Sentry.captureException(error);
@@ -282,6 +291,20 @@ export const App = () => {
       }
     },
     [],
+  );
+
+  const handleSyncConsentDismiss = useCallback(
+    (cloudUserId: string, status: DesktopSyncConsentStatus) => {
+      if (status === 'pending') {
+        void handleSyncConsent(cloudUserId, {
+          hasFullAssetUploadConsent: false,
+          status: 'declined',
+        });
+        return;
+      }
+      dispatch({ type: 'SET_SYNC_CONSENT_REVIEW', payload: false });
+    },
+    [handleSyncConsent],
   );
 
   /* ─── Navigation ─── */
@@ -464,7 +487,15 @@ export const App = () => {
           isSyncConsentReviewOpen) && (
           <CloudSyncConsentDialog
             isSaving={isSyncConsentSaving}
-            onDecide={(input) => void handleSyncConsent(input)}
+            onDecide={(input) =>
+              void handleSyncConsent(bootstrap.session.userId, input)
+            }
+            onDismiss={() =>
+              handleSyncConsentDismiss(
+                bootstrap.session.userId,
+                bootstrap.syncConsent.status,
+              )
+            }
           />
         )}
     </div>

@@ -1,15 +1,20 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import AuthActionSurface from '@ui/layouts/auth/AuthActionSurface';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 export const AuthScreen = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isOfflineLoading, setIsOfflineLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    'accountless' | 'login' | null
+  >(null);
+  const pendingActionRef = useRef<'accountless' | 'login' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleBrowserLogin = async (): Promise<void> => {
-    setIsLoading(true);
+    if (pendingActionRef.current) return;
+
+    pendingActionRef.current = 'login';
+    setPendingAction('login');
     setError(null);
 
     try {
@@ -25,12 +30,18 @@ export const AuthScreen = () => {
           : 'Failed to open browser. Please try again.',
       );
     } finally {
-      setIsLoading(false);
+      if (pendingActionRef.current === 'login') {
+        pendingActionRef.current = null;
+        setPendingAction(null);
+      }
     }
   };
 
   const handleContinueOffline = async (): Promise<void> => {
-    setIsOfflineLoading(true);
+    if (pendingActionRef.current) return;
+
+    pendingActionRef.current = 'accountless';
+    setPendingAction('accountless');
     setError(null);
 
     try {
@@ -42,7 +53,10 @@ export const AuthScreen = () => {
           : 'Failed to continue offline. Please try again.',
       );
     } finally {
-      setIsOfflineLoading(false);
+      if (pendingActionRef.current === 'accountless') {
+        pendingActionRef.current = null;
+        setPendingAction(null);
+      }
     }
   };
 
@@ -58,23 +72,23 @@ export const AuthScreen = () => {
             <>
               <Button
                 className="auth-btn"
-                disabled={isLoading || isOfflineLoading}
+                disabled={pendingAction !== null}
                 onClick={() => void handleBrowserLogin()}
                 type="button"
                 variant={ButtonVariant.DEFAULT}
               >
-                {isLoading
+                {pendingAction === 'login'
                   ? 'Opening browser...'
                   : 'Sign in with Genfeed Cloud'}
               </Button>
               <Button
                 className="auth-btn"
-                disabled={isLoading || isOfflineLoading}
+                disabled={pendingAction !== null}
                 onClick={() => void handleContinueOffline()}
                 type="button"
                 variant={ButtonVariant.SECONDARY}
               >
-                {isOfflineLoading
+                {pendingAction === 'accountless'
                   ? 'Opening local workspace...'
                   : 'Continue without an account'}
               </Button>

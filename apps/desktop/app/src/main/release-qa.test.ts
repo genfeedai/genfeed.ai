@@ -47,6 +47,36 @@ describe('desktop release QA', () => {
     );
   });
 
+  it('packages the implemented Desktop renderer instead of the SaaS shell', () => {
+    const buildShell = readText('apps/desktop/app/scripts/build-app-shell.cjs');
+    const copyShell = readText('apps/desktop/app/scripts/copy-app-shell.cjs');
+    const devShell = readText('apps/desktop/app/scripts/dev.cjs');
+
+    for (const shellScript of [buildShell, copyShell, devShell]) {
+      expect(shellScript).toContain('const appRoot = desktopRoot;');
+      expect(shellScript).not.toContain("'../../app'");
+    }
+  });
+
+  it('requires distinct screenshots with visible first-run state markers', () => {
+    const captureScript = readText(
+      'apps/desktop/app/scripts/capture-visual-qa.cjs',
+    );
+    const mainProcess = readText('apps/desktop/app/src/main.ts');
+    const releaseWorkflow = readText('.github/workflows/desktop-release.yml');
+
+    expect(captureScript).toContain("'SIGKILL'");
+    expect(captureScript).toContain('screenshot.byteLength < 10_000');
+    expect(captureScript).toContain('hashes.size < 3');
+    expect(mainProcess).toContain("'Continue without an account'");
+    expect(mainProcess).toContain("'Connect Genfeed Cloud'");
+    expect(mainProcess).toContain("'Choose what leaves this device'");
+    expect(releaseWorkflow).toContain('apps/desktop/app/visual-qa/*.png');
+    expect(releaseWorkflow).not.toContain(
+      'apps/desktop/app/release/visual-qa/*.png',
+    );
+  });
+
   it('documents the manual desktop release evidence checklist', () => {
     const checklist = readText('apps/desktop/RELEASE_QA.md');
 

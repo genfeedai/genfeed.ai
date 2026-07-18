@@ -2,34 +2,63 @@ import type { IDesktopSyncConsentInput } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
-import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
+import { useRef, useState } from 'react';
 
 interface CloudSyncConsentDialogProps {
   isSaving: boolean;
   onDecide: (input: IDesktopSyncConsentInput) => void;
+  onDismiss: () => void;
 }
 
 export default function CloudSyncConsentDialog({
   isSaving,
   onDecide,
+  onDismiss,
 }: CloudSyncConsentDialogProps) {
-  const [allowFullAssetUploads, setAllowFullAssetUploads] = useState(false);
+  const [hasFullAssetUploadConsent, setHasFullAssetUploadConsent] =
+    useState(false);
+  const notNowRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <div
-      aria-labelledby="cloud-sync-consent-title"
-      aria-modal="true"
-      className="sync-consent-backdrop"
-      role="dialog"
+    <Dialog
+      onOpenChange={(open) => {
+        if (!open && !isSaving) {
+          onDismiss();
+        }
+      }}
+      open
     >
-      <div className="sync-consent-dialog">
-        <div>
+      <DialogContent
+        className="sync-consent-dialog"
+        onEscapeKeyDown={(event) => {
+          if (isSaving) {
+            event.preventDefault();
+          }
+        }}
+        onInteractOutside={(event) => event.preventDefault()}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          notNowRef.current?.focus();
+        }}
+        showCloseButton={false}
+      >
+        <DialogHeader>
           <span className="sync-consent-eyebrow">Genfeed Cloud connected</span>
-          <h2 id="cloud-sync-consent-title">Choose what leaves this device</h2>
-          <p className="muted-text">
+          <DialogTitle id="cloud-sync-consent-title">
+            Choose what leaves this device
+          </DialogTitle>
+          <DialogDescription className="muted-text">
             Sync stays off until you make an explicit choice.
-          </p>
-        </div>
+          </DialogDescription>
+        </DialogHeader>
 
         <ul className="sync-consent-list">
           <li>Threads sync with your connected Genfeed Cloud account.</li>
@@ -46,10 +75,10 @@ export default function CloudSyncConsentDialog({
         <div className="sync-consent-option">
           <Checkbox
             aria-label="Allow full asset uploads"
-            checked={allowFullAssetUploads}
+            checked={hasFullAssetUploadConsent}
             disabled={isSaving}
             onCheckedChange={(checked) =>
-              setAllowFullAssetUploads(checked === true)
+              setHasFullAssetUploadConsent(checked === true)
             }
           />
           <div>
@@ -60,15 +89,11 @@ export default function CloudSyncConsentDialog({
           </div>
         </div>
 
-        <div className="sync-consent-actions">
+        <DialogFooter className="sync-consent-actions">
           <Button
             disabled={isSaving}
-            onClick={() =>
-              onDecide({
-                allowFullAssetUploads: false,
-                status: 'declined',
-              })
-            }
+            onClick={onDismiss}
+            ref={notNowRef}
             type="button"
             variant={ButtonVariant.GHOST}
           >
@@ -78,7 +103,7 @@ export default function CloudSyncConsentDialog({
             disabled={isSaving}
             onClick={() =>
               onDecide({
-                allowFullAssetUploads,
+                hasFullAssetUploadConsent,
                 status: 'granted',
               })
             }
@@ -87,8 +112,8 @@ export default function CloudSyncConsentDialog({
           >
             {isSaving ? 'Saving…' : 'Start sync'}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

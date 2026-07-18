@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/desktop-contracts';
 import type { DesktopKvService } from './kv.service';
 import {
+  assertActiveSyncAccount,
   DesktopSyncConsentService,
   getAccountScopedSyncCursorKey,
 } from './sync-consent.service';
@@ -37,12 +38,12 @@ describe('DesktopSyncConsentService', () => {
     });
 
     await service.setConsent(session('cloud-user-1'), {
-      allowFullAssetUploads: false,
+      hasFullAssetUploadConsent: false,
       status: 'granted',
     });
 
     expect(service.getConsent(session('cloud-user-1'))).toMatchObject({
-      allowFullAssetUploads: false,
+      hasFullAssetUploadConsent: false,
       cloudUserId: 'cloud-user-1',
       status: 'granted',
     });
@@ -56,12 +57,12 @@ describe('DesktopSyncConsentService', () => {
     const service = new DesktopSyncConsentService(createKvMock());
 
     const consent = await service.setConsent(session('cloud-user-1'), {
-      allowFullAssetUploads: true,
+      hasFullAssetUploadConsent: true,
       status: 'declined',
     });
 
     expect(consent).toMatchObject({
-      allowFullAssetUploads: false,
+      hasFullAssetUploadConsent: false,
       status: 'declined',
     } satisfies Partial<IDesktopSyncConsent>);
   });
@@ -70,7 +71,7 @@ describe('DesktopSyncConsentService', () => {
     const service = new DesktopSyncConsentService(createKvMock());
 
     expect(service.getConsent(null)).toEqual({
-      allowFullAssetUploads: false,
+      hasFullAssetUploadConsent: false,
       status: 'not-required',
     });
   });
@@ -82,5 +83,60 @@ describe('DesktopSyncConsentService', () => {
     expect(getAccountScopedSyncCursorKey('cloud-user-2', 'brandManifest')).toBe(
       'sync.brandManifest.cloud-user-2.cursor',
     );
+  });
+
+  it('rejects stale sync work after the active account changes', () => {
+    expect(
+      assertActiveSyncAccount(session('cloud-user-1'), 'cloud-user-1'),
+    ).toMatchObject({ userId: 'cloud-user-1' });
+    expect(() =>
+      assertActiveSyncAccount(session('cloud-user-2'), 'cloud-user-1'),
+    ).toThrow('active Genfeed Cloud account changed');
+    expect(() => assertActiveSyncAccount(null, 'cloud-user-1')).toThrow(
+      'active Genfeed Cloud account changed',
+    );
+  });
+
+  it('requires a new decision when stored consent is corrupt or mismatched', () => {
+    const database = createKvMock();
+    const service = new DesktopSyncConsentService(database);
+
+    database.values.set('desktop.sync.consent.cloud-user-1', '{broken-json');
+    expect(service.getConsent(session('cloud-user-1'))).toMatchObject({
+      cloudUserId: 'cloud-user-1',
+      status: 'pending',
+    });
+
+    database.values.set(
+      'desktop.sync.consent.cloud-user-1',
+      JSON.stringify({
+        cloudUserId: 'cloud-user-2',
+        hasFullAssetUploadConsent: true,
+        status: 'granted',
+      }),
+    );
+    expect(service.getConsent(session('cloud-user-1'))).toMatchObject({
+      cloudUserId: 'cloud-user-1',
+      status: 'pending',
+    });
+  });
+
+  it('strips full-asset permission from a rehydrated declined decision', () => {
+    const database = createKvMock();
+    const service = new DesktopSyncConsentService(database);
+
+    database.values.set(
+      'desktop.sync.consent.cloud-user-1',
+      JSON.stringify({
+        cloudUserId: 'cloud-user-1',
+        hasFullAssetUploadConsent: true,
+        status: 'declined',
+      }),
+    );
+
+    expect(service.getConsent(session('cloud-user-1'))).toMatchObject({
+      hasFullAssetUploadConsent: false,
+      status: 'declined',
+    });
   });
 });

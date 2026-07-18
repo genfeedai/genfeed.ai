@@ -11,7 +11,7 @@ export function canSyncAssetMetadata(
 
 export function canUploadAssetContent(
   uploadPolicy: DesktopAssetUploadPolicy,
-  allowFullAssetUploads: boolean,
+  hasFullAssetUploadConsent: boolean,
 ): boolean {
-  return allowFullAssetUploads && uploadPolicy === 'full';
+  return hasFullAssetUploadConsent && uploadPolicy === 'full';
 }

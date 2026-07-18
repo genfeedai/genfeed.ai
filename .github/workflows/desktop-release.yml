@@ -92,14 +92,19 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: genfeed-desktop-macos
-          path: apps/desktop/app/release/*
+          path: |
+            apps/desktop/app/release/*.dmg
+            apps/desktop/app/release/*.zip
+            apps/desktop/app/release/*.blockmap
+            apps/desktop/app/release/*.yml
+            apps/desktop/app/release/genfeed-desktop-release.json
           if-no-files-found: error
 
       - name: Upload visual QA screenshots
         uses: actions/upload-artifact@v7
         with:
           name: genfeed-desktop-visual-qa
-          path: apps/desktop/app/release/visual-qa/*.png
+          path: apps/desktop/app/visual-qa/*.png
           if-no-files-found: error
 
   publish-desktop-release:

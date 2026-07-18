@@ -56,6 +56,7 @@ import { DesktopSessionService } from './main/session.service';
 import { DesktopShortcutsService } from './main/shortcuts.service';
 import { DesktopSyncService } from './main/sync.service';
 import {
+  assertActiveSyncAccount,
   DesktopSyncConsentService,
   getAccountScopedSyncCursorKey,
 } from './main/sync-consent.service';
@@ -144,12 +145,11 @@ const DESKTOP_AUTHORITY: IDesktopAuthoritySummary = {
 const OFFLINE_MODE_KEY = 'desktop.offline.mode';
 const ACTIVE_WORKSPACE_ID_KEY = 'desktop.workspace.activeId';
 
-function getSyncCursorKey(scope: DesktopSyncCursorScope = 'threads'): string {
-  const cloudUserId = sessionService.getSession()?.userId;
-  if (!cloudUserId) {
-    throw new Error('Connect Genfeed Cloud before accessing sync state.');
-  }
-
+function getSyncCursorKey(
+  cloudUserId: string,
+  scope: DesktopSyncCursorScope = 'threads',
+): string {
+  assertActiveSyncAccount(sessionService.getSession(), cloudUserId);
   return getAccountScopedSyncCursorKey(cloudUserId, scope);
 }
 
@@ -459,12 +459,21 @@ const waitForVisualQaPaint = async (): Promise<void> => {
 const captureVisualQaScreenshot = async (
   outputDirectory: string,
   filename: string,
+  expectedText: string,
 ): Promise<void> => {
   if (!mainWindow) {
     throw new Error('Desktop visual QA window is unavailable.');
   }
 
   await waitForVisualQaPaint();
+  const hasExpectedState = await mainWindow.webContents.executeJavaScript(
+    `document.body?.innerText.includes(${JSON.stringify(expectedText)}) === true`,
+  );
+  if (!hasExpectedState) {
+    throw new Error(
+      `Desktop visual QA state "${expectedText}" was not visible for ${filename}.`,
+    );
+  }
   const image = await mainWindow.webContents.capturePage();
   fs.mkdirSync(outputDirectory, { recursive: true });
   fs.writeFileSync(path.join(outputDirectory, filename), image.toPNG());
@@ -510,7 +519,11 @@ const captureVisualQa = async (): Promise<void> => {
     throw new Error('GENFEED_DESKTOP_VISUAL_QA_DIR is required.');
   }
 
-  await captureVisualQaScreenshot(outputDirectory, 'first-run.png');
+  await captureVisualQaScreenshot(
+    outputDirectory,
+    'first-run.png',
+    'Continue without an account',
+  );
 
   isOfflineMode = true;
   kvService.setValueSync(OFFLINE_MODE_KEY, '1');
@@ -518,12 +531,14 @@ const captureVisualQa = async (): Promise<void> => {
   await captureVisualQaScreenshot(
     outputDirectory,
     'account-less-workspace.png',
+    'Connect Genfeed Cloud',
   );
 
   await reloadVisualQaWindow();
   await captureVisualQaScreenshot(
     outputDirectory,
     'returning-account-less.png',
+    'Connect Genfeed Cloud',
   );
 
   const session: IDesktopBootstrap['session'] = {
@@ -540,7 +555,11 @@ const captureVisualQa = async (): Promise<void> => {
   kvService.setValueSync(OFFLINE_MODE_KEY, '0');
   await emitSession();
   await emitBootstrap();
-  await captureVisualQaScreenshot(outputDirectory, 'reconnect-consent.png');
+  await captureVisualQaScreenshot(
+    outputDirectory,
+    'reconnect-consent.png',
+    'Choose what leaves this device',
+  );
 };
 
 const handleAuthCallback = async (rawUrl: string): Promise<void> => {
@@ -886,14 +905,20 @@ const registerIpcHandlers = (): void => {
 
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncAckOps,
-    async (_event: unknown, ops: IDesktopSyncOpAck[]) => {
+    async (_event: unknown, cloudUserId: string, ops: IDesktopSyncOpAck[]) => {
+      assertActiveSyncAccount(sessionService.getSession(), cloudUserId);
       await syncService.ackOps(ops);
       await emitBootstrap();
     },
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncApplyBrandManifest,
-    async (_event: unknown, manifest: IDesktopBrandManifest) => {
+    async (
+      _event: unknown,
+      cloudUserId: string,
+      manifest: IDesktopBrandManifest,
+    ) => {
+      assertActiveSyncAccount(sessionService.getSession(), cloudUserId);
       await syncService.applyBrandManifest(manifest);
       await emitBootstrap();
     },
@@ -936,7 +961,12 @@ const registerIpcHandlers = (): void => {
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncRecordAssetSync,
-    async (_event: unknown, update: IDesktopAssetSyncUpdate) => {
+    async (
+      _event: unknown,
+      cloudUserId: string,
+      update: IDesktopAssetSyncUpdate,
+    ) => {
+      assertActiveSyncAccount(sessionService.getSession(), cloudUserId);
       await syncService.recordAssetSync(update);
       await emitBootstrap();
     },
@@ -948,11 +978,16 @@ const registerIpcHandlers = (): void => {
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncSetConsent,
-    async (_event: unknown, input: IDesktopSyncConsentInput) => {
-      const consent = await syncConsentService.setConsent(
+    async (
+      _event: unknown,
+      cloudUserId: string,
+      input: IDesktopSyncConsentInput,
+    ) => {
+      const session = assertActiveSyncAccount(
         sessionService.getSession(),
-        input,
+        cloudUserId,
       );
+      const consent = await syncConsentService.setConsent(session, input);
       await emitBootstrap();
       if (consent.status === 'granted') {
         mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.syncThreadsRequested);
@@ -962,13 +997,21 @@ const registerIpcHandlers = (): void => {
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncGetCursor,
-    async (_event: unknown, scope?: DesktopSyncCursorScope) =>
-      kvService.getValueSync(getSyncCursorKey(scope)),
+    async (
+      _event: unknown,
+      cloudUserId: string,
+      scope?: DesktopSyncCursorScope,
+    ) => kvService.getValueSync(getSyncCursorKey(cloudUserId, scope)),
   );
   ipcMain.handle(
     DESKTOP_IPC_CHANNELS.syncSetCursor,
-    async (_event: unknown, cursor: string, scope?: DesktopSyncCursorScope) => {
-      kvService.setValueSync(getSyncCursorKey(scope), cursor);
+    async (
+      _event: unknown,
+      cloudUserId: string,
+      cursor: string,
+      scope?: DesktopSyncCursorScope,
+    ) => {
+      kvService.setValueSync(getSyncCursorKey(cloudUserId, scope), cursor);
     },
   );
 
