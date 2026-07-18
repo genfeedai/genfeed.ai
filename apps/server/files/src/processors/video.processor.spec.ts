@@ -179,6 +179,9 @@ describe('VideoProcessor', () => {
       redisService,
       loggerService as unknown as never,
     );
+    const remotionRenderJobService = {
+      process: vi.fn().mockResolvedValue({ success: true }),
+    };
 
     // VideoProcessor constructor order: FFmpegService, HookRemixService,
     // VideoMergeJobService, S3Service, WebSocketService, RedisService,
@@ -191,6 +194,7 @@ describe('VideoProcessor', () => {
       webSocketService as unknown as never,
       redisService,
       loggerService as unknown as never,
+      remotionRenderJobService as never,
     );
   });
 
@@ -238,6 +242,17 @@ describe('VideoProcessor', () => {
       await processor.process(job);
 
       expect(ffmpegService.resizeVideo).toHaveBeenCalled();
+    });
+
+    it('should route editor compositions to the pinned Remotion renderer', async () => {
+      const job = createMockJob(
+        JOB_TYPES.RENDER_EDITOR_COMPOSITION,
+        createMockJobData(),
+      );
+
+      await processor.process(job);
+
+      expect(remotionRenderJobService.process).toHaveBeenCalledWith(job);
     });
 
     it('should route ADD_CAPTIONS job correctly', async () => {

@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import {
@@ -14,22 +13,23 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   EditorTrackType,
-  FileInputType,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
-import type {
-  IEditorExportCompositionSnapshot,
-  IFileProcessingParams,
+import {
+  EDITOR_RENDERER_VERSION,
+  type IEditorExportAssetReference,
+  type IEditorRenderJobParams,
+  type IEditorRenderOutputMetadata,
+  type IValidatedEditorExportContract,
 } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 interface RenderResult {
   jobId: string;
@@ -37,13 +37,33 @@ interface RenderResult {
   status: string;
 }
 
+interface TrustedRenderContract {
+  brandId?: string;
+  contract: IEditorRenderJobParams;
+}
+
+const ALLOWED_ASSET_CATEGORIES: Record<
+  Exclude<EditorTrackType, EditorTrackType.TEXT>,
+  ReadonlySet<string>
+> = {
+  [EditorTrackType.AUDIO]: new Set([
+    IngredientCategory.AUDIO,
+    IngredientCategory.MUSIC,
+    IngredientCategory.VOICE,
+  ]),
+  [EditorTrackType.VIDEO]: new Set([
+    IngredientCategory.AVATAR,
+    IngredientCategory.VIDEO,
+    IngredientCategory.VIDEO_EDIT,
+  ]),
+};
+
 @Injectable()
 export class EditorRenderService {
   constructor(
     private readonly configService: ConfigService,
     private readonly editorProjectsService: EditorProjectsService,
     private readonly fileQueueService: FileQueueService,
-    private readonly filesClientService: FilesClientService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
@@ -57,11 +77,11 @@ export class EditorRenderService {
       id,
       orgId,
     );
-    let snapshot: IEditorExportCompositionSnapshot;
+    let validatedContract: IValidatedEditorExportContract;
 
     try {
-      snapshot =
-        buildValidatedEditorExportContract(projectForValidation).snapshot;
+      validatedContract =
+        buildValidatedEditorExportContract(projectForValidation);
     } catch (error: unknown) {
       if (error instanceof EditorExportContractValidationError) {
         throw new UnprocessableEntityException({
@@ -73,45 +93,51 @@ export class EditorRenderService {
       throw error;
     }
 
-    this.validateCurrentRendererCapability(snapshot);
+    const { brandId, contract } = await this.authorizeAndTrustAssets(
+      validatedContract,
+      orgId,
+    );
 
-    // Atomic CAS: only transitions DRAFT/COMPLETED/FAILED -> RENDERING
-    await this.editorProjectsService.markAsRendering(id, orgId);
+    await this.editorProjectsService.markAsRendering(id, orgId, {
+      ...contract,
+      queuedAt: new Date().toISOString(),
+    });
+
+    let outputIngredientId: string | undefined;
 
     try {
-      const renderParams = await this.extractRenderParams(snapshot, orgId);
-
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
-          brand: renderParams.brandId,
+          brand: brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
-          height: renderParams.height,
+          height: contract.snapshot.settings.height,
           organizationId: orgId,
-          parentId: renderParams.videoId,
+          parentId: contract.assetManifest.find(
+            (asset) => asset.type === EditorTrackType.VIDEO,
+          )?.ingredientId,
           status: IngredientStatus.PROCESSING,
-          width: renderParams.width,
+          width: contract.snapshot.settings.width,
         });
 
+      const ingredientId = ingredientData.id.toString();
+      outputIngredientId = ingredientId;
       const jobResponse = await this.fileQueueService.processVideo({
         authProviderUserId: user.id,
-        ingredientId: ingredientData.id.toString(),
+        ingredientId,
         organizationId: orgId,
-        params: renderParams.jobParams,
+        params: contract,
         room: getUserRoomName(user.id),
-        type: renderParams.jobType,
+        type: 'render-editor-composition',
         userId: publicMetadata.user,
-        websocketUrl: `/videos/${ingredientData.id}`,
+        websocketUrl: `/videos/${ingredientId}`,
       });
 
-      // Handle async completion in background
       this.handleAsyncCompletion(
         id,
-        ingredientData.id.toString(),
+        ingredientId,
         metadataData.id.toString(),
         jobResponse.jobId,
-        renderParams.hasTextOverlay,
-        renderParams.textLabel,
         user,
       );
 
@@ -121,181 +147,86 @@ export class EditorRenderService {
         status: 'rendering',
       };
     } catch (error: unknown) {
-      // Rollback status to FAILED on post-transition failure
-      await this.editorProjectsService.markAsFailed(id);
+      await Promise.all([
+        this.editorProjectsService.markAsFailed(id),
+        ...(outputIngredientId
+          ? [
+              this.ingredientsService.patch(outputIngredientId, {
+                status: IngredientStatus.FAILED,
+              }),
+            ]
+          : []),
+      ]);
       throw error;
     }
   }
 
-  private validateCurrentRendererCapability(
-    project: IEditorExportCompositionSnapshot,
-  ): void {
-    const videoTracks = project.tracks.filter(
-      (t) => t.type === EditorTrackType.VIDEO,
-    );
-    const audioTracks = project.tracks.filter(
-      (t) => t.type === EditorTrackType.AUDIO,
-    );
-    const textTracks = project.tracks.filter(
-      (t) => t.type === EditorTrackType.TEXT,
-    );
+  private async authorizeAndTrustAssets(
+    validatedContract: IValidatedEditorExportContract,
+    organizationId: string,
+  ): Promise<TrustedRenderContract> {
+    const trustedUrlByClipId = new Map<string, string>();
+    let brandId: string | undefined;
 
-    if (videoTracks.length === 0) {
-      throw new UnprocessableEntityException(
-        'Project must have at least 1 video track to render',
+    for (const asset of validatedContract.assetManifest) {
+      const ingredient = await this.ingredientsService.findOne({
+        id: asset.ingredientId,
+        isDeleted: false,
+        organizationId,
+      });
+
+      if (!ingredient) {
+        throw new NotFoundException('Source asset');
+      }
+
+      const category = String(ingredient.category)
+        .toLowerCase()
+        .replaceAll('_', '-');
+      if (!ALLOWED_ASSET_CATEGORIES[asset.type].has(category)) {
+        throw new UnprocessableEntityException(
+          `Asset ${asset.ingredientId} is not valid for a ${asset.type} track.`,
+        );
+      }
+
+      trustedUrlByClipId.set(
+        asset.clipId,
+        `${this.configService.ingredientsEndpoint}/${category}s/${asset.ingredientId}`,
       );
+
+      if (asset.type === EditorTrackType.VIDEO && !brandId) {
+        const ingredientBrand = ingredient.brandId ?? ingredient.brand;
+        if (typeof ingredientBrand === 'string') {
+          brandId = ingredientBrand;
+        }
+      }
     }
 
-    if (videoTracks.length > 1) {
-      throw new UnprocessableEntityException(
-        'Multi-track rendering is not yet supported. Please use a single video track.',
-      );
-    }
-
-    const videoTrack = videoTracks[0];
-    if (videoTrack.clips.length === 0) {
-      throw new UnprocessableEntityException(
-        'Video track must have at least 1 clip',
-      );
-    }
-
-    if (videoTrack.clips.length > 1) {
-      throw new UnprocessableEntityException(
-        'Multi-clip timelines are not yet supported. Please use a single video clip.',
-      );
-    }
-
-    if (audioTracks.length > 0) {
-      throw new UnprocessableEntityException(
-        'Audio tracks require the multi-track renderer and cannot be rendered by the current version.',
-      );
-    }
-
-    if (textTracks.length > 1) {
-      throw new UnprocessableEntityException(
-        'Only 1 text track is supported for rendering in the current version.',
-      );
-    }
-
-    if (textTracks.length === 1 && textTracks[0].clips.length > 1) {
-      throw new UnprocessableEntityException(
-        'Only 1 text clip is supported for rendering in the current version.',
-      );
-    }
-  }
-
-  private async extractRenderParams(
-    project: IEditorExportCompositionSnapshot,
-    orgId: string,
-  ) {
-    const videoTrack = project.tracks.find(
-      (t) => t.type === EditorTrackType.VIDEO,
-    );
-    if (!videoTrack) {
-      throw new UnprocessableEntityException(
-        'Project must have at least 1 video track to render',
-      );
-    }
-    const textTrack = project.tracks.find(
-      (t) => t.type === EditorTrackType.TEXT,
-    );
-
-    const clip = videoTrack.clips[0];
-    const videoId = clip.ingredientId;
-    const fps = project.settings.fps;
-
-    // Validate source video ownership
-    const video = await this.ingredientsService.findOne({
-      id: videoId,
-      category: IngredientCategory.VIDEO,
-      isDeleted: false,
-      organizationId: orgId,
+    const trustAsset = (
+      asset: IEditorExportAssetReference,
+    ): IEditorExportAssetReference => ({
+      ...asset,
+      ingredientUrl:
+        trustedUrlByClipId.get(asset.clipId) ?? asset.ingredientUrl,
     });
-
-    if (!video) {
-      throw new NotFoundException('Source video');
-    }
-
-    const metadata = await this.metadataService.findOne({
-      ingredient: videoId,
-    });
-
-    const width = metadata?.width || 1920;
-    const height = metadata?.height || 1080;
-    const totalSourceDuration = metadata?.duration || 10;
-
-    // Determine trim
-    const sourceStartFrame = clip.sourceStartFrame || 0;
-    const sourceEndFrame =
-      clip.sourceEndFrame || Math.round(totalSourceDuration * fps);
-
-    const startTime = sourceStartFrame / fps;
-    const endTime = sourceEndFrame / fps;
-
-    const isTrimmed =
-      sourceStartFrame > 0 || endTime < totalSourceDuration - 0.1;
-
-    // Check for text overlay
-    const textClip =
-      textTrack && textTrack.clips.length > 0 ? textTrack.clips[0] : undefined;
-    const textOverlay = textClip?.textOverlay;
-    const hasTextOverlay = Boolean(textOverlay?.text);
-    const textLabel = textOverlay?.text ?? '';
-
-    const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${videoId}`;
-
-    let jobType: string;
-    let jobParams: IFileProcessingParams;
-
-    if (textOverlay?.text) {
-      jobType = 'add-text-overlay';
-      jobParams = {
-        height,
-        inputPath: videoUrl,
-        position: this.toCurrentRendererTextPosition(textOverlay.position.y),
-        text: textOverlay.text,
-        width,
-        ...(isTrimmed ? { endTime, startTime } : {}),
-      };
-    } else if (isTrimmed) {
-      jobType = 'trim-video';
-      jobParams = {
-        endTime,
-        inputPath: videoUrl,
-        startTime,
-      };
-    } else {
-      // No trim, no text — queue a copy job
-      jobType = 'trim-video';
-      jobParams = {
-        endTime: totalSourceDuration,
-        inputPath: videoUrl,
-        startTime: 0,
-      };
-    }
 
     return {
-      brandId: video.brand ? video.brand.toString() : undefined,
-      hasTextOverlay,
-      height,
-      jobParams,
-      jobType,
-      textLabel,
-      videoId,
-      width,
+      brandId,
+      contract: {
+        assetManifest: validatedContract.assetManifest.map(trustAsset),
+        rendererVersion: EDITOR_RENDERER_VERSION,
+        snapshot: {
+          ...validatedContract.snapshot,
+          tracks: validatedContract.snapshot.tracks.map((track) => ({
+            ...track,
+            clips: track.clips.map((clip) => ({
+              ...clip,
+              ingredientUrl:
+                trustedUrlByClipId.get(clip.id) ?? clip.ingredientUrl,
+            })),
+          })),
+        },
+      },
     };
-  }
-
-  private toCurrentRendererTextPosition(
-    yPercentage: number,
-  ): 'bottom' | 'center' | 'top' {
-    if (yPercentage <= 33) {
-      return 'top';
-    }
-    if (yPercentage >= 67) {
-      return 'bottom';
-    }
-    return 'center';
   }
 
   private handleAsyncCompletion(
@@ -303,29 +234,19 @@ export class EditorRenderService {
     ingredientId: string,
     metadataId: string,
     jobId: string,
-    hasTextOverlay: boolean,
-    textLabel: string,
     user: User,
   ): void {
     this.fileQueueService
-      .waitForJob(jobId, 120000)
+      .waitForJob(jobId, 900000)
       .then(async (result) => {
-        const output = (result as Record<string, string>).outputPath;
-        const meta = await this.filesClientService.uploadToS3(
-          ingredientId,
-          'videos',
-          {
-            path: output,
-            type: FileInputType.FILE,
-          },
-        );
+        const output = this.readOutputMetadata(result);
 
         await this.metadataService.patch(metadataId, {
-          duration: meta.duration,
-          height: meta.height,
-          label: hasTextOverlay ? `Editor: ${textLabel}` : 'Editor Render',
-          size: meta.size,
-          width: meta.width,
+          duration: output.durationSeconds,
+          height: output.height,
+          label: 'Editor Render',
+          size: output.size,
+          width: output.width,
         });
 
         await this.ingredientsService.patch(ingredientId, {
@@ -334,42 +255,78 @@ export class EditorRenderService {
 
         await this.editorProjectsService.markAsCompleted(
           projectId,
-          ingredientId.toString(),
+          ingredientId,
+          output,
         );
 
-        const websocketUrl = WebSocketPaths.video(ingredientId);
         await this.websocketService.publishVideoComplete(
-          websocketUrl,
+          WebSocketPaths.video(ingredientId),
           {
-            eventType: WebSocketEventType.VIDEO_TRIMMED,
+            eventType: WebSocketEventType.VIDEO_GENERATED,
             id: ingredientId,
             status: WebSocketEventStatus.COMPLETED,
           },
           user.id,
           getUserRoomName(user.id),
         );
-
-        try {
-          fs.unlinkSync(output);
-        } catch (cleanupError: unknown) {
-          this.loggerService.warn(
-            `Failed to cleanup temp file: ${output}`,
-            cleanupError,
-          );
-        }
       })
       .catch(async (error: unknown) => {
         this.loggerService.error('Editor project render failed', error);
 
-        await this.editorProjectsService.markAsFailed(projectId);
+        await Promise.all([
+          this.editorProjectsService.markAsFailed(projectId),
+          this.ingredientsService.patch(ingredientId, {
+            status: IngredientStatus.FAILED,
+          }),
+        ]);
 
-        const websocketUrl = WebSocketPaths.video(ingredientId);
         await this.websocketService.publishMediaFailed(
-          websocketUrl,
+          WebSocketPaths.video(ingredientId),
           'Failed to render project. Please try again.',
           user.id,
           getUserRoomName(user.id),
         );
       });
+  }
+
+  private readOutputMetadata(result: unknown): IEditorRenderOutputMetadata {
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      throw new Error('Editor renderer returned an invalid result.');
+    }
+
+    const output = result as Record<string, unknown>;
+    const requiredNumbers = [
+      'durationFrames',
+      'durationSeconds',
+      'fps',
+      'height',
+      'size',
+      'width',
+    ] as const;
+    const requiredStrings = ['s3Key', 'url'] as const;
+
+    if (
+      output.rendererVersion !== EDITOR_RENDERER_VERSION ||
+      requiredNumbers.some(
+        (key) =>
+          typeof output[key] !== 'number' ||
+          !Number.isFinite(output[key] as number),
+      ) ||
+      requiredStrings.some((key) => typeof output[key] !== 'string')
+    ) {
+      throw new Error('Editor renderer returned incomplete output metadata.');
+    }
+
+    return {
+      durationFrames: output.durationFrames as number,
+      durationSeconds: output.durationSeconds as number,
+      fps: output.fps as number,
+      height: output.height as number,
+      rendererVersion: EDITOR_RENDERER_VERSION,
+      s3Key: output.s3Key as string,
+      size: output.size as number,
+      url: output.url as string,
+      width: output.width as number,
+    };
   }
 }

@@ -4,6 +4,7 @@
  */
 
 import type { JobState } from '@genfeedai/enums';
+import type { IEditorRenderJobParams } from '../editor/editor-export-contract.interface';
 
 export interface IFileProcessingJob {
   id?: string;
@@ -14,7 +15,7 @@ export interface IFileProcessingJob {
   organizationId: string;
   room?: string;
   priority?: number;
-  params?: IFileProcessingParams;
+  params?: IEditorRenderJobParams | IFileProcessingParams;
   url?: string;
   filePath?: string;
   delay?: number;

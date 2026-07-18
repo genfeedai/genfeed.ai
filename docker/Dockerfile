@@ -73,8 +73,14 @@ RUN turbo prune @genfeedai/files --docker
 
 FROM base AS files
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2 libxrandr2 \
+    libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 \
+    libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=files-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
+RUN bunx remotion browser ensure
 COPY --from=files-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/files
 EXPOSE 3012
@@ -183,4 +189,3 @@ COPY --from=mcp-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/mcp
 EXPOSE 3014
 CMD ["bun", "run", "apps/server/mcp/dist/main.js"]
-

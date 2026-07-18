@@ -8,6 +8,10 @@ import {
   findUniqueOrThrow,
 } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { EditorProjectStatus } from '@genfeedai/enums';
+import type {
+  IEditorRenderOutputMetadata,
+  IEditorRenderProvenance,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -32,12 +36,14 @@ export class EditorProjectsService extends BaseService<
     return this.isProjectObject(value) ? value : {};
   }
 
-  private mergeProjectStatus(
+  private mergeProjectConfig(
     project: { config?: unknown },
     status: EditorProjectStatus,
+    renderExport?: IEditorRenderProvenance,
   ): Record<string, unknown> {
     return {
       ...this.readProjectConfig(project.config),
+      ...(renderExport ? { renderExport } : {}),
       status,
     };
   }
@@ -65,6 +71,7 @@ export class EditorProjectsService extends BaseService<
   async markAsRendering(
     id: string,
     organizationId: string,
+    renderExport: IEditorRenderProvenance,
   ): Promise<EditorProjectDocument> {
     // Verify the project exists and belongs to this organisation first so we
     // can return a meaningful NotFoundException vs. a generic ConflictException.
@@ -79,9 +86,10 @@ export class EditorProjectsService extends BaseService<
     // count === 1; the other will get count === 0 → ConflictException.
     const updated = await this.prisma.editorProject.updateMany({
       data: {
-        config: this.mergeProjectStatus(
+        config: this.mergeProjectConfig(
           existing,
           EditorProjectStatus.RENDERING,
+          renderExport,
         ) as never,
         updatedAt: new Date(),
       },
@@ -118,6 +126,7 @@ export class EditorProjectsService extends BaseService<
   async markAsCompleted(
     id: string,
     renderedVideoId: string,
+    output: IEditorRenderOutputMetadata,
   ): Promise<EditorProjectDocument> {
     const existing = await findUniqueOrThrow(
       this.prisma.editorProject,
@@ -127,9 +136,15 @@ export class EditorProjectsService extends BaseService<
 
     const project = await this.prisma.editorProject.update({
       data: {
-        config: this.mergeProjectStatus(
+        config: this.mergeProjectConfig(
           existing,
           EditorProjectStatus.COMPLETED,
+          {
+            ...((this.readProjectConfig(existing.config).renderExport ??
+              {}) as IEditorRenderProvenance),
+            completedAt: new Date().toISOString(),
+            output,
+          },
         ) as never,
         renderedVideoId,
       },
@@ -151,7 +166,7 @@ export class EditorProjectsService extends BaseService<
 
     const project = await this.prisma.editorProject.update({
       data: {
-        config: this.mergeProjectStatus(
+        config: this.mergeProjectConfig(
           existing,
           EditorProjectStatus.FAILED,
         ) as never,

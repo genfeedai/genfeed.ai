@@ -82,6 +82,11 @@ const VIDEO_JOB_CONFIGS: Partial<Record<JobType, JobConfig>> = {
     defaultPriority: JOB_PRIORITY.NORMAL,
     delay: 2000,
   },
+  [JOB_TYPES.RENDER_EDITOR_COMPOSITION]: {
+    attempts: 1,
+    defaultPriority: JOB_PRIORITY.NORMAL,
+    delay: 5000,
+  },
 };
 
 @Injectable()
@@ -164,5 +169,15 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
 
   async addHookRemixJob(data: VideoJobData): Promise<Job<VideoJobData>> {
     return this.addJob(JOB_TYPES.HOOK_REMIX, data, 'hook remix');
+  }
+
+  async addEditorCompositionJob(
+    data: VideoJobData,
+  ): Promise<Job<VideoJobData>> {
+    return this.addJob(
+      JOB_TYPES.RENDER_EDITOR_COMPOSITION,
+      data,
+      'editor composition',
+    );
   }
 }

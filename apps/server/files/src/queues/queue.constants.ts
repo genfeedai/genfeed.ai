@@ -31,6 +31,7 @@ export const JOB_TYPES = {
   MIRROR_VIDEO: 'mirror-video',
   PORTRAIT_BLUR: 'portrait-blur',
   PREPARE_ALL_FILES: 'prepare-all-files',
+  RENDER_EDITOR_COMPOSITION: 'render-editor-composition',
   RESIZE_IMAGE: 'resize-image',
   RESIZE_MEDIA: 'resize-media',
   // Video operations
