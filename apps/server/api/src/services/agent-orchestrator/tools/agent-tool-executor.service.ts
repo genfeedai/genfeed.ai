@@ -94,7 +94,11 @@ import {
   serializeAgentBrand,
   serializeAgentBrands,
 } from '@genfeedai/serializers';
-import { AgentScopeContextService, resolveNestedActionOrigin, runWithActionOrigin } from '@genfeedai/server';
+import {
+  AgentScopeContextService,
+  resolveNestedActionOrigin,
+  runWithActionOrigin,
+} from '@genfeedai/server';
 import {
   type CanonicalToolDefinition,
   getToolsForRole,
@@ -767,7 +771,6 @@ export class AgentToolExecutorService {
     context: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const startTime = Date.now();
-
     try {
       if (context.threadId) {
         if (!context.validatedScope || !this.agentScopeContextService) {
