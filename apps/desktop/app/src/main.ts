@@ -29,7 +29,7 @@ import {
   Notification,
   shell,
 } from 'electron';
-import { autoUpdater } from 'electron-updater';
+import electronUpdater from 'electron-updater';
 import { DesktopAppShellService } from './main/app-shell.service';
 import {
   DesktopAssetProtocolService,
@@ -70,6 +70,8 @@ const environment = configService.getEnvironment();
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
 registerDesktopAssetScheme();
+
+const { autoUpdater } = electronUpdater;
 
 let mainWindow: BrowserWindow | null = null;
 let bootstrapCache: IDesktopBootstrap | null = null;
