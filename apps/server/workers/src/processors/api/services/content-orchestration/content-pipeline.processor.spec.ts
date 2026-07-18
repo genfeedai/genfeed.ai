@@ -1,6 +1,6 @@
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
-import type { ContentqueryJobData } from '@api/services/content-orchestration/content-pipeline-queue.service';
 import { ImageTaskModel } from '@genfeedai/enums';
+import type { ContentPipelineJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContentPipelineProcessor } from '@workers/processors/api/services/content-orchestration/content-pipeline.processor';
@@ -83,7 +83,7 @@ describe('ContentPipelineProcessor', () => {
       };
 
       const result = await processor.process(
-        job as unknown as Job<ContentqueryJobData>,
+        job as unknown as Job<ContentPipelineJobData>,
       );
 
       expect(result).toEqual(expect.objectContaining({ status: 'completed' }));
@@ -118,7 +118,7 @@ describe('ContentPipelineProcessor', () => {
       };
 
       const result = await processor.process(
-        job as unknown as Job<ContentqueryJobData>,
+        job as unknown as Job<ContentPipelineJobData>,
       );
 
       expect(result).toEqual(
@@ -147,7 +147,7 @@ describe('ContentPipelineProcessor', () => {
       };
 
       await expect(
-        processor.process(job as unknown as Job<ContentqueryJobData>),
+        processor.process(job as unknown as Job<ContentPipelineJobData>),
       ).rejects.toThrow('Processing failed');
     });
 
@@ -163,7 +163,7 @@ describe('ContentPipelineProcessor', () => {
       };
 
       await expect(
-        processor.process(job as unknown as Job<ContentqueryJobData>),
+        processor.process(job as unknown as Job<ContentPipelineJobData>),
       ).rejects.toThrow('Unknown content pipeline job type');
     });
   });
