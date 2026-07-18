@@ -92,11 +92,11 @@ describe('MusicsService', () => {
 
     expect(ingredientDelegate.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        include: expect.objectContaining({
-          brand: expect.any(Object),
-          metadata: expect.any(Object),
-          prompt: expect.any(Object),
-        }),
+        include: {
+          brand: true,
+          metadata: true,
+          prompt: true,
+        },
       }),
     );
   });
