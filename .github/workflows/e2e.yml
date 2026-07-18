@@ -133,13 +133,6 @@ jobs:
           path: apps/server/api/test-results/api-e2e/
           retention-days: 7
 
-      - name: Upload E2E coverage
-        uses: codecov/codecov-action@v6
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: api-e2e
-          fail_ci_if_error: false
-
   # API E2E full tier — discovery-based coverage for every compatible API E2E
   # and integration spec. It runs on manual/nightly workflows, never inside the
   # production workflow_call path, so release deploys remain gated by core.
