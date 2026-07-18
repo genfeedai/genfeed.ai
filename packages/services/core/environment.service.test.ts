@@ -94,6 +94,9 @@ describe('EnvironmentService', () => {
         'https://marketplace.genfeed.ai',
       );
       expect(EnvironmentService.apps.website).toBe('https://genfeed.ai');
+      expect(EnvironmentService.mcpConnectHref).toBe(
+        'https://app.genfeed.ai/connect',
+      );
     });
 
     // Note: App endpoints are initialized at module load time, so dynamic testing
