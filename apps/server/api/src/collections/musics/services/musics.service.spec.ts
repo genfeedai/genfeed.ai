@@ -77,4 +77,16 @@ describe('MusicsService', () => {
 
     expect(markFirstAssetGenerated).not.toHaveBeenCalled();
   });
+
+  it('preserves requested population for a GENERATED update', async () => {
+    await service.patch('music-1', { status: IngredientStatus.GENERATED }, [
+      'metadata',
+    ]);
+
+    expect(ingredientDelegate.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: { metadata: true },
+      }),
+    );
+  });
 });
