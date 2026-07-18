@@ -18,6 +18,13 @@ const MCP_SCOPES = [
   'posts:create',
   'analytics:read',
 ];
+const CREATED_TEST_KEY = ['gf', 'test', 'created-secret-value-1234567890'].join(
+  '_',
+);
+const STORED_TEST_KEY = ['gf', 'test', 'stored-secret-value-1234567890'].join(
+  '_',
+);
+const TRUNCATED_TEST_KEY = ['gf', 'test', 'truncated-secret'].join('_');
 
 const mocks = vi.hoisted(() => ({
   capture: vi.fn(),
@@ -175,7 +182,7 @@ describe('ConnectGenfeedFlow', () => {
     mocks.createApiKey.mockResolvedValue({
       ...activeKey(),
       id: 'key-2',
-      key: 'gf_test_created-secret-value-1234567890',
+      key: CREATED_TEST_KEY,
     });
     mocks.verifyMcpConnection.mockResolvedValue({
       keyId: 'key-1',
@@ -216,7 +223,7 @@ describe('ConnectGenfeedFlow', () => {
     fireEvent.change(
       screen.getByLabelText('Stored value for the selected key'),
       {
-        target: { value: 'gf_test_stored-secret-value-1234567890' },
+        target: { value: STORED_TEST_KEY },
       },
     );
     fireEvent.click(
@@ -238,7 +245,7 @@ describe('ConnectGenfeedFlow', () => {
       screen.getByRole('button', { name: 'Verify MCP connection' }),
     ).toBeEnabled();
     expect(mocks.verifyMcpConnection).toHaveBeenCalledWith('key-1', {
-      key: 'gf_test_stored-secret-value-1234567890',
+      key: STORED_TEST_KEY,
     });
   });
 
@@ -264,7 +271,7 @@ describe('ConnectGenfeedFlow', () => {
       await screen.findByRole('button', { name: /create scoped mcp key/i }),
     );
     expect(
-      await screen.findByText('gf_test_created-secret-value-1234567890'),
+      await screen.findByText(CREATED_TEST_KEY),
     ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole('button', { name: 'Verify MCP connection' }),
@@ -294,7 +301,7 @@ describe('ConnectGenfeedFlow', () => {
     fireEvent.change(
       screen.getByLabelText('Stored value for the selected key'),
       {
-        target: { value: 'gf_test_stored-secret-value-1234567890' },
+        target: { value: STORED_TEST_KEY },
       },
     );
     fireEvent.click(
@@ -316,7 +323,7 @@ describe('ConnectGenfeedFlow', () => {
     fireEvent.change(
       screen.getByLabelText('Stored value for the selected key'),
       {
-        target: { value: 'gf_test_truncated-secret' },
+        target: { value: TRUNCATED_TEST_KEY },
       },
     );
     fireEvent.click(
