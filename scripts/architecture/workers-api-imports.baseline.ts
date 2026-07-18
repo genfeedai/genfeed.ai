@@ -126,7 +126,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/services/content-optimization/content-optimization.service',
   '@api/services/content-orchestration/content-orchestration.module',
   '@api/services/content-orchestration/content-orchestration.service',
-  '@api/services/content-orchestration/content-pipeline-queue.service',
   '@api/services/distribution/telegram/telegram-distribution.module',
   '@api/services/distribution/telegram/telegram-distribution.service',
   '@api/services/integrations/facebook/facebook.module',

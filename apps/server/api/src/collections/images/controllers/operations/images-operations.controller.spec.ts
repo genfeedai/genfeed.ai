@@ -44,6 +44,7 @@ import { ImagesOperationsController } from '@api/collections/images/controllers/
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -221,6 +222,7 @@ describe('ImagesOperationsController', () => {
       providers: [
         // Real service resolved from the mocks below; the controller delegates
         // create() to it, so the DI graph must be able to construct it.
+        ImageGenerationProviderDispatchService,
         ImageGenerationService,
         {
           provide: ConfigService,
@@ -446,36 +448,9 @@ describe('ImagesOperationsController', () => {
       })
       .compile();
 
-    // The image-generation workflow now lives in ImageGenerationService, built
-    // here from the same resolved mocks so the controller's create() delegate
-    // exercises the identical dependencies the assertions below observe.
-    const imageGenerationService = new ImageGenerationService(
-      module.get(ConfigService),
-      module.get(ActivitiesService),
-      module.get(AssetsService),
-      module.get(BrandsService),
-      module.get(ComfyUIService),
-      module.get(CreditsUtilsService),
-      module.get(FailedGenerationService),
-      module.get(FilesClientService),
-      module.get(FalService),
-      module.get(IngredientCompletionService),
-      module.get(ImagesService),
-      module.get(IngredientsService),
-      module.get(OrganizationSettingsService),
-      module.get(KlingAIService),
-      module.get(LeonardoAIService),
-      module.get(LoggerService),
-      module.get(MetadataService),
-      module.get(ModelRegistrationService),
-      module.get(ModelsService),
-      module.get(PromptBuilderService),
-      module.get(PromptsService),
-      module.get(ReplicateService),
-      module.get(RouterService),
-      module.get(SharedService),
-      module.get(NotificationsPublisherService),
-    );
+    // Resolve the same DI graph as ImagesModule so constructor changes cannot
+    // drift from this controller integration test.
+    const imageGenerationService = module.get(ImageGenerationService);
 
     controller = new ImagesOperationsController(
       module.get(ConfigService),

@@ -11,7 +11,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { EditorTrackType } from '@genfeedai/enums';
+import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { UnprocessableEntityException } from '@nestjs/common';
@@ -22,6 +22,7 @@ describe('EditorRenderService', () => {
   let service: EditorRenderService;
 
   let editorProjectsService: {
+    findForRender: ReturnType<typeof vi.fn>;
     markAsRendering: ReturnType<typeof vi.fn>;
     markAsFailed: ReturnType<typeof vi.fn>;
     markAsCompleted: ReturnType<typeof vi.fn>;
@@ -63,27 +64,45 @@ describe('EditorRenderService', () => {
   const makeTrack = (type: EditorTrackType, clipOverrides = {}) => ({
     clips: [
       {
+        durationFrames: 300,
+        effects: [],
+        id: `${type}-clip`,
         ingredientId: videoIngredientId,
+        ingredientUrl: `https://cdn.genfeed.ai/${type}`,
         sourceEndFrame: 300,
         sourceStartFrame: 0,
+        startFrame: 0,
         textOverlay: null,
         ...clipOverrides,
       },
     ],
+    id: `${type}-track`,
+    isLocked: false,
+    isMuted: false,
+    name: type,
     type,
+    volume: 100,
   });
 
   const makeProject = (
     tracks = [makeTrack(EditorTrackType.VIDEO)],
-    settings = { fps: 30 },
+    settings = {
+      backgroundColor: '#000000',
+      format: IngredientFormat.LANDSCAPE,
+      fps: 30,
+      height: 1080,
+      width: 1920,
+    },
   ) => ({
     id: projectId,
     settings,
+    totalDurationFrames: 300,
     tracks,
   });
 
   beforeEach(async () => {
     editorProjectsService = {
+      findForRender: vi.fn().mockResolvedValue(makeProject()),
       markAsCompleted: vi.fn().mockResolvedValue(undefined),
       markAsFailed: vi.fn().mockResolvedValue(undefined),
       markAsRendering: vi.fn().mockResolvedValue(makeProject()),
@@ -176,28 +195,67 @@ describe('EditorRenderService', () => {
     });
 
     it('should throw UnprocessableEntityException when no video track', async () => {
-      editorProjectsService.markAsRendering.mockResolvedValue(makeProject([]));
+      editorProjectsService.findForRender.mockResolvedValue(makeProject([]));
 
       await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
         UnprocessableEntityException,
       );
+      expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
+      expect(sharedService.saveDocuments).not.toHaveBeenCalled();
+      expect(fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
+
+    it('should reject malformed export settings before render side effects', async () => {
+      editorProjectsService.findForRender.mockResolvedValue(
+        makeProject([makeTrack(EditorTrackType.VIDEO)], {
+          backgroundColor: '#000000',
+          format: IngredientFormat.LANDSCAPE,
+          fps: 30,
+          height: 1080,
+          width: 0,
+        }),
+      );
+
+      await expect(
+        service.render(projectId, orgId, mockUser),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'editor_export_contract_invalid',
+          violations: expect.arrayContaining([
+            expect.objectContaining({ path: 'settings.width' }),
+          ]),
+        }),
+      });
+      expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
+      expect(sharedService.saveDocuments).not.toHaveBeenCalled();
+      expect(fileQueueService.processVideo).not.toHaveBeenCalled();
     });
 
     it('should throw UnprocessableEntityException when more than one video track', async () => {
-      editorProjectsService.markAsRendering.mockResolvedValue(
+      editorProjectsService.findForRender.mockResolvedValue(
         makeProject([
           makeTrack(EditorTrackType.VIDEO),
-          makeTrack(EditorTrackType.VIDEO),
+          {
+            ...makeTrack(EditorTrackType.VIDEO),
+            id: 'second-video-track',
+            clips: [
+              {
+                ...makeTrack(EditorTrackType.VIDEO).clips[0],
+                id: 'second-video-clip',
+              },
+            ],
+          },
         ]),
       );
 
       await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
         UnprocessableEntityException,
       );
+      expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
     });
 
     it('should throw UnprocessableEntityException when video track has no clips', async () => {
-      editorProjectsService.markAsRendering.mockResolvedValue(
+      editorProjectsService.findForRender.mockResolvedValue(
         makeProject([{ ...makeTrack(EditorTrackType.VIDEO), clips: [] }]),
       );
 
@@ -210,21 +268,29 @@ describe('EditorRenderService', () => {
       const multiClipTrack = {
         clips: [
           {
-            ingredientId: videoIngredientId,
-            sourceEndFrame: 300,
-            sourceStartFrame: 0,
-            textOverlay: null,
+            ...makeTrack(EditorTrackType.VIDEO).clips[0],
+            durationFrames: 150,
+            id: 'video-clip-1',
+            sourceEndFrame: 150,
           },
           {
+            ...makeTrack(EditorTrackType.VIDEO).clips[0],
+            durationFrames: 150,
+            id: 'video-clip-2',
             ingredientId: videoIngredientId,
-            sourceEndFrame: 600,
-            sourceStartFrame: 300,
-            textOverlay: null,
+            sourceEndFrame: 300,
+            sourceStartFrame: 150,
+            startFrame: 150,
           },
         ],
+        id: 'multi-clip-track',
+        isLocked: false,
+        isMuted: false,
+        name: 'Video',
         type: EditorTrackType.VIDEO,
+        volume: 100,
       };
-      editorProjectsService.markAsRendering.mockResolvedValue(
+      editorProjectsService.findForRender.mockResolvedValue(
         makeProject([multiClipTrack]),
       );
 
@@ -233,8 +299,32 @@ describe('EditorRenderService', () => {
       );
     });
 
+    it('should reject contract-valid audio tracks that the current renderer cannot consume', async () => {
+      editorProjectsService.findForRender.mockResolvedValue(
+        makeProject([
+          makeTrack(EditorTrackType.VIDEO),
+          {
+            ...makeTrack(EditorTrackType.AUDIO),
+            id: 'audio-track',
+            clips: [
+              {
+                ...makeTrack(EditorTrackType.AUDIO).clips[0],
+                id: 'audio-clip',
+              },
+            ],
+          },
+        ]),
+      );
+
+      await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
+        'Audio tracks require the multi-track renderer',
+      );
+      expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
+      expect(sharedService.saveDocuments).not.toHaveBeenCalled();
+      expect(fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
+
     it('should throw NotFoundException when source video not found', async () => {
-      editorProjectsService.markAsRendering.mockResolvedValue(makeProject());
       ingredientsService.findOne.mockResolvedValue(null);
 
       await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
@@ -243,7 +333,6 @@ describe('EditorRenderService', () => {
     });
 
     it('should call markAsFailed when post-transition step throws', async () => {
-      editorProjectsService.markAsRendering.mockResolvedValue(makeProject());
       ingredientsService.findOne.mockRejectedValue(new Error('DB error'));
 
       await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
@@ -256,25 +345,36 @@ describe('EditorRenderService', () => {
 
     it('should pass text overlay job type when text track present', async () => {
       const textTrack = makeTrack(EditorTrackType.TEXT, {
-        textOverlay: { position: 'bottom', text: 'Hello World' },
+        ingredientId: '',
+        ingredientUrl: '',
+        textOverlay: {
+          color: '#ffffff',
+          fontSize: 32,
+          position: { x: 50, y: 80 },
+          text: 'Hello World',
+        },
       });
-      editorProjectsService.markAsRendering.mockResolvedValue(
+      editorProjectsService.findForRender.mockResolvedValue(
         makeProject([makeTrack(EditorTrackType.VIDEO), textTrack]),
       );
 
       await service.render(projectId, orgId, mockUser);
 
       expect(fileQueueService.processVideo).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'add-text-overlay' }),
+        expect.objectContaining({
+          params: expect.objectContaining({ position: 'bottom' }),
+          type: 'add-text-overlay',
+        }),
       );
     });
 
     it('should pass trim-video job type when no text overlay and video is trimmed', async () => {
       const trimmedTrack = makeTrack(EditorTrackType.VIDEO, {
+        durationFrames: 120,
         sourceEndFrame: 150,
         sourceStartFrame: 30,
       });
-      editorProjectsService.markAsRendering.mockResolvedValue(
+      editorProjectsService.findForRender.mockResolvedValue(
         makeProject([trimmedTrack]),
       );
 

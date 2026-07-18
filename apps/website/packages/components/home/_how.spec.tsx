@@ -9,22 +9,29 @@ describe('HomeHow', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /brief in, campaign out\./i,
+        name: /your ai client creates\. genfeed controls distribution\./i,
       }),
     ).toBeInTheDocument();
   });
 
-  it('renders all three steps', () => {
+  it('renders the complete agent-to-analytics lifecycle as an ordered list', () => {
     render(<HomeHow />);
 
     for (const title of [
-      'Start from a brief',
-      'Generate every format',
-      'Publish and track',
+      'Create in your AI client',
+      'Route through Genfeed',
+      'Approve and publish',
+      'Measure what shipped',
     ]) {
       expect(
         screen.getByRole('heading', { level: 3, name: title }),
       ).toBeInTheDocument();
     }
+
+    expect(screen.getByRole('list')).toHaveAttribute(
+      'aria-labelledby',
+      'distribution-loop-heading',
+    );
+    expect(screen.getAllByRole('listitem')).toHaveLength(4);
   });
 });

@@ -99,7 +99,7 @@ describe('useLibraryPicker', () => {
   });
 
   it('re-fetches before returning a canonical typed reference', async () => {
-    const source = ingredient('image-1');
+    const source = ingredient('image-1', { version: 7 });
     const onSelect = vi.fn();
     mocks.findAll.mockResolvedValue([source]);
     mocks.findOne.mockResolvedValue(source);
@@ -115,6 +115,7 @@ describe('useLibraryPicker', () => {
       kind: 'ingredient',
       organizationId: 'org-1',
       recordId: 'image-1',
+      recordVersion: '7',
       serializer: 'ingredient',
     });
   });

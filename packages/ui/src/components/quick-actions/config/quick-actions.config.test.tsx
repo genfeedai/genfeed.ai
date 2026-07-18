@@ -16,4 +16,22 @@ describe('QuickActionsConfig', () => {
   it('should expose configuration helpers', () => {
     expect(QuickActionsConfig.createPublishAction).toBeDefined();
   });
+
+  it('exposes image variation as a contextual Remix action', () => {
+    const ingredient = { id: 'ingredient-1' } as IIngredient;
+    const handler = vi.fn();
+
+    const action = QuickActionsConfig.createVariationAction(
+      ingredient,
+      handler,
+    );
+
+    expect(action).toMatchObject({
+      id: 'remix',
+      label: 'Remix',
+      tooltip: 'Remix this image',
+    });
+    action?.onClick();
+    expect(handler).toHaveBeenCalledWith(ingredient);
+  });
 });

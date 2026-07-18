@@ -15,9 +15,13 @@ Use the hosted Genfeed MCP server to give AI clients API-key scoped access to co
 
 Open [`https://mcp.genfeed.ai`](https://mcp.genfeed.ai) for Claude Code and Codex setup.
 
-## Create an API Key
+## Connect Genfeed
 
-Create a key in Genfeed app settings and export it where your MCP client runs:
+Open the [guided Connect Genfeed flow](https://app.genfeed.ai/connect) to select
+your client, create or select an MCP-scoped key, copy secret-safe configuration,
+and run an authenticated connection check.
+
+Export the copy-once key where your MCP client runs:
 
 ```bash
 export GENFEED_API_KEY=gf_live_xxx

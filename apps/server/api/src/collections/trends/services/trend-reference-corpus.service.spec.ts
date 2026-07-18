@@ -1,4 +1,5 @@
 import type { TrendSourceItem } from '@api/collections/trends/interfaces/trend.interfaces';
+import { TrendCorpusFreshnessService } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -432,14 +433,38 @@ describe('TrendReferenceCorpusService', () => {
     log: vi.fn(),
     warn: vi.fn(),
   };
+  const trendCorpusFreshnessService = {
+    getCorpusFreshnessHealth: vi.fn(),
+  };
 
   let service: TrendReferenceCorpusService;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    trendCorpusFreshnessService.getCorpusFreshnessHealth.mockResolvedValue({
+      generatedAt: '2026-06-14T00:00:00.000Z',
+      providerFailures: [],
+      segments: [],
+      status: 'healthy',
+      summary: {
+        activeTrends: 1,
+        failingProviders: 0,
+        freshSegments: 1,
+        platforms: ['tiktok'],
+        referenceRecords: 1,
+        staleSegments: 0,
+        totalSegments: 1,
+      },
+      thresholds: {
+        defaultFreshnessWindowDaysBySourceKind: {},
+        recordLimits: { referenceRecords: 5000, trends: 2000 },
+        sourcePreviewStaleAfterDays: 3,
+      },
+    });
     service = new TrendReferenceCorpusService(
       prisma as unknown as PrismaService,
       loggerService as unknown as LoggerService,
+      trendCorpusFreshnessService as unknown as TrendCorpusFreshnessService,
     );
   });
 
@@ -898,158 +923,19 @@ describe('TrendReferenceCorpusService', () => {
     );
   });
 
-  it('reports corpus freshness segments and provider failures', async () => {
-    const result = await service.getCorpusFreshnessHealth({
+  it('delegates corpus freshness health without changing the public contract', async () => {
+    const options = {
       isPlatformAdmin: true,
       now: new Date('2026-06-14T00:00:00.000Z'),
-    });
+      platform: 'tiktok',
+    };
 
-    expect(result.status).toBe('stale');
-    expect(result.summary).toMatchObject({
-      activeTrends: 4,
-      failingProviders: 2,
-      freshSegments: 3,
-      referenceRecords: 3,
-      staleSegments: 0,
-      totalSegments: 3,
-    });
-    expect(result.segments).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          platform: 'tiktok',
-          provider: 'TikTok',
-          sourceKind: 'public_platform_reference',
-          status: 'healthy',
-        }),
-        expect.objectContaining({
-          platform: 'instagram',
-          provider: 'instagram',
-          sourceKind: 'public_platform_reference',
-          status: 'healthy',
-        }),
-      ]),
-    );
-    expect(result.providerFailures).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          affectedTrendCount: 1,
-          platform: 'youtube',
-          provider: 'apify',
-          reason: 'empty_source_preview',
-          severity: 'error',
-        }),
-        expect.objectContaining({
-          affectedTrendCount: 1,
-          platform: 'instagram',
-          provider: 'apify',
-          reason: 'fallback_source_preview',
-          severity: 'warning',
-        }),
-      ]),
-    );
+    const result = await service.getCorpusFreshnessHealth(options);
+
+    expect(result.status).toBe('healthy');
     expect(
-      result.providerFailures.some(
-        (failure) => failure.provider === 'public-reference',
-      ),
-    ).toBe(false);
-  });
-
-  it('marks reference segments stale when last seen exceeds source windows', async () => {
-    const result = await service.getCorpusFreshnessHealth({
-      isPlatformAdmin: true,
-      now: new Date('2026-06-20T00:00:00.000Z'),
-      sourcePreviewStaleAfterDays: 30,
-    });
-
-    expect(result.status).toBe('stale');
-    expect(result.summary.staleSegments).toBe(2);
-    expect(result.segments).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          platform: 'tiktok',
-          referenceCount: 1,
-          staleReferenceCount: 1,
-          status: 'stale',
-        }),
-        expect.objectContaining({
-          platform: 'instagram',
-          referenceCount: 1,
-          staleReferenceCount: 1,
-          status: 'stale',
-        }),
-      ]),
-    );
-  });
-
-  it('filters corpus health by platform', async () => {
-    const result = await service.getCorpusFreshnessHealth({
-      isPlatformAdmin: true,
-      now: new Date('2026-06-14T00:00:00.000Z'),
-      platform: 'tiktok',
-    });
-
-    expect(result.summary.platforms).toEqual(['tiktok']);
-    expect(result.summary.referenceRecords).toBe(1);
-    expect(result.summary.failingProviders).toBe(0);
-    expect(result.segments).toHaveLength(1);
-    expect(result.segments[0]).toMatchObject({
-      platform: 'tiktok',
-      provider: 'TikTok',
-    });
-    expect(prisma.trendSourceReference.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          isDeleted: false,
-          platform: 'tiktok',
-        },
-      }),
-    );
-  });
-
-  it('scopes the Trend aggregate to the caller org + global rows for non-admins', async () => {
-    await service.getCorpusFreshnessHealth({
-      now: new Date('2026-06-14T00:00:00.000Z'),
-      organizationId: 'org_1',
-    });
-
-    expect(prisma.trend.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          OR: [{ organizationId: 'org_1' }, { organizationId: null }],
-          isDeleted: false,
-        }),
-      }),
-    );
-    // Never a bare cross-org read for a tenant.
-    const trendWhere = prisma.trend.findMany.mock.calls.at(-1)?.[0]?.where;
-    expect(trendWhere).not.toHaveProperty('organizationId');
-  });
-
-  it('restricts a non-admin with no org to global (null-org) Trend rows only', async () => {
-    await service.getCorpusFreshnessHealth({
-      now: new Date('2026-06-14T00:00:00.000Z'),
-    });
-
-    expect(prisma.trend.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          OR: [{ organizationId: null }],
-          isDeleted: false,
-        }),
-      }),
-    );
-  });
-
-  it('does not org-scope the Trend aggregate for platform admins (global view)', async () => {
-    await service.getCorpusFreshnessHealth({
-      isPlatformAdmin: true,
-      now: new Date('2026-06-14T00:00:00.000Z'),
-      organizationId: 'org_1',
-    });
-
-    const trendWhere = prisma.trend.findMany.mock.calls.at(-1)?.[0]?.where;
-    expect(trendWhere).toEqual({ isDeleted: false });
-    expect(trendWhere).not.toHaveProperty('OR');
+      trendCorpusFreshnessService.getCorpusFreshnessHealth,
+    ).toHaveBeenCalledWith(options);
   });
 
   it('resolves metadata source URLs before creating org-scoped remix lineage', async () => {

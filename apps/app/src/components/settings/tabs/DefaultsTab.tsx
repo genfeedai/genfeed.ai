@@ -1,7 +1,7 @@
 'use client';
 
 import type { ProviderType } from '@genfeedai/types';
-import { useSettingsStore } from '@genfeedai/workflow-ui/stores';
+import { useSettingsStore } from '@genfeedai/workflows/ui/stores';
 import {
   Select,
   SelectContent,

@@ -1,4 +1,4 @@
-import { nodeTypes as coreNodeTypes } from '@genfeedai/workflow-ui/nodes';
+import { nodeTypes as coreNodeTypes } from '@genfeedai/workflows/ui/nodes';
 import type { NodeTypes } from '@xyflow/react';
 import { extendedNodeTypes } from '@/features/workflows/nodes';
 import { CloudImageInputNode } from '@/features/workflows/nodes/input/CloudImageInputNode';

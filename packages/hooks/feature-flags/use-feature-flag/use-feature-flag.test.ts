@@ -47,6 +47,35 @@ describe('useFeatureFlag', () => {
     expect(result.current).toBe(true);
   });
 
+  it('uses an explicit product fallback without changing other OSS flags', () => {
+    function Wrapper({ children }: { children: ReactNode }) {
+      return createElement(
+        FeatureFlagProvider,
+        {
+          defaults: {},
+          fallbacks: { studio: false },
+        },
+        children,
+      );
+    }
+
+    const { result: studioResult } = renderHook(
+      () => useFeatureFlag('studio'),
+      {
+        wrapper: Wrapper,
+      },
+    );
+    const { result: analyticsResult } = renderHook(
+      () => useFeatureFlag('analytics'),
+      {
+        wrapper: Wrapper,
+      },
+    );
+
+    expect(studioResult.current).toBe(false);
+    expect(analyticsResult.current).toBe(true);
+  });
+
   it('keeps ordinary OSS flags on when only another override is configured', () => {
     function Wrapper({ children }: { children: ReactNode }) {
       return createElement(

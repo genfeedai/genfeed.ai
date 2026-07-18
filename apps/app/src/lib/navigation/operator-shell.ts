@@ -168,7 +168,15 @@ export function withTaskContextHref(
   return appendSearchParamsToHref(href, searchParams);
 }
 
-function getTaskLaunchPath(task: Task, mode: TaskLaunchMode): string {
+type TaskLaunchCapabilities = {
+  studio: boolean;
+};
+
+function getTaskLaunchPath(
+  task: Task,
+  mode: TaskLaunchMode,
+  capabilities: TaskLaunchCapabilities,
+): string {
   if (mode === 'write') {
     if (task.outputType === 'newsletter') {
       return COMPOSE_ROUTES.NEWSLETTER;
@@ -180,6 +188,10 @@ function getTaskLaunchPath(task: Task, mode: TaskLaunchMode): string {
   }
 
   if (mode === 'generate') {
+    if (!capabilities.studio) {
+      return APP_ROUTES.AGENT.NEW;
+    }
+
     return task.executionPathUsed === 'video_generation'
       ? APP_ROUTES.STUDIO.VIDEO
       : APP_ROUTES.STUDIO.IMAGE;
@@ -199,9 +211,13 @@ function getTaskLaunchPath(task: Task, mode: TaskLaunchMode): string {
         ? COMPOSE_ROUTES.NEWSLETTER
         : COMPOSE_ROUTES.POST;
     case 'image_generation':
-      return APP_ROUTES.STUDIO.IMAGE;
+      return capabilities.studio
+        ? APP_ROUTES.STUDIO.IMAGE
+        : APP_ROUTES.AGENT.NEW;
     case 'video_generation':
-      return APP_ROUTES.STUDIO.VIDEO;
+      return capabilities.studio
+        ? APP_ROUTES.STUDIO.VIDEO
+        : APP_ROUTES.AGENT.NEW;
     default:
       return APP_ROUTES.WORKFLOWS.ROOT;
   }
@@ -210,6 +226,7 @@ function getTaskLaunchPath(task: Task, mode: TaskLaunchMode): string {
 export function buildTaskLaunchHref(
   task: Task,
   mode: TaskLaunchMode = 'auto',
+  capabilities: TaskLaunchCapabilities = { studio: true },
 ): string {
   const searchParams = new URLSearchParams({
     taskExecutionPath: task.executionPathUsed ?? '',
@@ -219,5 +236,8 @@ export function buildTaskLaunchHref(
     taskTitle: task.title,
   });
 
-  return appendSearchParamsToHref(getTaskLaunchPath(task, mode), searchParams);
+  return appendSearchParamsToHref(
+    getTaskLaunchPath(task, mode, capabilities),
+    searchParams,
+  );
 }
