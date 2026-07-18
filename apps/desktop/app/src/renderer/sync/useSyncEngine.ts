@@ -36,7 +36,9 @@ export function useSyncEngine(opts: {
 
   const optsRef = useRef(opts);
   const activeControllerRef = useRef<AbortController | null>(null);
-  optsRef.current = opts;
+  useEffect(() => {
+    optsRef.current = opts;
+  });
 
   const runSync = useCallback(async () => {
     if (activeControllerRef.current) return;
