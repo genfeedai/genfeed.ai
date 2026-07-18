@@ -24,7 +24,6 @@ import {
   getCredentialLabel,
   getFormatOptions,
   joinDraftSegments,
-  queueDesktopPostSync,
   SOCIAL_FORMAT_LABELS,
   splitDraftSegments,
   type Tone,
@@ -222,13 +221,6 @@ export function usePostsWritePage() {
 
         setLocalContent(generated.content);
         setWorkingTitle(nextTitle);
-        await queueDesktopPostSync({
-          bridge: desktopBridge,
-          generated,
-          mode,
-          prompt: prompt.trim(),
-          title: nextTitle,
-        }).catch(() => undefined);
         captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED, {
           platform: desktopPlatform,
           source: 'desktop-ipc',
@@ -271,13 +263,6 @@ export function usePostsWritePage() {
 
         setLocalContent(generated.content);
         setWorkingTitle(nextTitle);
-        await queueDesktopPostSync({
-          bridge: desktopBridge,
-          generated,
-          mode,
-          prompt: prompt.trim(),
-          title: nextTitle,
-        }).catch(() => undefined);
         captureAnalyticsEvent(ANALYTICS_EVENTS.CONTENT_WRITE_PROMPT_GENERATED, {
           platform: selectedCredential.platform,
           source: 'desktop-ipc-fallback',

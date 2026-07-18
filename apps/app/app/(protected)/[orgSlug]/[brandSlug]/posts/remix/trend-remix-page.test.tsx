@@ -98,7 +98,6 @@ describe('TrendRemixPage', () => {
       platform: 'twitter',
       type: 'caption',
     });
-    const queueJob = vi.fn().mockResolvedValue({ id: 'sync-job-1' });
     useBrandMock.mockReturnValue({
       credentials: [],
       isReady: false,
@@ -106,7 +105,6 @@ describe('TrendRemixPage', () => {
     desktopRuntimeMocks.isDesktopClient.mockReturnValue(true);
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
       cloud: { generateContent },
-      sync: { queueJob },
     });
 
     render(<TrendRemixPage />);
@@ -120,10 +118,6 @@ describe('TrendRemixPage', () => {
       });
     });
 
-    expect(queueJob).toHaveBeenCalledWith(
-      'post-draft',
-      expect.stringContaining('Generated desktop remix'),
-    );
     expect(replaceMock).toHaveBeenCalledWith(
       '/moonrise-org/moonrise-studio/compose/post?description=Generated+desktop+remix&title=AI+operating+systems',
     );

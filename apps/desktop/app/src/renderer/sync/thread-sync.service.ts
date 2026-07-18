@@ -11,6 +11,10 @@ import {
   upsertSyncLogEntry,
 } from '../db/pglite';
 import { queryThreads, upsertMessages, upsertThread } from '../db/threads';
+import {
+  canSyncAssetMetadata,
+  canUploadAssetContent,
+} from './asset-sync-policy';
 
 export type SyncResult = {
   assetUploadCount: number;
@@ -96,16 +100,28 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
     reader.readAsDataURL(blob);
   });
 
+const buildSyncUrl = (
+  apiEndpoint: string,
+  path: string,
+  cursor?: string | null,
+): string =>
+  cursor
+    ? `${apiEndpoint}${path}?cursor=${encodeURIComponent(cursor)}`
+    : `${apiEndpoint}${path}`;
+
 export class ThreadSyncService {
   private async pushSyncOps(opts: {
     apiEndpoint: string;
     session: IDesktopSession;
+    signal: AbortSignal;
   }): Promise<{ errors: string[]; pushedCount: number }> {
-    const { apiEndpoint, session } = opts;
+    const { apiEndpoint, session, signal } = opts;
     const errors: string[] = [];
+    signal.throwIfAborted();
     const pendingOps = (await window.genfeedDesktop.sync.getOps()).filter(
       (op: IDesktopSyncOp) => op.status === 'pending',
     );
+    signal.throwIfAborted();
 
     if (pendingOps.length === 0) {
       return { errors, pushedCount: 0 };
@@ -118,6 +134,7 @@ export class ThreadSyncService {
         'Content-Type': 'application/json',
       },
       method: 'POST',
+      signal,
     });
 
     if (!response.ok) {
@@ -128,7 +145,9 @@ export class ThreadSyncService {
     }
 
     const body = (await response.json()) as PushResponse;
+    signal.throwIfAborted();
     await window.genfeedDesktop.sync.ackOps(
+      session.userId,
       (body.data.ops ?? []).map((op) => ({
         acknowledgedAt: new Date().toISOString(),
         error: op.reason,
@@ -145,8 +164,10 @@ export class ThreadSyncService {
     asset: IDesktopAsset;
     cloudAssetId: string;
     session: IDesktopSession;
+    signal: AbortSignal;
   }): Promise<AssetUploadedResponse['data']> {
-    const { apiEndpoint, asset, cloudAssetId, session } = opts;
+    const { apiEndpoint, asset, cloudAssetId, session, signal } = opts;
+    signal.throwIfAborted();
     const uploadUrlRes = await fetch(
       `${apiEndpoint}/sync/desktop/assets/upload-url`,
       {
@@ -160,6 +181,7 @@ export class ThreadSyncService {
           'Content-Type': 'application/json',
         },
         method: 'POST',
+        signal,
       },
     );
 
@@ -168,21 +190,26 @@ export class ThreadSyncService {
     }
 
     const upload = (await uploadUrlRes.json()) as AssetUploadResponse;
+    signal.throwIfAborted();
     const assetUrl = await window.genfeedDesktop.files.getAssetUrl(asset.id);
-    const assetRes = await fetch(assetUrl);
+    signal.throwIfAborted();
+    const assetRes = await fetch(assetUrl, { signal });
 
     if (!assetRes.ok) {
       throw new Error(`Local asset read failed: ${assetRes.status}`);
     }
 
     const blob = await assetRes.blob();
+    signal.throwIfAborted();
 
     if (upload.data.uploadMode === 'api-proxy') {
+      const data = await blobToBase64(blob);
+      signal.throwIfAborted();
       const proxyRes = await fetch(
         `${apiEndpoint}/sync/desktop/assets/${encodeURIComponent(cloudAssetId || upload.data.cloudAssetId)}/upload`,
         {
           body: JSON.stringify({
-            data: await blobToBase64(blob),
+            data,
             mimeType: asset.mimeType,
             originalFileName: asset.originalFileName,
           }),
@@ -191,6 +218,7 @@ export class ThreadSyncService {
             'Content-Type': 'application/json',
           },
           method: 'POST',
+          signal,
         },
       );
 
@@ -207,6 +235,7 @@ export class ThreadSyncService {
         'Content-Type': asset.mimeType,
       },
       method: 'PUT',
+      signal,
     });
 
     if (!uploadRes.ok) {
@@ -218,6 +247,7 @@ export class ThreadSyncService {
       {
         headers: { Authorization: `Bearer ${session.token}` },
         method: 'POST',
+        signal,
       },
     );
 
@@ -229,17 +259,20 @@ export class ThreadSyncService {
   }
 
   private async pushAssets(opts: {
+    hasFullAssetUploadConsent: boolean;
     apiEndpoint: string;
     session: IDesktopSession;
+    signal: AbortSignal;
   }): Promise<{ errors: string[]; pushedCount: number; uploadCount: number }> {
-    const { apiEndpoint, session } = opts;
+    const { hasFullAssetUploadConsent, apiEndpoint, session, signal } = opts;
     const errors: string[] = [];
     let uploadCount = 0;
+    signal.throwIfAborted();
     const assets = await window.genfeedDesktop.files.listAssets();
+    signal.throwIfAborted();
     const syncableAssets = assets.filter(
       (asset: IDesktopAsset) =>
-        asset.uploadPolicy !== 'never' &&
-        asset.origin !== 'cloud-generation' &&
+        canSyncAssetMetadata(asset) &&
         (!asset.cloudId ||
           asset.residency === 'upload-pending' ||
           (asset.uploadPolicy === 'full' && asset.residency !== 'synced')),
@@ -258,6 +291,7 @@ export class ThreadSyncService {
           'Content-Type': 'application/json',
         },
         method: 'POST',
+        signal,
       },
     );
 
@@ -270,12 +304,14 @@ export class ThreadSyncService {
     }
 
     const body = (await response.json()) as AssetPushResponse;
+    signal.throwIfAborted();
     const assetById = new Map(syncableAssets.map((asset) => [asset.id, asset]));
 
     for (const pushedAsset of body.data.assets) {
+      signal.throwIfAborted();
       if (pushedAsset.status === 'rejected') {
         if (pushedAsset.reason === 'cloud-deleted') {
-          await window.genfeedDesktop.sync.recordAssetSync({
+          await window.genfeedDesktop.sync.recordAssetSync(session.userId, {
             cloudId: pushedAsset.cloudAssetId,
             deletedAt: pushedAsset.deletedAt ?? new Date().toISOString(),
             localAssetId: pushedAsset.localAssetId,
@@ -287,7 +323,7 @@ export class ThreadSyncService {
         continue;
       }
 
-      await window.genfeedDesktop.sync.recordAssetSync({
+      await window.genfeedDesktop.sync.recordAssetSync(session.userId, {
         cloudId: pushedAsset.cloudAssetId,
         cloudObjectKey: pushedAsset.cloudObjectKey,
         localAssetId: pushedAsset.localAssetId,
@@ -301,7 +337,10 @@ export class ThreadSyncService {
       }
 
       const asset = assetById.get(pushedAsset.localAssetId);
-      if (asset?.uploadPolicy !== 'full') {
+      if (
+        !asset ||
+        !canUploadAssetContent(asset.uploadPolicy, hasFullAssetUploadConsent)
+      ) {
         continue;
       }
 
@@ -311,8 +350,10 @@ export class ThreadSyncService {
           asset,
           cloudAssetId: pushedAsset.cloudAssetId,
           session,
+          signal,
         });
-        await window.genfeedDesktop.sync.recordAssetSync({
+        signal.throwIfAborted();
+        await window.genfeedDesktop.sync.recordAssetSync(session.userId, {
           cloudId: uploaded.cloudAssetId,
           cloudObjectKey: uploaded.cloudObjectKey,
           localAssetId: pushedAsset.localAssetId,
@@ -321,6 +362,9 @@ export class ThreadSyncService {
         });
         uploadCount++;
       } catch (error) {
+        if (signal.aborted) {
+          throw error;
+        }
         errors.push(
           error instanceof Error ? error.message : 'Asset upload failed',
         );
@@ -334,156 +378,272 @@ export class ThreadSyncService {
     };
   }
 
+  private async pushThreads(opts: {
+    apiEndpoint: string;
+    localThreads: IDesktopThread[];
+    localUserId: string;
+    session: IDesktopSession;
+    signal: AbortSignal;
+    threadsCursor?: string | null;
+  }): Promise<{ errors: string[]; pushedCount: number }> {
+    const {
+      apiEndpoint,
+      localThreads,
+      localUserId,
+      session,
+      signal,
+      threadsCursor,
+    } = opts;
+    const errors: string[] = [];
+    let pushedCount = 0;
+    const pushCandidates = threadsCursor
+      ? localThreads.filter((thread) => thread.updatedAt > threadsCursor)
+      : localThreads;
+
+    if (pushCandidates.length === 0) {
+      return { errors, pushedCount };
+    }
+
+    const batch = pushCandidates.slice(0, 500);
+    const logIds: string[] = [];
+    for (const thread of batch) {
+      signal.throwIfAborted();
+      const logId = `push-${thread.id}-${Date.now()}`;
+      await upsertSyncLogEntry({
+        direction: 'push',
+        entity: 'thread',
+        entity_id: thread.id,
+        id: logId,
+        status: 'pending',
+      });
+      logIds.push(logId);
+    }
+
+    try {
+      const response = await fetch(`${apiEndpoint}/sync/desktop/threads`, {
+        body: JSON.stringify({ localUserId, threads: batch }),
+        headers: {
+          Authorization: `Bearer ${session.token}`,
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+        signal,
+      });
+
+      if (response.ok) {
+        const body = (await response.json()) as PushResponse;
+        signal.throwIfAborted();
+        pushedCount = body.data.accepted;
+        const syncedAt = new Date().toISOString();
+        for (const logId of logIds) {
+          signal.throwIfAborted();
+          await markSyncSuccess(logId, syncedAt);
+        }
+        return { errors, pushedCount };
+      }
+
+      const errorMessage = `Push failed: ${response.status}`;
+      errors.push(errorMessage);
+      for (const logId of logIds) {
+        signal.throwIfAborted();
+        await markSyncFailed(logId, errorMessage);
+      }
+    } catch (error) {
+      if (signal.aborted) {
+        throw error;
+      }
+      errors.push(error instanceof Error ? error.message : 'Push failed');
+    }
+
+    return { errors, pushedCount };
+  }
+
+  private async pullThreads(opts: {
+    apiEndpoint: string;
+    localThreads: IDesktopThread[];
+    localUserId: string;
+    result: SyncResult;
+    session: IDesktopSession;
+    signal: AbortSignal;
+    threadsCursor?: string | null;
+  }): Promise<{ errors: string[] }> {
+    const {
+      apiEndpoint,
+      localThreads,
+      localUserId,
+      result,
+      session,
+      signal,
+      threadsCursor,
+    } = opts;
+    const pullUrl = buildSyncUrl(
+      apiEndpoint,
+      '/sync/desktop/threads',
+      threadsCursor,
+    );
+    const response = await fetch(pullUrl, {
+      headers: { Authorization: `Bearer ${session.token}` },
+      signal,
+    });
+
+    if (!response.ok) {
+      return { errors: [`Pull failed: ${response.status}`] };
+    }
+
+    const body = (await response.json()) as PullResponse;
+    signal.throwIfAborted();
+    const localThreadsById = new Map(
+      localThreads.map((thread) => [thread.id, thread]),
+    );
+    for (const remote of body.data.threads) {
+      signal.throwIfAborted();
+      const local = localThreadsById.get(remote.id);
+      if (!local || remote.updatedAt > local.updatedAt) {
+        await upsertThread(localUserId, remote);
+        if (remote.messages.length > 0) {
+          await upsertMessages(remote.id, remote.messages);
+        }
+        result.pulledCount++;
+      }
+    }
+
+    signal.throwIfAborted();
+    await window.genfeedDesktop.sync.setCursor(
+      session.userId,
+      body.data.updatedCursor,
+      'threads',
+    );
+    return { errors: [] };
+  }
+
+  private async pullBrandManifest(opts: {
+    apiEndpoint: string;
+    brandManifestCursor?: string | null;
+    result: SyncResult;
+    session: IDesktopSession;
+    signal: AbortSignal;
+  }): Promise<{ errors: string[] }> {
+    const { apiEndpoint, brandManifestCursor, result, session, signal } = opts;
+    const manifestUrl = buildSyncUrl(
+      apiEndpoint,
+      '/sync/desktop/brand-manifest',
+      brandManifestCursor,
+    );
+    const response = await fetch(manifestUrl, {
+      headers: { Authorization: `Bearer ${session.token}` },
+      signal,
+    });
+
+    if (!response.ok) {
+      return { errors: [`Brand manifest pull failed: ${response.status}`] };
+    }
+
+    const body = (await response.json()) as BrandManifestResponse;
+    signal.throwIfAborted();
+    await window.genfeedDesktop.sync.applyBrandManifest(
+      session.userId,
+      body.data,
+    );
+    result.pulledMetadataCount =
+      body.data.brands.length +
+      (body.data.ingredients ?? []).length +
+      body.data.assets.length;
+    signal.throwIfAborted();
+    await window.genfeedDesktop.sync.setCursor(
+      session.userId,
+      body.data.updatedCursor,
+      'brandManifest',
+    );
+    return { errors: [] };
+  }
+
   async run(opts: {
+    hasFullAssetUploadConsent: boolean;
     apiEndpoint: string;
     localUserId: string;
     session: IDesktopSession;
+    signal: AbortSignal;
   }): Promise<SyncResult> {
-    const { apiEndpoint, localUserId, session } = opts;
+    const {
+      hasFullAssetUploadConsent,
+      apiEndpoint,
+      localUserId,
+      session,
+      signal,
+    } = opts;
     const errors: string[] = [];
-    let assetUploadCount = 0;
-    let pushedMetadataCount = 0;
-    let pushedCount = 0;
-    let pulledCount = 0;
-    let pulledMetadataCount = 0;
+    const result: SyncResult = {
+      assetUploadCount: 0,
+      errors,
+      pulledCount: 0,
+      pulledMetadataCount: 0,
+      pushedCount: 0,
+      pushedMetadataCount: 0,
+    };
 
     try {
+      signal.throwIfAborted();
       const [threadsCursor, brandManifestCursor] = await Promise.all([
-        window.genfeedDesktop.sync.getCursor('threads'),
-        window.genfeedDesktop.sync.getCursor('brandManifest'),
+        window.genfeedDesktop.sync.getCursor(session.userId, 'threads'),
+        window.genfeedDesktop.sync.getCursor(session.userId, 'brandManifest'),
       ]);
+      signal.throwIfAborted();
 
-      // 1. PUSH: get all local threads
       const localThreads = await queryThreads(localUserId);
-      const pushCandidates = threadsCursor
-        ? localThreads.filter((t) => t.updatedAt > threadsCursor)
-        : localThreads;
-
-      if (pushCandidates.length > 0) {
-        // Batch: max 500 threads per push
-        const batch = pushCandidates.slice(0, 500);
-
-        // Log pending
-        const logIds = new Map<string, string>();
-        for (const t of batch) {
-          const logId = `push-${t.id}-${Date.now()}`;
-          logIds.set(t.id, logId);
-          await upsertSyncLogEntry({
-            direction: 'push',
-            entity: 'thread',
-            entity_id: t.id,
-            id: logId,
-            status: 'pending',
-          });
-        }
-
-        try {
-          const pushRes = await fetch(`${apiEndpoint}/sync/desktop/threads`, {
-            body: JSON.stringify({ localUserId, threads: batch }),
-            headers: {
-              Authorization: `Bearer ${session.token}`,
-              'Content-Type': 'application/json',
-            },
-            method: 'POST',
-          });
-
-          if (pushRes.ok) {
-            const pushBody = (await pushRes.json()) as PushResponse;
-            pushedCount = pushBody.data.accepted;
-
-            for (const t of batch) {
-              await markSyncSuccess(
-                logIds.get(t.id) ?? `push-${t.id}`,
-                new Date().toISOString(),
-              );
-            }
-          } else {
-            const errMsg = `Push failed: ${pushRes.status}`;
-            errors.push(errMsg);
-            for (const t of batch) {
-              await markSyncFailed(logIds.get(t.id) ?? `push-${t.id}`, errMsg);
-            }
-          }
-        } catch (e) {
-          const errMsg = e instanceof Error ? e.message : 'Push failed';
-          errors.push(errMsg);
-        }
-      }
+      signal.throwIfAborted();
+      const threadPushResult = await this.pushThreads({
+        apiEndpoint,
+        localThreads,
+        localUserId,
+        session,
+        signal,
+        threadsCursor,
+      });
+      result.pushedCount = threadPushResult.pushedCount;
+      errors.push(...threadPushResult.errors);
 
       const [assetResult, opResult] = await Promise.all([
-        this.pushAssets({ apiEndpoint, session }),
-        this.pushSyncOps({ apiEndpoint, session }),
+        this.pushAssets({
+          hasFullAssetUploadConsent,
+          apiEndpoint,
+          session,
+          signal,
+        }),
+        this.pushSyncOps({ apiEndpoint, session, signal }),
       ]);
+      signal.throwIfAborted();
 
-      pushedMetadataCount = assetResult.pushedCount + opResult.pushedCount;
-      assetUploadCount = assetResult.uploadCount;
+      result.pushedMetadataCount =
+        assetResult.pushedCount + opResult.pushedCount;
+      result.assetUploadCount = assetResult.uploadCount;
       errors.push(...assetResult.errors, ...opResult.errors);
 
-      // 2. PULL: get remote changes since cursor
-      const pullUrl = threadsCursor
-        ? `${apiEndpoint}/sync/desktop/threads?cursor=${encodeURIComponent(threadsCursor)}`
-        : `${apiEndpoint}/sync/desktop/threads`;
-
-      const pullRes = await fetch(pullUrl, {
-        headers: { Authorization: `Bearer ${session.token}` },
+      const threadPullResult = await this.pullThreads({
+        apiEndpoint,
+        localThreads,
+        localUserId,
+        result,
+        session,
+        signal,
+        threadsCursor,
       });
+      errors.push(...threadPullResult.errors);
 
-      if (pullRes.ok) {
-        const pullBody = (await pullRes.json()) as PullResponse;
-        const remoteThreads = pullBody.data.threads;
-
-        for (const remote of remoteThreads) {
-          const local = localThreads.find((t) => t.id === remote.id);
-          if (!local || remote.updatedAt > local.updatedAt) {
-            await upsertThread(localUserId, remote);
-            if (remote.messages.length > 0) {
-              await upsertMessages(remote.id, remote.messages);
-            }
-            pulledCount++;
-          }
-        }
-
-        await window.genfeedDesktop.sync.setCursor(
-          pullBody.data.updatedCursor,
-          'threads',
-        );
-      } else {
-        errors.push(`Pull failed: ${pullRes.status}`);
-      }
-
-      const manifestUrl = brandManifestCursor
-        ? `${apiEndpoint}/sync/desktop/brand-manifest?cursor=${encodeURIComponent(brandManifestCursor)}`
-        : `${apiEndpoint}/sync/desktop/brand-manifest`;
-      const manifestRes = await fetch(manifestUrl, {
-        headers: { Authorization: `Bearer ${session.token}` },
+      const manifestResult = await this.pullBrandManifest({
+        apiEndpoint,
+        brandManifestCursor,
+        result,
+        session,
+        signal,
       });
-
-      if (manifestRes.ok) {
-        const manifestBody =
-          (await manifestRes.json()) as BrandManifestResponse;
-        await window.genfeedDesktop.sync.applyBrandManifest(manifestBody.data);
-        pulledMetadataCount =
-          manifestBody.data.brands.length +
-          (manifestBody.data.ingredients ?? []).length +
-          manifestBody.data.assets.length;
-        await window.genfeedDesktop.sync.setCursor(
-          manifestBody.data.updatedCursor,
-          'brandManifest',
-        );
-      } else {
-        errors.push(`Brand manifest pull failed: ${manifestRes.status}`);
-      }
+      errors.push(...manifestResult.errors);
     } catch (e) {
+      if (signal.aborted) {
+        throw e;
+      }
       errors.push(e instanceof Error ? e.message : 'Sync failed');
     }
 
-    return {
-      assetUploadCount,
-      errors,
-      pulledCount,
-      pulledMetadataCount,
-      pushedCount,
-      pushedMetadataCount,
-    };
+    return result;
   }
 }

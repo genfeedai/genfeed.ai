@@ -20,6 +20,8 @@
       ],
       "@genfeedai/client": ["../../../packages/client/src/index.ts"],
       "@genfeedai/client/*": ["../../../packages/client/src/*"],
+      "@genfeedai/config": ["../../../packages/config/src/index.ts"],
+      "@genfeedai/config/*": ["../../../packages/config/src/*"],
       "@genfeedai/constants": ["../../../packages/constants/src/index.ts"],
       "@genfeedai/constants/*": ["../../../packages/constants/src/*"],
       "@genfeedai/enums": ["../../../packages/enums/src/index.ts"],
