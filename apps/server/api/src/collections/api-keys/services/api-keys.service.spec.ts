@@ -8,7 +8,10 @@ import {
   API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
   ApiKeyCategory,
 } from '@genfeedai/enums';
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 type MockFn = ReturnType<typeof vi.fn>;
 
@@ -291,6 +294,27 @@ describe('ApiKeysService', () => {
           },
         }),
       );
+    });
+
+    it('rejects trusted issuance when action-origin signing is unavailable', async () => {
+      const service = createValidationHarness();
+      Object.defineProperty(service, 'configService', {
+        value: { get: vi.fn() },
+      });
+
+      await expect(
+        service.createWithKey(
+          {
+            category: ApiKeyCategory.GENFEEDAI,
+            label: 'CLI',
+            organizationId: 'org-1',
+            scopes: ['videos:read'],
+            userId: 'user-1',
+          },
+          ActionOrigin.CLI,
+        ),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+      expect(service.create).not.toHaveBeenCalled();
     });
   });
 

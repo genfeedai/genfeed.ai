@@ -220,6 +220,7 @@ export class SystemWorkflowProvenanceService {
         input,
         result,
         workflowId: workflow.id,
+        workflowLabel: provenance.workflowLabel,
       });
 
       return { provenance, result };
@@ -230,6 +231,7 @@ export class SystemWorkflowProvenanceService {
         input,
         result: null,
         workflowId: workflow.id,
+        workflowLabel: provenance.workflowLabel,
       });
       throw error;
     }
@@ -391,6 +393,7 @@ export class SystemWorkflowProvenanceService {
     input: SystemWorkflowActionInput<T>;
     result: unknown;
     workflowId: string;
+    workflowLabel: string;
   }): Promise<void> {
     const completedAt = new Date();
     const didFail = Boolean(input.error);
@@ -408,6 +411,7 @@ export class SystemWorkflowProvenanceService {
             failed: didFail,
             source: input.input.source,
             systemWorkflowAction: true,
+            workflowLabel: input.workflowLabel,
           }),
           nodeResults: [
             {

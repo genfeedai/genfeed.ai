@@ -21,7 +21,11 @@ import type { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 /**
@@ -322,7 +326,9 @@ export class ApiKeysService extends BaseService<
       keyFingerprint,
     );
     if (!proof) {
-      return Object.keys(safeMetadata).length > 0 ? safeMetadata : undefined;
+      throw new InternalServerErrorException(
+        'Action-origin signing is unavailable for trusted API key issuance.',
+      );
     }
     return {
       ...safeMetadata,

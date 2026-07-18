@@ -37,9 +37,9 @@ export class BaseApiClient {
         'Content-Type': 'application/json',
         ...(this.bearerToken
           ? {
-              [MCP_ACTION_ORIGIN_PROOF_HEADER]: createHash('sha256')
-                .update(this.bearerToken)
-                .digest('base64url'),
+              [MCP_ACTION_ORIGIN_PROOF_HEADER]: this.createActionOriginProof(
+                this.bearerToken,
+              ),
             }
           : {}),
       },
@@ -50,6 +50,16 @@ export class BaseApiClient {
   setBearerToken(token: string): void {
     this.bearerToken = token;
     this.http.defaults.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      this.http.defaults.headers[MCP_ACTION_ORIGIN_PROOF_HEADER] =
+        this.createActionOriginProof(token);
+    } else {
+      delete this.http.defaults.headers[MCP_ACTION_ORIGIN_PROOF_HEADER];
+    }
+  }
+
+  private createActionOriginProof(token: string): string {
+    return createHash('sha256').update(token).digest('base64url');
   }
 
   /**

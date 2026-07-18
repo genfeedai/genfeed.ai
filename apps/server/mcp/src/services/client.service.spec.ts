@@ -91,6 +91,23 @@ describe('ClientService (MCP)', () => {
       expect(mockAxiosInstance.defaults?.headers.Authorization).toBe(
         `Bearer ${newToken}`,
       );
+      expect(
+        mockAxiosInstance.defaults?.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
+      ).toBe(createHash('sha256').update(newToken).digest('base64url'));
+    });
+
+    it('should remove the action-origin proof when clearing the token', () => {
+      const headers = mockAxiosInstance.defaults?.headers;
+      if (!headers) {
+        throw new Error('Expected Axios default headers');
+      }
+      headers[MCP_ACTION_ORIGIN_PROOF_HEADER] = 'stale-proof';
+
+      service.setBearerToken('');
+
+      expect(
+        mockAxiosInstance.defaults?.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
+      ).toBeUndefined();
     });
   });
 
