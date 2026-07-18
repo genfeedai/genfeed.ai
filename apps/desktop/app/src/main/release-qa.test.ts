@@ -22,11 +22,15 @@ const readPackageJson = (): DesktopPackageJson =>
 describe('desktop release QA', () => {
   it('keeps the release-candidate QA script aligned with smoke coverage', () => {
     const scripts = readPackageJson().scripts;
+    const smokeRunner = readText('apps/desktop/app/scripts/run-smoke.cjs');
 
     expect(scripts?.['qa:release']).toBe(
       'bun run lint && bun run type-check && bun run test && bun run smoke',
     );
-    expect(scripts?.smoke).toContain('--smoke-test');
+    expect(scripts?.smoke).toContain('run-smoke.cjs');
+    expect(smokeRunner).toContain("'--smoke-test'");
+    expect(smokeRunner).toContain('60_000');
+    expect(smokeRunner).toContain("child.kill('SIGTERM')");
     expect(scripts?.['release:mac']).toContain('bun run release:manifest');
   });
 

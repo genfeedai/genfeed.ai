@@ -113,7 +113,7 @@
     "qa:release": "bun run lint && bun run type-check && bun run test && bun run smoke",
     "release:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac dmg zip --publish never && bun run release:manifest",
     "release:manifest": "node ./scripts/write-release-manifest.cjs",
-    "smoke": "bun run electron:install-binary && bun run native:rebuild && bun run build && ELECTRON_RUN_AS_NODE= electron dist/main.js --smoke-test",
+    "smoke": "bun run electron:install-binary && bun run native:rebuild && bun run build && node ./scripts/run-smoke.cjs",
     "start": "bun run electron:install-binary && bun run native:rebuild && ELECTRON_RUN_AS_NODE= electron dist/main.js",
     "test": "bun test ./src/**/*.test.ts && vitest run --config vitest.config.ts",
     "type-check": "rm -rf .next && next typegen && bunx tsc --noEmit",
