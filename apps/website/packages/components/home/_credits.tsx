@@ -7,6 +7,7 @@ import {
   getProPlan,
   WEBSITE_CREDIT_PACKS,
 } from '@helpers/business/pricing/pricing.helper';
+import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { HStack, VStack } from '@ui/layout/stack';
@@ -66,10 +67,10 @@ export default function HomeCredits(): React.ReactElement {
               className="flex items-baseline justify-between gap-4 bg-background px-6 py-4"
             >
               <Text className="text-sm font-semibold text-surface">
-                ${creditPackPrice(pack).toLocaleString()}
+                ${formatNumberWithCommas(creditPackPrice(pack))}
               </Text>
               <Text className="text-sm text-surface/60">
-                {creditPackTotalCredits(pack).toLocaleString()} credits
+                {formatNumberWithCommas(creditPackTotalCredits(pack))} credits
               </Text>
             </div>
           ))}

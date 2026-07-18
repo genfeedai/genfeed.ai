@@ -1,7 +1,12 @@
+import {
+  getProPlan,
+  getScalePlan,
+} from '@helpers/business/pricing/pricing.helper';
+import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import PricingContent from './pricing-content';
+import PricingContent, { getPriceQualifier } from './pricing-content';
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...props }: ComponentProps<'a'>) => (
@@ -95,5 +100,28 @@ describe('PricingContent launch pricing', () => {
 
     // Cloud Teams has no launchPrice — its price renders un-struck.
     expect(screen.getByText('$499')).not.toHaveClass('line-through');
+  });
+
+  it('formats public pricing numbers deterministically across runtime locales', async () => {
+    await withSimulatedNumberLocale('de-DE', async () => {
+      await Promise.resolve();
+      render(<PricingContent />);
+
+      expect(screen.getByText('$1,000')).toBeInTheDocument();
+      expect(screen.getByText('100,000 credits')).toBeInTheDocument();
+      expect(screen.getByText('8,000 credits included')).toBeInTheDocument();
+    });
+  });
+
+  it('uses explicit subscription qualifiers when included credits are absent', () => {
+    const proPlan = getProPlan();
+    const scalePlan = getScalePlan();
+
+    expect(getPriceQualifier({ ...proPlan, includedCredits: null })).toBe(
+      'Monthly subscription',
+    );
+    expect(
+      getPriceQualifier({ ...scalePlan, includedCredits: undefined }),
+    ).toBe('Unlimited seats');
   });
 });
