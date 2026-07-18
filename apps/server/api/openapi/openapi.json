@@ -949,7 +949,7 @@
         "type": "string"
       },
       "ClipResultMode": {
-        "description": "Clip generation mode (defaults to avatar)",
+        "description": "Clip generation mode",
         "enum": [
           "avatar",
           "raw-cut"
