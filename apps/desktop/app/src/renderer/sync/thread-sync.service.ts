@@ -100,6 +100,15 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
     reader.readAsDataURL(blob);
   });
 
+const buildSyncUrl = (
+  apiEndpoint: string,
+  path: string,
+  cursor?: string,
+): string =>
+  cursor
+    ? `${apiEndpoint}${path}?cursor=${encodeURIComponent(cursor)}`
+    : `${apiEndpoint}${path}`;
+
 export class ThreadSyncService {
   private async pushSyncOps(opts: {
     apiEndpoint: string;
@@ -369,6 +378,185 @@ export class ThreadSyncService {
     };
   }
 
+  private async pushThreads(opts: {
+    apiEndpoint: string;
+    localThreads: IDesktopThread[];
+    localUserId: string;
+    session: IDesktopSession;
+    signal: AbortSignal;
+    threadsCursor?: string;
+  }): Promise<{ errors: string[]; pushedCount: number }> {
+    const {
+      apiEndpoint,
+      localThreads,
+      localUserId,
+      session,
+      signal,
+      threadsCursor,
+    } = opts;
+    const errors: string[] = [];
+    let pushedCount = 0;
+    const pushCandidates = threadsCursor
+      ? localThreads.filter((thread) => thread.updatedAt > threadsCursor)
+      : localThreads;
+
+    if (pushCandidates.length === 0) {
+      return { errors, pushedCount };
+    }
+
+    const batch = pushCandidates.slice(0, 500);
+    const logIds: string[] = [];
+    for (const thread of batch) {
+      signal.throwIfAborted();
+      const logId = `push-${thread.id}-${Date.now()}`;
+      await upsertSyncLogEntry({
+        direction: 'push',
+        entity: 'thread',
+        entity_id: thread.id,
+        id: logId,
+        status: 'pending',
+      });
+      logIds.push(logId);
+    }
+
+    try {
+      const response = await fetch(`${apiEndpoint}/sync/desktop/threads`, {
+        body: JSON.stringify({ localUserId, threads: batch }),
+        headers: {
+          Authorization: `Bearer ${session.token}`,
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+        signal,
+      });
+
+      if (response.ok) {
+        const body = (await response.json()) as PushResponse;
+        signal.throwIfAborted();
+        pushedCount = body.data.accepted;
+        const syncedAt = new Date().toISOString();
+        for (const logId of logIds) {
+          signal.throwIfAborted();
+          await markSyncSuccess(logId, syncedAt);
+        }
+        return { errors, pushedCount };
+      }
+
+      const errorMessage = `Push failed: ${response.status}`;
+      errors.push(errorMessage);
+      for (const logId of logIds) {
+        signal.throwIfAborted();
+        await markSyncFailed(logId, errorMessage);
+      }
+    } catch (error) {
+      if (signal.aborted) {
+        throw error;
+      }
+      errors.push(error instanceof Error ? error.message : 'Push failed');
+    }
+
+    return { errors, pushedCount };
+  }
+
+  private async pullThreads(opts: {
+    apiEndpoint: string;
+    localThreads: IDesktopThread[];
+    localUserId: string;
+    result: SyncResult;
+    session: IDesktopSession;
+    signal: AbortSignal;
+    threadsCursor?: string;
+  }): Promise<{ errors: string[] }> {
+    const {
+      apiEndpoint,
+      localThreads,
+      localUserId,
+      result,
+      session,
+      signal,
+      threadsCursor,
+    } = opts;
+    const pullUrl = buildSyncUrl(
+      apiEndpoint,
+      '/sync/desktop/threads',
+      threadsCursor,
+    );
+    const response = await fetch(pullUrl, {
+      headers: { Authorization: `Bearer ${session.token}` },
+      signal,
+    });
+
+    if (!response.ok) {
+      return { errors: [`Pull failed: ${response.status}`] };
+    }
+
+    const body = (await response.json()) as PullResponse;
+    signal.throwIfAborted();
+    const localThreadsById = new Map(
+      localThreads.map((thread) => [thread.id, thread]),
+    );
+    for (const remote of body.data.threads) {
+      signal.throwIfAborted();
+      const local = localThreadsById.get(remote.id);
+      if (!local || remote.updatedAt > local.updatedAt) {
+        await upsertThread(localUserId, remote);
+        if (remote.messages.length > 0) {
+          await upsertMessages(remote.id, remote.messages);
+        }
+        result.pulledCount++;
+      }
+    }
+
+    signal.throwIfAborted();
+    await window.genfeedDesktop.sync.setCursor(
+      session.userId,
+      body.data.updatedCursor,
+      'threads',
+    );
+    return { errors: [] };
+  }
+
+  private async pullBrandManifest(opts: {
+    apiEndpoint: string;
+    brandManifestCursor?: string;
+    result: SyncResult;
+    session: IDesktopSession;
+    signal: AbortSignal;
+  }): Promise<{ errors: string[] }> {
+    const { apiEndpoint, brandManifestCursor, result, session, signal } = opts;
+    const manifestUrl = buildSyncUrl(
+      apiEndpoint,
+      '/sync/desktop/brand-manifest',
+      brandManifestCursor,
+    );
+    const response = await fetch(manifestUrl, {
+      headers: { Authorization: `Bearer ${session.token}` },
+      signal,
+    });
+
+    if (!response.ok) {
+      return { errors: [`Brand manifest pull failed: ${response.status}`] };
+    }
+
+    const body = (await response.json()) as BrandManifestResponse;
+    signal.throwIfAborted();
+    await window.genfeedDesktop.sync.applyBrandManifest(
+      session.userId,
+      body.data,
+    );
+    result.pulledMetadataCount =
+      body.data.brands.length +
+      (body.data.ingredients ?? []).length +
+      body.data.assets.length;
+    signal.throwIfAborted();
+    await window.genfeedDesktop.sync.setCursor(
+      session.userId,
+      body.data.updatedCursor,
+      'brandManifest',
+    );
+    return { errors: [] };
+  }
+
   async run(opts: {
     hasFullAssetUploadConsent: boolean;
     apiEndpoint: string;
@@ -384,11 +572,14 @@ export class ThreadSyncService {
       signal,
     } = opts;
     const errors: string[] = [];
-    let assetUploadCount = 0;
-    let pushedMetadataCount = 0;
-    let pushedCount = 0;
-    let pulledCount = 0;
-    let pulledMetadataCount = 0;
+    const result: SyncResult = {
+      assetUploadCount: 0,
+      errors,
+      pulledCount: 0,
+      pulledMetadataCount: 0,
+      pushedCount: 0,
+      pushedMetadataCount: 0,
+    };
 
     try {
       signal.throwIfAborted();
@@ -398,71 +589,18 @@ export class ThreadSyncService {
       ]);
       signal.throwIfAborted();
 
-      // 1. PUSH: get all local threads
       const localThreads = await queryThreads(localUserId);
       signal.throwIfAborted();
-      const pushCandidates = threadsCursor
-        ? localThreads.filter((t) => t.updatedAt > threadsCursor)
-        : localThreads;
-
-      if (pushCandidates.length > 0) {
-        // Batch: max 500 threads per push
-        const batch = pushCandidates.slice(0, 500);
-
-        // Log pending
-        const logIds = new Map<string, string>();
-        for (const t of batch) {
-          signal.throwIfAborted();
-          const logId = `push-${t.id}-${Date.now()}`;
-          logIds.set(t.id, logId);
-          await upsertSyncLogEntry({
-            direction: 'push',
-            entity: 'thread',
-            entity_id: t.id,
-            id: logId,
-            status: 'pending',
-          });
-        }
-
-        try {
-          const pushRes = await fetch(`${apiEndpoint}/sync/desktop/threads`, {
-            body: JSON.stringify({ localUserId, threads: batch }),
-            headers: {
-              Authorization: `Bearer ${session.token}`,
-              'Content-Type': 'application/json',
-            },
-            method: 'POST',
-            signal,
-          });
-
-          if (pushRes.ok) {
-            const pushBody = (await pushRes.json()) as PushResponse;
-            signal.throwIfAborted();
-            pushedCount = pushBody.data.accepted;
-
-            for (const t of batch) {
-              signal.throwIfAborted();
-              await markSyncSuccess(
-                logIds.get(t.id) ?? `push-${t.id}`,
-                new Date().toISOString(),
-              );
-            }
-          } else {
-            const errMsg = `Push failed: ${pushRes.status}`;
-            errors.push(errMsg);
-            for (const t of batch) {
-              signal.throwIfAborted();
-              await markSyncFailed(logIds.get(t.id) ?? `push-${t.id}`, errMsg);
-            }
-          }
-        } catch (e) {
-          if (signal.aborted) {
-            throw e;
-          }
-          const errMsg = e instanceof Error ? e.message : 'Push failed';
-          errors.push(errMsg);
-        }
-      }
+      const threadPushResult = await this.pushThreads({
+        apiEndpoint,
+        localThreads,
+        localUserId,
+        session,
+        signal,
+        threadsCursor,
+      });
+      result.pushedCount = threadPushResult.pushedCount;
+      errors.push(...threadPushResult.errors);
 
       const [assetResult, opResult] = await Promise.all([
         this.pushAssets({
@@ -475,76 +613,30 @@ export class ThreadSyncService {
       ]);
       signal.throwIfAborted();
 
-      pushedMetadataCount = assetResult.pushedCount + opResult.pushedCount;
-      assetUploadCount = assetResult.uploadCount;
+      result.pushedMetadataCount =
+        assetResult.pushedCount + opResult.pushedCount;
+      result.assetUploadCount = assetResult.uploadCount;
       errors.push(...assetResult.errors, ...opResult.errors);
 
-      // 2. PULL: get remote changes since cursor
-      const pullUrl = threadsCursor
-        ? `${apiEndpoint}/sync/desktop/threads?cursor=${encodeURIComponent(threadsCursor)}`
-        : `${apiEndpoint}/sync/desktop/threads`;
+      const threadPullResult = await this.pullThreads({
+        apiEndpoint,
+        localThreads,
+        localUserId,
+        result,
+        session,
+        signal,
+        threadsCursor,
+      });
+      errors.push(...threadPullResult.errors);
 
-      const pullRes = await fetch(pullUrl, {
-        headers: { Authorization: `Bearer ${session.token}` },
+      const manifestResult = await this.pullBrandManifest({
+        apiEndpoint,
+        brandManifestCursor,
+        result,
+        session,
         signal,
       });
-
-      if (pullRes.ok) {
-        const pullBody = (await pullRes.json()) as PullResponse;
-        signal.throwIfAborted();
-        const remoteThreads = pullBody.data.threads;
-
-        for (const remote of remoteThreads) {
-          signal.throwIfAborted();
-          const local = localThreads.find((t) => t.id === remote.id);
-          if (!local || remote.updatedAt > local.updatedAt) {
-            await upsertThread(localUserId, remote);
-            if (remote.messages.length > 0) {
-              await upsertMessages(remote.id, remote.messages);
-            }
-            pulledCount++;
-          }
-        }
-
-        signal.throwIfAborted();
-        await window.genfeedDesktop.sync.setCursor(
-          session.userId,
-          pullBody.data.updatedCursor,
-          'threads',
-        );
-      } else {
-        errors.push(`Pull failed: ${pullRes.status}`);
-      }
-
-      const manifestUrl = brandManifestCursor
-        ? `${apiEndpoint}/sync/desktop/brand-manifest?cursor=${encodeURIComponent(brandManifestCursor)}`
-        : `${apiEndpoint}/sync/desktop/brand-manifest`;
-      const manifestRes = await fetch(manifestUrl, {
-        headers: { Authorization: `Bearer ${session.token}` },
-        signal,
-      });
-
-      if (manifestRes.ok) {
-        const manifestBody =
-          (await manifestRes.json()) as BrandManifestResponse;
-        signal.throwIfAborted();
-        await window.genfeedDesktop.sync.applyBrandManifest(
-          session.userId,
-          manifestBody.data,
-        );
-        pulledMetadataCount =
-          manifestBody.data.brands.length +
-          (manifestBody.data.ingredients ?? []).length +
-          manifestBody.data.assets.length;
-        signal.throwIfAborted();
-        await window.genfeedDesktop.sync.setCursor(
-          session.userId,
-          manifestBody.data.updatedCursor,
-          'brandManifest',
-        );
-      } else {
-        errors.push(`Brand manifest pull failed: ${manifestRes.status}`);
-      }
+      errors.push(...manifestResult.errors);
     } catch (e) {
       if (signal.aborted) {
         throw e;
@@ -552,13 +644,6 @@ export class ThreadSyncService {
       errors.push(e instanceof Error ? e.message : 'Sync failed');
     }
 
-    return {
-      assetUploadCount,
-      errors,
-      pulledCount,
-      pulledMetadataCount,
-      pushedCount,
-      pushedMetadataCount,
-    };
+    return result;
   }
 }
