@@ -5,6 +5,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
+import { TrendCorpusFreshnessService } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
 import { TrendPrelaunchCorpusService } from '@api/collections/trends/services/modules/trend-prelaunch-corpus.service';
@@ -55,6 +56,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     TrendAnalysisService,
+    TrendCorpusFreshnessService,
     TrendContentIdeasService,
     TrendFetchService,
     TrendFilteringService,
