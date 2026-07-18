@@ -216,10 +216,11 @@ export function getRunActionEffect(
   action: AgentRunAction,
   runId: string,
   brandId?: string,
+  signal?: AbortSignal,
 ): ReturnType<AgentApiService['cancelRunEffect']> {
   return action === 'cancel'
-    ? apiService.cancelRunEffect(runId, undefined, brandId)
-    : apiService.retryRunEffect(runId, undefined, brandId);
+    ? apiService.cancelRunEffect(runId, signal, brandId)
+    : apiService.retryRunEffect(runId, signal, brandId);
 }
 
 export function getRunActionMessage(

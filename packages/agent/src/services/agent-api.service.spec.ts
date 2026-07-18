@@ -621,6 +621,26 @@ describe('AgentApiService', () => {
       );
     });
 
+    it('preserves the requested page in fallback pagination', async () => {
+      mockOk({
+        data: [
+          {
+            attributes: { label: 'Older run', status: 'completed' },
+            id: 'run-11',
+            type: 'agent-run',
+          },
+        ],
+      });
+      const service = makeService();
+
+      await expect(
+        Effect.runPromise(service.listRunsEffect({ limit: 10, page: 2 })),
+      ).resolves.toEqual({
+        pagination: { limit: 10, page: 2, pages: 2, total: 11 },
+        runs: [{ id: 'run-11', label: 'Older run', status: 'completed' }],
+      });
+    });
+
     it('omits empty optional run filters', async () => {
       mockOk({ data: [] });
       const service = makeService();

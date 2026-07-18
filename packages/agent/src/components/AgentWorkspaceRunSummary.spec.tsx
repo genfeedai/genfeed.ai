@@ -164,7 +164,7 @@ describe('AgentWorkspaceRunSummary', () => {
     await waitFor(() => {
       expect(apiService.cancelRunEffect).toHaveBeenCalledWith(
         'run-1',
-        undefined,
+        expect.any(AbortSignal),
         'brand-1',
       );
     });
@@ -204,7 +204,7 @@ describe('AgentWorkspaceRunSummary', () => {
     await waitFor(() => {
       expect(apiService.retryRunEffect).toHaveBeenCalledWith(
         'run-1',
-        undefined,
+        expect.any(AbortSignal),
         undefined,
       );
     });

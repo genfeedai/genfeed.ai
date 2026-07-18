@@ -32,11 +32,13 @@ function createFallbackAgentRunPagination(
   runs: AgentRunSummary[],
   params: ListAgentRunsParams,
 ): AgentRunPage['pagination'] {
+  const limit = params.limit ?? 10;
+  const page = params.page ?? 1;
   return {
-    limit: params.limit ?? 10,
-    page: params.page ?? 1,
-    pages: Math.min(1, runs.length),
-    total: runs.length,
+    limit,
+    page,
+    pages: runs.length === 0 && page === 1 ? 0 : page,
+    total: (page - 1) * limit + runs.length,
   };
 }
 

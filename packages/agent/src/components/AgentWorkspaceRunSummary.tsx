@@ -13,7 +13,7 @@ import { getErrorMessage } from '@genfeedai/utils/error/error-handler.util';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   HiOutlineArrowPath,
   HiOutlineBolt,
@@ -61,6 +61,9 @@ export function AgentWorkspaceRunSummary({
   const [detailError, setDetailError] = useState<string | null>(null);
   const [actionRunId, setActionRunId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const runsRequestRef = useRef<AbortController | null>(null);
+  const detailRequestRef = useRef<AbortController | null>(null);
+  const actionRequestRef = useRef<AbortController | null>(null);
 
   if (brandId !== scopeBrandId) {
     setScopeBrandId(brandId);
@@ -69,85 +72,92 @@ export function AgentWorkspaceRunSummary({
     setSelectedRun(null);
   }
 
-  const loadRuns = useCallback(
-    (signal?: AbortSignal): Promise<void> => {
-      setIsLoading(true);
-      setLoadError(null);
+  const loadRuns = useCallback((): Promise<void> => {
+    runsRequestRef.current?.abort();
+    const controller = new AbortController();
+    runsRequestRef.current = controller;
+    setIsLoading(true);
+    setLoadError(null);
 
-      return runAgentApiEffect(
-        apiService.listRunsEffect(
-          { brandId: scopeBrandId ?? undefined, limit: PAGE_SIZE, page },
-          signal,
-        ),
+    return runAgentApiEffect(
+      apiService.listRunsEffect(
+        { brandId: scopeBrandId ?? undefined, limit: PAGE_SIZE, page },
+        controller.signal,
+      ),
+    )
+      .then(
+        (nextPage) =>
+          updateIfRequestActive(controller.signal, () => {
+            setRunPage(nextPage);
+            setSelectedRunId((currentId) =>
+              selectRunId(currentId, nextPage.runs),
+            );
+          }),
+        (error) =>
+          updateIfRequestActive(controller.signal, () =>
+            setLoadError(getErrorMessage(error, 'Failed to load runs.')),
+          ),
       )
-        .then(
-          (nextPage) =>
-            updateIfRequestActive(signal, () => {
-              setRunPage(nextPage);
-              setSelectedRunId((currentId) =>
-                selectRunId(currentId, nextPage.runs),
-              );
-            }),
-          (error) =>
-            updateIfRequestActive(signal, () =>
-              setLoadError(getErrorMessage(error, 'Failed to load runs.')),
-            ),
-        )
-        .finally(() =>
-          updateIfRequestActive(signal, () => setIsLoading(false)),
-        );
-    },
-    [apiService, page, scopeBrandId],
-  );
+      .finally(() => {
+        updateIfRequestActive(controller.signal, () => setIsLoading(false));
+        if (runsRequestRef.current === controller) {
+          runsRequestRef.current = null;
+        }
+      });
+  }, [apiService, page, scopeBrandId]);
 
   useEffect(() => {
     if (!authReady || !isExpanded) {
       return;
     }
 
-    const controller = new AbortController();
-    void loadRuns(controller.signal);
-    return () => controller.abort();
+    void loadRuns();
+    return () => runsRequestRef.current?.abort();
   }, [authReady, isExpanded, loadRuns]);
 
-  const loadRunDetail = useCallback(
-    (signal?: AbortSignal): Promise<void> => {
-      if (!isRunDetailLoadable(authReady, isExpanded, selectedRunId)) {
-        setSelectedRun(null);
-        setDetailError(null);
-        return Promise.resolve();
-      }
-
-      setIsDetailLoading(true);
+  const loadRunDetail = useCallback((): Promise<void> => {
+    detailRequestRef.current?.abort();
+    if (!isRunDetailLoadable(authReady, isExpanded, selectedRunId)) {
       setSelectedRun(null);
       setDetailError(null);
-      return runAgentApiEffect(
-        apiService.getRunEffect(
-          selectedRunId,
-          scopeBrandId ?? undefined,
-          signal,
-        ),
-      )
-        .then(
-          (run) => updateIfRequestActive(signal, () => setSelectedRun(run)),
-          (error) =>
-            updateIfRequestActive(signal, () =>
-              setDetailError(
-                getErrorMessage(error, 'Failed to load run detail.'),
-              ),
+      return Promise.resolve();
+    }
+
+    const controller = new AbortController();
+    detailRequestRef.current = controller;
+    setIsDetailLoading(true);
+    setSelectedRun(null);
+    setDetailError(null);
+    return runAgentApiEffect(
+      apiService.getRunEffect(
+        selectedRunId,
+        scopeBrandId ?? undefined,
+        controller.signal,
+      ),
+    )
+      .then(
+        (run) =>
+          updateIfRequestActive(controller.signal, () => setSelectedRun(run)),
+        (error) =>
+          updateIfRequestActive(controller.signal, () =>
+            setDetailError(
+              getErrorMessage(error, 'Failed to load run detail.'),
             ),
-        )
-        .finally(() =>
-          updateIfRequestActive(signal, () => setIsDetailLoading(false)),
+          ),
+      )
+      .finally(() => {
+        updateIfRequestActive(controller.signal, () =>
+          setIsDetailLoading(false),
         );
-    },
-    [apiService, authReady, isExpanded, scopeBrandId, selectedRunId],
-  );
+        if (detailRequestRef.current === controller) {
+          detailRequestRef.current = null;
+        }
+      });
+  }, [apiService, authReady, isExpanded, scopeBrandId, selectedRunId]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    void loadRunDetail(controller.signal);
-    return () => controller.abort();
+    void loadRunDetail();
+    return () => detailRequestRef.current?.abort();
   }, [loadRunDetail]);
 
   const activeRunCount = useMemo(
@@ -160,6 +170,9 @@ export function AgentWorkspaceRunSummary({
 
   const applyRunAction = useCallback(
     (runId: string, action: AgentRunAction): Promise<void> => {
+      actionRequestRef.current?.abort();
+      const controller = new AbortController();
+      actionRequestRef.current = controller;
       setActionRunId(runId);
       setActionMessage(null);
       setDetailError(null);
@@ -170,22 +183,45 @@ export function AgentWorkspaceRunSummary({
           action,
           runId,
           scopeBrandId ?? undefined,
+          controller.signal,
         ),
       )
         .then(
           (run) => {
-            setSelectedRun(run);
+            if (controller.signal.aborted) {
+              return;
+            }
+            setSelectedRun((currentRun) =>
+              currentRun?.id === run.id ? run : currentRun,
+            );
             setRunPage((currentPage) => replaceRunInPage(currentPage, run));
             setActionMessage(getRunActionMessage(action, run));
           },
-          (error) =>
+          (error) => {
+            if (controller.signal.aborted) {
+              return;
+            }
             setDetailError(
               getErrorMessage(error, `Failed to ${action} agent run.`),
-            ),
+            );
+          },
         )
-        .finally(() => setActionRunId(null));
+        .finally(() => {
+          if (actionRequestRef.current === controller) {
+            actionRequestRef.current = null;
+            setActionRunId(null);
+          }
+        });
     },
     [apiService, scopeBrandId],
+  );
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: changing brand scope must abort any in-flight action.
+  useEffect(
+    () => () => {
+      actionRequestRef.current?.abort();
+    },
+    [scopeBrandId],
   );
 
   return (
