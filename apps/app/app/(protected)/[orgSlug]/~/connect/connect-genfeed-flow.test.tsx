@@ -42,7 +42,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/config', () => ({
+vi.mock('@genfeedai/config/deployment', () => ({
   getDeployment: () => 'cloud',
   isSelfHostedDeployment: () => false,
 }));

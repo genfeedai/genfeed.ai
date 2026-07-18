@@ -1,7 +1,10 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { getDeployment, isSelfHostedDeployment } from '@genfeedai/config';
+import {
+  getDeployment,
+  isSelfHostedDeployment,
+} from '@genfeedai/config/deployment';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
