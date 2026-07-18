@@ -46,7 +46,6 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   library: 'Library',
   messages: 'Messages',
   posts: 'Posts',
-  remix: 'Remix',
   research: 'Research',
   studio: 'Studio',
   workflows: 'Workflows',

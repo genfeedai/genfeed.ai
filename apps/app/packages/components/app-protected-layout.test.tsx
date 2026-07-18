@@ -1038,6 +1038,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/library/ingredients', 'library'],
     ['/org-123/brand-123/analytics/overview', 'analytics'],
     ['/org-123/brand-123/workflows', 'workflows'],
+    ['/org-123/brand-123/posts/remix', 'posts'],
   ])('keeps the %s app-switcher surface in the conversation sidebar', (pathname, currentApp) => {
     mockPathname.value = pathname;
 

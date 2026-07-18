@@ -232,6 +232,7 @@ export function useLibraryPicker(params: {
           kind: 'ingredient',
           organizationId,
           recordId: confirmed.id,
+          recordVersion: confirmed.version?.toString(),
         });
         if (!reference) {
           setSelectionFailure('stale');

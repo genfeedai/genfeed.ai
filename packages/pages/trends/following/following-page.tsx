@@ -58,7 +58,6 @@ import {
 } from '@ui/primitives/select';
 import {
   buildTrendSourceAgentHref,
-  buildTrendSourceStudioHref,
   buildTrendSourceTwitterDraftHref,
 } from '@utils/url/desktop-loop-url.util';
 import Image from 'next/image';
@@ -285,7 +284,7 @@ export default function FollowingPage() {
         router.push(buildTrendSourceTwitterDraftHref(trend, source));
         return;
       }
-      router.push(buildTrendSourceStudioHref(trend, source));
+      router.push(buildTrendSourceAgentHref(trend, source));
     },
     [router],
   );
