@@ -284,7 +284,9 @@ describe('ClipProjectsController', () => {
         youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
       });
 
-      expect(validateSync(dto).map((error) => error.property)).toContain('mode');
+      expect(validateSync(dto).map((error) => error.property)).toContain(
+        'mode',
+      );
     });
 
     it('should reject non-youtube URLs', () => {
@@ -392,7 +394,9 @@ describe('ClipProjectsController', () => {
         selectedHighlightIds: ['highlight-1'],
       });
 
-      expect(validateSync(dto).map((error) => error.property)).toContain('mode');
+      expect(validateSync(dto).map((error) => error.property)).toContain(
+        'mode',
+      );
     });
 
     it.each([
@@ -564,9 +568,7 @@ describe('ClipProjectsController', () => {
         mode: 'raw-cut',
         sourceVideoS3Key: 'uploads/source.mp4',
         sourceVideoUrl: 'https://cdn.example.com/source.mp4',
-        transcriptSegments: [
-          { end: 45, start: 15, text: 'Original summary' },
-        ],
+        transcriptSegments: [{ end: 45, start: 15, text: 'Original summary' }],
         voiceId: undefined,
       }),
     );
