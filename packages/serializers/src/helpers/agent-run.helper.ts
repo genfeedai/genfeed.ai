@@ -51,6 +51,8 @@ const SAFE_TOOL_CALL_KEYS = [
   'toolName',
 ] as const;
 
+type RunFieldSanitizer = (value: unknown) => unknown;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -91,6 +93,35 @@ function sanitizeText(value: unknown, maxLength: number): unknown {
   return redactSensitiveString(value).slice(0, maxLength);
 }
 
+function sanitizeRecordArray(
+  value: unknown,
+  keys: readonly string[],
+): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.map((entry) => selectKeys(entry, keys))
+    : [];
+}
+
+const RUN_FIELD_SANITIZERS: Readonly<Record<string, RunFieldSanitizer>> = {
+  error: (value) => sanitizeText(value, 2_000),
+  label: (value) => sanitizeText(value, 240),
+  metadata: sanitizeMetadata,
+  objective: (value) => sanitizeText(value, 1_000),
+  steps: (value) => sanitizeRecordArray(value, SAFE_STEP_KEYS),
+  summary: (value) => sanitizeText(value, 2_000),
+  toolCalls: (value) => sanitizeRecordArray(value, SAFE_TOOL_CALL_KEYS),
+};
+
+function sanitizePresentRunFields(
+  run: Record<string, unknown>,
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(RUN_FIELD_SANITIZERS)
+      .filter(([key]) => key in run)
+      .map(([key, sanitize]) => [key, sanitize(run[key])]),
+  );
+}
+
 /**
  * Produce the public operator contract for an agent run. Run records can carry
  * provider payloads in JSON fields, so only explicit provenance and execution
@@ -101,29 +132,7 @@ export function sanitizeAgentRunForSerialization<
 >(run: T): T {
   return {
     ...run,
-    ...('error' in run ? { error: sanitizeText(run.error, 2_000) } : {}),
-    ...('label' in run ? { label: sanitizeText(run.label, 240) } : {}),
-    ...('metadata' in run ? { metadata: sanitizeMetadata(run.metadata) } : {}),
-    ...('objective' in run
-      ? { objective: sanitizeText(run.objective, 1_000) }
-      : {}),
-    ...('steps' in run
-      ? {
-          steps: Array.isArray(run.steps)
-            ? run.steps.map((step) => selectKeys(step, SAFE_STEP_KEYS))
-            : [],
-        }
-      : {}),
-    ...('summary' in run ? { summary: sanitizeText(run.summary, 2_000) } : {}),
-    ...('toolCalls' in run
-      ? {
-          toolCalls: Array.isArray(run.toolCalls)
-            ? run.toolCalls.map((toolCall) =>
-                selectKeys(toolCall, SAFE_TOOL_CALL_KEYS),
-              )
-            : [],
-        }
-      : {}),
+    ...sanitizePresentRunFields(run),
   } as T;
 }
 
