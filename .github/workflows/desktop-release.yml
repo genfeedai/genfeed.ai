@@ -22,7 +22,6 @@ jobs:
       APPLE_API_ISSUER: ${{ vars.APPLE_API_ISSUER_ID }}
       APPLE_API_KEY_ID: ${{ vars.APPLE_API_KEY_ID }}
       APPLE_API_PRIVATE_KEY_P8_BASE64: ${{ secrets.APPLE_API_PRIVATE_KEY_P8_BASE64 }}
-      APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
       DEVELOPER_ID_P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
       DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
       GENFEED_DESKTOP_RELEASE: ${{ github.sha }}
@@ -37,7 +36,6 @@ jobs:
             APPLE_API_PRIVATE_KEY_P8_BASE64 \
             APPLE_API_KEY_ID \
             APPLE_API_ISSUER \
-            APPLE_TEAM_ID \
             DEVELOPER_ID_P12_BASE64 \
             DEVELOPER_ID_P12_PASSWORD
           do
