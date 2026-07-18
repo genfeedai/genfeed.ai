@@ -7,10 +7,11 @@ import type { FeatureGateProps } from '@genfeedai/props/guards/feature-gate.prop
 import Link from 'next/link';
 
 export default function FeatureGate({ flagKey, children }: FeatureGateProps) {
-  const { isConfigured, isReady } = useFeatureFlagContext();
+  const { flags, isConfigured, isReady } = useFeatureFlagContext();
   const isEnabled = useFeatureFlag(flagKey);
+  const hasResolvedValue = Object.hasOwn(flags, flagKey);
 
-  if (!isConfigured) {
+  if (!isConfigured && !hasResolvedValue) {
     return <>{children}</>;
   }
 

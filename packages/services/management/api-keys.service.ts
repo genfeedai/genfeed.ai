@@ -4,6 +4,10 @@ import type {
 } from '@genfeedai/client/schemas/management/api-key.schema';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { ApiKeyCategory } from '@genfeedai/enums';
+import type {
+  ConnectGenfeedVerificationResult,
+  VerifyConnectGenfeedPayload,
+} from '@genfeedai/interfaces';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { ApiKeySerializer } from '@genfeedai/serializers';
 import {
@@ -16,6 +20,13 @@ export type CreateApiKeyPayload = Omit<CreateApiKeySchema, 'category'> & {
 };
 
 export type UpdateApiKeyPayload = UpdateApiKeySchema;
+
+export class ConnectGenfeedRequestError extends Error {
+  constructor(readonly status: number) {
+    super('Connect Genfeed verification request failed');
+    this.name = 'ConnectGenfeedRequestError';
+  }
+}
 
 export class ApiKeysService extends BaseService<
   ApiKey,
@@ -46,5 +57,27 @@ export class ApiKeysService extends BaseService<
 
   public async revokeApiKey(id: string): Promise<ApiKey> {
     return await this.delete(id);
+  }
+
+  public async verifyMcpConnection(
+    id: string,
+    payload: VerifyConnectGenfeedPayload,
+  ): Promise<ConnectGenfeedVerificationResult> {
+    // This request carries a copy-once API key. Keep it out of the shared
+    // Axios interceptor, whose development diagnostics retain request bodies.
+    const response = await fetch(`${this.baseURL}/${id}/verify-mcp`, {
+      body: JSON.stringify(payload),
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      throw new ConnectGenfeedRequestError(response.status);
+    }
+
+    return (await response.json()) as ConnectGenfeedVerificationResult;
   }
 }

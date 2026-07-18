@@ -470,18 +470,36 @@ function TimelinePanel({ run }: { run: ContentRunRecord }) {
   );
 }
 
-function NavigationPanel() {
+function NavigationPanel({
+  isRemixing,
+  onCreateRemixPack,
+}: {
+  isRemixing: boolean;
+  onCreateRemixPack: () => void;
+}) {
   const { href } = useOrgUrl();
   const links = [
-    { href: href('/posts/remix'), label: 'Remix', icon: HiSparkles },
     { href: href('/posts'), label: 'Publish', icon: HiPaperAirplane },
     { href: href('/analytics/posts'), label: 'Analytics', icon: HiChartBar },
   ];
 
   return (
     <aside className="rounded-lg bg-secondary p-5 shadow-border">
-      <h2 className="text-sm font-semibold">Open Subviews</h2>
+      <h2 className="text-sm font-semibold">Actions and Views</h2>
       <div className="mt-4 grid gap-2">
+        <Button
+          ariaLabel="Create remix pack from this content run"
+          className="flex min-h-11 items-center justify-between rounded-md bg-card px-3 text-sm text-foreground/82 shadow-border transition hover:bg-accent"
+          isLoading={isRemixing}
+          onClick={onCreateRemixPack}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+        >
+          <span className="flex items-center gap-2">
+            <HiSparkles className="size-4" />
+            Create Remix Pack
+          </span>
+        </Button>
         {links.map((item) => {
           const Icon = item.icon;
           return (
@@ -511,6 +529,8 @@ export default function ContentRunDetailPage({
   runId,
 }: ContentRunDetailPageProps) {
   const [run, setRun] = useState<ContentRunRecord | null>(null);
+  const [isRemixing, setIsRemixing] = useState(false);
+  const [remixError, setRemixError] = useState<string | null>(null);
   const [state, setState] = useState<LoadState>('idle');
   const getContentRunsService = useAuthedService((token: string) =>
     ContentRunsService.getInstance(token),
@@ -541,6 +561,20 @@ export default function ContentRunDetailPage({
       isMounted = false;
     };
   }, [getContentRunsService, runId]);
+
+  const handleCreateRemixPack = async () => {
+    setIsRemixing(true);
+    setRemixError(null);
+
+    try {
+      const service = await getContentRunsService();
+      setRun(await service.createRemixPack(runId));
+    } catch {
+      setRemixError('Remix pack could not be created.');
+    } finally {
+      setIsRemixing(false);
+    }
+  };
 
   if (state === 'loading' || state === 'idle') {
     return (
@@ -641,7 +675,15 @@ export default function ContentRunDetailPage({
 
           <div className="grid content-start gap-5">
             <TimelinePanel run={run} />
-            <NavigationPanel />
+            {remixError ? (
+              <div className="rounded-lg bg-destructive/10 p-4 text-sm text-destructive shadow-border">
+                {remixError}
+              </div>
+            ) : null}
+            <NavigationPanel
+              isRemixing={isRemixing}
+              onCreateRemixPack={handleCreateRemixPack}
+            />
           </div>
         </div>
       </div>

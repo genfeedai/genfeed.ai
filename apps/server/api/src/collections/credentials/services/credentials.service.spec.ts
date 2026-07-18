@@ -113,6 +113,21 @@ describe('CredentialsService', () => {
     });
   });
 
+  describe('tenant-scoped lookups', () => {
+    it('scopes handle reads to active credentials in the caller organization', async () => {
+      await service.findByHandle('@acme', orgId);
+
+      expect(prisma.credential.findFirst).toHaveBeenCalledWith({
+        where: {
+          externalHandle: { contains: 'acme', mode: 'insensitive' },
+          isConnected: true,
+          isDeleted: false,
+          organizationId: orgId,
+        },
+      });
+    });
+  });
+
   describe('encrypt-on-write boundary', () => {
     const SECRET = 'plaintext-access-token';
 
@@ -279,6 +294,27 @@ describe('CredentialsService', () => {
         'Failed to import credential avatar',
         expect.objectContaining({ credentialId: 'existing-id' }),
       );
+    });
+
+    it('rejects cross-org profile updates before upload or persistence', async () => {
+      prisma.credential.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.updateExternalProfile('existing-id', 'foreign-org', {
+          avatarUrl: 'https://platform.example/avatar.jpg',
+          handle: 'acme',
+        }),
+      ).rejects.toThrow('Credential existing-id not found');
+
+      expect(prisma.credential.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'existing-id',
+          isDeleted: false,
+          organizationId: 'foreign-org',
+        },
+      });
+      expect(filesClient.uploadToS3).not.toHaveBeenCalled();
+      expect(prisma.credential.update).not.toHaveBeenCalled();
     });
 
     it('preserves the previous avatar when S3 import fails', async () => {

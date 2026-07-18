@@ -8,8 +8,16 @@ export const metadata = {
     default: cdnAsset('/assets/cards/default.jpg'),
   },
   description:
-    'AI-powered content generation platform for your business. Create professional videos, images, and marketing materials at scale with autonomous AI agents.',
-  keywords: ['genfeed', 'genfeed.ai', 'publisher', 'studio', 'storyboard'],
+    'Open-source distribution infrastructure for AI agents. Connect Claude Code or Codex through MCP, then approve, publish, and measure content from one human control plane.',
+  keywords: [
+    'genfeed',
+    'genfeed.ai',
+    'MCP',
+    'AI agent distribution',
+    'publisher',
+    'analytics',
+    'self-hosted',
+  ],
   name: 'Genfeed.ai',
   url: 'https://genfeed.ai',
 };

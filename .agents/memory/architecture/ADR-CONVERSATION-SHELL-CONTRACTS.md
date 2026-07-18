@@ -1,6 +1,6 @@
 ---
 name: Conversation Shell Contracts
-description: Locks state, scope, trust, history, approval, multi-tab, fallback, route-parity, and rollout contracts for epic #1670.
+description: Locks state, scope, trust, history, approval, multi-tab, failure recovery, and permanent route-parity contracts for epic #1670.
 type: project
 ---
 
@@ -12,11 +12,11 @@ Accepted
 
 ## Contract Version
 
-v1.0.0
+v2.0.0
 
 ## Last Updated
 
-2026-07-13
+2026-07-17
 
 ## Canonical Source
 
@@ -34,15 +34,15 @@ shell is implemented:
 - trusted surface registration and protected-route parity
 - immutable version pins and consequential-action approval
 - authoritative multi-tab context versions
-- feature-flag failure and legacy fallback behavior
-- numeric rollout and compatibility-removal gates
+- permanent agent-first shell and scoped render-recovery behavior
+- post-cutover health and compatibility-removal evidence
 - disposition of #1009, #1012, #1015, and #1644
 
 It does not build the shell, migrate a product surface, add persistence, or
 change workflow semantics. Those remain downstream work in #1672 and later.
 
 **Why:** Downstream shell, context, artifact, and surface PRs need one testable
-contract so they cannot diverge on history, scope, trust, approval, or rollout.
+contract so they cannot diverge on history, scope, trust, approval, or recovery.
 
 **How to apply:** Treat this ADR and its linked route inventory as the acceptance
 boundary for #1672-#1682; change product-level behavior here before implementing
@@ -59,9 +59,8 @@ This decision was checked against the repository and live issue state on
 - The app switcher exposes nine primary modules plus role-gated Admin. It does
   not enumerate Workflows, Calendar, Moodboard, settings, orchestration Skills,
   Studio subroutes, or the full management and admin route set.
-- The non-SaaS terminal dock is legacy shell chrome, not a route. It is absent
-  in SaaS and currently excluded on conversation, editor-canvas,
-  workflow-editor, and Moodboard routes.
+- The former non-SaaS terminal dock was legacy shell chrome, not a route. The
+  permanent agent-first cutover removes it from protected application chrome.
 - Notifications are shell-native announcements/toasts. There is no protected
   `/notifications` route in the parity inventory.
 - `AgentThread` is organization-scoped but has no thread-level `brandId` yet.
@@ -73,9 +72,8 @@ This decision was checked against the repository and live issue state on
 - `Asset` and `Post` are durable canonical records. There is no parallel
   artifact/version store; `Asset.sha256` exists, while publish review currently
   uses `Post.reviewDecision`, `reviewEvents`, and a free-form status string.
-- Feature flags currently resolve local defaults only and ignore evaluation
-  attributes. Missing local defaults currently enable a flag; this contract
-  explicitly forbids that behavior for the conversation shell.
+- Generic feature flags still resolve local defaults. The agent-first shell is
+  not one of them and cannot be disabled by configuration.
 
 ## Optimization Target And Considered Approaches
 
@@ -88,8 +86,8 @@ Two approaches were considered:
    shell state. This centralizes the UI but duplicates routing, breaks existing
    deep links, and creates a second parity surface.
 2. Keep each protected product URL canonical and add only thread/overlay state
-   to it. This preserves links, lets the legacy page remain the fallback, and
-   makes the versioned route inventory the parity denominator.
+   to it. This preserves links, keeps failures inside the shell's scoped error
+   boundary, and makes the versioned route inventory the parity denominator.
 
 The second approach is accepted.
 
@@ -110,8 +108,8 @@ The second approach is accepted.
 
 1. Exactly one top-level shell state is active: `conversation`, `canvas`, or
    `overlay`. An overlay retains exactly one base location for dismissal.
-2. Canonical protected URLs remain directly addressable with the shell enabled
-   or disabled.
+2. Canonical protected URLs remain directly addressable inside the permanent
+   agent-first shell.
 3. The URL may request UI state but never grants organization, brand, resource,
    admin, approval, or execution authority.
 4. Organization authority comes from authenticated server membership and the
@@ -128,8 +126,9 @@ The second approach is accepted.
    render arbitrary code, or navigate directly.
 9. Invalid, inaccessible, or incomplete state falls back to a safe canonical
    route without widening scope.
-10. Disabling the flag returns the same canonical URL to the existing routed
-    product experience without deleting threads, drafts, or product data.
+10. The agent-first shell has no runtime disable path. Recovery is a normal
+    deploy rollback; localized render errors stay in the shell error boundary
+    without deleting threads, drafts, or product data.
 
 ## Canonical URL Contract
 
@@ -184,7 +183,7 @@ without creating another entry.
 | Any          | User changes organization                                               | New-thread conversation in the target organization | push                                 | Create a target-org thread with zero transcript, artifact, approval, or draft carry.                                            |
 | Any          | Browser Back/Forward                                                    | URL-described state                                | pop                                  | Attempt restore without generating history. If context is stale, apply the multi-tab rules below.                               |
 | Any          | Reload                                                                  | Same URL-described state                           | none                                 | Re-resolve authorization and server context before enabling actions.                                                            |
-| Any          | Flag becomes disabled or shell bootstrap fails                          | Legacy routed experience at same canonical URL     | none                                 | Preserve data and record fallback telemetry.                                                                                    |
+| Any          | Shell bootstrap or render fails                                          | Scoped agent-first error state at same canonical URL | none                               | Preserve data, report the error, and offer a bounded retry without mounting legacy chrome.                                      |
 | Stale tab    | User synchronizes to server context                                     | Server-authoritative location                      | replace                              | Preserve the local unsent draft, remove stale shell state, and re-enable actions only after synchronization.                    |
 | Any          | Model proposes a surface/reference                                      | No immediate state change                          | none                                 | Require a trusted typed UI action or explicit user invocation before navigation.                                                |
 
@@ -291,7 +290,7 @@ A trusted registry entry is application-owned code and declares:
 - required scope (`personal`, `organization`, `brand`, or `platform-admin`)
 - typed reference parser and restoration validator
 - permission/capability resolver
-- deployment-mode and feature-flag availability
+- deployment-mode capability requirements
 - safe fallback route
 - telemetry classification
 
@@ -302,27 +301,27 @@ the client and server still validate it, and an explicit user action is required
 for navigation or any consequential effect.
 
 Admin, settings, billing, credentials, policy, destructive management, agent
-onboarding, lab/internal pages, and full-screen editors may remain dedicated
-routes. Dedicated does not mean untrusted or out of parity; it means the route is
-preserved without requiring an embedded adapter.
+onboarding, lab/internal pages, and full-screen editors remain canonical routes,
+but render as focused canvases inside the agent-first shell. They do not bypass
+the shell through a dedicated route mode.
 
 ## Protected-Route Inventory And Surface Classification
 
 The exact baseline is `reference_app_page_map.md`: **206 parity-eligible
 canonical protected patterns plus two intentional hard-cut families** as of
-2026-07-13. New protected routes added before rollout enter the denominator
-immediately. Removing an entry requires a separate accepted product decision;
-the shell migration alone cannot remove it.
+2026-07-13. The compiled registry currently owns **209 protected patterns**.
+New protected routes enter the denominator immediately. Removing an entry
+requires a separate accepted product decision.
 
 The app switcher is discovery for nine primary modules, not the inventory.
 
 | Route family                                                           | Required availability   | Allowed shell treatment                            | Important non-switcher coverage                                                                                                                                                      |
 | ---------------------------------------------------------------------- | ----------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `/`, `/settings`, `/settings/help`                                     | Personal/root protected | Bootstrap or dedicated                             | Personal settings and Help remain direct.                                                                                                                                            |
-| `/:orgSlug`, `/:orgSlug/~/overview`, org analytics                     | Organization            | Canvas or dedicated                                | Organization overview is distinct from brand Workspace.                                                                                                                              |
-| `/:orgSlug/~/agent/**`, `/:orgSlug/:brandSlug/agent/**`                | Organization or brand   | Conversation; onboarding may be dedicated          | New, journey, thread detail, onboarding, and onboarding thread routes.                                                                                                               |
-| `/:orgSlug/~/{library,studio,posts,write,compose,workflows,editor}/**` | Organization            | Canvas or dedicated according to registry          | Org-scoped catch-all products, workflow library/templates/executions/new/detail, editor projects/new/detail.                                                                         |
-| `/:orgSlug/~/settings/**`                                              | Organization            | Dedicated only                                     | Members, billing, credits, API keys, webhooks, policy, brands, models/types, scenes, personal, Help.                                                                                 |
+| `/`, `/settings`, `/settings/help`                                     | Personal/root protected | Bootstrap or canvas                                | Personal settings and Help remain direct.                                                                                                                                            |
+| `/:orgSlug`, `/:orgSlug/~/overview`, org analytics                     | Organization            | Canvas                                             | Organization overview is distinct from brand Workspace.                                                                                                                              |
+| `/:orgSlug/~/agent/**`, `/:orgSlug/:brandSlug/agent/**`                | Organization or brand   | Conversation or focused canvas                     | New, journey, thread detail, onboarding, and onboarding thread routes.                                                                                                               |
+| `/:orgSlug/~/{library,studio,posts,write,compose,workflows,editor}/**` | Organization            | Canvas                                             | Org-scoped catch-all products, workflow library/templates/executions/new/detail, editor projects/new/detail.                                                                         |
+| `/:orgSlug/~/settings/**`                                              | Organization            | Canvas                                             | Members, billing, credits, API keys, webhooks, policy, brands, models/types, scenes, personal, Help.                                                                                 |
 | `/:orgSlug/:brandSlug/{workspace,tasks,overview}/**`                   | Brand                   | Canvas; task detail may also register an overlay   | Dashboard, Inbox views, Activity, Tasks/detail, and the separate Overview Activities route.                                                                                          |
 | `/:orgSlug/:brandSlug/messages`                                        | Brand                   | Canvas                                             | Full social messaging surface.                                                                                                                                                       |
 | `/:orgSlug/:brandSlug/research/**`                                     | Brand                   | Canvas                                             | Discovery, Socials, Ads, Google, Meta, Following, and platform routes.                                                                                                               |
@@ -332,10 +331,10 @@ The app switcher is discovery for nine primary modules, not the inventory.
 | `/:orgSlug/:brandSlug/posts/**`                                        | Brand                   | Canvas; post detail may also register an overlay   | Detail, Composer, Analytics, Calendar, Newsletters, Published, Remix, Review, Scheduled.                                                                                             |
 | `/:orgSlug/:brandSlug/analytics/**`                                    | Brand                   | Canvas                                             | Posts, Brands/detail/platform, Insights, Hooks, Performance Lab, Trends/detail/platform, Trend Turnover, Streaks.                                                                    |
 | `/:orgSlug/:brandSlug/workflows/**`                                    | Brand                   | Canvas or focused editor                           | New/detail, Templates, Executions/detail. Workflows is not an app-switcher module.                                                                                                   |
-| `/:orgSlug/:brandSlug/orchestration/**`                                | Brand                   | Canvas or dedicated management                     | Agent detail, overview, new, analytics, autopilot, configuration, hire, orchestrator, runs, Skills, content runs, campaigns/detail/new, outreach campaigns/detail/new, library/type. |
-| `/:orgSlug/:brandSlug/settings/**`                                     | Brand                   | Dedicated only                                     | Voice, harness, interview, publishing, and agent defaults.                                                                                                                           |
-| `/:orgSlug/:brandSlug/lab/**`                                          | Brand                   | Dedicated only                                     | Articles, retired cron compatibility route, library preview, Twitter engage.                                                                                                         |
-| `/admin/**`                                                            | Platform-admin          | Dedicated only unless separately registered        | Agent, overview/analytics, content, automation, configuration, fleet, library, organization, administration, folders, image/video detail.                                            |
+| `/:orgSlug/:brandSlug/orchestration/**`                                | Brand                   | Canvas                                             | Agent detail, overview, new, analytics, autopilot, configuration, hire, orchestrator, runs, Skills, content runs, campaigns/detail/new, outreach campaigns/detail/new, library/type. |
+| `/:orgSlug/:brandSlug/settings/**`                                     | Brand                   | Canvas                                             | Voice, harness, interview, publishing, and agent defaults.                                                                                                                           |
+| `/:orgSlug/:brandSlug/lab/**`                                          | Brand                   | Canvas                                             | Articles, retired cron compatibility route, library preview, Twitter engage.                                                                                                         |
+| `/admin/**`                                                            | Platform-admin          | Canvas                                             | Agent, overview/analytics, content, automation, configuration, fleet, library, organization, administration, folders, image/video detail.                                            |
 
 Special inventory rules:
 
@@ -344,10 +343,8 @@ Special inventory rules:
   being primary switcher entries.
 - Notifications are a shell service/accessible live-region and may use a trusted
   overlay. They are not a protected route and do not add a route denominator.
-- The Community/Desktop terminal dock is legacy chrome, not a destination. With
-  the new flag off it remains exactly as today. With the flag on, the persistent
-  conversation replaces it only after route parity; SaaS ramps last because it
-  has no current persistent dock.
+- The former Community/Desktop terminal dock is not a destination and is not
+  registered. Persistent conversation chrome is shared across deployment modes.
 - `/:orgSlug/~/workspace/*` and
   `/:orgSlug/~/settings/organization/*` remain intentional 404 hard cuts. The
   shell must not resurrect or redirect those families.
@@ -391,58 +388,38 @@ pin id, organization/brand scope, `contextVersion`, and timestamp.
 - Idempotency binds to approval id plus version pin plus action/target. Repeated
   execution cannot publish a mutated record under the old approval.
 
-## Feature Flag And Fallback Contract
+## Permanent Shell And Recovery Contract
 
-The stable flag key is `conversation_shell`.
-
-1. The flag is evaluated server-side with user, organization, deployment,
-   client, and cohort attributes, then included in protected bootstrap state.
-2. Missing configuration, parse error, evaluation error, attribute mismatch, or
-   client/server disagreement resolves to **legacy shell**. The current
-   enable-on-missing behavior is not allowed for this flag.
-3. A session keeps one evaluated shell mode until explicit refresh or a
-   server-directed rollback. Navigation history never stores the flag value.
-4. Disabling the flag requires no schema rollback and leaves all canonical URLs,
-   threads, product records, and drafts readable by the legacy routed experience.
-5. A route with no enabled/healthy registered adapter renders its canonical
-   legacy page inside the existing routing boundary and records a fallback.
-6. A bootstrap, restoration, registry, or rendering failure trips a session-local
-   circuit breaker to the legacy shell at the same canonical URL. It must not
-   redirect to another scope or retry indefinitely.
+1. The agent-first shell is the protected application's default and has no
+   feature-flag, cohort, environment-variable, or user-preference gate.
+2. Missing or malformed generic feature-flag configuration cannot affect shell
+   selection.
+3. Every registered protected route renders as `conversation` or `canvas`.
+   There is no registered `dedicated` bypass and no legacy terminal-dock chrome.
+4. A bootstrap or render error remains inside the shell's ErrorBoundary, reports
+   through the existing logger/Sentry path, and may offer a bounded retry.
+5. A failure must not widen scope, redirect to another organization, mount
+   legacy chrome, persist a circuit-breaker decision, or poll a runtime rollback
+   endpoint.
+6. Production rollback is a revert and normal deployment of the previous known
+   good application SHA.
 7. Compatibility reads are read-only, observable, and bounded. No new writes may
-   target a legacy shell/context representation after its canonical replacement
-   is enabled.
-8. SaaS, Community, Desktop-to-cloud, and Desktop-to-self-hosted are separate
-   rollout cohorts. Enterprise authorization remains server-enforced in every
-   cohort.
+   target a retired shell/context representation.
+8. SaaS, Community, Desktop-to-cloud, and Desktop-to-self-hosted share the same
+   protected shell. Deployment capabilities may still select different
+   onboarding implementations where the managed orchestrator is unavailable.
 
-## Numeric Rollout Gates
+## Post-Cutover Health Evidence
 
-All percentage comparisons use raw event counts, not averages of per-route
-percentages. Windows are rolling 14 complete UTC days. Internal/test traffic and
-known bots are excluded by an explicit telemetry attribute; all real enabled
-sessions, including error sessions, remain in the denominator. A gate with fewer
-than its minimum observations is **not passed**.
+Route parity remains 100% of the compiled protected-route inventory. Scope
+violations remain zero, stale-context attempts remain blocked before side
+effects, version-bound approvals must match exactly, and restoration/render
+errors remain observable. First useful paint is tracked by deployment, device,
+and route class.
 
-An enabled session is a user x client session separated by 30 minutes of
-inactivity. An eligible transition is a reload, direct link, browser Back/Forward,
-thread switch, canvas launch/change, overlay open/replace/dismiss, brand switch,
-or organization switch while `conversation_shell` is enabled.
-
-| Gate                      | Numerator / denominator                                                                                                                                         | Threshold and minimum                                                                                                                      |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Protected-route parity    | Inventory entries that pass direct-link, enabled-shell, legacy-fallback, and authorization checks / all 206 parity-eligible entries in the 2026-07-13 inventory | **100%** before any default-on cohort. Added routes expand the denominator.                                                                |
-| Scope violations          | Confirmed action, transcript, reference, pin, or artifact reads/writes outside the authorized organization/brand / all consequential attempts                   | **0 violations** over 14 days and at least **1,000 attempts**. Any violation resets the window after remediation.                          |
-| Stale-context enforcement | Consequential stale-version attempts blocked before side effects / all known stale-version consequential attempts                                               | **100%**, at least **100 exercised attempts** across automated/rehearsal and production telemetry.                                         |
-| URL restoration failures  | Eligible transitions that cannot restore the authorized URL-described state and require an error fallback / all eligible transitions                            | **<0.5%**, at least **2,000 transitions** and **100 enabled sessions**. Authorization-denied attacks are tracked separately, not failures. |
-| Fallback usage            | Enabled sessions that trip adapter/runtime/session fallback at least once / all enabled sessions                                                                | **<1.0%**, at least **1,000 sessions**. User-requested flag opt-out is reported separately.                                                |
-| Compatibility reads       | Reads served from legacy context/artifact compatibility paths / all reads eligible for the canonical replacement                                                | **<1.0%**, at least **10,000 eligible reads**, before removal. Every deployment/client cohort must pass independently.                     |
-| First useful paint        | Shell FUP distribution compared with matched legacy observations for the same deployment x client/device x route-family cohort                                  | **p75 <= legacy +10%** and **p95 <= legacy +15%**, at least **1,000 shell and 1,000 legacy observations per cohort**.                      |
-| Approval pin integrity    | Publish/schedule/send executions that use the exact approved digest and scope / all version-bound execution attempts                                            | **100%**, at least **100 attempts**; any mismatch or mutable-record execution blocks rollout.                                              |
-
-The denominator snapshot and telemetry query/version must be attached to the
-rollout decision. Changing an event definition resets that metric's 14-day
-window. Cohorts do not borrow traffic from one another to pass a minimum.
+These measurements are health and safety evidence, not promotion gates. There
+is no cohort promotion, runtime kill switch, rollback rehearsal, or legacy-shell
+performance comparison after the permanent cutover.
 
 ## Related-Issue Disposition
 
@@ -451,7 +428,7 @@ window. Cohorts do not borrow traffic from one another to pass a minimum.
 | #1009 Build Agent App Surface        | Remains open only as a temporary reconciliation container until #1012 and #1015 receive shipped-state triage. No new universal shell/operator-shell work starts there. Remaining conversation-shell scope is absorbed by #1670, after which #1009 closes as superseded.                           |
 | #1012 Add Agent Route Navigation     | Current code already has protected org/brand Agent routes, thread/new/journey/onboarding routes, and an Agent app-switcher entry. Treat as shipped-state/closure triage, not a dependency or new implementation lane. Any concrete missing regression check may be filed narrowly outside #1671.  |
 | #1015 Build Agent Operator Workspace | Generic `/agent` workspace shell/layout scope is absorbed by #1670. Any genuinely missing run API, provenance, or operator-control capability must be re-scoped as non-shell work before #1015 closes; it cannot redefine this ADR or block #1674.                                                |
-| #1644 Agent-first onboarding         | Stays open and complementary. Its onboarding routes remain protected and may use dedicated chrome. It must consume the same `conversation_shell` flag/fallback boundary and target the new shell only when enabled; the classic wizard remains the rollback path until its own funnel gates pass. |
+| #1644 Agent-first onboarding         | Stays open and complementary. SaaS onboarding routes use the permanent agent-first shell without a classic-wizard fallback. Community/Desktop may retain local form onboarding until managed-orchestrator parity exists. |
 
 ## Downstream Requirements
 
@@ -466,7 +443,8 @@ window. Cohorts do not borrow traffic from one another to pass a minimum.
 - #1676 consumes the trusted registry and route inventory.
 - #1677 consumes overlay state and history rules.
 - #1680 consumes approval/version-pin rules.
-- #1682 consumes the feature flag, cohort separation, and numeric gates.
+- #1682 is the historical rollout ledger and closes when the permanent cutover
+  reaches production.
 
 ## Verification Contract
 
@@ -480,7 +458,8 @@ Downstream verification must cover:
 - stale-version blocking for every consequential action class
 - version-pin mutation, target/credential mutation, rejection, revocation,
   idempotent retry, and free-form status drift
-- missing/error/disagreement feature-flag evaluation and session fallback
+- missing/malformed generic feature-flag configuration has no shell effect
+- scoped render failure and bounded retry without legacy chrome
 - SaaS, Community, Desktop-to-cloud, Desktop-to-self-hosted, and enterprise
   authorization behavior
 
@@ -495,4 +474,5 @@ Downstream verification must cover:
 
 | Version | Date       | Summary                                                                                                                                                        |
 | ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v2.0.0  | 2026-07-17 | Made the agent-first shell unconditional, removed flag/cohort/legacy fallback contracts, converted protected routes to shell canvases, and made deploy rollback the recovery path. |
 | v1.0.0  | 2026-07-13 | Locked state/history, context precedence, trusted surfaces, route parity, approvals, multi-tab behavior, fallback, rollout gates, and predecessor disposition. |

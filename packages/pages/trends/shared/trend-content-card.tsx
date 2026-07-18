@@ -21,7 +21,6 @@ import { Button } from '@ui/primitives/button';
 import {
   buildTrendSourceAgentHref,
   buildTrendSourcePrompt,
-  buildTrendSourceStudioHref,
   buildTrendSourceTwitterDraftHref,
 } from '@utils/url/desktop-loop-url.util';
 import Image from 'next/image';
@@ -144,7 +143,7 @@ export default function TrendContentCard({
       return;
     }
 
-    router.push(buildTrendSourceStudioHref(trend, sourceItem));
+    router.push(buildTrendSourceAgentHref(trend, sourceItem));
   }, [item.platform, router, sourceItem, trend]);
 
   const handleSaveBrief = useCallback(async () => {

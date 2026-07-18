@@ -19,8 +19,8 @@ describe('FeatureFlagProvider', () => {
 
     render(
       <FeatureFlagProvider
-        defaults={{ conversation_shell: true, other: true }}
-        overrides={{ conversation_shell: false }}
+        defaults={{ other: true, server_override: true }}
+        overrides={{ server_override: false }}
         ready={false}
       >
         <Consumer />
@@ -28,10 +28,32 @@ describe('FeatureFlagProvider', () => {
     );
 
     expect(screen.getByTestId('flags')).toHaveTextContent(
-      JSON.stringify({ conversation_shell: false, other: true }),
+      JSON.stringify({ other: true, server_override: false }),
     );
     expect(screen.getByTestId('ready')).toHaveTextContent('false');
   });
+
+  it('merges configured defaults and overrides over product fallbacks', () => {
+    function Consumer() {
+      const context = useFeatureFlagContext();
+      return <span data-testid="flags">{JSON.stringify(context.flags)}</span>;
+    }
+
+    render(
+      <FeatureFlagProvider
+        fallbacks={{ studio: false, workflows: true }}
+        defaults={{ studio: true }}
+        overrides={{ workflows: false }}
+      >
+        <Consumer />
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByTestId('flags')).toHaveTextContent(
+      JSON.stringify({ studio: true, workflows: false }),
+    );
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -68,17 +90,39 @@ describe('FeatureFlagProvider', () => {
     }
 
     render(
-      <FeatureFlagProvider
-        defaults={{}}
-        overrides={{ conversation_shell: true }}
-      >
+      <FeatureFlagProvider defaults={{}} overrides={{ server_override: true }}>
         <Probe />
       </FeatureFlagProvider>,
     );
 
     expect(screen.getByText('override content')).toBeDefined();
     expect(status).toEqual({
-      flags: { conversation_shell: true },
+      flags: { server_override: true },
+      isConfigured: false,
+    });
+  });
+
+  it('keeps product fallbacks available without marking public flags configured', () => {
+    let status: {
+      flags: Record<string, unknown>;
+      isConfigured: boolean;
+    } | null = null;
+
+    function Probe() {
+      const ctx = useFeatureFlagContext();
+      status = { flags: ctx.flags, isConfigured: ctx.isConfigured };
+      return <span>fallback content</span>;
+    }
+
+    render(
+      <FeatureFlagProvider defaults={{}} fallbacks={{ studio: false }}>
+        <Probe />
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByText('fallback content')).toBeDefined();
+    expect(status).toEqual({
+      flags: { studio: false },
       isConfigured: false,
     });
   });

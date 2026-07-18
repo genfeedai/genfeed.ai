@@ -57,56 +57,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const proactiveLeadId = authUser?.publicMetadata?.proactiveLeadId;
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
 
-  // Base href for post-checkout returns. Kept byte-identical to the #1421
-  // handoff (wizard resume step) so the Stripe success/cancel round-trip is
-  // unchanged — the revenue path is exactly where #1421 regressed.
-  const resolveCheckoutReturnHref = useCallback(async (): Promise<string> => {
-    if (proactiveLeadId) {
-      return '/onboarding/proactive';
-    }
-
-    const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
-    const hasCompletedAllOnboardingSteps =
-      currentUser?.isOnboardingCompleted === true ||
-      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
-
-    if (hasCompletedAllOnboardingSteps) {
-      return '/';
-    }
-
-    const resumeStep = getResumeStep(completedSteps);
-    const storedBrandDomain = localStorage.getItem(
-      ONBOARDING_STORAGE_KEYS.brandDomain,
-    );
-    const onboardingHref = buildOnboardingResumeHref(
-      resumeStep,
-      storedBrandDomain,
-    );
-
-    if (!isEEEnabled() || isSelfHostedDeployment()) {
-      return onboardingHref;
-    }
-
-    const token = await resolveAuthToken(getToken);
-    if (!token) {
-      return onboardingHref;
-    }
-
-    await OrganizationsService.getInstance(token)
-      .getMyOrganizations()
-      .catch((error) => {
-        logger.error(
-          'Failed to resolve organizations for post-signup routing',
-          error,
-        );
-        return [];
-      });
-
-    return onboardingHref;
-  }, [currentUser, getToken, proactiveLeadId]);
-
   // Resolve the active organization slug so we can build the org-scoped agent
-  // onboarding route. Falls back to null so callers can degrade to the wizard.
+  // onboarding route. Missing SaaS scope returns to the protected bootstrap,
+  // never to the classic wizard.
   const resolveActiveOrgSlug = useCallback(async (): Promise<string | null> => {
     const token = await resolveAuthToken(getToken);
     if (!token) {
@@ -129,6 +82,38 @@ export function usePostSignupRouting(): PostSignupRoutingState {
 
     return activeOrganization?.slug ?? null;
   }, [getToken]);
+
+  // Base href for post-checkout returns. SaaS resumes in agent-first
+  // onboarding; Community/Desktop retain the deterministic wizard until their
+  // local/BYOK onboarding reaches parity.
+  const resolveCheckoutReturnHref = useCallback(async (): Promise<string> => {
+    if (proactiveLeadId) {
+      return '/onboarding/proactive';
+    }
+
+    const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
+    const hasCompletedAllOnboardingSteps =
+      currentUser?.isOnboardingCompleted === true ||
+      ONBOARDING_STEPS.every((step) => completedSteps.includes(step));
+
+    if (hasCompletedAllOnboardingSteps) {
+      return '/';
+    }
+
+    const onboardingHref = buildOnboardingResumeHref(
+      getResumeStep(completedSteps),
+      localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain),
+    );
+
+    if (!isSaaS()) {
+      return onboardingHref;
+    }
+
+    const orgSlug = await resolveActiveOrgSlug();
+    return orgSlug
+      ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
+      : '/';
+  }, [currentUser, proactiveLeadId, resolveActiveOrgSlug]);
 
   // Default first-run destination. Agent-first onboarding is the cloud SaaS
   // default; self-hosted/desktop keep the form wizard because the agent
@@ -159,7 +144,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     const orgSlug = await resolveActiveOrgSlug();
     return orgSlug
       ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
-      : wizardHref;
+      : '/';
   }, [currentUser, proactiveLeadId, resolveActiveOrgSlug]);
 
   useEffect(() => {

@@ -4,19 +4,22 @@ import AppProtectedLayout from '@app-components/app-protected-layout';
 import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
 import { ErrorBoundary } from '@ui/error';
-import { useConversationShellRollout } from '@/lib/workspace-shell/use-conversation-shell-rollout';
+import { useEffect } from 'react';
+import { getCoreAppFeatureFlagFallbacks } from '@/lib/core-apps';
+import { captureWorkspaceShellSession } from '@/lib/workspace-shell/workspace-shell-telemetry';
+
+const CORE_APP_FEATURE_FLAG_FALLBACKS = getCoreAppFeatureFlagFallbacks();
 
 export default function ProtectedLayoutClient({
   children,
   initialBootstrap,
 }: ProtectedBootstrapProps) {
-  const rollout = useConversationShellRollout();
+  useEffect(() => {
+    captureWorkspaceShellSession();
+  }, []);
 
   return (
-    <FeatureFlagProvider
-      overrides={{ conversation_shell: rollout.evaluation?.isEnabled === true }}
-      ready={rollout.isReady}
-    >
+    <FeatureFlagProvider fallbacks={CORE_APP_FEATURE_FLAG_FALLBACKS}>
       <AppProtectedLayout initialBootstrap={initialBootstrap}>
         <ErrorBoundary>{children}</ErrorBoundary>
       </AppProtectedLayout>

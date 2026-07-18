@@ -1,0 +1,207 @@
+/**
+ * Workflow UI Styles
+ *
+ * Workflow-specific CSS for @genfeedai/workflows/ui.
+ * Import this file in your app's global styles or layout.
+ *
+ * Does NOT include: tailwind directives, base styles, design tokens,
+ * scrollbar styles, or app-level theme variables.
+ */
+
+/* ==========================================================================
+   CSS Custom Properties - Handle & Category Colors
+   ========================================================================== */
+
+:root {
+  /* Handle type colors (inputs) */
+  --handle-image: oklch(0.75 0.18 75);
+  --handle-video: oklch(0.65 0.2 285);
+  --handle-text: oklch(0.7 0.17 160);
+  --handle-number: oklch(0.65 0.2 250);
+  --handle-audio: oklch(0.7 0.2 330);
+
+  /* Output handle color (cyan) */
+  --handle-output: oklch(0.7 0.2 200);
+
+  /* Node category colors (for borders and buttons) */
+  --category-input: oklch(0.7 0.15 160);
+  --category-ai: oklch(0.65 0.25 300);
+  --category-processing: oklch(0.65 0.2 250);
+  --category-output: oklch(0.75 0.18 70);
+  --category-composition: oklch(0.7 0.2 30);
+}
+
+/* ==========================================================================
+   React Flow Overrides
+   ========================================================================== */
+
+.react-flow__node {
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 2px solid var(--background);
+}
+
+.react-flow__handle-left {
+  left: -5px;
+}
+.react-flow__handle-right {
+  right: -5px;
+}
+.react-flow__handle-top {
+  top: -5px;
+}
+.react-flow__handle-bottom {
+  bottom: -5px;
+}
+
+.react-flow__edge-path {
+  stroke: var(--muted-foreground);
+  stroke-width: 2;
+}
+
+/* Edge type colors (based on data type flowing through) */
+.react-flow__edge.edge-image .react-flow__edge-path {
+  stroke: var(--handle-image);
+}
+.react-flow__edge.edge-video .react-flow__edge-path {
+  stroke: var(--handle-video);
+}
+.react-flow__edge.edge-text .react-flow__edge-path {
+  stroke: var(--handle-text);
+}
+.react-flow__edge.edge-number .react-flow__edge-path {
+  stroke: var(--handle-number);
+}
+.react-flow__edge.edge-audio .react-flow__edge-path {
+  stroke: var(--handle-audio);
+}
+
+/* Selected edge - highlight (preserves type color) */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3px;
+  filter: brightness(1.3);
+  transition:
+    stroke-width 0.15s ease,
+    filter 0.15s ease;
+}
+
+/* Dimmed edges (not connected to selection) */
+.react-flow__edge.dimmed .react-flow__edge-path {
+  opacity: 0.25;
+  transition: opacity 0.2s ease;
+}
+
+/* Highlighted edges (connected to selection) - brighten the type color */
+.react-flow__edge.highlighted .react-flow__edge-path {
+  filter: brightness(1.2);
+  transition:
+    opacity 0.2s ease,
+    filter 0.2s ease;
+}
+
+/* Executing edges (during workflow execution) - pipe flow effect */
+.react-flow__edge.executing .react-flow__edge-path {
+  stroke-width: 2.5px;
+  filter: brightness(1.3);
+  stroke-dasharray: 8 4;
+  animation: edge-flow 0.5s linear infinite;
+}
+
+/* Active pipe - all edges animate during execution */
+.react-flow__edge.active-pipe .react-flow__edge-path {
+  stroke-width: 2px;
+  stroke-dasharray: 6 3;
+  animation: edge-flow 0.8s linear infinite;
+  opacity: 0.8;
+}
+
+/* Disabled edges - targeting inputs not supported by current model */
+.react-flow__edge.edge-disabled .react-flow__edge-path {
+  stroke: var(--chart-3);
+  stroke-width: 1.5px;
+  stroke-dasharray: 5 5;
+  opacity: 0.3;
+  transition:
+    opacity 0.2s ease,
+    stroke 0.2s ease;
+}
+
+.react-flow__background {
+  background-color: var(--background);
+}
+
+.react-flow__minimap {
+  background-color: var(--card);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-flow__controls {
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.react-flow__controls-button {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  fill: var(--muted-foreground);
+  color: var(--muted-foreground);
+}
+
+.react-flow__controls-button:hover {
+  background: var(--secondary);
+  fill: var(--foreground);
+  color: var(--foreground);
+}
+
+.react-flow__controls-button svg {
+  fill: inherit;
+}
+
+/* ==========================================================================
+   Handle Type Color Classes
+   ========================================================================== */
+
+.handle-image {
+  background: var(--handle-image);
+}
+.handle-video {
+  background: var(--handle-video);
+}
+.handle-text {
+  background: var(--handle-text);
+}
+.handle-number {
+  background: var(--handle-number);
+}
+.handle-audio {
+  background: var(--handle-audio);
+}
+.handle-output {
+  background: var(--handle-output);
+}
+
+/* ==========================================================================
+   Animation Keyframes
+   ========================================================================== */
+
+/* Edge flow animation - simulates data flowing through pipes */
+@keyframes edge-flow {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}

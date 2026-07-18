@@ -1,6 +1,5 @@
 'use client';
 
-import { isSaaS } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -26,19 +25,13 @@ import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
-import {
-  HiBars3,
-  HiOutlineCommandLine,
-  HiOutlineSparkles,
-  HiXMark,
-} from 'react-icons/hi2';
+import { HiBars3, HiXMark } from 'react-icons/hi2';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import {
   appendSearchParamsToHref,
   getBrandSwitchHref,
   pickOperatorTaskContextSearchParams,
 } from '@/lib/navigation/operator-shell';
-import { useConversationShellEnabled } from '@/lib/workspace-shell/use-conversation-shell';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 
 const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
@@ -53,7 +46,6 @@ const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   library: 'Library',
   messages: 'Messages',
   posts: 'Posts',
-  remix: 'Remix',
   research: 'Research',
   studio: 'Studio',
   workflows: 'Workflows',
@@ -113,8 +105,6 @@ function AppProtectedTopbarContent({
   isMenuOpen,
   onMenuToggle,
   isSidebarCollapsed,
-  isAgentCollapsed,
-  onAgentToggle,
   currentApp,
   orgSlug,
   brandSlug,
@@ -127,7 +117,6 @@ function AppProtectedTopbarContent({
   const isSettingsRoute =
     pathname?.split('/').filter(Boolean)[2] === 'settings';
   const { push } = useRouter();
-  const isConversationShellEnabled = useConversationShellEnabled();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
@@ -222,10 +211,6 @@ function AppProtectedTopbarContent({
   ).toString();
   const resolveAppSwitcherNavigation = useCallback(
     (destinationHref: string) => {
-      if (!isConversationShellEnabled) {
-        return { href: destinationHref };
-      }
-
       const launch = resolveWorkspaceSurfaceLaunch({
         currentHref,
         destinationHref,
@@ -237,17 +222,13 @@ function AppProtectedTopbarContent({
         href: launch.href,
       };
     },
-    [currentHref, isConversationShellEnabled, searchParams],
+    [currentHref, searchParams],
   );
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
   const isAdminChrome = chrome === 'admin';
-  const shouldRenderAgentToggle = Boolean(onAgentToggle) && !isSaaS();
   const effectiveCurrentApp = isAdminChrome
     ? 'admin'
     : (currentApp ?? 'workspace');
-  const AgentToggleIcon = isAdminChrome
-    ? HiOutlineSparkles
-    : HiOutlineCommandLine;
   const backToTaskHref = taskId
     ? href(
         appendSearchParamsToHref(
@@ -337,22 +318,6 @@ function AppProtectedTopbarContent({
           ) : null}
 
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
-
-          {shouldRenderAgentToggle ? (
-            <Button
-              type="button"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className="size-7"
-              data-active={isAgentCollapsed ? 'false' : 'true'}
-              ariaLabel={
-                isAgentCollapsed ? 'Open terminal dock' : 'Close terminal dock'
-              }
-              onClick={onAgentToggle}
-            >
-              <AgentToggleIcon className="size-4" />
-            </Button>
-          ) : null}
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 

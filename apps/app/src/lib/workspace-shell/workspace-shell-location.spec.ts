@@ -230,35 +230,26 @@ describe('workspace shell URL restoration', () => {
     });
   });
 
-  it('returns null for dedicated and unknown routes', () => {
+  it.each([
+    ['/studio/fastlane', '/acme/moonrise/studio/fastlane'],
+    ['/agent/journey', '/acme/~/agent/journey'],
+    ['/agent/onboarding', '/acme/~/agent/onboarding'],
+    ['/settings/billing', '/acme/~/settings/billing'],
+  ])('restores the permanent canvas route %s', (normalizedPathname, pathname) => {
     expect(
       restoreWorkspaceShellLocation({
-        normalizedPathname: '/studio/fastlane',
-        pathname: '/acme/moonrise/studio/fastlane',
+        normalizedPathname,
+        pathname,
         searchParams: new URLSearchParams({ thread: 'thread-1' }),
       }),
-    ).toBeNull();
-    expect(
-      restoreWorkspaceShellLocation({
-        normalizedPathname: '/agent/journey',
-        pathname: '/acme/~/agent/journey',
-        searchParams: new URLSearchParams(),
-      }),
-    ).toBeNull();
-    expect(
-      restoreWorkspaceShellLocation({
-        normalizedPathname: '/agent/onboarding',
-        pathname: '/acme/~/agent/onboarding',
-        searchParams: new URLSearchParams(),
-      }),
-    ).toBeNull();
-    expect(
-      restoreWorkspaceShellLocation({
-        normalizedPathname: '/settings/billing',
-        pathname: '/acme/~/settings/billing',
-        searchParams: new URLSearchParams(),
-      }),
-    ).toBeNull();
+    ).toMatchObject({
+      baseState: 'canvas',
+      state: 'canvas',
+      threadId: 'thread-1',
+    });
+  });
+
+  it('returns null for unknown routes', () => {
     expect(
       restoreWorkspaceShellLocation({
         normalizedPathname: '/unregistered-product',
