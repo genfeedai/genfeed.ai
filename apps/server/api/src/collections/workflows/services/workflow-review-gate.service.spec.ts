@@ -118,6 +118,37 @@ describe('WorkflowReviewGateService — atomic gate claim', () => {
     expect(executionsService.updateNodeResult).not.toHaveBeenCalled();
   });
 
+  it('allows exactly one resolution when a human and timeout sweep race', async () => {
+    executionsService.claimPendingReviewGate
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+
+    const [humanResolution, timeoutResolution] = await Promise.all([
+      service.submitReviewGateApproval(
+        WORKFLOW_ID,
+        EXECUTION_ID,
+        'user-1',
+        ORGANIZATION_ID,
+        NODE_ID,
+        false,
+        'needs changes',
+      ),
+      service.resolveTimedOutReviewGate(
+        WORKFLOW_ID,
+        EXECUTION_ID,
+        ORGANIZATION_ID,
+        NODE_ID,
+      ),
+    ]);
+
+    expect(humanResolution.status).toBe('rejected');
+    expect(timeoutResolution).toBeNull();
+    expect(executionsService.claimPendingReviewGate).toHaveBeenCalledTimes(2);
+    expect(executionsService.updateNodeResult).toHaveBeenCalledTimes(1);
+    expect(executionsService.completeExecution).toHaveBeenCalledTimes(1);
+    expect(prisma.workflow.update).toHaveBeenCalledTimes(1);
+  });
+
   it('resolves a rejection normally when the claim succeeds', async () => {
     const result = await service.submitReviewGateApproval(
       WORKFLOW_ID,
