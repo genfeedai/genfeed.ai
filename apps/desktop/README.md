@@ -143,9 +143,11 @@ audited back to the desktop release workflow.
 
 Optional signing and notarization environment variables:
 
-- `APPLE_ID`
-- `APPLE_APP_SPECIFIC_PASSWORD`
-- `APPLE_TEAM_ID`
+- `APPLE_API_KEY` (absolute path to the App Store Connect `.p8` key)
+- `APPLE_API_KEY_ID`
+- `APPLE_API_ISSUER`
+- `DEVELOPER_ID_P12_BASE64`
+- `DEVELOPER_ID_P12_PASSWORD`
 
 ## Current Scope
 
