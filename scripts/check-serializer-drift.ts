@@ -31,11 +31,13 @@ const SERIALIZER_ROOT = 'packages/serializers/src';
  * coverage grows — running `bun run check:serializer-drift` prints the current
  * "Matched schema/serializer pairs" count.
  */
-const SERIALIZER_MATCH_FLOOR = 98;
+const SERIALIZER_MATCH_FLOOR = 102;
 
 const SCHEMA_TO_SERIALIZER_BASENAME_OVERRIDES: Record<string, string> = {
+  analytic: 'analytics',
   'credit-transactions': 'credit-transaction',
   'organization-setting': 'organization-settings',
+  skill: 'content-skill',
 };
 
 const SCHEMA_DOCUMENT_NAME_OVERRIDES: Record<string, string> = {
@@ -60,6 +62,34 @@ const SCHEMA_DOCUMENT_NAME_OVERRIDES: Record<string, string> = {
  */
 export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'activity:Activity': ['totalFailed', 'totalRequested', 'totalUpdated'],
+  'analytic:Analytic': [
+    'activeBots',
+    'activePlatforms',
+    'activeWorkflows',
+    'avgEngagementRate',
+    'bestPerformingPlatform',
+    'engagementGrowth',
+    'monthlyGrowth',
+    'pendingPosts',
+    'recentActivities',
+    'totalBrands',
+    'totalComments',
+    'totalCredentialsConnected',
+    'totalCredits',
+    'totalEngagement',
+    'totalImages',
+    'totalLikes',
+    'totalModels',
+    'totalOrganizations',
+    'totalPosts',
+    'totalSaves',
+    'totalShares',
+    'totalSubscriptions',
+    'totalUsers',
+    'totalVideos',
+    'totalViews',
+    'viewsGrowth',
+  ],
   'agent-campaign:AgentCampaign': [
     'endDate',
     'orchestrationEnabled',
@@ -403,6 +433,12 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'subscription:Subscription': ['category', 'planId'],
   'task-comment:TaskComment': ['authorAgentId', 'authorUserId', 'body'],
   'task:Task': ['linkedEntities', 'linkedIssueId'],
+  'template-metadata:TemplateMetadata': [
+    'difficulty',
+    'estimatedTime',
+    'goals',
+    'requiredFeatures',
+  ],
   'template:Template': [
     'createdBy',
     'industry',
@@ -567,6 +603,21 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'style',
   ],
   'scene:ElementScene': ['category'],
+  'skill:Skill': [
+    'baseSkill',
+    'category',
+    'configSchema',
+    'defaultInstructions',
+    'description',
+    'inputSchema',
+    'isBuiltIn',
+    'isEnabled',
+    'outputSchema',
+    'source',
+    'status',
+    'systemPromptTemplate',
+    'toolOverrides',
+  ],
   'sound:ElementSound': ['category', 'isActive', 'isDefault', 'organization'],
   'style:ElementStyle': ['category', 'isFavorite', 'models'],
   'agent-run:AgentRun': [],
@@ -735,6 +786,71 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   ],
 };
 
+const INTERNAL_MODEL_REASON =
+  'Internal persistence model with no standalone public serializer contract.';
+const OPERATIONAL_MODEL_REASON =
+  'Operational job, counter, credit, or audit state exposed through bounded service results instead of a resource serializer.';
+const ANALYTICS_MODEL_REASON =
+  'Analytics storage model consumed by aggregate serializers rather than serialized as a standalone resource.';
+
+/**
+ * Prisma-backed documents that intentionally have no canonical resource
+ * serializer. Full repository runs require every unmatched schema to appear
+ * here with a reviewable reason, and reject entries once a serializer is added
+ * or the schema disappears.
+ */
+export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
+  'ad-bulk-upload-job:AdBulkUploadJob': OPERATIONAL_MODEL_REASON,
+  'ad-creative-mapping:AdCreativeMapping': INTERNAL_MODEL_REASON,
+  'ad-optimization-audit-log:AdOptimizationAuditLog':
+    OPERATIONAL_MODEL_REASON,
+  'ad-optimization-config:AdOptimizationConfig': INTERNAL_MODEL_REASON,
+  'ad-optimization-recommendation:AdOptimizationRecommendation':
+    INTERNAL_MODEL_REASON,
+  'ad-performance:AdPerformance': ANALYTICS_MODEL_REASON,
+  'agent-goal:AgentGoal': INTERNAL_MODEL_REASON,
+  'agent-memory:AgentMemory': INTERNAL_MODEL_REASON,
+  'agent-message:AgentMessage': INTERNAL_MODEL_REASON,
+  'agent-strategy-opportunity:AgentStrategyOpportunity':
+    ANALYTICS_MODEL_REASON,
+  'agent-strategy-report:AgentStrategyReport': ANALYTICS_MODEL_REASON,
+  'agent-thread-event:AgentThreadEvent': OPERATIONAL_MODEL_REASON,
+  'agent-thread-snapshot:AgentThreadSnapshot': OPERATIONAL_MODEL_REASON,
+  'agent-workflow:AgentWorkflow': INTERNAL_MODEL_REASON,
+  'article-analytics:ArticleAnalytics': ANALYTICS_MODEL_REASON,
+  'batch-workflow-job:BatchWorkflowJob': OPERATIONAL_MODEL_REASON,
+  'campaign-target:CampaignTarget': INTERNAL_MODEL_REASON,
+  'content-pattern:ContentPattern': ANALYTICS_MODEL_REASON,
+  'content-score:ContentScore': ANALYTICS_MODEL_REASON,
+  'creative-pattern:CreativePattern': ANALYTICS_MODEL_REASON,
+  'creator-analysis:CreatorAnalysis': ANALYTICS_MODEL_REASON,
+  'credit-balance:CreditBalance': OPERATIONAL_MODEL_REASON,
+  'credit-transactions:CreditTransaction': OPERATIONAL_MODEL_REASON,
+  'customer-instance:CustomerInstance': INTERNAL_MODEL_REASON,
+  'customer:Customer': INTERNAL_MODEL_REASON,
+  'forecast:Forecast': ANALYTICS_MODEL_REASON,
+  'gif:Ingredient': INTERNAL_MODEL_REASON,
+  'lead:Lead': INTERNAL_MODEL_REASON,
+  'link-click:LinkClick': ANALYTICS_MODEL_REASON,
+  'mcp-approval:McpApproval': OPERATIONAL_MODEL_REASON,
+  'pattern-playbook:PatternPlaybook': INTERNAL_MODEL_REASON,
+  'post-analytics:PostAnalytics': ANALYTICS_MODEL_REASON,
+  'processed-tweet:ProcessedTweet': OPERATIONAL_MODEL_REASON,
+  'repurposing-job:RepurposingJob': OPERATIONAL_MODEL_REASON,
+  'skill-receipt:SkillReceipt': OPERATIONAL_MODEL_REASON,
+  'streak:Streak': ANALYTICS_MODEL_REASON,
+  'task-counter:TaskCounter': OPERATIONAL_MODEL_REASON,
+  'template-usage:TemplateUsage': ANALYTICS_MODEL_REASON,
+  'thread-context-state:ThreadContextState': INTERNAL_MODEL_REASON,
+  'trend-remix-lineage:TrendRemixLineage': ANALYTICS_MODEL_REASON,
+  'trend-source-reference-link:TrendSourceReferenceLink':
+    INTERNAL_MODEL_REASON,
+  'trend-source-reference-snapshot:TrendSourceReferenceSnapshot':
+    INTERNAL_MODEL_REASON,
+  'trend-source-reference:TrendSourceReference': INTERNAL_MODEL_REASON,
+  'user-subscription:UserSubscription': INTERNAL_MODEL_REASON,
+};
+
 const IGNORED_ATTRIBUTE_FIELDS = new Set([
   '_id',
   'createdAt',
@@ -812,9 +928,15 @@ export type SerializerDriftCheckOptions = {
   projections?: Record<string, readonly string[]>;
   rootDir?: string;
   schemaRoots?: string[];
+  /**
+   * Explicit reasons for Prisma-backed schemas with no standalone serializer.
+   * Omit for isolated fixtures; the CLI supplies the repository contract.
+   */
+  unserializedSchemas?: Record<string, string>;
 };
 
 export type SerializerDriftCheckResult = {
+  classifiedUnserializedCount: number;
   discoveredSchemaCount: number;
   drifts: SerializerDrift[];
   errors: string[];
@@ -822,6 +944,7 @@ export type SerializerDriftCheckResult = {
   matchedPairKeys: string[];
   scannedCount: number;
   serializerCount: number;
+  unclassifiedUnmatchedCount: number;
   unmatchedSchemas: UnmatchedSchema[];
   unresolvedSchemaCandidates: UnresolvedSchemaCandidate[];
 };
@@ -1591,6 +1714,107 @@ function findCanonicalConfigName(
   );
 }
 
+function collectNestedSerializerContracts(
+  context: ParserContext,
+  serializerFilePath: string,
+  configFilePath: string,
+  configContent: string,
+): SerializerInfo[] {
+  const relationshipsMatch = /\brelationships\s*:\s*\{/.exec(configContent);
+  if (!relationshipsMatch) {
+    return [];
+  }
+  const relationshipsOpenIndex = configContent.indexOf(
+    '{',
+    relationshipsMatch.index,
+  );
+  const relationshipsBody = extractBalancedBlock(
+    configContent,
+    relationshipsOpenIndex,
+  );
+  if (!relationshipsBody) {
+    return [];
+  }
+
+  const imports = parseNamedImports(configContent);
+  const contracts: SerializerInfo[] = [];
+  const relationshipRegex =
+    /^[ \t]*([A-Za-z_]\w*)[ \t]*:[ \t]*\{/gm;
+  let relationshipMatch = relationshipRegex.exec(relationshipsBody);
+
+  while (relationshipMatch) {
+    const openIndex = relationshipsBody.indexOf(
+      '{',
+      relationshipMatch.index,
+    );
+    const relationshipBody = extractBalancedBlock(
+      relationshipsBody,
+      openIndex,
+    );
+    if (!relationshipBody) {
+      relationshipMatch = relationshipRegex.exec(relationshipsBody);
+      continue;
+    }
+    relationshipRegex.lastIndex = openIndex + relationshipBody.length + 2;
+
+    const basename =
+      /\btype\s*:\s*['"]([^'"]+)['"]/.exec(relationshipBody)?.[1];
+    const attributeName =
+      /\battributes\s*:\s*([A-Za-z_]\w*)/.exec(relationshipBody)?.[1];
+    const attributeImport = attributeName
+      ? imports.get(attributeName)
+      : undefined;
+    if (!basename || !attributeName || !attributeImport) {
+      relationshipMatch = relationshipRegex.exec(relationshipsBody);
+      continue;
+    }
+    const attributeImportPath = resolveSerializerImportPath(
+      context,
+      configFilePath,
+      attributeImport.source,
+    );
+    const attributeFilePath = attributeImportPath
+      ? resolveExportedSymbolFile(
+          context,
+          attributeImportPath,
+          attributeImport.importedName,
+        )
+      : null;
+    const attributeFields = attributeFilePath
+      ? resolveAttributeSymbol(
+          context,
+          attributeFilePath,
+          attributeImport.importedName,
+        )
+      : null;
+    if (!attributeFilePath || !attributeFields) {
+      relationshipMatch = relationshipRegex.exec(relationshipsBody);
+      continue;
+    }
+
+    const relationshipFields = new Set<string>();
+    for (const match of relationshipBody.matchAll(
+      /^[ \t]*([A-Za-z_]\w*)[ \t]*:/gm,
+    )) {
+      if (match[1] && match[1] !== 'attributes' && match[1] !== 'type') {
+        relationshipFields.add(match[1]);
+      }
+    }
+    contracts.push({
+      attributeFields: new Set(attributeFields),
+      attributeFilePath,
+      attributeName: attributeImport.importedName,
+      basename,
+      configFilePath,
+      relationshipFields,
+      serializerFilePath,
+    });
+    relationshipMatch = relationshipRegex.exec(relationshipsBody);
+  }
+
+  return contracts;
+}
+
 function collectSerializerContracts(context: ParserContext): SerializerInfo[] {
   const serverRoot = path.join(context.rootDir, SERIALIZER_ROOT, 'server');
   const contracts: SerializerInfo[] = [];
@@ -1710,6 +1934,14 @@ function collectSerializerContracts(context: ParserContext): SerializerInfo[] {
       relationshipFields,
       serializerFilePath,
     });
+    contracts.push(
+      ...collectNestedSerializerContracts(
+        context,
+        serializerFilePath,
+        configFilePath,
+        configContent,
+      ),
+    );
   }
   return contracts;
 }
@@ -1775,6 +2007,7 @@ export function runCheckSerializerDrift(
   const rootDir = path.resolve(options.rootDir ?? DEFAULT_ROOT_DIR);
   const schemaRoots = options.schemaRoots ?? DEFAULT_SCHEMA_ROOTS;
   const projectionContract = options.projections ?? SERIALIZER_PROJECTIONS;
+  const unserializedSchemaContract = options.unserializedSchemas ?? {};
   // Default OFF (0) so unit tests running against small fixtures aren't tripped;
   // the CLI entry point passes the real SERIALIZER_MATCH_FLOOR for repo runs.
   const matchFloor = options.matchFloor ?? 0;
@@ -1956,6 +2189,39 @@ export function runCheckSerializerDrift(
           `with a reviewed reason).`,
       );
     }
+
+    if (options.unserializedSchemas !== undefined) {
+      const discoveredSchemaKeys = new Set(
+        discovered.schemas.map((schema) => projectionKey(schema)),
+      );
+      const unmatchedSchemaKeys = new Set(
+        unmatchedSchemas.map(({ schema }) => projectionKey(schema)),
+      );
+      for (const key of unmatchedSchemaKeys) {
+        if (!unserializedSchemaContract[key]?.trim()) {
+          errors.push(
+            `Unmatched schema ${key} needs a reason in INTENTIONALLY_UNSERIALIZED_SCHEMAS`,
+          );
+        }
+      }
+      for (const [key, reason] of Object.entries(
+        unserializedSchemaContract,
+      )) {
+        if (!reason.trim()) {
+          errors.push(
+            `Intentional unserialized contract ${key} needs a non-empty reason`,
+          );
+        } else if (!discoveredSchemaKeys.has(key)) {
+          errors.push(
+            `Intentional unserialized contract ${key} is stale: schema was not discovered`,
+          );
+        } else if (!unmatchedSchemaKeys.has(key)) {
+          errors.push(
+            `Intentional unserialized contract ${key} is stale: schema now has a serializer`,
+          );
+        }
+      }
+    }
   }
 
   if (selectedFiles.size === 0 && matchedCount === 0) {
@@ -1971,7 +2237,12 @@ export function runCheckSerializerDrift(
     );
   }
 
+  const classifiedUnserializedCount = unmatchedSchemas.filter(
+    ({ schema }) => unserializedSchemaContract[projectionKey(schema)]?.trim(),
+  ).length;
+
   return {
+    classifiedUnserializedCount,
     discoveredSchemaCount: discovered.schemas.length,
     drifts,
     errors,
@@ -1979,6 +2250,8 @@ export function runCheckSerializerDrift(
     matchedPairKeys: [...matchedProjectionKeys].sort(),
     scannedCount,
     serializerCount: serializers.length,
+    unclassifiedUnmatchedCount:
+      unmatchedSchemas.length - classifiedUnserializedCount,
     unmatchedSchemas,
     unresolvedSchemaCandidates: discovered.unresolved,
   };
@@ -2002,6 +2275,12 @@ function printResults(
   console.log(`- Schema/serializer pairs scanned: ${result.scannedCount}`);
   console.log(`- Matched schema/serializer pairs: ${result.matchedCount}`);
   console.log(`- Unmatched schemas: ${result.unmatchedSchemas.length}`);
+  console.log(
+    `- Intentionally unserialized schemas: ${result.classifiedUnserializedCount}`,
+  );
+  console.log(
+    `- Unclassified unmatched schemas: ${result.unclassifiedUnmatchedCount}`,
+  );
   console.log(
     `- Unresolved Prisma-backed schema candidates: ${result.unresolvedSchemaCandidates.length}`,
   );
@@ -2051,6 +2330,7 @@ function main(): void {
     files: parseCliFiles(process.argv.slice(2)),
     matchFloor: SERIALIZER_MATCH_FLOOR,
     rootDir,
+    unserializedSchemas: INTENTIONALLY_UNSERIALIZED_SCHEMAS,
   });
   printResults(rootDir, result);
   process.exitCode =
