@@ -11,6 +11,7 @@ import CloudSyncConsentDialog from './components/CloudSyncConsentDialog';
 import ReconnectBanner from './components/ReconnectBanner';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
+import { getDesktopEntrySurface } from './desktop-entry-surface';
 import { useThreads } from './hooks/useThreads';
 import MainView from './MainView';
 import type { NavView } from './nav-view';
@@ -109,21 +110,6 @@ const initialState: AppState = {
   isSyncConsentSaving: false,
   isSyncConsentReviewOpen: false,
 };
-
-export type DesktopEntrySurface = 'auth' | 'loading' | 'workspace';
-
-export function getDesktopEntrySurface(
-  bootstrap: IDesktopBootstrap,
-  isBootstrapLoaded: boolean,
-): DesktopEntrySurface {
-  if (!isBootstrapLoaded) {
-    return 'loading';
-  }
-
-  return bootstrap.session === null && !bootstrap.isOfflineMode
-    ? 'auth'
-    : 'workspace';
-}
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {

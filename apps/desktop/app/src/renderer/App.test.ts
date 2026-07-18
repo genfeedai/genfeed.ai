@@ -1,6 +1,6 @@
+import { describe, expect, it } from 'bun:test';
 import type { IDesktopBootstrap } from '@genfeedai/desktop-contracts';
-import { describe, expect, it } from 'vitest';
-import { getDesktopEntrySurface } from './App';
+import { getDesktopEntrySurface } from './desktop-entry-surface';
 
 const bootstrap = (
   overrides: Pick<IDesktopBootstrap, 'isOfflineMode' | 'session'>,
