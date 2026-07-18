@@ -23,6 +23,7 @@ import { VideosRelationshipsController } from '@api/collections/videos/controlle
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
+import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -97,6 +98,7 @@ import { forwardRef, Module } from '@nestjs/common';
     CreditsInterceptor,
     ModelRegistrationService,
     ModelsGuard,
+    VideoGenerationProviderDispatchService,
     VideoGenerationService,
     VideoMusicOrchestrationService,
     VideoProvenanceService,

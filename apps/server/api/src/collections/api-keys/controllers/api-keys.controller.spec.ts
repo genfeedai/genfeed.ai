@@ -4,6 +4,7 @@ import type { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-k
 import type { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
 import { type ApiKey } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { McpConnectionVerificationService } from '@api/collections/api-keys/services/mcp-connection-verification.service';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -61,6 +62,9 @@ describe('ApiKeysController', () => {
     revoke: vi.fn(),
     rotateWithKey: vi.fn(),
   };
+  const mockMcpConnectionVerificationService = {
+    verify: vi.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -69,6 +73,10 @@ describe('ApiKeysController', () => {
         {
           provide: ApiKeysService,
           useValue: mockApiKeysService,
+        },
+        {
+          provide: McpConnectionVerificationService,
+          useValue: mockMcpConnectionVerificationService,
         },
       ],
     })
@@ -270,6 +278,31 @@ describe('ApiKeysController', () => {
       await expect(
         controller.findOne(mockRequest, mockUser, id),
       ).rejects.toThrow(HttpException);
+    });
+  });
+
+  describe('verifyMcpConnection', () => {
+    it('delegates a bounded verification with canonical user scope', async () => {
+      mockMcpConnectionVerificationService.verify.mockResolvedValue({
+        keyId: mockApiKey.id,
+        publishing: { connectedAccountCount: 1, isReady: true },
+        status: 'connected',
+        verifiedAt: '2026-07-18T12:00:00.000Z',
+      });
+
+      const result = await controller.verifyMcpConnection(
+        mockUser,
+        mockApiKey.id,
+        { key: 'gf_test_secret-value' },
+      );
+
+      expect(mockMcpConnectionVerificationService.verify).toHaveBeenCalledWith({
+        apiKeyId: mockApiKey.id,
+        organizationId: mockUser.publicMetadata.organization,
+        plainKey: 'gf_test_secret-value',
+        userId: mockUser.publicMetadata.user,
+      });
+      expect(result).toMatchObject({ status: 'connected' });
     });
   });
 

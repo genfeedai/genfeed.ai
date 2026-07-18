@@ -122,7 +122,6 @@ export function useAppProtectedLayout(
     /^\/studio\/(avatar|image|music|video)(?:\/|$)/.test(pathname);
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isPostsPromptBarRoute = pathname === APP_ROUTES.POSTS.ROOT;
-  const isRemixRoute = pathname.startsWith('/posts/remix');
   const isPostsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.POSTS);
   const isMissionControlPromptBarRoute =
     pathname === APP_ROUTES.WORKFLOWS.EXECUTIONS ||
@@ -161,23 +160,21 @@ export function useAppProtectedLayout(
       ? 'library'
       : isResearchRoute
         ? 'research'
-        : isRemixRoute
-          ? 'remix'
-          : isPostsRoute
-            ? 'posts'
-            : isComposeRoute
-              ? 'compose'
-              : isWorkflowsRoute
-                ? 'workflows'
-                : isEditorRoute
-                  ? 'editor'
-                  : isAnalyticsRoute
-                    ? 'analytics'
-                    : isMessagesRoute
-                      ? 'messages'
-                      : isAgentRoute
-                        ? 'agent'
-                        : 'workspace';
+        : isPostsRoute
+          ? 'posts'
+          : isComposeRoute
+            ? 'compose'
+            : isWorkflowsRoute
+              ? 'workflows'
+              : isEditorRoute
+                ? 'editor'
+                : isAnalyticsRoute
+                  ? 'analytics'
+                  : isMessagesRoute
+                    ? 'messages'
+                    : isAgentRoute
+                      ? 'agent'
+                      : 'workspace';
 
   const shouldInitAgentApiService =
     isConversationRoute || isUniversalWorkspaceShell;

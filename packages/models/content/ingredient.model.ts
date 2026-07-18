@@ -26,6 +26,7 @@ export class Ingredient extends BaseIngredient {
 
   public declare cdnUrl?: string | null;
   public declare s3Key?: string | null;
+  public declare version?: number;
   public isPlaying: boolean = false;
   public isFavorite: boolean = false;
   public isVoteAnimating: boolean = false;

@@ -3,8 +3,10 @@ import {
   ContentOrchestrationService,
   type PipelineConfig,
 } from '@api/services/content-orchestration/content-orchestration.service';
-import { ContentqueryJobData } from '@api/services/content-orchestration/content-pipeline-queue.service';
-import { CONTENT_PIPELINE_QUEUE } from '@genfeedai/queue-contracts';
+import {
+  CONTENT_PIPELINE_QUEUE,
+  type ContentPipelineJobData,
+} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
@@ -23,7 +25,7 @@ export class ContentqueryProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<ContentqueryJobData>): Promise<unknown> {
+  async process(job: Job<ContentPipelineJobData>): Promise<unknown> {
     const { data } = job;
     const caller = `${this.logContext} process`;
 

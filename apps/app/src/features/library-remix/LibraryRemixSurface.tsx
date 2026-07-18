@@ -23,6 +23,7 @@ import { useLibraryRemixSource } from './use-library-remix-source';
 
 type LibraryRemixSurfaceProps = {
   readonly sourceArtifact?: string | null;
+  readonly sourceVersion?: string | null;
   readonly threadId?: string | null;
 };
 
@@ -47,13 +48,16 @@ function getManagementRoute(record: IAsset | IIngredient): string {
 
 export default function LibraryRemixSurface({
   sourceArtifact,
+  sourceVersion,
   threadId,
 }: LibraryRemixSurfaceProps) {
   const { selectedBrand } = useBrand();
   const { href } = useOrgUrl();
   const shellActions = useWorkspaceShellActions();
-  const { record, reference, retry, status } =
-    useLibraryRemixSource(sourceArtifact);
+  const { record, reference, retry, status } = useLibraryRemixSource(
+    sourceArtifact,
+    sourceVersion,
+  );
   const openLibraryPicker = () =>
     shellActions?.openOverlay({
       key: 'library-picker',
@@ -192,6 +196,7 @@ export default function LibraryRemixSurface({
         </div>
         <p className="font-mono text-xs text-muted-foreground">
           {reference.kind}:{reference.recordId}
+          {reference.recordVersion ? `@${reference.recordVersion}` : ''}
         </p>
         <div className="flex flex-wrap gap-3">
           {shellActions ? (

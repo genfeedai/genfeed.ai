@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import type { Task } from '@services/management/tasks.service';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -27,6 +28,7 @@ export function WorkspaceTaskCard({
   onRequestChanges,
   task,
 }: WorkspaceTaskCardProps) {
+  const isStudioEnabled = useFeatureFlag('studio');
   const isBusy = busyTaskId === task.id;
   const showReviewActions = task.reviewState === 'pending_approval';
 
@@ -105,7 +107,9 @@ export function WorkspaceTaskCard({
           size={ButtonSize.SM}
           className="font-semibold"
         >
-          <Link href={getAdvancedToolHref(task)}>Open Tool</Link>
+          <Link href={getAdvancedToolHref(task, isStudioEnabled)}>
+            Open Tool
+          </Link>
         </Button>
       </div>
     </article>

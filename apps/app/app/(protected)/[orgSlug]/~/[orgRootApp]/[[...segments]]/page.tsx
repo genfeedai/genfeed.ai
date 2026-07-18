@@ -1,6 +1,7 @@
 import { PageScope, PostStatus } from '@genfeedai/enums';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
+import FeatureGate from '@ui/guards/feature/FeatureGate';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
 import { notFound } from 'next/navigation';
@@ -178,7 +179,11 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'studio') {
-    return <OrgIngredientListPage type={getOrgLibraryType(segments)} />;
+    return (
+      <FeatureGate flagKey="studio">
+        <OrgIngredientListPage type={getOrgLibraryType(segments)} />
+      </FeatureGate>
+    );
   }
 
   if (

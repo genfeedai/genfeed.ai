@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   requestChanges: vi.fn(),
   resolveAuthToken: vi.fn(),
   sentryAddBreadcrumb: vi.fn(),
+  studioEnabled: true,
   subscribe: vi.fn(),
   trashOutput: vi.fn(),
   unkeepOutput: vi.fn(),
@@ -49,6 +50,10 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: mocks.resolveAuthToken,
+}));
+
+vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
+  useFeatureFlag: () => mocks.studioEnabled,
 }));
 
 vi.mock('@hooks/data/trends/use-trends/use-trends', () => ({
@@ -195,6 +200,7 @@ function makeInspectorTask(overrides: Record<string, unknown> = {}) {
 describe('WorkspacePageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.studioEnabled = true;
     mocks.resolveAuthToken.mockResolvedValue('token-1');
     mocks.subscribe.mockReturnValue(vi.fn());
     mocks.agentRunsList.mockResolvedValue([]);
@@ -446,6 +452,18 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByText('Operator tools')).toBeVisible();
     expect(screen.getByLabelText('Studio Image')).toBeVisible();
     expect(screen.getByLabelText('Studio Video')).toBeVisible();
+  });
+
+  it('removes Studio from operator tools when the capability is disabled', async () => {
+    mocks.studioEnabled = false;
+
+    render(<WorkspacePageContent section="overview" />);
+
+    expect(await screen.findByText('Operator tools')).toBeVisible();
+    expect(screen.queryByLabelText('Studio Image')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Studio Video')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Agent')).toBeVisible();
+    expect(screen.getByLabelText('Workflows')).toBeVisible();
   });
 
   it('wraps the overview inbox preview in the canonical dashboard card', async () => {

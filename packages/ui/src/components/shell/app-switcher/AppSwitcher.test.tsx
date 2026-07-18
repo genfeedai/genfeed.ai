@@ -5,7 +5,16 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const featureFlags = vi.hoisted(() => ({
+  studio: true,
+}));
+
+vi.mock('@genfeedai/hooks/feature-flags/use-feature-flag', () => ({
+  useFeatureFlag: (flagKey: string) =>
+    flagKey === 'studio' ? featureFlags.studio : true,
+}));
 
 vi.mock('next/link', () => ({
   default: ({
@@ -156,6 +165,10 @@ function searchApps(query: string) {
 }
 
 describe('AppSwitcher', () => {
+  beforeEach(() => {
+    featureFlags.studio = true;
+  });
+
   it('renders the active app label in the trigger button', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
     expect(
@@ -210,7 +223,6 @@ describe('AppSwitcher', () => {
       'Messages',
       'Research',
       'Studio',
-      'Remix',
       'Library',
       'Publish',
       'Analytics',
@@ -229,6 +241,17 @@ describe('AppSwitcher', () => {
     expect(
       screen.queryByRole('link', { name: 'Admin' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('hides Studio when its product capability is disabled', () => {
+    featureFlags.studio = false;
+
+    render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
+
+    expect(
+      screen.queryByRole('link', { name: 'Studio' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Library' })).toBeInTheDocument();
   });
 
   it('searches module destinations', () => {
@@ -359,7 +382,7 @@ describe('AppSwitcher', () => {
     expect(btn).not.toHaveClass('bg-foreground/[0.08]');
   });
 
-  it('uses the most specific current path for active state', () => {
+  it('keeps the contextual remix route inside Publish', () => {
     render(
       <AppSwitcher
         orgSlug="acme"
@@ -369,14 +392,13 @@ describe('AppSwitcher', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-
-    expect(screen.getByRole('link', { name: 'Publish' })).not.toHaveAttribute(
-      'aria-current',
-    );
+    expect(
+      screen.queryByRole('link', { name: 'Remix' }),
+    ).not.toBeInTheDocument();
   });
 
   it('highlights nested studio routes under Studio', () => {
@@ -459,7 +481,6 @@ describe('AppSwitcher', () => {
 
       for (const [label, href] of [
         ['Messages', '/acme/~/overview'],
-        ['Remix', '/acme/~/posts'],
         ['Research', '/acme/~/overview'],
         ['Studio', '/acme/~/studio/image'],
         ['Library', '/acme/~/library'],
@@ -509,10 +530,6 @@ describe('AppSwitcher', () => {
         />,
       );
 
-      expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
-        'href',
-        '/acme/my-brand/posts/remix',
-      );
       expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
         'href',
         '/acme/my-brand/analytics/overview',
@@ -532,10 +549,6 @@ describe('AppSwitcher', () => {
         'href',
         '/acme/my-brand/research/discovery',
       );
-      expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
-        'href',
-        '/acme/my-brand/posts/remix',
-      );
       expect(screen.getByRole('link', { name: 'Publish' })).toHaveAttribute(
         'href',
         '/acme/my-brand/posts',
@@ -553,10 +566,9 @@ describe('AppSwitcher', () => {
         'href',
         '/acme/~/overview',
       );
-      expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
-        'href',
-        '/acme/~/posts',
-      );
+      expect(
+        screen.queryByRole('link', { name: 'Remix' }),
+      ).not.toBeInTheDocument();
     });
 
     it('links to the brand-scoped publish module when a brand is selected', () => {

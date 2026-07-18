@@ -247,6 +247,7 @@ describe('event taxonomy', () => {
         'agent_thread_created',
         'checkout_completed',
         'checkout_started',
+        'connect_genfeed_step',
         'content_write_blank_draft_started',
         'content_write_opened',
         'content_write_prompt_generated',

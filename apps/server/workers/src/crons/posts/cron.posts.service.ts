@@ -181,21 +181,27 @@ export class CronPostsService {
     job: PostPublishJobData,
   ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    try {
-      if (!job.approvalId || !job.operationId || !job.versionPinId) {
-        throw new Error(
+    const { approvalId, operationId, versionPinId } = job;
+    if (!approvalId || !operationId || !versionPinId) {
+      return this.handleTerminalPublishValidationFailure(
+        post,
+        new Error(
           'Publish execution requires an explicit version-bound approval identity.',
-        );
-      }
+        ),
+      );
+    }
+
+    let executionStartedAt = '';
+    try {
       await this.assertAgentPublishingScope(post);
       const claim = await this.publishApprovalsService.claimForExecution({
-        approvalId: job.approvalId,
-        operationId: job.operationId,
+        approvalId,
+        operationId,
         organizationId: job.organizationId,
         postId: job.postId,
-        versionPinId: job.versionPinId,
+        versionPinId,
       });
-      if (claim.alreadyPublished) {
+      if (claim.isAlreadyPublished) {
         return {
           externalId: this.readPostString(post, ['externalId']) ?? null,
           platform: post.platform,
@@ -204,18 +210,52 @@ export class CronPostsService {
           url: this.readPostString(post, ['url']) ?? '',
         };
       }
-      await this.assertPublishVersionPin(post, job.versionPinId);
+      if (!claim.executionStartedAt) {
+        throw new Error('Publish execution claim did not return a lease.');
+      }
+      executionStartedAt = claim.executionStartedAt;
+      await this.assertPublishVersionPin(post, versionPinId);
     } catch (error: unknown) {
+      if (executionStartedAt) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Publish validation failed';
+        try {
+          await this.publishApprovalsService.completeExecution({
+            approvalId,
+            error: errorMessage,
+            executionStartedAt,
+            isSuccessful: false,
+            operationId,
+            organizationId: job.organizationId,
+            versionPinId,
+          });
+        } catch (completionError: unknown) {
+          this.logger.error(
+            'Failed to release publish approval after validation rejection',
+            {
+              approvalId,
+              error:
+                completionError instanceof Error
+                  ? completionError.message
+                  : 'Unknown publish completion error',
+              postId: post.id,
+            },
+          );
+        }
+      }
       return this.handleTerminalPublishValidationFailure(post, error);
     }
     const result = await this.publishSinglePost(post);
 
-    await this.publishApprovalsService.completeExecution(
-      job.approvalId,
-      job.organizationId,
-      result.success,
-      result.error,
-    );
+    await this.publishApprovalsService.completeExecution({
+      approvalId,
+      ...(result.error ? { error: result.error } : {}),
+      executionStartedAt,
+      isSuccessful: result.success,
+      operationId,
+      organizationId: job.organizationId,
+      versionPinId,
+    });
 
     if (result.success) {
       await this.activitiesService.create(

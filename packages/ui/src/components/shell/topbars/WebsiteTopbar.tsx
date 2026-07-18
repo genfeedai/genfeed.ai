@@ -3,141 +3,60 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
-import { Button } from '@ui/primitives/button';
+import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {
-  HiArrowPath,
-  HiBuildingOffice2,
   HiChartBar,
-  HiMagnifyingGlass,
-  HiMegaphone,
+  HiCommandLine,
   HiPaperAirplane,
-  HiRectangleStack,
-  HiRocketLaunch,
-  HiShoppingCart,
-  HiSparkles,
-  HiSquares2X2,
-  HiStar,
-  HiUserCircle,
-  HiUserGroup,
+  HiServerStack,
+  HiShieldCheck,
 } from 'react-icons/hi2';
 
 const PRODUCT_LINKS = [
   {
-    description: 'Generate every format in one workspace',
-    group: 'Create',
-    href: '/studio',
-    icon: HiSparkles,
-    label: 'Studio',
+    description: 'Connect Claude Code, Codex, and other MCP clients',
+    href: '/mcp',
+    icon: HiCommandLine,
+    label: 'MCP Server',
   },
   {
-    description: 'Every asset your team reuses',
-    group: 'Create',
-    href: '/library',
-    icon: HiRectangleStack,
-    label: 'Library',
-  },
-  {
-    description: "Find what's working now",
-    group: 'Create',
-    href: '/research',
-    icon: HiMagnifyingGlass,
-    label: 'Research',
-  },
-  {
-    description: 'Prompt packs and creative recipes',
-    group: 'Create',
-    href: '/skills',
-    icon: HiSquares2X2,
-    label: 'Skills',
-  },
-  {
-    description: 'Plan, schedule, and publish everywhere',
-    group: 'Operate',
+    description: 'Review, schedule, and publish across every channel',
     href: '/publisher',
     icon: HiPaperAirplane,
-    label: 'Publisher',
+    label: 'Publishing',
   },
   {
-    description: 'Automate your content pipeline',
-    group: 'Operate',
-    href: '/workflows',
-    icon: HiArrowPath,
-    label: 'Workflows',
+    description: 'Approvals, assets, integrations, and audit in one place',
+    href: '/features',
+    icon: HiShieldCheck,
+    label: 'Control Plane',
   },
   {
     description: 'Track revenue, not vanity metrics',
-    group: 'Operate',
     href: '/analytics',
     icon: HiChartBar,
     label: 'Analytics',
   },
   {
-    description: 'Your autonomous content team',
-    group: 'Operate',
-    href: '/agents',
-    icon: HiUserGroup,
-    label: 'Agents',
+    description: 'Own the stack, data, keys, and deployment',
+    href: '/self-hosted',
+    icon: HiServerStack,
+    label: 'Self-hosting',
   },
 ];
 
-const USE_CASES_LINKS = [
-  {
-    description: '10x output, track what converts',
-    group: 'Creators',
-    href: '/use-cases/creators',
-    icon: HiUserCircle,
-    label: 'Content Creators',
-  },
-  {
-    description: 'Virtual influencers that post 24/7',
-    group: 'Creators',
-    href: '/use-cases/ai-influencers',
-    icon: HiStar,
-    label: 'AI Influencers',
-  },
-  {
-    description: 'Launch and grow without a team',
-    group: 'Creators',
-    href: '/use-cases/founders',
-    icon: HiRocketLaunch,
-    label: 'Founders',
-  },
-  {
-    description: 'Scale client content, white-label',
-    group: 'Business',
-    href: '/use-cases/agencies',
-    icon: HiBuildingOffice2,
-    label: 'Agencies',
-  },
-  {
-    description: 'Campaign content and reporting',
-    group: 'Business',
-    href: '/use-cases/marketers',
-    icon: HiMegaphone,
-    label: 'Marketers',
-  },
-  {
-    description: 'Product content at scale',
-    group: 'Business',
-    href: '/use-cases/ecommerce',
-    icon: HiShoppingCart,
-    label: 'E-commerce',
-  },
+const NAV_LINKS = [
+  { href: '/pricing', label: 'Pricing' },
+  { href: 'https://docs.genfeed.ai', label: 'Docs' },
 ];
-
-const NAV_LINKS = [{ href: '/pricing', label: 'Pricing' }];
 
 export default function WebsiteTopbar() {
   const { isSignedIn } = useAuthIdentity();
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
 
   return (
     <TopbarPublic
-      dropdowns={[
-        { items: PRODUCT_LINKS, label: 'Product' },
-        { items: USE_CASES_LINKS, label: 'Use Cases' },
-      ]}
+      dropdowns={[{ items: PRODUCT_LINKS, label: 'Product' }]}
       navLinks={NAV_LINKS}
       rightContent={
         <div className="flex items-center gap-6">
@@ -149,29 +68,37 @@ export default function WebsiteTopbar() {
               >
                 Log in
               </a>
-              <Button
+              <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
                 variant={ButtonVariant.OUTLINE}
                 className="hidden h-9 px-5 text-sm uppercase xl:inline-flex"
+                trackingData={{ action: 'book_demo_topbar' }}
+                trackingName="topbar_cta_click"
               >
                 <a
                   href={EnvironmentService.calendly}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  Book Demo
+                  Book a Demo
                 </a>
-              </Button>
-              <Button
+              </ButtonTracked>
+              <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
                 className="h-9 px-5 text-sm uppercase"
+                trackingData={{ action: 'connect_mcp_topbar' }}
+                trackingName="topbar_cta_click"
               >
-                <a href={signUpHref} target="_blank" rel="noopener noreferrer">
-                  Create now
+                <a
+                  href={EnvironmentService.mcpConnectHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Connect MCP
                 </a>
-              </Button>
+              </ButtonTracked>
             </>
           ) : (
             <a

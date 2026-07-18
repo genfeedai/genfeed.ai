@@ -22,6 +22,7 @@ const FeatureFlagContext = createContext<FeatureFlagContextValue>({
 export interface FeatureFlagProviderProps {
   children: ReactNode;
   defaults?: Record<string, unknown>;
+  fallbacks?: Record<string, unknown>;
   overrides?: Record<string, unknown>;
   ready?: boolean;
 }
@@ -29,6 +30,7 @@ export interface FeatureFlagProviderProps {
 export function FeatureFlagProvider({
   children,
   defaults,
+  fallbacks,
   overrides,
   ready = true,
 }: FeatureFlagProviderProps) {
@@ -47,12 +49,12 @@ export function FeatureFlagProvider({
 
   const value = useMemo<FeatureFlagContextValue>(
     () => ({
-      flags: { ...resolvedDefaults.flags, ...overrides },
+      flags: { ...fallbacks, ...resolvedDefaults.flags, ...overrides },
       // Server-resolved overrides are independent from public defaults.
       isConfigured: resolvedDefaults.isConfigured,
       isReady: ready,
     }),
-    [overrides, ready, resolvedDefaults],
+    [fallbacks, overrides, ready, resolvedDefaults],
   );
 
   return (
