@@ -45,7 +45,7 @@ describe('buildConnectGenfeedInstructions', () => {
 
     expect(JSON.parse(instructions.configuration)).toEqual({
       headers: {
-        Authorization: 'Bearer ${GENFEED_API_KEY}',
+        Authorization: ['Bearer $', '{GENFEED_API_KEY}'].join(''),
       },
       transport: 'streamable-http',
       url: 'https://mcp.genfeed.ai/mcp',

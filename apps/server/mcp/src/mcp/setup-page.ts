@@ -25,7 +25,6 @@ function trimTrailingSlash(value: string): string {
 }
 
 function readEnv(name: string): string | undefined {
-  // biome-ignore lint/style/noProcessEnv: MCP setup docs need deploy-time endpoint overrides before Nest config is available.
   return process.env[name];
 }
 

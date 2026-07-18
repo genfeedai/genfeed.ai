@@ -4,7 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getDeployment, isSelfHostedDeployment } from '@genfeedai/config';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
-import { buildConnectGenfeedInstructions } from '@genfeedai/helpers';
+import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import type {
   ConnectGenfeedClient,
   ConnectGenfeedVerificationResult,
@@ -24,7 +24,7 @@ import { Input } from '@ui/primitives/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   HiArrowRight,
   HiCheckCircle,
@@ -101,14 +101,8 @@ export default function ConnectGenfeedFlow() {
   const endpoint = EnvironmentService.mcpEndpoint;
   const hasProductApiAccess =
     isSelfHostedDeployment() || hasApiAccess(settings?.subscriptionTier);
-  const instructions = useMemo(
-    () => buildConnectGenfeedInstructions(client, endpoint),
-    [client, endpoint],
-  );
-  const selectedKey = useMemo(
-    () => apiKeys.find((apiKey) => apiKey.id === selectedKeyId),
-    [apiKeys, selectedKeyId],
-  );
+  const instructions = buildConnectGenfeedInstructions(client, endpoint);
+  const selectedKey = apiKeys.find((apiKey) => apiKey.id === selectedKeyId);
   const firstBrandSlug = getBrandSlug(brands[0]);
   const getApiKeysService = useAuthedService(
     useCallback((token: string) => ApiKeysService.getInstance(token), []),
