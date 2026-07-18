@@ -476,6 +476,7 @@ describe('AnalyticsTrends', () => {
     mocks.findAllVideos.mockResolvedValue([
       makeVideo({
         brand: undefined,
+        createdAt: new Date().toISOString(),
         evaluation: undefined,
         id: 'video-without-analytics',
         metadataLabel: undefined,
@@ -487,7 +488,7 @@ describe('AnalyticsTrends', () => {
     renderAnalyticsTrends();
 
     await waitFor(() => {
-      expect(mocks.viralVideoProps).toHaveBeenCalledWith(
+      expect(mocks.viralVideoProps).toHaveBeenLastCalledWith(
         expect.objectContaining({
           videos: [
             expect.objectContaining({
