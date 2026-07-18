@@ -1,10 +1,14 @@
 import type {
   IDesktopSession,
+  IDesktopSyncConsent,
   IDesktopSyncState,
 } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { HiArrowRightOnRectangle } from 'react-icons/hi2';
+import {
+  HiArrowRightOnRectangle,
+  HiOutlineCloudArrowUp,
+} from 'react-icons/hi2';
 
 function timeAgo(dateStr: string): string {
   const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -22,9 +26,12 @@ interface SidebarFooterProps {
   isSyncing: boolean;
   lastSyncAt: string | null;
   onLogout: () => void;
+  onConnectCloud: () => void;
+  onReviewSyncConsent: () => void;
   onTriggerSync: () => void;
   session: IDesktopSession | null;
   syncErrors: string[];
+  syncConsent: IDesktopSyncConsent;
   syncState: IDesktopSyncState;
 }
 
@@ -33,20 +40,23 @@ function SidebarFooter({
   isSyncing,
   lastSyncAt,
   onLogout,
+  onConnectCloud,
+  onReviewSyncConsent,
   onTriggerSync,
   session,
   syncErrors,
+  syncConsent,
   syncState,
 }: SidebarFooterProps) {
   return (
     <div className="sidebar-footer">
-      {!isCollapsed && isSyncing && (
+      {session && !isCollapsed && isSyncing && (
         <div className="sync-indicator">
           <span className="sync-dot sync-dot-active" />
           Syncing…
         </div>
       )}
-      {!isCollapsed && !isSyncing && syncErrors.length > 0 && (
+      {session && !isCollapsed && !isSyncing && syncErrors.length > 0 && (
         <div className="sync-indicator sync-indicator-error">
           <span>Sync error</span>
           <Button
@@ -59,25 +69,43 @@ function SidebarFooter({
           </Button>
         </div>
       )}
-      {!isCollapsed && !isSyncing && syncErrors.length === 0 && lastSyncAt && (
-        <div className="sync-indicator sync-indicator-success">
-          <span>Synced {timeAgo(lastSyncAt)}</span>
-          <Button
-            className="sync-manual-btn"
-            onClick={onTriggerSync}
-            title="Sync now"
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-          >
-            ⟳
-          </Button>
-        </div>
-      )}
+      {session &&
+        !isCollapsed &&
+        !isSyncing &&
+        syncErrors.length === 0 &&
+        lastSyncAt && (
+          <div className="sync-indicator sync-indicator-success">
+            <span>Synced {timeAgo(lastSyncAt)}</span>
+            <Button
+              className="sync-manual-btn"
+              onClick={onTriggerSync}
+              title="Sync now"
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+            >
+              ⟳
+            </Button>
+          </div>
+        )}
 
-      {!isCollapsed && syncState.pendingCount > 0 && (
+      {session && !isCollapsed && syncState.pendingCount > 0 && (
         <div className="sync-indicator">
           <span className="sync-dot" />
           {syncState.pendingCount} pending
+        </div>
+      )}
+
+      {session && !isCollapsed && syncConsent.status === 'declined' && (
+        <div className="sync-indicator">
+          <span>Cloud sync is off</span>
+          <Button
+            className="sync-retry-btn"
+            onClick={onReviewSyncConsent}
+            type="button"
+            variant={ButtonVariant.UNSTYLED}
+          >
+            Review
+          </Button>
         </div>
       )}
 
@@ -90,23 +118,41 @@ function SidebarFooter({
           </span>
           <div className="user-details">
             <span className="user-name">
-              {session?.userName ?? (session ? 'User' : 'Offline')}
+              {session?.userName ?? (session ? 'User' : 'Local workspace')}
             </span>
-            <span className="user-email">{session?.userEmail ?? ''}</span>
+            <span className="user-email">
+              {session?.userEmail ??
+                (session ? 'Connected to Genfeed Cloud' : 'On this device')}
+            </span>
           </div>
         </div>
       )}
 
-      <Button
-        className="nav-item logout-btn"
-        onClick={onLogout}
-        type="button"
-        variant={ButtonVariant.UNSTYLED}
-        ariaLabel={isCollapsed ? 'Sign Out' : undefined}
-      >
-        <HiArrowRightOnRectangle className="nav-icon-svg" />
-        {!isCollapsed && <span className="nav-label">Sign Out</span>}
-      </Button>
+      {session ? (
+        <Button
+          className="nav-item logout-btn"
+          onClick={onLogout}
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          ariaLabel={isCollapsed ? 'Sign Out' : undefined}
+        >
+          <HiArrowRightOnRectangle className="nav-icon-svg" />
+          {!isCollapsed && <span className="nav-label">Sign Out</span>}
+        </Button>
+      ) : (
+        <Button
+          className="nav-item connect-cloud-btn"
+          onClick={onConnectCloud}
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          ariaLabel={isCollapsed ? 'Connect Genfeed Cloud' : undefined}
+        >
+          <HiOutlineCloudArrowUp className="nav-icon-svg" />
+          {!isCollapsed && (
+            <span className="nav-label">Connect Genfeed Cloud</span>
+          )}
+        </Button>
+      )}
     </div>
   );
 }

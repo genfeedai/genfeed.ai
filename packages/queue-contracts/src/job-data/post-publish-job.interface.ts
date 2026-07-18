@@ -1,13 +1,17 @@
+import type { ActionOriginContext } from '@genfeedai/enums';
+
 /**
  * Post publish queue contract.
  *
  * One job wakes one scheduled post target. The worker re-reads durable post
  * state before publishing, so this payload intentionally carries identifiers
- * only and never carries trusted execution state.
+ * plus the non-secret trusted action context needed for provenance. It never
+ * carries mutable content or credentials.
  */
 export const POST_PUBLISH_JOB_NAME = 'publish-post';
 
 export interface PostPublishJobData {
+  actionContext?: ActionOriginContext;
   approvalId?: string;
   enqueuedAt: string;
   operationId?: string;

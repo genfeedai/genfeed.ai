@@ -23,6 +23,10 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
 }));
 
 vi.mock('@genfeedai/enums', () => ({
+  ActionOrigin: {
+    UI: 'ui',
+  },
+  API_KEY_ACTION_ORIGIN_METADATA_KEY: 'actionOrigin',
   ApiKeyCategory: {
     GENFEEDAI: 'GENFEEDAI',
   },
@@ -176,6 +180,7 @@ describe('AuthDesktopService', () => {
         organizationId,
         userId,
       }),
+      'ui',
     );
   });
 

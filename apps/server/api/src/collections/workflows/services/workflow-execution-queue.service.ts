@@ -3,14 +3,20 @@ import type {
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { isProtectedSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
-import { WorkflowStatus } from '@genfeedai/enums';
+import {
+  ActionOrigin,
+  type ActionOriginContext,
+  WorkflowStatus,
+} from '@genfeedai/enums';
 import type { WorkflowTriggerQueueOptions } from '@genfeedai/interfaces';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import {
+  getActionOriginContext,
+  sanitizeActionOriginContext,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { Queue } from 'bullmq';
 
 // =============================================================================
@@ -18,6 +24,7 @@ import { Queue } from 'bullmq';
 // =============================================================================
 
 export interface WorkflowExecutionJobData {
+  actionContext?: ActionOriginContext;
   type: 'trigger' | 'delay-resume' | 'scheduled-fire';
   triggerEvent?: TriggerEvent;
   delayResumeData?: DelayResumeJobData;
@@ -90,6 +97,7 @@ export class WorkflowExecutionQueueService {
     const job = await this.executionQueue.add(
       'trigger',
       {
+        actionContext: sanitizeActionOriginContext(getActionOriginContext()),
         triggerEvent: event,
         type: 'trigger',
       },
@@ -121,6 +129,7 @@ export class WorkflowExecutionQueueService {
     const job = await this.executionQueue.add(
       'delay-resume',
       {
+        actionContext: sanitizeActionOriginContext(getActionOriginContext()),
         delayResumeData: data,
         type: 'delay-resume',
       },
@@ -159,6 +168,7 @@ export class WorkflowExecutionQueueService {
       },
       {
         data: {
+          actionContext: { origin: ActionOrigin.WORKFLOW },
           type: 'scheduled-fire',
           workflowId: input.workflowId,
         },

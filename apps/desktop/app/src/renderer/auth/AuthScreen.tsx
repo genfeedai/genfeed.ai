@@ -1,14 +1,20 @@
 import { ButtonVariant } from '@genfeedai/enums';
+import AuthActionSurface from '@ui/layouts/auth/AuthActionSurface';
 import { Button } from '@ui/primitives/button';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 export const AuthScreen = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isOfflineLoading, setIsOfflineLoading] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    'accountless' | 'login' | null
+  >(null);
+  const pendingActionRef = useRef<'accountless' | 'login' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleBrowserLogin = async (): Promise<void> => {
-    setIsLoading(true);
+    if (pendingActionRef.current) return;
+
+    pendingActionRef.current = 'login';
+    setPendingAction('login');
     setError(null);
 
     try {
@@ -24,12 +30,18 @@ export const AuthScreen = () => {
           : 'Failed to open browser. Please try again.',
       );
     } finally {
-      setIsLoading(false);
+      if (pendingActionRef.current === 'login') {
+        pendingActionRef.current = null;
+        setPendingAction(null);
+      }
     }
   };
 
   const handleContinueOffline = async (): Promise<void> => {
-    setIsOfflineLoading(true);
+    if (pendingActionRef.current) return;
+
+    pendingActionRef.current = 'accountless';
+    setPendingAction('accountless');
     setError(null);
 
     try {
@@ -41,7 +53,10 @@ export const AuthScreen = () => {
           : 'Failed to continue offline. Please try again.',
       );
     } finally {
-      setIsOfflineLoading(false);
+      if (pendingActionRef.current === 'accountless') {
+        pendingActionRef.current = null;
+        setPendingAction(null);
+      }
     }
   };
 
@@ -52,39 +67,49 @@ export const AuthScreen = () => {
           <span className="logo-mark large">G</span>
         </div>
 
-        <h1>Welcome to GenFeed</h1>
-        <p className="auth-subtitle">
-          The Cursor of content creation. Sign in to connect your account.
-        </p>
-
-        {error && <div className="auth-error">{error}</div>}
-
-        <div className="auth-actions">
-          <Button
-            className="auth-btn"
-            disabled={isLoading || isOfflineLoading}
-            onClick={() => void handleBrowserLogin()}
-            type="button"
-            variant={ButtonVariant.DEFAULT}
-          >
-            {isLoading ? 'Opening browser...' : 'Sign in with Browser'}
-          </Button>
-          <Button
-            className="auth-btn"
-            disabled={isLoading || isOfflineLoading}
-            onClick={() => void handleContinueOffline()}
-            type="button"
-            variant={ButtonVariant.SECONDARY}
-          >
-            {isOfflineLoading ? 'Opening offline mode...' : 'Continue Offline'}
-          </Button>
-        </div>
-
-        <p className="auth-footer">
-          Sign in opens app.genfeed.ai in your browser.
-          <br />
-          Your token is stored securely in the OS keychain.
-        </p>
+        <AuthActionSurface
+          actions={
+            <>
+              <Button
+                className="auth-btn"
+                disabled={pendingAction !== null}
+                onClick={() => void handleBrowserLogin()}
+                type="button"
+                variant={ButtonVariant.DEFAULT}
+              >
+                {pendingAction === 'login'
+                  ? 'Opening browser...'
+                  : 'Sign in with Genfeed Cloud'}
+              </Button>
+              <Button
+                className="auth-btn"
+                disabled={pendingAction !== null}
+                onClick={() => void handleContinueOffline()}
+                type="button"
+                variant={ButtonVariant.SECONDARY}
+              >
+                {pendingAction === 'accountless'
+                  ? 'Opening local workspace...'
+                  : 'Continue without an account'}
+              </Button>
+            </>
+          }
+          className="desktop-auth-surface"
+          description="Sign in to Genfeed"
+          error={error}
+          footer={
+            <p className="auth-footer">
+              Sign in opens app.genfeed.ai in your browser. Your token is stored
+              securely in the OS keychain.
+            </p>
+          }
+          supportingCopy={
+            <p className="auth-supporting-copy">
+              Your work stays on this device. Connect Genfeed Cloud anytime.
+            </p>
+          }
+          title="Welcome back"
+        />
       </div>
     </div>
   );

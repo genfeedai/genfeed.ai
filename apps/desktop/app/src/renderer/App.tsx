@@ -1,19 +1,22 @@
 import type {
+  DesktopSyncConsentStatus,
   IDesktopBootstrap,
   IDesktopSession,
+  IDesktopSyncConsentInput,
   IDesktopTrendHandoff,
 } from '@genfeedai/desktop-contracts';
 import * as Sentry from '@sentry/browser';
 import { startTransition, useCallback, useEffect, useReducer } from 'react';
 import { AuthScreen } from './auth/AuthScreen';
-import OnboardingWizard from './components/OnboardingWizard';
+import CloudSyncConsentDialog from './components/CloudSyncConsentDialog';
 import ReconnectBanner from './components/ReconnectBanner';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
+import { getDesktopEntrySurface } from './desktop-entry-surface';
 import { useThreads } from './hooks/useThreads';
 import MainView from './MainView';
 import type { NavView } from './nav-view';
-import OfflineShell from './offline/OfflineShell';
+import { hasActiveAccountSyncConsent } from './sync/active-sync-consent';
 import { useSyncEngine } from './sync/useSyncEngine';
 import { initializeRendererTelemetry } from './telemetry';
 import type { DesktopAgentRunHandoff } from './views/AgentsView';
@@ -61,6 +64,10 @@ const emptyBootstrap: IDesktopBootstrap = {
   brands: [],
   recents: [],
   session: null,
+  syncConsent: {
+    hasFullAssetUploadConsent: false,
+    status: 'not-required',
+  },
   syncState: {
     failedCount: 0,
     pendingCount: 0,
@@ -75,10 +82,11 @@ interface AppState {
   activeView: NavView;
   isOnline: boolean;
   pendingTrend: IDesktopTrendHandoff | null;
-  onboardingCompleted: boolean;
-  onboardingLoaded: boolean;
+  isBootstrapLoaded: boolean;
   isDismissedReconnect: boolean;
   isSidebarCollapsed: boolean;
+  isSyncConsentSaving: boolean;
+  isSyncConsentReviewOpen: boolean;
 }
 
 type AppAction =
@@ -87,7 +95,9 @@ type AppAction =
   | { type: 'SET_ACTIVE_VIEW'; payload: NavView }
   | { type: 'SET_ONLINE'; payload: boolean }
   | { type: 'SET_PENDING_TREND'; payload: IDesktopTrendHandoff | null }
-  | { type: 'SET_ONBOARDING'; payload: { completed: boolean; loaded: boolean } }
+  | { type: 'SET_BOOTSTRAP_LOADED' }
+  | { type: 'SET_SYNC_CONSENT_SAVING'; payload: boolean }
+  | { type: 'SET_SYNC_CONSENT_REVIEW'; payload: boolean }
   | { type: 'DISMISS_RECONNECT' }
   | { type: 'TOGGLE_SIDEBAR' };
 
@@ -96,10 +106,11 @@ const initialState: AppState = {
   activeView: 'conversation',
   isOnline: typeof navigator === 'undefined' ? true : navigator.onLine,
   pendingTrend: null,
-  onboardingCompleted: false,
-  onboardingLoaded: false,
+  isBootstrapLoaded: false,
   isDismissedReconnect: false,
   isSidebarCollapsed: false,
+  isSyncConsentSaving: false,
+  isSyncConsentReviewOpen: false,
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
@@ -117,12 +128,12 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, isOnline: action.payload };
     case 'SET_PENDING_TREND':
       return { ...state, pendingTrend: action.payload };
-    case 'SET_ONBOARDING':
-      return {
-        ...state,
-        onboardingCompleted: action.payload.completed,
-        onboardingLoaded: action.payload.loaded,
-      };
+    case 'SET_BOOTSTRAP_LOADED':
+      return { ...state, isBootstrapLoaded: true };
+    case 'SET_SYNC_CONSENT_SAVING':
+      return { ...state, isSyncConsentSaving: action.payload };
+    case 'SET_SYNC_CONSENT_REVIEW':
+      return { ...state, isSyncConsentReviewOpen: action.payload };
     case 'DISMISS_RECONNECT':
       return { ...state, isDismissedReconnect: true };
     case 'TOGGLE_SIDEBAR':
@@ -140,10 +151,11 @@ export const App = () => {
     activeView,
     isOnline,
     pendingTrend,
-    onboardingCompleted,
-    onboardingLoaded,
+    isBootstrapLoaded,
     isDismissedReconnect,
     isSidebarCollapsed,
+    isSyncConsentSaving,
+    isSyncConsentReviewOpen,
   } = state;
 
   const handleToggleSidebarCollapse = useCallback(() => {
@@ -169,15 +181,21 @@ export const App = () => {
     threads,
   } = useThreads(selectedWorkspaceId, localUserId);
 
+  const hasActiveSyncConsent = hasActiveAccountSyncConsent(
+    bootstrap.session,
+    bootstrap.syncConsent,
+  );
   const {
     errors: syncErrors,
     isSyncing,
     lastSyncAt,
     triggerSync,
   } = useSyncEngine({
+    hasFullAssetUploadConsent:
+      hasActiveSyncConsent && bootstrap.syncConsent.hasFullAssetUploadConsent,
     apiEndpoint: bootstrap.environment.apiEndpoint,
     localUserId,
-    session: bootstrap.session,
+    session: hasActiveSyncConsent ? bootstrap.session : null,
   });
 
   /* ─── Bootstrap ─── */
@@ -188,27 +206,13 @@ export const App = () => {
       dispatch({ type: 'SET_BOOTSTRAP', payload: data });
     } catch (err) {
       Sentry.captureException(err);
+    } finally {
+      dispatch({ type: 'SET_BOOTSTRAP_LOADED' });
     }
   }, []);
 
   useEffect(() => {
-    const run = async () => {
-      const onboardingStatePromise = window.genfeedDesktop.onboarding
-        .getState()
-        .catch(() => ({ completed: true }));
-
-      const [, onboardingData] = await Promise.all([
-        loadBootstrap(),
-        onboardingStatePromise,
-      ]);
-
-      dispatch({
-        type: 'SET_ONBOARDING',
-        payload: { completed: onboardingData.completed, loaded: true },
-      });
-    };
-
-    void run();
+    void loadBootstrap();
 
     const disposeSession = window.genfeedDesktop.auth.onDidChangeSession(
       (session: IDesktopSession | null) => {
@@ -261,16 +265,6 @@ export const App = () => {
     initializeRendererTelemetry(bootstrap.environment, bootstrap.session);
   }, [bootstrap.environment, bootstrap.session]);
 
-  /* ─── Onboarding ─── */
-
-  const handleOnboardingComplete = useCallback(async () => {
-    await window.genfeedDesktop.onboarding.setCompleted();
-    dispatch({
-      type: 'SET_ONBOARDING',
-      payload: { completed: true, loaded: true },
-    });
-  }, []);
-
   /* ─── Auth ─── */
 
   const handleLogout = useCallback(async () => {
@@ -280,6 +274,38 @@ export const App = () => {
   const handleReconnect = useCallback(async () => {
     await window.genfeedDesktop.auth.login();
   }, []);
+
+  const handleSyncConsent = useCallback(
+    async (
+      cloudUserId: string,
+      input: IDesktopSyncConsentInput,
+    ): Promise<void> => {
+      dispatch({ type: 'SET_SYNC_CONSENT_SAVING', payload: true });
+      try {
+        await window.genfeedDesktop.sync.setConsent(cloudUserId, input);
+        dispatch({ type: 'SET_SYNC_CONSENT_REVIEW', payload: false });
+      } catch (error) {
+        Sentry.captureException(error);
+      } finally {
+        dispatch({ type: 'SET_SYNC_CONSENT_SAVING', payload: false });
+      }
+    },
+    [],
+  );
+
+  const handleSyncConsentDismiss = useCallback(
+    (cloudUserId: string, status: DesktopSyncConsentStatus) => {
+      if (status === 'pending') {
+        void handleSyncConsent(cloudUserId, {
+          hasFullAssetUploadConsent: false,
+          status: 'declined',
+        });
+        return;
+      }
+      dispatch({ type: 'SET_SYNC_CONSENT_REVIEW', payload: false });
+    },
+    [handleSyncConsent],
+  );
 
   /* ─── Navigation ─── */
 
@@ -369,36 +395,21 @@ export const App = () => {
 
   /* ─── Derived state ─── */
 
-  const shouldShowWizard =
-    onboardingLoaded &&
-    !onboardingCompleted &&
-    !bootstrap.betterAuthId &&
-    bootstrap.session !== null;
-
   const shouldShowReconnect =
     !isDismissedReconnect &&
     bootstrap.betterAuthId !== null &&
     bootstrap.session === null;
+  const activeCloudUserId = bootstrap.session?.userId;
 
   /* ─── Render ─── */
 
-  // Loading state — wait for onboarding IPC
-  if (!onboardingLoaded) {
+  const entrySurface = getDesktopEntrySurface(bootstrap, isBootstrapLoaded);
+
+  if (entrySurface === 'loading') {
     return <div className="desktop-loading" />;
   }
 
-  // Wizard — first time user, never connected
-  if (shouldShowWizard) {
-    return (
-      <OnboardingWizard onComplete={() => void handleOnboardingComplete()} />
-    );
-  }
-
-  if (bootstrap.session === null && bootstrap.isOfflineMode) {
-    return <OfflineShell bootstrap={bootstrap} />;
-  }
-
-  if (bootstrap.session === null) {
+  if (entrySurface === 'auth') {
     return <AuthScreen />;
   }
 
@@ -423,7 +434,11 @@ export const App = () => {
         isCollapsed={isSidebarCollapsed}
         isSyncing={isSyncing}
         lastSyncAt={lastSyncAt}
+        onConnectCloud={() => void handleReconnect()}
         onLogout={() => void handleLogout()}
+        onReviewSyncConsent={() =>
+          dispatch({ type: 'SET_SYNC_CONSENT_REVIEW', payload: true })
+        }
         onNavigate={handleNavigate}
         onNewThread={handleNewThread}
         onOpenWorkspace={() => void handleOpenWorkspace()}
@@ -434,6 +449,7 @@ export const App = () => {
         onTriggerSync={triggerSync}
         session={bootstrap.session}
         syncErrors={syncErrors}
+        syncConsent={bootstrap.syncConsent}
         syncState={bootstrap.syncState}
         threads={threads}
         workspaces={bootstrap.workspaces}
@@ -450,12 +466,14 @@ export const App = () => {
             activeView={activeView}
             activeThread={activeThread}
             isOnline={isOnline}
+            hasCloudSession={bootstrap.session !== null}
             pendingTrend={pendingTrend}
             brands={bootstrap.brands}
             cloudOrganizations={bootstrap.cloudOrganizations}
             selectedWorkspace={selectedWorkspace}
             selectedWorkspaceId={selectedWorkspaceId}
             onCreateThread={createThread}
+            onConnectCloud={() => void handleReconnect()}
             onSendMessage={addMessage}
             onSetStatus={setThreadStatus}
             onTrendConsumed={handleTrendConsumed}
@@ -465,6 +483,22 @@ export const App = () => {
           />
         </main>
       </div>
+      {activeCloudUserId !== undefined &&
+        (bootstrap.syncConsent.status === 'pending' ||
+          isSyncConsentReviewOpen) && (
+          <CloudSyncConsentDialog
+            isSaving={isSyncConsentSaving}
+            onDecide={(input) =>
+              void handleSyncConsent(activeCloudUserId, input)
+            }
+            onDismiss={() =>
+              handleSyncConsentDismiss(
+                activeCloudUserId,
+                bootstrap.syncConsent.status,
+              )
+            }
+          />
+        )}
     </div>
   );
 };

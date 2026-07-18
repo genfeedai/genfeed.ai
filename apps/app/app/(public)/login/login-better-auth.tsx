@@ -2,6 +2,7 @@
 
 import { signIn } from '@genfeedai/auth-client';
 import { ButtonVariant } from '@genfeedai/enums';
+import AuthActionSurface from '@ui/layouts/auth/AuthActionSurface';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
@@ -297,60 +298,58 @@ export default function LoginBetterAuth({
 
   return (
     <AuthFormLayout logoSize="compact">
-      <div className="w-full space-y-6">
-        <AuthHeading title="Welcome back" description="Sign in to Genfeed" />
+      <AuthActionSurface
+        actions={
+          <>
+            <Button
+              type="button"
+              variant={ButtonVariant.OUTLINE}
+              onClick={() => handleSocialSignIn('google')}
+              icon={<FcGoogle className="size-4" aria-hidden="true" />}
+              isLoading={isSocialSubmitting}
+              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+              withWrapper={false}
+            >
+              Continue with Google
+            </Button>
 
-        <div className="space-y-3">
-          <Button
-            type="button"
-            variant={ButtonVariant.OUTLINE}
-            onClick={() => handleSocialSignIn('google')}
-            icon={<FcGoogle className="size-4" aria-hidden="true" />}
-            isLoading={isSocialSubmitting}
-            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            Continue with Google
-          </Button>
+            <Button
+              asChild
+              variant={ButtonVariant.OUTLINE}
+              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+              withWrapper={false}
+            >
+              <Link href={magicLinkHref}>
+                <Sparkles className="size-4" aria-hidden="true" />
+                <span>Magic Link</span>
+              </Link>
+            </Button>
 
-          <Button
-            asChild
-            variant={ButtonVariant.OUTLINE}
-            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            <Link href={magicLinkHref}>
-              <Sparkles className="size-4" aria-hidden="true" />
-              <span>Magic Link</span>
+            <Button
+              asChild
+              variant={ButtonVariant.OUTLINE}
+              className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+              withWrapper={false}
+            >
+              <Link href={passwordHref}>
+                <KeyRound className="size-4" aria-hidden="true" />
+                <span>Email / Password</span>
+              </Link>
+            </Button>
+          </>
+        }
+        description="Sign in to Genfeed"
+        error={socialErrorMessage}
+        footer={
+          <AuthFooterPrompt>
+            Don&apos;t have an account?{' '}
+            <Link href={signUpHref} className={AUTH_LINK_CLASS_NAME}>
+              Sign up
             </Link>
-          </Button>
-
-          <Button
-            asChild
-            variant={ButtonVariant.OUTLINE}
-            className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
-            withWrapper={false}
-          >
-            <Link href={passwordHref}>
-              <KeyRound className="size-4" aria-hidden="true" />
-              <span>Email / Password</span>
-            </Link>
-          </Button>
-        </div>
-
-        {socialErrorMessage ? (
-          <p className="text-center text-sm text-destructive">
-            {socialErrorMessage}
-          </p>
-        ) : null}
-
-        <AuthFooterPrompt>
-          Don&apos;t have an account?{' '}
-          <Link href={signUpHref} className={AUTH_LINK_CLASS_NAME}>
-            Sign up
-          </Link>
-        </AuthFooterPrompt>
-      </div>
+          </AuthFooterPrompt>
+        }
+        title="Welcome back"
+      />
     </AuthFormLayout>
   );
 }

@@ -33,7 +33,10 @@ bun dev:desktop
 `bun dev:desktop` builds the Electron main/preload bundle, starts the embedded
 `apps/app` Next.js shell, and launches Electron. It does not start the NestJS
 API. When no desktop cloud session is present, the app shell runs in
-local/offline mode and skips cloud bootstrap requests.
+account-less local mode and skips cloud bootstrap requests. First launch uses
+the shared Genfeed auth presentation with two Desktop capabilities: system
+browser PKCE sign-in and **Continue without an account**. The account-less
+choice persists and later launches open the same agent-first workspace directly.
 
 The first visible desktop paint is owned by Electron, not by `apps/app`: a black
 launch screen with an animated Genfeed mark is shown while the embedded app
@@ -54,14 +57,30 @@ database and exposes generation actions to `apps/app` through
 
 The local provider API key stays in desktop local storage and is not returned to
 the renderer after save. Local text/workflow generation runs are recorded as
-durable `generation` jobs in the same sync-job table used by the offline queue.
+durable `generation` jobs. Generic cloud actions are never queued with a promise
+to run after sign-in; cloud-only actions instead expose an in-context connect
+affordance.
 
 Desktop also supports BYOK image asset generation for Replicate and fal.ai. The
 user supplies their own provider key, Electron main queues the job locally,
 downloads the returned image, writes it into the workspace asset directory, and
 registers it as a `local-generation` asset with `local-only` residency and
-`never` upload policy by default. Better Auth and the Genfeed API are not required for
-this local/BYOK path; Better Auth is only needed for explicit Genfeed Cloud sync.
+`never` upload policy by default. Better Auth and the Genfeed API are not
+required for this local/BYOK path; Better Auth is only needed for explicit
+Genfeed Cloud sync.
+
+After browser PKCE returns, thread and metadata sync remains paused until the
+user grants account-scoped consent. Full asset bytes additionally require both
+that consent and an asset `uploadPolicy` of `full`; `uploadPolicy=never` is an
+absolute local-only boundary.
+
+The local user and device IDs remain stable when cloud accounts connect or
+change. A connection attributes that stable local identity to the current cloud
+account without rewriting local ownership. Consent and sync cursors are scoped
+per cloud user, so another account always requires a new decision and a fresh
+sync boundary. Connecting later does not erase a persisted account-less choice;
+signing out returns that user to the local workspace.
+
 Ollama and LM Studio remain text/workflow providers until a concrete local image
 runtime is wired separately.
 
@@ -124,9 +143,11 @@ audited back to the desktop release workflow.
 
 Optional signing and notarization environment variables:
 
-- `APPLE_ID`
-- `APPLE_APP_SPECIFIC_PASSWORD`
-- `APPLE_TEAM_ID`
+- `APPLE_API_KEY` (absolute path to the App Store Connect `.p8` key)
+- `APPLE_API_KEY_ID`
+- `APPLE_API_ISSUER`
+- `DEVELOPER_ID_P12_BASE64`
+- `DEVELOPER_ID_P12_PASSWORD`
 
 ## Current Scope
 

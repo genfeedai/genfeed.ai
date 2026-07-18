@@ -533,6 +533,31 @@ textarea {
   padding: 12px 16px;
 }
 
+.cloud-connection-notice {
+  align-items: center;
+  background: var(--panel);
+  border-bottom: 1px solid var(--card-border);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 10px 24px;
+}
+
+.cloud-connection-notice > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cloud-connection-notice strong {
+  font-size: 12px;
+}
+
+.cloud-connection-notice span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
 /* ======= Conversation View ======= */
 
 .conversation-view {
@@ -1867,7 +1892,6 @@ textarea {
   gap: 20px;
   max-width: 440px;
   padding: 48px 40px;
-  text-align: center;
   width: 100%;
 }
 
@@ -1875,17 +1899,32 @@ textarea {
   margin-bottom: 8px;
 }
 
-.auth-card h1 {
+.desktop-auth-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: left;
+  width: 100%;
+}
+
+.auth-action-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auth-card .auth-action-heading h1 {
   font-size: 28px;
   margin: 0;
 }
 
-.auth-subtitle {
+.auth-action-heading p,
+.auth-supporting-copy {
   color: var(--muted);
   margin: 0;
 }
 
-.auth-error {
+.auth-action-error {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
   border-radius: var(--radius-2xl);
@@ -1895,7 +1934,7 @@ textarea {
   width: 100%;
 }
 
-.auth-actions {
+.auth-action-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1911,6 +1950,82 @@ textarea {
   font-size: 12px;
   line-height: 1.6;
   margin: 0;
+}
+
+.auth-action-support {
+  background: var(--panel);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.sync-consent-dialog {
+  background: var(--panel);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: calc(100dvh - 48px);
+  max-width: 560px;
+  overflow-y: auto;
+  padding: 28px;
+  width: 100%;
+}
+
+.sync-consent-dialog h2 {
+  font-size: 20px;
+  margin: 4px 0;
+}
+
+.sync-consent-eyebrow {
+  color: var(--agent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sync-consent-list {
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.sync-consent-list code {
+  color: var(--text);
+}
+
+.sync-consent-option {
+  align-items: flex-start;
+  background: var(--tertiary);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+}
+
+.sync-consent-option p {
+  margin: 3px 0 0;
+}
+
+.sync-consent-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.connect-cloud-btn {
+  color: var(--agent);
+}
+
+.connect-cloud-btn:hover {
+  color: var(--text);
 }
 
 /* ======= Drop Zone ======= */

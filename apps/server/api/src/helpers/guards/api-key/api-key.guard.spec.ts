@@ -1,5 +1,6 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
+import { ActionOrigin } from '@genfeedai/enums';
 import { type ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -45,6 +46,7 @@ describe('ApiKeyAuthGuard', () => {
       findByKey: vi.fn(),
       hasScope: vi.fn(),
       isIpAllowed: vi.fn(),
+      resolveActionOrigin: vi.fn().mockReturnValue(ActionOrigin.API),
       updateLastUsed: vi.fn(),
     };
 
@@ -171,6 +173,7 @@ describe('ApiKeyAuthGuard', () => {
       expect(mutatedRequest.user).toEqual({
         id: mockApiKey.userId.toString(),
         publicMetadata: {
+          actionOrigin: ActionOrigin.API,
           apiKeyId: mockApiKey.id.toString(),
           brand: mockApiKey.organizationId.toString(),
           isApiKey: true,

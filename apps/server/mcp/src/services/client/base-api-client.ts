@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
@@ -33,6 +35,13 @@ export class BaseApiClient {
       headers: {
         Authorization: `Bearer ${this.bearerToken}`,
         'Content-Type': 'application/json',
+        ...(this.bearerToken
+          ? {
+              [MCP_ACTION_ORIGIN_PROOF_HEADER]: this.createActionOriginProof(
+                this.bearerToken,
+              ),
+            }
+          : {}),
       },
       timeout: 30000,
     });
@@ -40,7 +49,18 @@ export class BaseApiClient {
 
   setBearerToken(token: string): void {
     this.bearerToken = token;
-    this.http.defaults.headers.Authorization = `Bearer ${token}`;
+    if (token) {
+      this.http.defaults.headers.Authorization = `Bearer ${token}`;
+      this.http.defaults.headers[MCP_ACTION_ORIGIN_PROOF_HEADER] =
+        this.createActionOriginProof(token);
+    } else {
+      delete this.http.defaults.headers.Authorization;
+      delete this.http.defaults.headers[MCP_ACTION_ORIGIN_PROOF_HEADER];
+    }
+  }
+
+  private createActionOriginProof(token: string): string {
+    return createHash('sha256').update(token).digest('base64url');
   }
 
   /**

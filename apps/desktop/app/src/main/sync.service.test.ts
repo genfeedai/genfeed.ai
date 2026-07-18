@@ -74,6 +74,13 @@ const createPrismaMock = (rows: Array<Record<string, unknown>> = []) => {
       },
     },
     desktopSyncJob: {
+      deleteMany: async ({ where }: { where: { type: { in: string[] } } }) => {
+        for (const [id, row] of syncJobs) {
+          if (where.type.in.includes(String(row.type))) {
+            syncJobs.delete(id);
+          }
+        }
+      },
       findMany: async ({ where }: { where?: { workspaceId?: string } } = {}) =>
         Array.from(syncJobs.values())
           .filter(
@@ -146,24 +153,6 @@ const createPrismaMock = (rows: Array<Record<string, unknown>> = []) => {
 };
 
 describe('DesktopSyncService', () => {
-  it('queues pending jobs for a workspace', async () => {
-    const prisma = createPrismaMock();
-    const service = new DesktopSyncService(prisma as never);
-    await service.init();
-
-    const job = await service.queueJob(
-      'publish',
-      '{"draftId":"draft-1"}',
-      'ws-1',
-    );
-
-    expect(job.status).toBe('pending');
-    expect(job.type).toBe('publish');
-    expect(job.workspaceId).toBe('ws-1');
-    expect(job.retryCount).toBe(0);
-    expect(prisma.syncJobs.get(job.id)?.payload).toBe('{"draftId":"draft-1"}');
-  });
-
   it('summarizes sync state from the persisted cache', async () => {
     const prisma = createPrismaMock([
       {
@@ -184,7 +173,7 @@ describe('DesktopSyncService', () => {
         payload: '{}',
         retryCount: 2,
         status: 'failed',
-        type: 'publish',
+        type: 'asset-generation',
         updatedAt: '2026-04-01T10:00:00.000Z',
         workspaceId: 'ws-1',
       },
@@ -195,7 +184,7 @@ describe('DesktopSyncService', () => {
         payload: '{}',
         retryCount: 0,
         status: 'pending',
-        type: 'publish',
+        type: 'asset-generation',
         updatedAt: '2026-04-01T09:30:00.000Z',
         workspaceId: 'ws-2',
       },
@@ -212,6 +201,28 @@ describe('DesktopSyncService', () => {
       retryingCount: 0,
       runningCount: 1,
     });
+  });
+
+  it('removes legacy generic cloud jobs that had no processor', async () => {
+    const prisma = createPrismaMock([
+      {
+        createdAt: '2026-04-01T08:00:00.000Z',
+        error: null,
+        id: 'legacy-post-draft',
+        payload: '{}',
+        retryCount: 0,
+        status: 'pending',
+        type: 'post-draft',
+        updatedAt: '2026-04-01T08:00:00.000Z',
+        workspaceId: 'ws-1',
+      },
+    ]);
+
+    const service = new DesktopSyncService(prisma as never);
+    await service.init();
+
+    expect(prisma.syncJobs.size).toBe(0);
+    expect(service.getState().pendingCount).toBe(0);
   });
 
   it('persists cloud organization and brand mappings from a manifest', async () => {

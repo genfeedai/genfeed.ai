@@ -63,7 +63,14 @@ describe('AgentsView', () => {
   it('shows latest run output and hands it to the composer', async () => {
     const onRunHandoff = vi.fn();
 
-    render(<AgentsView isOnline onRunHandoff={onRunHandoff} />);
+    render(
+      <AgentsView
+        hasCloudSession
+        isOnline
+        onConnectCloud={vi.fn()}
+        onRunHandoff={onRunHandoff}
+      />,
+    );
 
     expect(
       await screen.findByText(
@@ -90,7 +97,7 @@ describe('AgentsView', () => {
       status: 'pending',
     });
 
-    render(<AgentsView isOnline />);
+    render(<AgentsView hasCloudSession isOnline onConnectCloud={vi.fn()} />);
 
     fireEvent.click(await screen.findByRole('button', { name: '▶ Run' }));
 
@@ -104,5 +111,25 @@ describe('AgentsView', () => {
       'Agent run queued',
       'Proactive run queued. It will execute on the next minute cycle.',
     );
+  });
+
+  it('routes account-less cloud runs to the connect action', async () => {
+    const onConnectCloud = vi.fn();
+    render(
+      <AgentsView
+        hasCloudSession={false}
+        isOnline={false}
+        onConnectCloud={onConnectCloud}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Connect Cloud to run',
+      }),
+    );
+
+    expect(onConnectCloud).toHaveBeenCalledTimes(1);
+    expect(cloudApi.runAgent).not.toHaveBeenCalled();
   });
 });

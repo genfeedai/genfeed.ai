@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { ClientService } from '@mcp/services/client.service';
@@ -74,6 +76,9 @@ describe('ClientService (MCP)', () => {
       headers: {
         Authorization: 'Bearer test-api-key',
         'Content-Type': 'application/json',
+        [MCP_ACTION_ORIGIN_PROOF_HEADER]: createHash('sha256')
+          .update('test-api-key')
+          .digest('base64url'),
       },
       timeout: 30000,
     });
@@ -86,6 +91,24 @@ describe('ClientService (MCP)', () => {
       expect(mockAxiosInstance.defaults?.headers.Authorization).toBe(
         `Bearer ${newToken}`,
       );
+      expect(
+        mockAxiosInstance.defaults?.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
+      ).toBe(createHash('sha256').update(newToken).digest('base64url'));
+    });
+
+    it('should remove the action-origin proof when clearing the token', () => {
+      const headers = mockAxiosInstance.defaults?.headers;
+      if (!headers) {
+        throw new Error('Expected Axios default headers');
+      }
+      headers[MCP_ACTION_ORIGIN_PROOF_HEADER] = 'stale-proof';
+
+      service.setBearerToken('');
+
+      expect(mockAxiosInstance.defaults?.headers.Authorization).toBeUndefined();
+      expect(
+        mockAxiosInstance.defaults?.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
+      ).toBeUndefined();
     });
   });
 

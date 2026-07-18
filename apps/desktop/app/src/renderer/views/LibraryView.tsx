@@ -16,6 +16,7 @@ import { LibraryViewHeader } from './LibraryViewHeader';
 type SortBy = 'date' | 'votes';
 
 interface LibraryViewProps {
+  hasCloudSession: boolean;
   isOnline: boolean;
   workspace: IDesktopWorkspace | null;
   workspaceId: string | null;
@@ -139,11 +140,13 @@ function libraryReducer(
 }
 
 export const LibraryView = ({
+  hasCloudSession,
   isOnline,
   workspace,
   workspaceId,
 }: LibraryViewProps) => {
   const [state, dispatch] = useReducer(libraryReducer, initialState);
+  const hasDataAccess = isOnline || !hasCloudSession;
 
   const {
     assets,
@@ -165,7 +168,7 @@ export const LibraryView = ({
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
 
-    if (!isOnline) {
+    if (!hasDataAccess) {
       dispatch({ type: 'SET_INGREDIENTS', payload: [] });
       dispatch({ type: 'SET_LOADING', payload: false });
       return;
@@ -186,7 +189,7 @@ export const LibraryView = ({
         payload: err instanceof Error ? err.message : 'Failed to load library',
       });
     }
-  }, [isOnline, platformFilter]);
+  }, [hasDataAccess, platformFilter]);
 
   const loadAssets = useCallback(async () => {
     if (!workspaceId) {
@@ -401,7 +404,7 @@ export const LibraryView = ({
         copiedId={copiedId}
         error={error}
         ingredients={sortedIngredients}
-        isOnline={isOnline}
+        isOnline={hasDataAccess}
         loading={loading}
         onRetry={() => void loadIngredients()}
         onCopy={(ingredient) => void handleCopy(ingredient)}

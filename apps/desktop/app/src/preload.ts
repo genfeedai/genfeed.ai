@@ -164,12 +164,6 @@ const desktopBridge: IGenfeedDesktopBridge = {
     notify: async (title, body) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.notify, title, body),
   },
-  onboarding: {
-    getState: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appGetOnboardingState),
-    setCompleted: async () =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appSetOnboardingCompleted),
-  },
   onQuickGenerate: (callback) => {
     const listener = () => callback();
     ipcRenderer.on(DESKTOP_IPC_CHANNELS.quickGenerate, listener);
@@ -180,12 +174,22 @@ const desktopBridge: IGenfeedDesktopBridge = {
   },
   platform: process.platform,
   sync: {
-    ackOps: async (ops) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncAckOps, ops),
-    applyBrandManifest: async (manifest) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncApplyBrandManifest, manifest),
-    getCursor: async (scope) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetCursor, scope),
+    ackOps: async (cloudUserId, ops) =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncAckOps, cloudUserId, ops),
+    applyBrandManifest: async (cloudUserId, manifest) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncApplyBrandManifest,
+        cloudUserId,
+        manifest,
+      ),
+    getConsent: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetConsent),
+    getCursor: async (cloudUserId, scope) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncGetCursor,
+        cloudUserId,
+        scope,
+      ),
     getJobs: async (workspaceId) =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncGetJobs, workspaceId),
     getOps: async (workspaceId) =>
@@ -197,13 +201,6 @@ const desktopBridge: IGenfeedDesktopBridge = {
       return () =>
         ipcRenderer.off(DESKTOP_IPC_CHANNELS.syncThreadsRequested, listener);
     },
-    queueJob: async (type, payload, workspaceId) =>
-      ipcRenderer.invoke(
-        DESKTOP_IPC_CHANNELS.syncQueueJob,
-        type,
-        payload,
-        workspaceId,
-      ),
     queueOp: async (
       entityType,
       entityId,
@@ -221,10 +218,25 @@ const desktopBridge: IGenfeedDesktopBridge = {
         workspaceId,
         baseVersion,
       ),
-    recordAssetSync: async (update) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncRecordAssetSync, update),
-    setCursor: async (cursor: string, scope) =>
-      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncSetCursor, cursor, scope),
+    recordAssetSync: async (cloudUserId, update) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncRecordAssetSync,
+        cloudUserId,
+        update,
+      ),
+    setConsent: async (cloudUserId, input) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncSetConsent,
+        cloudUserId,
+        input,
+      ),
+    setCursor: async (cloudUserId, cursor: string, scope) =>
+      ipcRenderer.invoke(
+        DESKTOP_IPC_CHANNELS.syncSetCursor,
+        cloudUserId,
+        cursor,
+        scope,
+      ),
     triggerThreads: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.syncTriggerThreads),
   },

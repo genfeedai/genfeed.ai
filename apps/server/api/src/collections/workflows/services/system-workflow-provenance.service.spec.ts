@@ -138,6 +138,11 @@ describe('SystemWorkflowProvenanceService', () => {
     expect(mockPrisma.workflowExecution.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
+          result: expect.objectContaining({
+            metadata: expect.objectContaining({
+              workflowLabel: 'Scheduled Post Publishing',
+            }),
+          }),
           status: PrismaWorkflowExecutionStatus.COMPLETED,
         }),
         where: { id: 'execution-1' },

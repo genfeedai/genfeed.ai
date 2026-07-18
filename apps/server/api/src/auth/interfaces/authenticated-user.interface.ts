@@ -1,5 +1,5 @@
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
-import type { MemberRole } from '@genfeedai/enums';
+import type { ActionOrigin, MemberRole } from '@genfeedai/enums';
 
 export interface IAuthenticatedEmailAddress {
   emailAddress?: string | null;
@@ -14,6 +14,7 @@ export interface IAuthPublicMetadata {
   organization: string;
   brand: string;
   apiKeyId?: string;
+  actionOrigin?: ActionOrigin;
   balance?: number;
   role?: MemberRole;
   scopes?: string[];

@@ -1,4 +1,5 @@
 import type {
+  ActionOrigin,
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
@@ -14,6 +15,9 @@ export interface ActivityDocument extends Activity {
   key?: ActivityKey | string | null;
   organization?: string | null;
   source?: ActivitySource | string | null;
+  origin?: ActionOrigin;
+  actorUserId?: string | null;
+  apiKeyId?: string | null;
   user?: string | null;
   value?: string | null;
   entityId: string | null;
