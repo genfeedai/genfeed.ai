@@ -24783,7 +24783,7 @@
     },
     "/clip-projects/from-youtube": {
       "post": {
-        "description": "Create a clip project from a YouTube URL. Downloads audio, transcribes, detects highlights, and generates AI avatar clips asynchronously.",
+        "description": "Create a clip project from a YouTube URL. Downloads audio, transcribes, detects highlights, and generates avatar or raw-cut clips asynchronously.",
         "operationId": "ClipProjectsController.createFromYoutube",
         "parameters": [],
         "requestBody": {
@@ -24806,7 +24806,7 @@
             "bearer": []
           }
         ],
-        "summary": "YouTube → AI Clip Factory",
+        "summary": "YouTube → Clip Factory",
         "tags": [
           "clip-projects"
         ]
