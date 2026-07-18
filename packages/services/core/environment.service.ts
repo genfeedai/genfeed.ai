@@ -1,3 +1,4 @@
+import { isCloudDeployment } from '@genfeedai/config/deployment';
 import { MODEL_KEYS } from '@genfeedai/constants';
 
 const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
@@ -206,6 +207,20 @@ export const EnvironmentService = {
       process.env.NEXT_PUBLIC_GENFEED_MANAGED_API_ENDPOINT ||
       this.apiEndpoint
     );
+  },
+
+  get mcpEndpoint(): string {
+    const configuredEndpoint = getOptionalEnv(
+      process.env.NEXT_PUBLIC_MCP_ENDPOINT,
+    );
+
+    if (configuredEndpoint) {
+      return configuredEndpoint.replace(/\/+$/, '');
+    }
+
+    return isCloudDeployment()
+      ? 'https://mcp.genfeed.ai/mcp'
+      : 'http://localhost:3014/mcp';
   },
 
   apps: {

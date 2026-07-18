@@ -145,6 +145,7 @@ export * from './ingredients/image-to-video.interface';
 export * from './ingredients/ingredient.interface';
 export * from './integrations/ads-gateway.interface';
 export * from './integrations/ads-research.interface';
+export * from './integrations/connect-genfeed.interface';
 export * from './integrations/facebook.interface';
 export * from './integrations/ghost.interface';
 export * from './integrations/google-search-console.interface';
