@@ -1,3 +1,4 @@
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -34,6 +35,7 @@ describe('MusicsService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        IngredientsService,
         MusicsService,
         {
           provide: PrismaService,
