@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
+import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -98,6 +99,11 @@ describe('VideoGenerationService', () => {
       generateTextToVideo: vi.fn().mockResolvedValue('replicate-gen'),
     };
     const falService = { generateVideo: vi.fn() };
+    const providerDispatchService = new VideoGenerationProviderDispatchService(
+      falService as never,
+      klingAIService as never,
+      replicateService as never,
+    );
     const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
     const videosService = {
       findOne: vi.fn(),
@@ -143,11 +149,10 @@ describe('VideoGenerationService', () => {
       assetsService as never,
       bookmarksService as never,
       creditsUtilsService as never,
-      falService as never,
+      providerDispatchService,
       failedGenerationService as never,
       ingredientsService as never,
       pollingService as never,
-      klingAIService as never,
       loggerService,
       metadataService as never,
       modelRegistrationService as never,
@@ -155,7 +160,6 @@ describe('VideoGenerationService', () => {
       organizationSettingsService as never,
       promptsService as never,
       promptBuilderService as never,
-      replicateService as never,
       sharedService as never,
       videoMusicOrchestrationService as never,
       videosService as never,
