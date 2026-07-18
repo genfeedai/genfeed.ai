@@ -105,9 +105,7 @@ describe('ClientService (MCP)', () => {
 
       service.setBearerToken('');
 
-      expect(
-        mockAxiosInstance.defaults?.headers.Authorization,
-      ).toBeUndefined();
+      expect(mockAxiosInstance.defaults?.headers.Authorization).toBeUndefined();
       expect(
         mockAxiosInstance.defaults?.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
       ).toBeUndefined();
