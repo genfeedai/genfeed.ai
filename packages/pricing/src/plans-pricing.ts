@@ -104,6 +104,10 @@ export const MAX_MARGIN_MULTIPLIER = 10;
 export const BYOK_FEE_PER_CREDIT =
   BYOK_CREDIT_VALUE_DOLLARS * (BYOK_FEE_PERCENTAGE / 100);
 
+function formatPricingNumber(value: number): string {
+  return value.toLocaleString('en-US');
+}
+
 /**
  * Process-scoped margin multiplier applied on top of the base provider-cost
  * markup. Hydrated from the `PlatformSetting.marginMultiplier` operator knob at
@@ -395,7 +399,7 @@ export function formatPrice(price: number | null): string {
   if (price === 0) {
     return 'Free';
   }
-  return `$${price.toLocaleString()}`;
+  return `$${formatPricingNumber(price)}`;
 }
 
 /**
@@ -413,7 +417,7 @@ export function formatOutputs(
     parts.push(`${outputs.videoMinutes} min video`);
   }
   if (outputs.images) {
-    parts.push(`${outputs.images.toLocaleString()} images`);
+    parts.push(`${formatPricingNumber(outputs.images)} images`);
   }
   if (outputs.voiceMinutes) {
     parts.push(`${outputs.voiceMinutes} min voice`);

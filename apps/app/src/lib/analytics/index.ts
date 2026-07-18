@@ -5,6 +5,7 @@ export {
   type AnalyticsEventProperties,
   type AnalyticsOutcome,
   type CheckoutKind,
+  type ConnectGenfeedStep,
   type ConversationShellDeploymentMode,
   type ConversationShellRestorationFailureReason,
   type ConversationShellState,

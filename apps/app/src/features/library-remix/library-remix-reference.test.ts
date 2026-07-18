@@ -18,12 +18,14 @@ describe('Library Remix references', () => {
       ...context,
       kind: 'ingredient',
       recordId: 'ingredient_1',
+      recordVersion: '7',
     });
 
     expect(reference).toEqual({
       ...context,
       kind: 'ingredient',
       recordId: 'ingredient_1',
+      recordVersion: '7',
       serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.ingredient,
     });
     expect(reference && encodeLibraryRemixSource(reference)).toBe(
@@ -42,6 +44,16 @@ describe('Library Remix references', () => {
     expect(parseLibraryRemixSource(value, context)).toBeNull();
   });
 
+  it('rejects a malformed source version pin', () => {
+    expect(
+      parseLibraryRemixSource(
+        'ingredient:ingredient-1',
+        context,
+        '../../latest',
+      ),
+    ).toBeNull();
+  });
+
   it('reconstructs scope from effective context rather than URL authority', () => {
     expect(parseLibraryRemixSource('asset:asset-1', context)).toEqual({
       ...context,
@@ -56,6 +68,7 @@ describe('Library Remix references', () => {
       ...context,
       kind: 'ingredient',
       recordId: 'ingredient-1',
+      recordVersion: '7',
     });
 
     expect(
@@ -65,7 +78,7 @@ describe('Library Remix references', () => {
           reference,
         ),
     ).toBe(
-      '/acme/moonrise/posts/remix?thread=thread-1&folder=recent&sourceArtifact=ingredient%3Aingredient-1',
+      '/acme/moonrise/posts/remix?thread=thread-1&folder=recent&sourceArtifact=ingredient%3Aingredient-1&sourceVersion=7',
     );
   });
 });

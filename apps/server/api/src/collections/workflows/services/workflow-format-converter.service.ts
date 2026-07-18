@@ -7,7 +7,7 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * Core workflow format — the modern React Flow-based format used in
- * @genfeedai/workflow-ui and @genfeedai/workflows/nodes
+ * @genfeedai/workflows/ui and @genfeedai/workflows/nodes
  */
 export interface CoreWorkflowNode {
   id: string;

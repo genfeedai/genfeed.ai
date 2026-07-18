@@ -18,6 +18,7 @@ export const ANALYTICS_EVENTS = {
   AGENT_THREAD_CREATED: 'agent_thread_created',
   CHECKOUT_COMPLETED: 'checkout_completed',
   CHECKOUT_STARTED: 'checkout_started',
+  CONNECT_GENFEED_STEP: 'connect_genfeed_step',
   CONTENT_WRITE_BLANK_DRAFT_STARTED: 'content_write_blank_draft_started',
   CONTENT_WRITE_OPENED: 'content_write_opened',
   CONTENT_WRITE_PROMPT_GENERATED: 'content_write_prompt_generated',
@@ -49,6 +50,15 @@ export type AnalyticsEvent =
 
 /** Terminal outcome of a tracked action. */
 export type AnalyticsOutcome = 'failure' | 'success';
+
+export type ConnectGenfeedStep =
+  | 'client_selected'
+  | 'configuration_copied'
+  | 'flow_started'
+  | 'key_created'
+  | 'key_selected'
+  | 'publishing_handoff'
+  | 'verification';
 
 /** The public signup method the user selected. */
 export type SignupMethod = 'google' | 'magic_link';
@@ -168,6 +178,12 @@ export interface AnalyticsEventProperties {
   [ANALYTICS_EVENTS.CHECKOUT_COMPLETED]: {
     readonly checkoutKind: CheckoutKind;
     readonly handoffSource: Extract<FunnelHandoffSource, 'stripe_return'>;
+  };
+  [ANALYTICS_EVENTS.CONNECT_GENFEED_STEP]: {
+    readonly client: 'claude-code' | 'codex' | 'generic';
+    readonly deployment: 'cloud' | 'self-hosted';
+    readonly outcome?: AnalyticsOutcome;
+    readonly step: ConnectGenfeedStep;
   };
   [ANALYTICS_EVENTS.FIRST_CREDIT_PURCHASED]: {
     readonly checkoutKind: Extract<CheckoutKind, 'credits' | 'managed_credits'>;

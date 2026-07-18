@@ -3,6 +3,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Task, TasksService } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
@@ -53,7 +54,11 @@ export function WorkspaceOverviewSidebar({
   replaceTaskSearchParam,
   setSelectedTaskId,
 }: WorkspaceOverviewSidebarProps) {
+  const isStudioEnabled = useFeatureFlag('studio');
   const { href, orgHref } = useOrgUrl();
+  const availableAdvancedTools = ADVANCED_TOOLS.filter(
+    (tool) => isStudioEnabled || !tool.href.startsWith(APP_ROUTES.STUDIO.ROOT),
+  );
   const taskStreamContent =
     isTasksLoading && inProgressTasks.length === 0 ? (
       <WorkspaceTaskRowsSkeleton />
@@ -229,7 +234,7 @@ export function WorkspaceOverviewSidebar({
           bodyClassName="p-4"
         >
           <div className="divide-y divide-white/[0.06]">
-            {ADVANCED_TOOLS.map((tool) => (
+            {availableAdvancedTools.map((tool) => (
               <Link
                 key={tool.href}
                 href={

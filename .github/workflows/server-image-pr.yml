@@ -1,0 +1,43 @@
+name: Server Image PR Guard
+
+on:
+  pull_request:
+    paths:
+      - 'apps/server/**'
+      - 'packages/**'
+      - 'ee/packages/billing/**'
+      - 'docker/Dockerfile.server'
+      - 'bun.lock'
+      - 'package.json'
+      - '.github/workflows/server-image-pr.yml'
+
+concurrency:
+  group: server-image-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Server Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build unified server image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile.server
+          push: false
+          cache-from: type=gha,scope=server-image-pr
+          cache-to: type=gha,mode=max,scope=server-image-pr

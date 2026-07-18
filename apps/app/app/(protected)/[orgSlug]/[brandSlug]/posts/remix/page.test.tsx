@@ -6,13 +6,15 @@ import PostsRemixPage from './page';
 vi.mock('@/features/library-remix/LibraryRemixSurface', () => ({
   default: ({
     sourceArtifact,
+    sourceVersion,
     threadId,
   }: {
     sourceArtifact?: string | null;
+    sourceVersion?: string | null;
     threadId?: string | null;
   }) => (
     <div data-testid="library-remix-surface">
-      {sourceArtifact ?? 'none'}:{threadId ?? 'none'}
+      {sourceArtifact ?? 'none'}:{sourceVersion ?? 'none'}:{threadId ?? 'none'}
     </div>
   ),
 }));
@@ -30,6 +32,7 @@ describe('PostsRemixPage', () => {
     const page = await PostsRemixPage({
       searchParams: Promise.resolve({
         sourceArtifact: 'ingredient:ingredient-1',
+        sourceVersion: '7',
         thread: 'thread-1',
       }),
     });
@@ -37,7 +40,7 @@ describe('PostsRemixPage', () => {
     render(page);
 
     expect(screen.getByTestId('library-remix-surface')).toHaveTextContent(
-      'ingredient:ingredient-1:thread-1',
+      'ingredient:ingredient-1:7:thread-1',
     );
     expect(screen.queryByTestId('trend-remix-surface')).not.toBeInTheDocument();
   });
@@ -64,7 +67,7 @@ describe('PostsRemixPage', () => {
     render(page);
 
     expect(screen.getByTestId('library-remix-surface')).toHaveTextContent(
-      'none:none',
+      'none:none:none',
     );
     expect(screen.queryByTestId('trend-remix-surface')).not.toBeInTheDocument();
   });

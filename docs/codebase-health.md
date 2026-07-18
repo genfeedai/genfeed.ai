@@ -11,9 +11,15 @@ runtime path and is not part of the deployment path.
 - The PR audit is scoped to changed code with `gate: new-only`, posts a compact
   report, and uses `fail-on-issues: false`.
 - The weekly Monday 09:00 UTC workflow runs full-repo `health`, `dead-code`,
-  `dupes`, skills integrity, and full React Doctor checks.
+  `dupes`, a machine-readable runtime-complexity census, skills integrity, and
+  full React Doctor checks.
 - Full-repo Fallow jobs are report-only until the backlog is intentionally
   burned down.
+- Pull-request CI blocks changed production controllers over 500 lines,
+  services/processors/gateways/resolvers over 1,000 lines, methods over 150
+  lines, and constructors with more than 15 dependencies.
+- The weekly runtime-complexity census is report-only while decomposition debt
+  remains and is retained as a workflow artifact for 30 days.
 
 ## Health Policy
 

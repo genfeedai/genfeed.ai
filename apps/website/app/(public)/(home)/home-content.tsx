@@ -15,8 +15,8 @@ export default function HomeContent() {
   return (
     <>
       <HomeHero />
-      <HomeFormats />
       <HomeHow />
+      <HomeFormats />
       <HomeProof />
       <ProofTestimonials context="landing" />
       <HomeAudiences />

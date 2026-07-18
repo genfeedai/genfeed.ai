@@ -165,6 +165,15 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
+  it('keeps contextual Remix routes inside the Publish switcher module', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/posts/remix'),
+    ).toMatchObject({
+      surfaceKey: 'publish',
+      switcherItems: ['posts'],
+    });
+  });
+
   it('keeps the two accepted hard-cut families outside the registry', () => {
     expect(resolveWorkspaceShellRoute('/acme/~/workspace/overview')).toBeNull();
     expect(

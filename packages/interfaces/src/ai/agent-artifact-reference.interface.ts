@@ -28,6 +28,7 @@ type AgentArtifactReferenceForKind<Kind extends AgentArtifactRecordKind> = {
   kind: Kind;
   organizationId: string;
   recordId: string;
+  recordVersion?: string;
   serializer: (typeof AGENT_ARTIFACT_SERIALIZER_BY_KIND)[Kind];
 };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import { useUIStore } from '@genfeedai/workflows/ui/stores';
 import { Settings } from 'lucide-react';
 import { memo, useState } from 'react';
 import { Modal, ModalTabs } from '@/components/ui/modal';

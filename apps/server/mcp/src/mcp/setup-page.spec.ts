@@ -16,6 +16,8 @@ describe('MCP setup page', () => {
     expect(html).toContain('Copy AI prompt');
     expect(html).toContain('claude mcp add --transport http genfeed');
     expect(html).toContain('codex mcp add genfeed --url');
+    expect(html).toContain('https://app.genfeed.ai/connect');
+    expect(html).toContain('Start guided setup');
     expect(html).not.toContain('http://localhost:3014');
   });
 
@@ -31,6 +33,9 @@ describe('MCP setup page', () => {
       'Set up the Genfeed MCP server on this machine.',
     );
     expect(promptHtml).toContain('Authentication env var: GENFEED_API_KEY');
+    expect(promptHtml).toContain(
+      'Guided connection flow: https://app.genfeed.ai/connect',
+    );
     expect(promptHtml).toContain(
       'Do not request or paste the key into source-controlled files',
     );

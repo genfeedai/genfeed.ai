@@ -11,14 +11,12 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import {
-  baseModelKey,
-  isFalDestination,
-} from '@api/collections/models/utils/model-key.util';
+import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
@@ -39,7 +37,7 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -58,13 +56,9 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 import type {
   CreateVideoPlaceholderActivityParams,
-  DispatchVideoGenerationParams,
   PromptInput,
 } from './video-generation.types';
 
@@ -89,11 +83,10 @@ export class VideoGenerationService {
     private readonly assetsService: AssetsService,
     private readonly bookmarksService: BookmarksService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly falService: FalService,
+    private readonly providerDispatchService: VideoGenerationProviderDispatchService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly ingredientsService: IngredientsService,
     private readonly ingredientCompletionService: IngredientCompletionService,
-    private readonly klingAIService: KlingAIService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly modelRegistrationService: ModelRegistrationService,
@@ -101,7 +94,6 @@ export class VideoGenerationService {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly promptsService: PromptsService,
     private readonly promptBuilderService: PromptBuilderService,
-    private readonly replicateService: ReplicateService,
     private readonly sharedService: SharedService,
     private readonly videoMusicOrchestrationService: VideoMusicOrchestrationService,
     private readonly videosService: VideosService,
@@ -361,15 +353,16 @@ export class VideoGenerationService {
 
     try {
       // When generation is triggered, deduct credits
-      const generationId: string | null = await this.dispatchVideoGeneration({
-        duration: createVideoDto.duration,
-        height,
-        imageUrl: referenceImageUrls[0],
-        model,
-        prompt: promptInput.prompt || '',
-        promptParams,
-        width,
-      });
+      const generationId: string | null =
+        await this.providerDispatchService.dispatch({
+          duration: createVideoDto.duration,
+          height,
+          imageUrl: referenceImageUrls[0],
+          model,
+          prompt: promptInput.prompt || '',
+          promptParams,
+          width,
+        });
 
       if (generationId) {
         // Credit deduction is owned by CreditsInterceptor, which deducts the
@@ -511,7 +504,7 @@ export class VideoGenerationService {
 
             // Make separate API call for each output based on model
             const additionalGenerationId: string | null =
-              await this.dispatchVideoGeneration({
+              await this.providerDispatchService.dispatch({
                 duration: createVideoDto.duration,
                 height,
                 imageUrl: referenceImageUrls[0],
@@ -888,45 +881,6 @@ export class VideoGenerationService {
       deferred: false,
       modelKey: model,
     };
-  }
-
-  /**
-   * Single source of truth for provider routing. Every video output — the first
-   * and each additional one — flows through here, so FAL/Replicate/KlingAI
-   * routing can never diverge between outputs of the same request.
-   *
-   * - `KLINGAI_V2` uses its own queue-backed service.
-   * - Any `fal-ai/*` model (detected via {@link isFalDestination}) goes to FAL.
-   * - Everything else falls through to Replicate.
-   *
-   * @returns the external generation id/url, or null when the provider declined.
-   */
-  private async dispatchVideoGeneration(
-    params: DispatchVideoGenerationParams,
-  ): Promise<string | null> {
-    const { duration, height, imageUrl, model, prompt, promptParams, width } =
-      params;
-
-    if (model === MODEL_KEYS.KLINGAI_V2) {
-      // KlingAI uses its own service for queue management
-      return this.klingAIService.queueGenerateTextToVideo(prompt, {
-        height,
-        model,
-        width,
-      });
-    }
-
-    if (isFalDestination(model)) {
-      const falResult = await this.falService.generateVideo(model, {
-        prompt,
-        ...(duration && { duration }),
-        ...(imageUrl && { image_url: imageUrl }),
-      });
-      return falResult.url;
-    }
-
-    // All Replicate-based models (Google VEO, Imagen, Luma, Sora, etc.)
-    return this.replicateService.generateTextToVideo(model, promptParams);
   }
 
   /**

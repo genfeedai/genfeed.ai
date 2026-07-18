@@ -5,7 +5,7 @@ import {
   type CircleShape,
   type RectangleShape,
   useAnnotationStore,
-} from '@genfeedai/workflow-ui/stores';
+} from '@genfeedai/workflows/ui/stores';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('useAnnotationStore', () => {

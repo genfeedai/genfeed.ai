@@ -14,6 +14,7 @@ export * from './campaign-job.interface';
 export * from './clip-analyze-job.interface';
 export * from './clip-factory-job.interface';
 export * from './content-optimization-job.interface';
+export * from './content-pipeline-job.interface';
 export * from './credit-deduction-job.interface';
 export * from './email-digest-job.interface';
 export * from './heygen-poll-job.interface';

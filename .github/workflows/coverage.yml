@@ -36,7 +36,6 @@ jobs:
           - packages/ui
           - packages/utils
           - packages/workflows
-          - packages/workflow-ui
     steps:
       - uses: actions/checkout@v5
 

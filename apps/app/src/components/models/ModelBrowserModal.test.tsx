@@ -17,7 +17,7 @@ const { mockAddRecentModel } = vi.hoisted(() => ({
 // useSettingsStore((s) => s.recentModels)
 // useSettingsStore((s) => s.addRecentModel)
 // useSettingsStore((s) => s.providers.replicate.apiKey) etc.
-vi.mock('@genfeedai/workflow-ui/stores', () => {
+vi.mock('@genfeedai/workflows/ui/stores', () => {
   const state = {
     addRecentModel: mockAddRecentModel,
     providers: {

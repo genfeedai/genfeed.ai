@@ -28,6 +28,7 @@ import { VideosController } from '@api/collections/videos/controllers/videos.con
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
+import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
@@ -388,6 +389,7 @@ describe('VideosController', () => {
         // resolves its constructor dependencies from the mocked providers
         // above. This catches constructor-dependency regressions that the
         // previous `new VideoGenerationService(...)` pattern silently missed.
+        VideoGenerationProviderDispatchService,
         VideoGenerationService,
       ],
     })

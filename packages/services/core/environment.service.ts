@@ -1,3 +1,4 @@
+import { isCloudDeployment } from '@genfeedai/config/deployment';
 import { MODEL_KEYS } from '@genfeedai/constants';
 
 const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
@@ -208,6 +209,20 @@ export const EnvironmentService = {
     );
   },
 
+  get mcpEndpoint(): string {
+    const configuredEndpoint = getOptionalEnv(
+      process.env.NEXT_PUBLIC_MCP_ENDPOINT,
+    );
+
+    if (configuredEndpoint) {
+      return configuredEndpoint.replace(/\/+$/, '');
+    }
+
+    return isCloudDeployment()
+      ? 'https://mcp.genfeed.ai/mcp'
+      : 'http://localhost:3014/mcp';
+  },
+
   apps: {
     admin:
       process.env.NEXT_PUBLIC_APPS_ADMIN_ENDPOINT || 'https://admin.genfeed.ai',
@@ -239,6 +254,10 @@ export const EnvironmentService = {
   calendly:
     process.env.NEXT_PUBLIC_CALENDLY_URL ||
     'https://calendly.com/vincent-genfeed/30min',
+
+  get mcpConnectHref(): string {
+    return `${this.apps.app}/connect`;
+  },
 
   get cdnUrl(): string {
     return (

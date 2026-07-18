@@ -1,12 +1,12 @@
 'use client';
 
-import { calculateWorkflowCost } from '@genfeedai/workflow-ui/lib';
+import { NodeStatusEnum } from '@genfeedai/workflows/nodes';
+import { calculateWorkflowCost } from '@genfeedai/workflows/ui/lib';
 import {
   selectNodes,
   useExecutionStore,
   useWorkflowStore,
-} from '@genfeedai/workflow-ui/stores';
-import { NodeStatusEnum } from '@genfeedai/workflows/nodes';
+} from '@genfeedai/workflows/ui/stores';
 import { BYOK_CREDIT_VALUE_DOLLARS } from '@helpers/business/pricing/pricing.helper';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { useMemo } from 'react';
