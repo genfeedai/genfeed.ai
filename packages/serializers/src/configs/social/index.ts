@@ -1,3 +1,4 @@
+export * from './listening-topic.config';
 export * from './social-conversation.config';
 export * from './social-message.config';
 export * from './social-source.config';

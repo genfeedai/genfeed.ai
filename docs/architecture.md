@@ -8,6 +8,7 @@ collaboration, and governance layer.
 
 - [Identity & Request Resolution](./identity-resolution.md)
 - [Core and Cloud Execution Boundaries](./execution-boundaries.md)
+- [Social Listening Contracts](./social-listening-contracts.md)
 - [PLG Boundary ADR](../.agents/memory/architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md)
 - [Skills, Routines, and Memory Boundary ADR](../.agents/memory/architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md)
 - [Open-Source and Enterprise Context](../.agents/memory/system/OPEN-SOURCE-CONTEXT.md)

@@ -28,6 +28,8 @@ export const CACHE_PATTERNS = {
   CREDITS_USAGE: (orgId: string) => `credits:usage:${orgId}`,
   DASHBOARD_LAYOUTS_LIST: (orgId: string) => `dashboardLayouts:list:${orgId}`,
   DASHBOARD_LAYOUTS_SINGLE: (id: string) => `dashboardLayouts:single:${id}`,
+  LISTENING_TOPICS_LIST: (orgId: string) => `listeningTopics:list:${orgId}`,
+  LISTENING_TOPICS_SINGLE: (id: string) => `listeningTopics:single:${id}`,
 } as const;
 
 /**
@@ -40,4 +42,5 @@ export const CACHE_TAGS = {
   BRANDS: 'brands',
   CREDITS: 'credits',
   DASHBOARD_LAYOUTS: 'dashboardLayouts',
+  LISTENING_TOPICS: 'listeningTopics',
 } as const;
