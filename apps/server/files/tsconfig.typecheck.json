@@ -6,6 +6,9 @@
     "**/*.test.ts",
     "**/*.e2e-spec.ts"
   ],
+  "compilerOptions": {
+    "jsx": "react-jsx"
+  },
   "extends": "../tsconfig.typecheck.base.json",
   "include": ["src/**/*"]
 }

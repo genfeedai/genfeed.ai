@@ -8,6 +8,11 @@ import {
   findUniqueOrThrow,
 } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { EditorProjectStatus } from '@genfeedai/enums';
+import type {
+  IEditorRenderCorrelation,
+  IEditorRenderOutputMetadata,
+  IEditorRenderProvenance,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -32,14 +37,25 @@ export class EditorProjectsService extends BaseService<
     return this.isProjectObject(value) ? value : {};
   }
 
-  private mergeProjectStatus(
+  private mergeProjectConfig(
     project: { config?: unknown },
     status: EditorProjectStatus,
+    renderExport?: IEditorRenderProvenance,
   ): Record<string, unknown> {
     return {
       ...this.readProjectConfig(project.config),
+      ...(renderExport ? { renderExport } : {}),
       status,
     };
+  }
+
+  readRenderProvenance(project: {
+    config?: unknown;
+  }): IEditorRenderProvenance | undefined {
+    const renderExport = this.readProjectConfig(project.config).renderExport;
+    return this.isProjectObject(renderExport)
+      ? (renderExport as unknown as IEditorRenderProvenance)
+      : undefined;
   }
 
   async findForRender(
@@ -65,6 +81,7 @@ export class EditorProjectsService extends BaseService<
   async markAsRendering(
     id: string,
     organizationId: string,
+    renderExport: IEditorRenderProvenance,
   ): Promise<EditorProjectDocument> {
     // Verify the project exists and belongs to this organisation first so we
     // can return a meaningful NotFoundException vs. a generic ConflictException.
@@ -79,9 +96,10 @@ export class EditorProjectsService extends BaseService<
     // count === 1; the other will get count === 0 → ConflictException.
     const updated = await this.prisma.editorProject.updateMany({
       data: {
-        config: this.mergeProjectStatus(
+        config: this.mergeProjectConfig(
           existing,
           EditorProjectStatus.RENDERING,
+          renderExport,
         ) as never,
         updatedAt: new Date(),
       },
@@ -112,26 +130,28 @@ export class EditorProjectsService extends BaseService<
     return project as unknown as EditorProjectDocument;
   }
 
-  /**
-   * Mark project as completed with rendered video reference
-   */
-  async markAsCompleted(
+  async attachRenderJob(
     id: string,
-    renderedVideoId: string,
+    job: IEditorRenderCorrelation,
   ): Promise<EditorProjectDocument> {
     const existing = await findUniqueOrThrow(
       this.prisma.editorProject,
       { where: { id } },
       'Project',
     );
+    const renderExport = this.readRenderProvenance(existing);
+
+    if (!renderExport) {
+      throw new ConflictException('Project render provenance is missing');
+    }
 
     const project = await this.prisma.editorProject.update({
       data: {
-        config: this.mergeProjectStatus(
+        config: this.mergeProjectConfig(
           existing,
-          EditorProjectStatus.COMPLETED,
+          EditorProjectStatus.RENDERING,
+          { ...renderExport, job },
         ) as never,
-        renderedVideoId,
       },
       where: { id },
     });
@@ -139,26 +159,137 @@ export class EditorProjectsService extends BaseService<
     return project as unknown as EditorProjectDocument;
   }
 
+  async findRenderingProjects(): Promise<EditorProjectDocument[]> {
+    const projects = await this.prisma.editorProject.findMany({
+      where: {
+        isDeleted: false,
+        config: {
+          path: ['status'],
+          equals: EditorProjectStatus.RENDERING,
+        },
+      },
+    });
+
+    return projects as unknown as EditorProjectDocument[];
+  }
+
   /**
-   * Mark project as failed
+   * Mark project as completed with rendered video reference
    */
-  async markAsFailed(id: string): Promise<EditorProjectDocument> {
+  async markAsCompleted(
+    id: string,
+    renderedVideoId: string,
+    output: IEditorRenderOutputMetadata,
+    expectedJobId?: string,
+  ): Promise<EditorProjectDocument> {
     const existing = await findUniqueOrThrow(
       this.prisma.editorProject,
       { where: { id } },
       'Project',
     );
 
-    const project = await this.prisma.editorProject.update({
-      data: {
-        config: this.mergeProjectStatus(
-          existing,
-          EditorProjectStatus.FAILED,
-        ) as never,
+    const renderExport = this.readRenderProvenance(existing);
+    if (expectedJobId && renderExport?.job?.jobId !== expectedJobId) {
+      throw new ConflictException('Render job no longer owns this project');
+    }
+
+    const completedConfig = this.mergeProjectConfig(
+      existing,
+      EditorProjectStatus.COMPLETED,
+      {
+        ...(renderExport ?? ({} as IEditorRenderProvenance)),
+        completedAt: new Date().toISOString(),
+        output,
       },
-      where: { id },
+    ) as never;
+    const updated = await this.prisma.editorProject.updateMany({
+      data: {
+        config: completedConfig,
+        renderedVideoId,
+      },
+      where: {
+        id,
+        isDeleted: false,
+        organizationId: existing.organizationId,
+        AND: {
+          config: {
+            path: ['status'],
+            equals: EditorProjectStatus.RENDERING,
+          },
+        },
+        ...(expectedJobId
+          ? {
+              config: {
+                path: ['renderExport', 'job', 'jobId'],
+                equals: expectedJobId,
+              },
+            }
+          : {}),
+      },
     });
 
-    return project as unknown as EditorProjectDocument;
+    if (updated.count === 0) {
+      throw new ConflictException('Render job no longer owns this project');
+    }
+
+    return (await this.prisma.editorProject.findUniqueOrThrow({
+      where: { id },
+    })) as unknown as EditorProjectDocument;
+  }
+
+  /**
+   * Mark project as failed
+   */
+  async markAsFailed(
+    id: string,
+    expectedJobId?: string,
+  ): Promise<EditorProjectDocument> {
+    const existing = await findUniqueOrThrow(
+      this.prisma.editorProject,
+      { where: { id } },
+      'Project',
+    );
+
+    const renderExport = this.readRenderProvenance(existing);
+    if (expectedJobId && renderExport?.job?.jobId !== expectedJobId) {
+      throw new ConflictException('Render job no longer owns this project');
+    }
+
+    const failedConfig = this.mergeProjectConfig(
+      existing,
+      EditorProjectStatus.FAILED,
+    ) as never;
+    const updated = await this.prisma.editorProject.updateMany({
+      data: {
+        config: failedConfig,
+      },
+      where: {
+        id,
+        isDeleted: false,
+        organizationId: existing.organizationId,
+        AND: {
+          config: {
+            path: ['status'],
+            equals: EditorProjectStatus.RENDERING,
+          },
+        },
+        ...(expectedJobId
+          ? {
+              config: {
+                path: ['renderExport', 'job', 'jobId'],
+                equals: expectedJobId,
+              },
+            }
+          : {}),
+      },
+    });
+
+    if (updated.count === 0) {
+      throw new ConflictException('Render job no longer owns this project');
+    }
+
+    return (await this.prisma.editorProject.findUniqueOrThrow({
+      where: { id },
+    })) as unknown as EditorProjectDocument;
   }
 }

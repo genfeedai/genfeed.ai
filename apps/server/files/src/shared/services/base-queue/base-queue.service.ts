@@ -75,6 +75,7 @@ export abstract class BaseQueueService<T extends BaseJobDataWithPriority> {
     data: T,
     logLabel: string,
     logExtra?: string,
+    jobId?: string,
   ): Promise<Job<T>> {
     const config = this.jobConfigs[jobType] || DEFAULT_JOB_CONFIG;
     type QueueAdd = Queue<T>['add'];
@@ -85,7 +86,12 @@ export abstract class BaseQueueService<T extends BaseJobDataWithPriority> {
       {
         attempts: config.attempts,
         backoff: { delay: config.delay, type: 'exponential' },
+        ...(jobId ? { jobId } : {}),
         priority: data.priority || config.defaultPriority,
+        ...(config.removeOnComplete
+          ? { removeOnComplete: config.removeOnComplete }
+          : {}),
+        ...(config.removeOnFail ? { removeOnFail: config.removeOnFail } : {}),
       } as Parameters<QueueAdd>[2],
     );
 

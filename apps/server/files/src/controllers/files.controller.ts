@@ -184,6 +184,9 @@ export class FilesController {
         case JOB_TYPES.HOOK_REMIX:
           job = await this.videoQueueService.addHookRemixJob(jobData);
           break;
+        case JOB_TYPES.RENDER_EDITOR_COMPOSITION:
+          job = await this.videoQueueService.addEditorCompositionJob(jobData);
+          break;
 
         default:
           throw new HttpException(
