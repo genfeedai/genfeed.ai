@@ -9,32 +9,25 @@ import type {
   ListeningEvidenceDocument,
   ListeningTopicDocument,
 } from '@api/collections/listening-topics/schemas/listening-topic.schema';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ListeningSourcePlatform } from '@genfeedai/enums';
-import { LISTENING_CONTRACT_VERSION } from '@genfeedai/interfaces';
+import {
+  type IAuthorizedListeningSource,
+  type IListeningScope,
+  type INormalizedListeningTopicContract,
+  LISTENING_CONTRACT_VERSION,
+} from '@genfeedai/interfaces';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-
-interface ListeningScope {
-  organizationId: string;
-  brandId: string;
-  userId?: string;
-}
-
-interface NormalizedTopicContract {
-  label: string;
-  description: string | null;
-  keywords: string[];
-  excludedKeywords: string[];
-  languages: string[];
-  sourceIds: string[];
-  freshnessHours: number;
-  isActive: boolean;
-}
 
 const topicInclude = {
   sources: {
@@ -43,13 +36,18 @@ const topicInclude = {
   },
 } as const;
 
+const FINGERPRINT_UNIQUE_CONSTRAINT = 'listening_topics_scope_fingerprint_key';
+
 @Injectable()
 export class ListeningTopicsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
+  ) {}
 
   async createScoped(
     dto: CreateListeningTopicDto,
-    context: Required<ListeningScope>,
+    context: Required<IListeningScope>,
   ): Promise<ListeningTopicDocument> {
     const normalized = normalizeTopicContract(dto);
     const sources = await this.resolveAuthorizedSources(
@@ -72,7 +70,7 @@ export class ListeningTopicsService {
     }
 
     try {
-      return (await this.prisma.listeningTopic.create({
+      const created = (await this.prisma.listeningTopic.create({
         data: {
           auditedAt: new Date(),
           brandId: context.brandId,
@@ -88,8 +86,6 @@ export class ListeningTopicsService {
           organizationId: context.organizationId,
           sources: {
             create: sources.map((source) => ({
-              brandId: context.brandId,
-              organizationId: context.organizationId,
               platform: source.platform,
               sourceId: source.id,
             })),
@@ -98,8 +94,10 @@ export class ListeningTopicsService {
         },
         include: topicInclude,
       })) as unknown as ListeningTopicDocument;
+      await this.invalidateTopicCaches(context.organizationId, created.id);
+      return created;
     } catch (error) {
-      if ((error as { code?: string }).code !== 'P2002') {
+      if (!isFingerprintUniqueViolation(error)) {
         throw error;
       }
 
@@ -116,11 +114,18 @@ export class ListeningTopicsService {
         throw error;
       }
 
+      await this.invalidateTopicCaches(
+        context.organizationId,
+        concurrentWinner.id,
+      );
       return concurrentWinner as unknown as ListeningTopicDocument;
     }
   }
 
-  async findAllScoped(context: ListeningScope, query: ListeningTopicsQueryDto) {
+  async findAllScoped(
+    context: IListeningScope,
+    query: ListeningTopicsQueryDto,
+  ) {
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 25));
     const search = query.search?.trim();
@@ -130,7 +135,12 @@ export class ListeningTopicsService {
       isDeleted: query.isDeleted ?? false,
       organizationId: context.organizationId,
       ...(query.source && {
-        sources: { some: { sourceId: query.source } },
+        sources: {
+          some: {
+            isDeleted: false,
+            sourceId: query.source,
+          },
+        },
       }),
       ...(search && {
         OR: [
@@ -163,7 +173,7 @@ export class ListeningTopicsService {
 
   async findOneScoped(
     id: string,
-    context: ListeningScope,
+    context: IListeningScope,
   ): Promise<ListeningTopicDocument> {
     const topic = await this.prisma.listeningTopic.findFirst({
       include: topicInclude,
@@ -185,7 +195,7 @@ export class ListeningTopicsService {
   async updateScoped(
     id: string,
     dto: UpdateListeningTopicDto,
-    context: ListeningScope,
+    context: IListeningScope,
   ): Promise<ListeningTopicDocument> {
     const existing = await this.findOneScoped(id, context);
     const normalized = normalizeTopicContract({
@@ -232,53 +242,93 @@ export class ListeningTopicsService {
       .map(({ sourceId }) => sourceId)
       .filter((sourceId) => !requestedSourceIds.has(sourceId));
 
-    return (await this.prisma.listeningTopic.update({
-      data: {
-        auditedAt: new Date(),
-        description: normalized.description,
-        excludedKeywords: normalized.excludedKeywords,
-        fingerprint,
-        freshnessHours: normalized.freshnessHours,
-        isActive: normalized.isActive,
-        keywords: normalized.keywords,
-        label: normalized.label,
-        languages: normalized.languages,
-        ...((addedSources.length > 0 || removedSourceIds.length > 0) && {
-          sources: {
-            ...(addedSources.length > 0 && {
-              create: addedSources.map((source) => ({
-                brandId: context.brandId,
-                organizationId: context.organizationId,
-                platform: source.platform,
-                sourceId: source.id,
-              })),
-            }),
-            ...(removedSourceIds.length > 0 && {
-              deleteMany: { sourceId: { in: removedSourceIds } },
-            }),
-          },
-        }),
-      },
-      include: topicInclude,
-      where: { id },
-    })) as unknown as ListeningTopicDocument;
+    try {
+      const updated = (await this.prisma.listeningTopic.update({
+        data: {
+          auditedAt: new Date(),
+          description: normalized.description,
+          excludedKeywords: normalized.excludedKeywords,
+          fingerprint,
+          freshnessHours: normalized.freshnessHours,
+          isActive: normalized.isActive,
+          keywords: normalized.keywords,
+          label: normalized.label,
+          languages: normalized.languages,
+          ...((addedSources.length > 0 || removedSourceIds.length > 0) && {
+            sources: {
+              ...(addedSources.length > 0 && {
+                upsert: addedSources.map((source) => ({
+                  create: {
+                    platform: source.platform,
+                    sourceId: source.id,
+                  },
+                  update: {
+                    isDeleted: false,
+                    platform: source.platform,
+                  },
+                  where: {
+                    topicId_sourceId: {
+                      sourceId: source.id,
+                      topicId: id,
+                    },
+                  },
+                })),
+              }),
+              ...(removedSourceIds.length > 0 && {
+                updateMany: {
+                  data: { isDeleted: true },
+                  where: {
+                    isDeleted: false,
+                    sourceId: { in: removedSourceIds },
+                  },
+                },
+              }),
+            },
+          }),
+        },
+        include: topicInclude,
+        where: activeTopicWriteWhere(id, context),
+      })) as unknown as ListeningTopicDocument;
+      await this.invalidateTopicCaches(context.organizationId, id);
+      return updated;
+    } catch (error) {
+      if (isFingerprintUniqueViolation(error)) {
+        throw new ConflictException(
+          'An equivalent listening topic already exists for this brand',
+        );
+      }
+      if (isRecordNotFoundError(error)) {
+        throw new NotFoundException({ message: 'Listening topic not found' });
+      }
+      throw error;
+    }
   }
 
   async removeScoped(
     id: string,
-    context: ListeningScope,
+    context: IListeningScope,
   ): Promise<ListeningTopicDocument> {
     await this.findOneScoped(id, context);
-    return (await this.prisma.listeningTopic.update({
-      data: { isActive: false, isDeleted: true },
-      include: topicInclude,
-      where: { id },
-    })) as unknown as ListeningTopicDocument;
+    let removed: ListeningTopicDocument;
+    try {
+      removed = (await this.prisma.listeningTopic.update({
+        data: { isActive: false, isDeleted: true },
+        include: topicInclude,
+        where: activeTopicWriteWhere(id, context),
+      })) as unknown as ListeningTopicDocument;
+    } catch (error) {
+      if (isRecordNotFoundError(error)) {
+        throw new NotFoundException({ message: 'Listening topic not found' });
+      }
+      throw error;
+    }
+    await this.invalidateTopicCaches(context.organizationId, id);
+    return removed;
   }
 
   async listEvidence(
     topicId: string,
-    context: ListeningScope,
+    context: IListeningScope,
     query: ListeningEvidenceQueryDto,
   ) {
     await this.findOneScoped(topicId, context);
@@ -290,9 +340,12 @@ export class ListeningTopicsService {
       isDeleted: query.isDeleted ?? false,
       organizationId: context.organizationId,
       topicId,
-      ...(query.source && {
-        topicSource: { sourceId: query.source },
-      }),
+      topicSource: {
+        isDeleted: false,
+        ...(query.source && {
+          sourceId: query.source,
+        }),
+      },
     };
     const [docs, total] = await Promise.all([
       this.prisma.listeningEvidence.findMany({
@@ -316,10 +369,8 @@ export class ListeningTopicsService {
 
   private async resolveAuthorizedSources(
     sourceIds: string[],
-    context: ListeningScope,
-  ): Promise<
-    Array<{ id: string; platform: ListeningSourcePlatform | string }>
-  > {
+    context: IListeningScope,
+  ): Promise<IAuthorizedListeningSource[]> {
     const sources = await this.prisma.socialSource.findMany({
       select: { id: true, platform: true },
       where: {
@@ -349,13 +400,33 @@ export class ListeningTopicsService {
       );
     }
 
-    return sources.sort((left, right) => left.id.localeCompare(right.id));
+    return sources
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((source) => ({
+        ...source,
+        platform: source.platform as ListeningSourcePlatform,
+      }));
+  }
+
+  private async invalidateTopicCaches(
+    organizationId: string,
+    topicId: string,
+  ): Promise<void> {
+    await Promise.all([
+      this.cacheInvalidationService.invalidate(
+        CACHE_PATTERNS.LISTENING_TOPICS_LIST(organizationId),
+        CACHE_PATTERNS.LISTENING_TOPICS_SINGLE(topicId),
+      ),
+      this.cacheInvalidationService.invalidateByTags([
+        CACHE_TAGS.LISTENING_TOPICS,
+      ]),
+    ]);
   }
 }
 
 function normalizeTopicContract(
   input: CreateListeningTopicDto,
-): NormalizedTopicContract {
+): INormalizedListeningTopicContract {
   const keywords = normalizeValues(input.keywords);
   if (!keywords.length) {
     throw new BadRequestException(
@@ -395,7 +466,9 @@ function normalizeValues(values: string[]): string[] {
   ].sort();
 }
 
-function buildTopicFingerprint(contract: NormalizedTopicContract): string {
+function buildTopicFingerprint(
+  contract: INormalizedListeningTopicContract,
+): string {
   return createHash('sha256')
     .update(
       JSON.stringify({
@@ -407,4 +480,44 @@ function buildTopicFingerprint(contract: NormalizedTopicContract): string {
       }),
     )
     .digest('hex');
+}
+
+function activeTopicWriteWhere(id: string, context: IListeningScope) {
+  return {
+    brandId: context.brandId,
+    id,
+    isDeleted: false,
+    organizationId: context.organizationId,
+  };
+}
+
+function isFingerprintUniqueViolation(error: unknown): boolean {
+  const candidate = error as {
+    code?: unknown;
+    meta?: { target?: unknown };
+  };
+  if (candidate?.code !== 'P2002') {
+    return false;
+  }
+
+  const target = candidate.meta?.target;
+  if (typeof target === 'string') {
+    return (
+      target === FINGERPRINT_UNIQUE_CONSTRAINT ||
+      (target.includes('fingerprint') &&
+        target.includes('brand') &&
+        target.includes('organization'))
+    );
+  }
+
+  return (
+    Array.isArray(target) &&
+    target.includes('organizationId') &&
+    target.includes('brandId') &&
+    target.includes('fingerprint')
+  );
+}
+
+function isRecordNotFoundError(error: unknown): boolean {
+  return (error as { code?: unknown })?.code === 'P2025';
 }

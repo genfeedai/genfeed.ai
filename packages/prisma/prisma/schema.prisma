@@ -3531,6 +3531,7 @@ model SocialSource {
   listeningTopicSources ListeningTopicSource[]
 
   // Active-source uniqueness is enforced by the partial index in the model's migration.
+  @@unique([id, organizationId, brandId], map: "social_sources_id_scope_key")
   @@index([organizationId, brandId, isDeleted, isActive, platform], map: "social_sources_brand_active_idx")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "social_sources_org_created_idx")
   @@map("social_sources")
@@ -3570,6 +3571,7 @@ model SourcePost {
 
   listeningEvidence ListeningEvidence[]
 
+  @@unique([id, organizationId, brandId], map: "source_posts_id_scope_key")
   @@unique([sourceId, externalId], map: "source_posts_source_external_key")
   @@index([organizationId, brandId, platform, isDeleted, publishedAt(sort: Desc)], map: "source_posts_brand_feed_idx")
   @@index([organizationId, brandId, isDeleted, collectedAt(sort: Desc)], map: "source_posts_brand_collected_idx")
@@ -3586,7 +3588,7 @@ model ListeningTopic {
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id])
   brandId          String
-  brand             Brand        @relation(fields: [brandId], references: [id])
+  brand             Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   userId            String
   user              User         @relation(fields: [userId], references: [id])
   label             String
@@ -3608,6 +3610,7 @@ model ListeningTopic {
   evidence ListeningEvidence[]
 
   // Active-topic uniqueness is enforced by the partial index in the migration.
+  @@unique([id, organizationId, brandId], map: "listening_topics_id_scope_key")
   @@index([organizationId, brandId, fingerprint], map: "listening_topics_scope_fingerprint_idx")
   @@index([organizationId, brandId, isDeleted, isActive, createdAt(sort: Desc)], map: "listening_topics_scope_active_idx")
   @@map("listening_topics")
@@ -3620,11 +3623,11 @@ model ListeningTopicSource {
   organizationId String
   organization   Organization   @relation(fields: [organizationId], references: [id])
   brandId        String
-  brand          Brand          @relation(fields: [brandId], references: [id])
+  brand          Brand          @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   topicId        String
-  topic          ListeningTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic          ListeningTopic @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
   sourceId       String
-  source         SocialSource   @relation(fields: [sourceId], references: [id])
+  source         SocialSource   @relation(fields: [sourceId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade)
   platform       String
   isDeleted      Boolean        @default(false)
   createdAt      DateTime       @default(now())
@@ -3633,6 +3636,7 @@ model ListeningTopicSource {
   evidence ListeningEvidence[]
 
   @@unique([topicId, sourceId], map: "listening_topic_sources_topic_source_key")
+  @@unique([id, organizationId, brandId, topicId], map: "listening_topic_sources_id_scope_topic_key")
   @@index([organizationId, brandId, sourceId], map: "listening_topic_sources_scope_source_idx")
   @@map("listening_topic_sources")
 }
@@ -3645,13 +3649,13 @@ model ListeningEvidence {
   organizationId     String
   organization       Organization         @relation(fields: [organizationId], references: [id])
   brandId            String
-  brand               Brand                @relation(fields: [brandId], references: [id])
+  brand               Brand                @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   topicId            String
-  topic              ListeningTopic       @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  topic              ListeningTopic       @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
   topicSourceId      String
-  topicSource        ListeningTopicSource @relation(fields: [topicSourceId], references: [id], onDelete: Cascade)
+  topicSource        ListeningTopicSource @relation(fields: [topicSourceId, organizationId, brandId, topicId], references: [id, organizationId, brandId, topicId], onDelete: Cascade, onUpdate: Cascade)
   sourcePostId       String?
-  sourcePost         SourcePost?          @relation(fields: [sourcePostId], references: [id])
+  sourcePost         SourcePost?          @relation(fields: [sourcePostId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade)
   platform           String
   externalId         String
   eventType          String

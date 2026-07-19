@@ -41,7 +41,8 @@ to their supporting observations.
 
 - Every read and write is scoped by both `organizationId` and `brandId`.
 - Source membership is explicit and reviewable through `ListeningTopicSource`.
-- Removing a source removes evidence collected through that membership.
+- Removing a source excludes evidence collected through that membership from
+  active reads while retaining the evidence as audit history.
 - Soft-deleting a topic leaves its historical record but excludes it from
   default queries.
 - Contract changes increment `LISTENING_CONTRACT_VERSION` and require compatible

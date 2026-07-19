@@ -3,13 +3,17 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ListeningEvidenceType } from '@genfeedai/enums';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import {
-  IsBoolean,
-  IsEnum,
-  IsOptional,
-  IsString,
-  ValidateIf,
-} from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
+
+function transformOptionalBoolean(value: unknown): unknown {
+  if (value === true || value === 'true') {
+    return true;
+  }
+  if (value === false || value === 'false') {
+    return false;
+  }
+  return value;
+}
 
 export class ListeningTopicsQueryDto extends BaseQueryDto {
   @ApiPropertyOptional()
@@ -24,8 +28,7 @@ export class ListeningTopicsQueryDto extends BaseQueryDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @ValidateIf((value) => value.isActive !== undefined)
-  @Transform(({ value }) => value === true || value === 'true')
+  @Transform(({ value }) => transformOptionalBoolean(value))
   @IsBoolean()
   isActive?: boolean;
 }

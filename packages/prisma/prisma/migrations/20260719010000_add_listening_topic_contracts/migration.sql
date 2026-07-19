@@ -3,6 +3,11 @@
 
 BEGIN;
 
+CREATE UNIQUE INDEX "social_sources_id_scope_key"
+  ON "social_sources"("id", "organizationId", "brandId");
+CREATE UNIQUE INDEX "source_posts_id_scope_key"
+  ON "source_posts"("id", "organizationId", "brandId");
+
 CREATE TABLE "listening_topics" (
   "id" TEXT NOT NULL,
   "organizationId" TEXT NOT NULL,
@@ -31,8 +36,9 @@ CREATE TABLE "listening_topics" (
   CONSTRAINT "listening_topics_organizationId_fkey"
     FOREIGN KEY ("organizationId") REFERENCES "organizations"("id")
     ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "listening_topics_brandId_fkey"
-    FOREIGN KEY ("brandId") REFERENCES "brands"("id")
+  CONSTRAINT "listening_topics_brandId_organizationId_fkey"
+    FOREIGN KEY ("brandId", "organizationId")
+    REFERENCES "brands"("id", "organizationId")
     ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "listening_topics_userId_fkey"
     FOREIGN KEY ("userId") REFERENCES "users"("id")
@@ -42,6 +48,8 @@ CREATE TABLE "listening_topics" (
 CREATE UNIQUE INDEX "listening_topics_scope_fingerprint_key"
   ON "listening_topics"("organizationId", "brandId", "fingerprint")
   WHERE "isDeleted" = false;
+CREATE UNIQUE INDEX "listening_topics_id_scope_key"
+  ON "listening_topics"("id", "organizationId", "brandId");
 CREATE INDEX "listening_topics_scope_fingerprint_idx"
   ON "listening_topics"("organizationId", "brandId", "fingerprint");
 CREATE INDEX "listening_topics_scope_active_idx"
@@ -62,19 +70,24 @@ CREATE TABLE "listening_topic_sources" (
   CONSTRAINT "listening_topic_sources_organizationId_fkey"
     FOREIGN KEY ("organizationId") REFERENCES "organizations"("id")
     ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "listening_topic_sources_brandId_fkey"
-    FOREIGN KEY ("brandId") REFERENCES "brands"("id")
+  CONSTRAINT "listening_topic_sources_brandId_organizationId_fkey"
+    FOREIGN KEY ("brandId", "organizationId")
+    REFERENCES "brands"("id", "organizationId")
     ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "listening_topic_sources_topicId_fkey"
-    FOREIGN KEY ("topicId") REFERENCES "listening_topics"("id")
+  CONSTRAINT "listening_topic_sources_topicId_scope_fkey"
+    FOREIGN KEY ("topicId", "organizationId", "brandId")
+    REFERENCES "listening_topics"("id", "organizationId", "brandId")
     ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT "listening_topic_sources_sourceId_fkey"
-    FOREIGN KEY ("sourceId") REFERENCES "social_sources"("id")
+  CONSTRAINT "listening_topic_sources_sourceId_scope_fkey"
+    FOREIGN KEY ("sourceId", "organizationId", "brandId")
+    REFERENCES "social_sources"("id", "organizationId", "brandId")
     ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 CREATE UNIQUE INDEX "listening_topic_sources_topic_source_key"
   ON "listening_topic_sources"("topicId", "sourceId");
+CREATE UNIQUE INDEX "listening_topic_sources_id_scope_topic_key"
+  ON "listening_topic_sources"("id", "organizationId", "brandId", "topicId");
 CREATE INDEX "listening_topic_sources_scope_source_idx"
   ON "listening_topic_sources"("organizationId", "brandId", "sourceId");
 
@@ -108,18 +121,22 @@ CREATE TABLE "listening_evidence" (
   CONSTRAINT "listening_evidence_organizationId_fkey"
     FOREIGN KEY ("organizationId") REFERENCES "organizations"("id")
     ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "listening_evidence_brandId_fkey"
-    FOREIGN KEY ("brandId") REFERENCES "brands"("id")
+  CONSTRAINT "listening_evidence_brandId_organizationId_fkey"
+    FOREIGN KEY ("brandId", "organizationId")
+    REFERENCES "brands"("id", "organizationId")
     ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "listening_evidence_topicId_fkey"
-    FOREIGN KEY ("topicId") REFERENCES "listening_topics"("id")
+  CONSTRAINT "listening_evidence_topicId_scope_fkey"
+    FOREIGN KEY ("topicId", "organizationId", "brandId")
+    REFERENCES "listening_topics"("id", "organizationId", "brandId")
     ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT "listening_evidence_topicSourceId_fkey"
-    FOREIGN KEY ("topicSourceId") REFERENCES "listening_topic_sources"("id")
+  CONSTRAINT "listening_evidence_topicSourceId_scope_topic_fkey"
+    FOREIGN KEY ("topicSourceId", "organizationId", "brandId", "topicId")
+    REFERENCES "listening_topic_sources"("id", "organizationId", "brandId", "topicId")
     ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT "listening_evidence_sourcePostId_fkey"
-    FOREIGN KEY ("sourcePostId") REFERENCES "source_posts"("id")
-    ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT "listening_evidence_sourcePostId_scope_fkey"
+    FOREIGN KEY ("sourcePostId", "organizationId", "brandId")
+    REFERENCES "source_posts"("id", "organizationId", "brandId")
+    ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 CREATE UNIQUE INDEX "listening_evidence_topic_platform_external_key"

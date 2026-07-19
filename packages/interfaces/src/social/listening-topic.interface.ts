@@ -19,7 +19,7 @@ export interface IListeningTopicSource extends IBaseEntity {
   topicId: string;
   sourceId: string;
   source?: ISocialSource | string;
-  platform: ListeningSourcePlatform | string;
+  platform: ListeningSourcePlatform;
 }
 
 export interface IListeningTopic extends IBaseEntity {
@@ -54,9 +54,9 @@ export interface IListeningEvidence extends IBaseEntity {
   topicSource?: IListeningTopicSource | string;
   sourcePostId?: string | null;
   sourcePost?: ISourcePost | string | null;
-  platform: ListeningSourcePlatform | string;
+  platform: ListeningSourcePlatform;
   externalId: string;
-  eventType: ListeningEvidenceType | string;
+  eventType: ListeningEvidenceType;
   sourceUrl?: string | null;
   authorExternalId?: string | null;
   authorHandle?: string | null;
@@ -107,7 +107,7 @@ export interface ListeningEvidenceReference {
   topicId: string;
   topicSourceId: string;
   sourcePostId?: string | null;
-  platform: ListeningSourcePlatform | string;
+  platform: ListeningSourcePlatform;
   externalId: string;
   occurredAt: string;
   collectedAt: string;
@@ -129,4 +129,85 @@ export interface ListeningAttributionReference {
   actionType: 'brief' | 'publication' | 'response';
   actionId: string;
   recordedAt: string;
+}
+
+export interface IListeningScope {
+  organizationId: string;
+  brandId: string;
+  userId?: string;
+}
+
+export interface INormalizedListeningTopicContract {
+  label: string;
+  description: string | null;
+  keywords: string[];
+  excludedKeywords: string[];
+  languages: string[];
+  sourceIds: string[];
+  freshnessHours: number;
+  isActive: boolean;
+}
+
+export interface IAuthorizedListeningSource {
+  id: string;
+  platform: ListeningSourcePlatform;
+}
+
+export interface IListeningTopicSourceDocument {
+  id: string;
+  organizationId: string;
+  brandId: string;
+  topicId: string;
+  sourceId: string;
+  platform: ListeningSourcePlatform;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IListeningTopicDocument {
+  id: string;
+  organizationId: string;
+  brandId: string;
+  userId: string;
+  label: string;
+  description?: string | null;
+  keywords: string[];
+  excludedKeywords: string[];
+  languages: string[];
+  freshnessHours: number;
+  fingerprint: string;
+  contractVersion: number;
+  isActive: boolean;
+  auditedAt: Date;
+  lastCollectedAt?: Date | null;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  sources: IListeningTopicSourceDocument[];
+}
+
+export interface IListeningEvidenceDocument {
+  id: string;
+  organizationId: string;
+  brandId: string;
+  topicId: string;
+  topicSourceId: string;
+  sourcePostId?: string | null;
+  platform: ListeningSourcePlatform;
+  externalId: string;
+  eventType: ListeningEvidenceType;
+  sourceUrl?: string | null;
+  authorExternalId?: string | null;
+  authorHandle?: string | null;
+  contentExcerpt?: string | null;
+  occurredAt: Date;
+  collectedAt: Date;
+  freshnessExpiresAt: Date;
+  contractVersion: number;
+  metrics: SourcePostMetrics;
+  metadata: Record<string, unknown>;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
