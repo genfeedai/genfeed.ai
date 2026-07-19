@@ -24999,7 +24999,7 @@
     "/clip-projects/{projectId}/results/{clipResultId}/editor-handoff": {
       "post": {
         "description": "Validate a ready clip result and create an editor project handoff from its terminal media URL.",
-        "operationId": "ClipProjectsController.createEditorHandoff",
+        "operationId": "ClipProjectHandoffsController.createEditorHandoff",
         "parameters": [
           {
             "in": "path",
@@ -25037,7 +25037,7 @@
     "/clip-projects/{projectId}/results/{clipResultId}/publish-handoff": {
       "post": {
         "description": "Validate a ready clip result and prepare a user-confirmed publish handoff payload.",
-        "operationId": "ClipProjectsController.createPublishHandoff",
+        "operationId": "ClipProjectHandoffsController.createPublishHandoff",
         "parameters": [
           {
             "in": "path",
