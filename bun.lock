@@ -286,11 +286,9 @@
         "@plasmohq/storage": "1.15.0",
         "@sentry/browser": "10.64.0",
         "axios": "1.18.1",
-        "lucide-react": "1.23.0",
         "plasmo": "0.90.5",
         "react": "19.2.7",
         "react-dom": "19.2.7",
-        "tailwind-merge": "3.6.0",
         "zustand": "5.0.14",
       },
       "devDependencies": {
