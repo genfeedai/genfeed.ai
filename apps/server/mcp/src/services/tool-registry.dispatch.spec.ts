@@ -39,6 +39,8 @@ describe('ToolRegistryService.classify', () => {
     ['analyze_clip_project', 'clip-projects'],
     ['generate_clips', 'clip-projects'],
     ['get_clip_project', 'clip-projects'],
+    ['get_scheduled_release', 'scheduler'],
+    ['update_scheduled_release', 'scheduler'],
     ['brands__create', 'unknown'],
     ['content_plans__find_all', 'unknown'],
     ['a_tool_that_does_not_exist', 'unknown'],
@@ -73,6 +75,9 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       'analyze_clip_project',
       'create_clip_project_from_youtube',
       'generate_clips',
+      'create_scheduled_release',
+      'update_scheduled_release',
+      'control_scheduled_release',
     ];
     mockState.tools = [
       { name: 'generate_image' },

@@ -26,6 +26,10 @@ import { ContentClient } from '@mcp/services/client/content.client';
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import { MediaClient } from '@mcp/services/client/media.client';
 import {
+  SchedulerClient,
+  type ScheduledReleaseControlAction,
+} from '@mcp/services/client/scheduler.client';
+import {
   type SocialActionParams,
   type SocialConversationDetail,
   type SocialConversationListParams,
@@ -110,6 +114,7 @@ export class ClientService {
   private readonly analytics: AnalyticsClient;
   private readonly content: ContentClient;
   private readonly clips: ClipsClient;
+  private readonly scheduler: SchedulerClient;
   private readonly workflows: WorkflowClient;
   private readonly workspace: WorkspaceClient;
   private readonly ads: AdsClient;
@@ -129,6 +134,7 @@ export class ClientService {
     this.analytics = new AnalyticsClient(this.base);
     this.content = new ContentClient(this.base);
     this.clips = new ClipsClient(this.base);
+    this.scheduler = new SchedulerClient(this.base);
     this.workflows = new WorkflowClient(this.base);
     this.workspace = new WorkspaceClient(this.base);
     this.ads = new AdsClient(this.base);
@@ -304,6 +310,38 @@ export class ClientService {
     params: ListClipProjectsParams = {},
   ): Promise<Array<Record<string, unknown>>> {
     return this.clips.listClipProjects(params);
+  }
+
+  // ── Scheduler releases ──
+
+  createScheduledRelease(
+    release: Record<string, unknown>,
+    idempotencyKey?: string,
+  ): Promise<Record<string, unknown>> {
+    return this.scheduler.createScheduledRelease(release, idempotencyKey);
+  }
+
+  getScheduledRelease(releaseId: string): Promise<Record<string, unknown>> {
+    return this.scheduler.getScheduledRelease(releaseId);
+  }
+
+  updateScheduledRelease(
+    releaseId: string,
+    changes: Record<string, unknown>,
+    targetId?: string,
+  ): Promise<Record<string, unknown>> {
+    return this.scheduler.updateScheduledRelease(
+      releaseId,
+      changes,
+      targetId,
+    );
+  }
+
+  controlScheduledRelease(
+    releaseId: string,
+    action: ScheduledReleaseControlAction,
+  ): Promise<Record<string, unknown>> {
+    return this.scheduler.controlScheduledRelease(releaseId, action);
   }
 
   // ── Workspace (credits / usage / brands / personas / batches / account / chat) ──

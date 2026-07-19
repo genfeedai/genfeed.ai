@@ -22,6 +22,10 @@ import {
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import {
+  handleSchedulerTool,
+  SCHEDULER_TOOL_NAMES,
+} from '@mcp/tools/scheduler.tool';
+import {
   handleSocialMessagesTool,
   SOCIAL_MESSAGES_TOOL_NAMES,
 } from '@mcp/tools/social-messages.tool';
@@ -125,6 +129,7 @@ type ExecutorKind =
   | 'account-management'
   | 'social-messages'
   | 'clip-projects'
+  | 'scheduler'
   | 'unknown';
 
 /**
@@ -154,6 +159,10 @@ const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'analyze_clip_project',
   'create_clip_project_from_youtube',
   'generate_clips',
+  // Scheduler releases — stateful publishing mutations require confirmation
+  'create_scheduled_release',
+  'update_scheduled_release',
+  'control_scheduled_release',
 ]);
 
 @Injectable()
@@ -325,6 +334,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
+    if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
     return 'unknown';
   }
 
@@ -354,6 +364,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleSocialMessagesTool(this.clientService, name, args);
       case 'clip-projects':
         return handleClipProjectsTool(this.clientService, name, args);
+      case 'scheduler':
+        return handleSchedulerTool(this.clientService, name, args);
       default:
         throw new Error(`Unknown tool: ${name}`);
     }

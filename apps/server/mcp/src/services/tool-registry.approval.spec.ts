@@ -13,6 +13,10 @@ const MOCK_TOOLS: Record<
   { name: string; requiredRole?: string; surfaces: { mcp: boolean } }
 > = {
   create_post: { name: 'create_post', surfaces: { mcp: true } },
+  create_scheduled_release: {
+    name: 'create_scheduled_release',
+    surfaces: { mcp: true },
+  },
   get_video_status: {
     name: 'get_video_status',
     requiredRole: 'user',
@@ -48,6 +52,9 @@ function build() {
     executeAgentTool: vi
       .fn()
       .mockResolvedValue({ data: { id: 'post-1' }, success: true }),
+    createScheduledRelease: vi
+      .fn()
+      .mockResolvedValue({ id: 'release-1', status: 'scheduled' }),
     getApproval: vi.fn(),
     // resolveApproval now performs the atomic CLAIM (PENDING -> APPROVED) and
     // returns the claimed approval, so its default resolves with toolName + args.
@@ -90,6 +97,28 @@ describe('ToolRegistryService — approval queue', () => {
     expect(result.isError).toBeFalsy();
     expect(result.content[0].text).toContain('requires approval');
     expect(result.content[0].text).toContain('apr-1');
+  });
+
+  it('queues scheduler mutations instead of calling the scheduler API', async () => {
+    const { client, registry } = build();
+
+    await registry.handleToolCall({
+      arguments: {
+        release: {
+          baseContent: 'Hello',
+          targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+          timezone: 'Europe/Malta',
+          title: 'Launch',
+        },
+      },
+      name: 'create_scheduled_release',
+    });
+
+    expect(client.createApproval).toHaveBeenCalledWith(
+      'create_scheduled_release',
+      expect.objectContaining({ release: expect.any(Object) }),
+    );
+    expect(client.createScheduledRelease).not.toHaveBeenCalled();
   });
 
   it('declines an approval without executing the deferred tool', async () => {

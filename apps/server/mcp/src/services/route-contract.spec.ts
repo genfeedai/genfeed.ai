@@ -123,6 +123,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/clip-projects/clip-projects.controller.ts',
     prefix: 'clip-projects',
   },
+  postGroups: {
+    file: 'collections/post-groups/controllers/post-groups.controller.ts',
+    prefix: 'post-groups',
+  },
   metaAds: {
     file: 'services/integrations/meta-ads/controllers/meta-ads.controller.ts',
     prefix: 'services/meta-ads',
@@ -427,6 +431,56 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: '',
     controller: 'clipProjects',
     tools: ['list_clip_projects'],
+  },
+
+  // ── Scheduler releases ──
+  {
+    method: 'Post',
+    sub: '',
+    controller: 'postGroups',
+    tools: ['create_scheduled_release'],
+  },
+  {
+    method: 'Get',
+    sub: ':id',
+    controller: 'postGroups',
+    tools: ['get_scheduled_release'],
+  },
+  {
+    method: 'Patch',
+    sub: ':id',
+    controller: 'postGroups',
+    tools: ['update_scheduled_release'],
+  },
+  {
+    method: 'Patch',
+    sub: ':id/targets/:targetId',
+    controller: 'postGroups',
+    tools: ['update_scheduled_release'],
+  },
+  {
+    method: 'Post',
+    sub: ':id/cancel',
+    controller: 'postGroups',
+    tools: ['control_scheduled_release'],
+  },
+  {
+    method: 'Post',
+    sub: ':id/pause',
+    controller: 'postGroups',
+    tools: ['control_scheduled_release'],
+  },
+  {
+    method: 'Post',
+    sub: ':id/resume',
+    controller: 'postGroups',
+    tools: ['control_scheduled_release'],
+  },
+  {
+    method: 'Post',
+    sub: ':id/publish-now',
+    controller: 'postGroups',
+    tools: ['control_scheduled_release'],
   },
 
   // ── Meta Ads (services/meta-ads) ──
