@@ -1,3 +1,4 @@
+import { buildSystemWorkflowMetadata } from '@genfeedai/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -145,7 +146,29 @@ describe('WorkflowApiService', () => {
     expect(
       isCanonicalSystemWorkflow({
         metadata: {
+          systemWorkflow: buildSystemWorkflowMetadata({
+            canonicalId: 'daily-trends-digest',
+          }),
+        },
+      }),
+    ).toBe(true);
+
+    expect(
+      isCanonicalSystemWorkflow({
+        metadata: {
+          duplicatedFromSystemWorkflow: {
+            canonicalId: 'daily-trends-digest',
+            sourceWorkflowId: 'system-workflow-1',
+          },
+        },
+      }),
+    ).toBe(false);
+
+    expect(
+      isCanonicalSystemWorkflow({
+        metadata: {
           systemWorkflow: {
+            canonicalId: 'daily-trends-digest',
             immutable: true,
             kind: 'system-workflow',
             owner: 'genfeed',
@@ -157,9 +180,11 @@ describe('WorkflowApiService', () => {
     expect(
       isCanonicalSystemWorkflow({
         metadata: {
-          duplicatedFromSystemWorkflow: {
+          systemWorkflow: {
             canonicalId: 'daily-trends-digest',
-            sourceWorkflowId: 'system-workflow-1',
+            immutable: true,
+            kind: 'system-workflow',
+            owner: 'tenant',
           },
         },
       }),
