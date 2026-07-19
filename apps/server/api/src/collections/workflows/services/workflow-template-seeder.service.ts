@@ -1,13 +1,18 @@
 import { type WorkflowVisualNode } from '@api/collections/workflows/schemas/workflow.schema';
 import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { areWorkflowMetadataValuesEqual } from '@api/collections/workflows/services/workflow-template-seeder-metadata.util';
 import {
   buildSystemWorkflowMetadata,
+  buildSystemWorkflowUpgradeMetadata,
   getMetadataRecord,
+  getSystemWorkflowDuplicateMetadata,
   getSystemWorkflowMetadata,
+  SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY,
   SYSTEM_WORKFLOW_METADATA_KEY,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+  type SystemWorkflowMetadata,
 } from '@api/collections/workflows/system-workflow.contract';
 import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/ad-automation-workflows.template';
 import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
@@ -131,7 +136,7 @@ export class WorkflowTemplateSeederService {
     }
 
     for (const [key, value] of Object.entries(desiredMetadata)) {
-      if (!this.areSeededMetadataValuesEqual(existingMetadata[key], value)) {
+      if (!areWorkflowMetadataValuesEqual(existingMetadata[key], value)) {
         return repairedMetadata;
       }
     }
@@ -147,46 +152,92 @@ export class WorkflowTemplateSeederService {
       : 0;
   }
 
-  private areSeededMetadataValuesEqual(left: unknown, right: unknown): boolean {
-    if (left === right) {
-      return true;
-    }
+  async reconcileSystemWorkflowDuplicates(
+    organizationId: string,
+    currentSystemWorkflow: SystemWorkflowMetadata,
+  ): Promise<void> {
+    const duplicates = await this.prisma.workflow.findMany({
+      select: { id: true, metadata: true },
+      where: {
+        isDeleted: false,
+        metadata: {
+          equals: currentSystemWorkflow.canonicalId,
+          path: [SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY, 'canonicalId'],
+        },
+        organizationId,
+      },
+    });
 
-    if (Array.isArray(left) || Array.isArray(right)) {
-      if (!Array.isArray(left) || !Array.isArray(right)) {
-        return false;
+    for (const duplicate of duplicates) {
+      const metadata = getMetadataRecord(duplicate.metadata);
+      const duplicateMetadata = getSystemWorkflowDuplicateMetadata(metadata);
+
+      if (
+        !duplicateMetadata ||
+        duplicateMetadata.canonicalId !== currentSystemWorkflow.canonicalId
+      ) {
+        this.logger?.debug(
+          'Skipped system workflow duplicate reconciliation for invalid provenance',
+          {
+            canonicalId: currentSystemWorkflow.canonicalId,
+            organizationId,
+            workflowId: duplicate.id,
+          },
+        );
+        continue;
       }
 
-      return (
-        left.length === right.length &&
-        left.every((item, index) =>
-          this.areSeededMetadataValuesEqual(item, right[index]),
-        )
+      const reconciledMetadata = buildSystemWorkflowUpgradeMetadata(
+        duplicateMetadata,
+        currentSystemWorkflow,
       );
-    }
 
-    if (this.isMetadataRecord(left) || this.isMetadataRecord(right)) {
-      if (!this.isMetadataRecord(left) || !this.isMetadataRecord(right)) {
-        return false;
+      if (
+        areWorkflowMetadataValuesEqual(duplicateMetadata, reconciledMetadata)
+      ) {
+        continue;
       }
 
-      const leftKeys = Object.keys(left);
-      const rightKeys = Object.keys(right);
-      return (
-        leftKeys.length === rightKeys.length &&
-        leftKeys.every(
-          (key) =>
-            Object.hasOwn(right, key) &&
-            this.areSeededMetadataValuesEqual(left[key], right[key]),
-        )
-      );
-    }
+      const { count } = await this.prisma.workflow.updateMany({
+        data: {
+          metadata: {
+            ...metadata,
+            [SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY]: reconciledMetadata,
+          },
+        } as never,
+        where: {
+          id: duplicate.id,
+          isDeleted: false,
+          metadata: { equals: duplicate.metadata } as never,
+          organizationId,
+        },
+      });
 
-    return false;
+      if (count === 0) {
+        this.logger?.debug(
+          'System workflow duplicate metadata changed before reconciliation; retrying on a later seed pass',
+          {
+            canonicalId: currentSystemWorkflow.canonicalId,
+            organizationId,
+            workflowId: duplicate.id,
+          },
+        );
+      }
+    }
   }
 
-  private isMetadataRecord(value: unknown): value is Record<string, unknown> {
-    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  private async reconcileDesiredSystemWorkflowDuplicates(
+    organizationId: string,
+    metadata: unknown,
+  ): Promise<void> {
+    const currentSystemWorkflow = getSystemWorkflowMetadata(metadata);
+
+    if (currentSystemWorkflow) {
+      await this.reconcileSystemWorkflowDuplicates(
+        organizationId,
+        currentSystemWorkflow,
+      );
+    }
   }
 
   /**
@@ -228,6 +279,10 @@ export class WorkflowTemplateSeederService {
           where: { id: preCheck.id },
         });
       }
+      await this.reconcileDesiredSystemWorkflowDuplicates(
+        input.organizationId,
+        input.createData.metadata,
+      );
       return;
     }
 
@@ -267,10 +322,15 @@ export class WorkflowTemplateSeederService {
           `${input.logContext}: serialization conflict - workflow already seeded by concurrent request`,
           input.logMeta,
         );
-        return;
+      } else {
+        throw error;
       }
-      throw error;
     }
+
+    await this.reconcileDesiredSystemWorkflowDuplicates(
+      input.organizationId,
+      input.createData.metadata,
+    );
   }
 
   private buildSeededTemplateCreateData(input: {
@@ -385,6 +445,10 @@ export class WorkflowTemplateSeederService {
           where: { id: preCheck.id },
         });
       }
+      await this.reconcileDesiredSystemWorkflowDuplicates(
+        organizationId,
+        createData.metadata,
+      );
       return;
     }
 
@@ -428,10 +492,15 @@ export class WorkflowTemplateSeederService {
           'ensureDailyTrendsDigestWorkflow: serialization conflict - workflow already seeded by concurrent request',
           { organizationId },
         );
-        return;
+      } else {
+        throw error;
       }
-      throw error;
     }
+
+    await this.reconcileDesiredSystemWorkflowDuplicates(
+      organizationId,
+      createData.metadata,
+    );
   }
 
   private buildDailyTrendsDigestCreateData(
