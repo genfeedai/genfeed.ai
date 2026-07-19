@@ -81,6 +81,7 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { mockModel } from '@api/helpers/mocks/model.mock';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -143,6 +144,7 @@ describe('TwitterService (coverage)', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TwitterService,
+        TwitterResponseMapper,
         { provide: ActivitiesService, useValue: activitiesService },
         { provide: ConfigService, useValue: { get: vi.fn(() => 'cfg-val') } },
         { provide: CredentialsService, useValue: credentialsService },
