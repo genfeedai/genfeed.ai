@@ -168,5 +168,6 @@ test('keeps the daily and deploy workflow correlation contract wired', () => {
   assert.match(dailyWorkflow, /orchestrator_run_id: correlationId/);
   assert.match(dailyWorkflow, /listJobsForWorkflowRun/);
   assert.match(dailyWorkflow, /failure_stage/);
-  assert.match(dailyWorkflow, /- Outcome: `\$\{outcome\}`/);
+  assert.match(dailyWorkflow, /OUTCOME: .*'failed'/);
+  assert.match(dailyWorkflow, /echo "- Outcome:/);
 });
