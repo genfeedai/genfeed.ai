@@ -132,20 +132,16 @@ module.exports = function createWebpackConfig({
       return 'commonjs node-pty';
     }
   })();
-  // `recheck` (ReDoS analyzer used by @workflow-engine/utils/safe-regex) pulls in
-  // synckit -> @pkgr/core, which reads `require.extensions`. Webpack stubs that to
-  // `(void 0)`, so bundling the chain crashes at load with
-  // `Object.keys(undefined)`. webpack-node-externals only externalizes packages
-  // hoisted to the top-level node_modules, and bun keeps recheck (a transitive
-  // dep of workflow-engine) in the `.bun` store only — so it gets bundled.
-  // Resolve recheck from the package that declares it and externalize the
-  // absolute path so it is `require()`d at runtime instead, keeping synckit and
-  // @pkgr/core out of the bundle entirely.
+  // `recheck` (ReDoS analyzer used by @genfeedai/workflows) pulls in synckit ->
+  // @pkgr/core, which reads `require.extensions`. Webpack stubs that to `(void 0)`,
+  // so bundling the chain crashes at load with `Object.keys(undefined)`.
+  // Resolve recheck from its owning package first and externalize the absolute
+  // path so it is `require()`d at runtime, keeping the chain out of the bundle.
   const recheckExternal = (() => {
     try {
       return `commonjs ${require.resolve('recheck', {
         paths: [
-          path.resolve(cloudPackagesRoot, 'workflow-engine'),
+          path.resolve(cloudPackagesRoot, 'workflows'),
           appDir,
           nodeModulesDir,
         ],
