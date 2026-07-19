@@ -43,11 +43,22 @@ vi.mock('discord.js', () => {
 
 import { Client, TextChannel } from 'discord.js';
 
+const createMockDiscordClient = () => ({
+  channels: {
+    fetch: vi.fn(),
+  },
+  destroy: vi.fn().mockResolvedValue(undefined),
+  login: vi.fn().mockResolvedValue('token'),
+  on: vi.fn(),
+  once: vi.fn(),
+  user: { id: 'bot-user-123', tag: 'TestBot#1234' },
+});
+
 describe('DiscordBotService', () => {
   let service: DiscordBotService;
   let mockConfigService: Mocked<ConfigService>;
   let mockLogger: Mocked<LoggerService>;
-  let mockClient: any;
+  let mockClient: ReturnType<typeof createMockDiscordClient>;
 
   beforeEach(async () => {
     mockConfigService = {
@@ -74,16 +85,7 @@ describe('DiscordBotService', () => {
     } as unknown as Mocked<LoggerService>;
 
     // Reset Client mock
-    mockClient = {
-      channels: {
-        fetch: vi.fn(),
-      },
-      destroy: vi.fn().mockResolvedValue(undefined),
-      login: vi.fn().mockResolvedValue('token'),
-      on: vi.fn(),
-      once: vi.fn(),
-      user: { id: 'bot-user-123', tag: 'TestBot#1234' },
-    };
+    mockClient = createMockDiscordClient();
 
     (Client as Mock).mockImplementation(() => mockClient);
 
