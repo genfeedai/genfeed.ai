@@ -6,6 +6,20 @@ import type {
 
 export const EDITOR_EXPORT_CONTRACT_VERSION = 1 as const;
 export const EDITOR_RENDERER_VERSION = 'remotion@4.0.486' as const;
+export const EDITOR_RENDER_TIMEOUT_MS = 15 * 60 * 1000;
+
+export type EditorRenderTerminalReason =
+  | 'asset_unavailable'
+  | 'cancelled'
+  | 'renderer_failed'
+  | 'timed_out'
+  | 'worker_lost';
+
+export interface IEditorRenderFailure {
+  attempt: number;
+  failedAt: string;
+  reason: EditorRenderTerminalReason;
+}
 
 export interface IEditorExportAssetReference {
   clipId: string;
@@ -46,6 +60,7 @@ export interface IEditorRenderOutputMetadata {
 
 export interface IEditorRenderCorrelation {
   authProviderUserId: string;
+  cancelRequestedAt?: string;
   ingredientId: string;
   jobId: string;
   metadataId: string;
@@ -55,6 +70,7 @@ export interface IEditorRenderCorrelation {
 
 export interface IEditorRenderProvenance extends IEditorRenderJobParams {
   completedAt?: string;
+  failure?: IEditorRenderFailure;
   job?: IEditorRenderCorrelation;
   output?: IEditorRenderOutputMetadata;
   queuedAt: string;

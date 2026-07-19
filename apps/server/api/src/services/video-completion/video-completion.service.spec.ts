@@ -16,11 +16,13 @@ describe('VideoCompletionService', () => {
   let metadataService: vi.Mocked<MetadataService>;
   let editorProjectsService: {
     findRenderingProjects: ReturnType<typeof vi.fn>;
+    markAsCancelled: ReturnType<typeof vi.fn>;
     markAsCompleted: ReturnType<typeof vi.fn>;
     markAsFailed: ReturnType<typeof vi.fn>;
     readRenderProvenance: ReturnType<typeof vi.fn>;
   };
   let fileQueueService: {
+    cancelEditorRender: ReturnType<typeof vi.fn>;
     getJobStatus: ReturnType<typeof vi.fn>;
   };
   let notificationsPublisher: {
@@ -39,11 +41,13 @@ describe('VideoCompletionService', () => {
   beforeEach(async () => {
     editorProjectsService = {
       findRenderingProjects: vi.fn().mockResolvedValue([]),
+      markAsCancelled: vi.fn().mockResolvedValue(undefined),
       markAsCompleted: vi.fn().mockResolvedValue(undefined),
       markAsFailed: vi.fn().mockResolvedValue(undefined),
       readRenderProvenance: vi.fn(),
     };
     fileQueueService = {
+      cancelEditorRender: vi.fn().mockResolvedValue(undefined),
       getJobStatus: vi.fn(),
     };
     notificationsPublisher = {
@@ -169,6 +173,50 @@ describe('VideoCompletionService', () => {
         width: 1920,
       });
       expect(notificationsPublisher.publishVideoComplete).toHaveBeenCalled();
+    });
+
+    it('marks a late output failed when cancellation wins the project CAS', async () => {
+      const editorRender = {
+        authProviderUserId: 'auth-user',
+        ingredientId: mockIngredientId,
+        jobId: 'job-123',
+        metadataId: 'metadata-123',
+        projectId: 'project-123',
+        room: 'user-auth-user',
+      };
+      editorProjectsService.markAsCompleted.mockRejectedValueOnce(
+        new Error('Render job no longer owns this project'),
+      );
+
+      await service.onModuleInit();
+      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+        .calls[0][1];
+      await subscribeCallback({
+        editorRender,
+        ingredientId: mockIngredientId,
+        organizationId: mockOrganizationId,
+        result: {
+          durationFrames: 300,
+          durationSeconds: 10,
+          fps: 30,
+          height: 1080,
+          rendererVersion: 'remotion@4.0.486',
+          s3Key: 'videos/output.mp4',
+          size: 4096,
+          url: 'https://cdn.example.com/videos/output.mp4',
+          width: 1920,
+        },
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+      });
+
+      expect(ingredientsService.patch).toHaveBeenLastCalledWith(
+        mockIngredientId,
+        { status: IngredientStatus.FAILED },
+      );
+      expect(
+        notificationsPublisher.publishVideoComplete,
+      ).not.toHaveBeenCalled();
     });
 
     it('should update ingredient status to COMPLETED on successful processing', async () => {
@@ -476,6 +524,37 @@ describe('VideoCompletionService', () => {
       mockIngredientId,
       output,
       'job-123',
+    );
+  });
+
+  it('cancels and terminally classifies a stale active render', async () => {
+    const editorRender = {
+      authProviderUserId: 'auth-user',
+      ingredientId: mockIngredientId,
+      jobId: 'job-123',
+      metadataId: 'metadata-123',
+      projectId: 'project-123',
+      room: 'user-auth-user',
+    };
+    editorProjectsService.findRenderingProjects.mockResolvedValue([
+      { id: 'project-123', organizationId: mockOrganizationId },
+    ]);
+    editorProjectsService.readRenderProvenance.mockReturnValue({
+      job: editorRender,
+      queuedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    });
+    fileQueueService.getJobStatus.mockResolvedValue({
+      jobId: 'job-123',
+      state: 'active',
+    });
+
+    await service.reconcileEditorRenders();
+
+    expect(fileQueueService.cancelEditorRender).toHaveBeenCalledWith('job-123');
+    expect(editorProjectsService.markAsFailed).toHaveBeenCalledWith(
+      'project-123',
+      'job-123',
+      expect.objectContaining({ reason: 'timed_out' }),
     );
   });
 });

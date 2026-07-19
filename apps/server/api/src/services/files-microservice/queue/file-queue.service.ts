@@ -4,6 +4,7 @@ import { JobState } from '@genfeedai/enums';
 import type {
   IFileProcessingJob,
   IFrameInput,
+  IJobCancellationResponse,
   IJobResponse,
   IJobStatusResponse,
   IQueueStats,
@@ -172,6 +173,24 @@ export class FileQueueService {
       return response.data;
     } catch (error: unknown) {
       this.loggerService.error(`Failed to get job status for ${jobId}`, error);
+      throw error;
+    }
+  }
+
+  async cancelEditorRender(jobId: string): Promise<IJobCancellationResponse> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.filesServiceUrl}/v1/files/job/${jobId}/cancel`,
+          {},
+        ),
+      );
+      return response.data;
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `Failed to cancel editor render ${jobId}`,
+        error,
+      );
       throw error;
     }
   }

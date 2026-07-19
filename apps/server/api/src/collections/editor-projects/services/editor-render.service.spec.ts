@@ -4,6 +4,7 @@ import { EditorRenderService } from '@api/collections/editor-projects/services/e
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   EditorTrackType,
@@ -78,9 +79,12 @@ describe('EditorRenderService', () => {
     findForRender: ReturnType<typeof vi.fn>;
     attachRenderJob: ReturnType<typeof vi.fn>;
     markAsFailed: ReturnType<typeof vi.fn>;
+    markAsCancelled: ReturnType<typeof vi.fn>;
     markAsRendering: ReturnType<typeof vi.fn>;
+    readRenderProvenance: ReturnType<typeof vi.fn>;
   };
   let fileQueueService: {
+    cancelEditorRender: ReturnType<typeof vi.fn>;
     processVideo: ReturnType<typeof vi.fn>;
   };
   let ingredientsService: {
@@ -96,9 +100,16 @@ describe('EditorRenderService', () => {
       attachRenderJob: vi.fn().mockResolvedValue(makeProject()),
       findForRender: vi.fn().mockResolvedValue(makeProject()),
       markAsFailed: vi.fn().mockResolvedValue(undefined),
+      markAsCancelled: vi.fn().mockResolvedValue(undefined),
       markAsRendering: vi.fn().mockResolvedValue(makeProject()),
+      readRenderProvenance: vi.fn(),
     };
     fileQueueService = {
+      cancelEditorRender: vi.fn().mockResolvedValue({
+        jobId: 'job-123',
+        requestedAt: new Date().toISOString(),
+        status: 'cancellation-requested',
+      }),
       processVideo: vi
         .fn()
         .mockImplementation(({ id }) => Promise.resolve({ jobId: id })),
@@ -144,6 +155,10 @@ describe('EditorRenderService', () => {
             log: vi.fn(),
             warn: vi.fn(),
           },
+        },
+        {
+          provide: NotificationsPublisherService,
+          useValue: { publishMediaFailed: vi.fn() },
         },
         { provide: SharedService, useValue: sharedService },
       ],
@@ -286,6 +301,34 @@ describe('EditorRenderService', () => {
     expect(editorProjectsService.markAsFailed).toHaveBeenCalledWith(
       projectId,
       expect.any(String),
+    );
+    expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
+      status: 'failed',
+    });
+  });
+
+  it('cancels the owning render job and records a retry-safe terminal state', async () => {
+    editorProjectsService.readRenderProvenance.mockReturnValue({
+      job: {
+        authProviderUserId: 'auth-provider-user',
+        ingredientId: 'output-video-123',
+        jobId: 'job-123',
+        metadataId: 'output-metadata-123',
+        projectId,
+        room: 'user-room',
+      },
+    });
+
+    await expect(service.cancel(projectId, organizationId)).resolves.toEqual({
+      jobId: 'job-123',
+      projectId,
+      status: 'cancelled',
+    });
+    expect(fileQueueService.cancelEditorRender).toHaveBeenCalledWith('job-123');
+    expect(editorProjectsService.markAsCancelled).toHaveBeenCalledWith(
+      projectId,
+      'job-123',
+      expect.objectContaining({ reason: 'cancelled' }),
     );
     expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
       status: 'failed',

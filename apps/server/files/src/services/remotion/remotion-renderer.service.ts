@@ -1,28 +1,51 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { RemotionRenderCancellationService } from '@files/services/remotion/remotion-render-cancellation.service';
 import {
+  EDITOR_RENDER_TIMEOUT_MS,
   EDITOR_RENDERER_VERSION,
   type IEditorRenderJobParams,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { bundle } from '@remotion/bundler';
-import { renderMedia, selectComposition } from '@remotion/renderer';
+import {
+  makeCancelSignal,
+  renderMedia,
+  selectComposition,
+} from '@remotion/renderer';
 import { VERSION as INSTALLED_REMOTION_VERSION } from 'remotion/version';
 
 const COMPOSITION_ID = 'EditorComposition';
-const RENDER_TIMEOUT_MS = 15 * 60 * 1000;
+
+export class EditorRenderCancelledError extends Error {
+  constructor() {
+    super('Editor render was cancelled.');
+    this.name = EditorRenderCancelledError.name;
+  }
+}
+
+export class EditorRenderTimeoutError extends Error {
+  constructor() {
+    super('Editor render exceeded its time limit.');
+    this.name = EditorRenderTimeoutError.name;
+  }
+}
 
 @Injectable()
 export class RemotionRendererService {
   private bundlePromise?: Promise<string>;
 
-  constructor(private readonly logger: LoggerService) {}
+  constructor(
+    private readonly logger: LoggerService,
+    private readonly cancellationService: RemotionRenderCancellationService,
+  ) {}
 
   async render(
     params: IEditorRenderJobParams,
     outputLocation: string,
     onProgress: (progress: number) => void,
+    jobId: string = params.snapshot.projectId,
   ): Promise<void> {
     const expectedVersion = EDITOR_RENDERER_VERSION.replace('remotion@', '');
     if (INSTALLED_REMOTION_VERSION !== expectedVersion) {
@@ -36,30 +59,55 @@ export class RemotionRendererService {
       );
     }
 
-    const serveUrl = await this.getBundle();
-    const inputProps = { snapshot: params.snapshot };
-    const composition = await selectComposition({
-      id: COMPOSITION_ID,
-      inputProps,
-      serveUrl,
+    const renderCancellation = makeCancelSignal();
+    let rejectLifecycle: ((error: Error) => void) | undefined;
+    const lifecycleAbort = new Promise<never>((_resolve, reject) => {
+      rejectLifecycle = reject;
     });
+    const cancel = () => {
+      renderCancellation.cancel();
+      rejectLifecycle?.(new EditorRenderCancelledError());
+    };
+    const unregister = this.cancellationService.register(jobId, cancel);
+    const timeoutId = setTimeout(() => {
+      renderCancellation.cancel();
+      rejectLifecycle?.(new EditorRenderTimeoutError());
+    }, EDITOR_RENDER_TIMEOUT_MS);
 
-    await renderMedia({
-      audioCodec: 'aac',
-      chromiumOptions: { enableMultiProcessOnLinux: true },
-      codec: 'h264',
-      composition,
-      concurrency: 1,
-      disallowParallelEncoding: true,
-      inputProps,
-      logLevel: 'warn',
-      offthreadVideoThreads: 1,
-      onProgress: ({ progress }) => onProgress(progress),
-      outputLocation,
-      overwrite: true,
-      serveUrl,
-      timeoutInMilliseconds: RENDER_TIMEOUT_MS,
-    });
+    try {
+      const renderOperation = (async () => {
+        const serveUrl = await this.getBundle();
+        const inputProps = { snapshot: params.snapshot };
+        const composition = await selectComposition({
+          id: COMPOSITION_ID,
+          inputProps,
+          serveUrl,
+        });
+
+        await renderMedia({
+          audioCodec: 'aac',
+          cancelSignal: renderCancellation.cancelSignal,
+          chromiumOptions: { enableMultiProcessOnLinux: true },
+          codec: 'h264',
+          composition,
+          concurrency: 1,
+          disallowParallelEncoding: true,
+          inputProps,
+          logLevel: 'warn',
+          offthreadVideoThreads: 1,
+          onProgress: ({ progress }) => onProgress(progress),
+          outputLocation,
+          overwrite: true,
+          serveUrl,
+          timeoutInMilliseconds: EDITOR_RENDER_TIMEOUT_MS,
+        });
+      })();
+
+      await Promise.race([renderOperation, lifecycleAbort]);
+    } finally {
+      clearTimeout(timeoutId);
+      unregister();
+    }
   }
 
   private getBundle(): Promise<string> {
@@ -74,7 +122,7 @@ export class RemotionRendererService {
     const prebuiltBundle = this.resolvePrebuiltBundle();
     if (prebuiltBundle) {
       this.logger.log('Using prebuilt editor Remotion bundle', {
-        prebuiltBundle,
+        bundleSource: 'prebuilt',
         rendererVersion: EDITOR_RENDERER_VERSION,
       });
       return prebuiltBundle;
@@ -82,7 +130,7 @@ export class RemotionRendererService {
 
     const entryPoint = this.resolveEntryPoint();
     this.logger.log('Bundling pinned editor Remotion composition', {
-      entryPoint,
+      bundleSource: 'runtime',
       rendererVersion: EDITOR_RENDERER_VERSION,
     });
 

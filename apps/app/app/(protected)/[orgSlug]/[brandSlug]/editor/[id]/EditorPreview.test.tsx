@@ -32,16 +32,16 @@ vi.mock('remotion', () => ({
     </div>
   ),
   Audio: (props: {
-    endAt?: number;
     src: string;
-    startFrom?: number;
+    trimAfter?: number;
+    trimBefore?: number;
     volume?: number;
   }) => <div data-testid="audio" data-props={JSON.stringify(props)} />,
   OffthreadVideo: (props: {
-    endAt?: number;
     src: string;
-    startFrom?: number;
     style?: React.CSSProperties;
+    trimAfter?: number;
+    trimBefore?: number;
     volume?: number;
   }) => <div data-testid="video" data-props={JSON.stringify(props)} />,
   Sequence: ({
@@ -61,6 +61,7 @@ vi.mock('remotion', () => ({
       {children}
     </div>
   ),
+  useCurrentFrame: vi.fn(() => 45),
   useVideoConfig: vi.fn(() => ({ fps: 30, height: 1080, width: 1920 })),
 }));
 
@@ -74,8 +75,11 @@ vi.mock('@remotion/player', async () => {
         inputProps,
         ...props
       }: {
-        component: React.ComponentType<{ tracks: unknown[] }>;
-        inputProps: { tracks: unknown[] };
+        component: React.ComponentType<{
+          backgroundColor: string;
+          tracks: unknown[];
+        }>;
+        inputProps: { backgroundColor: string; tracks: unknown[] };
       },
       ref,
     ) => {
@@ -164,7 +168,7 @@ describe('EditorPreview', () => {
             isMuted: false,
             name: 'Video',
             type: EditorTrackType.VIDEO,
-            volume: 100,
+            volume: 50,
           },
           {
             clips: [
@@ -240,6 +244,7 @@ describe('EditorPreview', () => {
             volume: 100,
           },
         ]}
+        backgroundColor="#123456"
         width={1080}
         height={1920}
         fps={24}
@@ -259,10 +264,13 @@ describe('EditorPreview', () => {
       screen.getByTestId('video').getAttribute('data-props') ?? '{}',
     );
     expect(videoProps).toMatchObject({
-      endAt: 120,
       src: 'https://example.test/video.mp4',
-      startFrom: 15,
-      volume: 0.8,
+      trimAfter: 120,
+      trimBefore: 15,
+      volume: 0.4,
+    });
+    expect(screen.getAllByTestId('absolute-fill')[0]).toHaveStyle({
+      backgroundColor: '#123456',
     });
 
     const filteredFill = screen
@@ -277,9 +285,9 @@ describe('EditorPreview', () => {
       screen.getByTestId('audio').getAttribute('data-props') ?? '{}',
     );
     expect(audioProps).toMatchObject({
-      endAt: 150,
       src: 'https://example.test/audio.mp3',
-      startFrom: 30,
+      trimAfter: 150,
+      trimBefore: 30,
       volume: 0.3,
     });
   });

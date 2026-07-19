@@ -211,6 +211,25 @@ describe('FileQueueService', () => {
     });
   });
 
+  describe('cancelEditorRender', () => {
+    it('requests cancellation from the files service', async () => {
+      const cancellation = {
+        jobId: 'job_123',
+        requestedAt: '2026-07-19T00:00:00.000Z',
+        status: 'cancellation-requested' as const,
+      };
+      vi.spyOn(httpService, 'post').mockReturnValue(httpResponse(cancellation));
+
+      await expect(service.cancelEditorRender('job_123')).resolves.toEqual(
+        cancellation,
+      );
+      expect(httpService.post).toHaveBeenCalledWith(
+        'http://localhost:3012/v1/files/job/job_123/cancel',
+        {},
+      );
+    });
+  });
+
   describe('waitForJob', () => {
     it('should wait for job completion', async () => {
       const jobId = 'job_123';
