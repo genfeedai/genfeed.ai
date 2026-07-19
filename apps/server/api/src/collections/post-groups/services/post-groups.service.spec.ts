@@ -1,3 +1,5 @@
+import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
+import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -173,6 +175,8 @@ describe('PostGroupsService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        PostGroupContractService,
+        PostGroupPersistenceService,
         PostGroupsService,
         {
           provide: PrismaService,
