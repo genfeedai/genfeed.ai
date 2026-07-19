@@ -144,9 +144,7 @@ export class AgentRunsOperationsService {
     return run;
   }
 
-  private resolveThreadId(
-    run: Pick<AgentRunDocument, 'thread' | 'threadId'>,
-  ): string | undefined {
+  private resolveThreadId(run: AgentRunDocument): string | undefined {
     const populatedThread = run.thread as
       | LegacyPopulatedThreadReference
       | undefined;
