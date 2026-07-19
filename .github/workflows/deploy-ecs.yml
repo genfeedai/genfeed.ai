@@ -9,10 +9,15 @@
 # difference between the two is this file's `qa-before-deploy` gate, which the
 # fastlane path deliberately skips.
 name: Deploy ECS (production)
+run-name: ${{ inputs.orchestrator_run_id != '' && format('Deploy ECS (production) · daily:{0}', inputs.orchestrator_run_id) || 'Deploy ECS (production)' }}
 
 on:
   workflow_dispatch:
     inputs:
+      orchestrator_run_id:
+        description: "optional unique correlation id for an orchestrating workflow"
+        required: false
+        default: ""
       image_tag:
         description: "server image tag to deploy (default: current SHA)"
         required: false
