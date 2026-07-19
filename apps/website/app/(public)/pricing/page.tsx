@@ -4,7 +4,7 @@ import PricingContent from '@public/pricing/pricing-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing',
-  'Free to sign up — credits buy the output you generate. Subscriptions from $49/mo include monthly credits at a better rate, paid API access, and shared team seats; Scale unlocks unlimited seats.',
+  'Free to sign up — credits buy the output you generate. Subscriptions from $49/mo include monthly credits at a better rate, paid API access, and unlimited team seats; Scale adds multi-organization workflows.',
   '/pricing',
 );
 
