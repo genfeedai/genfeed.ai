@@ -334,16 +334,6 @@ describe('EditorRenderService', () => {
     expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
       status: 'failed',
     });
-    expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
-      CACHE_PATTERNS.EDITOR_PROJECTS_LIST(organizationId),
-      CACHE_PATTERNS.EDITOR_PROJECTS_SINGLE(projectId),
-      CACHE_PATTERNS.INGREDIENTS_LIST(organizationId),
-      CACHE_PATTERNS.INGREDIENTS_SINGLE('output-video-123'),
-    );
-    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
-      CACHE_TAGS.EDITOR_PROJECTS,
-      CACHE_TAGS.INGREDIENTS,
-    ]);
   });
 
   it('cancels the owning render job and records a retry-safe terminal state', async () => {
@@ -372,6 +362,16 @@ describe('EditorRenderService', () => {
     expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
       status: 'failed',
     });
+    expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+      CACHE_PATTERNS.EDITOR_PROJECTS_LIST(organizationId),
+      CACHE_PATTERNS.EDITOR_PROJECTS_SINGLE(projectId),
+      CACHE_PATTERNS.INGREDIENTS_LIST(organizationId),
+      CACHE_PATTERNS.INGREDIENTS_SINGLE('output-video-123'),
+    );
+    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+      CACHE_TAGS.EDITOR_PROJECTS,
+      CACHE_TAGS.INGREDIENTS,
+    ]);
   });
 
   it('does not repeat cancellation side effects after another writer wins', async () => {
@@ -400,6 +400,15 @@ describe('EditorRenderService', () => {
 
     expect(ingredientsService.patch).not.toHaveBeenCalled();
     expect(notificationsPublisher.publishMediaFailed).not.toHaveBeenCalled();
-    expect(cacheInvalidationService.invalidate).toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+      CACHE_PATTERNS.EDITOR_PROJECTS_LIST(organizationId),
+      CACHE_PATTERNS.EDITOR_PROJECTS_SINGLE(projectId),
+      CACHE_PATTERNS.INGREDIENTS_LIST(organizationId),
+      CACHE_PATTERNS.INGREDIENTS_SINGLE('output-video-123'),
+    );
+    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+      CACHE_TAGS.EDITOR_PROJECTS,
+      CACHE_TAGS.INGREDIENTS,
+    ]);
   });
 });
