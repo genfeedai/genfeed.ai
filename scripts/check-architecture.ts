@@ -77,6 +77,10 @@ const checks = [
     ],
     name: 'Agent decomposition size ratchet',
   },
+  {
+    command: ['bun', 'run', 'scripts/ci/nightly-test-workspace-inventory.ts'],
+    name: 'Nightly test workspace inventory',
+  },
 ] as const;
 
 let failed = false;
