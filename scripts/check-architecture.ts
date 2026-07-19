@@ -29,6 +29,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-deterministic-locale.ts',
+    ],
+    name: 'Deterministic locale boundary',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-server-package-boundary.ts',
     ],
     name: 'Shared server package API boundary',

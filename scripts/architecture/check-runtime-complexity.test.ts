@@ -7,6 +7,7 @@ import {
   discoverChangedRuntimeFiles,
   runRuntimeComplexityCheck,
 } from './check-runtime-complexity';
+import './check-deterministic-locale.test';
 
 describe('check-runtime-complexity', () => {
   let rootDir = '';
