@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   assertSignupMagicLinkCanCreateUser,
   buildBetterAuthOrganizationOptions,
+  buildBetterAuthUserDatabaseHooks,
   buildRateLimitStorage,
   createBetterAuthInstance,
   resolveBetterAuthJwtAccess,
@@ -16,6 +17,19 @@ import type {
 } from './better-auth.types';
 
 type PrismaForBetterAuth = ICreateBetterAuthOptions['prisma'];
+
+function requireUserCreateHooks(
+  onUserCreated?: ICreateBetterAuthOptions['onUserCreated'],
+) {
+  const createHooks =
+    buildBetterAuthUserDatabaseHooks(onUserCreated).user?.create;
+  const before = createHooks?.before;
+  const after = createHooks?.after;
+  if (!before || !after) {
+    throw new Error('Better Auth user-create hooks are required');
+  }
+  return { after, before };
+}
 
 function createPrismaMock() {
   return {
@@ -341,6 +355,88 @@ describe('buildBetterAuthOrganizationOptions', () => {
   });
 });
 
+describe('buildBetterAuthUserDatabaseHooks', () => {
+  it('generates a URL-safe handle when first-time user creation has none', async () => {
+    const hooks = requireUserCreateHooks();
+
+    const result = await hooks.before({
+      email: 'New.User+Test@example.com',
+      name: 'New User',
+    } as never);
+
+    expect(result).toEqual({
+      data: expect.objectContaining({
+        email: 'New.User+Test@example.com',
+        handle: expect.stringMatching(/^new-user-test-[0-9a-f]{8}$/),
+        name: 'New User',
+      }),
+    });
+  });
+
+  it('preserves an existing handle', async () => {
+    const hooks = requireUserCreateHooks();
+    const user = {
+      email: 'existing@example.com',
+      handle: 'existing-handle',
+    };
+
+    await expect(hooks.before(user as never)).resolves.toEqual({
+      data: user,
+    });
+  });
+
+  it('passes the canonical user id and email to provisioning', async () => {
+    const onUserCreated = vi.fn().mockResolvedValue(undefined);
+    const hooks = requireUserCreateHooks(onUserCreated);
+
+    await hooks.after({
+      email: 'new@example.com',
+      id: 'user_canonical',
+    } as never);
+
+    expect(onUserCreated).toHaveBeenCalledWith({
+      email: 'new@example.com',
+      userId: 'user_canonical',
+    });
+  });
+
+  it('awaits provisioning and propagates failures', async () => {
+    const provisioningError = new Error('provisioning failed');
+    const onUserCreated = vi.fn().mockRejectedValue(provisioningError);
+    const hooks = requireUserCreateHooks(onUserCreated);
+
+    await expect(
+      hooks.after({
+        email: 'new@example.com',
+        id: 'user_canonical',
+      } as never),
+    ).rejects.toBe(provisioningError);
+  });
+
+  it('normalizes a missing provisioning email to null', async () => {
+    const onUserCreated = vi.fn().mockResolvedValue(undefined);
+    const hooks = requireUserCreateHooks(onUserCreated);
+
+    await hooks.after({ id: 'user_without_email' } as never);
+
+    expect(onUserCreated).toHaveBeenCalledWith({
+      email: null,
+      userId: 'user_without_email',
+    });
+  });
+
+  it('does not require a provisioning callback', async () => {
+    const hooks = requireUserCreateHooks();
+
+    await expect(
+      hooks.after({
+        email: 'new@example.com',
+        id: 'user_without_callback',
+      } as never),
+    ).resolves.toBeUndefined();
+  });
+});
+
 describe('assertSignupMagicLinkCanCreateUser', () => {
   it('does not query for normal login magic links', async () => {
     const prisma = createPrismaMock();
@@ -476,5 +572,8 @@ describe('createBetterAuthInstance source', () => {
 
     expect(source).toContain('additionalFields');
     expect(source).toMatch(/handle:\s*\{/);
+    expect(source).toContain(
+      'databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated)',
+    );
   });
 });
