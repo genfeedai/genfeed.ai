@@ -282,10 +282,17 @@ export class EditorRenderService {
           ...validatedContract.snapshot,
           tracks: validatedContract.snapshot.tracks.map((track) => ({
             ...track,
-            clips: track.clips.map((clip) => ({
-              ...clip,
-              ingredientUrl: trustedUrl(clip.id),
-            })),
+            clips:
+              track.type === EditorTrackType.TEXT
+                ? track.clips.map((clip) => ({
+                    ...clip,
+                    ingredientId: '',
+                    ingredientUrl: '',
+                  }))
+                : track.clips.map((clip) => ({
+                    ...clip,
+                    ingredientUrl: trustedUrl(clip.id),
+                  })),
           })),
         },
       },

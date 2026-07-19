@@ -192,7 +192,8 @@ describe('EditorRenderService', () => {
     ]);
     const textTrack = makeTrack(EditorTrackType.TEXT, [
       makeClip('text-1', '', {
-        ingredientUrl: '',
+        ingredientId: 'untrusted-text-asset',
+        ingredientUrl: 'https://untrusted.example/text-asset',
         textOverlay: {
           color: '#ffffff',
           fontSize: 48,
@@ -230,6 +231,17 @@ describe('EditorRenderService', () => {
                     ingredientUrl: 'https://cdn.genfeed.ai/videos/video-123',
                   }),
                 ]),
+              }),
+              expect.objectContaining({
+                clips: [
+                  expect.objectContaining({
+                    id: 'text-1',
+                    ingredientId: '',
+                    ingredientUrl: '',
+                    textOverlay: expect.objectContaining({ text: 'Launch' }),
+                  }),
+                ],
+                type: EditorTrackType.TEXT,
               }),
             ]),
           }),
