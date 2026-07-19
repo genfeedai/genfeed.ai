@@ -12,7 +12,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [VideoCompletionService],
   imports: [
     RedisModule,
-    forwardRef(() => ClipProjectsCoreModule),
+    ClipProjectsCoreModule,
     forwardRef(() => EditorProjectsModule),
     forwardRef(() => FileQueueModule),
     forwardRef(() => IngredientsModule),
