@@ -18,6 +18,12 @@ import {
   AgentApiRequestError,
 } from '@genfeedai/agent/services/agent-api-error';
 import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
+import {
+  buildAgentRunBrandQuery,
+  buildAgentRunsQuery,
+  createAgentRunPage,
+  type ListAgentRunsParams,
+} from '@genfeedai/agent/services/agent-run-api.helpers';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import type {
   AgentContentMentionsResponse,
@@ -40,12 +46,7 @@ export interface CredentialMentionItem {
   avatar: string | null;
 }
 
-export interface ListAgentRunsParams {
-  brandId?: string;
-  limit?: number;
-  page?: number;
-  status?: string;
-}
+export type { ListAgentRunsParams } from '@genfeedai/agent/services/agent-run-api.helpers';
 
 export interface AgentInstallReadiness {
   authMode: 'better_auth' | 'none';
@@ -447,18 +448,8 @@ export class AgentApiService extends AgentBaseApiService {
     params: ListAgentRunsParams = {},
     signal?: AbortSignal,
   ): Effect.Effect<AgentRunPage, AgentApiError> {
-    const query = new URLSearchParams();
-    query.set('limit', String(params.limit ?? 10));
-    query.set('page', String(params.page ?? 1));
-    if (params.brandId) {
-      query.set('brand', params.brandId);
-    }
-    if (params.status) {
-      query.set('status', params.status);
-    }
-
     return this.fetchJsonEffect<JsonApiResponseDocument>(
-      `${this.config.baseUrl}/runs?${query.toString()}`,
+      `${this.config.baseUrl}/runs?${buildAgentRunsQuery(params)}`,
       { signal },
       'Failed to fetch agent runs',
     ).pipe(
@@ -467,15 +458,7 @@ export class AgentApiService extends AgentBaseApiService {
           document,
           'Failed to deserialize agent runs',
         ).pipe(
-          Effect.map((runs) => ({
-            pagination: document.links?.pagination ?? {
-              limit: params.limit ?? 10,
-              page: params.page ?? 1,
-              pages: runs.length > 0 ? 1 : 0,
-              total: runs.length,
-            },
-            runs,
-          })),
+          Effect.map((runs) => createAgentRunPage(document, runs, params)),
         ),
       ),
     );
@@ -486,12 +469,8 @@ export class AgentApiService extends AgentBaseApiService {
     brandId?: string,
     signal?: AbortSignal,
   ): Effect.Effect<AgentRunSummary, AgentApiError> {
-    const query = brandId
-      ? `?${new URLSearchParams({ brand: brandId }).toString()}`
-      : '';
-
     return this.fetchResourceEffect<AgentRunSummary>(
-      `${this.config.baseUrl}/runs/${runId}${query}`,
+      `${this.config.baseUrl}/runs/${runId}${buildAgentRunBrandQuery(brandId)}`,
       { signal },
       'Failed to fetch agent run',
       'Failed to deserialize agent run',
@@ -503,12 +482,8 @@ export class AgentApiService extends AgentBaseApiService {
     signal?: AbortSignal,
     brandId?: string,
   ): Effect.Effect<AgentRunSummary, AgentApiError> {
-    const query = brandId
-      ? `?${new URLSearchParams({ brand: brandId }).toString()}`
-      : '';
-
     return this.fetchResourceEffect<AgentRunSummary>(
-      `${this.config.baseUrl}/runs/${runId}/cancellations${query}`,
+      `${this.config.baseUrl}/runs/${runId}/cancellations${buildAgentRunBrandQuery(brandId)}`,
       { method: 'POST', signal },
       'Failed to cancel active agent run',
       'Failed to deserialize agent run',
@@ -520,12 +495,8 @@ export class AgentApiService extends AgentBaseApiService {
     signal?: AbortSignal,
     brandId?: string,
   ): Effect.Effect<AgentRunSummary, AgentApiError> {
-    const query = brandId
-      ? `?${new URLSearchParams({ brand: brandId }).toString()}`
-      : '';
-
     return this.fetchResourceEffect<AgentRunSummary>(
-      `${this.config.baseUrl}/runs/${runId}/retries${query}`,
+      `${this.config.baseUrl}/runs/${runId}/retries${buildAgentRunBrandQuery(brandId)}`,
       { method: 'POST', signal },
       'Failed to retry agent run',
       'Failed to deserialize agent run',

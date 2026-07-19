@@ -61,11 +61,6 @@ flags:
       - apps/server/api/
     carryforward: true
 
-  api-e2e:
-    paths:
-      - apps/server/api/
-    carryforward: false
-
   packages:
     paths:
       - packages/

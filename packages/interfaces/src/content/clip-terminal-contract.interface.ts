@@ -41,6 +41,10 @@ export type ClipResultMode = (typeof CLIP_RESULT_MODES)[number];
 /** Default mode for existing/avatar clip-results (matches the DB column default). */
 export const DEFAULT_CLIP_RESULT_MODE: ClipResultMode = 'avatar';
 
+export function isClipResultMode(value: unknown): value is ClipResultMode {
+  return CLIP_RESULT_MODES.some((mode) => mode === value);
+}
+
 export const CLIP_READINESS_STATES = [
   'pending',
   'ready',

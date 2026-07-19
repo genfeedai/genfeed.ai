@@ -6,7 +6,12 @@
  * - Cancelling queued or active runs
  * - Queue statistics
  */
+import { ActionOrigin } from '@genfeedai/enums';
 import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
+import {
+  resolveNestedActionOrigin,
+  sanitizeActionOriginContext,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -35,6 +40,12 @@ export class AgentRunQueueService implements OnModuleInit {
   async queueRun(data: AgentRunJobData): Promise<string> {
     const url = `${this.logContext} ${CallerUtil.getCallerName()}`;
     const jobId = `agent-run-${data.runId}`;
+    const payload: AgentRunJobData = {
+      ...data,
+      actionContext: sanitizeActionOriginContext(
+        data.actionContext ?? resolveNestedActionOrigin(ActionOrigin.AGENT),
+      ),
+    };
 
     // Check for existing job to prevent duplicates
     const existingJob = await this.agentRunQueue.getJob(jobId);
@@ -49,7 +60,7 @@ export class AgentRunQueueService implements OnModuleInit {
       await existingJob.remove();
     }
 
-    const job = await this.agentRunQueue.add('execute-agent-run', data, {
+    const job = await this.agentRunQueue.add('execute-agent-run', payload, {
       attempts: 3,
       backoff: { delay: 5000, type: 'exponential' },
       jobId,

@@ -41,7 +41,10 @@ const nextConfig: NextConfig = {
   },
   output: 'standalone',
   transpilePackages: [
+    '@genfeedai/agent',
     '@genfeedai/desktop-contracts',
+    '@genfeedai/enums',
+    '@genfeedai/helpers',
     '@genfeedai/hooks',
     '@genfeedai/interfaces',
     '@genfeedai/contexts',

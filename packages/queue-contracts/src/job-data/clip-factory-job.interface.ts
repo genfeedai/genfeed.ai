@@ -4,6 +4,8 @@
  * Isolated queue so the clip-factory workload can be moved to a dedicated
  * worker instance without code changes.
  */
+import type { ClipResultMode } from '@genfeedai/interfaces';
+
 export const AVATAR_VIDEO_PROVIDER_NAMES = [
   'heygen',
   'did',
@@ -35,9 +37,14 @@ export const CLIP_FACTORY_CONCURRENCY = 2;
 export interface ClipFactoryJobData {
   projectId: string;
   youtubeUrl: string;
-  avatarId: string;
-  voiceId: string;
-  avatarProvider: SupportedAvatarVideoProviderName;
+  /** Defaults to avatar for backward-compatible producers. */
+  mode?: ClipResultMode;
+  /** Required only when mode is avatar. */
+  avatarId?: string;
+  /** Required only when mode is avatar. */
+  voiceId?: string;
+  /** Required only when mode is avatar. */
+  avatarProvider?: SupportedAvatarVideoProviderName;
   maxClips: number;
   minViralityScore: number;
   language: string;

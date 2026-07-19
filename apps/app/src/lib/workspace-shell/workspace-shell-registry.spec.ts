@@ -31,11 +31,11 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(209);
+    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(211);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(209);
+    ).toBe(211);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -211,7 +211,26 @@ describe('workspace shell trusted registry', () => {
     ).toBe('placeholder');
   });
 
+  it('registers the Connect Genfeed resolver and organization flow explicitly', () => {
+    expect(resolveWorkspaceShellRoute('/connect')).toMatchObject({
+      accessPolicy: 'authenticated',
+      canonicalUrl: '/connect',
+      safeFallback: '/connect',
+      scope: 'personal',
+      surfaceKey: 'connect-genfeed-resolver',
+    });
+    expect(resolveWorkspaceShellRoute('/acme/~/connect')).toMatchObject({
+      accessPolicy: 'organization-member',
+      canonicalUrl: '/:orgSlug/~/connect',
+      safeFallback: '/:orgSlug/~/connect',
+      scope: 'organization',
+      surfaceKey: 'connect-genfeed',
+    });
+  });
+
   it('does not treat reserved application prefixes as scoped routes', () => {
+    expect(resolveWorkspaceShellRoute('/connect/~/overview')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/connect/example/posts')).toBeNull();
     expect(resolveWorkspaceShellRoute('/settings/~/overview')).toBeNull();
     expect(resolveWorkspaceShellRoute('/settings/example/posts')).toBeNull();
     expect(resolveWorkspaceShellRoute('/admin/~/overview')).toBeNull();

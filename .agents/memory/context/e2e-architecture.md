@@ -1,6 +1,6 @@
 # E2E Architecture — Genfeed.ai
 
-> **Last verified:** 2026-06-29 (against workflow files on `master`; latest live run not checked in this memory pass)
+> **Last verified:** 2026-07-17 (against workflow files on `master`; latest live run not checked in this memory pass)
 > **Source of truth:** `.github/workflows/e2e.yml`, `playwright/`, `apps/server/api/test/`, `packages/prisma/`
 
 End-to-end testing runs **entirely on GitHub-hosted runners** (free for this public/OSS repo).
@@ -40,13 +40,14 @@ Top-level env: `TURBO_TOKEN` (secret) + `TURBO_TEAM` (var) enable Turborepo remo
 
 ---
 
-## 2. Jobs (6 — the frontend suite is now sharded 12-way with a gate aggregator)
+## 2. Jobs (7 — the frontend suite is sharded 4-way, with separate API core/full tiers)
 
 | Job id | Display name | Runner / timeout | Blocking? | What it runs |
 |---|---|---|---|---|
 | `e2e-route-coverage` | E2E Route Coverage Gate | ubuntu / 5m | **yes** (via gate) | `node scripts/e2e-route-coverage.mjs` |
-| `e2e-api` | API E2E Tests | ubuntu / 20m | **yes** (via gate) | Postgres + Redis service containers, package build, Prisma migrate deploy, `test:e2e:ci` |
-| `e2e-frontend` | Frontend E2E (Shard N/12) | ubuntu / 45m | **yes** (via gate) | matrix 12 shards, `fail-fast:false`, `bun run test:e2e:sharded -- --reporter=blob` |
+| `e2e-api` | API E2E Tests | ubuntu / 20m | **yes** (via gate) | Postgres + Redis service containers, package build, Prisma migrate deploy, `test:e2e:core` |
+| `e2e-api-full` | API E2E Full | ubuntu / 30m | **manual/nightly only** | Discovery-based compatible E2E/integration suite; skipped on production `workflow_call` |
+| `e2e-frontend` | Frontend E2E (Shard N/4) | ubuntu / 45m | **yes** (via gate) | matrix 4 shards, `fail-fast:false`, `bun run test:e2e:sharded -- --reporter=blob` |
 | `e2e-merge-reports` | Merge E2E Reports | ubuntu / 10m | no (`if: always()`) | `playwright merge-reports` → single HTML report |
 | `e2e-gate` | E2E Gate (all shards) | ubuntu / 5m | **yes — the aggregator** | bash check of `e2e-route-coverage` + `e2e-frontend` + `e2e-api` results (fails on any required job failure OR cancellation) |
 | `e2e-frontend-authed` | Frontend Authed E2E (real Better Auth) | ubuntu / 40m | **yes on nightly cron** (`continue-on-error` on all other events; gated by `E2E_AUTHED_ENABLED` var) | hermetic full stack: Postgres+Redis containers, `prisma migrate deploy`, real API on :3010, `bun run test:e2e:authed` |
@@ -77,7 +78,10 @@ workflow** — it now lives in `coverage.yml` (weekly), not here. The old single
   (`REPLICATE_API_TOKEN`, `STRIPE_SECRET_KEY`, and auth secrets use test-safe values).
 - **Steps:** checkout → Bun 1.3.14 via `.github/actions/setup-bun-env` → cache bun/turbo → `bun install` →
   `bunx turbo run build --filter="./packages/*"` →
-  `bunx prisma migrate deploy` (cwd `packages/prisma`) → `test:e2e:ci` → codecov (flag `api-e2e`, non-fatal).
+  `bunx prisma migrate deploy` (cwd `packages/prisma`) → `test:e2e:core` → codecov (flag `api-e2e`, non-fatal).
+- `e2e-api-full` uses the same hermetic Postgres/Redis/migration boundary, runs `test:e2e:full`,
+  writes discovered/selected/executed/excluded/failed counts to the job summary, and uploads its JSON report.
+  It is intentionally skipped when `e2e.yml` is called by the production full-suite workflow.
 - The API E2E job is enabled and required by `e2e-gate`; it has no `continue-on-error`.
 
 ### 2.3 `e2e-frontend` — Playwright core
@@ -182,11 +186,16 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 
 - **Runner:** Vitest (NOT Jest). `vitest.config.e2e.ts` loads `unplugin-swc` for NestJS decorator metadata,
   disables OXC. Pool `threads`, `maxWorkers: 1` (serial, avoids DB contention), 60s timeout, setup `test/setup.ts`.
-- **CI subset** (`test:e2e:ci`) runs only 3 files:
+- **Core tier** (`test:e2e:core`) preserves the five release-critical files in
+  `scripts/api-e2e-tiers.manifest.ts`:
   - `test/e2e/integrations.e2e-spec.ts` — org integrations CRUD over HTTP (the only full HTTP suite in CI).
+  - `test/integration/generation-credit-decrement.integration.spec.ts` — real Postgres credit decrement behavior.
   - `test/integration/payment-processing.integration.spec.ts` — Stripe flow (mocked).
   - `test/integration/health.e2e-spec.spec.ts` — unit-level `HealthController` (no HTTP/DB).
-- **Full suite** (`test:e2e`, not in CI): + organizations / brands / auth / tasks e2e specs and other integration specs.
+  - `test/integration/stripe-webhook-credit-grant.integration.spec.ts` — signed Stripe webhook credit grants.
+- **Full tier** (`test:e2e:full`) recursively discovers every `*spec.ts` file under
+  `test/e2e` and `test/integration`, then removes only entries from the typed exclusion manifest.
+  Every exclusion has a reason and tracking issue. Manual and nightly Actions runs execute this tier.
 - **DB lifecycle:** `TestDatabaseHelper` (`test/e2e-test.module.ts`) — `beforeEach` `clearDatabase()` deletes in
   FK-safe order then `seedCollection()` (normalizes ids and uppercases enums). No `afterAll`
   truncation (safe only because `maxWorkers: 1`).
@@ -210,8 +219,8 @@ Fixtures: `auth.fixture.ts` (`authenticatedPage`, `adminPage`, `automationPage`,
 
 ## 6. Known risks / debt (gardening backlog)
 
-- **Hardcoded CI file list** in `test:e2e:ci` — rename/move any of the 3 files → CI silently runs fewer tests.
-- **Only 3 of ~11 API specs run in CI** — organizations/brands/auth/tasks never exercised by CI.
+- The release/deploy core tier remains intentionally small; broad API E2E coverage belongs to the
+  manual/nightly full tier until its reliability supports promotion.
 - **`health.e2e-spec.ts`** (HTTP version) imports `@test/app.module` which does not exist — would fail if added.
 - **`tasks.e2e-spec.ts`** passes a `schemas` option that `E2ETestModule.forRoot` silently ignores
   (data-layer porting artifact).
@@ -236,5 +245,6 @@ gh run watch <run-id>
 # Local
 bun run test:e2e:routes      # route coverage gate
 bun run test:e2e:core        # frontend core (needs app build/serve)
-bun run --cwd apps/server/api test:e2e:ci   # api subset (needs pg+redis+migrate)
+bun run --cwd apps/server/api test:e2e:core # release/deploy subset (needs pg+redis+migrate)
+bun run --cwd apps/server/api test:e2e:full # discovery-based compatible suite
 ```

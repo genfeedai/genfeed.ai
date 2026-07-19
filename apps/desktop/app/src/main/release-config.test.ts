@@ -39,6 +39,8 @@ const readPackageJson = (): DesktopPackageJson =>
   JSON.parse(
     fs.readFileSync(path.join(desktopRoot, 'package.json'), 'utf8'),
   ) as DesktopPackageJson;
+const readReleaseScript = (name: string): string =>
+  fs.readFileSync(path.join(desktopRoot, 'scripts', name), 'utf8');
 const electronBuilderArtifactName =
   'GenFeed-$' + '{version}-$' + '{arch}.$' + '{ext}';
 
@@ -70,6 +72,16 @@ describe('desktop release config', () => {
         path.join(desktopRoot, 'scripts/write-release-manifest.cjs'),
       ),
     ).toBe(true);
+    const notarizeScript = readReleaseScript('notarize.cjs');
+    const releaseManifestScript = readReleaseScript(
+      'write-release-manifest.cjs',
+    );
+    expect(notarizeScript).toContain('APPLE_API_KEY');
+    expect(notarizeScript).toContain('APPLE_API_KEY_ID');
+    expect(notarizeScript).toContain('APPLE_API_ISSUER');
+    expect(notarizeScript).not.toContain('APPLE_APP_SPECIFIC_PASSWORD');
+    expect(releaseManifestScript).toContain('DEVELOPER_ID_P12_BASE64');
+    expect(releaseManifestScript).toContain('DEVELOPER_ID_P12_PASSWORD');
 
     expect(mac?.hardenedRuntime).toBe(true);
     expect(mac?.target).toContain('dmg');

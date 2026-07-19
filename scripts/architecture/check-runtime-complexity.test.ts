@@ -145,6 +145,104 @@ describe('check-runtime-complexity', () => {
     expect(result.violations).toEqual([]);
   });
 
+  it('allows unchanged legacy violations in changed mode', () => {
+    const file = writeFixture(
+      'apps/server/api/src/demo/demo.service.ts',
+      classWithPadding('DemoService', 10),
+    );
+    const baselineFiles = runRuntimeComplexityCheck({
+      files: [file],
+      mode: 'full',
+      rootDir,
+      thresholds: { runtimeLines: 5 },
+    }).files;
+
+    const result = runRuntimeComplexityCheck({
+      baselineFiles,
+      files: [file],
+      mode: 'changed',
+      rootDir,
+      thresholds: { runtimeLines: 5 },
+    });
+
+    expect(result.violations).toEqual([]);
+  });
+
+  it('rejects growth in a legacy violation', () => {
+    const file = writeFixture(
+      'apps/server/api/src/demo/demo.service.ts',
+      classWithPadding('DemoService', 10),
+    );
+    const baselineFiles = runRuntimeComplexityCheck({
+      files: [file],
+      mode: 'full',
+      rootDir,
+      thresholds: { runtimeLines: 5 },
+    }).files;
+    writeFixture(file, classWithPadding('DemoService', 11));
+
+    const result = runRuntimeComplexityCheck({
+      baselineFiles,
+      files: [file],
+      mode: 'changed',
+      rootDir,
+      thresholds: { runtimeLines: 5 },
+    });
+
+    expect(result.violations).toContainEqual(
+      expect.objectContaining({
+        actual: 11,
+        file,
+        metric: 'file-lines',
+      }),
+    );
+  });
+
+  it('preserves a legacy method ceiling across a rename', () => {
+    const file = writeFixture(
+      'apps/server/api/src/demo/demo.service.ts',
+      [
+        'export class DemoService {',
+        '  legacy(): void {',
+        '    const first = 1;',
+        '    const second = 2;',
+        '    void first;',
+        '    void second;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+    const baselineFiles = runRuntimeComplexityCheck({
+      files: [file],
+      mode: 'full',
+      rootDir,
+      thresholds: { methodLines: 5 },
+    }).files;
+    writeFixture(
+      file,
+      [
+        'export class DemoService {',
+        '  renamed(): void {',
+        '    const first = 1;',
+        '    const second = 2;',
+        '    void first;',
+        '    void second;',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+
+    const result = runRuntimeComplexityCheck({
+      baselineFiles,
+      files: [file],
+      mode: 'changed',
+      rootDir,
+      thresholds: { methodLines: 5 },
+    });
+
+    expect(result.violations).toEqual([]);
+  });
+
   it.each([
     'apps/server/api/src/generated/demo.service.ts',
     'apps/server/api/src/migrations/demo.service.ts',

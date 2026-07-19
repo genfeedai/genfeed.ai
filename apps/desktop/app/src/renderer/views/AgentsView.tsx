@@ -179,11 +179,13 @@ function AgentRunOutput({
 
 const AgentCard = ({
   agent,
+  hasCloudSession,
   onRunHandoff,
   onRun,
   runningAgentId,
 }: {
   agent: IDesktopAgent;
+  hasCloudSession: boolean;
   onRunHandoff?: (handoff: DesktopAgentRunHandoff) => void;
   onRun: (id: string) => void;
   runningAgentId: string | null;
@@ -244,7 +246,11 @@ const AgentCard = ({
             type="button"
             variant={ButtonVariant.DEFAULT}
           >
-            {isRunning ? 'Running…' : '▶ Run'}
+            {isRunning
+              ? 'Running…'
+              : hasCloudSession
+                ? '▶ Run'
+                : 'Connect Cloud to run'}
           </Button>
         </div>
       </div>
@@ -413,11 +419,19 @@ const initialAgentsState: AgentsState = {
 };
 
 interface AgentsViewProps {
+  hasCloudSession: boolean;
   isOnline: boolean;
+  onConnectCloud: () => void;
   onRunHandoff?: (handoff: DesktopAgentRunHandoff) => void;
 }
 
-export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
+export const AgentsView = ({
+  hasCloudSession,
+  isOnline,
+  onConnectCloud,
+  onRunHandoff,
+}: AgentsViewProps) => {
+  const hasDataAccess = isOnline || !hasCloudSession;
   const [state, dispatch] = useReducer(agentsReducer, initialAgentsState);
   const { agents, loading, error, runningAgentId } = state;
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -452,7 +466,7 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
         dispatch({ type: 'LOAD_START' });
       }
 
-      if (!isOnline) {
+      if (!hasDataAccess) {
         if (!options?.silent) {
           dispatch({ type: 'LOAD_SUCCESS', agents: [] });
         }
@@ -475,7 +489,7 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
         }
       }
     },
-    [isOnline],
+    [hasDataAccess],
   );
 
   useEffect(() => {
@@ -507,6 +521,11 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
 
   const handleRunAgent = useCallback(
     async (agentId: string) => {
+      if (!hasCloudSession) {
+        onConnectCloud();
+        return;
+      }
+
       const agent = agents.find((item) => item.id === agentId);
       const startedAt = new Date().toISOString();
       dispatch({
@@ -552,7 +571,7 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
         dispatch({ type: 'RUN_DONE' });
       }
     },
-    [agents, isOnline, loadAgents],
+    [agents, hasCloudSession, isOnline, loadAgents, onConnectCloud],
   );
 
   return (
@@ -571,10 +590,10 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
       </div>
 
       {loading && <p className="muted-text">Loading agents...</p>}
-      {!loading && isOnline && !error && (
+      {!loading && hasDataAccess && !error && (
         <AgentManualRunPanel manualRun={manualRun} />
       )}
-      {!loading && !isOnline && (
+      {!loading && !hasDataAccess && (
         <DesktopResilienceState
           actionLabel="Retry"
           details="Agent strategies sync from Genfeed Cloud. You can keep drafting locally while the desktop app waits for a connection."
@@ -583,7 +602,7 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
           title="Agents are offline"
         />
       )}
-      {!loading && isOnline && error && (
+      {!loading && hasDataAccess && error && (
         <DesktopResilienceState
           actionLabel="Retry"
           details={error}
@@ -593,7 +612,7 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
         />
       )}
 
-      {!loading && isOnline && !error && agents.length === 0 && (
+      {!loading && hasDataAccess && !error && agents.length === 0 && (
         <DesktopResilienceState
           details="No agent strategies are available for this account. Create them in the web app, then refresh desktop."
           kind="empty"
@@ -601,11 +620,12 @@ export const AgentsView = ({ isOnline, onRunHandoff }: AgentsViewProps) => {
         />
       )}
 
-      {isOnline && !error && agents.length > 0 ? (
+      {hasDataAccess && !error && agents.length > 0 ? (
         <div className="agents-grid">
           {agents.map((agent) => (
             <AgentCard
               agent={agent}
+              hasCloudSession={hasCloudSession}
               key={agent.id}
               onRunHandoff={onRunHandoff}
               onRun={(id) => void handleRunAgent(id)}

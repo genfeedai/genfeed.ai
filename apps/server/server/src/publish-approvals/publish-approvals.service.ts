@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import {
   type CreatePublishApprovalInput,
   canTransitionPublishApprovalStatus,
@@ -39,6 +39,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AgentArtifactReferenceService } from '@server/agent-artifacts/agent-artifact-reference.service';
+import {
+  buildApprovalProvenance,
+  readApprovalOrigin,
+  restoreApprovalProvenance,
+} from '@server/publish-approvals/publish-approval-action-origin';
+import { digestPublishApprovalValue } from '@server/publish-approvals/publish-approval-integrity';
 import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
 
 export type {
@@ -245,7 +251,7 @@ export class PublishApprovalsService {
       postId: post.id,
       scheduleIntent: input.scheduleIntent,
     };
-    const scopeDigest = this.digest(scope);
+    const scopeDigest = digestPublishApprovalValue(scope);
     const existing = (await client.publishApproval.findFirst({
       where: {
         organizationId: post.organizationId,
@@ -265,7 +271,7 @@ export class PublishApprovalsService {
     }
 
     const id = randomUUID();
-    const operationId = this.digest({
+    const operationId = digestPublishApprovalValue({
       action: 'publish',
       approvalId: id,
       artifactVersionPinId: versionPin.id,
@@ -333,11 +339,9 @@ export class PublishApprovalsService {
             organizationId: post.organizationId,
             policy: this.toJson(input.policy),
             postId: post.id,
-            provenance: this.toJson({
-              contractVersion: 1,
-              source: 'typed-publish-approval',
-              ...(params.provenance ?? {}),
-            }),
+            provenance: this.toJson(
+              buildApprovalProvenance(params.provenance, params.actorUserId),
+            ),
             scheduleIntent: this.toJson(input.scheduleIntent),
             scopeDigest,
             status: PublishApprovalStatus.APPROVED,
@@ -751,6 +755,7 @@ export class PublishApprovalsService {
       action,
       integrity,
       organizationId,
+      origin: readApprovalOrigin(),
       outcome,
       telemetryQueryVersion: 1,
     });
@@ -833,7 +838,7 @@ export class PublishApprovalsService {
       approval.contextVersion !== post.agentContextVersion ||
       post.publishApprovalId !== approval.id ||
       destinations[0]?.credentialId !== post.credentialId ||
-      approval.scopeDigest !== this.digest(expectedScope)
+      approval.scopeDigest !== digestPublishApprovalValue(expectedScope)
     ) {
       await this.invalidatePost(
         approval.organizationId,
@@ -1158,29 +1163,6 @@ export class PublishApprovalsService {
     };
   }
 
-  private digest(value: unknown): string {
-    return `sha256:v1:${createHash('sha256')
-      .update(this.stableStringify(value))
-      .digest('hex')}`;
-  }
-
-  private stableStringify(value: unknown): string {
-    if (Array.isArray(value)) {
-      return `[${value.map((item) => this.stableStringify(item)).join(',')}]`;
-    }
-    if (value && typeof value === 'object') {
-      const record = value as Record<string, unknown>;
-      return `{${Object.keys(record)
-        .sort()
-        .map(
-          (key) =>
-            `${JSON.stringify(key)}:${this.stableStringify(record[key])}`,
-        )
-        .join(',')}}`;
-    }
-    return JSON.stringify(value) ?? 'null';
-  }
-
   private toInterface(row: PublishApprovalRow): IPublishApproval {
     return {
       actorUserId: row.actorUserId,
@@ -1197,7 +1179,10 @@ export class PublishApprovalsService {
       organizationId: row.organizationId,
       policy: this.readPolicy(row.policy),
       postId: row.postId,
-      provenance: this.asRecord(row.provenance),
+      provenance: restoreApprovalProvenance(
+        this.asRecord(row.provenance),
+        row.actorUserId,
+      ),
       scheduleIntent: this.readScheduleIntent(row.scheduleIntent),
       scopeDigest: row.scopeDigest,
       status: this.parseStatus(row.status),

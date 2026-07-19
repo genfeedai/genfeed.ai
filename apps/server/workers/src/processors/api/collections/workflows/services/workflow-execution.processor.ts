@@ -7,7 +7,9 @@ import {
   WorkflowExecutorService,
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { ActionOrigin } from '@genfeedai/enums';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/queue-contracts';
+import { runWithActionOrigin } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
@@ -42,6 +44,15 @@ export class WorkflowExecutionProcessor extends WorkerHost {
   }
 
   async process(job: Job<WorkflowExecutionJobData>): Promise<unknown> {
+    return runWithActionOrigin(
+      job.data.actionContext ?? { origin: ActionOrigin.WORKFLOW },
+      () => this.processWithActionOrigin(job),
+    );
+  }
+
+  private async processWithActionOrigin(
+    job: Job<WorkflowExecutionJobData>,
+  ): Promise<unknown> {
     const { data } = job;
 
     this.logger.log(`${this.logContext} processing job`, {

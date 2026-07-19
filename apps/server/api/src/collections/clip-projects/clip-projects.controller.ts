@@ -10,12 +10,10 @@ import {
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import { type ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
-import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -34,11 +32,9 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
-import { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
+import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
 import type {
-  ClipReadyAction,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
@@ -61,21 +57,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { v4 as uuidv4 } from 'uuid';
-
-interface ClipEditorHandoffResponse {
-  clipProjectId: string;
-  clipResultId: string;
-  editorPath: string;
-  editorProjectId: string;
-  videoUrl: string;
-}
-
-interface ClipPublishHandoffResponse {
-  clipProjectId: string;
-  clipResultId: string;
-  payload: Awaited<ReturnType<PublishHandoffService['preparePublishHandoff']>>;
-}
 
 @AutoSwagger()
 @ApiTags('clip-projects')
@@ -93,17 +74,14 @@ export class ClipProjectsController {
     private readonly clipGenerationService: ClipGenerationService,
     private readonly highlightRewriteService: HighlightRewriteService,
     private readonly creditsUtilsService: CreditsUtilsService,
-    private readonly clipResultsService: ClipResultsService,
-    private readonly editorProjectsService: EditorProjectsService,
-    private readonly publishHandoffService: PublishHandoffService,
   ) {}
 
   @Post('from-youtube')
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
-      'Create a clip project from a YouTube URL. Downloads audio, transcribes, detects highlights, and generates AI avatar clips asynchronously.',
-    summary: 'YouTube → AI Clip Factory',
+      'Create a clip project from a YouTube URL. Downloads audio, transcribes, detects highlights, and generates avatar or raw-cut clips asynchronously.',
+    summary: 'YouTube → Clip Factory',
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createFromYoutube(
@@ -119,6 +97,7 @@ export class ClipProjectsController {
     const orgId = publicMetadata.organization;
     const userId = publicMetadata.user;
     const estimatedClips = dto.maxClips ?? 10;
+    const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
 
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
@@ -146,6 +125,7 @@ export class ClipProjectsController {
         maxClips: estimatedClips,
         maxDuration: 90,
         minDuration: 15,
+        mode,
       },
       sourceVideoUrl: dto.youtubeUrl,
       user: userId,
@@ -160,6 +140,7 @@ export class ClipProjectsController {
       language: dto.language ?? 'en',
       maxClips: estimatedClips,
       minViralityScore: dto.minViralityScore ?? 50,
+      mode,
       orgId,
       projectId,
       userId,
@@ -293,7 +274,7 @@ export class ClipProjectsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
     description:
-      'Generate avatar video clips for selected highlights. Expensive step (N credits, one per clip).',
+      'Generate avatar or deterministic raw-cut video clips for selected highlights. Expensive step (N credits, one per clip).',
     summary: 'Generate clips from selected highlights',
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -305,6 +286,7 @@ export class ClipProjectsController {
     const publicMetadata = getPublicMetadata(user);
     const orgId = publicMetadata.organization;
     const userId = publicMetadata.user;
+    const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
 
     const project = await this.clipProjectsService.findOne({
       _id: projectId,
@@ -319,6 +301,22 @@ export class ClipProjectsController {
     if (project.status !== 'analyzed') {
       throw new BadRequestException(
         `Project is in '${project.status}' status. Must be 'analyzed' to generate clips.`,
+      );
+    }
+
+    if (mode === 'avatar' && (!dto.avatarId || !dto.voiceId)) {
+      throw new BadRequestException(
+        'Avatar clip generation requires avatarId and voiceId.',
+      );
+    }
+
+    if (
+      mode === 'raw-cut' &&
+      !project.sourceVideoS3Key &&
+      !project.sourceVideoUrl
+    ) {
+      throw new BadRequestException(
+        'Raw-cut clip generation requires a source video.',
       );
     }
 
@@ -352,15 +350,25 @@ export class ClipProjectsController {
     await this.clipProjectsService.patch(projectId, {
       highlights: persistedHighlights,
       progress: 0,
+      settings: {
+        ...project.settings,
+        mode,
+      },
       status: 'generating',
     });
 
     const result = await this.clipGenerationService.generateClips({
       avatarId: dto.avatarId,
       highlights: selectedEditedHighlights,
+      mode,
       orgId,
       projectId,
       provider: dto.avatarProvider ?? 'heygen',
+      sourceVideoS3Key: project.sourceVideoS3Key,
+      sourceVideoUrl: project.sourceVideoUrl,
+      transcriptSegments: Array.isArray(project.transcriptSegments)
+        ? project.transcriptSegments.filter(isTranscriptSegment)
+        : [],
       transcriptText: project.transcriptText,
       userId,
       voiceId: dto.voiceId,
@@ -368,7 +376,7 @@ export class ClipProjectsController {
 
     if (result.queuedClipCount === 0) {
       await this.clipProjectsService.patch(projectId, {
-        error: 'Clip generation failed before any provider job was queued.',
+        error: 'Clip generation failed before any generation job was queued.',
         progress: 100,
         status: 'failed',
       });
@@ -447,246 +455,6 @@ export class ClipProjectsController {
     }
 
     return serializeSingle(request, ClipProjectSerializer, data);
-  }
-
-  @Post(':projectId/results/:clipResultId/editor-handoff')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    description:
-      'Validate a ready clip result and create an editor project handoff from its terminal media URL.',
-    summary: 'Create editor handoff for a ready clip result',
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async createEditorHandoff(
-    @CurrentUser() user: User,
-    @Param('projectId') projectId: string,
-    @Param('clipResultId') clipResultId: string,
-  ): Promise<ClipEditorHandoffResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const ownedProject = await this.resolveOwnedProject(
-      projectId,
-      publicMetadata.organization,
-    );
-    await this.clipProjectsService.reconcileTerminalState(
-      projectId,
-      publicMetadata.organization,
-      ownedProject,
-    );
-
-    const clipResult = await this.resolveReadyClipResult({
-      action: 'edit',
-      clipResultId,
-      organizationId: publicMetadata.organization,
-      projectId,
-    });
-    const videoUrl = this.resolveClipVideoUrl(clipResult);
-    const durationFrames = this.resolveClipDurationFrames(clipResult);
-    const editorProject = await this.editorProjectsService.create({
-      ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
-      config: {
-        clipHandoff: {
-          clipProjectId: projectId,
-          clipResultId: String(clipResult.id),
-          source: 'clip-result',
-        },
-        name: `${this.readString(clipResult.title) ?? 'Clip'} edit`,
-        settings: {
-          backgroundColor: '#000000',
-          format: IngredientFormat.PORTRAIT,
-          fps: 30,
-          height: 1920,
-          width: 1080,
-        },
-        status: 'draft',
-        totalDurationFrames: durationFrames,
-      },
-      organizationId: publicMetadata.organization,
-      tracks: [
-        {
-          clips: [
-            {
-              durationFrames,
-              effects: [],
-              id: uuidv4(),
-              ingredientId: String(clipResult.id),
-              ingredientUrl: videoUrl,
-              sourceEndFrame: durationFrames,
-              sourceStartFrame: 0,
-              startFrame: 0,
-              thumbnailUrl: this.readString(clipResult.thumbnailUrl),
-              volume: 100,
-            },
-          ],
-          id: uuidv4(),
-          isLocked: false,
-          isMuted: false,
-          name: 'Clip 1',
-          type: EditorTrackType.VIDEO,
-          volume: 100,
-        },
-      ],
-      userId: publicMetadata.user,
-    } as never);
-    const editorProjectId = String(editorProject.id);
-
-    return {
-      clipProjectId: projectId,
-      clipResultId: String(clipResult.id),
-      editorPath: `/editor/${editorProjectId}`,
-      editorProjectId,
-      videoUrl,
-    };
-  }
-
-  @Post(':projectId/results/:clipResultId/publish-handoff')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    description:
-      'Validate a ready clip result and prepare a user-confirmed publish handoff payload.',
-    summary: 'Prepare publish handoff for a ready clip result',
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async createPublishHandoff(
-    @CurrentUser() user: User,
-    @Param('projectId') projectId: string,
-    @Param('clipResultId') clipResultId: string,
-  ): Promise<ClipPublishHandoffResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const ownedProject = await this.resolveOwnedProject(
-      projectId,
-      publicMetadata.organization,
-    );
-    await this.clipProjectsService.reconcileTerminalState(
-      projectId,
-      publicMetadata.organization,
-      ownedProject,
-    );
-
-    const clipResult = await this.resolveReadyClipResult({
-      action: 'publish',
-      clipResultId,
-      organizationId: publicMetadata.organization,
-      projectId,
-    });
-    const resolvedClipResultId = String(clipResult.id);
-    const videoUrl = this.resolveClipVideoUrl(clipResult);
-    const payload = await this.publishHandoffService.preparePublishHandoff(
-      projectId,
-      [resolvedClipResultId],
-      {
-        assets: {
-          [resolvedClipResultId]: {
-            caption: this.readString(clipResult.summary) ?? undefined,
-            mediaUrl: videoUrl,
-            mimeType: 'video/mp4',
-          },
-        },
-        metadata: {
-          clipResultId: resolvedClipResultId,
-          summary: this.readString(clipResult.summary),
-          title: this.readString(clipResult.title),
-        },
-      },
-    );
-
-    return {
-      clipProjectId: projectId,
-      clipResultId: resolvedClipResultId,
-      payload,
-    };
-  }
-
-  private async resolveOwnedProject(
-    projectId: string,
-    organizationId: string,
-  ): Promise<ClipProjectDocument> {
-    const project = await this.clipProjectsService.findOne({
-      _id: projectId,
-      isDeleted: false,
-      organization: organizationId,
-    });
-
-    if (!project) {
-      throw new NotFoundException('ClipProject', projectId);
-    }
-
-    return project;
-  }
-
-  private async resolveReadyClipResult(input: {
-    action: ClipReadyAction;
-    clipResultId: string;
-    organizationId: string;
-    projectId: string;
-  }): Promise<ClipResultDocument> {
-    const clipResult =
-      await this.clipResultsService.findProjectResultForHandoff({
-        clipResultId: input.clipResultId,
-        organizationId: input.organizationId,
-        projectId: input.projectId,
-      });
-
-    if (!clipResult) {
-      throw new NotFoundException('ClipResult', input.clipResultId);
-    }
-
-    if (!this.isClipReadyForAction(clipResult, input.action)) {
-      throw new BadRequestException(
-        `ClipResult ${input.clipResultId} is not ready for ${input.action} handoff.`,
-      );
-    }
-
-    this.resolveClipVideoUrl(clipResult);
-
-    return clipResult;
-  }
-
-  private isClipReadyForAction(
-    clipResult: ClipResultDocument,
-    action: ClipReadyAction,
-  ): boolean {
-    const readiness = this.readRecord(clipResult.readiness);
-    const readyActions = Array.isArray(readiness.readyActions)
-      ? readiness.readyActions
-      : [];
-
-    if (readyActions.length > 0) {
-      return readyActions.includes(action);
-    }
-
-    return this.readString(clipResult.status) === 'completed';
-  }
-
-  private resolveClipVideoUrl(clipResult: ClipResultDocument): string {
-    const videoUrl =
-      this.readString(clipResult.captionedVideoUrl) ??
-      this.readString(clipResult.videoUrl);
-
-    if (!videoUrl) {
-      throw new BadRequestException('Clip result has no terminal video URL.');
-    }
-
-    return videoUrl;
-  }
-
-  private resolveClipDurationFrames(clipResult: ClipResultDocument): number {
-    const duration =
-      typeof clipResult.duration === 'number' &&
-      Number.isFinite(clipResult.duration)
-        ? clipResult.duration
-        : 10;
-
-    return Math.max(1, Math.round(duration * 30));
-  }
-
-  private readRecord(value: unknown): Record<string, unknown> {
-    return value !== null && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private readString(value: unknown): string | null {
-    return typeof value === 'string' && value.length > 0 ? value : null;
   }
 
   @Patch(':id')

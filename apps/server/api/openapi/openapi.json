@@ -920,6 +920,15 @@
             "default": 15,
             "description": "Minimum clip duration in seconds",
             "type": "number"
+          },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClipResultMode"
+              }
+            ],
+            "default": "avatar",
+            "description": "Clip generation mode"
           }
         },
         "type": "object"
@@ -940,7 +949,7 @@
         "type": "string"
       },
       "ClipResultMode": {
-        "description": "Clip generation mode (defaults to avatar)",
+        "description": "Clip generation mode",
         "enum": [
           "avatar",
           "raw-cut"
@@ -1916,7 +1925,7 @@
       "CreateClipProjectFromYoutubeDto": {
         "properties": {
           "avatarId": {
-            "description": "Avatar ID for clip generation",
+            "description": "Avatar ID for avatar-mode clip generation",
             "type": "string"
           },
           "avatarProvider": {
@@ -1942,12 +1951,21 @@
             "description": "Minimum virality score threshold (1-100)",
             "type": "number"
           },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClipResultMode"
+              }
+            ],
+            "default": "avatar",
+            "description": "Clip generation mode"
+          },
           "name": {
             "description": "Optional project name",
             "type": "string"
           },
           "voiceId": {
-            "description": "Voice ID for clip generation",
+            "description": "Voice ID for avatar-mode clip generation",
             "type": "string"
           },
           "youtubeUrl": {
@@ -1957,9 +1975,7 @@
           }
         },
         "required": [
-          "youtubeUrl",
-          "avatarId",
-          "voiceId"
+          "youtubeUrl"
         ],
         "type": "object"
       },
@@ -6129,7 +6145,7 @@
       "GenerateClipsDto": {
         "properties": {
           "avatarId": {
-            "description": "Avatar ID for clip generation",
+            "description": "Avatar ID for avatar-mode clip generation",
             "type": "string"
           },
           "avatarProvider": {
@@ -6147,6 +6163,15 @@
             },
             "type": "array"
           },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ClipResultMode"
+              }
+            ],
+            "default": "avatar",
+            "description": "Clip generation mode"
+          },
           "selectedHighlightIds": {
             "description": "IDs of selected highlights to generate clips from",
             "example": [
@@ -6159,15 +6184,13 @@
             "type": "array"
           },
           "voiceId": {
-            "description": "Voice ID for clip generation",
+            "description": "Voice ID for avatar-mode clip generation",
             "type": "string"
           }
         },
         "required": [
           "selectedHighlightIds",
-          "editedHighlights",
-          "avatarId",
-          "voiceId"
+          "editedHighlights"
         ],
         "type": "object"
       },
@@ -24760,7 +24783,7 @@
     },
     "/clip-projects/from-youtube": {
       "post": {
-        "description": "Create a clip project from a YouTube URL. Downloads audio, transcribes, detects highlights, and generates AI avatar clips asynchronously.",
+        "description": "Create a clip project from a YouTube URL. Downloads audio, transcribes, detects highlights, and generates avatar or raw-cut clips asynchronously.",
         "operationId": "ClipProjectsController.createFromYoutube",
         "parameters": [],
         "requestBody": {
@@ -24783,7 +24806,7 @@
             "bearer": []
           }
         ],
-        "summary": "YouTube → AI Clip Factory",
+        "summary": "YouTube → Clip Factory",
         "tags": [
           "clip-projects"
         ]
@@ -24857,7 +24880,7 @@
     },
     "/clip-projects/{projectId}/generate": {
       "post": {
-        "description": "Generate avatar video clips for selected highlights. Expensive step (N credits, one per clip).",
+        "description": "Generate avatar or deterministic raw-cut video clips for selected highlights. Expensive step (N credits, one per clip).",
         "operationId": "ClipProjectsController.generateClips",
         "parameters": [
           {
@@ -24976,7 +24999,7 @@
     "/clip-projects/{projectId}/results/{clipResultId}/editor-handoff": {
       "post": {
         "description": "Validate a ready clip result and create an editor project handoff from its terminal media URL.",
-        "operationId": "ClipProjectsController.createEditorHandoff",
+        "operationId": "ClipProjectHandoffsController.createEditorHandoff",
         "parameters": [
           {
             "in": "path",
@@ -25014,7 +25037,7 @@
     "/clip-projects/{projectId}/results/{clipResultId}/publish-handoff": {
       "post": {
         "description": "Validate a ready clip result and prepare a user-confirmed publish handoff payload.",
-        "operationId": "ClipProjectsController.createPublishHandoff",
+        "operationId": "ClipProjectHandoffsController.createPublishHandoff",
         "parameters": [
           {
             "in": "path",

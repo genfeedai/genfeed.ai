@@ -1,8 +1,17 @@
+import { createHmac } from 'node:crypto';
 import type { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
 import type { ApiKeyDocument } from '@api/collections/api-keys/schemas/api-key.schema';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
-import { ApiKeyCategory } from '@genfeedai/enums';
-import { BadRequestException } from '@nestjs/common';
+import {
+  ActionOrigin,
+  API_KEY_ACTION_ORIGIN_METADATA_KEY,
+  API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
+  ApiKeyCategory,
+} from '@genfeedai/enums';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 type MockFn = ReturnType<typeof vi.fn>;
 
@@ -31,6 +40,14 @@ function createValidationHarness(): ApiKeysValidationHarness {
   service.hashApiKey = vi.fn().mockResolvedValue('hashed');
   service.computeFingerprint = vi.fn().mockReturnValue('fingerprint');
   Object.defineProperty(service, 'logger', { value: { error: vi.fn() } });
+  Object.defineProperty(service, 'configService', {
+    configurable: true,
+    value: {
+      get: vi.fn((key: string) =>
+        key === 'GENFEEDAI_API_KEY' ? 'test-signing-secret' : undefined,
+      ),
+    },
+  });
   return service;
 }
 
@@ -75,6 +92,44 @@ function createHarness(): {
 }
 
 describe('ApiKeysService', () => {
+  describe('resolveActionOrigin', () => {
+    const { service } = createHarness();
+    Object.defineProperty(service, 'configService', {
+      value: {
+        get: vi.fn((key: string) =>
+          key === 'GENFEEDAI_API_KEY' ? 'test-signing-secret' : undefined,
+        ),
+      },
+    });
+
+    it('accepts only signed server-issued CLI/UI labels and defaults to API', () => {
+      const proof = createHmac('sha256', 'test-signing-secret')
+        .update('cli:user-1:org-1:fingerprint')
+        .digest('base64url');
+      expect(
+        service.resolveActionOrigin({
+          metadata: {
+            [API_KEY_ACTION_ORIGIN_METADATA_KEY]: ActionOrigin.CLI,
+            [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: proof,
+          },
+          keyFingerprint: 'fingerprint',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        } as ApiKeyDocument),
+      ).toBe(ActionOrigin.CLI);
+      expect(
+        service.resolveActionOrigin({
+          metadata: {
+            [API_KEY_ACTION_ORIGIN_METADATA_KEY]: ActionOrigin.CLI,
+          },
+        } as ApiKeyDocument),
+      ).toBe(ActionOrigin.API);
+      expect(service.resolveActionOrigin({} as ApiKeyDocument)).toBe(
+        ActionOrigin.API,
+      );
+    });
+  });
+
   describe('rotateWithKey', () => {
     it('creates a replacement and revokes the original key', async () => {
       const { cacheInvalidationService, service } = createHarness();
@@ -206,6 +261,61 @@ describe('ApiKeysService', () => {
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({ scopes: ['videos:read', 'images:create'] }),
       );
+    });
+
+    it('signs action origin only when requested by a trusted issuance path', async () => {
+      const service = createValidationHarness();
+
+      await service.createWithKey(
+        {
+          category: ApiKeyCategory.GENFEEDAI,
+          label: 'CLI',
+          metadata: {
+            [API_KEY_ACTION_ORIGIN_METADATA_KEY]: ActionOrigin.MCP,
+            kind: 'cli-session',
+          },
+          organizationId: 'org-1',
+          scopes: ['videos:read'],
+          userId: 'user-1',
+        },
+        ActionOrigin.CLI,
+      );
+
+      expect(service.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: {
+            [API_KEY_ACTION_ORIGIN_METADATA_KEY]: ActionOrigin.CLI,
+            [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: createHmac(
+              'sha256',
+              'test-signing-secret',
+            )
+              .update('cli:user-1:org-1:fingerprint')
+              .digest('base64url'),
+            kind: 'cli-session',
+          },
+        }),
+      );
+    });
+
+    it('rejects trusted issuance when action-origin signing is unavailable', async () => {
+      const service = createValidationHarness();
+      Object.defineProperty(service, 'configService', {
+        value: { get: vi.fn() },
+      });
+
+      await expect(
+        service.createWithKey(
+          {
+            category: ApiKeyCategory.GENFEEDAI,
+            label: 'CLI',
+            organizationId: 'org-1',
+            scopes: ['videos:read'],
+            userId: 'user-1',
+          },
+          ActionOrigin.CLI,
+        ),
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+      expect(service.create).not.toHaveBeenCalled();
     });
   });
 

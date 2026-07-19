@@ -8,7 +8,12 @@ import { McpConnectionVerificationService } from '@api/collections/api-keys/serv
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ApiKeyCategory } from '@genfeedai/enums';
+import {
+  ActionOrigin,
+  API_KEY_ACTION_ORIGIN_METADATA_KEY,
+  API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY,
+  ApiKeyCategory,
+} from '@genfeedai/enums';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -52,6 +57,7 @@ describe('ApiKeysController', () => {
     findByKey: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
+    resolveActionOrigin: vi.fn().mockReturnValue(ActionOrigin.API),
     remove: vi.fn(),
     revoke: vi.fn(),
     rotateWithKey: vi.fn(),
@@ -144,6 +150,38 @@ describe('ApiKeysController', () => {
       await expect(
         controller.create(mockRequest, mockUser, createApiKeyDto),
       ).rejects.toThrow(HttpException);
+    });
+
+    it('strips caller-supplied action origin metadata', async () => {
+      const createApiKeyDto = {
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'Spoofed MCP key',
+        metadata: {
+          [API_KEY_ACTION_ORIGIN_METADATA_KEY]: 'mcp',
+          [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: 'spoofed-proof',
+          purpose: 'automation',
+        },
+        scopes: ['read'],
+      } as CreateApiKeyDto;
+      mockApiKeysService.findAll.mockResolvedValue({
+        docs: [],
+        limit: 100,
+        page: 1,
+        totalDocs: 0,
+        totalPages: 0,
+      });
+      mockApiKeysService.createWithKey.mockResolvedValue({
+        apiKey: mockApiKey,
+        plainKey: 'plain_api_key_12345',
+      });
+
+      await controller.create(mockRequest, mockUser, createApiKeyDto);
+
+      expect(service.createWithKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: { purpose: 'automation' },
+        }),
+      );
     });
   });
 
@@ -303,6 +341,52 @@ describe('ApiKeysController', () => {
       await expect(
         controller.update(mockRequest, mockUser, id, updateApiKeyDto),
       ).rejects.toThrow(HttpException);
+    });
+
+    it('strips caller-supplied action origin from metadata updates', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      mockApiKeysService.findOne.mockResolvedValue(mockApiKey);
+      mockApiKeysService.patch.mockResolvedValue(mockApiKey);
+
+      await controller.update(mockRequest, mockUser, id, {
+        metadata: {
+          [API_KEY_ACTION_ORIGIN_METADATA_KEY]: 'mcp',
+          [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: 'spoofed-proof',
+          purpose: 'automation',
+        },
+      });
+
+      expect(service.patch).toHaveBeenCalledWith(id, {
+        metadata: { purpose: 'automation' },
+      });
+    });
+
+    it('preserves an already-verified server origin on metadata updates', async () => {
+      const id = '507f1f77bcf86cd799439014';
+      const signedCliKey = {
+        ...mockApiKey,
+        metadata: {
+          [API_KEY_ACTION_ORIGIN_METADATA_KEY]: ActionOrigin.CLI,
+          [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: 'signed-proof',
+        },
+      };
+      mockApiKeysService.findOne.mockResolvedValue(signedCliKey);
+      mockApiKeysService.patch.mockResolvedValue(signedCliKey);
+      mockApiKeysService.resolveActionOrigin.mockReturnValueOnce(
+        ActionOrigin.CLI,
+      );
+
+      await controller.update(mockRequest, mockUser, id, {
+        metadata: { purpose: 'desktop' },
+      });
+
+      expect(service.patch).toHaveBeenCalledWith(id, {
+        metadata: {
+          [API_KEY_ACTION_ORIGIN_METADATA_KEY]: ActionOrigin.CLI,
+          [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: 'signed-proof',
+          purpose: 'desktop',
+        },
+      });
     });
   });
 

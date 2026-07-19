@@ -1,6 +1,13 @@
 name: Desktop QA
 
 on:
+  pull_request:
+    paths:
+      - "apps/app/**"
+      - "apps/desktop/**"
+      - "packages/desktop-contracts/**"
+      - "packages/props/**"
+      - "packages/ui/**"
   workflow_dispatch:
   workflow_call:
 

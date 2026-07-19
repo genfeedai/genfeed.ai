@@ -9,12 +9,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import {
-  DarkroomReviewStatus,
-  IngredientCategory,
-  IngredientStatus,
-  MetadataExtension,
-} from '@genfeedai/enums';
+import { IngredientStatus, MetadataExtension } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -120,13 +115,15 @@ export class IngredientsService extends BaseService<
   }
 
   @HandleErrors('create ingredient', 'ingredients')
-  async create(createDto: CreateIngredientDto): Promise<IngredientDocument> {
+  async create(
+    createDto: CreateIngredientDto,
+    populate:
+      | (string | PopulateOption)[]
+      | 'none' = this.getPopulationForContext('create'),
+  ): Promise<IngredientDocument> {
     this.logger.debug(`${this.constructorName} create`, { createDto });
 
-    const result = await super.create(
-      createDto,
-      this.getPopulationForContext('create'),
-    );
+    const result = await super.create(createDto, populate);
 
     this.logger.debug(`${this.constructorName} create success`, {
       id: result.id,
@@ -334,14 +331,14 @@ export class IngredientsService extends BaseService<
    */
   async findOne(
     params: Record<string, unknown>,
-    _populate: PopulateOption[] = [],
+    populate: (string | PopulateOption)[] | 'none' = [],
   ): Promise<IngredientDocument | null> {
     try {
       this.logger.debug(`${this.constructorName} findOne`, { params });
 
       const where = this.buildWhereFromParams(params);
 
-      const result = await this.prisma.ingredient.findFirst({ where });
+      const result = await super.findOne(where, populate);
 
       this.logger.debug(
         `${this.constructorName} findOne ${result ? 'success' : 'not found'}`,
@@ -361,7 +358,7 @@ export class IngredientsService extends BaseService<
   async patch(
     id: string,
     updateDto: Partial<UpdateIngredientDto>,
-    _populate: PopulateOption[] = [],
+    populate: (string | PopulateOption)[] | 'none' = [],
   ): Promise<IngredientDocument> {
     try {
       this.logger.debug(`${this.constructorName} patch`, { id, updateDto });
@@ -375,7 +372,7 @@ export class IngredientsService extends BaseService<
         throw new NotFoundException('Ingredient', id);
       }
 
-      const result = await this.findOne({ id });
+      const result = await this.findOne({ id }, populate);
 
       if (!result) {
         this.logger.error(

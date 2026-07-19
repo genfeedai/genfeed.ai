@@ -270,7 +270,7 @@ function makeTrend(overrides: Record<string, unknown> = {}) {
 function makeVideo(overrides: Record<string, unknown> = {}) {
   return {
     brand: { label: 'Creator' },
-    createdAt: '2026-07-15T08:00:00.000Z',
+    createdAt: new Date().toISOString(),
     evaluation: {
       actualPerformance: {
         engagementRate: 8.5,

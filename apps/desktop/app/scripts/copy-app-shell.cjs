@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const desktopRoot = path.resolve(__dirname, '..');
-const appRoot = path.resolve(desktopRoot, '../../app');
+const appRoot = desktopRoot;
 const standaloneRoot = path.join(appRoot, '.next', 'standalone');
 const staticRoot = path.join(appRoot, '.next', 'static');
 const publicRoot = path.join(appRoot, 'public');

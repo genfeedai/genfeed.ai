@@ -379,11 +379,9 @@ describe('PostsWritePage', () => {
       platform: 'twitter',
       type: 'caption',
     });
-    const queueJob = vi.fn().mockResolvedValue({ id: 'job-1' });
     desktopRuntimeMocks.isDesktopClient.mockReturnValue(true);
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
       cloud: { generateContent },
-      sync: { queueJob },
     });
 
     render(<PostsWritePage />);
@@ -405,10 +403,6 @@ describe('PostsWritePage', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Draft content')).toHaveValue(
         'Generated local post',
-      );
-      expect(queueJob).toHaveBeenCalledWith(
-        'post-draft',
-        expect.stringContaining('Generated local post'),
       );
     });
     expect(pushMock).not.toHaveBeenCalled();
@@ -434,7 +428,6 @@ describe('PostsWritePage', () => {
     desktopRuntimeMocks.isDesktopClient.mockReturnValue(true);
     desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
       cloud: { generateContent },
-      sync: { queueJob: vi.fn().mockResolvedValue({ id: 'job-1' }) },
     });
 
     render(<PostsWritePage />);

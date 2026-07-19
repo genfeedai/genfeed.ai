@@ -1,4 +1,8 @@
+import type { ActionOriginContext } from '@genfeedai/enums';
+
 export interface AgentRunJobData {
+  /** Trusted initiating action context propagated across queue retries */
+  actionContext?: ActionOriginContext;
   /** The agent-runs record ID */
   runId: string;
   /** Organization context (required for multi-tenancy) */

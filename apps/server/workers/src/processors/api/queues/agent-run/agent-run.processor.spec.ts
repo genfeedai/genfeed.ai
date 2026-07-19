@@ -1,5 +1,6 @@
-import { AgentRunStatus } from '@genfeedai/enums';
+import { ActionOrigin, AgentRunStatus } from '@genfeedai/enums';
 import type { AgentRunJobData } from '@genfeedai/queue-contracts';
+import { getActionOriginContext } from '@genfeedai/server';
 import { AgentRunProcessor } from '@workers/processors/api/queues/agent-run/agent-run.processor';
 import { Job } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -98,6 +99,11 @@ describe('AgentRunProcessor', () => {
 
     const job = {
       data: {
+        actionContext: {
+          actorUserId: userId,
+          apiKeyId: 'key-1',
+          origin: ActionOrigin.MCP,
+        },
         objective: 'Find TikTok trends for my brand.',
         organizationId,
         runId,
@@ -111,11 +117,15 @@ describe('AgentRunProcessor', () => {
       status: AgentRunStatus.RUNNING,
     });
 
-    agentOrchestratorService.chat.mockResolvedValue({
-      message: {
-        content: 'Found 20 TikTok trends for review.',
-      },
-      threadId,
+    let capturedContext: ReturnType<typeof getActionOriginContext> | undefined;
+    agentOrchestratorService.chat.mockImplementation(async () => {
+      capturedContext = getActionOriginContext();
+      return {
+        message: {
+          content: 'Found 20 TikTok trends for review.',
+        },
+        threadId,
+      };
     });
 
     agentRunsService.complete.mockResolvedValue({
@@ -148,5 +158,6 @@ describe('AgentRunProcessor', () => {
       runId,
       organizationId,
     );
+    expect(capturedContext).toEqual(job.data.actionContext);
   });
 });

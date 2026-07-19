@@ -27,13 +27,18 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
+  ActionOrigin,
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/enums';
 import type { ValidatedAgentScope } from '@genfeedai/interfaces';
 import { toAgentScopeMetadata } from '@genfeedai/interfaces';
-import { AgentScopeContextService } from '@genfeedai/server';
+import {
+  AgentScopeContextService,
+  resolveNestedActionOrigin,
+  runWithActionOrigin,
+} from '@genfeedai/server';
 import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -506,6 +511,24 @@ export class WorkflowExecutorService {
   }
 
   private async executeWorkflowDocument(
+    workflowDoc: WorkflowDocument,
+    event: TriggerEvent,
+    trigger: WorkflowExecutionTrigger,
+    metadata?: Record<string, unknown>,
+  ): Promise<WorkflowExecutionResult> {
+    return runWithActionOrigin(
+      resolveNestedActionOrigin(ActionOrigin.WORKFLOW),
+      () =>
+        this.executeWorkflowDocumentWithActionOrigin(
+          workflowDoc,
+          event,
+          trigger,
+          metadata,
+        ),
+    );
+  }
+
+  private async executeWorkflowDocumentWithActionOrigin(
     workflowDoc: WorkflowDocument,
     event: TriggerEvent,
     trigger: WorkflowExecutionTrigger,

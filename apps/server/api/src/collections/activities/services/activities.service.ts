@@ -6,6 +6,11 @@ import { StreaksService as StreaksServiceToken } from '@api/collections/streaks/
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { Prisma } from '@genfeedai/prisma';
+import {
+  getActionOriginContext,
+  normalizeActionOrigin,
+  withActionOriginMetadata,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -62,7 +67,7 @@ export class ActivitiesService extends BaseService<
     const currentData = this.isRecordObject(existing?.data)
       ? { ...existing.data }
       : {};
-    const nextData = {
+    const nextData: Record<string, unknown> = {
       ...currentData,
       ...(this.isRecordObject(input.data) ? input.data : {}),
     };
@@ -83,6 +88,19 @@ export class ActivitiesService extends BaseService<
       nextData.isRead = input.isRead;
     }
 
+    const originContext = existing
+      ? {
+          ...(typeof currentData.actorUserId === 'string'
+            ? { actorUserId: currentData.actorUserId }
+            : {}),
+          ...(typeof currentData.apiKeyId === 'string'
+            ? { apiKeyId: currentData.apiKeyId }
+            : {}),
+          origin: normalizeActionOrigin(currentData.origin),
+        }
+      : getActionOriginContext();
+    const trustedData = withActionOriginMetadata(nextData, originContext);
+
     const mutation: Record<string, unknown> = {
       action: input.action ?? input.key ?? existing?.action ?? null,
       brandId: input.brandId ?? input.brand ?? existing?.brandId ?? null,
@@ -96,8 +114,8 @@ export class ActivitiesService extends BaseService<
       userId: input.userId ?? input.user ?? existing?.userId ?? null,
     };
 
-    if (Object.keys(nextData).length > 0) {
-      mutation.data = nextData;
+    if (Object.keys(trustedData).length > 0) {
+      mutation.data = trustedData;
     }
 
     if (input.isDeleted !== undefined) {
@@ -105,6 +123,34 @@ export class ActivitiesService extends BaseService<
     }
 
     return mutation;
+  }
+
+  protected override normalizeDocument(document: unknown): ActivityDocument {
+    const normalized = super.normalizeDocument(document) as ActivityDocument;
+    if (!normalized || typeof normalized !== 'object') {
+      return normalized;
+    }
+
+    const data = this.isRecordObject(normalized.data)
+      ? { ...normalized.data }
+      : {};
+    const origin = normalizeActionOrigin(normalized.origin ?? data.origin);
+    data.origin = origin;
+    normalized.data = data as Prisma.JsonValue;
+    normalized.origin = origin;
+    normalized.actorUserId =
+      typeof normalized.actorUserId === 'string'
+        ? normalized.actorUserId
+        : typeof data.actorUserId === 'string'
+          ? data.actorUserId
+          : null;
+    normalized.apiKeyId =
+      typeof normalized.apiKeyId === 'string'
+        ? normalized.apiKeyId
+        : typeof data.apiKeyId === 'string'
+          ? data.apiKeyId
+          : null;
+    return normalized;
   }
 
   override async create(

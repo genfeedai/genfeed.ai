@@ -29,6 +29,7 @@ function makeJobData(
     language: 'en',
     maxClips: 10,
     minViralityScore: 50,
+    mode: 'avatar',
     orgId: '507f1f77bcf86cd799439011',
     projectId: '507f1f77bcf86cd799439012',
     userId: '507f1f77bcf86cd799439013',
@@ -230,7 +231,7 @@ describe('ClipFactoryProcessor', () => {
     expect(clipProjectsService.patch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
-        error: 'Clip generation failed before any provider job was queued.',
+        error: 'Clip generation failed before any generation job was queued.',
         status: 'failed',
       }),
     );
@@ -266,8 +267,52 @@ describe('ClipFactoryProcessor', () => {
     await processor.process(makeJob(makeJobData({ avatarProvider: 'heygen' })));
 
     expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
-      expect.objectContaining({ provider: 'heygen' }),
+      expect.objectContaining({ mode: 'avatar', provider: 'heygen' }),
     );
+  });
+
+  it('should pass raw-cut source and transcript context to clip generation', async () => {
+    await processor.process(makeJob(makeJobData({ mode: 'raw-cut' })));
+
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'raw-cut',
+        sourceVideoUrl: 'https://www.youtube.com/watch?v=test123',
+        transcriptSegments: transcriptionResult.segments,
+      }),
+    );
+  });
+
+  it('should reject unknown generation modes before starting the pipeline', async () => {
+    await expect(
+      processor.process(makeJob(makeJobData({ mode: 'unknown' as never }))),
+    ).rejects.toThrow('Unknown clip generation mode');
+
+    expect(clipProjectsService.patch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: 'failed' }),
+    );
+    expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
+  });
+
+  it('should reject avatar jobs without credentials before starting the pipeline', async () => {
+    await expect(
+      processor.process(
+        makeJob(
+          makeJobData({
+            avatarId: undefined,
+            mode: 'avatar',
+            voiceId: undefined,
+          }),
+        ),
+      ),
+    ).rejects.toThrow('requires avatarId and voiceId');
+
+    expect(clipProjectsService.patch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ status: 'failed' }),
+    );
+    expect(clipGenerationService.generateClips).not.toHaveBeenCalled();
   });
 
   describe('files service URL resolution', () => {

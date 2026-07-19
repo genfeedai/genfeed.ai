@@ -17,6 +17,7 @@ const makeJobData = (
   language: 'en',
   maxClips: 3,
   minViralityScore: 0.8,
+  mode: 'avatar',
   orgId: 'org-456',
   projectId: 'project-xyz',
   userId: 'user-2',
@@ -152,6 +153,45 @@ describe('ClipFactoryQueueService', () => {
         }),
         expect.any(Object),
       );
+    });
+
+    it('should queue raw-cut jobs without avatar credentials', async () => {
+      const jobData = makeJobData({
+        avatarId: undefined,
+        avatarProvider: undefined,
+        mode: 'raw-cut',
+        voiceId: undefined,
+      });
+
+      await service.enqueue(jobData);
+
+      expect(queue.add).toHaveBeenCalledWith(
+        'clip-factory-run',
+        jobData,
+        expect.any(Object),
+      );
+    });
+
+    it('should reject avatar jobs without avatar credentials', async () => {
+      await expect(
+        service.enqueue(
+          makeJobData({
+            avatarId: undefined,
+            mode: 'avatar',
+            voiceId: undefined,
+          }),
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(queue.add).not.toHaveBeenCalled();
+    });
+
+    it('should reject unknown generation modes before queueing', async () => {
+      await expect(
+        service.enqueue(makeJobData({ mode: 'unknown' as never })),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(queue.add).not.toHaveBeenCalled();
     });
 
     it.each([

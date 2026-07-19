@@ -7,20 +7,22 @@ exports.default = async function notarizeDesktop(context) {
     return;
   }
 
-  const appleId = process.env.APPLE_ID;
-  const applePassword = process.env.APPLE_APP_SPECIFIC_PASSWORD;
-  const appleTeamId = process.env.APPLE_TEAM_ID;
+  const appleApiKey = process.env.APPLE_API_KEY;
+  const appleApiKeyId = process.env.APPLE_API_KEY_ID;
+  const appleApiIssuer = process.env.APPLE_API_ISSUER;
 
-  if (!appleId || !applePassword || !appleTeamId) {
-    console.log('Skipping notarization: Apple credentials not configured.');
+  if (!appleApiKey || !appleApiKeyId || !appleApiIssuer) {
+    console.log(
+      'Skipping notarization: App Store Connect API credentials not configured.',
+    );
     return;
   }
 
   await notarize({
     appBundleId: 'ai.genfeed.desktop',
     appPath: `${appOutDir}/${packager.appInfo.productFilename}.app`,
-    appleId,
-    appleIdPassword: applePassword,
-    teamId: appleTeamId,
+    appleApiIssuer,
+    appleApiKey,
+    appleApiKeyId,
   });
 };

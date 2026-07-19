@@ -89,6 +89,7 @@ export type RuntimeComplexityResult = {
 };
 
 export type RuntimeComplexityOptions = {
+  baselineFiles?: readonly RuntimeFileMetric[];
   files: readonly string[];
   mode: 'changed' | 'full';
   rootDir?: string;
@@ -169,12 +170,11 @@ function memberName(
   return member.name.getText(sourceFile);
 }
 
-function measureFile(
-  absoluteFile: string,
+function measureContents(
+  contents: string,
   relativeFile: string,
   kind: RuntimeFileKind,
 ): RuntimeFileMetric {
-  const contents = readFileSync(absoluteFile, 'utf8');
   const sourceFile = ts.createSourceFile(
     relativeFile,
     contents,
@@ -224,6 +224,18 @@ function measureFile(
         left.line - right.line || left.symbol.localeCompare(right.symbol),
     ),
   };
+}
+
+function measureFile(
+  absoluteFile: string,
+  relativeFile: string,
+  kind: RuntimeFileKind,
+): RuntimeFileMetric {
+  return measureContents(
+    readFileSync(absoluteFile, 'utf8'),
+    relativeFile,
+    kind,
+  );
 }
 
 function violationsForFile(
@@ -284,6 +296,78 @@ function violationsForFile(
   return violations;
 }
 
+type RuntimeMetricCeiling = {
+  actual: number;
+  file: string;
+  metric: RuntimeComplexityViolation['metric'];
+  symbol: string;
+};
+
+function metricCeilings(
+  files: readonly RuntimeFileMetric[],
+): RuntimeMetricCeiling[] {
+  return files.flatMap((file) => [
+    {
+      actual: file.lines,
+      file: file.file,
+      metric: 'file-lines' as const,
+      symbol: file.file,
+    },
+    ...file.methods.map((method) => ({
+      actual: method.lines,
+      file: file.file,
+      metric: 'method-lines' as const,
+      symbol: method.symbol,
+    })),
+    ...file.constructors.map((constructor) => ({
+      actual: constructor.dependencies,
+      file: file.file,
+      metric: 'constructor-dependencies' as const,
+      symbol: constructor.symbol,
+    })),
+  ]);
+}
+
+function filterComplexityRegressions(
+  violations: readonly RuntimeComplexityViolation[],
+  baselineFiles: readonly RuntimeFileMetric[],
+): RuntimeComplexityViolation[] {
+  const remainingCeilings = metricCeilings(baselineFiles);
+
+  return violations.filter((violation) => {
+    const exactIndex = remainingCeilings.findIndex(
+      (ceiling) =>
+        ceiling.file === violation.file &&
+        ceiling.metric === violation.metric &&
+        ceiling.symbol === violation.symbol,
+    );
+    if (exactIndex >= 0) {
+      const [ceiling] = remainingCeilings.splice(exactIndex, 1);
+      return violation.actual > ceiling.actual;
+    }
+
+    const renamedIndex = remainingCeilings
+      .map((ceiling, index) => ({ ceiling, index }))
+      .filter(
+        ({ ceiling }) =>
+          ceiling.file === violation.file &&
+          ceiling.metric === violation.metric &&
+          ceiling.actual >= violation.actual,
+      )
+      .sort(
+        (left, right) =>
+          left.ceiling.actual - right.ceiling.actual ||
+          left.ceiling.symbol.localeCompare(right.ceiling.symbol),
+      )[0]?.index;
+    if (renamedIndex === undefined) {
+      return true;
+    }
+
+    remainingCeilings.splice(renamedIndex, 1);
+    return false;
+  });
+}
+
 export function runRuntimeComplexityCheck(
   options: RuntimeComplexityOptions,
 ): RuntimeComplexityResult {
@@ -320,7 +404,7 @@ export function runRuntimeComplexityCheck(
     files.push(measureFile(absoluteFile, relativeFile, kind));
   }
 
-  const violations = files
+  const measuredViolations = files
     .flatMap((file) => violationsForFile(file, thresholds))
     .sort(
       (left, right) =>
@@ -328,6 +412,10 @@ export function runRuntimeComplexityCheck(
         left.line - right.line ||
         left.metric.localeCompare(right.metric),
     );
+  const violations =
+    options.mode === 'changed' && options.baselineFiles
+      ? filterComplexityRegressions(measuredViolations, options.baselineFiles)
+      : measuredViolations;
 
   return {
     files,
@@ -335,6 +423,35 @@ export function runRuntimeComplexityCheck(
     scannedFileCount: files.length,
     violations,
   };
+}
+
+export function measureRuntimeFilesAtRef(options: {
+  baseRef: string;
+  files: readonly string[];
+  rootDir?: string;
+}): RuntimeFileMetric[] {
+  const rootDir = options.rootDir ?? process.cwd();
+  const metrics: RuntimeFileMetric[] = [];
+
+  for (const file of [...new Set(options.files.map(normalize))].sort()) {
+    if (exclusionReason(file)) {
+      continue;
+    }
+    const kind = classifyRuntimeFile(file);
+    if (!kind) {
+      continue;
+    }
+    const result = spawnSync('git', ['show', `${options.baseRef}:${file}`], {
+      cwd: rootDir,
+      encoding: 'utf8',
+    });
+    if (result.status !== 0) {
+      continue;
+    }
+    metrics.push(measureContents(result.stdout, file, kind));
+  }
+
+  return metrics;
 }
 
 export function discoverFullRuntimeFiles(rootDir = process.cwd()): string[] {
@@ -480,6 +597,14 @@ function main(): void {
   }
 
   const result = runRuntimeComplexityCheck({
+    baselineFiles:
+      options.mode === 'changed'
+        ? measureRuntimeFilesAtRef({
+            baseRef: options.baseRef as string,
+            files,
+            rootDir,
+          })
+        : undefined,
     files,
     mode: options.mode,
     rootDir,

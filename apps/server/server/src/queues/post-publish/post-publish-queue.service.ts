@@ -1,3 +1,4 @@
+import { ActionOrigin } from '@genfeedai/enums';
 import {
   POST_PUBLISH_JOB_NAME,
   POST_PUBLISH_QUEUE,
@@ -5,6 +6,10 @@ import {
 } from '@genfeedai/queue-contracts';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Optional } from '@nestjs/common';
+import {
+  getActionOriginContext,
+  sanitizeActionOriginContext,
+} from '@server/action-origin/action-origin.context';
 import { SERVER_TOKENS, type ServerLogger } from '@server/server.dependencies';
 import type { Queue } from 'bullmq';
 
@@ -21,8 +26,15 @@ export class PostPublishQueueService {
   ) {}
 
   async enqueue(data: Omit<PostPublishJobData, 'enqueuedAt'>): Promise<string> {
+    const actionContext = sanitizeActionOriginContext(
+      data.actionContext ??
+        (data.source === 'scheduled_sweep'
+          ? { origin: ActionOrigin.WORKFLOW }
+          : getActionOriginContext()),
+    );
     const payload: PostPublishJobData = {
       ...data,
+      actionContext,
       enqueuedAt: new Date().toISOString(),
     };
     const jobId = data.operationId ?? data.postId;

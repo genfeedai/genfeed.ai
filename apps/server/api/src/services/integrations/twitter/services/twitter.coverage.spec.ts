@@ -57,14 +57,19 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
   EncryptionUtil: { decrypt: vi.fn((val: string) => `decrypted:${val}`) },
 }));
 
-vi.mock('@genfeedai/helpers', () => ({
-  SocialUrlHelper: {
-    buildTwitterUrl: vi.fn(
-      (tweetId: string, username: string) =>
-        `https://x.com/${username}/status/${tweetId}`,
-    ),
-  },
-}));
+vi.mock('@genfeedai/helpers', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/helpers')>();
+
+  return {
+    ...actual,
+    SocialUrlHelper: {
+      buildTwitterUrl: vi.fn(
+        (tweetId: string, username: string) =>
+          `https://x.com/${username}/status/${tweetId}`,
+      ),
+    },
+  };
+});
 
 vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
   htmlToText: vi.fn((val: string) => val),

@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
 const { spawn } = require('node:child_process');
-const path = require('node:path');
 const electronPath = require('electron');
 
 const desktopRoot = process.cwd();
-const appRoot = path.resolve(desktopRoot, '../../app');
+const appRoot = desktopRoot;
 const appPort = process.env.GENFEED_DESKTOP_APP_PORT || '3230';
 const appUrl = `http://127.0.0.1:${appPort}`;
 const apiEndpoint =

@@ -1,5 +1,6 @@
 import type { WorkflowExecutionJobData } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/enums';
+import { getActionOriginContext } from '@genfeedai/server';
 import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -82,7 +83,28 @@ describe('WorkflowExecutionProcessor', () => {
 
   describe('process - trigger jobs', () => {
     it('should handle trigger events via executor service', async () => {
+      let capturedContext:
+        | ReturnType<typeof getActionOriginContext>
+        | undefined;
+      mockExecutor.handleTriggerEvent.mockImplementation(async () => {
+        capturedContext = getActionOriginContext();
+        return [
+          {
+            executionId: 'exec-1',
+            nodeResults: [],
+            startedAt: new Date(),
+            status: WorkflowExecutionStatus.COMPLETED,
+            totalCreditsUsed: 0,
+            workflowId: 'wf-1',
+          },
+        ];
+      });
       const job = createMockJob({
+        actionContext: {
+          actorUserId: 'user-1',
+          apiKeyId: 'key-1',
+          origin: ActionOrigin.MCP,
+        },
         triggerEvent: {
           data: { postId: 'post-1' },
           organizationId: 'org-1',
@@ -103,6 +125,7 @@ describe('WorkflowExecutionProcessor', () => {
           executionCount: 1,
         }),
       );
+      expect(capturedContext).toEqual(job.data.actionContext);
     });
 
     it('should throw when trigger event data is missing', async () => {

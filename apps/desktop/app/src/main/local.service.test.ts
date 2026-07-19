@@ -2,8 +2,6 @@ import { describe, expect, it } from 'bun:test';
 import { DesktopLocalService } from './local.service';
 
 const createPrismaMock = () => {
-  const syncJobs: Array<Record<string, unknown>> = [];
-
   return {
     agentStrategy: {
       findMany: async () => [
@@ -17,12 +15,6 @@ const createPrismaMock = () => {
           status: 'active',
         },
       ],
-    },
-    desktopSyncJob: {
-      create: async ({ data }: { data: Record<string, unknown> }) => {
-        syncJobs.push(data);
-        return data;
-      },
     },
     desktopWorkspace: {
       findMany: async () => [
@@ -56,7 +48,6 @@ const createPrismaMock = () => {
         },
       ],
     },
-    syncJobs,
     trend: {
       findMany: async () => [
         {
@@ -182,34 +173,50 @@ describe('DesktopLocalService', () => {
     });
   });
 
-  it('queues offline-only actions instead of pretending they succeeded', async () => {
+  it('rejects cloud-only actions without creating unsupported queue work', async () => {
     const prisma = createPrismaMock();
     const service = new DesktopLocalService(prisma as never);
 
-    const results = await Promise.all([
-      service.generateHooks('topic'),
-      service.generateContent({
-        platform: 'twitter',
-        prompt: 'topic',
-        publishIntent: 'review',
-        type: 'hook',
-      }),
+    await expect(service.generateHooks('topic')).rejects.toThrow(
+      'Configure a local generation provider',
+    );
+    await expect(
       service.publishPost({
         content: 'hello',
         platform: 'twitter',
       }),
-      service.runAgent('agent-1'),
+    ).rejects.toThrow('Connect Genfeed Cloud');
+    await expect(service.runAgent('agent-1')).rejects.toThrow(
+      'Connect Genfeed Cloud',
+    );
+    await expect(
       service.runWorkflow({ workflowId: 'workflow-1' }),
-    ]);
+    ).rejects.toThrow('Connect Genfeed Cloud');
+  });
 
-    for (const result of results) {
-      expect(result.status).toBe('queued_offline');
-      if (result.status === 'queued_offline') {
-        expect(result.syncJobId).toEqual(expect.any(String));
-        expect(result.message).toContain('Queued for sync');
-      }
-    }
+  it('uses the configured local provider for account-less generation', async () => {
+    const prisma = createPrismaMock();
+    const generation = {
+      generateContent: async () => 'Generated on this device',
+    };
+    const service = new DesktopLocalService(prisma as never, generation);
 
-    expect(prisma.syncJobs).toHaveLength(5);
+    await expect(
+      service.generateContent({
+        platform: 'twitter',
+        prompt: 'topic',
+        publishIntent: 'review',
+        sourceDraftId: 'draft-1',
+        type: 'hook',
+      }),
+    ).resolves.toEqual({
+      data: {
+        content: 'Generated on this device',
+        id: 'draft-1',
+        platform: 'twitter',
+        type: 'hook',
+      },
+      status: 'success',
+    });
   });
 });

@@ -15,10 +15,14 @@ import type {
   IDesktopWorkflowRunResult,
 } from '@genfeedai/desktop-contracts';
 import type { PrismaClient } from '@genfeedai/desktop-prisma';
-import { toIso } from './time.util';
 
 const LOCAL_ORGANIZATION_ID = 'local-org';
-const OFFLINE_MESSAGE = 'Queued for sync - will complete when you sign in';
+const CLOUD_CONNECTION_REQUIRED =
+  'Connect Genfeed Cloud to use this cloud-only action.';
+
+interface DesktopLocalGeneration {
+  generateContent: (params: IDesktopGenerationOptions) => Promise<string>;
+}
 
 function parsePlatforms(value: string): string[] {
   try {
@@ -32,7 +36,10 @@ function parsePlatforms(value: string): string[] {
 }
 
 export class DesktopLocalService implements IDesktopDataService {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly generation?: DesktopLocalGeneration,
+  ) {}
 
   async listProjects(): Promise<IDesktopDataResult<IDesktopCloudProject[]>> {
     const workspaces = await this.prisma.desktopWorkspace.findMany({
@@ -235,59 +242,63 @@ export class DesktopLocalService implements IDesktopDataService {
   }
 
   async generateHooks(topic: string): Promise<IDesktopDataResult<string[]>> {
-    return this.queueOfflineJob('generateHooks', { topic });
+    const content = await this.requireGeneration().generateContent({
+      platform: 'twitter',
+      prompt: topic,
+      publishIntent: 'review',
+      type: 'hook',
+    });
+
+    return {
+      data: [content],
+      status: 'success',
+    };
   }
 
   async generateContent(
     params: IDesktopGenerationOptions,
   ): Promise<IDesktopDataResult<IDesktopGeneratedContent>> {
-    return this.queueOfflineJob('generateContent', {
-      ...params,
-    });
+    const content = await this.requireGeneration().generateContent(params);
+
+    return {
+      data: {
+        content,
+        id: params.sourceDraftId ?? randomUUID(),
+        platform: params.platform,
+        type: params.type,
+      },
+      status: 'success',
+    };
   }
 
-  async publishPost(params: {
+  async publishPost(_params: {
     content: string;
     draftId?: string;
     platform: string;
   }): Promise<IDesktopDataResult<IDesktopPublishResult>> {
-    return this.queueOfflineJob('publishPost', params);
+    throw new Error(CLOUD_CONNECTION_REQUIRED);
   }
 
   async runAgent(
-    agentId: string,
+    _agentId: string,
   ): Promise<IDesktopDataResult<IDesktopAgentRunResult>> {
-    return this.queueOfflineJob('runAgent', { agentId });
+    throw new Error(CLOUD_CONNECTION_REQUIRED);
   }
 
-  async runWorkflow(params: {
+  async runWorkflow(_params: {
     batch?: boolean;
     workflowId: string;
   }): Promise<IDesktopDataResult<IDesktopWorkflowRunResult>> {
-    return this.queueOfflineJob('runWorkflow', params);
+    throw new Error(CLOUD_CONNECTION_REQUIRED);
   }
 
-  private async queueOfflineJob<T>(
-    type: string,
-    payload: Record<string, unknown>,
-  ): Promise<IDesktopDataResult<T>> {
-    const now = toIso();
-    const job = await this.prisma.desktopSyncJob.create({
-      data: {
-        createdAt: now,
-        id: randomUUID(),
-        payload: JSON.stringify(payload),
-        retryCount: 0,
-        status: 'pending',
-        type,
-        updatedAt: now,
-      },
-    });
+  private requireGeneration(): DesktopLocalGeneration {
+    if (!this.generation) {
+      throw new Error(
+        'Configure a local generation provider before generating content.',
+      );
+    }
 
-    return {
-      message: OFFLINE_MESSAGE,
-      status: 'queued_offline',
-      syncJobId: job.id,
-    };
+    return this.generation;
   }
 }
