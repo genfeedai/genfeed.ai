@@ -27,7 +27,50 @@ export function parsePostGenerationContent(
   maxCount: number,
   context?: Pick<AccountPublishingContext, 'constraints'>,
 ): string[] {
-  let postLines: string[] = [];
+  const { cleanPost, isValid } = createPostGenerationParser(context);
+  const candidates = extractPostGenerationCandidates(
+    content,
+    cleanPost,
+    isValid,
+  );
+
+  return candidates
+    .filter((post): post is string => typeof post === 'string')
+    .map(cleanPost)
+    .filter((post) => post.length > 0 && isValid(post))
+    .slice(0, maxCount);
+}
+
+/**
+ * Parse model output without collapsing invalid positions. Thread generation
+ * uses this so a rejected middle reply cannot shift later replies to the wrong
+ * child post.
+ */
+export function parsePostGenerationSlots(
+  content: string,
+  maxCount: number,
+  context?: Pick<AccountPublishingContext, 'constraints'>,
+): Array<string | null> {
+  const { cleanPost, isValid } = createPostGenerationParser(context);
+  const candidates = extractPostGenerationCandidates(
+    content,
+    cleanPost,
+    isValid,
+  );
+
+  return candidates.slice(0, maxCount).map((candidate) => {
+    if (typeof candidate !== 'string') {
+      return null;
+    }
+
+    const post = cleanPost(candidate);
+    return post.length > 0 && isValid(post) ? post : null;
+  });
+}
+
+function createPostGenerationParser(
+  context?: Pick<AccountPublishingContext, 'constraints'>,
+) {
   const maxLength =
     context?.constraints.maxWeightedCharacters ??
     context?.constraints.maxCharacters ??
@@ -39,6 +82,14 @@ export function parsePostGenerationContent(
   const isValid = (post: string) =>
     isValidPostLength(post, maxLength, usesWeightedCharacters);
 
+  return { cleanPost, isValid };
+}
+
+function extractPostGenerationCandidates(
+  content: string,
+  cleanPost: (post: string) => string,
+  isValid: (post: string) => boolean,
+): unknown[] {
   try {
     const trimmedContent = content
       .trim()
@@ -49,42 +100,46 @@ export function parsePostGenerationContent(
 
     const parsed = JSON.parse(trimmedContent);
     if (Array.isArray(parsed)) {
-      postLines = parsed
-        .map((post: unknown) => cleanPost(String(post)))
-        .filter((post: string) => post.length > 0 && isValid(post))
-        .slice(0, maxCount);
+      return parsed;
     }
   } catch {
-    const posts = content.includes('---')
-      ? content
-          .split('---')
-          .map((post) => cleanPost(post))
-          .filter((post) => post.length > 0 && isValid(post))
-          .slice(0, maxCount)
-      : [];
-
-    if (posts.length > 0) {
-      postLines = posts;
-    } else {
-      const numberedOrLinePosts = content
-        .split('\n')
-        .map((post) => cleanPost(post))
-        .filter((post) => post.length > 0 && isValid(post))
-        .slice(0, maxCount);
-
-      if (numberedOrLinePosts.length > 0) {
-        return numberedOrLinePosts;
+    if (content.includes('---')) {
+      const separatedCandidates = removeStructuralSeparators(
+        content.split('---'),
+        cleanPost,
+      );
+      if (
+        separatedCandidates.some((post) => {
+          const cleaned = cleanPost(post);
+          return isValid(cleaned);
+        })
+      ) {
+        return separatedCandidates;
       }
-
-      postLines = content
-        .split(/\n\n+/)
-        .map((post) => cleanPost(post))
-        .filter((post) => post.length > 0 && isValid(post))
-        .slice(0, maxCount);
     }
+
+    const lineCandidates = removeStructuralSeparators(
+      content.split('\n'),
+      cleanPost,
+    );
+    const hasValidLine = lineCandidates.some((post) => {
+      const cleaned = cleanPost(post);
+      return isValid(cleaned);
+    });
+
+    return hasValidLine
+      ? lineCandidates
+      : removeStructuralSeparators(content.split(/\n\n+/), cleanPost);
   }
 
-  return postLines;
+  return [];
+}
+
+function removeStructuralSeparators(
+  candidates: string[],
+  cleanPost: (post: string) => string,
+): string[] {
+  return candidates.filter((post) => cleanPost(post).length > 0);
 }
 
 export function extractPostGenerationLabel(

@@ -6,7 +6,7 @@ import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import {
   extractPostGenerationLabel,
-  parsePostGenerationContent,
+  parsePostGenerationSlots,
 } from '@api/collections/posts/services/post-generation-text.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
@@ -115,7 +115,7 @@ export class PostThreadGenerationService {
         throw new Error('No content generated from AI service');
       }
 
-      const tweetLines = parsePostGenerationContent(content, additionalCount, {
+      const tweetLines = parsePostGenerationSlots(content, additionalCount, {
         constraints: TWITTER_THREAD_CONSTRAINTS,
       });
 
@@ -136,7 +136,7 @@ export class PostThreadGenerationService {
 
   private async completeGeneratedChildren(
     childPosts: PostDocument[],
-    tweetLines: string[],
+    tweetLines: Array<string | null>,
     publicMetadata: ThreadGenerationMetadata,
   ): Promise<void> {
     for (let index = 0; index < childPosts.length; index++) {
@@ -144,8 +144,6 @@ export class PostThreadGenerationService {
       const tweetText = tweetLines[index];
       const childId = String(child.id);
 
-      // The parser removes empty strings, so a missing value only represents
-      // an unresolved tail child when the provider returned too few replies.
       if (!tweetText) {
         await this.markChildFailed(
           childId,
@@ -155,6 +153,8 @@ export class PostThreadGenerationService {
       }
 
       try {
+        // PostsService.patch owns collection/list/single cache-tag
+        // invalidation for every status write.
         const updatedPost = await this.postsService.patch(
           childId,
           {
@@ -219,6 +219,7 @@ export class PostThreadGenerationService {
 
   private async markChildFailed(postId: string, error: unknown): Promise<void> {
     try {
+      // PostsService.patch owns collection/list/single cache-tag invalidation.
       await this.postsService.patch(postId, { status: PostStatus.FAILED });
       await this.websocketService.emit(WebSocketPaths.post(postId), {
         error: (error as Error)?.message || 'Generation failed',

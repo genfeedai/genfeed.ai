@@ -251,6 +251,73 @@ describe('PostThreadGenerationService', () => {
     });
   });
 
+  it('preserves child positions when an intermediate reply is invalid', async () => {
+    const positionedChildren = [
+      ...childPosts,
+      { id: '507f1f77bcf86cd799439023' } as PostDocument,
+    ];
+    replicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      JSON.stringify(['Reply one', 'a'.repeat(300), 'Reply three']),
+    );
+
+    await service.expandThread(
+      originalPost,
+      positionedChildren,
+      { count: 4, tone: TweetTone.PROFESSIONAL },
+      publicMetadata,
+    );
+
+    expect(postsService.patch).toHaveBeenNthCalledWith(
+      1,
+      positionedChildren[0].id,
+      expect.objectContaining({
+        description: 'Reply one',
+        status: PostStatus.DRAFT,
+      }),
+      expect.any(Array),
+    );
+    expect(postsService.patch).toHaveBeenNthCalledWith(
+      2,
+      positionedChildren[1].id,
+      { status: PostStatus.FAILED },
+    );
+    expect(postsService.patch).toHaveBeenNthCalledWith(
+      3,
+      positionedChildren[2].id,
+      expect.objectContaining({
+        description: 'Reply three',
+        status: PostStatus.DRAFT,
+      }),
+      expect.any(Array),
+    );
+  });
+
+  it('rejects non-string JSON replies without shifting later children', async () => {
+    replicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      JSON.stringify([{ text: 'malformed' }, 'Reply two']),
+    );
+
+    await service.expandThread(
+      originalPost,
+      childPosts,
+      { count: 3, tone: TweetTone.PROFESSIONAL },
+      publicMetadata,
+    );
+
+    expect(postsService.patch).toHaveBeenNthCalledWith(1, childPosts[0].id, {
+      status: PostStatus.FAILED,
+    });
+    expect(postsService.patch).toHaveBeenNthCalledWith(
+      2,
+      childPosts[1].id,
+      expect.objectContaining({
+        description: 'Reply two',
+        status: PostStatus.DRAFT,
+      }),
+      expect.any(Array),
+    );
+  });
+
   it('marks every child failed when activity creation throws', async () => {
     activitiesService.create.mockRejectedValueOnce(
       new Error('activity store down'),
