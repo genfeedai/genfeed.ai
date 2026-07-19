@@ -4,6 +4,7 @@ import { JOB_TYPES, QUEUE_NAMES } from '@files/queues/queue.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.interfaces';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
+import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoMergeJobService } from '@files/services/video-merge/video-merge-job.service';
 import { WebSocketService } from '@files/services/websocket/websocket.service';
@@ -40,6 +41,7 @@ export class VideoProcessor extends WorkerHost {
     @Inject(WebSocketService) private webSocketService: WebSocketService,
     private redisService: RedisService,
     private readonly logger: LoggerService,
+    private readonly remotionRenderJobService: RemotionRenderJobService,
   ) {
     super();
   }
@@ -76,6 +78,8 @@ export class VideoProcessor extends WorkerHost {
         return await this.handleGetVideoMetadata(job);
       case JOB_TYPES.HOOK_REMIX:
         return await this.handleHookRemix(job);
+      case JOB_TYPES.RENDER_EDITOR_COMPOSITION:
+        return await this.remotionRenderJobService.process(job);
       default:
         throw new Error(`Unknown video job type: ${job.name}`);
     }

@@ -41,6 +41,7 @@ async function main() {
       redirectTarget: '/v1/health',
     });
 
+    // biome-ignore lint/correctness/useHookAtTopLevel: Nest application method, not a React hook
     app.useLogger(logger);
 
     app.setGlobalPrefix('v1');
