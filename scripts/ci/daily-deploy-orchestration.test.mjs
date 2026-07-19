@@ -168,6 +168,10 @@ test('keeps the daily and deploy workflow correlation contract wired', () => {
   );
   assert.match(deployWorkflow, /^ {6}orchestrator_run_id:/m);
   assert.match(dailyWorkflow, /daily-deploy-orchestration\.mjs/);
+  assert.match(
+    dailyWorkflow,
+    /name: Checkout workflow helpers[\s\S]*?persist-credentials: false/,
+  );
   assert.match(dailyWorkflow, /matchesCorrelatedDeployRun/);
   assert.match(dailyWorkflow, /orchestrator_run_id: correlationId/);
   assert.match(dailyWorkflow, /listJobsForWorkflowRun/);

@@ -356,6 +356,8 @@ jobs:
     steps:
       - name: Checkout workflow helpers
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       - name: Dispatch and watch Deploy ECS (production)
         id: deploy
