@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { dash } from '@better-auth/infra';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
-import { APIError, betterAuth, type RateLimit } from 'better-auth';
+import {
+  APIError,
+  type BetterAuthOptions,
+  betterAuth,
+  type RateLimit,
+} from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import {
   jwt,
@@ -25,6 +30,8 @@ const RATE_LIMIT_TTL_SECONDS = 86_400;
 const BETTER_AUTH_CREATOR_ROLE = 'admin';
 const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
 const SIGN_UP_MAGIC_LINK_INTENT = 'signup';
+
+type BetterAuthDatabaseHooks = NonNullable<BetterAuthOptions['databaseHooks']>;
 
 export const SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE =
   'An account already exists for this email. Sign in instead.';
@@ -300,6 +307,55 @@ function generateHandle(input: {
 }
 
 /**
+ * Build the first-time user hooks as a directly testable auth boundary.
+ *
+ * The before hook supplies the required Genfeed handle that Better Auth does
+ * not own. The after hook awaits resource provisioning so callers do not
+ * observe a newly created user before its canonical organization, brand,
+ * membership, settings, and credits have been initialized.
+ */
+export function buildBetterAuthUserDatabaseHooks(
+  onUserCreated?: ICreateBetterAuthOptions['onUserCreated'],
+): BetterAuthDatabaseHooks {
+  return {
+    user: {
+      create: {
+        before: async (user) => {
+          const typed = user as {
+            handle?: string;
+            email?: string | null;
+            name?: string | null;
+          };
+          if (typed.handle) {
+            return { data: user };
+          }
+          return {
+            data: {
+              ...user,
+              handle: generateHandle({
+                email: typed.email,
+                name: typed.name,
+              }),
+            },
+          };
+        },
+        // Provision org/settings/brand/member/credits for the new user. Awaited
+        // so a brand-new user is fully set up before its first request, and
+        // (idempotently) a no-op for returning preserved users. Replaces the
+        // legacy auth provider `user.created` webhook (epic #735, Phase 4).
+        after: async (user) => {
+          const typed = user as { id: string; email?: string | null };
+          await onUserCreated?.({
+            email: typed.email ?? null,
+            userId: typed.id,
+          });
+        },
+      },
+    },
+  };
+}
+
+/**
  * Resolve the active organization embedded in BA JWTs for DB-less consumers
  * such as the notifications websocket process. Mirrors
  * BetterAuthIdentityResolverService's org precedence without importing Nest
@@ -559,42 +615,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
         },
       },
     },
-    databaseHooks: {
-      user: {
-        create: {
-          before: async (user) => {
-            const typed = user as {
-              handle?: string;
-              email?: string | null;
-              name?: string | null;
-            };
-            if (typed.handle) {
-              return { data: user };
-            }
-            return {
-              data: {
-                ...user,
-                handle: generateHandle({
-                  email: typed.email,
-                  name: typed.name,
-                }),
-              },
-            };
-          },
-          // Provision org/settings/brand/member/credits for the new user. Awaited
-          // so a brand-new user is fully set up before their first request, and
-          // (idempotently) a no-op for returning preserved users. Replaces the
-          // legacy auth provider `user.created` webhook (epic #735, Phase 4).
-          after: async (user) => {
-            const typed = user as { id: string; email?: string | null };
-            await onUserCreated?.({
-              email: typed.email ?? null,
-              userId: typed.id,
-            });
-          },
-        },
-      },
-    },
+    databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated),
     plugins: [
       ...(apiKey ? [dash({ apiKey })] : []),
       magicLink({
