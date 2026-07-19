@@ -113,6 +113,20 @@ export class ClipResultsService extends BaseService<
     return result ? this.normalizeDocument(result) : null;
   }
 
+  async findActiveRawCuts(limit = 100): Promise<ClipResultDocument[]> {
+    const results = await this.delegate.findMany({
+      orderBy: { updatedAt: 'asc' },
+      take: limit,
+      where: {
+        isDeleted: false,
+        mode: 'raw-cut',
+        status: { in: ['extracting', 'captioning'] },
+      },
+    });
+
+    return this.normalizeDocuments(results);
+  }
+
   async findProjectResultForHandoff(input: {
     clipResultId: string;
     organizationId: string;

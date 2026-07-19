@@ -116,7 +116,13 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
   }
 
   async addCaptionsJob(data: VideoJobData): Promise<Job<VideoJobData>> {
-    return this.addJob(JOB_TYPES.ADD_CAPTIONS, data, 'captions');
+    return this.addJob(
+      JOB_TYPES.ADD_CAPTIONS,
+      data,
+      'captions',
+      undefined,
+      data.id,
+    );
   }
 
   async addGifConversionJob(data: VideoJobData): Promise<Job<VideoJobData>> {
@@ -154,7 +160,13 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
   }
 
   async addClipTrimJob(data: VideoJobData): Promise<Job<VideoJobData>> {
-    return this.addJob(JOB_TYPES.CLIP_TRIM, data, 'clip trim');
+    return this.addJob(
+      JOB_TYPES.CLIP_TRIM,
+      data,
+      'clip trim',
+      undefined,
+      data.id,
+    );
   }
 
   async addExtractFramesJob(data: VideoJobData): Promise<Job<VideoJobData>> {

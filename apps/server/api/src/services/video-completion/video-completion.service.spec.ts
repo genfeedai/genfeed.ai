@@ -1,3 +1,4 @@
+import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -27,6 +28,10 @@ describe('VideoCompletionService', () => {
     publishMediaFailed: ReturnType<typeof vi.fn>;
     publishVideoComplete: ReturnType<typeof vi.fn>;
   };
+  let rawCutClipCompletionService: {
+    handleCompletion: ReturnType<typeof vi.fn>;
+    reconcileActiveClips: ReturnType<typeof vi.fn>;
+  };
 
   const mockIngredientId = '507f1f77bcf86cd799439011';
   const mockUserId = '507f1f77bcf86cd799439012';
@@ -49,6 +54,10 @@ describe('VideoCompletionService', () => {
     notificationsPublisher = {
       publishMediaFailed: vi.fn().mockResolvedValue(undefined),
       publishVideoComplete: vi.fn().mockResolvedValue(undefined),
+    };
+    rawCutClipCompletionService = {
+      handleCompletion: vi.fn().mockResolvedValue(false),
+      reconcileActiveClips: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -85,6 +94,10 @@ describe('VideoCompletionService', () => {
         {
           provide: NotificationsPublisherService,
           useValue: notificationsPublisher,
+        },
+        {
+          provide: RawCutClipCompletionService,
+          useValue: rawCutClipCompletionService,
         },
         {
           provide: LoggerService,
@@ -477,5 +490,37 @@ describe('VideoCompletionService', () => {
       output,
       'job-123',
     );
+  });
+
+  it('routes raw-cut events without treating clip results as ingredients', async () => {
+    rawCutClipCompletionService.handleCompletion.mockResolvedValue(true);
+    await service.onModuleInit();
+    const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+      .calls[0][1];
+    const event = {
+      ingredientId: 'clip-result-1',
+      organizationId: mockOrganizationId,
+      result: {
+        jobId: 'raw-cut-trim-clip-result-1',
+        jobType: 'clip-trim',
+      },
+      status: 'completed',
+      timestamp: new Date().toISOString(),
+    };
+
+    await subscribeCallback(event);
+
+    expect(rawCutClipCompletionService.handleCompletion).toHaveBeenCalledWith(
+      event,
+    );
+    expect(ingredientsService.patch).not.toHaveBeenCalled();
+  });
+
+  it('polls raw-cut jobs during reconciliation', async () => {
+    await service.reconcileRawCutClips();
+
+    expect(
+      rawCutClipCompletionService.reconcileActiveClips,
+    ).toHaveBeenCalledTimes(1);
   });
 });

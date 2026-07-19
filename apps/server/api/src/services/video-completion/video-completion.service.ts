@@ -1,3 +1,4 @@
+import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -59,6 +60,7 @@ export class VideoCompletionService implements OnModuleInit {
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
     private readonly notificationsPublisher: NotificationsPublisherService,
+    private readonly rawCutClipCompletionService: RawCutClipCompletionService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -91,6 +93,10 @@ export class VideoCompletionService implements OnModuleInit {
         } else {
           await this.failEditorRender(data.editorRender);
         }
+        return;
+      }
+
+      if (await this.rawCutClipCompletionService.handleCompletion(data)) {
         return;
       }
 
@@ -200,6 +206,11 @@ export class VideoCompletionService implements OnModuleInit {
         this.logger.error('Failed to reconcile editor render', result.reason);
       }
     }
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async reconcileRawCutClips(): Promise<void> {
+    await this.rawCutClipCompletionService.reconcileActiveClips();
   }
 
   private async completeEditorRender(

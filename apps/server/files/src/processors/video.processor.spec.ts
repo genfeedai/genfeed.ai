@@ -632,8 +632,26 @@ describe('VideoProcessor', () => {
       const result = await processor.handleAddCaptions(job);
 
       expect(result.success).toBe(true);
+      expect(result).toEqual(
+        expect.objectContaining({
+          jobId: 'job-123',
+          jobType: JOB_TYPES.ADD_CAPTIONS,
+          url: expect.any(String),
+        }),
+      );
       expect(ffmpegService.addCaptions).toHaveBeenCalled();
       expect(webSocketService.emitSuccess).toHaveBeenCalled();
+      expect(redisService.publish).toHaveBeenCalledWith(
+        'video-processing-complete',
+        expect.objectContaining({
+          ingredientId: data.ingredientId,
+          result: expect.objectContaining({
+            jobId: 'job-123',
+            jobType: JOB_TYPES.ADD_CAPTIONS,
+          }),
+          status: 'completed',
+        }),
+      );
     });
 
     it('should handle caption errors', async () => {
@@ -643,6 +661,17 @@ describe('VideoProcessor', () => {
 
       await expect(processor.handleAddCaptions(job)).rejects.toThrow();
       expect(webSocketService.emitError).toHaveBeenCalled();
+      expect(redisService.publish).toHaveBeenCalledWith(
+        'video-processing-complete',
+        expect.objectContaining({
+          ingredientId: data.ingredientId,
+          result: expect.objectContaining({
+            jobId: 'job-123',
+            jobType: JOB_TYPES.ADD_CAPTIONS,
+          }),
+          status: 'failed',
+        }),
+      );
     });
   });
 
@@ -829,6 +858,16 @@ describe('VideoProcessor', () => {
       expect(result.success).toBe(true);
       expect(result.s3Key).toBeDefined();
       expect(result.url).toBeDefined();
+      expect(redisService.publish).toHaveBeenCalledWith(
+        'video-processing-complete',
+        expect.objectContaining({
+          result: expect.objectContaining({
+            jobId: 'job-123',
+            jobType: JOB_TYPES.CLIP_TRIM,
+          }),
+          status: 'completed',
+        }),
+      );
       expect(ffmpegService.trimVideo).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
@@ -904,6 +943,16 @@ describe('VideoProcessor', () => {
         'Clip trim failed',
       );
       expect(webSocketService.emitError).toHaveBeenCalled();
+      expect(redisService.publish).toHaveBeenCalledWith(
+        'video-processing-complete',
+        expect.objectContaining({
+          result: expect.objectContaining({
+            jobId: 'job-123',
+            jobType: JOB_TYPES.CLIP_TRIM,
+          }),
+          status: 'failed',
+        }),
+      );
     });
   });
 

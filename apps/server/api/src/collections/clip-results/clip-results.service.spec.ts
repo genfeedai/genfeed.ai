@@ -235,6 +235,22 @@ describe('ClipResultsService', () => {
     );
   });
 
+  it('returns a bounded oldest-first set of active raw-cut clips', async () => {
+    prisma.clipResult.findMany.mockResolvedValue([]);
+
+    await service.findActiveRawCuts(25);
+
+    expect(prisma.clipResult.findMany).toHaveBeenCalledWith({
+      orderBy: { updatedAt: 'asc' },
+      take: 25,
+      where: {
+        isDeleted: false,
+        mode: 'raw-cut',
+        status: { in: ['extracting', 'captioning'] },
+      },
+    });
+  });
+
   it('resolves a project clip result by id, mongo id, or provider job id for handoff', async () => {
     prisma.clipResult.findFirst.mockResolvedValue({
       data: { title: 'Clip' },

@@ -129,6 +129,7 @@ export class ClipProjectsService extends BaseService<
       pendingClipCount,
       readyClipCount,
     };
+    const settledClipCount = readyClipCount + failedClipCount;
 
     if (pendingClipCount === 0) {
       update.progress = 100;
@@ -140,6 +141,13 @@ export class ClipProjectsService extends BaseService<
         update.error = 'All clip generations failed.';
         update.status = 'failed';
       }
+    } else if (settledClipCount > 0) {
+      const currentProgress =
+        typeof project.progress === 'number' ? project.progress : 0;
+      update.progress = Math.max(
+        currentProgress,
+        Math.min(99, 60 + Math.floor((settledClipCount / results.length) * 40)),
+      );
     }
 
     if (!this.hasReconciliationChange(project, update)) {

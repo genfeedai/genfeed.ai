@@ -87,6 +87,7 @@ export class RawCutClipService {
 
     const response = await this.fileQueueService.processVideo({
       authProviderUserId,
+      id: `raw-cut-trim-${clipResultId}`,
       ingredientId: clipResultId,
       organizationId,
       params: {

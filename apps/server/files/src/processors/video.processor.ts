@@ -22,6 +22,8 @@ import { Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 interface VideoCompletionResult {
+  jobId?: string;
+  jobType?: string;
   ingredientId?: string;
   outputPath?: string;
   s3Key?: string;
@@ -293,7 +295,7 @@ export class VideoProcessor extends WorkerHost {
         ),
       );
 
-      const { s3Key } = await this.uploadAndEmitSuccess(
+      const { s3Key, url } = await this.uploadAndEmitSuccess(
         outputPath,
         ingredientId,
         'videos',
@@ -304,7 +306,22 @@ export class VideoProcessor extends WorkerHost {
       );
 
       this.ffmpegService.cleanupTempFiles(ingredientId, 'captions');
-      return { outputPath, s3Key, success: true };
+      const result = {
+        jobId: String(job.id),
+        jobType: JOB_TYPES.ADD_CAPTIONS,
+        outputPath,
+        s3Key,
+        success: true,
+        url,
+      };
+      await this.publishVideoCompletion(
+        ingredientId,
+        job.data.userId,
+        job.data.organizationId,
+        'completed',
+        result,
+      );
+      return result;
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Captions job failed: ${message}`);
@@ -313,6 +330,17 @@ export class VideoProcessor extends WorkerHost {
         message,
         authProviderUserId,
         room,
+      );
+      await this.publishVideoCompletion(
+        ingredientId,
+        job.data.userId,
+        job.data.organizationId,
+        'failed',
+        {
+          jobId: String(job.id),
+          jobType: JOB_TYPES.ADD_CAPTIONS,
+        },
+        message,
       );
       throw error;
     }
@@ -589,13 +617,22 @@ export class VideoProcessor extends WorkerHost {
           duration,
           endTime,
           ingredientId,
+          jobId: String(job.id),
+          jobType: JOB_TYPES.CLIP_TRIM,
           s3Key,
           startTime,
           url,
         },
       );
 
-      return { outputPath, s3Key, success: true, url };
+      return {
+        jobId: String(job.id),
+        jobType: JOB_TYPES.CLIP_TRIM,
+        outputPath,
+        s3Key,
+        success: true,
+        url,
+      };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Clip trim job failed: ${message}`);
@@ -604,6 +641,17 @@ export class VideoProcessor extends WorkerHost {
         message,
         authProviderUserId,
         room,
+      );
+      await this.publishVideoCompletion(
+        ingredientId,
+        job.data.userId,
+        job.data.organizationId,
+        'failed',
+        {
+          jobId: String(job.id),
+          jobType: JOB_TYPES.CLIP_TRIM,
+        },
+        message,
       );
       throw error;
     }

@@ -65,6 +65,7 @@ describe('RawCutClipService', () => {
     expect(fileQueueService.processVideo).toHaveBeenCalledTimes(1);
     expect(fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: 'raw-cut-trim-clip-result-1',
         ingredientId: 'clip-result-1',
         organizationId: '507f1f77bcf86cd799439011',
         type: 'clip-trim',

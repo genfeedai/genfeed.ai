@@ -1,3 +1,6 @@
+import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
+import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
+import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { EditorProjectsModule } from '@api/collections/editor-projects/editor-projects.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -11,12 +14,14 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [VideoCompletionService],
   imports: [
     RedisModule,
+    forwardRef(() => ClipProjectsCoreModule),
+    forwardRef(() => ClipResultsModule),
     forwardRef(() => EditorProjectsModule),
     forwardRef(() => FileQueueModule),
     forwardRef(() => IngredientsModule),
     forwardRef(() => MetadataModule),
     forwardRef(() => NotificationsPublisherModule),
   ],
-  providers: [VideoCompletionService],
+  providers: [RawCutClipCompletionService, VideoCompletionService],
 })
 export class VideoCompletionModule {}
