@@ -6,7 +6,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus, Status } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { ConflictException } from '@nestjs/common';
