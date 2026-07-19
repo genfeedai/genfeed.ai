@@ -1,4 +1,9 @@
 import { ClipProjectStatus } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import {
+  CLIP_RESULT_MODES,
+  DEFAULT_CLIP_RESULT_MODE,
+  type ClipResultMode,
+} from '@genfeedai/interfaces';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -15,6 +20,17 @@ import {
 } from 'class-validator';
 
 export class ClipProjectSettingsDto {
+  @IsOptional()
+  @IsIn([...CLIP_RESULT_MODES])
+  @ApiProperty({
+    default: DEFAULT_CLIP_RESULT_MODE,
+    description: 'Clip generation mode',
+    enum: CLIP_RESULT_MODES,
+    enumName: 'ClipResultMode',
+    required: false,
+  })
+  readonly mode?: ClipResultMode;
+
   @IsOptional()
   @IsBoolean()
   @ApiProperty({

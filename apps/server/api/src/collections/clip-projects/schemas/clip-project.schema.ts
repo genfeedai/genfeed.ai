@@ -2,6 +2,7 @@ import {
   CLIP_PROJECT_STATUSES,
   type ClipReadinessContract,
   type ClipProjectStatus as SharedClipProjectStatus,
+  type ClipResultMode,
 } from '@genfeedai/interfaces';
 import type { ClipProject as PrismaClipProject } from '@genfeedai/prisma';
 
@@ -33,6 +34,7 @@ export interface ClipProjectSettings {
   maxClips?: number;
   maxDuration?: number;
   minDuration?: number;
+  mode?: ClipResultMode;
   [key: string]: unknown;
 }
 

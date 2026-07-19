@@ -12,6 +12,22 @@ export interface TranscriptSegment {
   text: string;
 }
 
+export function isTranscriptSegment(
+  value: unknown,
+): value is TranscriptSegment {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const segment = value as Record<string, unknown>;
+
+  return (
+    typeof segment.start === 'number' &&
+    typeof segment.end === 'number' &&
+    typeof segment.text === 'string'
+  );
+}
+
 /**
  * Builds an SRT caption track for the `[clipStart, clipEnd]` window of a
  * source transcript, re-indexed from 1 and offset so timestamps are relative
