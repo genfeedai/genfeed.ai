@@ -8,6 +8,23 @@ export enum SocialSourceType {
   ACCOUNT = 'account',
 }
 
+export enum ListeningSourcePlatform {
+  TWITTER = 'twitter',
+  REDDIT = 'reddit',
+  HACKER_NEWS = 'hacker_news',
+  INSTAGRAM = 'instagram',
+  LINKEDIN = 'linkedin',
+  YOUTUBE = 'youtube',
+}
+
+export enum ListeningEvidenceType {
+  COMMENT = 'comment',
+  MENTION = 'mention',
+  POST = 'post',
+  REPLY = 'reply',
+  REVIEW = 'review',
+}
+
 export enum SourcePostActionType {
   DRAFT = 'draft',
   REPLY = 'reply',

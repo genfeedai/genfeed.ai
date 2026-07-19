@@ -17,6 +17,7 @@ import { PostsController } from '@api/collections/posts/controllers/posts.contro
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
+import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
@@ -66,6 +67,7 @@ import { forwardRef, Module } from '@nestjs/common';
     CreditsInterceptor,
     PostAnalyticsService,
     PostGenerationService,
+    PostThreadGenerationService,
     PostsService,
   ],
 })

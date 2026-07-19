@@ -586,6 +586,7 @@ model User {
   monitoredAccounts        MonitoredAccount[]
   socialSources            SocialSource[]
   sourcePosts              SourcePost[]
+  listeningTopics          ListeningTopic[]
   votes                    Vote[]
   watchlists               Watchlist[]
   streaks                  Streak[]
@@ -695,6 +696,9 @@ model Organization {
   monitoredAccounts             MonitoredAccount[]
   socialSources                 SocialSource[]
   sourcePosts                   SourcePost[]
+  listeningTopics               ListeningTopic[]
+  listeningTopicSources         ListeningTopicSource[]
+  listeningEvidence             ListeningEvidence[]
   processedTweets               ProcessedTweet[]
   trackedLinks                  TrackedLink[]
   schedules                     Schedule[]
@@ -884,6 +888,9 @@ model Brand {
   monitoredAccounts          MonitoredAccount[]
   socialSources              SocialSource[]
   sourcePosts                SourcePost[]
+  listeningTopics            ListeningTopic[]
+  listeningTopicSources      ListeningTopicSource[]
+  listeningEvidence          ListeningEvidence[]
   brandMemories              BrandMemory[]
   links                      Link[]
   trackedLinks               TrackedLink[]
@@ -3520,9 +3527,11 @@ model SocialSource {
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
 
-  posts SourcePost[]
+  posts                 SourcePost[]
+  listeningTopicSources ListeningTopicSource[]
 
   // Active-source uniqueness is enforced by the partial index in the model's migration.
+  @@unique([id, organizationId, brandId], map: "social_sources_id_scope_key")
   @@index([organizationId, brandId, isDeleted, isActive, platform], map: "social_sources_brand_active_idx")
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "social_sources_org_created_idx")
   @@map("social_sources")
@@ -3560,11 +3569,114 @@ model SourcePost {
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
+  listeningEvidence ListeningEvidence[]
+
+  @@unique([id, organizationId, brandId], map: "source_posts_id_scope_key")
   @@unique([sourceId, externalId], map: "source_posts_source_external_key")
   @@index([organizationId, brandId, platform, isDeleted, publishedAt(sort: Desc)], map: "source_posts_brand_feed_idx")
   @@index([organizationId, brandId, isDeleted, collectedAt(sort: Desc)], map: "source_posts_brand_collected_idx")
   @@index([sourceId, isDeleted, publishedAt(sort: Desc)], map: "source_posts_source_published_idx")
   @@map("source_posts")
+}
+
+/// A tenant-owned, bounded definition of the public connector data an operator
+/// wants Genfeed to monitor. Provider-specific query payloads belong in the
+/// collectors; this record is the stable product contract shared by API,
+/// workers, MCP, and UI consumers.
+model ListeningTopic {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  brandId          String
+  brand             Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  userId            String
+  user              User         @relation(fields: [userId], references: [id])
+  label             String
+  description       String?
+  keywords          String[]     @default([])
+  excludedKeywords  String[]     @default([])
+  languages         String[]     @default([])
+  freshnessHours    Int          @default(24)
+  fingerprint       String
+  contractVersion   Int          @default(1)
+  isActive          Boolean      @default(true)
+  auditedAt         DateTime     @default(now())
+  lastCollectedAt   DateTime?
+  isDeleted         Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  sources  ListeningTopicSource[]
+  evidence ListeningEvidence[]
+
+  // Active-topic uniqueness is enforced by the partial index in the migration.
+  @@unique([id, organizationId, brandId], map: "listening_topics_id_scope_key")
+  @@index([organizationId, brandId, fingerprint], map: "listening_topics_scope_fingerprint_idx")
+  @@index([organizationId, brandId, isDeleted, isActive, createdAt(sort: Desc)], map: "listening_topics_scope_active_idx")
+  @@map("listening_topics")
+}
+
+/// Explicit source membership keeps topic authorization reviewable and avoids
+/// embedding provider-specific source payloads in ListeningTopic.
+model ListeningTopicSource {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  brandId        String
+  brand          Brand          @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  topicId        String
+  topic          ListeningTopic @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
+  sourceId       String
+  source         SocialSource   @relation(fields: [sourceId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade)
+  platform       String
+  isDeleted      Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  evidence ListeningEvidence[]
+
+  @@unique([topicId, sourceId], map: "listening_topic_sources_topic_source_key")
+  @@unique([id, organizationId, brandId, topicId], map: "listening_topic_sources_id_scope_topic_key")
+  @@index([organizationId, brandId, sourceId], map: "listening_topic_sources_scope_source_idx")
+  @@map("listening_topic_sources")
+}
+
+/// Normalized evidence captured for a listening topic. Raw provider payloads
+/// remain outside this public contract; consumers receive stable ids, freshness,
+/// a bounded excerpt, and normalized metrics only.
+model ListeningEvidence {
+  id                 String               @id @default(cuid())
+  organizationId     String
+  organization       Organization         @relation(fields: [organizationId], references: [id])
+  brandId            String
+  brand               Brand                @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  topicId            String
+  topic              ListeningTopic       @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
+  topicSourceId      String
+  topicSource        ListeningTopicSource @relation(fields: [topicSourceId, organizationId, brandId, topicId], references: [id, organizationId, brandId, topicId], onDelete: Cascade, onUpdate: Cascade)
+  sourcePostId       String?
+  sourcePost         SourcePost?          @relation(fields: [sourcePostId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Restrict, onUpdate: Cascade)
+  platform           String
+  externalId         String
+  eventType          String
+  sourceUrl          String?
+  authorExternalId   String?
+  authorHandle       String?
+  contentExcerpt     String?
+  occurredAt         DateTime
+  collectedAt        DateTime             @default(now())
+  freshnessExpiresAt DateTime
+  contractVersion    Int                  @default(1)
+  metrics            Json                 @default("{}")
+  metadata           Json                 @default("{}")
+  isDeleted          Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  @@unique([topicId, platform, externalId], map: "listening_evidence_topic_platform_external_key")
+  @@index([organizationId, brandId, topicId, isDeleted, occurredAt(sort: Desc)], map: "listening_evidence_topic_occurred_idx")
+  @@index([topicSourceId, isDeleted, collectedAt(sort: Desc)], map: "listening_evidence_source_collected_idx")
+  @@map("listening_evidence")
 }
 
 model ProcessedTweet {
