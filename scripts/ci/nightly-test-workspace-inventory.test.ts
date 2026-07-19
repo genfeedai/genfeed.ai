@@ -132,15 +132,7 @@ describe('nightly test workspace inventory', () => {
   it('classifies a fully owned exclusion separately from executable workspaces', () => {
     writeRootManifest(['packages/*']);
     writeWorkspace('packages/helpers', '@genfeedai/helpers');
-    const exclusions: NightlyTestExclusion[] = [
-      {
-        owner: '@genfeedai/ci',
-        path: 'packages/helpers',
-        reason: 'Tracked fixture exclusion pending hermetic test coverage.',
-        reviewDate: '2026-08-20',
-        trackingIssue: 1927,
-      },
-    ];
+    const exclusions = [validExclusion()];
 
     const result = buildNightlyTestWorkspaceInventory({
       exclusions,
@@ -156,15 +148,7 @@ describe('nightly test workspace inventory', () => {
   it('fails when an exclusion no longer matches a test-capable workspace', () => {
     writeRootManifest(['packages/*']);
     writeWorkspace('packages/helpers', '@genfeedai/helpers', null);
-    const exclusions: NightlyTestExclusion[] = [
-      {
-        owner: '@genfeedai/ci',
-        path: 'packages/helpers',
-        reason: 'Tracked fixture exclusion pending hermetic test coverage.',
-        reviewDate: '2026-08-20',
-        trackingIssue: 1927,
-      },
-    ];
+    const exclusions = [validExclusion()];
 
     const result = buildNightlyTestWorkspaceInventory({
       exclusions,
@@ -201,6 +185,29 @@ describe('nightly test workspace inventory', () => {
     ]);
   });
 
+  it('does not allow an exclusion to hide a suppressed test command', () => {
+    writeRootManifest(['packages/*']);
+    writeWorkspace(
+      'packages/helpers',
+      '@genfeedai/helpers',
+      'vitest run || true',
+    );
+
+    const result = buildNightlyTestWorkspaceInventory({
+      exclusions: [validExclusion()],
+      rootDir: testDir,
+      today: '2026-07-20',
+    });
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        kind: 'invalid-command',
+        path: 'packages/helpers',
+      }),
+    ]);
+    expect(result.excluded).toEqual([]);
+  });
+
   function writeRootManifest(workspaces: string[]): void {
     writeJson('package.json', { private: true, workspaces });
   }
@@ -222,3 +229,13 @@ describe('nightly test workspace inventory', () => {
     writeFileSync(absolutePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
   }
 });
+
+function validExclusion(): NightlyTestExclusion {
+  return {
+    owner: '@genfeedai/ci',
+    path: 'packages/helpers',
+    reason: 'Tracked fixture exclusion pending hermetic test coverage.',
+    reviewDate: '2026-08-20',
+    trackingIssue: 1927,
+  };
+}
