@@ -181,6 +181,14 @@ export class WorkflowTemplateSeederService {
         !duplicateMetadata ||
         duplicateMetadata.canonicalId !== currentSystemWorkflow.canonicalId
       ) {
+        this.logger?.debug(
+          'Skipped system workflow duplicate reconciliation for invalid provenance',
+          {
+            canonicalId: currentSystemWorkflow.canonicalId,
+            organizationId,
+            workflowId: duplicate.id,
+          },
+        );
         continue;
       }
 
@@ -195,7 +203,7 @@ export class WorkflowTemplateSeederService {
         continue;
       }
 
-      await this.prisma.workflow.updateMany({
+      const { count } = await this.prisma.workflow.updateMany({
         data: {
           metadata: {
             ...metadata,
@@ -209,6 +217,17 @@ export class WorkflowTemplateSeederService {
           organizationId,
         },
       });
+
+      if (count === 0) {
+        this.logger?.debug(
+          'System workflow duplicate metadata changed before reconciliation; retrying on a later seed pass',
+          {
+            canonicalId: currentSystemWorkflow.canonicalId,
+            organizationId,
+            workflowId: duplicate.id,
+          },
+        );
+      }
     }
   }
 

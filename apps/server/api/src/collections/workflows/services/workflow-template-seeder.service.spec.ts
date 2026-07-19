@@ -345,6 +345,14 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
 
     expect(prisma.workflow.updateMany).toHaveBeenCalledTimes(2);
+    expect(logger.debug).toHaveBeenCalledWith(
+      'System workflow duplicate metadata changed before reconciliation; retrying on a later seed pass',
+      {
+        canonicalId: 'livestream-bot-session-processing',
+        organizationId: 'org-1',
+        workflowId: 'duplicate-1',
+      },
+    );
     expect(prisma.workflow.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: {
@@ -399,6 +407,22 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     );
 
     expect(prisma.workflow.updateMany).not.toHaveBeenCalled();
+    expect(logger.debug).toHaveBeenCalledWith(
+      'Skipped system workflow duplicate reconciliation for invalid provenance',
+      {
+        canonicalId: 'daily-trends-digest',
+        organizationId: 'org-1',
+        workflowId: 'malformed-duplicate',
+      },
+    );
+    expect(logger.debug).toHaveBeenCalledWith(
+      'Skipped system workflow duplicate reconciliation for invalid provenance',
+      {
+        canonicalId: 'daily-trends-digest',
+        organizationId: 'org-1',
+        workflowId: 'foreign-duplicate',
+      },
+    );
   });
 
   it('seeds action-level system workflows for hardcoded product action replacements', async () => {
