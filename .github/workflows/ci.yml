@@ -291,7 +291,7 @@ jobs:
       - name: Package Release Scripts
         run: bunx vitest run --config scripts/package-release/vitest.config.ts
       - name: CI Workflow Contract
-        run: node --test scripts/ci/tests-gate.test.mjs
+        run: node --test scripts/ci/tests-gate.test.mjs scripts/ci/daily-deploy-orchestration.test.mjs
       # Fail the build if the committed Prisma model metadata (enum-field-map)
       # has drifted from schema.prisma — soft-delete filtering + enum
       # normalization under the Prisma 7 driver adapter depend on it, and it

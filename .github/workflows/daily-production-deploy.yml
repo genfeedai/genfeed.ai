@@ -45,8 +45,10 @@ jobs:
     outputs:
       should_deploy: ${{ steps.preflight.outputs.should_deploy }}
       issue_needed: ${{ steps.preflight.outputs.issue_needed }}
+      outcome: ${{ steps.preflight.outputs.outcome }}
       skipped_reason: ${{ steps.preflight.outputs.skipped_reason }}
       failure_reason: ${{ steps.preflight.outputs.failure_reason }}
+      failure_stage: ${{ steps.preflight.outputs.failure_stage }}
       master_sha: ${{ steps.preflight.outputs.master_sha }}
       ci_run_url: ${{ steps.preflight.outputs.ci_run_url }}
       gate_run_url: ${{ steps.preflight.outputs.gate_run_url }}
@@ -102,8 +104,10 @@ jobs:
             const result = {
               should_deploy: 'false',
               issue_needed: 'false',
+              outcome: 'blocked',
               skipped_reason: '',
               failure_reason: '',
+              failure_stage: '',
               master_sha: masterSha,
               ci_run_url: '',
               gate_run_url: '',
@@ -118,14 +122,17 @@ jobs:
               }
             }
 
-            function skip(reason) {
+            function skip(reason, outcome = 'blocked') {
+              result.outcome = outcome;
               result.skipped_reason = reason;
               setOutputs();
             }
 
             function block(reason) {
+              result.outcome = 'blocked';
               result.issue_needed = 'true';
               result.failure_reason = reason;
+              result.failure_stage = 'preflight';
               setOutputs();
             }
 
@@ -206,7 +213,11 @@ jobs:
 
             try {
               if (process.env.SHOULD_CONTINUE !== 'true') {
-                skip(process.env.PRECHECK_SKIPPED_REASON || 'Daily production deploy precheck skipped.');
+                skip(
+                  process.env.PRECHECK_SKIPPED_REASON ||
+                    'Daily production deploy precheck skipped.',
+                  'clean no-op',
+                );
                 return;
               }
 
@@ -247,7 +258,10 @@ jobs:
               if (successfulDeployRun) {
                 result.deploy_marker_url = successfulDeployRun.html_url;
                 result.deployed_sha = masterSha;
-                skip(`Current master SHA is already deployed by Deploy ECS (production): ${successfulDeployRun.html_url}`);
+                skip(
+                  `Current master SHA is already deployed by Deploy ECS (production): ${successfulDeployRun.html_url}`,
+                  'clean no-op',
+                );
                 return;
               }
 
@@ -257,7 +271,10 @@ jobs:
                 const releaseSha = await resolveTagSha(release.data.tag_name);
                 if (releaseSha === masterSha) {
                   result.deployed_sha = masterSha;
-                  skip(`Current master SHA is already represented by latest GitHub release ${release.data.tag_name}: ${release.data.html_url}`);
+                  skip(
+                    `Current master SHA is already represented by latest GitHub release ${release.data.tag_name}: ${release.data.html_url}`,
+                    'clean no-op',
+                  );
                   return;
                 }
               } catch (error) {
@@ -271,7 +288,10 @@ jobs:
                 result.deploy_marker_url = result.deploy_marker_url || `GitHub deployment ${deployment.id}`;
                 if (deployment.sha === masterSha) {
                   result.deployed_sha = masterSha;
-                  skip(`Current master SHA is already represented by successful production deployment ${deployment.id}.`);
+                  skip(
+                    `Current master SHA is already represented by successful production deployment ${deployment.id}.`,
+                    'clean no-op',
+                  );
                   return;
                 }
               }
@@ -307,6 +327,7 @@ jobs:
               }
 
               result.should_deploy = 'true';
+              result.outcome = '';
               setOutputs();
             } catch (error) {
               block(`Daily deploy preflight failed unexpectedly: ${error.message}`);
@@ -324,10 +345,20 @@ jobs:
       contents: read
     outputs:
       issue_needed: ${{ steps.deploy.outputs.issue_needed }}
+      outcome: ${{ steps.deploy.outputs.outcome }}
       failure_reason: ${{ steps.deploy.outputs.failure_reason }}
+      failure_stage: ${{ steps.deploy.outputs.failure_stage }}
+      failure_job_name: ${{ steps.deploy.outputs.failure_job_name }}
+      failure_job_url: ${{ steps.deploy.outputs.failure_job_url }}
+      failure_step_name: ${{ steps.deploy.outputs.failure_step_name }}
       deploy_run_url: ${{ steps.deploy.outputs.deploy_run_url }}
       deployed_sha: ${{ steps.deploy.outputs.deployed_sha }}
     steps:
+      - name: Checkout workflow helpers
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
       - name: Dispatch and watch Deploy ECS (production)
         id: deploy
         uses: actions/github-script@v8
@@ -335,17 +366,39 @@ jobs:
           MASTER_SHA: ${{ needs.preflight.outputs.master_sha }}
         with:
           script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const helpers = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/daily-deploy-orchestration.mjs',
+                ),
+              ).href,
+            );
+            const {
+              classifyDeployRunFailure,
+              createDeployRunTitle,
+              formatDeployFailure,
+              matchesCorrelatedDeployRun,
+            } = helpers;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const masterSha = process.env.MASTER_SHA;
             const workflowId = process.env.DEPLOY_WORKFLOW;
-            const startedAt = new Date(Date.now() - 15000);
+            const correlationId = `${context.runId}-${process.env.GITHUB_RUN_ATTEMPT || '1'}`;
+            const expectedRunTitle = createDeployRunTitle(correlationId);
             const deadline = Date.now() + 170 * 60 * 1000;
             const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
             const result = {
               issue_needed: 'false',
+              outcome: '',
               failure_reason: '',
+              failure_stage: '',
+              failure_job_name: '',
+              failure_job_url: '',
+              failure_step_name: '',
               deploy_run_url: '',
               deployed_sha: '',
             };
@@ -356,9 +409,14 @@ jobs:
               }
             }
 
-            function fail(reason) {
+            function fail(reason, classification = {}) {
               result.issue_needed = 'true';
+              result.outcome = 'failed';
               result.failure_reason = reason;
+              result.failure_stage = classification.stage || 'unknown';
+              result.failure_job_name = classification.jobName || '';
+              result.failure_job_url = classification.jobUrl || '';
+              result.failure_step_name = classification.stepName || '';
               setOutputs();
               core.setFailed(reason);
             }
@@ -374,8 +432,12 @@ jobs:
                   per_page: 20,
                 });
                 const match = runs.data.workflow_runs
-                  .filter((run) => run.head_sha === masterSha)
-                  .filter((run) => new Date(run.created_at) >= startedAt)
+                  .filter((run) =>
+                    matchesCorrelatedDeployRun(run, {
+                      correlationId,
+                      masterSha,
+                    }),
+                  )
                   .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
                 if (match) {
                   return match;
@@ -391,11 +453,16 @@ jobs:
               repo,
               workflow_id: workflowId,
               ref: 'master',
+              inputs: {
+                orchestrator_run_id: correlationId,
+              },
             });
 
             const run = await findDispatchedRun();
             if (!run) {
-              fail(`Deploy ECS (production) dispatch did not produce a discoverable run for ${masterSha}.`);
+              fail(
+                `Deploy ECS (production) dispatch did not produce correlated run ${expectedRunTitle} for ${masterSha}.`,
+              );
               return;
             }
 
@@ -420,12 +487,30 @@ jobs:
             }
 
             if (current.conclusion === 'success') {
+              result.outcome = 'deployed';
               result.deployed_sha = masterSha;
               setOutputs();
               return;
             }
 
-            fail(`Deploy ECS (production) concluded ${current.conclusion}: ${current.html_url}`);
+            const jobs = await github.paginate(
+              github.rest.actions.listJobsForWorkflowRun,
+              {
+                owner,
+                repo,
+                run_id: run.id,
+                filter: 'latest',
+                per_page: 100,
+              },
+            );
+            const classification = classifyDeployRunFailure(jobs);
+            fail(
+              `Deploy ECS (production) ${formatDeployFailure(
+                classification,
+                current.conclusion,
+              )}`,
+              classification,
+            );
 
   report-failure:
     name: Report blocking failure
@@ -444,7 +529,12 @@ jobs:
         uses: actions/github-script@v8
         env:
           MASTER_SHA: ${{ needs.preflight.outputs.master_sha || needs.dispatch-deploy.outputs.deployed_sha || 'unknown' }}
+          OUTCOME: ${{ needs.dispatch-deploy.outputs.outcome || needs.preflight.outputs.outcome || 'failed' }}
           FAILURE_REASON: ${{ needs.dispatch-deploy.outputs.failure_reason || needs.preflight.outputs.failure_reason || 'Daily deploy workflow failed before it could record a reason.' }}
+          FAILURE_STAGE: ${{ needs.dispatch-deploy.outputs.failure_stage || needs.preflight.outputs.failure_stage || 'unknown' }}
+          FAILURE_JOB_NAME: ${{ needs.dispatch-deploy.outputs.failure_job_name }}
+          FAILURE_JOB_URL: ${{ needs.dispatch-deploy.outputs.failure_job_url }}
+          FAILURE_STEP_NAME: ${{ needs.dispatch-deploy.outputs.failure_step_name }}
           CI_RUN_URL: ${{ needs.preflight.outputs.ci_run_url }}
           GATE_RUN_URL: ${{ needs.preflight.outputs.gate_run_url }}
           DEPLOY_RUN_URL: ${{ needs.dispatch-deploy.outputs.deploy_run_url }}
@@ -454,17 +544,27 @@ jobs:
             const date = new Date().toISOString().slice(0, 10);
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const masterSha = process.env.MASTER_SHA || 'unknown';
+            const outcome = process.env.OUTCOME || 'failed';
             const deployRunUrl = process.env.DEPLOY_RUN_URL || 'not dispatched';
             const gateRunUrl = process.env.GATE_RUN_URL || 'not available';
             const ciRunUrl = process.env.CI_RUN_URL || 'not available';
             const failureReason = process.env.FAILURE_REASON || 'Unknown failure.';
+            const failureStage = process.env.FAILURE_STAGE || 'unknown';
+            const failureJobName = process.env.FAILURE_JOB_NAME || 'not available';
+            const failureJobUrl = process.env.FAILURE_JOB_URL || 'not available';
+            const failureStepName = process.env.FAILURE_STEP_NAME || 'not available';
             const title = 'Daily production deploy blocked';
             const body = [
               `**Daily production deploy attempt blocked or failed** on \`${date}\`.`,
               ``,
               `- Attempt run: ${runUrl}`,
               `- Master SHA: \`${masterSha}\``,
+              `- Outcome: \`${outcome}\``,
               `- Reason: ${failureReason}`,
+              `- Failure stage: \`${failureStage}\``,
+              `- Failure job: ${failureJobName}`,
+              `- Failure step: ${failureStepName}`,
+              `- Failure job URL: ${failureJobUrl}`,
               `- CI run: ${ciRunUrl}`,
               `- Full-suite gate: ${gateRunUrl}`,
               `- Deploy run: ${deployRunUrl}`,
@@ -541,10 +641,15 @@ jobs:
           PREFLIGHT_ISSUE_NEEDED: ${{ needs.preflight.outputs.issue_needed }}
           DEPLOY_ISSUE_NEEDED: ${{ needs.dispatch-deploy.outputs.issue_needed }}
           SHOULD_DEPLOY: ${{ needs.preflight.outputs.should_deploy }}
+          OUTCOME: ${{ needs.dispatch-deploy.outputs.outcome || needs.preflight.outputs.outcome || 'failed' }}
           MASTER_SHA: ${{ needs.preflight.outputs.master_sha }}
           DEPLOYED_SHA: ${{ needs.dispatch-deploy.outputs.deployed_sha || needs.preflight.outputs.deployed_sha }}
           SKIPPED_REASON: ${{ needs.preflight.outputs.skipped_reason }}
           FAILURE_REASON: ${{ needs.dispatch-deploy.outputs.failure_reason || needs.preflight.outputs.failure_reason }}
+          FAILURE_STAGE: ${{ needs.dispatch-deploy.outputs.failure_stage || needs.preflight.outputs.failure_stage }}
+          FAILURE_JOB_NAME: ${{ needs.dispatch-deploy.outputs.failure_job_name }}
+          FAILURE_JOB_URL: ${{ needs.dispatch-deploy.outputs.failure_job_url }}
+          FAILURE_STEP_NAME: ${{ needs.dispatch-deploy.outputs.failure_step_name }}
           CI_RUN_URL: ${{ needs.preflight.outputs.ci_run_url }}
           GATE_RUN_URL: ${{ needs.preflight.outputs.gate_run_url }}
           DEPLOY_MARKER_URL: ${{ needs.preflight.outputs.deploy_marker_url }}
@@ -557,6 +662,10 @@ jobs:
           deployed_sha="${DEPLOYED_SHA:-not deployed}"
           skipped_reason="${SKIPPED_REASON:-none}"
           failure_reason="${FAILURE_REASON:-none}"
+          failure_stage="${FAILURE_STAGE:-none}"
+          failure_job_name="${FAILURE_JOB_NAME:-not available}"
+          failure_job_url="${FAILURE_JOB_URL:-not available}"
+          failure_step_name="${FAILURE_STEP_NAME:-not available}"
           gate_run_url="${GATE_RUN_URL:-not available}"
           deploy_run_url="${DEPLOY_RUN_URL:-not dispatched}"
           issue_url="${ISSUE_URL:-none}"
@@ -568,10 +677,15 @@ jobs:
           {
             echo "## Daily production deploy"
             echo ""
+            echo "- Outcome: \`${OUTCOME:-failed}\`"
             echo "- Master SHA: \`${MASTER_SHA:-unknown}\`"
             echo "- Deployed SHA: \`${deployed_sha}\`"
             echo "- Skipped reason: ${skipped_reason}"
             echo "- Failure reason: ${failure_reason}"
+            echo "- Failure stage: \`${failure_stage}\`"
+            echo "- Failure job: ${failure_job_name}"
+            echo "- Failure step: ${failure_step_name}"
+            echo "- Failure job URL: ${failure_job_url}"
             echo "- CI run URL: ${CI_RUN_URL:-not available}"
             echo "- Gate run URL: ${gate_run_url}"
             echo "- Deploy run URL: ${deploy_run_url}"
