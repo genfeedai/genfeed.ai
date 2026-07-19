@@ -28,6 +28,7 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
+import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
@@ -192,6 +193,10 @@ describe('PostsOperationsController', () => {
     patch: vi.fn().mockResolvedValue(mockPost),
   };
 
+  const mockPostThreadGenerationService = {
+    expandThread: vi.fn().mockResolvedValue(undefined),
+  };
+
   const mockPromptBuilderService = {
     buildPrompt: vi.fn().mockResolvedValue({
       input: { max_tokens: 4096, prompt: 'test prompt' },
@@ -247,6 +252,7 @@ Tweet 3: Tech innovation is changing the world.`,
     mockPostsService.findByIds.mockResolvedValue([mockPost]);
     mockPostsService.findOne.mockResolvedValue(mockPost);
     mockPostsService.patch.mockResolvedValue(mockPost);
+    mockPostThreadGenerationService.expandThread.mockResolvedValue(undefined);
     mockPromptBuilderService.buildPrompt.mockResolvedValue({
       input: { max_tokens: 4096, prompt: 'test prompt' },
     });
@@ -281,6 +287,10 @@ Tweet 3: Tech innovation is changing the world.`,
         { provide: MembersService, useValue: mockMembersService },
         { provide: LoggerService, useValue: mockLoggerService },
         PostGenerationService,
+        {
+          provide: PostThreadGenerationService,
+          useValue: mockPostThreadGenerationService,
+        },
         { provide: PostsService, useValue: mockPostsService },
         { provide: PromptBuilderService, useValue: mockPromptBuilderService },
         { provide: QuotaService, useValue: mockQuotaService },

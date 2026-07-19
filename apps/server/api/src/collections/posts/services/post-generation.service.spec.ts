@@ -6,6 +6,7 @@ import { ActivitiesService } from '@api/collections/activities/services/activiti
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
+import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
@@ -86,6 +87,9 @@ describe('PostGenerationService', () => {
     create: vi.fn().mockResolvedValue(mockPost),
     patch: vi.fn().mockResolvedValue(mockPost),
   };
+  const mockPostThreadGenerationService = {
+    expandThread: vi.fn().mockResolvedValue(undefined),
+  };
   const mockPromptBuilderService = {
     buildPrompt: vi.fn().mockResolvedValue({
       input: { max_tokens: 4096, prompt: 'test prompt' },
@@ -118,6 +122,7 @@ Tweet 3: Tech innovation is changing the world.`,
     );
     mockPostsService.create.mockResolvedValue(mockPost);
     mockPostsService.patch.mockResolvedValue(mockPost);
+    mockPostThreadGenerationService.expandThread.mockResolvedValue(undefined);
     mockPromptBuilderService.buildPrompt.mockResolvedValue({
       input: { max_tokens: 4096, prompt: 'test prompt' },
     });
@@ -143,6 +148,10 @@ Tweet 3: Tech innovation is changing the world.`,
         },
         { provide: ActivitiesService, useValue: mockActivitiesService },
         { provide: LoggerService, useValue: mockLoggerService },
+        {
+          provide: PostThreadGenerationService,
+          useValue: mockPostThreadGenerationService,
+        },
         { provide: PostsService, useValue: mockPostsService },
         { provide: PromptBuilderService, useValue: mockPromptBuilderService },
         { provide: ReplicateService, useValue: mockReplicateService },
@@ -346,57 +355,20 @@ Tweet 3: Tech innovation is changing the world.`,
       { ...mockPost, id: '507f1f77bcf86cd799439022' },
     ];
 
-    it('marks every child FAILED when activity creation throws (issue #861)', async () => {
-      mockActivitiesService.create.mockRejectedValueOnce(
-        new Error('activity store down'),
-      );
-
+    it('delegates thread generation through the bounded service', async () => {
+      const dto = { count: 3, tone: TweetTone.PROFESSIONAL };
       await service.expandThreadAsync(
         originalPost,
         childPosts,
-        { count: 3, tone: TweetTone.PROFESSIONAL },
+        dto,
         publicMetadata,
       );
 
-      expect(mockActivitiesService.patch).not.toHaveBeenCalled();
-      expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(childPosts[0].id),
-        expect.objectContaining({ status: PostStatus.FAILED }),
-      );
-      expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(childPosts[1].id),
-        expect.objectContaining({ status: PostStatus.FAILED }),
-      );
-    });
-
-    it('rejects thread replies over the 280 weighted-character limit (issue #861)', async () => {
-      // 300 plain characters exceeds the 280 weighted limit but would pass the
-      // old unweighted 560-char default — so this asserts the weighted gate.
-      const overLimitReply = 'a'.repeat(300);
-      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
-        JSON.stringify([overLimitReply, overLimitReply]),
-      );
-
-      await service.expandThreadAsync(
+      expect(mockPostThreadGenerationService.expandThread).toHaveBeenCalledWith(
         originalPost,
         childPosts,
-        { count: 3, tone: TweetTone.PROFESSIONAL },
+        dto,
         publicMetadata,
-      );
-
-      // No reply survives validation, so none is patched to DRAFT...
-      expect(mockPostsService.patch).not.toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ status: PostStatus.DRAFT }),
-      );
-      // ...and every child is marked FAILED instead.
-      expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(childPosts[0].id),
-        expect.objectContaining({ status: PostStatus.FAILED }),
-      );
-      expect(mockPostsService.patch).toHaveBeenCalledWith(
-        String(childPosts[1].id),
-        expect.objectContaining({ status: PostStatus.FAILED }),
       );
     });
   });
