@@ -103,6 +103,24 @@ describe('AgentRunsOperationsService', () => {
       );
     });
 
+    it('does not fail when appending the thread event fails', async () => {
+      const run = {
+        id: 'run1',
+        status: 'cancelled',
+        threadId: 'thread1',
+      };
+      agentRunsService.cancel.mockResolvedValue(run);
+      threadEngineService.appendEvent.mockRejectedValue(
+        new Error('thread not found'),
+      );
+
+      await expect(service.cancelRun('run1', scope)).resolves.toBe(run);
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        'Failed to append run.cancelled thread event',
+        expect.objectContaining({ runId: 'run1', threadId: 'thread1' }),
+      );
+    });
+
     it('throws when the run is missing', async () => {
       agentRunsService.cancel.mockResolvedValue(null);
 

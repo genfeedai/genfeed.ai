@@ -1,3 +1,4 @@
+import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
@@ -14,6 +15,10 @@ export interface AgentRunOperationScope {
   organizationId: string;
   userId: string;
 }
+
+type LegacyPopulatedThreadReference = {
+  id?: unknown;
+};
 
 @Injectable()
 export class AgentRunsOperationsService {
@@ -37,24 +42,30 @@ export class AgentRunsOperationsService {
       throw new NotFoundException('Agent run');
     }
 
-    const threadId =
-      run.threadId?.toString() ??
-      (run.thread as unknown as { id?: string })?.id?.toString() ??
-      run.thread?.toString();
+    const threadId = this.resolveThreadId(run);
     if (threadId) {
-      await this.agentThreadEngineService?.appendEvent({
-        commandId: `run-cancelled:${id}`,
-        organizationId: scope.organizationId,
-        payload: {
-          detail: 'The active run was cancelled by the user.',
-          label: 'Run cancelled',
-          status: 'cancelled',
-        },
-        runId: id,
-        threadId,
-        type: 'run.cancelled',
-        userId: scope.userId,
-      });
+      try {
+        await this.agentThreadEngineService?.appendEvent({
+          commandId: `run-cancelled:${id}`,
+          organizationId: scope.organizationId,
+          payload: {
+            detail: 'The active run was cancelled by the user.',
+            label: 'Run cancelled',
+            status: 'cancelled',
+          },
+          runId: id,
+          threadId,
+          type: 'run.cancelled',
+          userId: scope.userId,
+        });
+      } catch (error) {
+        // The cancellation already succeeded; thread provenance is best-effort.
+        this.loggerService.warn('Failed to append run.cancelled thread event', {
+          error: (error as Error)?.message,
+          runId: id,
+          threadId,
+        });
+      }
     }
 
     return run;
@@ -84,13 +95,13 @@ export class AgentRunsOperationsService {
       await this.agentRunQueueService.queueRun(jobData);
     } catch (error) {
       try {
-        const restored = await this.agentRunsService.rollbackRetry(
+        const isRestored = await this.agentRunsService.rollbackRetry(
           id,
           scope.organizationId,
           rollback,
           scope.brandId,
         );
-        if (!restored) {
+        if (!isRestored) {
           this.loggerService.warn('Agent run retry rollback was not applied', {
             runId: id,
           });
@@ -104,10 +115,7 @@ export class AgentRunsOperationsService {
       throw error;
     }
 
-    const threadId =
-      run.threadId?.toString() ??
-      (run.thread as unknown as { id?: string })?.id?.toString() ??
-      run.thread?.toString();
+    const threadId = this.resolveThreadId(run);
     if (threadId) {
       try {
         await this.agentThreadEngineService?.appendEvent({
@@ -134,5 +142,18 @@ export class AgentRunsOperationsService {
     }
 
     return run;
+  }
+
+  private resolveThreadId(
+    run: Pick<AgentRunDocument, 'thread' | 'threadId'>,
+  ): string | undefined {
+    const populatedThread = run.thread as
+      | LegacyPopulatedThreadReference
+      | undefined;
+    return (
+      run.threadId?.toString() ??
+      populatedThread?.id?.toString() ??
+      populatedThread?.toString()
+    );
   }
 }
