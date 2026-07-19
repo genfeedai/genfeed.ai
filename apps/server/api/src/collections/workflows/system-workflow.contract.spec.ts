@@ -80,9 +80,12 @@ describe('system workflow contract', () => {
     });
 
     expect(duplicate).not.toBeNull();
+    if (!duplicate) {
+      throw new Error('Expected valid duplicate system workflow metadata.');
+    }
 
     const upgradeMetadata = buildSystemWorkflowUpgradeMetadata(
-      duplicate!,
+      duplicate,
       buildSystemWorkflowMetadata({
         canonicalId: 'scheduled-post-publishing',
         changeSummary: 'Add retry provenance.',
@@ -99,8 +102,8 @@ describe('system workflow contract', () => {
     });
   });
 
-  it('rejects incomplete canonical and duplicate metadata', () => {
-    const incompleteCanonical = {
+  it('normalizes legacy canonical and duplicate metadata', () => {
+    const legacyCanonical = {
       systemWorkflow: {
         canonicalId: 'scheduled-post-publishing',
         immutable: true,
@@ -108,17 +111,23 @@ describe('system workflow contract', () => {
         owner: 'genfeed',
       },
     };
-    const incompleteDuplicate = {
+    const legacyDuplicate = {
       duplicatedFromSystemWorkflow: {
         canonicalId: 'scheduled-post-publishing',
         sourceWorkflowId: 'workflow-source-1',
       },
     };
 
-    expect(getSystemWorkflowMetadata(incompleteCanonical)).toBeNull();
-    expect(isProtectedSystemWorkflowMetadata(incompleteCanonical)).toBe(false);
-    expect(
-      getSystemWorkflowDuplicateMetadata(incompleteDuplicate),
-    ).toBeNull();
+    expect(getSystemWorkflowMetadata(legacyCanonical)).toMatchObject({
+      canonicalId: 'scheduled-post-publishing',
+      version: 1,
+    });
+    expect(isProtectedSystemWorkflowMetadata(legacyCanonical)).toBe(true);
+    expect(getSystemWorkflowDuplicateMetadata(legacyDuplicate)).toMatchObject({
+      canonicalId: 'scheduled-post-publishing',
+      sourceWorkflowId: 'workflow-source-1',
+      sourceWorkflowVersion: 1,
+      upgradeEligible: false,
+    });
   });
 });

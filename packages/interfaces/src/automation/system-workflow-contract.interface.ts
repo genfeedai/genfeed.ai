@@ -83,30 +83,21 @@ export function getMetadataRecord(metadata: unknown): Record<string, unknown> {
 export function getSystemWorkflowMetadata(
   metadata: unknown,
 ): SystemWorkflowMetadata | null {
-  const systemWorkflow =
-    getMetadataRecord(metadata)[SYSTEM_WORKFLOW_METADATA_KEY];
+  const systemWorkflow = isRecord(metadata)
+    ? metadata[SYSTEM_WORKFLOW_METADATA_KEY]
+    : undefined;
 
-  if (!isRecord(systemWorkflow) || !isSystemWorkflowMetadata(systemWorkflow)) {
-    return null;
-  }
-
-  return systemWorkflow;
+  return normalizeSystemWorkflowMetadata(systemWorkflow);
 }
 
 export function getSystemWorkflowDuplicateMetadata(
   metadata: unknown,
 ): SystemWorkflowDuplicateMetadata | null {
-  const duplicateMetadata =
-    getMetadataRecord(metadata)[SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY];
+  const duplicateMetadata = isRecord(metadata)
+    ? metadata[SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY]
+    : undefined;
 
-  if (
-    !isRecord(duplicateMetadata) ||
-    !isSystemWorkflowDuplicateMetadata(duplicateMetadata)
-  ) {
-    return null;
-  }
-
-  return duplicateMetadata;
+  return normalizeSystemWorkflowDuplicateMetadata(duplicateMetadata);
 }
 
 export function isProtectedSystemWorkflowMetadata(metadata: unknown): boolean {
@@ -155,6 +146,12 @@ export function buildSystemWorkflowUpgradeMetadata(
   duplicateMetadata: SystemWorkflowDuplicateMetadata,
   currentSystemWorkflow: SystemWorkflowMetadata,
 ): SystemWorkflowDuplicateMetadata {
+  if (duplicateMetadata.canonicalId !== currentSystemWorkflow.canonicalId) {
+    throw new Error(
+      `Cannot build system workflow upgrade metadata: duplicate canonicalId "${duplicateMetadata.canonicalId}" does not match current canonicalId "${currentSystemWorkflow.canonicalId}".`,
+    );
+  }
+
   const currentSystemWorkflowVersion = normalizeSystemWorkflowVersion(
     currentSystemWorkflow.version,
   );
@@ -201,45 +198,116 @@ function isPositiveInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
-function isSystemWorkflowMetadata(
-  record: Record<string, unknown>,
-): record is SystemWorkflowMetadata {
-  return (
-    typeof record.canonicalId === 'string' &&
-    record.canonicalId.length > 0 &&
-    typeof record.changeSummary === 'string' &&
-    isSystemWorkflowCredentialPolicy(record.credentialPolicy) &&
-    record.duplicable === true &&
-    record.immutable === true &&
-    record.kind === 'system-workflow' &&
-    record.owner === SYSTEM_WORKFLOW_OWNER &&
-    record.productizationIssue === SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE &&
-    isOptionalIssueNumber(record.sourceIssue) &&
-    isPositiveInteger(record.version) &&
-    record.visibility === 'organization'
-  );
+function normalizeSystemWorkflowMetadata(
+  value: unknown,
+): SystemWorkflowMetadata | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const canonicalId = value.canonicalId;
+  const changeSummary =
+    value.changeSummary ?? SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY;
+  const credentialPolicy = value.credentialPolicy ?? 'tenant-connected-account';
+  const duplicable = value.duplicable ?? true;
+  const productizationIssue =
+    value.productizationIssue ?? SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE;
+  const version = value.version ?? SYSTEM_WORKFLOW_TEMPLATE_VERSION;
+  const visibility = value.visibility ?? 'organization';
+
+  if (
+    typeof canonicalId !== 'string' ||
+    canonicalId.length === 0 ||
+    typeof changeSummary !== 'string' ||
+    !isSystemWorkflowCredentialPolicy(credentialPolicy) ||
+    typeof duplicable !== 'boolean' ||
+    value.immutable !== true ||
+    value.kind !== 'system-workflow' ||
+    value.owner !== SYSTEM_WORKFLOW_OWNER ||
+    productizationIssue !== SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE ||
+    !isOptionalIssueNumber(value.sourceIssue) ||
+    !isPositiveInteger(version) ||
+    visibility !== 'organization'
+  ) {
+    return null;
+  }
+
+  return {
+    canonicalId,
+    changeSummary,
+    credentialPolicy,
+    duplicable,
+    immutable: true,
+    kind: 'system-workflow',
+    owner: SYSTEM_WORKFLOW_OWNER,
+    productizationIssue: SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE,
+    sourceIssue: value.sourceIssue,
+    version,
+    visibility: 'organization',
+  };
 }
 
-function isSystemWorkflowDuplicateMetadata(
-  record: Record<string, unknown>,
-): record is SystemWorkflowDuplicateMetadata {
-  return (
-    typeof record.canonicalId === 'string' &&
-    record.canonicalId.length > 0 &&
-    typeof record.currentSystemWorkflowChangeSummary === 'string' &&
-    isPositiveInteger(record.currentSystemWorkflowVersion) &&
-    isSystemWorkflowCredentialPolicy(record.credentialPolicy) &&
-    typeof record.duplicatedAt === 'string' &&
-    record.productizationIssue === SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE &&
-    isOptionalIssueNumber(record.sourceIssue) &&
-    typeof record.sourceWorkflowChangeSummary === 'string' &&
-    typeof record.sourceWorkflowId === 'string' &&
-    record.sourceWorkflowId.length > 0 &&
-    isPositiveInteger(record.sourceWorkflowVersion) &&
-    typeof record.upgradeEligible === 'boolean' &&
-    record.upgradePolicy === 'manual' &&
-    isSystemWorkflowUpgradeStatus(record.upgradeStatus)
-  );
+function normalizeSystemWorkflowDuplicateMetadata(
+  value: unknown,
+): SystemWorkflowDuplicateMetadata | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const canonicalId = value.canonicalId;
+  const credentialPolicy = value.credentialPolicy ?? 'tenant-connected-account';
+  const duplicatedAt = value.duplicatedAt ?? '';
+  const productizationIssue =
+    value.productizationIssue ?? SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE;
+  const sourceWorkflowChangeSummary =
+    value.sourceWorkflowChangeSummary ??
+    SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY;
+  const sourceWorkflowId = value.sourceWorkflowId;
+  const sourceWorkflowVersion =
+    value.sourceWorkflowVersion ?? SYSTEM_WORKFLOW_TEMPLATE_VERSION;
+  const currentSystemWorkflowChangeSummary =
+    value.currentSystemWorkflowChangeSummary ?? sourceWorkflowChangeSummary;
+  const currentSystemWorkflowVersion =
+    value.currentSystemWorkflowVersion ?? sourceWorkflowVersion;
+  const upgradeEligible = value.upgradeEligible ?? false;
+  const upgradePolicy = value.upgradePolicy ?? 'manual';
+  const upgradeStatus = value.upgradeStatus ?? 'current';
+
+  if (
+    typeof canonicalId !== 'string' ||
+    canonicalId.length === 0 ||
+    typeof currentSystemWorkflowChangeSummary !== 'string' ||
+    !isPositiveInteger(currentSystemWorkflowVersion) ||
+    !isSystemWorkflowCredentialPolicy(credentialPolicy) ||
+    typeof duplicatedAt !== 'string' ||
+    productizationIssue !== SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE ||
+    !isOptionalIssueNumber(value.sourceIssue) ||
+    typeof sourceWorkflowChangeSummary !== 'string' ||
+    typeof sourceWorkflowId !== 'string' ||
+    sourceWorkflowId.length === 0 ||
+    !isPositiveInteger(sourceWorkflowVersion) ||
+    typeof upgradeEligible !== 'boolean' ||
+    upgradePolicy !== 'manual' ||
+    !isSystemWorkflowUpgradeStatus(upgradeStatus)
+  ) {
+    return null;
+  }
+
+  return {
+    canonicalId,
+    currentSystemWorkflowChangeSummary,
+    currentSystemWorkflowVersion,
+    credentialPolicy,
+    duplicatedAt,
+    productizationIssue: SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE,
+    sourceIssue: value.sourceIssue,
+    sourceWorkflowChangeSummary,
+    sourceWorkflowId,
+    sourceWorkflowVersion,
+    upgradeEligible,
+    upgradePolicy: 'manual',
+    upgradeStatus,
+  };
 }
 
 function normalizeSystemWorkflowVersion(version: unknown): number {

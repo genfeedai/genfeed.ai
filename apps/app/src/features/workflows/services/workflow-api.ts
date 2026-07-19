@@ -83,9 +83,9 @@ export interface WorkflowSummary {
   isScheduleEnabled?: boolean;
 }
 
-export function isCanonicalSystemWorkflow(
-  workflow: { metadata?: unknown },
-): boolean {
+export function isCanonicalSystemWorkflow(workflow: {
+  metadata?: unknown;
+}): boolean {
   return getSystemWorkflowMetadata(workflow.metadata)?.immutable === true;
 }
 
