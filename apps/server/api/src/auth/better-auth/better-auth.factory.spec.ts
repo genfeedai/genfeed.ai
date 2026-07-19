@@ -21,11 +21,14 @@ type PrismaForBetterAuth = ICreateBetterAuthOptions['prisma'];
 function requireUserCreateHooks(
   onUserCreated?: ICreateBetterAuthOptions['onUserCreated'],
 ) {
-  const hooks = buildBetterAuthUserDatabaseHooks(onUserCreated).user?.create;
-  if (!hooks?.before || !hooks.after) {
+  const createHooks =
+    buildBetterAuthUserDatabaseHooks(onUserCreated).user?.create;
+  const before = createHooks?.before;
+  const after = createHooks?.after;
+  if (!before || !after) {
     throw new Error('Better Auth user-create hooks are required');
   }
-  return hooks;
+  return { after, before };
 }
 
 function createPrismaMock() {
@@ -356,13 +359,10 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
   it('generates a URL-safe handle when first-time user creation has none', async () => {
     const hooks = requireUserCreateHooks();
 
-    const result = await hooks.before(
-      {
-        email: 'New.User+Test@example.com',
-        name: 'New User',
-      } as never,
-      null,
-    );
+    const result = await hooks.before({
+      email: 'New.User+Test@example.com',
+      name: 'New User',
+    } as never);
 
     expect(result).toEqual({
       data: expect.objectContaining({
@@ -380,7 +380,7 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
       handle: 'existing-handle',
     };
 
-    await expect(hooks.before(user as never, null)).resolves.toEqual({
+    await expect(hooks.before(user as never)).resolves.toEqual({
       data: user,
     });
   });
@@ -389,13 +389,10 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     const onUserCreated = vi.fn().mockResolvedValue(undefined);
     const hooks = requireUserCreateHooks(onUserCreated);
 
-    await hooks.after(
-      {
-        email: 'new@example.com',
-        id: 'user_canonical',
-      } as never,
-      null,
-    );
+    await hooks.after({
+      email: 'new@example.com',
+      id: 'user_canonical',
+    } as never);
 
     expect(onUserCreated).toHaveBeenCalledWith({
       email: 'new@example.com',
@@ -409,13 +406,10 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     const hooks = requireUserCreateHooks(onUserCreated);
 
     await expect(
-      hooks.after(
-        {
-          email: 'new@example.com',
-          id: 'user_canonical',
-        } as never,
-        null,
-      ),
+      hooks.after({
+        email: 'new@example.com',
+        id: 'user_canonical',
+      } as never),
     ).rejects.toBe(provisioningError);
   });
 
@@ -423,7 +417,7 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     const onUserCreated = vi.fn().mockResolvedValue(undefined);
     const hooks = requireUserCreateHooks(onUserCreated);
 
-    await hooks.after({ id: 'user_without_email' } as never, null);
+    await hooks.after({ id: 'user_without_email' } as never);
 
     expect(onUserCreated).toHaveBeenCalledWith({
       email: null,
@@ -435,13 +429,10 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     const hooks = requireUserCreateHooks();
 
     await expect(
-      hooks.after(
-        {
-          email: 'new@example.com',
-          id: 'user_without_callback',
-        } as never,
-        null,
-      ),
+      hooks.after({
+        email: 'new@example.com',
+        id: 'user_without_callback',
+      } as never),
     ).resolves.toBeUndefined();
   });
 });
