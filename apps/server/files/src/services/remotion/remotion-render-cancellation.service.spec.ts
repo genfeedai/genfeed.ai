@@ -29,6 +29,29 @@ describe('RemotionRenderCancellationService', () => {
     });
   });
 
+  it('keeps an accepted cancellation successful when broadcasting fails', async () => {
+    redisService.publish.mockRejectedValueOnce(new Error('redis unavailable'));
+    const service = new RemotionRenderCancellationService(
+      redisService as never,
+      logger as never,
+    );
+    const cancel = vi.fn();
+    service.register('job-123', cancel);
+
+    await expect(
+      service.request('job-123', '2026-07-19T00:00:00.000Z'),
+    ).resolves.toBeUndefined();
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Failed to broadcast editor render cancellation',
+      {
+        jobId: 'job-123',
+        reason: 'Error',
+      },
+    );
+  });
+
   it('routes a remote cancellation event to the owning worker', async () => {
     const service = new RemotionRenderCancellationService(
       redisService as never,

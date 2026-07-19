@@ -83,10 +83,17 @@ export class RemotionRenderCancellationService
 
   async request(jobId: string, requestedAt: string): Promise<void> {
     this.cancelLocally(jobId, requestedAt);
-    await this.redisService.publish(EDITOR_RENDER_CANCEL_CHANNEL, {
-      jobId,
-      requestedAt,
-    } satisfies EditorRenderCancelEvent);
+    await this.redisService
+      .publish(EDITOR_RENDER_CANCEL_CHANNEL, {
+        jobId,
+        requestedAt,
+      } satisfies EditorRenderCancelEvent)
+      .catch((error: unknown) => {
+        this.logger.warn('Failed to broadcast editor render cancellation', {
+          jobId,
+          reason: error instanceof Error ? error.name : 'unknown',
+        });
+      });
   }
 
   private cancelLocally(jobId: string, requestedAt: string): void {
