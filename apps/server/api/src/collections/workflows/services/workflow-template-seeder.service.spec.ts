@@ -241,10 +241,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
         isDeleted: false,
         metadata: {
           equals: 'daily-trends-digest',
-          path: [
-            SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY,
-            'canonicalId',
-          ],
+          path: [SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY, 'canonicalId'],
         },
         organizationId: 'org-1',
       },
@@ -255,8 +252,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
           customFlag: true,
           duplicatedFromSystemWorkflow: expect.objectContaining({
             canonicalId: 'daily-trends-digest',
-            currentSystemWorkflowChangeSummary:
-              'Add owner summary delivery.',
+            currentSystemWorkflowChangeSummary: 'Add owner summary delivery.',
             currentSystemWorkflowVersion: 2,
             sourceWorkflowVersion: 1,
             upgradeEligible: true,

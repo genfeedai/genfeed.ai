@@ -1,9 +1,10 @@
 import { type WorkflowVisualNode } from '@api/collections/workflows/schemas/workflow.schema';
 import { SYSTEM_WORKFLOW_ACTION_DEFINITIONS } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { areWorkflowMetadataValuesEqual } from '@api/collections/workflows/services/workflow-template-seeder-metadata.util';
 import {
-  buildSystemWorkflowUpgradeMetadata,
   buildSystemWorkflowMetadata,
+  buildSystemWorkflowUpgradeMetadata,
   getMetadataRecord,
   getSystemWorkflowDuplicateMetadata,
   getSystemWorkflowMetadata,
@@ -135,7 +136,7 @@ export class WorkflowTemplateSeederService {
     }
 
     for (const [key, value] of Object.entries(desiredMetadata)) {
-      if (!this.areSeededMetadataValuesEqual(existingMetadata[key], value)) {
+      if (!areWorkflowMetadataValuesEqual(existingMetadata[key], value)) {
         return repairedMetadata;
       }
     }
@@ -149,48 +150,6 @@ export class WorkflowTemplateSeederService {
       version > 0
       ? version
       : 0;
-  }
-
-  private areSeededMetadataValuesEqual(left: unknown, right: unknown): boolean {
-    if (left === right) {
-      return true;
-    }
-
-    if (Array.isArray(left) || Array.isArray(right)) {
-      if (!Array.isArray(left) || !Array.isArray(right)) {
-        return false;
-      }
-
-      return (
-        left.length === right.length &&
-        left.every((item, index) =>
-          this.areSeededMetadataValuesEqual(item, right[index]),
-        )
-      );
-    }
-
-    if (this.isMetadataRecord(left) || this.isMetadataRecord(right)) {
-      if (!this.isMetadataRecord(left) || !this.isMetadataRecord(right)) {
-        return false;
-      }
-
-      const leftKeys = Object.keys(left);
-      const rightKeys = Object.keys(right);
-      return (
-        leftKeys.length === rightKeys.length &&
-        leftKeys.every(
-          (key) =>
-            Object.hasOwn(right, key) &&
-            this.areSeededMetadataValuesEqual(left[key], right[key]),
-        )
-      );
-    }
-
-    return false;
-  }
-
-  private isMetadataRecord(value: unknown): value is Record<string, unknown> {
-    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
   }
 
   /**
@@ -208,10 +167,7 @@ export class WorkflowTemplateSeederService {
         isDeleted: false,
         metadata: {
           equals: currentSystemWorkflow.canonicalId,
-          path: [
-            SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY,
-            'canonicalId',
-          ],
+          path: [SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY, 'canonicalId'],
         },
         organizationId,
       },
@@ -234,10 +190,7 @@ export class WorkflowTemplateSeederService {
       );
 
       if (
-        this.areSeededMetadataValuesEqual(
-          duplicateMetadata,
-          reconciledMetadata,
-        )
+        areWorkflowMetadataValuesEqual(duplicateMetadata, reconciledMetadata)
       ) {
         continue;
       }
