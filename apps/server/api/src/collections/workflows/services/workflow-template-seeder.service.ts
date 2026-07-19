@@ -152,11 +152,6 @@ export class WorkflowTemplateSeederService {
       : 0;
   }
 
-  /**
-   * Refreshes version visibility for editable workflows duplicated from a
-   * canonical system workflow. Only provenance metadata changes; user-owned
-   * workflow content, scheduling, lifecycle, and ownership stay untouched.
-   */
   async reconcileSystemWorkflowDuplicates(
     organizationId: string,
     currentSystemWorkflow: SystemWorkflowMetadata,
