@@ -41,9 +41,11 @@ describe('PostThreadGenerationService', () => {
     error: vi.fn(),
   };
   const postsService = {
-    patch: vi.fn().mockImplementation((id: string, patch: unknown) =>
-      Promise.resolve({ id, ...(patch as Record<string, unknown>) }),
-    ),
+    patch: vi
+      .fn()
+      .mockImplementation((id: string, patch: unknown) =>
+        Promise.resolve({ id, ...(patch as Record<string, unknown>) }),
+      ),
   };
   const promptBuilderService = {
     buildPrompt: vi.fn().mockResolvedValue({ input: { prompt: 'thread' } }),
@@ -150,6 +152,77 @@ describe('PostThreadGenerationService', () => {
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[1].id, {
       status: PostStatus.FAILED,
     });
+  });
+
+  it('continues the thread when one generated child cannot be updated', async () => {
+    postsService.patch
+      .mockRejectedValueOnce(new Error('first child unavailable'))
+      .mockResolvedValueOnce({
+        id: childPosts[0].id,
+        status: PostStatus.FAILED,
+      })
+      .mockResolvedValueOnce({
+        id: childPosts[1].id,
+        status: PostStatus.DRAFT,
+      });
+
+    await service.expandThread(
+      originalPost,
+      childPosts,
+      { count: 3, tone: TweetTone.PROFESSIONAL },
+      publicMetadata,
+    );
+
+    expect(postsService.patch).toHaveBeenCalledWith(childPosts[0].id, {
+      status: PostStatus.FAILED,
+    });
+    expect(postsService.patch).toHaveBeenCalledWith(
+      childPosts[1].id,
+      expect.objectContaining({ status: PostStatus.DRAFT }),
+      expect.any(Array),
+    );
+    expect(websocketService.emit).toHaveBeenCalledWith(
+      expect.stringContaining(String(childPosts[1].id)),
+      expect.objectContaining({ status: Status.COMPLETED }),
+    );
+  });
+
+  it('continues failed-child cleanup when one status patch rejects', async () => {
+    const cleanupChildren = [
+      ...childPosts,
+      { id: '507f1f77bcf86cd799439023' } as PostDocument,
+    ];
+    replicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      JSON.stringify(['Only reply']),
+    );
+    postsService.patch
+      .mockResolvedValueOnce({
+        id: cleanupChildren[0].id,
+        status: PostStatus.DRAFT,
+      })
+      .mockRejectedValueOnce(new Error('failed status unavailable'))
+      .mockResolvedValueOnce({
+        id: cleanupChildren[2].id,
+        status: PostStatus.FAILED,
+      });
+
+    await service.expandThread(
+      originalPost,
+      cleanupChildren,
+      { count: 4, tone: TweetTone.PROFESSIONAL },
+      publicMetadata,
+    );
+
+    expect(postsService.patch).toHaveBeenCalledWith(cleanupChildren[1].id, {
+      status: PostStatus.FAILED,
+    });
+    expect(postsService.patch).toHaveBeenCalledWith(cleanupChildren[2].id, {
+      status: PostStatus.FAILED,
+    });
+    expect(loggerService.error).toHaveBeenCalledWith(
+      `Failed to update post ${cleanupChildren[1].id} to FAILED status`,
+      expect.any(Error),
+    );
   });
 
   it('rejects thread replies over the X weighted-character limit', async () => {

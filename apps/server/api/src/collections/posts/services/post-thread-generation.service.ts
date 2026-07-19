@@ -2,6 +2,7 @@ import type { IAuthPublicMetadata } from '@api/auth/interfaces/authenticated-use
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
+import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import {
   extractPostGenerationLabel,
@@ -89,7 +90,7 @@ export class PostThreadGenerationService {
           additionalCount,
           count: dto.count,
           originalContent,
-          tone: dto.tone || 'professional',
+          tone: dto.tone || TweetTone.PROFESSIONAL,
         },
         publicMetadata.organization,
       );
@@ -143,6 +144,8 @@ export class PostThreadGenerationService {
       const tweetText = tweetLines[index];
       const childId = String(child.id);
 
+      // The parser removes empty strings, so a missing value only represents
+      // an unresolved tail child when the provider returned too few replies.
       if (!tweetText) {
         await this.markChildFailed(
           childId,
@@ -203,7 +206,7 @@ export class PostThreadGenerationService {
       await this.activitiesService.patch(activity.id.toString(), {
         key: ActivityKey.POST_FAILED,
         value: JSON.stringify({
-          error: error instanceof Error ? error.message : 'Thread expansion failed',
+          error: (error as Error)?.message || 'Thread expansion failed',
         }),
       });
     } catch (activityError) {
@@ -218,7 +221,7 @@ export class PostThreadGenerationService {
     try {
       await this.postsService.patch(postId, { status: PostStatus.FAILED });
       await this.websocketService.emit(WebSocketPaths.post(postId), {
-        error: error instanceof Error ? error.message : 'Generation failed',
+        error: (error as Error)?.message || 'Generation failed',
         status: Status.FAILED,
       });
     } catch (patchError) {
