@@ -261,6 +261,7 @@ describe('EditorPreview', () => {
     });
 
     const videos = screen.getAllByTestId('video');
+    expect(videos).toHaveLength(1);
     const videoProps = JSON.parse(videos[0].getAttribute('data-props') ?? '{}');
     expect(videoProps).toMatchObject({
       src: 'https://example.test/video.mp4',
@@ -268,12 +269,7 @@ describe('EditorPreview', () => {
       trimBefore: 15,
       volume: 0.4,
     });
-    expect(
-      JSON.parse(videos[1].getAttribute('data-props') ?? '{}'),
-    ).toMatchObject({
-      src: 'https://example.test/muted.mp4',
-      volume: 0,
-    });
+    expect(videoProps.src).not.toBe('https://example.test/muted.mp4');
     expect(screen.getAllByTestId('absolute-fill')[0]).toHaveStyle({
       backgroundColor: '#123456',
     });
