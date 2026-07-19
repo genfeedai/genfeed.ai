@@ -124,6 +124,7 @@ const protectedRouteBuckets: RouteBucket[] = [
     protectedRoutes,
     (route) =>
       route === '/' ||
+      route === '/connect' ||
       route === '/settings' ||
       route.startsWith('/settings/') ||
       route === '/test-org',
