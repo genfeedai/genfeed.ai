@@ -563,12 +563,11 @@ export class PostGroupsService {
       (approval.status === PublishApprovalStatus.APPROVED ||
         approval.status === PublishApprovalStatus.QUEUED ||
         approval.status === PublishApprovalStatus.FAILED) &&
-      approval.provenance.manualRetryCommand;
+      Boolean(approval.provenance.manualRetryCommand);
 
-    return {
-      isManualRetry,
-      ...(isDurableRetry && { manualRetryApproval: approval }),
-    };
+    return isDurableRetry
+      ? { isManualRetry, manualRetryApproval: approval }
+      : { isManualRetry };
   }
 
   cancel(
