@@ -69,4 +69,23 @@ describe('RemotionRenderCancellationService', () => {
       { jobId: 'job-123' },
     );
   });
+
+  it('clears pending cancellation timers during worker shutdown', async () => {
+    vi.useFakeTimers();
+    const service = new RemotionRenderCancellationService(
+      redisService as never,
+      logger as never,
+    );
+    await service.onModuleInit();
+    const handler = redisService.subscribe.mock.calls[0]?.[1];
+    handler?.({
+      jobId: 'job-123',
+      requestedAt: '2026-07-19T00:00:00.000Z',
+    });
+    expect(vi.getTimerCount()).toBe(1);
+
+    service.onModuleDestroy();
+
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });

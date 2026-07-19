@@ -1,6 +1,10 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
 
 const EDITOR_RENDER_CANCEL_CHANNEL = 'editor-render-cancel';
 const EDITOR_RENDER_PENDING_CANCEL_TTL_MS = 60_000;
@@ -22,7 +26,9 @@ function isCancelEvent(value: unknown): value is EditorRenderCancelEvent {
 }
 
 @Injectable()
-export class RemotionRenderCancellationService implements OnModuleInit {
+export class RemotionRenderCancellationService
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly activeRenders = new Map<string, () => void>();
   private readonly pendingCancellations = new Map<
     string,
@@ -46,6 +52,13 @@ export class RemotionRenderCancellationService implements OnModuleInit {
         this.cancelLocally(event.jobId, event.requestedAt);
       },
     );
+  }
+
+  onModuleDestroy(): void {
+    for (const timeout of this.pendingCancellations.values()) {
+      clearTimeout(timeout);
+    }
+    this.pendingCancellations.clear();
   }
 
   register(jobId: string, cancel: () => void): () => void {
@@ -86,6 +99,7 @@ export class RemotionRenderCancellationService implements OnModuleInit {
       const timeout = setTimeout(() => {
         this.pendingCancellations.delete(jobId);
       }, EDITOR_RENDER_PENDING_CANCEL_TTL_MS);
+      timeout.unref();
       this.pendingCancellations.set(jobId, timeout);
       this.logger.log('Queued editor render cancellation before registration', {
         jobId,
