@@ -12,6 +12,11 @@ import {
   TweetTone,
 } from '@api/collections/posts/dto/generate-tweets.dto';
 import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
+import {
+  extractPostGenerationLabel,
+  parsePostGenerationContent,
+} from '@api/collections/posts/services/post-generation-text.util';
+import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
@@ -33,14 +38,12 @@ import {
   SystemPromptKey,
 } from '@genfeedai/enums';
 import type {
-  AccountPublishingConstraints,
   AccountPublishingContext,
   SocialGenerationFormat,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-import { parseTweet } from 'twitter-text';
 
 /**
  * Identity fields threaded through the generation pipeline. Derived from
@@ -53,23 +56,9 @@ type GenerationMetadata = Pick<
 >;
 
 /**
- * Thread expansion always targets X/Twitter, whose replies must respect the
- * 280 weighted-character limit. Used to validate generated thread posts so
- * over-limit replies are rejected instead of silently accepted (issue #861).
- */
-const TWITTER_THREAD_CONSTRAINTS: AccountPublishingConstraints = {
-  maxWeightedCharacters: 280,
-  notes: ['Standard X posts use the 280 weighted-character limit.'],
-  supportsDirectPublishing: true,
-  supportsRichArticleCopy: false,
-  supportsThreads: true,
-  usesWeightedCharacters: true,
-};
-
-/**
- * Owns the AI generation engine for posts: account-content and thread-expansion
- * background pipelines, the post-enhancement and hook-variation flows, and the
- * shared prompt-building / tweet-parsing helpers. Extracted from
+ * Stable facade for post AI generation: account-content background work,
+ * delegated thread expansion, enhancement, hook variations, and shared text
+ * helpers. Extracted from
  * `PostsOperationsController` so the controller stays a thin HTTP boundary
  * (issue #691), mirroring the existing posts analytics service split.
  */
@@ -79,6 +68,7 @@ export class PostGenerationService {
     private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly activitiesService: ActivitiesService,
     private readonly logger: LoggerService,
+    private readonly postThreadGenerationService: PostThreadGenerationService,
     private readonly postsService: PostsService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
@@ -92,33 +82,6 @@ export class PostGenerationService {
   // ==========================================================================
 
   /**
-   * Strip HTML tags from a string for character counting
-   */
-  private stripHtmlTags(html: string): string {
-    return html.replace(/<[^>]+>/g, '');
-  }
-
-  private getWeightedCharacterCount(text: string): number {
-    return parseTweet(text).weightedLength;
-  }
-
-  /**
-   * Validate post length without HTML tags.
-   */
-  private isValidPostLength(
-    postHtml: string,
-    maxLength = 560,
-    usesWeightedCharacters = false,
-  ): boolean {
-    const textOnly = this.stripHtmlTags(postHtml);
-    const length = usesWeightedCharacters
-      ? this.getWeightedCharacterCount(textOnly)
-      : textOnly.length;
-
-    return textOnly.length > 0 && length <= maxLength;
-  }
-
-  /**
    * Parse AI-generated content into an array of tweets
    * Handles JSON arrays and fallback to marker-based splitting
    */
@@ -127,101 +90,14 @@ export class PostGenerationService {
     maxCount: number,
     context?: Pick<AccountPublishingContext, 'constraints'>,
   ): string[] {
-    let tweetLines: string[] = [];
-    const maxLength =
-      context?.constraints.maxWeightedCharacters ??
-      context?.constraints.maxCharacters ??
-      560;
-    const usesWeightedCharacters =
-      context?.constraints.usesWeightedCharacters ?? false;
-    const cleanPost = (post: string) =>
-      post.replace(/^[-*\s]*(?:tweet|post)?\s*\d+[:.)-]\s*/i, '').trim();
-    const isValid = (post: string) =>
-      this.isValidPostLength(post, maxLength, usesWeightedCharacters);
-
-    try {
-      // Try to parse as JSON array first
-      const trimmedContent = content
-        .trim()
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .trim();
-
-      const parsed = JSON.parse(trimmedContent);
-      if (Array.isArray(parsed)) {
-        tweetLines = parsed
-          .map((post: unknown) => cleanPost(String(post)))
-          .filter((post: string) => post.length > 0 && isValid(post))
-          .slice(0, maxCount);
-      }
-    } catch {
-      // Fallback to marker-based splitting (---)
-      // Only treat '---' as the post separator when it is actually present;
-      // otherwise a newline-delimited "one post per line" response would
-      // collapse into a single post.
-      const posts = content.includes('---')
-        ? content
-            .split('---')
-            .map((post) => cleanPost(post))
-            .filter((post) => post.length > 0 && isValid(post))
-            .slice(0, maxCount)
-        : [];
-
-      if (posts.length > 0) {
-        tweetLines = posts;
-      } else {
-        const numberedOrLinePosts = content
-          .split('\n')
-          .map((post) => cleanPost(post))
-          .filter((post) => post.length > 0 && isValid(post))
-          .slice(0, maxCount);
-
-        if (numberedOrLinePosts.length > 0) {
-          tweetLines = numberedOrLinePosts;
-          return tweetLines;
-        }
-
-        // Last resort: split by double newline
-        tweetLines = content
-          .split(/\n\n+/)
-          .map((post) => cleanPost(post))
-          .filter((post) => post.length > 0 && isValid(post))
-          .slice(0, maxCount);
-      }
-    }
-
-    return tweetLines;
+    return parsePostGenerationContent(content, maxCount, context);
   }
 
   /**
    * Extract a label from tweet text (first ~50 characters, truncated at word boundary)
    */
   extractLabelFromTweet(tweetText: string, maxLength: number = 50): string {
-    if (!tweetText || tweetText.trim().length === 0) {
-      return '';
-    }
-
-    // Strip HTML tags for label extraction
-    const textOnly = tweetText.replace(/<[^>]+>/g, ' ').trim();
-    // Normalize whitespace
-    const normalized = textOnly.replace(/\s+/g, ' ');
-
-    if (normalized.length <= maxLength) {
-      return normalized;
-    }
-
-    // Truncate at word boundary
-    const truncated = normalized.substring(0, maxLength);
-    const lastSpace = truncated.lastIndexOf(' ');
-
-    if (lastSpace > maxLength * 0.7) {
-      // If we found a space reasonably close to maxLength, use it
-      return `${truncated.substring(0, lastSpace)}...`;
-    }
-
-    // Otherwise truncate at maxLength
-    return `${truncated}...`;
+    return extractPostGenerationLabel(tweetText, maxLength);
   }
 
   private buildRemixMetadata(
@@ -716,177 +592,12 @@ export class PostGenerationService {
     dto: ExpandToThreadDto,
     publicMetadata: GenerationMetadata,
   ): Promise<void> {
-    // Create the PROCESSING activity inside the try so a failure here cannot
-    // exit the method while leaving the child posts stuck in PROCESSING — the
-    // catch marks every child FAILED regardless (issue #861).
-    let activity: Awaited<ReturnType<ActivitiesService['create']>> | undefined;
-
-    try {
-      activity = await this.activitiesService.create(
-        new ActivityEntity({
-          brand: publicMetadata.brand,
-          key: ActivityKey.POST_PROCESSING,
-          organization: publicMetadata.organization,
-          source: ActivitySource.POST_GENERATION,
-          user: publicMetadata.user,
-          value: JSON.stringify({
-            count: dto.count,
-            originalPostId: String(originalPost.id),
-            type: 'thread-expansion',
-          }),
-        }),
-      );
-
-      const tone = dto.tone || TweetTone.PROFESSIONAL;
-      const additionalCount = dto.count - 1;
-
-      // Strip HTML for prompt (AI sees plain text)
-      const originalContent =
-        originalPost.description?.replace(/<[^>]+>/g, ' ').trim() || '';
-
-      const prompt = await this.templatesService.getRenderedPrompt(
-        PromptTemplateKey.THREAD_EXPAND,
-        {
-          additionalCount,
-          count: dto.count,
-          originalContent,
-          tone,
-        },
-        publicMetadata.organization,
-      );
-
-      const { input } = await this.promptBuilderService.buildPrompt(
-        DEFAULT_MINI_TEXT_MODEL,
-        {
-          maxTokens: TEXT_GENERATION_LIMITS.postThreadExpansion,
-          modelCategory: ModelCategory.TEXT,
-          prompt,
-          systemPromptTemplate: SystemPromptKey.TWITTER,
-          temperature: 0.8,
-          useTemplate: false,
-        },
-        publicMetadata.organization,
-      );
-
-      const content = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_MINI_TEXT_MODEL,
-        input,
-      );
-
-      if (!content) {
-        throw new Error('No content generated from AI service');
-      }
-
-      // Parse content into tweet lines using helper. Thread expansion targets
-      // X/Twitter, so enforce the 280 weighted-character reply limit instead of
-      // the unweighted default (issue #861).
-      const tweetLines = this.parseTweetContent(content, additionalCount, {
-        constraints: TWITTER_THREAD_CONSTRAINTS,
-      });
-
-      // Update child posts with generated content
-      for (let i = 0; i < childPosts.length && i < tweetLines.length; i++) {
-        const child = childPosts[i];
-        const tweetText = tweetLines[i];
-        const childId = String(child.id);
-
-        try {
-          const updatedPost = await this.postsService.patch(
-            childId,
-            {
-              description: tweetText,
-              label: this.extractLabelFromTweet(tweetText),
-              status: PostStatus.DRAFT,
-            },
-            [
-              { path: 'ingredients', select: '_id url' },
-              { path: 'credential', select: '_id label handle' },
-            ],
-          );
-
-          await this.websocketService.emit(WebSocketPaths.post(childId), {
-            result: updatedPost,
-            status: Status.COMPLETED,
-          });
-
-          // Create POST_GENERATED activity for this post
-          await this.activitiesService.create(
-            new ActivityEntity({
-              brand: publicMetadata.brand,
-              entityId: childId,
-              entityModel: ActivityEntityModel.POST,
-              key: ActivityKey.POST_GENERATED,
-              organization: publicMetadata.organization,
-              source: ActivitySource.POST_GENERATION,
-              user: publicMetadata.user,
-              value: childId,
-            }),
-          );
-        } catch (error) {
-          this.logger.error(
-            `Failed to update expanded thread post ${childId}`,
-            error,
-          );
-          await this.handleExpandPostFailure(childId, error);
-        }
-      }
-
-      // Handle insufficient tweets generated
-      for (let i = tweetLines.length; i < childPosts.length; i++) {
-        const childId = String(childPosts[i].id);
-        await this.handleExpandPostFailure(
-          childId,
-          new Error('Insufficient tweets generated'),
-        );
-      }
-    } catch (error) {
-      this.logger.error('Failed to expand thread asynchronously', error);
-
-      // Update activity to FAILED
-      if (activity) {
-        try {
-          await this.activitiesService.patch(activity.id.toString(), {
-            key: ActivityKey.POST_FAILED,
-            value: JSON.stringify({
-              error: (error as Error)?.message || 'Thread expansion failed',
-            }),
-          });
-        } catch (activityError) {
-          // Never let an activity-update failure short-circuit the cleanup
-          // below — child posts must still be marked FAILED, otherwise they
-          // stay stuck in PROCESSING forever.
-          this.logger.error(
-            'Failed to mark activity as failed during thread expansion cleanup',
-            activityError,
-          );
-        }
-      }
-
-      for (const child of childPosts) {
-        await this.handleExpandPostFailure(String(child.id), error);
-      }
-    }
-  }
-
-  /**
-   * Helper to handle post failure during thread expansion
-   */
-  private async handleExpandPostFailure(
-    postId: string,
-    error: unknown,
-  ): Promise<void> {
-    try {
-      await this.postsService.patch(postId, { status: PostStatus.FAILED });
-      await this.websocketService.emit(WebSocketPaths.post(postId), {
-        error: (error as Error)?.message || 'Generation failed',
-        status: Status.FAILED,
-      });
-    } catch (patchError) {
-      this.logger.error(
-        `Failed to update post ${postId} to FAILED status`,
-        patchError,
-      );
-    }
+    return this.postThreadGenerationService.expandThread(
+      originalPost,
+      childPosts,
+      dto,
+      publicMetadata,
+    );
   }
 
   // ==========================================================================
