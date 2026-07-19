@@ -1,3 +1,4 @@
+import { formatOutputs, formatPrice } from '@genfeedai/pricing';
 import {
   getProPlan,
   getScalePlan,
@@ -110,6 +111,13 @@ describe('PricingContent launch pricing', () => {
       expect(screen.getByText('$1,000')).toBeInTheDocument();
       expect(screen.getByText('100,000 credits')).toBeInTheDocument();
       expect(screen.getByText('8,000 credits included')).toBeInTheDocument();
+    });
+  });
+
+  it('keeps shared price formatters deterministic across runtime locales', () => {
+    withSimulatedNumberLocale('de-DE', () => {
+      expect(formatPrice(1_000_000)).toBe('$1,000,000');
+      expect(formatOutputs({ images: 1_000_000 })).toBe('1,000,000 images');
     });
   });
 

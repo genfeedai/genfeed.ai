@@ -59,7 +59,7 @@
       "@genfeedai/ui/*": ["../../packages/ui/src/*"],
       "@serializers/*": ["../../packages/serializers/src/*"],
       "@services/*": ["../../packages/services/*"],
-      "@shared/*": ["../../packages/*", "../../../tests/*"],
+      "@shared/*": ["../../packages/*", "../../tests/*"],
       "@styles/*": ["./styles/*", "../../packages/styles/*"],
       "@u/*": ["./app/u/*"],
       "@ui-constants/*": [
