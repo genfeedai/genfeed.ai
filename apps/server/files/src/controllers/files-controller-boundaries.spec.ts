@@ -1,3 +1,4 @@
+import { EditorRenderJobsController } from '@files/controllers/editor-render-jobs.controller';
 import { FilesController } from '@files/controllers/files.controller';
 import { FilesMetadataController } from '@files/controllers/files-metadata.controller';
 import { FilesProcessingController } from '@files/controllers/files-processing.controller';
@@ -6,13 +7,19 @@ import { RequestMethod } from '@nestjs/common';
 import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 
 const controllers = [
-  FilesController,
-  FilesMetadataController,
-  FilesProcessingController,
-  FilesStorageController,
+  [EditorRenderJobsController, 'files/job'],
+  [FilesController, 'files'],
+  [FilesMetadataController, 'files'],
+  [FilesProcessingController, 'files'],
+  [FilesStorageController, 'files'],
 ] as const;
 
 const routes = [
+  [
+    EditorRenderJobsController.prototype.cancel,
+    RequestMethod.POST,
+    ':jobId/cancel',
+  ],
   [FilesController.prototype.processVideo, RequestMethod.POST, 'process/video'],
   [FilesController.prototype.processImage, RequestMethod.POST, 'process/image'],
   [FilesController.prototype.processFile, RequestMethod.POST, 'process/file'],
@@ -83,8 +90,10 @@ const routes = [
 ] as const;
 
 describe('files controller boundaries', () => {
-  it.each(controllers)('%s keeps the files route prefix', (controller) => {
-    expect(Reflect.getMetadata(PATH_METADATA, controller)).toBe('files');
+  it.each(
+    controllers,
+  )('%s keeps its files route prefix', (controller, expectedPath) => {
+    expect(Reflect.getMetadata(PATH_METADATA, controller)).toBe(expectedPath);
   });
 
   it.each(

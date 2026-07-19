@@ -1,8 +1,10 @@
+import { ConfigModule } from '@files/config/config.module';
 import { QUEUE_NAMES } from '@files/queues/queue.constants';
 import { FFmpegModule } from '@files/services/ffmpeg/ffmpeg.module';
 import { FilesModule } from '@files/services/files/files.module';
 import { HookRemixModule } from '@files/services/hook-remix/hook-remix.module';
 import { JobLifecyclePublisherService } from '@files/services/job-lifecycle-publisher.service';
+import { RemotionRenderCancellationService } from '@files/services/remotion/remotion-render-cancellation.service';
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
 import { RemotionRendererService } from '@files/services/remotion/remotion-renderer.service';
 import { S3Service } from '@files/services/s3/s3.service';
@@ -20,6 +22,7 @@ import { Module } from '@nestjs/common';
     FilesModule,
     HookRemixModule,
     JobLifecyclePublisherService,
+    RemotionRenderCancellationService,
     RemotionRenderJobService,
     RemotionRendererService,
     S3Service,
@@ -30,6 +33,7 @@ import { Module } from '@nestjs/common';
     YtDlpModule,
   ],
   imports: [
+    ConfigModule,
     FFmpegModule,
     FilesModule,
     HookRemixModule,
@@ -48,6 +52,7 @@ import { Module } from '@nestjs/common';
     VideoMergeJobService,
     WebSocketService,
     JobLifecyclePublisherService,
+    RemotionRenderCancellationService,
     RemotionRenderJobService,
     RemotionRendererService,
   ],

@@ -72,6 +72,8 @@ declare module 'remotion' {
     volume?: number;
     startFrom?: number;
     endAt?: number;
+    trimAfter?: number;
+    trimBefore?: number;
   }>;
 
   export const OffthreadVideo: ComponentType<{
@@ -80,6 +82,8 @@ declare module 'remotion' {
     volume?: number;
     startFrom?: number;
     endAt?: number;
+    trimAfter?: number;
+    trimBefore?: number;
   }>;
 
   export const Img: ComponentType<{
@@ -88,6 +92,8 @@ declare module 'remotion' {
   }>;
 
   export function registerRoot(comp: React.FC): void;
+
+  export function useCurrentFrame(): number;
 
   export function useVideoConfig(): {
     width: number;

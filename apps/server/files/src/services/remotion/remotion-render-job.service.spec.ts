@@ -9,6 +9,7 @@ import { rm } from 'node:fs/promises';
 import { JOB_TYPES } from '@files/queues/queue.constants';
 import { BRANDED_AVATAR_RENDER_FIXTURE } from '@files/services/remotion/fixtures/branded-avatar.fixture';
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
+import { EditorRenderCancelledError } from '@files/services/remotion/remotion-renderer.service';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
 import type { Job } from 'bullmq';
@@ -36,7 +37,8 @@ describe('RemotionRenderJobService', () => {
     emitSuccess: vi.fn(),
   };
   const redisService = { publish: vi.fn().mockResolvedValue(1) };
-  const logger = { error: vi.fn() };
+  const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  const configService = { ingredientsEndpoint: 'https://cdn.example.com' };
 
   const data = {
     authProviderUserId: 'auth-user',
@@ -64,15 +66,25 @@ describe('RemotionRenderJobService', () => {
   const makeJob = (attemptsMade = 1): Job<VideoJobData> =>
     ({
       attemptsMade,
-      data,
+      data: {
+        ...data,
+        params: {
+          ...data.params,
+          assetManifest: data.params.assetManifest.map((asset) => ({
+            ...asset,
+          })),
+        },
+      },
       id: 'job-123',
       name: JOB_TYPES.RENDER_EDITOR_COMPOSITION,
       opts: { attempts: 2 },
+      updateData: vi.fn().mockResolvedValue(undefined),
       updateProgress: vi.fn().mockResolvedValue(undefined),
     }) as unknown as Job<VideoJobData>;
 
   const makeService = () =>
     new RemotionRenderJobService(
+      configService as never,
       ffmpegService as never,
       remotionRendererService as never,
       s3Service as never,
@@ -99,6 +111,7 @@ describe('RemotionRenderJobService', () => {
       expect.objectContaining({ rendererVersion: EDITOR_RENDERER_VERSION }),
       '/tmp/editor-render-output/composition.mp4',
       expect.any(Function),
+      'job-123',
     );
     expect(job.updateProgress).toHaveBeenCalledWith(50);
     expect(s3Service.uploadFile).toHaveBeenCalledWith(
@@ -157,6 +170,44 @@ describe('RemotionRenderJobService', () => {
     expect(redisService.publish).not.toHaveBeenCalledWith(
       'video-processing-complete',
       expect.objectContaining({ status: 'failed' }),
+    );
+  });
+
+  it('publishes cancellation as an explicit non-retryable terminal reason', async () => {
+    remotionRendererService.render.mockRejectedValueOnce(
+      new EditorRenderCancelledError(),
+    );
+
+    await expect(makeService().process(makeJob(0))).rejects.toMatchObject({
+      name: 'UnrecoverableError',
+    });
+    expect(redisService.publish).toHaveBeenCalledWith(
+      'video-processing-complete',
+      expect.objectContaining({
+        status: 'failed',
+        terminalReason: 'cancelled',
+      }),
+    );
+  });
+
+  it('rejects an unapproved asset origin before renderer execution', async () => {
+    const job = makeJob(0);
+    job.data.params.assetManifest[0] = {
+      ...job.data.params.assetManifest[0],
+      ingredientUrl: 'https://attacker.example/video.mp4',
+    };
+
+    await expect(makeService().process(job)).rejects.toMatchObject({
+      message: expect.stringContaining('asset origin is not approved'),
+      name: 'UnrecoverableError',
+    });
+    expect(remotionRendererService.render).not.toHaveBeenCalled();
+    expect(redisService.publish).toHaveBeenCalledWith(
+      'video-processing-complete',
+      expect.objectContaining({
+        status: 'failed',
+        terminalReason: 'asset_unavailable',
+      }),
     );
   });
 });

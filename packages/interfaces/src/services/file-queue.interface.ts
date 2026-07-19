@@ -59,6 +59,12 @@ export interface IJobResponse {
   ingredientId: string;
 }
 
+export interface IJobCancellationResponse {
+  jobId: string;
+  requestedAt: string;
+  status: 'cancellation-requested';
+}
+
 export interface IJobStatusResponse {
   jobId: string;
   state: JobState;

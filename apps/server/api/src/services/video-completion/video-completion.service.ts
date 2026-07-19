@@ -12,6 +12,8 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import {
+  EDITOR_RENDER_PUBLIC_MESSAGES,
+  type EditorRenderTerminalReason,
   type IEditorRenderCorrelation,
   type IEditorRenderOutputMetadata,
   type IJobStatusResponse,
@@ -19,7 +21,11 @@ import {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 type VideoCompletionEvent = {
@@ -45,6 +51,8 @@ type VideoCompletionEvent = {
   };
   error?: string;
   editorRender?: IEditorRenderCorrelation;
+  terminalAttempt?: number;
+  terminalReason?: EditorRenderTerminalReason;
   timestamp: string;
 };
 
@@ -89,7 +97,11 @@ export class VideoCompletionService implements OnModuleInit {
         if (status === Status.COMPLETED) {
           await this.completeEditorRender(data.editorRender, result);
         } else {
-          await this.failEditorRender(data.editorRender);
+          await this.failEditorRender(
+            data.editorRender,
+            data.terminalReason,
+            data.terminalAttempt,
+          );
         }
         return;
       }
@@ -157,7 +169,15 @@ export class VideoCompletionService implements OnModuleInit {
 
         if (!editorRender) {
           if (isStale) {
-            await this.editorProjectsService.markAsFailed(project.id);
+            await this.editorProjectsService.markAsFailed(
+              project.id,
+              undefined,
+              {
+                attempt: 0,
+                failedAt: new Date().toISOString(),
+                reason: 'worker_lost',
+              },
+            );
           }
           return;
         }
@@ -167,7 +187,7 @@ export class VideoCompletionService implements OnModuleInit {
           job = await this.fileQueueService.getJobStatus(editorRender.jobId);
         } catch (error: unknown) {
           if (isStale) {
-            await this.failEditorRender(editorRender);
+            await this.failEditorRender(editorRender, 'worker_lost');
             return;
           }
           throw error;
@@ -189,8 +209,28 @@ export class VideoCompletionService implements OnModuleInit {
             ingredientId: editorRender.ingredientId,
             organizationId: project.organizationId,
             status: Status.FAILED,
+            terminalReason: 'renderer_failed',
             timestamp: new Date().toISOString(),
           });
+        } else if (
+          isStale &&
+          (job.state === JobState.ACTIVE ||
+            job.state === JobState.DELAYED ||
+            job.state === JobState.PENDING)
+        ) {
+          try {
+            await this.fileQueueService.cancelEditorRender(editorRender.jobId);
+          } catch (error: unknown) {
+            this.logger.warn(
+              'Stale editor render cancellation was not accepted',
+              {
+                jobId: editorRender.jobId,
+                reason: error instanceof Error ? error.name : 'unknown',
+              },
+            );
+            return;
+          }
+          await this.failEditorRender(editorRender, 'timed_out');
         }
       }),
     );
@@ -231,12 +271,33 @@ export class VideoCompletionService implements OnModuleInit {
         width: output.width,
       }),
     ]);
-    await this.editorProjectsService.markAsCompleted(
-      editorRender.projectId,
-      editorRender.ingredientId,
-      output,
-      editorRender.jobId,
-    );
+    try {
+      await this.editorProjectsService.markAsCompleted(
+        editorRender.projectId,
+        editorRender.ingredientId,
+        output,
+        editorRender.jobId,
+      );
+    } catch (error: unknown) {
+      if (!(error instanceof ConflictException)) {
+        throw error;
+      }
+      // Cancellation can win after upload but before the project CAS.
+      // Keep the generated ingredient terminal and retry-safe instead of
+      // leaving it as a successful orphan detached from the project.
+      await this.ingredientsService
+        .patch(editorRender.ingredientId, {
+          status: IngredientStatus.FAILED,
+        })
+        .catch((cleanupError: unknown) => {
+          this.logger.error('Failed to clean up unclaimed render output', {
+            jobId: editorRender.jobId,
+            reason:
+              cleanupError instanceof Error ? cleanupError.name : 'unknown',
+          });
+        });
+      throw error;
+    }
     await this.notificationsPublisher.publishVideoComplete(
       WebSocketPaths.video(editorRender.ingredientId),
       {
@@ -251,17 +312,39 @@ export class VideoCompletionService implements OnModuleInit {
 
   private async failEditorRender(
     editorRender: IEditorRenderCorrelation,
+    reason: EditorRenderTerminalReason = 'renderer_failed',
+    attempt: number = 0,
   ): Promise<void> {
+    const failure = {
+      attempt,
+      failedAt: new Date().toISOString(),
+      reason,
+    };
+    if (reason === 'cancelled') {
+      await this.editorProjectsService.markAsCancelled(
+        editorRender.projectId,
+        editorRender.jobId,
+        failure,
+      );
+    } else {
+      await this.editorProjectsService.markAsFailed(
+        editorRender.projectId,
+        editorRender.jobId,
+        failure,
+      );
+    }
     await this.ingredientsService.patch(editorRender.ingredientId, {
       status: IngredientStatus.FAILED,
     });
-    await this.editorProjectsService.markAsFailed(
-      editorRender.projectId,
-      editorRender.jobId,
-    );
+    this.logger.error('Editor render reached a terminal failure', {
+      attempt,
+      jobId: editorRender.jobId,
+      projectId: editorRender.projectId,
+      reason,
+    });
     await this.notificationsPublisher.publishMediaFailed(
       WebSocketPaths.video(editorRender.ingredientId),
-      'Failed to render project. Please try again.',
+      EDITOR_RENDER_PUBLIC_MESSAGES[reason],
       editorRender.authProviderUserId,
       editorRender.room,
     );

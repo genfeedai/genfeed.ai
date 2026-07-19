@@ -1,6 +1,7 @@
 import type { IEditorTrack } from '@genfeedai/interfaces';
 
 export interface EditorPreviewProps {
+  backgroundColor?: string;
   tracks: IEditorTrack[];
   width: number;
   height: number;

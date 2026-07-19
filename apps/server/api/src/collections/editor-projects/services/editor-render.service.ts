@@ -6,10 +6,18 @@ import {
   EditorExportContractValidationError,
 } from '@api/collections/editor-projects/utils/editor-export-contract.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  EditorProjectStatus,
   EditorTrackType,
   IngredientCategory,
   IngredientStatus,
@@ -25,7 +33,11 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { Injectable, UnprocessableEntityException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 
 type RenderIngredientCategory =
   | IngredientCategory.AUDIO
@@ -39,6 +51,12 @@ interface RenderResult {
   jobId: string;
   projectId: string;
   status: string;
+}
+
+interface CancelRenderResult {
+  jobId: string;
+  projectId: string;
+  status: 'cancelled';
 }
 
 interface TrustedRenderContract {
@@ -87,8 +105,93 @@ export class EditorRenderService {
     private readonly fileQueueService: FileQueueService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
+    private readonly notificationsPublisher: NotificationsPublisherService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly sharedService: SharedService,
   ) {}
+
+  private async invalidateCancelledRenderCaches(
+    organizationId: string,
+    projectId: string,
+    ingredientId: string,
+  ): Promise<void> {
+    await this.cacheInvalidationService.invalidate(
+      CACHE_PATTERNS.EDITOR_PROJECTS_LIST(organizationId),
+      CACHE_PATTERNS.EDITOR_PROJECTS_SINGLE(projectId),
+      CACHE_PATTERNS.INGREDIENTS_LIST(organizationId),
+      CACHE_PATTERNS.INGREDIENTS_SINGLE(ingredientId),
+    );
+    await this.cacheInvalidationService.invalidateByTags([
+      CACHE_TAGS.EDITOR_PROJECTS,
+      CACHE_TAGS.INGREDIENTS,
+    ]);
+  }
+
+  async cancel(id: string, orgId: string): Promise<CancelRenderResult> {
+    const project = await this.editorProjectsService.findForRender(id, orgId);
+    const renderJob =
+      this.editorProjectsService.readRenderProvenance(project)?.job;
+    if (!renderJob) {
+      throw new UnprocessableEntityException(
+        'Project does not have an active render job.',
+      );
+    }
+
+    await this.fileQueueService.cancelEditorRender(renderJob.jobId);
+    const failure = {
+      attempt: 0,
+      failedAt: new Date().toISOString(),
+      reason: 'cancelled' as const,
+    };
+    const result: CancelRenderResult = {
+      jobId: renderJob.jobId,
+      projectId: id,
+      status: 'cancelled',
+    };
+    try {
+      await this.editorProjectsService.markAsCancelled(
+        id,
+        renderJob.jobId,
+        failure,
+      );
+    } catch (error: unknown) {
+      if (!(error instanceof ConflictException)) {
+        throw error;
+      }
+      const current = await this.editorProjectsService.findForRender(id, orgId);
+      if (
+        this.editorProjectsService.readStatus(current) !==
+        EditorProjectStatus.CANCELLED
+      ) {
+        throw error;
+      }
+      await this.invalidateCancelledRenderCaches(
+        orgId,
+        id,
+        renderJob.ingredientId,
+      );
+      return result;
+    }
+    try {
+      await this.ingredientsService.patch(renderJob.ingredientId, {
+        status: IngredientStatus.FAILED,
+      });
+    } finally {
+      await this.invalidateCancelledRenderCaches(
+        orgId,
+        id,
+        renderJob.ingredientId,
+      );
+    }
+    await this.notificationsPublisher.publishMediaFailed(
+      WebSocketPaths.video(renderJob.ingredientId),
+      'The render was cancelled.',
+      renderJob.authProviderUserId,
+      renderJob.room,
+    );
+
+    return result;
+  }
 
   async render(id: string, orgId: string, user: User): Promise<RenderResult> {
     const publicMetadata = user.publicMetadata as Record<string, string>;
