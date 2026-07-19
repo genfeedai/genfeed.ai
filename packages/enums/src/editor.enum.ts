@@ -2,6 +2,7 @@ export enum EditorProjectStatus {
   DRAFT = 'draft',
   RENDERING = 'rendering',
   COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
   FAILED = 'failed',
 }
 

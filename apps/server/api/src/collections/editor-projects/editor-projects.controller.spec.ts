@@ -94,6 +94,7 @@ describe('EditorProjectsController', () => {
         {
           provide: EditorRenderService,
           useValue: {
+            cancel: vi.fn(),
             render: vi.fn(),
           },
         },
@@ -326,6 +327,27 @@ describe('EditorProjectsController', () => {
         String(project.id),
         expect.any(String), // organizationId
         expect.any(Object), // user
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('cancels the active render for the authenticated organization', async () => {
+      const project = makeProject();
+      editorRenderService.cancel.mockResolvedValue({
+        jobId: 'job-123',
+        projectId: String(project.id),
+        status: 'cancelled',
+      });
+
+      const result = await controller.cancelRender(
+        makeRequest(),
+        makeUser(),
+        String(project.id),
+      );
+
+      expect(editorRenderService.cancel).toHaveBeenCalledWith(
+        String(project.id),
+        expect.any(String),
       );
       expect(result).toBeDefined();
     });

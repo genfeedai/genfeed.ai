@@ -1,9 +1,9 @@
-import {
-  buildCssFilter,
-  buildTransitionStyle,
-} from '@files/remotion/editor-composition';
 import { EditorEffectType, EditorTransitionType } from '@genfeedai/enums';
 import type { IEditorClip } from '@genfeedai/interfaces';
+import {
+  buildEditorCssFilter,
+  buildEditorRenderStyle,
+} from '@genfeedai/utils/media/editor-render-style.util';
 
 function makeClip(overrides: Partial<IEditorClip> = {}): IEditorClip {
   return {
@@ -21,7 +21,7 @@ function makeClip(overrides: Partial<IEditorClip> = {}): IEditorClip {
 
 describe('editor composition styles', () => {
   it('composes overlapping slide-in and slide-out transforms', () => {
-    const style = buildTransitionStyle(
+    const style = buildEditorRenderStyle(
       50,
       makeClip({
         transitionIn: { duration: 80, type: EditorTransitionType.SLIDE },
@@ -34,7 +34,7 @@ describe('editor composition styles', () => {
   });
 
   it('composes overlapping wipe edges without overwriting either side', () => {
-    const style = buildTransitionStyle(
+    const style = buildEditorRenderStyle(
       50,
       makeClip({
         transitionIn: { duration: 80, type: EditorTransitionType.WIPE },
@@ -47,7 +47,7 @@ describe('editor composition styles', () => {
 
   it('combines supported effects and ignores none', () => {
     expect(
-      buildCssFilter([
+      buildEditorCssFilter([
         { intensity: 50, type: EditorEffectType.BRIGHTNESS },
         { intensity: 25, type: EditorEffectType.SEPIA },
         { intensity: 100, type: EditorEffectType.NONE },

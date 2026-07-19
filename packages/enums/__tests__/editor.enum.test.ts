@@ -9,13 +9,14 @@ import {
 describe('editor.enum', () => {
   describe('EditorProjectStatus', () => {
     it('should have 4 members', () => {
-      expect(Object.values(EditorProjectStatus)).toHaveLength(4);
+      expect(Object.values(EditorProjectStatus)).toHaveLength(5);
     });
 
     it('should have correct values', () => {
       expect(EditorProjectStatus.DRAFT).toBe('draft');
       expect(EditorProjectStatus.RENDERING).toBe('rendering');
       expect(EditorProjectStatus.COMPLETED).toBe('completed');
+      expect(EditorProjectStatus.CANCELLED).toBe('cancelled');
       expect(EditorProjectStatus.FAILED).toBe('failed');
     });
   });

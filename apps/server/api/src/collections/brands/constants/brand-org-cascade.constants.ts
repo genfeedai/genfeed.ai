@@ -324,6 +324,26 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     brandField: 'brandId',
     orgField: 'organizationId',
   },
+  // Preserve parent-before-child order for the defensive rewrite path because
+  // their composite foreign keys include organizationId.
+  {
+    delegate: 'listeningTopic',
+    table: 'listening_topics',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'listeningTopicSource',
+    table: 'listening_topic_sources',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'listeningEvidence',
+    table: 'listening_evidence',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
   {
     delegate: 'contentPerformance',
     table: 'content_performance',

@@ -23,6 +23,13 @@ export interface IEditorTransition {
   duration: number; // in frames
 }
 
+export interface IEditorRenderStyle {
+  clipPath?: string;
+  filter: string;
+  opacity?: number;
+  transform?: string;
+}
+
 export interface IEditorTextOverlay {
   text: string;
   position: { x: number; y: number }; // percentage-based positioning

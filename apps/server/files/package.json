@@ -4,6 +4,7 @@
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/storage": "workspace:*",
+    "@genfeedai/utils": "workspace:*",
     "@remotion/bundler": "4.0.486",
     "@remotion/renderer": "4.0.486",
     "bullmq": "5.79.3",

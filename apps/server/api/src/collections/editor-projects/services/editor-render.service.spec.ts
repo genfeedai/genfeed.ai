@@ -2,10 +2,17 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  EditorProjectStatus,
   EditorTrackType,
   IngredientCategory,
   IngredientFormat,
@@ -13,7 +20,10 @@ import {
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { UnprocessableEntityException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('EditorRenderService', () => {
@@ -78,9 +88,13 @@ describe('EditorRenderService', () => {
     findForRender: ReturnType<typeof vi.fn>;
     attachRenderJob: ReturnType<typeof vi.fn>;
     markAsFailed: ReturnType<typeof vi.fn>;
+    markAsCancelled: ReturnType<typeof vi.fn>;
     markAsRendering: ReturnType<typeof vi.fn>;
+    readRenderProvenance: ReturnType<typeof vi.fn>;
+    readStatus: ReturnType<typeof vi.fn>;
   };
   let fileQueueService: {
+    cancelEditorRender: ReturnType<typeof vi.fn>;
     processVideo: ReturnType<typeof vi.fn>;
   };
   let ingredientsService: {
@@ -90,15 +104,30 @@ describe('EditorRenderService', () => {
   let sharedService: {
     saveDocuments: ReturnType<typeof vi.fn>;
   };
+  let notificationsPublisher: {
+    publishMediaFailed: ReturnType<typeof vi.fn>;
+  };
+  let cacheInvalidationService: {
+    invalidate: ReturnType<typeof vi.fn>;
+    invalidateByTags: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     editorProjectsService = {
       attachRenderJob: vi.fn().mockResolvedValue(makeProject()),
       findForRender: vi.fn().mockResolvedValue(makeProject()),
       markAsFailed: vi.fn().mockResolvedValue(undefined),
+      markAsCancelled: vi.fn().mockResolvedValue(undefined),
       markAsRendering: vi.fn().mockResolvedValue(makeProject()),
+      readRenderProvenance: vi.fn(),
+      readStatus: vi.fn(),
     };
     fileQueueService = {
+      cancelEditorRender: vi.fn().mockResolvedValue({
+        jobId: 'job-123',
+        requestedAt: new Date().toISOString(),
+        status: 'cancellation-requested',
+      }),
       processVideo: vi
         .fn()
         .mockImplementation(({ id }) => Promise.resolve({ jobId: id })),
@@ -125,6 +154,13 @@ describe('EditorRenderService', () => {
         metadataData: { id: 'output-metadata-123' },
       }),
     };
+    notificationsPublisher = {
+      publishMediaFailed: vi.fn().mockResolvedValue(undefined),
+    };
+    cacheInvalidationService = {
+      invalidate: vi.fn().mockResolvedValue(undefined),
+      invalidateByTags: vi.fn().mockResolvedValue(0),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -144,6 +180,14 @@ describe('EditorRenderService', () => {
             log: vi.fn(),
             warn: vi.fn(),
           },
+        },
+        {
+          provide: NotificationsPublisherService,
+          useValue: notificationsPublisher,
+        },
+        {
+          provide: CacheInvalidationService,
+          useValue: cacheInvalidationService,
         },
         { provide: SharedService, useValue: sharedService },
       ],
@@ -290,5 +334,81 @@ describe('EditorRenderService', () => {
     expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
       status: 'failed',
     });
+  });
+
+  it('cancels the owning render job and records a retry-safe terminal state', async () => {
+    editorProjectsService.readRenderProvenance.mockReturnValue({
+      job: {
+        authProviderUserId: 'auth-provider-user',
+        ingredientId: 'output-video-123',
+        jobId: 'job-123',
+        metadataId: 'output-metadata-123',
+        projectId,
+        room: 'user-room',
+      },
+    });
+
+    await expect(service.cancel(projectId, organizationId)).resolves.toEqual({
+      jobId: 'job-123',
+      projectId,
+      status: 'cancelled',
+    });
+    expect(fileQueueService.cancelEditorRender).toHaveBeenCalledWith('job-123');
+    expect(editorProjectsService.markAsCancelled).toHaveBeenCalledWith(
+      projectId,
+      'job-123',
+      expect.objectContaining({ reason: 'cancelled' }),
+    );
+    expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
+      status: 'failed',
+    });
+    expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+      CACHE_PATTERNS.EDITOR_PROJECTS_LIST(organizationId),
+      CACHE_PATTERNS.EDITOR_PROJECTS_SINGLE(projectId),
+      CACHE_PATTERNS.INGREDIENTS_LIST(organizationId),
+      CACHE_PATTERNS.INGREDIENTS_SINGLE('output-video-123'),
+    );
+    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+      CACHE_TAGS.EDITOR_PROJECTS,
+      CACHE_TAGS.INGREDIENTS,
+    ]);
+  });
+
+  it('does not repeat cancellation side effects after another writer wins', async () => {
+    editorProjectsService.readRenderProvenance.mockReturnValue({
+      job: {
+        authProviderUserId: 'auth-provider-user',
+        ingredientId: 'output-video-123',
+        jobId: 'job-123',
+        metadataId: 'output-metadata-123',
+        projectId,
+        room: 'user-room',
+      },
+    });
+    editorProjectsService.markAsCancelled.mockRejectedValueOnce(
+      new ConflictException('Render job no longer owns this project'),
+    );
+    editorProjectsService.readStatus.mockReturnValue(
+      EditorProjectStatus.CANCELLED,
+    );
+
+    await expect(service.cancel(projectId, organizationId)).resolves.toEqual({
+      jobId: 'job-123',
+      projectId,
+      status: 'cancelled',
+    });
+
+    expect(ingredientsService.patch).not.toHaveBeenCalled();
+    expect(notificationsPublisher.publishMediaFailed).not.toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+      CACHE_PATTERNS.EDITOR_PROJECTS_LIST(organizationId),
+      CACHE_PATTERNS.EDITOR_PROJECTS_SINGLE(projectId),
+      CACHE_PATTERNS.INGREDIENTS_LIST(organizationId),
+      CACHE_PATTERNS.INGREDIENTS_SINGLE('output-video-123'),
+    );
+    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+      CACHE_TAGS.EDITOR_PROJECTS,
+      CACHE_TAGS.INGREDIENTS,
+    ]);
   });
 });
