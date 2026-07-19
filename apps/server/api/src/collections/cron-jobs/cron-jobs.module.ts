@@ -3,6 +3,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CronJobsController } from '@api/collections/cron-jobs/controllers/cron-jobs.controller';
 import { LEGACY_CRON_JOB_EXECUTOR } from '@api/collections/cron-jobs/legacy-cron-job-executor.token';
 import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
+import { LegacyCronJobMigrationService } from '@api/collections/cron-jobs/services/legacy-cron-job-migration.service';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { CacheModule } from '@api/services/cache/cache.module';
@@ -25,6 +26,7 @@ import { forwardRef, Module } from '@nestjs/common';
   ],
   providers: [
     CronJobsService,
+    LegacyCronJobMigrationService,
     {
       provide: LEGACY_CRON_JOB_EXECUTOR,
       useExisting: CronJobsService,
