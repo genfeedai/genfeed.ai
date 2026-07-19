@@ -127,6 +127,7 @@ export default function EditorLayout({
               <div className="w-full max-w-4xl">
                 <EditorPreview
                   ref={previewRef}
+                  backgroundColor={project.settings.backgroundColor}
                   tracks={project.tracks}
                   width={project.settings.width}
                   height={project.settings.height}

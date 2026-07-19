@@ -14,6 +14,7 @@ import {
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
+import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -22,6 +23,8 @@ import { Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
 
 interface VideoCompletionResult {
+  jobId?: string;
+  jobType?: string;
   ingredientId?: string;
   outputPath?: string;
   s3Key?: string;
@@ -29,6 +32,14 @@ interface VideoCompletionResult {
   duration?: number;
   startTime?: number;
   endTime?: number;
+}
+
+function isFinalAttempt(job: Job<VideoJobData>): boolean {
+  return job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
+}
+
+function isRawCutJob(job: Job<VideoJobData>): boolean {
+  return String(job.id).startsWith(RAW_CUT_JOB_PREFIX);
 }
 
 @Processor(QUEUE_NAMES.VIDEO_PROCESSING)
@@ -293,7 +304,7 @@ export class VideoProcessor extends WorkerHost {
         ),
       );
 
-      const { s3Key } = await this.uploadAndEmitSuccess(
+      const { s3Key, url } = await this.uploadAndEmitSuccess(
         outputPath,
         ingredientId,
         'videos',
@@ -304,7 +315,29 @@ export class VideoProcessor extends WorkerHost {
       );
 
       this.ffmpegService.cleanupTempFiles(ingredientId, 'captions');
-      return { outputPath, s3Key, success: true };
+      const result = {
+        jobId: String(job.id),
+        jobType: JOB_TYPES.ADD_CAPTIONS,
+        outputPath,
+        s3Key,
+        success: true,
+        url,
+      };
+      if (isRawCutJob(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'completed',
+          {
+            jobId: result.jobId,
+            jobType: result.jobType,
+            s3Key: result.s3Key,
+            url: result.url,
+          },
+        );
+      }
+      return result;
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Captions job failed: ${message}`);
@@ -314,6 +347,19 @@ export class VideoProcessor extends WorkerHost {
         authProviderUserId,
         room,
       );
+      if (isRawCutJob(job) && isFinalAttempt(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'failed',
+          {
+            jobId: String(job.id),
+            jobType: JOB_TYPES.ADD_CAPTIONS,
+          },
+          message,
+        );
+      }
       throw error;
     }
   }
@@ -589,13 +635,22 @@ export class VideoProcessor extends WorkerHost {
           duration,
           endTime,
           ingredientId,
+          jobId: String(job.id),
+          jobType: JOB_TYPES.CLIP_TRIM,
           s3Key,
           startTime,
           url,
         },
       );
 
-      return { outputPath, s3Key, success: true, url };
+      return {
+        jobId: String(job.id),
+        jobType: JOB_TYPES.CLIP_TRIM,
+        outputPath,
+        s3Key,
+        success: true,
+        url,
+      };
     } catch (error: unknown) {
       const message = getErrorMessage(error);
       this.logger.error(`Clip trim job failed: ${message}`);
@@ -605,6 +660,19 @@ export class VideoProcessor extends WorkerHost {
         authProviderUserId,
         room,
       );
+      if (isRawCutJob(job) && isFinalAttempt(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'failed',
+          {
+            jobId: String(job.id),
+            jobType: JOB_TYPES.CLIP_TRIM,
+          },
+          message,
+        );
+      }
       throw error;
     }
   }

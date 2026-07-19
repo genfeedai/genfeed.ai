@@ -293,4 +293,20 @@ export class EditorProjectsController {
 
     return serializeSingle(request, EditorProjectSerializer, result);
   }
+
+  @Post(':id/render/cancel')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async cancelRender(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ): Promise<JsonApiSingleResponse> {
+    const publicMetadata = getPublicMetadata(user);
+    const result = await this.editorRenderService.cancel(
+      id,
+      publicMetadata.organization,
+    );
+
+    return serializeSingle(request, EditorProjectSerializer, result);
+  }
 }

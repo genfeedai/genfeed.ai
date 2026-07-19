@@ -59,6 +59,15 @@ export interface IJobResponse {
   ingredientId: string;
 }
 
+/** Wire-level prefix for deterministic raw-cut media jobs. */
+export const RAW_CUT_JOB_PREFIX = 'raw-cut-' as const;
+
+export interface IJobCancellationResponse {
+  jobId: string;
+  requestedAt: string;
+  status: 'cancellation-requested';
+}
+
 export interface IJobStatusResponse {
   jobId: string;
   state: JobState;

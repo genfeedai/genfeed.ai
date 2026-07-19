@@ -10,6 +10,7 @@ import {
 import { EditorProjectStatus } from '@genfeedai/enums';
 import type {
   IEditorRenderCorrelation,
+  IEditorRenderFailure,
   IEditorRenderOutputMetadata,
   IEditorRenderProvenance,
 } from '@genfeedai/interfaces';
@@ -55,6 +56,15 @@ export class EditorProjectsService extends BaseService<
     const renderExport = this.readProjectConfig(project.config).renderExport;
     return this.isProjectObject(renderExport)
       ? (renderExport as unknown as IEditorRenderProvenance)
+      : undefined;
+  }
+
+  readStatus(project: { config?: unknown }): EditorProjectStatus | undefined {
+    const status = this.readProjectConfig(project.config).status;
+    return Object.values(EditorProjectStatus).includes(
+      status as EditorProjectStatus,
+    )
+      ? (status as EditorProjectStatus)
       : undefined;
   }
 
@@ -243,6 +253,34 @@ export class EditorProjectsService extends BaseService<
   async markAsFailed(
     id: string,
     expectedJobId?: string,
+    failure?: IEditorRenderFailure,
+  ): Promise<EditorProjectDocument> {
+    return this.markAsTerminal(
+      id,
+      EditorProjectStatus.FAILED,
+      expectedJobId,
+      failure,
+    );
+  }
+
+  async markAsCancelled(
+    id: string,
+    expectedJobId: string,
+    failure: IEditorRenderFailure,
+  ): Promise<EditorProjectDocument> {
+    return this.markAsTerminal(
+      id,
+      EditorProjectStatus.CANCELLED,
+      expectedJobId,
+      failure,
+    );
+  }
+
+  private async markAsTerminal(
+    id: string,
+    status: EditorProjectStatus.CANCELLED | EditorProjectStatus.FAILED,
+    expectedJobId?: string,
+    failure?: IEditorRenderFailure,
   ): Promise<EditorProjectDocument> {
     const existing = await findUniqueOrThrow(
       this.prisma.editorProject,
@@ -255,13 +293,19 @@ export class EditorProjectsService extends BaseService<
       throw new ConflictException('Render job no longer owns this project');
     }
 
-    const failedConfig = this.mergeProjectConfig(
+    const terminalConfig = this.mergeProjectConfig(
       existing,
-      EditorProjectStatus.FAILED,
+      status,
+      failure
+        ? {
+            ...(renderExport ?? ({} as IEditorRenderProvenance)),
+            failure,
+          }
+        : undefined,
     ) as never;
     const updated = await this.prisma.editorProject.updateMany({
       data: {
-        config: failedConfig,
+        config: terminalConfig,
       },
       where: {
         id,

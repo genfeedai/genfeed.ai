@@ -1,12 +1,14 @@
 'use client';
 
 import { EditorTrackType } from '@genfeedai/enums';
-import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
+import type { IEditorClip, IEditorTrack } from '@genfeedai/interfaces';
+import { buildEditorRenderStyle } from '@genfeedai/utils/media/editor-render-style.util';
 import type { EditorPreviewProps } from '@props/studio/editor-preview.props';
 import { Player, type PlayerRef } from '@remotion/player';
 import {
   type ComponentProps,
   type ComponentType,
+  type ReactNode,
   type Ref,
   useEffect,
   useImperativeHandle,
@@ -18,44 +20,12 @@ import {
   Audio,
   OffthreadVideo,
   Sequence,
+  useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
 
-function buildCssFilter(effects: IEditorEffect[]): string {
-  if (!effects || effects.length === 0) return 'none';
-
-  const filters: string[] = [];
-  for (const effect of effects) {
-    switch (effect.type) {
-      case 'blur':
-        // intensity 0-100 maps to 0-20px blur
-        filters.push(`blur(${(effect.intensity / 100) * 20}px)`);
-        break;
-      case 'brightness':
-        // intensity 0-100 maps to 0-200% brightness (50 = 100% = normal)
-        filters.push(`brightness(${(effect.intensity / 50) * 100}%)`);
-        break;
-      case 'contrast':
-        // intensity 0-100 maps to 0-200% contrast (50 = 100% = normal)
-        filters.push(`contrast(${(effect.intensity / 50) * 100}%)`);
-        break;
-      case 'saturation':
-        // intensity 0-100 maps to 0-200% saturation (50 = 100% = normal)
-        filters.push(`saturate(${(effect.intensity / 50) * 100}%)`);
-        break;
-      case 'grayscale':
-        filters.push(`grayscale(${effect.intensity}%)`);
-        break;
-      case 'sepia':
-        filters.push(`sepia(${effect.intensity}%)`);
-        break;
-    }
-  }
-
-  return filters.length > 0 ? filters.join(' ') : 'none';
-}
-
 interface EditorCompositionProps extends Record<string, unknown> {
+  backgroundColor: string;
   tracks: IEditorTrack[];
 }
 
@@ -84,7 +54,26 @@ function RemotionPlayer({
   );
 }
 
-function EditorComposition({ tracks }: EditorCompositionProps) {
+function VisualLayer({
+  children,
+  clip,
+}: {
+  children: ReactNode;
+  clip: IEditorClip;
+}) {
+  const frame = useCurrentFrame();
+
+  return (
+    <AbsoluteFill style={buildEditorRenderStyle(frame, clip)}>
+      {children}
+    </AbsoluteFill>
+  );
+}
+
+function EditorComposition({
+  backgroundColor,
+  tracks,
+}: EditorCompositionProps) {
   useVideoConfig();
 
   const videoTracks = tracks.filter(
@@ -118,32 +107,29 @@ function EditorComposition({ tracks }: EditorCompositionProps) {
   }
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#0a0a0f' }}>
+    <AbsoluteFill style={{ backgroundColor }}>
       {/* Render video tracks */}
       {videoTracks.map((track) =>
         track.clips.map((clip) => {
-          const cssFilter = buildCssFilter(clip.effects);
           return (
             <Sequence
               key={clip.id}
               from={clip.startFrame}
               durationInFrames={clip.durationFrames}
             >
-              <AbsoluteFill
-                style={cssFilter !== 'none' ? { filter: cssFilter } : undefined}
-              >
+              <VisualLayer clip={clip}>
                 <OffthreadVideo
                   src={clip.ingredientUrl}
-                  startFrom={clip.sourceStartFrame}
-                  endAt={clip.sourceEndFrame}
-                  volume={track.isMuted ? 0 : (clip.volume ?? 100) / 100}
                   style={{
                     height: '100%',
                     objectFit: 'contain',
                     width: '100%',
                   }}
+                  trimAfter={clip.sourceEndFrame}
+                  trimBefore={clip.sourceStartFrame}
+                  volume={(track.volume / 100) * ((clip.volume ?? 100) / 100)}
                 />
-              </AbsoluteFill>
+              </VisualLayer>
             </Sequence>
           );
         }),
@@ -161,22 +147,26 @@ function EditorComposition({ tracks }: EditorCompositionProps) {
               from={clip.startFrame}
               durationInFrames={clip.durationFrames}
             >
-              <AbsoluteFill className="flex items-center justify-center">
+              <VisualLayer clip={clip}>
                 <div
-                  className="absolute -translate-x-1/2 -translate-y-1/2 p-2 [text-shadow:2px_2px_4px_rgba(0,0,0,0.5)]"
                   style={{
                     backgroundColor: clip.textOverlay.backgroundColor,
                     color: clip.textOverlay.color,
-                    fontFamily: clip.textOverlay.fontFamily || 'Arial',
+                    fontFamily: clip.textOverlay.fontFamily ?? 'Arial',
                     fontSize: clip.textOverlay.fontSize,
-                    fontWeight: clip.textOverlay.fontWeight || 700,
+                    fontWeight: clip.textOverlay.fontWeight ?? 700,
                     left: `${clip.textOverlay.position.x}%`,
+                    padding: clip.textOverlay.padding ?? 8,
+                    position: 'absolute',
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
                     top: `${clip.textOverlay.position.y}%`,
+                    transform: 'translate(-50%, -50%)',
+                    whiteSpace: 'pre-wrap',
                   }}
                 >
                   {clip.textOverlay.text}
                 </div>
-              </AbsoluteFill>
+              </VisualLayer>
             </Sequence>
           );
         }),
@@ -192,8 +182,8 @@ function EditorComposition({ tracks }: EditorCompositionProps) {
           >
             <Audio
               src={clip.ingredientUrl}
-              startFrom={clip.sourceStartFrame}
-              endAt={clip.sourceEndFrame}
+              trimAfter={clip.sourceEndFrame}
+              trimBefore={clip.sourceStartFrame}
               volume={(track.volume / 100) * ((clip.volume ?? 100) / 100)}
             />
           </Sequence>
@@ -212,6 +202,7 @@ export interface EditorPreviewRef {
 }
 
 function EditorPreview({
+  backgroundColor = '#0a0a0f',
   tracks,
   width,
   height,
@@ -287,7 +278,7 @@ function EditorPreview({
         <RemotionPlayer
           ref={playerRef}
           component={EditorComposition}
-          inputProps={{ tracks }}
+          inputProps={{ backgroundColor, tracks }}
           compositionWidth={width}
           compositionHeight={height}
           durationInFrames={Math.max(1, totalFrames)}

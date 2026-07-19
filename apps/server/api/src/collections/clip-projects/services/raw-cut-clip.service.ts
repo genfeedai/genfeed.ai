@@ -1,9 +1,18 @@
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 /** Provider name recorded on deterministic clip-results. */
 export const RAW_CUT_PROVIDER_NAME = 'raw-cut';
+
+export function getRawCutCaptionJobId(clipResultId: string): string {
+  return `${RAW_CUT_JOB_PREFIX}caption-${clipResultId}`;
+}
+
+export function getRawCutTrimJobId(clipResultId: string): string {
+  return `${RAW_CUT_JOB_PREFIX}trim-${clipResultId}`;
+}
 
 export interface RawCutDispatchInput {
   /** Clip-result id — used as the files-service ingredient id + callback key. */
@@ -87,6 +96,7 @@ export class RawCutClipService {
 
     const response = await this.fileQueueService.processVideo({
       authProviderUserId,
+      id: getRawCutTrimJobId(clipResultId),
       ingredientId: clipResultId,
       organizationId,
       params: {

@@ -245,6 +245,7 @@ describe('ClipProjectsService', () => {
       data: expect.objectContaining({
         failedClipCount: 0,
         pendingClipCount: 1,
+        progress: 80,
         readyClipCount: 1,
       }),
       where: { id: 'project-1' },

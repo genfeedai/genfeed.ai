@@ -11453,6 +11453,7 @@
               "draft",
               "rendering",
               "completed",
+              "cancelled",
               "failed"
             ],
             "type": "string"
@@ -28026,6 +28027,35 @@
           }
         ],
         "summary": "render",
+        "tags": [
+          "editor-projects"
+        ]
+      }
+    },
+    "/editor-projects/{id}/render/cancel": {
+      "post": {
+        "operationId": "EditorProjectsController.cancelRender",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "cancelRender",
         "tags": [
           "editor-projects"
         ]

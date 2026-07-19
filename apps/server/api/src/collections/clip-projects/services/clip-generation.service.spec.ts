@@ -58,7 +58,7 @@ function createMockRawCutClipService(): Mocked<
 > {
   return {
     dispatchClip: vi.fn().mockResolvedValue({
-      jobId: 'trim-job-1',
+      jobId: 'raw-cut-trim-clip-result-1',
       providerName: 'raw-cut',
       status: 'queued',
     }),
@@ -416,17 +416,40 @@ describe('ClipGenerationService (raw-cut mode)', () => {
     );
   });
 
-  it('marks the clip extracting, then persists the caption SRT and job handle', async () => {
+  it('persists recovery metadata before dispatching the trim job', async () => {
+    rawCutClipService.dispatchClip.mockImplementationOnce(async () => {
+      expect(clipResultsService.patch).toHaveBeenCalledWith(
+        'clip-result-1',
+        expect.objectContaining({
+          captionSrt: EXPECTED_SRT,
+          providerJobId: 'raw-cut-trim-clip-result-1',
+          providerName: 'raw-cut',
+          sourceVideoS3Key: 'videos/source.mp4',
+          userId: '507f1f77bcf86cd799439013',
+        }),
+      );
+      return {
+        jobId: 'raw-cut-trim-clip-result-1',
+        providerName: 'raw-cut',
+        status: 'queued',
+      };
+    });
+
     await service.generateClips(makeRawCutInput());
 
     expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
       status: 'extracting',
     });
-    expect(clipResultsService.patch).toHaveBeenCalledWith('clip-result-1', {
-      captionSrt: EXPECTED_SRT,
-      providerJobId: 'trim-job-1',
-      providerName: 'raw-cut',
-    });
+    expect(clipResultsService.patch).toHaveBeenCalledWith(
+      'clip-result-1',
+      expect.objectContaining({
+        captionSrt: EXPECTED_SRT,
+        providerJobId: 'raw-cut-trim-clip-result-1',
+        providerName: 'raw-cut',
+        sourceVideoS3Key: 'videos/source.mp4',
+        userId: '507f1f77bcf86cd799439013',
+      }),
+    );
   });
 
   it('isolates a per-highlight failure and continues the batch', async () => {
