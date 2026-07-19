@@ -47,6 +47,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/agent-runs/controllers/agent-runs.controller.ts',
     prefix: 'runs',
   },
+  agentRunOperations: {
+    file: 'collections/agent-runs/controllers/agent-runs-operations.controller.ts',
+    prefix: 'runs',
+  },
   approvals: {
     file: 'collections/mcp-approvals/controllers/mcp-approvals.controller.ts',
     prefix: 'mcp-approvals',
@@ -198,7 +202,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   {
     method: 'Post',
     sub: ':id/cancellations',
-    controller: 'agentRuns',
+    controller: 'agentRunOperations',
     tools: ['cancel_agent_run'],
   },
 

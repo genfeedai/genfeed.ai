@@ -26,8 +26,8 @@ import { ContentClient } from '@mcp/services/client/content.client';
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import { MediaClient } from '@mcp/services/client/media.client';
 import {
-  SchedulerClient,
   type ScheduledReleaseControlAction,
+  SchedulerClient,
 } from '@mcp/services/client/scheduler.client';
 import {
   type SocialActionParams,
@@ -330,11 +330,7 @@ export class ClientService {
     changes: Record<string, unknown>,
     targetId?: string,
   ): Promise<Record<string, unknown>> {
-    return this.scheduler.updateScheduledRelease(
-      releaseId,
-      changes,
-      targetId,
-    );
+    return this.scheduler.updateScheduledRelease(releaseId, changes, targetId);
   }
 
   controlScheduledRelease(
