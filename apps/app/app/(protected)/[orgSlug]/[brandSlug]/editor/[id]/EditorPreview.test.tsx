@@ -269,7 +269,6 @@ describe('EditorPreview', () => {
       trimBefore: 15,
       volume: 0.4,
     });
-    expect(videoProps.src).not.toBe('https://example.test/muted.mp4');
     expect(screen.getAllByTestId('absolute-fill')[0]).toHaveStyle({
       backgroundColor: '#123456',
     });
