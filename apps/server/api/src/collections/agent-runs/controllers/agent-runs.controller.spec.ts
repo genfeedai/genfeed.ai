@@ -15,11 +15,7 @@ import type {
 import type { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
-import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -41,24 +37,13 @@ describe('AgentRunsController', () => {
     controller.buildFindAllQuery(mockUser, query as AgentRunsQueryDto);
 
   const mockServiceMethods = {
-    cancel: vi.fn(),
     create: vi.fn(),
     findAll: vi.fn(),
     findOne: vi.fn(),
     getActiveRuns: vi.fn(),
     getStats: vi.fn(),
     patch: vi.fn(),
-    prepareRetry: vi.fn(),
     remove: vi.fn(),
-    rollbackRetry: vi.fn(),
-  };
-
-  const mockQueueService = {
-    queueRun: vi.fn(),
-  };
-
-  const mockThreadEngineService = {
-    appendEvent: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -66,15 +51,6 @@ describe('AgentRunsController', () => {
       controllers: [AgentRunsController],
       providers: [
         { provide: AgentRunsService, useValue: mockServiceMethods },
-        { provide: AgentRunQueueService, useValue: mockQueueService },
-        {
-          provide: AgentThreadEngineService,
-          useValue: mockThreadEngineService,
-        },
-        {
-          provide: AgentThreadEngineService,
-          useValue: mockThreadEngineService,
-        },
         {
           provide: LoggerService,
           useValue: {
@@ -450,223 +426,6 @@ describe('AgentRunsController', () => {
         '507f1f77bcf86cd799439013',
       );
       expect(result).toEqual(mockStats);
-    });
-  });
-
-  describe('cancelRun', () => {
-    it('should cancel an agent run', async () => {
-      const mockRun = { _id: 'run1', status: 'cancelled' };
-      mockServiceMethods.cancel.mockResolvedValue(mockRun);
-
-      await controller.cancelRun(mockRequest, 'run1', mockUser);
-
-      expect(mockServiceMethods.cancel).toHaveBeenCalledWith(
-        'run1',
-        '507f1f77bcf86cd799439012',
-        '507f1f77bcf86cd799439013',
-      );
-      expect(mockThreadEngineService.appendEvent).not.toHaveBeenCalled();
-    });
-
-    it('should append a run.cancelled thread event from the scalar threadId FK', async () => {
-      const mockRun = {
-        _id: 'run1',
-        status: 'cancelled',
-        thread: undefined,
-        threadId: 'thread1',
-      };
-      mockServiceMethods.cancel.mockResolvedValue(mockRun);
-      mockThreadEngineService.appendEvent.mockResolvedValue({});
-
-      await controller.cancelRun(mockRequest, 'run1', mockUser);
-
-      expect(mockThreadEngineService.appendEvent).toHaveBeenCalledWith({
-        commandId: 'run-cancelled:run1',
-        organizationId: '507f1f77bcf86cd799439012',
-        payload: {
-          detail: 'The active run was cancelled by the user.',
-          label: 'Run cancelled',
-          status: 'cancelled',
-        },
-        runId: 'run1',
-        threadId: 'thread1',
-        type: 'run.cancelled',
-        userId: '507f1f77bcf86cd799439014',
-      });
-    });
-
-    it('should fall back to the populated thread id when threadId is absent', async () => {
-      const mockRun = {
-        _id: 'run1',
-        status: 'cancelled',
-        thread: { id: 'legacy-thread1' },
-        threadId: null,
-      };
-      mockServiceMethods.cancel.mockResolvedValue(mockRun);
-      mockThreadEngineService.appendEvent.mockResolvedValue({});
-
-      await controller.cancelRun(mockRequest, 'run1', mockUser);
-
-      expect(mockThreadEngineService.appendEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          runId: 'run1',
-          threadId: 'legacy-thread1',
-          type: 'run.cancelled',
-        }),
-      );
-    });
-
-    it('should throw NotFoundException when run not found', async () => {
-      mockServiceMethods.cancel.mockResolvedValue(null);
-
-      await expect(
-        controller.cancelRun(mockRequest, 'nonexistent', mockUser),
-      ).rejects.toThrow(NotFoundException);
-      expect(mockThreadEngineService.appendEvent).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('retryRun', () => {
-    const preparation = {
-      jobData: {
-        organizationId: '507f1f77bcf86cd799439012',
-        runId: 'run1',
-        userId: 'user_run_owner',
-      },
-      previousStatus: 'FAILED',
-      rollback: {
-        claimedAt: new Date('2026-07-10T00:00:00.000Z'),
-        state: { error: 'original failure', status: 'FAILED' },
-      },
-      run: { id: 'run1', retryCount: 1, status: 'PENDING' },
-    };
-
-    it('should reset the run, requeue it, and scope by auth metadata', async () => {
-      mockServiceMethods.prepareRetry.mockResolvedValue(preparation);
-      mockQueueService.queueRun.mockResolvedValue('agent-run-run1');
-
-      const result = await controller.retryRun(mockRequest, 'run1', mockUser);
-
-      expect(mockServiceMethods.prepareRetry).toHaveBeenCalledWith(
-        'run1',
-        '507f1f77bcf86cd799439012',
-        {
-          brandId: '507f1f77bcf86cd799439013',
-          retriedBy: '507f1f77bcf86cd799439014',
-        },
-      );
-      expect(mockQueueService.queueRun).toHaveBeenCalledWith(
-        preparation.jobData,
-      );
-      expect(result).toEqual({ data: preparation.run });
-    });
-
-    it('should throw NotFoundException when run not found', async () => {
-      mockServiceMethods.prepareRetry.mockResolvedValue(null);
-
-      await expect(
-        controller.retryRun(mockRequest, 'nonexistent', mockUser),
-      ).rejects.toThrow(NotFoundException);
-      expect(mockQueueService.queueRun).not.toHaveBeenCalled();
-    });
-
-    it('should restore the prior run state when enqueueing fails', async () => {
-      mockServiceMethods.prepareRetry.mockResolvedValue(preparation);
-      mockQueueService.queueRun.mockRejectedValue(new Error('redis down'));
-      mockServiceMethods.rollbackRetry.mockResolvedValue(true);
-
-      await expect(
-        controller.retryRun(mockRequest, 'run1', mockUser),
-      ).rejects.toThrow('redis down');
-      expect(mockServiceMethods.rollbackRetry).toHaveBeenCalledWith(
-        'run1',
-        '507f1f77bcf86cd799439012',
-        preparation.rollback,
-        '507f1f77bcf86cd799439013',
-      );
-    });
-
-    it('should preserve the enqueue error when rollback also fails', async () => {
-      mockServiceMethods.prepareRetry.mockResolvedValue(preparation);
-      mockQueueService.queueRun.mockRejectedValue(new Error('redis down'));
-      mockServiceMethods.rollbackRetry.mockRejectedValue(
-        new Error('database unavailable'),
-      );
-
-      await expect(
-        controller.retryRun(mockRequest, 'run1', mockUser),
-      ).rejects.toThrow('redis down');
-    });
-
-    it('should append a run.retried thread event when the run has a thread', async () => {
-      mockServiceMethods.prepareRetry.mockResolvedValue({
-        ...preparation,
-        run: { ...preparation.run, threadId: 'thread1' },
-      });
-      mockQueueService.queueRun.mockResolvedValue('agent-run-run1');
-      mockThreadEngineService.appendEvent.mockResolvedValue({});
-
-      await controller.retryRun(mockRequest, 'run1', mockUser);
-
-      expect(mockThreadEngineService.appendEvent).toHaveBeenCalledWith({
-        commandId: 'run-retried:run1:1',
-        organizationId: '507f1f77bcf86cd799439012',
-        payload: {
-          detail: 'The run was requeued for retry by the user.',
-          label: 'Run retried',
-          status: 'pending',
-        },
-        runId: 'run1',
-        threadId: 'thread1',
-        type: 'run.retried',
-        userId: '507f1f77bcf86cd799439014',
-      });
-    });
-
-    it('should not fail the retry when the thread event append fails', async () => {
-      mockServiceMethods.prepareRetry.mockResolvedValue({
-        ...preparation,
-        run: { ...preparation.run, threadId: 'thread1' },
-      });
-      mockQueueService.queueRun.mockResolvedValue('agent-run-run1');
-      mockThreadEngineService.appendEvent.mockRejectedValue(
-        new Error('thread not found'),
-      );
-
-      const result = await controller.retryRun(mockRequest, 'run1', mockUser);
-
-      expect(result).toEqual({
-        data: { ...preparation.run, threadId: 'thread1' },
-      });
-    });
-
-    it('should throw ServiceUnavailableException when the queue is not wired', async () => {
-      const module: TestingModule = await Test.createTestingModule({
-        controllers: [AgentRunsController],
-        providers: [
-          { provide: AgentRunsService, useValue: mockServiceMethods },
-          {
-            provide: LoggerService,
-            useValue: {
-              debug: vi.fn(),
-              error: vi.fn(),
-              log: vi.fn(),
-              warn: vi.fn(),
-            },
-          },
-        ],
-      })
-        .overrideGuard(BetterAuthGuard)
-        .useValue({ canActivate: () => true })
-        .compile();
-
-      const queuelessController =
-        module.get<AgentRunsController>(AgentRunsController);
-
-      await expect(
-        queuelessController.retryRun(mockRequest, 'run1', mockUser),
-      ).rejects.toThrow(ServiceUnavailableException);
-      expect(mockServiceMethods.prepareRetry).not.toHaveBeenCalled();
     });
   });
 });
