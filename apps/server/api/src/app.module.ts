@@ -64,6 +64,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { InsightsModule } from '@api/collections/insights/insights.module';
 import { LaunchCopyModule } from '@api/collections/launch-copy/launch-copy.module';
 import { LinksModule } from '@api/collections/links/links.module';
+import { ListeningTopicsModule } from '@api/collections/listening-topics/listening-topics.module';
 import { McpApprovalsModule } from '@api/collections/mcp-approvals/mcp-approvals.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -308,6 +309,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     InsightsModule,
     TasksModule,
     LinksModule,
+    ListeningTopicsModule,
     MarketplaceIntegrationModule,
     McpApprovalsModule,
     MembersModule,

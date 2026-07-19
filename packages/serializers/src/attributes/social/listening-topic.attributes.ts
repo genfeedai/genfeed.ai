@@ -1,0 +1,40 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const listeningTopicAttributes = createEntityAttributes([
+  'organizationId',
+  'brandId',
+  'userId',
+  'label',
+  'description',
+  'keywords',
+  'excludedKeywords',
+  'languages',
+  'freshnessHours',
+  'fingerprint',
+  'contractVersion',
+  'isActive',
+  'auditedAt',
+  'lastCollectedAt',
+  'sources',
+]);
+
+export const listeningEvidenceAttributes = createEntityAttributes([
+  'organizationId',
+  'brandId',
+  'topicId',
+  'topicSourceId',
+  'sourcePostId',
+  'platform',
+  'externalId',
+  'eventType',
+  'sourceUrl',
+  'authorExternalId',
+  'authorHandle',
+  'contentExcerpt',
+  'occurredAt',
+  'collectedAt',
+  'freshnessExpiresAt',
+  'contractVersion',
+  'metrics',
+  'metadata',
+]);

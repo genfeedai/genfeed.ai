@@ -43,6 +43,7 @@ export const API_ENDPOINTS = {
   LENSES: '/elements/lenses',
   LIGHTINGS: '/elements/lightings',
   LINKS: '/links',
+  LISTENING_TOPICS: '/listening-topics',
   MEMBERS: '/members',
   MESSAGES: '/messages',
   MODELS: '/models',
