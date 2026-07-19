@@ -32,6 +32,15 @@ const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
 const SIGN_UP_MAGIC_LINK_INTENT = 'signup';
 
 type BetterAuthDatabaseHooks = NonNullable<BetterAuthOptions['databaseHooks']>;
+type BetterAuthUserBeforePayload = {
+  email?: string | null;
+  handle?: string;
+  name?: string | null;
+};
+type BetterAuthUserAfterPayload = {
+  email?: string | null;
+  id: string;
+};
 
 export const SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE =
   'An account already exists for this email. Sign in instead.';
@@ -321,11 +330,7 @@ export function buildBetterAuthUserDatabaseHooks(
     user: {
       create: {
         before: async (user) => {
-          const typed = user as {
-            handle?: string;
-            email?: string | null;
-            name?: string | null;
-          };
+          const typed = user as BetterAuthUserBeforePayload;
           if (typed.handle) {
             return { data: user };
           }
@@ -344,7 +349,7 @@ export function buildBetterAuthUserDatabaseHooks(
         // (idempotently) a no-op for returning preserved users. Replaces the
         // legacy auth provider `user.created` webhook (epic #735, Phase 4).
         after: async (user) => {
-          const typed = user as { id: string; email?: string | null };
+          const typed = user as BetterAuthUserAfterPayload;
           await onUserCreated?.({
             email: typed.email ?? null,
             userId: typed.id,
