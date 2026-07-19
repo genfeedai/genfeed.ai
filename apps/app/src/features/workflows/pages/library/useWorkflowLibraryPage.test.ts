@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { buildSystemWorkflowMetadata } from '@genfeedai/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WorkflowSummary } from '@/features/workflows/services/workflow-api';
 import { useWorkflowLibraryPage } from './useWorkflowLibraryPage';
@@ -160,11 +161,9 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
         _id: 'system-wf',
         isScheduleEnabled: true,
         metadata: {
-          systemWorkflow: {
-            immutable: true,
-            kind: 'system-workflow',
-            owner: 'genfeed',
-          },
+          systemWorkflow: buildSystemWorkflowMetadata({
+            canonicalId: 'daily-trends-digest',
+          }),
         },
         name: 'Daily Trends Digest',
         schedule: '0 7 * * *',
@@ -219,11 +218,9 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
       makeWorkflow({
         _id: 'system-wf',
         metadata: {
-          systemWorkflow: {
-            immutable: true,
-            kind: 'system-workflow',
-            owner: 'genfeed',
-          },
+          systemWorkflow: buildSystemWorkflowMetadata({
+            canonicalId: 'daily-trends-digest',
+          }),
         },
         name: 'Daily Trends Digest',
       }),

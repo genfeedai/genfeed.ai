@@ -3,6 +3,8 @@ import {
   buildSystemWorkflowMetadata,
   buildSystemWorkflowUpgradeMetadata,
   getSystemWorkflowDuplicateMetadata,
+  getSystemWorkflowMetadata,
+  isProtectedSystemWorkflowMetadata,
 } from '@api/collections/workflows/system-workflow.contract';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -95,5 +97,28 @@ describe('system workflow contract', () => {
       upgradeEligible: true,
       upgradeStatus: 'upgrade_available',
     });
+  });
+
+  it('rejects incomplete canonical and duplicate metadata', () => {
+    const incompleteCanonical = {
+      systemWorkflow: {
+        canonicalId: 'scheduled-post-publishing',
+        immutable: true,
+        kind: 'system-workflow',
+        owner: 'genfeed',
+      },
+    };
+    const incompleteDuplicate = {
+      duplicatedFromSystemWorkflow: {
+        canonicalId: 'scheduled-post-publishing',
+        sourceWorkflowId: 'workflow-source-1',
+      },
+    };
+
+    expect(getSystemWorkflowMetadata(incompleteCanonical)).toBeNull();
+    expect(isProtectedSystemWorkflowMetadata(incompleteCanonical)).toBe(false);
+    expect(
+      getSystemWorkflowDuplicateMetadata(incompleteDuplicate),
+    ).toBeNull();
   });
 });

@@ -1,5 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { WorkflowLifecycle } from '@genfeedai/enums';
+import {
+  getSystemWorkflowMetadata,
+  type SystemWorkflowDuplicateMetadata,
+  type SystemWorkflowMetadata,
+} from '@genfeedai/interfaces';
 import type { NodeGroup } from '@genfeedai/workflows/ui';
 import {
   deserializeCollection,
@@ -51,8 +56,8 @@ export interface CloudWorkflowData {
 }
 
 export type WorkflowMetadata = Record<string, unknown> & {
-  duplicatedFromSystemWorkflow?: Record<string, unknown>;
-  systemWorkflow?: Record<string, unknown>;
+  duplicatedFromSystemWorkflow?: SystemWorkflowDuplicateMetadata;
+  systemWorkflow?: SystemWorkflowMetadata;
 };
 
 /** Lightweight workflow summary for list views */
@@ -79,16 +84,9 @@ export interface WorkflowSummary {
 }
 
 export function isCanonicalSystemWorkflow(
-  workflow: Pick<WorkflowSummary, 'metadata'>,
+  workflow: { metadata?: unknown },
 ): boolean {
-  const systemWorkflow = workflow.metadata?.systemWorkflow;
-
-  return (
-    Boolean(systemWorkflow) &&
-    systemWorkflow?.kind === 'system-workflow' &&
-    systemWorkflow?.owner === 'genfeed' &&
-    systemWorkflow?.immutable === true
-  );
+  return getSystemWorkflowMetadata(workflow.metadata)?.immutable === true;
 }
 
 /** Payload for PATCH /workflows/:id (schedule fields) */
