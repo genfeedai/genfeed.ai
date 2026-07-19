@@ -50,6 +50,7 @@ function createPrisma() {
       },
     },
     clipResult: {
+      count: vi.fn(),
       create: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -241,7 +242,8 @@ describe('ClipResultsService', () => {
     await service.findActiveRawCuts(25);
 
     expect(prisma.clipResult.findMany).toHaveBeenCalledWith({
-      orderBy: { updatedAt: 'asc' },
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      skip: 0,
       take: 25,
       where: {
         isDeleted: false,

@@ -113,14 +113,64 @@ export class ClipResultsService extends BaseService<
     return result ? this.normalizeDocument(result) : null;
   }
 
-  async findActiveRawCuts(limit = 100): Promise<ClipResultDocument[]> {
+  async countActiveRawCuts(): Promise<number> {
+    return this.delegate.count({
+      where: {
+        isDeleted: false,
+        mode: 'raw-cut',
+        status: { in: ['extracting', 'captioning'] },
+      },
+    });
+  }
+
+  async findActiveRawCuts(
+    limit = 100,
+    skip = 0,
+  ): Promise<ClipResultDocument[]> {
     const results = await this.delegate.findMany({
-      orderBy: { updatedAt: 'asc' },
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      skip,
       take: limit,
       where: {
         isDeleted: false,
         mode: 'raw-cut',
         status: { in: ['extracting', 'captioning'] },
+      },
+    });
+
+    return this.normalizeDocuments(results);
+  }
+
+  async countRawCutsPendingProjectReconciliation(): Promise<number> {
+    return this.delegate.count({
+      where: {
+        data: {
+          equals: true,
+          path: ['projectReconciliationPending'],
+        },
+        isDeleted: false,
+        mode: 'raw-cut',
+        status: { in: ['completed', 'failed'] },
+      },
+    });
+  }
+
+  async findRawCutsPendingProjectReconciliation(
+    limit = 100,
+    skip = 0,
+  ): Promise<ClipResultDocument[]> {
+    const results = await this.delegate.findMany({
+      orderBy: [{ terminalAt: 'asc' }, { id: 'asc' }],
+      skip,
+      take: limit,
+      where: {
+        data: {
+          equals: true,
+          path: ['projectReconciliationPending'],
+        },
+        isDeleted: false,
+        mode: 'raw-cut',
+        status: { in: ['completed', 'failed'] },
       },
     });
 

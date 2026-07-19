@@ -2,6 +2,7 @@ import { RawCutClipCompletionService } from '@api/collections/clip-projects/serv
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
@@ -32,6 +33,9 @@ describe('VideoCompletionService', () => {
     handleCompletion: ReturnType<typeof vi.fn>;
     reconcileActiveClips: ReturnType<typeof vi.fn>;
   };
+  let cacheService: {
+    withLock: ReturnType<typeof vi.fn>;
+  };
 
   const mockIngredientId = '507f1f77bcf86cd799439011';
   const mockUserId = '507f1f77bcf86cd799439012';
@@ -58,6 +62,13 @@ describe('VideoCompletionService', () => {
     rawCutClipCompletionService = {
       handleCompletion: vi.fn().mockResolvedValue(false),
       reconcileActiveClips: vi.fn().mockResolvedValue(undefined),
+    };
+    cacheService = {
+      withLock: vi
+        .fn()
+        .mockImplementation(
+          async (_key: string, run: () => Promise<void>) => await run(),
+        ),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -98,6 +109,10 @@ describe('VideoCompletionService', () => {
         {
           provide: RawCutClipCompletionService,
           useValue: rawCutClipCompletionService,
+        },
+        {
+          provide: CacheService,
+          useValue: cacheService,
         },
         {
           provide: LoggerService,
@@ -516,9 +531,34 @@ describe('VideoCompletionService', () => {
     expect(ingredientsService.patch).not.toHaveBeenCalled();
   });
 
+  it('never falls through raw-cut events to ingredient persistence', async () => {
+    rawCutClipCompletionService.handleCompletion.mockResolvedValue(false);
+
+    await service.onModuleInit();
+    const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+      .calls[0][1];
+    await subscribeCallback({
+      ingredientId: 'clip-result-1',
+      organizationId: mockOrganizationId.toString(),
+      result: {
+        jobId: 'raw-cut-trim-clip-result-1',
+      },
+      status: Status.COMPLETED,
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(rawCutClipCompletionService.handleCompletion).toHaveBeenCalled();
+    expect(ingredientsService.patch).not.toHaveBeenCalled();
+  });
+
   it('polls raw-cut jobs during reconciliation', async () => {
     await service.reconcileRawCutClips();
 
+    expect(cacheService.withLock).toHaveBeenCalledWith(
+      'raw-cut-clip-reconciliation',
+      expect.any(Function),
+      300,
+    );
     expect(
       rawCutClipCompletionService.reconcileActiveClips,
     ).toHaveBeenCalledTimes(1);

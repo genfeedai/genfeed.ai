@@ -237,6 +237,8 @@ export interface JobProgress {
 
 export interface JobResult {
   success: boolean;
+  jobId?: string;
+  jobType?: string;
   outputPath?: string;
   s3Key?: string;
   url?: string;

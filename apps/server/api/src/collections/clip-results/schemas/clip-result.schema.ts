@@ -36,6 +36,13 @@ export interface ClipResultDocument extends ClipResultRecord {
   captionedVideoS3Key?: string | null;
   captionSrt?: string | null;
   thumbnailUrl?: string | null;
+  authProviderUserId?: string | null;
+  projectReconciliationPending?: boolean;
+  room?: string | null;
+  sourceVideoS3Key?: string | null;
+  sourceVideoUrl?: string | null;
+  user?: string | null;
+  userId?: string | null;
   [key: string]: unknown;
 }
 

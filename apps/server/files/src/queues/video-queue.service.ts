@@ -7,6 +7,7 @@ import {
 } from '@files/queues/queue.constants';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
 import { BaseQueueService } from '@files/shared/services/base-queue/base-queue.service';
+import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';
@@ -91,6 +92,10 @@ const VIDEO_JOB_CONFIGS: Partial<Record<JobType, JobConfig>> = {
   },
 };
 
+function getRawCutJobId(data: VideoJobData): string | undefined {
+  return data.id.startsWith(RAW_CUT_JOB_PREFIX) ? data.id : undefined;
+}
+
 @Injectable()
 export class VideoQueueService extends BaseQueueService<VideoJobData> {
   protected readonly jobConfigs = VIDEO_JOB_CONFIGS;
@@ -121,7 +126,7 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
       data,
       'captions',
       undefined,
-      data.id,
+      getRawCutJobId(data),
     );
   }
 
@@ -165,7 +170,7 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
       data,
       'clip trim',
       undefined,
-      data.id,
+      getRawCutJobId(data),
     );
   }
 

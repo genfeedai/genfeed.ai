@@ -14,6 +14,7 @@ import {
   JobResult,
   VideoJobData,
 } from '@files/shared/interfaces/job.interface';
+import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -31,6 +32,14 @@ interface VideoCompletionResult {
   duration?: number;
   startTime?: number;
   endTime?: number;
+}
+
+function isFinalAttempt(job: Job<VideoJobData>): boolean {
+  return job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
+}
+
+function isRawCutJob(job: Job<VideoJobData>): boolean {
+  return String(job.id).startsWith(RAW_CUT_JOB_PREFIX);
 }
 
 @Processor(QUEUE_NAMES.VIDEO_PROCESSING)
@@ -314,13 +323,20 @@ export class VideoProcessor extends WorkerHost {
         success: true,
         url,
       };
-      await this.publishVideoCompletion(
-        ingredientId,
-        job.data.userId,
-        job.data.organizationId,
-        'completed',
-        result,
-      );
+      if (isRawCutJob(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'completed',
+          {
+            jobId: result.jobId,
+            jobType: result.jobType,
+            s3Key: result.s3Key,
+            url: result.url,
+          },
+        );
+      }
       return result;
     } catch (error: unknown) {
       const message = getErrorMessage(error);
@@ -331,17 +347,19 @@ export class VideoProcessor extends WorkerHost {
         authProviderUserId,
         room,
       );
-      await this.publishVideoCompletion(
-        ingredientId,
-        job.data.userId,
-        job.data.organizationId,
-        'failed',
-        {
-          jobId: String(job.id),
-          jobType: JOB_TYPES.ADD_CAPTIONS,
-        },
-        message,
-      );
+      if (isRawCutJob(job) && isFinalAttempt(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'failed',
+          {
+            jobId: String(job.id),
+            jobType: JOB_TYPES.ADD_CAPTIONS,
+          },
+          message,
+        );
+      }
       throw error;
     }
   }
@@ -642,17 +660,19 @@ export class VideoProcessor extends WorkerHost {
         authProviderUserId,
         room,
       );
-      await this.publishVideoCompletion(
-        ingredientId,
-        job.data.userId,
-        job.data.organizationId,
-        'failed',
-        {
-          jobId: String(job.id),
-          jobType: JOB_TYPES.CLIP_TRIM,
-        },
-        message,
-      );
+      if (isRawCutJob(job) && isFinalAttempt(job)) {
+        await this.publishVideoCompletion(
+          ingredientId,
+          job.data.userId,
+          job.data.organizationId,
+          'failed',
+          {
+            jobId: String(job.id),
+            jobType: JOB_TYPES.CLIP_TRIM,
+          },
+          message,
+        );
+      }
       throw error;
     }
   }

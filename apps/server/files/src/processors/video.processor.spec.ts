@@ -119,11 +119,15 @@ const createMockJob = <T = VideoJobData>(
   name: string,
   data: T,
   id = 'job-123',
+  overrides: Partial<Job<T>> = {},
 ): Job<T> =>
   ({
+    attemptsMade: 0,
     data,
     id,
     name,
+    opts: { attempts: 3 },
+    ...overrides,
   }) as unknown as Job<T>;
 
 describe('VideoProcessor', () => {
@@ -262,7 +266,11 @@ describe('VideoProcessor', () => {
       const data = createMockJobData({
         params: { captionContent: 'Test captions' },
       });
-      const job = createMockJob(JOB_TYPES.ADD_CAPTIONS, data);
+      const job = createMockJob(
+        JOB_TYPES.ADD_CAPTIONS,
+        data,
+        'raw-cut-caption-clip-1',
+      );
 
       await processor.process(job);
 
@@ -627,14 +635,18 @@ describe('VideoProcessor', () => {
       const data = createMockJobData({
         params: { captionContent: '1\n00:00:00,000 --> 00:00:05,000\nHello' },
       });
-      const job = createMockJob(JOB_TYPES.ADD_CAPTIONS, data);
+      const job = createMockJob(
+        JOB_TYPES.ADD_CAPTIONS,
+        data,
+        'raw-cut-caption-clip-1',
+      );
 
       const result = await processor.handleAddCaptions(job);
 
       expect(result.success).toBe(true);
       expect(result).toEqual(
         expect.objectContaining({
-          jobId: 'job-123',
+          jobId: 'raw-cut-caption-clip-1',
           jobType: JOB_TYPES.ADD_CAPTIONS,
           url: expect.any(String),
         }),
@@ -646,7 +658,7 @@ describe('VideoProcessor', () => {
         expect.objectContaining({
           ingredientId: data.ingredientId,
           result: expect.objectContaining({
-            jobId: 'job-123',
+            jobId: 'raw-cut-caption-clip-1',
             jobType: JOB_TYPES.ADD_CAPTIONS,
           }),
           status: 'completed',
@@ -656,7 +668,12 @@ describe('VideoProcessor', () => {
 
     it('should handle caption errors', async () => {
       const data = createMockJobData({ params: { captionContent: '' } });
-      const job = createMockJob(JOB_TYPES.ADD_CAPTIONS, data);
+      const job = createMockJob(
+        JOB_TYPES.ADD_CAPTIONS,
+        data,
+        'raw-cut-caption-clip-1',
+        { attemptsMade: 2 },
+      );
       ffmpegService.addCaptions.mockRejectedValue(new Error('Caption failed'));
 
       await expect(processor.handleAddCaptions(job)).rejects.toThrow();
@@ -666,11 +683,42 @@ describe('VideoProcessor', () => {
         expect.objectContaining({
           ingredientId: data.ingredientId,
           result: expect.objectContaining({
-            jobId: 'job-123',
+            jobId: 'raw-cut-caption-clip-1',
             jobType: JOB_TYPES.ADD_CAPTIONS,
           }),
           status: 'failed',
         }),
+      );
+    });
+
+    it('does not publish a failed completion before retries are exhausted', async () => {
+      const data = createMockJobData({ params: { captionContent: '' } });
+      const job = createMockJob(
+        JOB_TYPES.ADD_CAPTIONS,
+        data,
+        'raw-cut-caption-clip-1',
+      );
+      ffmpegService.addCaptions.mockRejectedValue(new Error('Caption failed'));
+
+      await expect(processor.handleAddCaptions(job)).rejects.toThrow();
+
+      expect(redisService.publish).not.toHaveBeenCalledWith(
+        'video-processing-complete',
+        expect.objectContaining({ status: 'failed' }),
+      );
+    });
+
+    it('does not publish ordinary ingredient caption jobs as raw-cut completions', async () => {
+      const data = createMockJobData({
+        params: { captionContent: '1\n00:00:00,000 --> 00:00:05,000\nHello' },
+      });
+      const job = createMockJob(JOB_TYPES.ADD_CAPTIONS, data);
+
+      await processor.handleAddCaptions(job);
+
+      expect(redisService.publish).not.toHaveBeenCalledWith(
+        'video-processing-complete',
+        expect.anything(),
       );
     });
   });
@@ -851,7 +899,11 @@ describe('VideoProcessor', () => {
       const data = createMockJobData({
         params: { endTime: 40, startTime: 10 },
       });
-      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+      const job = createMockJob(
+        JOB_TYPES.CLIP_TRIM,
+        data,
+        'raw-cut-trim-clip-1',
+      );
 
       const result = await processor.handleClipTrim(job);
 
@@ -862,7 +914,7 @@ describe('VideoProcessor', () => {
         'video-processing-complete',
         expect.objectContaining({
           result: expect.objectContaining({
-            jobId: 'job-123',
+            jobId: 'raw-cut-trim-clip-1',
             jobType: JOB_TYPES.CLIP_TRIM,
           }),
           status: 'completed',
@@ -874,6 +926,27 @@ describe('VideoProcessor', () => {
         10,
         30, // duration = endTime - startTime
         expect.any(Function),
+      );
+    });
+
+    it('does not publish a failed trim completion before retries are exhausted', async () => {
+      const data = createMockJobData({
+        params: { endTime: 40, startTime: 10 },
+      });
+      const job = createMockJob(
+        JOB_TYPES.CLIP_TRIM,
+        data,
+        'raw-cut-trim-clip-1',
+      );
+      ffmpegService.trimVideo.mockRejectedValueOnce(
+        new Error('Clip trim failed'),
+      );
+
+      await expect(processor.handleClipTrim(job)).rejects.toThrow();
+
+      expect(redisService.publish).not.toHaveBeenCalledWith(
+        'video-processing-complete',
+        expect.objectContaining({ status: 'failed' }),
       );
     });
 
@@ -935,7 +1008,12 @@ describe('VideoProcessor', () => {
       const data = createMockJobData({
         params: { endTime: 40, startTime: 10 },
       });
-      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+      const job = createMockJob(
+        JOB_TYPES.CLIP_TRIM,
+        data,
+        'raw-cut-trim-clip-1',
+        { attemptsMade: 2 },
+      );
       const error = new Error('Clip trim failed');
       ffmpegService.trimVideo.mockRejectedValueOnce(error);
 
@@ -947,7 +1025,7 @@ describe('VideoProcessor', () => {
         'video-processing-complete',
         expect.objectContaining({
           result: expect.objectContaining({
-            jobId: 'job-123',
+            jobId: 'raw-cut-trim-clip-1',
             jobType: JOB_TYPES.CLIP_TRIM,
           }),
           status: 'failed',
