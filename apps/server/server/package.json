@@ -21,6 +21,7 @@
     "@types/jsonwebtoken": "9.0.10",
     "@types/node": "26.1.1",
     "typescript": "6.0.2",
+    "unplugin-swc": "1.5.9",
     "vitest": "4.1.10"
   },
   "exports": {
@@ -42,6 +43,7 @@
   "scripts": {
     "build": "echo 'Source-level package \u2014 consumed via path aliases, no build needed'",
     "clean": "echo 'Nothing to clean'",
+    "test": "vitest run --config vitest.config.ts",
     "type-check": "bunx tsc --noEmit -p tsconfig.typecheck.json"
   },
   "sideEffects": false,
