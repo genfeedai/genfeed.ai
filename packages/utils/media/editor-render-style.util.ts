@@ -1,15 +1,9 @@
 import type {
   IEditorClip,
   IEditorEffect,
+  IEditorRenderStyle,
   IEditorTransition,
 } from '@genfeedai/interfaces';
-
-export interface EditorRenderStyle {
-  clipPath?: string;
-  filter: string;
-  opacity?: number;
-  transform?: string;
-}
 
 const CSS_FILTER_BUILDERS: Partial<
   Record<IEditorEffect['type'], (intensity: number) => string>
@@ -57,7 +51,7 @@ export function buildEditorCssFilter(effects: IEditorEffect[]): string {
 export function buildEditorRenderStyle(
   frame: number,
   clip: IEditorClip,
-): EditorRenderStyle {
+): IEditorRenderStyle {
   const transitions = [
     {
       direction: 'in' as const,

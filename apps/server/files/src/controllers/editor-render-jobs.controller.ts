@@ -4,9 +4,9 @@ import { RemotionRenderCancellationService } from '@files/services/remotion/remo
 import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  ConflictException,
   Controller,
-  HttpException,
-  HttpStatus,
+  NotFoundException,
   Param,
   Post,
 } from '@nestjs/common';
@@ -24,18 +24,12 @@ export class EditorRenderJobsController {
   async cancel(@Param('jobId') jobId: string) {
     const job = await this.videoQueueService.getJob(jobId);
     if (!job || job.name !== JOB_TYPES.RENDER_EDITOR_COMPOSITION) {
-      throw new HttpException(
-        'Editor render job not found',
-        HttpStatus.NOT_FOUND,
-      );
+      throw new NotFoundException('Editor render job not found');
     }
 
     const state = await job.getState();
     if (state === 'completed' || state === 'failed') {
-      throw new HttpException(
-        'Editor render job is already terminal',
-        HttpStatus.CONFLICT,
-      );
+      throw new ConflictException('Editor render job is already terminal');
     }
 
     const requestedAt = new Date().toISOString();

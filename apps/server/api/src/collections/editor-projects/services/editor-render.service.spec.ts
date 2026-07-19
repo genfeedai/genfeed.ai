@@ -2,6 +2,11 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -102,6 +107,10 @@ describe('EditorRenderService', () => {
   let notificationsPublisher: {
     publishMediaFailed: ReturnType<typeof vi.fn>;
   };
+  let cacheInvalidationService: {
+    invalidate: ReturnType<typeof vi.fn>;
+    invalidateByTags: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     editorProjectsService = {
@@ -148,6 +157,10 @@ describe('EditorRenderService', () => {
     notificationsPublisher = {
       publishMediaFailed: vi.fn().mockResolvedValue(undefined),
     };
+    cacheInvalidationService = {
+      invalidate: vi.fn().mockResolvedValue(undefined),
+      invalidateByTags: vi.fn().mockResolvedValue(0),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -171,6 +184,10 @@ describe('EditorRenderService', () => {
         {
           provide: NotificationsPublisherService,
           useValue: notificationsPublisher,
+        },
+        {
+          provide: CacheInvalidationService,
+          useValue: cacheInvalidationService,
         },
         { provide: SharedService, useValue: sharedService },
       ],
@@ -317,6 +334,16 @@ describe('EditorRenderService', () => {
     expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
       status: 'failed',
     });
+    expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+      CACHE_PATTERNS.EDITOR_PROJECTS_LIST(organizationId),
+      CACHE_PATTERNS.EDITOR_PROJECTS_SINGLE(projectId),
+      CACHE_PATTERNS.INGREDIENTS_LIST(organizationId),
+      CACHE_PATTERNS.INGREDIENTS_SINGLE('output-video-123'),
+    );
+    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+      CACHE_TAGS.EDITOR_PROJECTS,
+      CACHE_TAGS.INGREDIENTS,
+    ]);
   });
 
   it('cancels the owning render job and records a retry-safe terminal state', async () => {
@@ -373,5 +400,6 @@ describe('EditorRenderService', () => {
 
     expect(ingredientsService.patch).not.toHaveBeenCalled();
     expect(notificationsPublisher.publishMediaFailed).not.toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidate).toHaveBeenCalled();
   });
 });

@@ -6,6 +6,11 @@ import {
   EditorExportContractValidationError,
 } from '@api/collections/editor-projects/utils/editor-export-contract.util';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -101,8 +106,26 @@ export class EditorRenderService {
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly notificationsPublisher: NotificationsPublisherService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly sharedService: SharedService,
   ) {}
+
+  private async invalidateCancelledRenderCaches(
+    organizationId: string,
+    projectId: string,
+    ingredientId: string,
+  ): Promise<void> {
+    await this.cacheInvalidationService.invalidate(
+      CACHE_PATTERNS.EDITOR_PROJECTS_LIST(organizationId),
+      CACHE_PATTERNS.EDITOR_PROJECTS_SINGLE(projectId),
+      CACHE_PATTERNS.INGREDIENTS_LIST(organizationId),
+      CACHE_PATTERNS.INGREDIENTS_SINGLE(ingredientId),
+    );
+    await this.cacheInvalidationService.invalidateByTags([
+      CACHE_TAGS.EDITOR_PROJECTS,
+      CACHE_TAGS.INGREDIENTS,
+    ]);
+  }
 
   async cancel(id: string, orgId: string): Promise<CancelRenderResult> {
     const project = await this.editorProjectsService.findForRender(id, orgId);
@@ -142,11 +165,24 @@ export class EditorRenderService {
       ) {
         throw error;
       }
+      await this.invalidateCancelledRenderCaches(
+        orgId,
+        id,
+        renderJob.ingredientId,
+      );
       return result;
     }
-    await this.ingredientsService.patch(renderJob.ingredientId, {
-      status: IngredientStatus.FAILED,
-    });
+    try {
+      await this.ingredientsService.patch(renderJob.ingredientId, {
+        status: IngredientStatus.FAILED,
+      });
+    } finally {
+      await this.invalidateCancelledRenderCaches(
+        orgId,
+        id,
+        renderJob.ingredientId,
+      );
+    }
     await this.notificationsPublisher.publishMediaFailed(
       WebSocketPaths.video(renderJob.ingredientId),
       'The render was cancelled.',
