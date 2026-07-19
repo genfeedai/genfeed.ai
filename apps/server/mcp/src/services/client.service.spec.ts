@@ -294,6 +294,80 @@ describe('ClientService (MCP)', () => {
     });
   });
 
+  // ==================== SCHEDULER TESTS ====================
+
+  describe('scheduled releases', () => {
+    const releaseResponse = {
+      data: {
+        data: {
+          attributes: { status: 'scheduled', title: 'Launch' },
+          id: 'release-1',
+          type: 'release-group',
+        },
+      },
+    };
+
+    it('creates a release with an idempotency header', async () => {
+      (mockAxiosInstance.post as Mock).mockResolvedValue(releaseResponse);
+      const release = {
+        baseContent: 'Hello',
+        targets: [{ credentialId: 'credential-1', platform: 'linkedin' }],
+        timezone: 'Europe/Malta',
+        title: 'Launch',
+      };
+
+      await service.createScheduledRelease(release, 'request-1');
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/post-groups',
+        release,
+        { headers: { 'idempotency-key': 'request-1' } },
+      );
+    });
+
+    it('gets a release using an encoded ID', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue(releaseResponse);
+
+      await service.getScheduledRelease('release/1');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/post-groups/release%2F1',
+      );
+    });
+
+    it('updates release and target routes explicitly', async () => {
+      (mockAxiosInstance.patch as Mock).mockResolvedValue(releaseResponse);
+
+      await service.updateScheduledRelease('release-1', { title: 'Updated' });
+      await service.updateScheduledRelease(
+        'release-1',
+        { scheduledDate: '2026-07-20T10:00:00+02:00' },
+        'target-1',
+      );
+
+      expect(mockAxiosInstance.patch).toHaveBeenNthCalledWith(
+        1,
+        '/post-groups/release-1',
+        { title: 'Updated' },
+      );
+      expect(mockAxiosInstance.patch).toHaveBeenNthCalledWith(
+        2,
+        '/post-groups/release-1/targets/target-1',
+        { scheduledDate: '2026-07-20T10:00:00+02:00' },
+      );
+    });
+
+    it('posts lifecycle control actions to the release route', async () => {
+      (mockAxiosInstance.post as Mock).mockResolvedValue(releaseResponse);
+
+      await service.controlScheduledRelease('release-1', 'pause');
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        '/post-groups/release-1/pause',
+      );
+    });
+  });
+
   // ==================== IMAGE TESTS ====================
 
   describe('createImage', () => {

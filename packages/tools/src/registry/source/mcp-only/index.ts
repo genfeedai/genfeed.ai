@@ -8,6 +8,7 @@ import { MCP_CLIP_TOOLS } from './clips.tools.js';
 import { MCP_CONTENT_TOOLS } from './content.tools.js';
 import { MCP_GENERATION_TOOLS } from './generation.tools.js';
 import { MCP_OTHER_TOOLS } from './other.tools.js';
+import { MCP_SCHEDULER_TOOLS } from './scheduler.tools.js';
 import { MCP_SOCIAL_TOOLS } from './social.tools.js';
 import { MCP_WORKFLOW_TOOLS } from './workflow.tools.js';
 
@@ -23,4 +24,5 @@ export const MCP_ONLY_TOOLS: SourceTool[] = [
   ...MCP_ADS_TOOLS,
   ...MCP_CAMPAIGN_TOOLS,
   ...MCP_CLIP_TOOLS,
+  ...MCP_SCHEDULER_TOOLS,
 ];
