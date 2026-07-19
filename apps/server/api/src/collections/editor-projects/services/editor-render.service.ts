@@ -120,6 +120,11 @@ export class EditorRenderService {
       failedAt: new Date().toISOString(),
       reason: 'cancelled' as const,
     };
+    const result: CancelRenderResult = {
+      jobId: renderJob.jobId,
+      projectId: id,
+      status: 'cancelled',
+    };
     try {
       await this.editorProjectsService.markAsCancelled(
         id,
@@ -137,6 +142,7 @@ export class EditorRenderService {
       ) {
         throw error;
       }
+      return result;
     }
     await this.ingredientsService.patch(renderJob.ingredientId, {
       status: IngredientStatus.FAILED,
@@ -148,11 +154,7 @@ export class EditorRenderService {
       renderJob.room,
     );
 
-    return {
-      jobId: renderJob.jobId,
-      projectId: id,
-      status: 'cancelled',
-    };
+    return result;
   }
 
   async render(id: string, orgId: string, user: User): Promise<RenderResult> {

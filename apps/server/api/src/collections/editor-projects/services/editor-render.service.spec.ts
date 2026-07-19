@@ -7,6 +7,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  EditorProjectStatus,
   EditorTrackType,
   IngredientCategory,
   IngredientFormat,
@@ -14,7 +15,10 @@ import {
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { UnprocessableEntityException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('EditorRenderService', () => {
@@ -82,6 +86,7 @@ describe('EditorRenderService', () => {
     markAsCancelled: ReturnType<typeof vi.fn>;
     markAsRendering: ReturnType<typeof vi.fn>;
     readRenderProvenance: ReturnType<typeof vi.fn>;
+    readStatus: ReturnType<typeof vi.fn>;
   };
   let fileQueueService: {
     cancelEditorRender: ReturnType<typeof vi.fn>;
@@ -94,6 +99,9 @@ describe('EditorRenderService', () => {
   let sharedService: {
     saveDocuments: ReturnType<typeof vi.fn>;
   };
+  let notificationsPublisher: {
+    publishMediaFailed: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     editorProjectsService = {
@@ -103,6 +111,7 @@ describe('EditorRenderService', () => {
       markAsCancelled: vi.fn().mockResolvedValue(undefined),
       markAsRendering: vi.fn().mockResolvedValue(makeProject()),
       readRenderProvenance: vi.fn(),
+      readStatus: vi.fn(),
     };
     fileQueueService = {
       cancelEditorRender: vi.fn().mockResolvedValue({
@@ -136,6 +145,9 @@ describe('EditorRenderService', () => {
         metadataData: { id: 'output-metadata-123' },
       }),
     };
+    notificationsPublisher = {
+      publishMediaFailed: vi.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -158,7 +170,7 @@ describe('EditorRenderService', () => {
         },
         {
           provide: NotificationsPublisherService,
-          useValue: { publishMediaFailed: vi.fn() },
+          useValue: notificationsPublisher,
         },
         { provide: SharedService, useValue: sharedService },
       ],
@@ -333,5 +345,33 @@ describe('EditorRenderService', () => {
     expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
       status: 'failed',
     });
+  });
+
+  it('does not repeat cancellation side effects after another writer wins', async () => {
+    editorProjectsService.readRenderProvenance.mockReturnValue({
+      job: {
+        authProviderUserId: 'auth-provider-user',
+        ingredientId: 'output-video-123',
+        jobId: 'job-123',
+        metadataId: 'output-metadata-123',
+        projectId,
+        room: 'user-room',
+      },
+    });
+    editorProjectsService.markAsCancelled.mockRejectedValueOnce(
+      new ConflictException('Render job no longer owns this project'),
+    );
+    editorProjectsService.readStatus.mockReturnValue(
+      EditorProjectStatus.CANCELLED,
+    );
+
+    await expect(service.cancel(projectId, organizationId)).resolves.toEqual({
+      jobId: 'job-123',
+      projectId,
+      status: 'cancelled',
+    });
+
+    expect(ingredientsService.patch).not.toHaveBeenCalled();
+    expect(notificationsPublisher.publishMediaFailed).not.toHaveBeenCalled();
   });
 });

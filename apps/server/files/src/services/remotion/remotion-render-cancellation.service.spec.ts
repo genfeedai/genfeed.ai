@@ -7,7 +7,10 @@ describe('RemotionRenderCancellationService', () => {
   };
   const logger = { log: vi.fn(), warn: vi.fn() };
 
-  afterEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.clearAllMocks();
+    vi.useRealTimers();
+  });
 
   it('cancels the local render and broadcasts to other workers', async () => {
     const service = new RemotionRenderCancellationService(
@@ -42,5 +45,28 @@ describe('RemotionRenderCancellationService', () => {
     });
 
     expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it('applies a cancellation that arrives before renderer registration', async () => {
+    vi.useFakeTimers();
+    const service = new RemotionRenderCancellationService(
+      redisService as never,
+      logger as never,
+    );
+    await service.onModuleInit();
+    const handler = redisService.subscribe.mock.calls[0]?.[1];
+    handler?.({
+      jobId: 'job-123',
+      requestedAt: '2026-07-19T00:00:00.000Z',
+    });
+    const cancel = vi.fn();
+
+    service.register('job-123', cancel);
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(logger.log).toHaveBeenCalledWith(
+      'Applying pending editor render cancellation',
+      { jobId: 'job-123' },
+    );
   });
 });

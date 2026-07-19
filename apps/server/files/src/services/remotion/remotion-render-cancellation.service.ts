@@ -3,6 +3,7 @@ import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 const EDITOR_RENDER_CANCEL_CHANNEL = 'editor-render-cancel';
+const EDITOR_RENDER_PENDING_CANCEL_TTL_MS = 60_000;
 
 interface EditorRenderCancelEvent {
   jobId: string;
@@ -23,6 +24,10 @@ function isCancelEvent(value: unknown): value is EditorRenderCancelEvent {
 @Injectable()
 export class RemotionRenderCancellationService implements OnModuleInit {
   private readonly activeRenders = new Map<string, () => void>();
+  private readonly pendingCancellations = new Map<
+    string,
+    ReturnType<typeof setTimeout>
+  >();
 
   constructor(
     private readonly redisService: RedisService,
@@ -38,12 +43,23 @@ export class RemotionRenderCancellationService implements OnModuleInit {
           return;
         }
 
-        this.cancelLocally(event.jobId);
+        this.cancelLocally(event.jobId, event.requestedAt);
       },
     );
   }
 
   register(jobId: string, cancel: () => void): () => void {
+    const pendingCancellation = this.pendingCancellations.get(jobId);
+    if (pendingCancellation) {
+      clearTimeout(pendingCancellation);
+      this.pendingCancellations.delete(jobId);
+      this.logger.log('Applying pending editor render cancellation', {
+        jobId,
+      });
+      cancel();
+      return () => undefined;
+    }
+
     this.activeRenders.set(jobId, cancel);
     return () => {
       if (this.activeRenders.get(jobId) === cancel) {
@@ -53,16 +69,28 @@ export class RemotionRenderCancellationService implements OnModuleInit {
   }
 
   async request(jobId: string, requestedAt: string): Promise<void> {
-    this.cancelLocally(jobId);
+    this.cancelLocally(jobId, requestedAt);
     await this.redisService.publish(EDITOR_RENDER_CANCEL_CHANNEL, {
       jobId,
       requestedAt,
     } satisfies EditorRenderCancelEvent);
   }
 
-  private cancelLocally(jobId: string): void {
+  private cancelLocally(jobId: string, requestedAt: string): void {
     const cancel = this.activeRenders.get(jobId);
     if (!cancel) {
+      const existingTimeout = this.pendingCancellations.get(jobId);
+      if (existingTimeout) {
+        clearTimeout(existingTimeout);
+      }
+      const timeout = setTimeout(() => {
+        this.pendingCancellations.delete(jobId);
+      }, EDITOR_RENDER_PENDING_CANCEL_TTL_MS);
+      this.pendingCancellations.set(jobId, timeout);
+      this.logger.log('Queued editor render cancellation before registration', {
+        jobId,
+        requestedAt,
+      });
       return;
     }
 

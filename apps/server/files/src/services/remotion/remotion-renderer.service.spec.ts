@@ -152,6 +152,53 @@ describe('RemotionRendererService', () => {
     await expect(render).rejects.toBeInstanceOf(EditorRenderCancelledError);
   });
 
+  it('does not arm a timeout or render after preflight cancellation', async () => {
+    let cancelActiveRender: (() => void) | undefined;
+    let resolveComposition:
+      | ((value: Awaited<ReturnType<typeof selectComposition>>) => void)
+      | undefined;
+    const pendingComposition = new Promise<
+      Awaited<ReturnType<typeof selectComposition>>
+    >((resolve) => {
+      resolveComposition = resolve;
+    });
+    vi.mocked(selectComposition).mockReturnValueOnce(pendingComposition);
+    const preflightCancellationService = {
+      register: vi.fn((_jobId: string, cancel: () => void) => {
+        cancelActiveRender = cancel;
+        return vi.fn();
+      }),
+    };
+    const service = new RemotionRendererService(
+      logger as never,
+      preflightCancellationService as never,
+    );
+    const render = service.render(
+      params,
+      '/tmp/output.mp4',
+      vi.fn(),
+      'job-123',
+    );
+    const cancellationAssertion = expect(render).rejects.toBeInstanceOf(
+      EditorRenderCancelledError,
+    );
+    await vi.waitFor(() => expect(selectComposition).toHaveBeenCalled());
+
+    cancelActiveRender?.();
+    await cancellationAssertion;
+    resolveComposition?.({
+      durationInFrames: 300,
+      fps: 30,
+      height: 1920,
+      id: 'EditorComposition',
+      width: 1080,
+    } as Awaited<ReturnType<typeof selectComposition>>);
+    await pendingComposition;
+    await Promise.resolve();
+
+    expect(renderMedia).not.toHaveBeenCalled();
+  });
+
   it('enforces an overall render deadline', async () => {
     vi.useFakeTimers();
     let signalRegistered: (() => void) | undefined;

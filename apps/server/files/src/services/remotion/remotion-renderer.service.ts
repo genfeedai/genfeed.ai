@@ -64,7 +64,9 @@ export class RemotionRendererService {
     const lifecycleAbort = new Promise<never>((_resolve, reject) => {
       rejectLifecycle = reject;
     });
+    let lifecycleSettled = false;
     const cancel = () => {
+      lifecycleSettled = true;
       renderCancellation.cancel();
       rejectLifecycle?.(new EditorRenderCancelledError());
     };
@@ -80,7 +82,11 @@ export class RemotionRendererService {
           inputProps,
           serveUrl,
         });
+        if (lifecycleSettled) {
+          return;
+        }
         timeoutId = setTimeout(() => {
+          lifecycleSettled = true;
           renderCancellation.cancel();
           rejectLifecycle?.(new EditorRenderTimeoutError());
         }, EDITOR_RENDER_TIMEOUT_MS);
@@ -106,6 +112,7 @@ export class RemotionRendererService {
 
       await Promise.race([renderOperation, lifecycleAbort]);
     } finally {
+      lifecycleSettled = true;
       if (timeoutId) {
         clearTimeout(timeoutId);
       }

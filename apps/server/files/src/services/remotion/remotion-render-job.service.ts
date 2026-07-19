@@ -148,7 +148,7 @@ export class RemotionRenderJobService {
       });
       return result;
     } catch (error: unknown) {
-      await this.handleProcessFailure(error, job, params);
+      return this.handleProcessFailure(error, job, params);
     } finally {
       await rm(tempPath, { force: true, recursive: true }).catch(
         (error: unknown) => {
