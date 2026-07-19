@@ -19,28 +19,16 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import { TwitterApi } from 'twitter-api-v2';
-
-interface TwitterTrendItem {
-  name: string;
-  tweet_volume: number | null;
-  url: string;
-}
-
-interface TwitterMediaItem {
-  type: string;
-  media_key?: string;
-  public_metrics?: { view_count?: number };
-}
-
-interface TwitterTrendResult {
-  brandId?: string;
-  growthRate: number;
-  mentions: number;
-  organizationId?: string;
-  platform: CredentialPlatform;
-  topic: string;
-  url: string;
-}
+import {
+  type TwitterAnalyticsResponse,
+  type TwitterAnalyticsResult,
+  TwitterResponseMapper,
+  type TwitterSearchResponse,
+  type TwitterTrendResponse,
+  type TwitterTrendResult,
+  type TwitterUserResponse,
+  type TwitterUsersResponse,
+} from './twitter-response.mapper';
 
 interface TwitterApiErrorShape {
   code?: number;
@@ -53,23 +41,6 @@ interface TwitterApiErrorShape {
   rateLimitWaitMs?: number;
 }
 
-interface TwitterUserSummary {
-  id: string;
-  username: string;
-  name?: string;
-  public_metrics?: {
-    followers_count?: number;
-  };
-}
-
-interface TwitterUserResponse {
-  data?: TwitterUserSummary;
-}
-
-interface TwitterUsersResponse {
-  data?: TwitterUserSummary[];
-}
-
 interface TweetMediaOptions {
   media: {
     media_ids:
@@ -79,18 +50,6 @@ interface TweetMediaOptions {
       | [string, string, string, string];
   };
   quote_tweet_id?: string;
-}
-
-interface TwitterAnalyticsResult {
-  views: number;
-  likes: number;
-  comments: number;
-  retweets?: number;
-  bookmarks?: number;
-  quotes?: number;
-  impressions?: number;
-  engagementRate?: number;
-  mediaType?: 'text' | 'image' | 'video' | 'mixed';
 }
 
 function requireString(
@@ -117,6 +76,7 @@ export class TwitterService {
     private readonly activitiesService: ActivitiesService,
     private readonly credentialsService: CredentialsService,
     private readonly httpService: HttpService,
+    private readonly responseMapper: TwitterResponseMapper,
   ) {
     this.twitterClient = new TwitterApi(
       // @ts-expect-error TS2769
@@ -235,44 +195,9 @@ export class TwitterService {
         'user.fields': 'username,name',
       });
 
-      const authorMap = new Map<string, { username: string; name: string }>();
-      if (result.includes?.users) {
-        for (const user of result.includes.users) {
-          authorMap.set(user.id, {
-            name: user.name,
-            username: user.username,
-          });
-        }
-      }
-
-      const tweets: ITwitterSearchResult[] = [];
-      if (result.data?.data) {
-        for (const tweet of result.data.data) {
-          const author = authorMap.get(tweet.author_id ?? '');
-          const metrics = tweet.public_metrics ?? {
-            like_count: 0,
-            quote_count: 0,
-            reply_count: 0,
-            retweet_count: 0,
-          };
-
-          tweets.push({
-            authorName: author?.name ?? 'Unknown',
-            authorUsername: author?.username ?? 'unknown',
-            createdAt: tweet.created_at ?? new Date().toISOString(),
-            engagement:
-              (metrics.like_count ?? 0) + (metrics.retweet_count ?? 0),
-            id: tweet.id,
-            likes: metrics.like_count ?? 0,
-            quotes: metrics.quote_count ?? 0,
-            replies: metrics.reply_count ?? 0,
-            retweets: metrics.retweet_count ?? 0,
-            text: tweet.text,
-          });
-        }
-      }
-
-      tweets.sort((a, b) => b.engagement - a.engagement);
+      const tweets = this.responseMapper.mapSearchResults(
+        result as unknown as TwitterSearchResponse,
+      );
 
       this.loggerService.log(
         `${url} found ${tweets.length} tweets for query "${query}"`,
@@ -302,17 +227,7 @@ export class TwitterService {
         { 'user.fields': 'public_metrics' },
       )) as TwitterUserResponse;
 
-      const user = result.data;
-      if (!user) {
-        return null;
-      }
-
-      return {
-        followersCount: user.public_metrics?.followers_count,
-        id: user.id,
-        name: user.name,
-        username: user.username,
-      };
+      return this.responseMapper.mapUser(result);
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
       throw error;
@@ -345,7 +260,7 @@ export class TwitterService {
         },
       )) as TwitterUsersResponse;
 
-      return this.mapUsersWithFollowerCount(result);
+      return this.responseMapper.mapUsers(result);
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
       throw error;
@@ -378,7 +293,7 @@ export class TwitterService {
         },
       )) as TwitterUsersResponse;
 
-      return this.mapUsersWithFollowerCount(result);
+      return this.responseMapper.mapUsers(result);
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
       throw error;
@@ -411,7 +326,7 @@ export class TwitterService {
         },
       )) as TwitterUsersResponse;
 
-      return this.mapUsersWithFollowerCount(result);
+      return this.responseMapper.mapUsers(result);
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
       throw error;
@@ -430,16 +345,10 @@ export class TwitterService {
       // NOTE: This endpoint requires Twitter API Pro tier access
       const res = await this.twitterClient.v1.trendsByPlace(woeid);
 
-      return (
-        res?.[0]?.trends?.slice(0, 10).map((trend: TwitterTrendItem) => ({
-          brandId,
-          growthRate: this.calculateGrowthRate(trend.tweet_volume || 0),
-          mentions: trend.tweet_volume || 0,
-          organizationId,
-          platform: CredentialPlatform.TWITTER,
-          topic: trend.name,
-          url: trend.url,
-        })) || []
+      return this.responseMapper.mapTrends(
+        res as unknown as TwitterTrendResponse[],
+        organizationId,
+        brandId,
       );
     } catch (error: unknown) {
       const errorObject = error as TwitterApiErrorShape;
@@ -471,35 +380,6 @@ export class TwitterService {
       // Return empty array - no fake data
       return [];
     }
-  }
-
-  /**
-   * Calculate growth rate based on tweet volume
-   * Higher volume = higher growth rate
-   */
-  private calculateGrowthRate(tweetVolume: number): number {
-    if (tweetVolume === 0) {
-      return 0;
-    }
-
-    // Normalize to 0-100 scale
-    // Assuming max volume is 1M tweets
-    const normalized = Math.min((tweetVolume / 1000000) * 100, 100);
-    return Math.round(normalized);
-  }
-
-  private mapUsersWithFollowerCount(result: TwitterUsersResponse): Array<{
-    id: string;
-    username: string;
-    name?: string;
-    followersCount?: number;
-  }> {
-    return (result.data ?? []).map((user) => ({
-      followersCount: user.public_metrics?.followers_count,
-      id: user.id,
-      name: user.name,
-      username: user.username,
-    }));
   }
 
   /**
@@ -681,17 +561,7 @@ export class TwitterService {
     tweetId: string,
     accessToken?: string,
     accessTokenSecret?: string,
-  ): Promise<{
-    views: number;
-    likes: number;
-    comments: number;
-    retweets?: number;
-    bookmarks?: number;
-    quotes?: number;
-    impressions?: number;
-    engagementRate?: number;
-    mediaType?: 'text' | 'image' | 'video' | 'mixed';
-  }> {
+  ): Promise<TwitterAnalyticsResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -718,64 +588,9 @@ export class TwitterService {
         'tweet.fields': `${fields},attachments`,
       });
 
-      const tweet = res?.data?.[0];
-      const metrics = tweet?.public_metrics || {};
-      const nonPublicMetrics = tweet?.non_public_metrics || {};
-      const organicMetrics = tweet?.organic_metrics || {};
-
-      // Determine media type from attachments
-      let mediaType: 'text' | 'image' | 'video' | 'mixed' = 'text';
-      const media = res?.includes?.media || [];
-
-      if (media.length > 0) {
-        const mediaTypes = new Set(media.map((m: TwitterMediaItem) => m.type));
-        if (mediaTypes.size > 1) {
-          mediaType = 'mixed';
-        } else if (mediaTypes.has('video') || mediaTypes.has('animated_gif')) {
-          mediaType = 'video';
-        } else if (mediaTypes.has('photo')) {
-          mediaType = 'image';
-        }
-      }
-
-      // Calculate engagement rate if we have impression data
-      const impressions =
-        nonPublicMetrics.impression_count ||
-        organicMetrics.impression_count ||
-        0;
-
-      const totalEngagements =
-        (metrics.like_count || 0) +
-        (metrics.retweet_count || 0) +
-        (metrics.reply_count || 0) +
-        (metrics.quote_count || 0);
-
-      const engagementRate =
-        impressions > 0 ? (totalEngagements / impressions) * 100 : 0;
-
-      // For video tweets, try to get video-specific metrics
-      let videoViews = metrics.view_count || 0;
-      if (mediaType === 'video' && media.length > 0) {
-        const videoMedia = media.find(
-          (m: TwitterMediaItem) => m.type === 'video',
-        );
-        if (videoMedia?.public_metrics?.view_count) {
-          videoViews = videoMedia.public_metrics.view_count;
-        }
-      }
-
-      return {
-        bookmarks: metrics.bookmark_count || 0,
-        comments: metrics.reply_count || 0,
-        engagementRate:
-          engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
-        impressions: impressions || undefined,
-        likes: metrics.like_count || 0,
-        mediaType,
-        quotes: metrics.quote_count || 0,
-        retweets: metrics.retweet_count || 0,
-        views: videoViews || impressions || 0,
-      };
+      return this.responseMapper.mapAnalytics(
+        res as unknown as TwitterAnalyticsResponse,
+      );
     } catch (error: unknown) {
       // Handle rate limit (429) errors first - don't log as error
       const errorObject = error as TwitterApiErrorShape;
@@ -823,22 +638,7 @@ export class TwitterService {
     tweetIds: string[],
     accessToken?: string,
     accessTokenSecret?: string,
-  ): Promise<
-    Map<
-      string,
-      {
-        views: number;
-        likes: number;
-        comments: number;
-        retweets?: number;
-        bookmarks?: number;
-        quotes?: number;
-        impressions?: number;
-        engagementRate?: number;
-        mediaType?: 'text' | 'image' | 'video' | 'mixed';
-      }
-    >
-  > {
+  ): Promise<Map<string, TwitterAnalyticsResult>> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     if (tweetIds.length === 0) {
@@ -875,92 +675,9 @@ export class TwitterService {
 
       this.loggerService.log('Twitter API  client.v2.get tweets', res);
 
-      const tweets = res?.data || [];
-      const media = res?.includes?.media || [];
-
-      // Create a map for quick media lookup by key
-      const mediaByKey = new Map<string, TwitterMediaItem>();
-      media.forEach((m: TwitterMediaItem) => {
-        // @ts-expect-error TS2345
-        mediaByKey.set(m.media_key, m);
-      });
-
-      // Process each tweet and build result map
-      const results = new Map<string, TwitterAnalyticsResult>();
-
-      for (const tweet of tweets) {
-        const metrics = tweet?.public_metrics || {};
-        const nonPublicMetrics = tweet?.non_public_metrics || {};
-        const organicMetrics = tweet?.organic_metrics || {};
-
-        // Determine media type from attachments
-        let mediaType: 'text' | 'image' | 'video' | 'mixed' = 'text';
-        const tweetMedia: TwitterMediaItem[] = [];
-
-        if (tweet.attachments?.media_keys) {
-          for (const key of tweet.attachments.media_keys) {
-            const m = mediaByKey.get(key);
-            if (m) {
-              tweetMedia.push(m);
-            }
-          }
-        }
-
-        if (tweetMedia.length > 0) {
-          const mediaTypes = new Set(
-            tweetMedia.map((m: TwitterMediaItem) => m.type),
-          );
-          if (mediaTypes.size > 1) {
-            mediaType = 'mixed';
-          } else if (
-            mediaTypes.has('video') ||
-            mediaTypes.has('animated_gif')
-          ) {
-            mediaType = 'video';
-          } else if (mediaTypes.has('photo')) {
-            mediaType = 'image';
-          }
-        }
-
-        // Calculate engagement rate if we have impression data
-        const impressions =
-          nonPublicMetrics.impression_count ||
-          organicMetrics.impression_count ||
-          0;
-
-        const totalEngagements =
-          (metrics.like_count || 0) +
-          (metrics.retweet_count || 0) +
-          (metrics.reply_count || 0) +
-          (metrics.quote_count || 0);
-
-        const engagementRate =
-          impressions > 0 ? (totalEngagements / impressions) * 100 : 0;
-
-        // For video tweets, try to get video-specific metrics
-        let videoViews = metrics.view_count || 0;
-        if (mediaType === 'video' && tweetMedia.length > 0) {
-          const videoMedia = tweetMedia.find(
-            (m: TwitterMediaItem) => m.type === 'video',
-          );
-          if (videoMedia?.public_metrics?.view_count) {
-            videoViews = videoMedia.public_metrics.view_count;
-          }
-        }
-
-        results.set(tweet.id, {
-          bookmarks: metrics.bookmark_count || 0,
-          comments: metrics.reply_count || 0,
-          engagementRate:
-            engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
-          impressions: impressions || undefined,
-          likes: metrics.like_count || 0,
-          mediaType,
-          quotes: metrics.quote_count || 0,
-          retweets: metrics.retweet_count || 0,
-          views: videoViews || impressions || 0,
-        });
-      }
+      const results = this.responseMapper.mapAnalyticsBatch(
+        res as unknown as TwitterAnalyticsResponse,
+      );
 
       this.loggerService.log(
         `${url} success - fetched analytics for ${results.size} tweets`,

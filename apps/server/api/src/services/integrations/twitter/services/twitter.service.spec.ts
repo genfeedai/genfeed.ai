@@ -16,11 +16,10 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
-import { Analytic } from '@api/endpoints/analytics/schemas/analytic.schema';
 import { mockModel } from '@api/helpers/mocks/model.mock';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import { TwitterResponseMapper } from '@api/services/integrations/twitter/services/twitter-response.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { type Activity } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -33,6 +32,7 @@ describe('TwitterService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TwitterService,
+        TwitterResponseMapper,
         { provide: ActivitiesService, useValue: {} },
         { provide: ConfigService, useValue: { get: vi.fn() } },
         {
