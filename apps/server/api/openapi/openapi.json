@@ -24880,7 +24880,7 @@
     },
     "/clip-projects/{projectId}/generate": {
       "post": {
-        "description": "Generate avatar video clips for selected highlights. Expensive step (N credits, one per clip).",
+        "description": "Generate avatar or deterministic raw-cut video clips for selected highlights. Expensive step (N credits, one per clip).",
         "operationId": "ClipProjectsController.generateClips",
         "parameters": [
           {
