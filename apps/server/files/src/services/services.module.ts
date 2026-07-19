@@ -3,6 +3,8 @@ import { FFmpegModule } from '@files/services/ffmpeg/ffmpeg.module';
 import { FilesModule } from '@files/services/files/files.module';
 import { HookRemixModule } from '@files/services/hook-remix/hook-remix.module';
 import { JobLifecyclePublisherService } from '@files/services/job-lifecycle-publisher.service';
+import { RemotionRenderJobService } from '@files/services/remotion/remotion-render-job.service';
+import { RemotionRendererService } from '@files/services/remotion/remotion-renderer.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { ThumbnailsModule } from '@files/services/thumbnails/thumbnails.module';
 import { UploadModule } from '@files/services/upload/upload.module';
@@ -18,6 +20,8 @@ import { Module } from '@nestjs/common';
     FilesModule,
     HookRemixModule,
     JobLifecyclePublisherService,
+    RemotionRenderJobService,
+    RemotionRendererService,
     S3Service,
     ThumbnailsModule,
     UploadModule,
@@ -44,6 +48,8 @@ import { Module } from '@nestjs/common';
     VideoMergeJobService,
     WebSocketService,
     JobLifecyclePublisherService,
+    RemotionRenderJobService,
+    RemotionRendererService,
   ],
 })
 export class ServicesModule {}

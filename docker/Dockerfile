@@ -7,7 +7,7 @@
 # ─── Base ───────────────────────────────────────────────────────────
 FROM oven/bun:1.3.14 AS base
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ && rm -rf /var/lib/apt/lists/*
+    ca-certificates python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # ─── Pruner ─────────────────────────────────────────────────────────
 FROM base AS pruner
@@ -73,9 +73,18 @@ RUN turbo prune @genfeedai/files --docker
 
 FROM base AS files
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fontconfig fonts-liberation fonts-noto-cjk fonts-noto-color-emoji \
+    libnss3 libdbus-1-3 libatk1.0-0 libgbm1 libasound2 libxrandr2 \
+    libxkbcommon0 libxfixes3 libxcomposite1 libxdamage1 \
+    libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=files-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
+RUN bun -e "import { ensureBrowser } from '@remotion/renderer'; await ensureBrowser();"
 COPY --from=files-pruned /app/out/full/ .
+RUN bun -e "import { bundle } from '@remotion/bundler'; import { resolve } from 'node:path'; await bundle({entryPoint:resolve('apps/server/files/src/remotion/index.tsx'),outDir:resolve('apps/server/files/remotion-bundle'),publicDir:null,rootDir:resolve('apps/server/files')});"
+RUN test -x "$(find /app/node_modules/.remotion/chrome-headless-shell -type f -name chrome-headless-shell -print -quit)"
 RUN bun run build --filter=@genfeedai/files
 EXPOSE 3012
 CMD ["bun", "run", "apps/server/files/dist/main.js"]
@@ -183,4 +192,3 @@ COPY --from=mcp-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/mcp
 EXPOSE 3014
 CMD ["bun", "run", "apps/server/mcp/dist/main.js"]
-

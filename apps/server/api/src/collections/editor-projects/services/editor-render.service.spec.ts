@@ -1,87 +1,60 @@
-vi.mock('node:fs', () => ({
-  default: { unlinkSync: vi.fn() },
-}));
-
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { EditorRenderService } from '@api/collections/editor-projects/services/editor-render.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { EditorTrackType, IngredientFormat } from '@genfeedai/enums';
+import {
+  EditorTrackType,
+  IngredientCategory,
+  IngredientFormat,
+} from '@genfeedai/enums';
+import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { UnprocessableEntityException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 describe('EditorRenderService', () => {
-  let service: EditorRenderService;
-
-  let editorProjectsService: {
-    findForRender: ReturnType<typeof vi.fn>;
-    markAsRendering: ReturnType<typeof vi.fn>;
-    markAsFailed: ReturnType<typeof vi.fn>;
-    markAsCompleted: ReturnType<typeof vi.fn>;
-  };
-  let fileQueueService: {
-    processVideo: ReturnType<typeof vi.fn>;
-    waitForJob: ReturnType<typeof vi.fn>;
-  };
-  let filesClientService: { uploadToS3: ReturnType<typeof vi.fn> };
-  let ingredientsService: {
-    findOne: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
-  };
-  let metadataService: {
-    findOne: ReturnType<typeof vi.fn>;
-    patch: ReturnType<typeof vi.fn>;
-  };
-  let sharedService: { saveDocuments: ReturnType<typeof vi.fn> };
-  let websocketService: {
-    publishVideoComplete: ReturnType<typeof vi.fn>;
-    publishMediaFailed: ReturnType<typeof vi.fn>;
-  };
-  let logger: {
-    log: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-    debug: ReturnType<typeof vi.fn>;
-  };
-
-  const orgId = 'test-object-id';
-  const projectId = 'test-object-id';
-  const videoIngredientId = 'test-object-id';
-
-  const mockUser = {
-    id: 'authProvider-user-1',
-    publicMetadata: { user: 'db-user-id-1' },
+  const organizationId = 'org-123';
+  const projectId = 'project-123';
+  const videoIngredientId = 'video-123';
+  const audioIngredientId = 'music-123';
+  const user = {
+    id: 'auth-provider-user',
+    publicMetadata: { user: 'database-user' },
   } as unknown as User;
 
-  const makeTrack = (type: EditorTrackType, clipOverrides = {}) => ({
-    clips: [
-      {
-        durationFrames: 300,
-        effects: [],
-        id: `${type}-clip`,
-        ingredientId: videoIngredientId,
-        ingredientUrl: `https://cdn.genfeed.ai/${type}`,
-        sourceEndFrame: 300,
-        sourceStartFrame: 0,
-        startFrame: 0,
-        textOverlay: null,
-        ...clipOverrides,
-      },
-    ],
+  const makeClip = (
+    id: string,
+    ingredientId: string,
+    overrides: Record<string, unknown> = {},
+  ) => ({
+    durationFrames: 150,
+    effects: [],
+    id,
+    ingredientId,
+    ingredientUrl: `https://untrusted.example/${ingredientId}`,
+    sourceEndFrame: 150,
+    sourceStartFrame: 0,
+    startFrame: 0,
+    ...overrides,
+  });
+
+  const makeTrack = (
+    type: EditorTrackType,
+    clips = [makeClip(`${type}-clip`, videoIngredientId)],
+    overrides: Record<string, unknown> = {},
+  ) => ({
+    clips,
     id: `${type}-track`,
     isLocked: false,
     isMuted: false,
     name: type,
     type,
-    volume: 100,
+    volume: 80,
+    ...overrides,
   });
 
   const makeProject = (
@@ -100,289 +73,222 @@ describe('EditorRenderService', () => {
     tracks,
   });
 
+  let service: EditorRenderService;
+  let editorProjectsService: {
+    findForRender: ReturnType<typeof vi.fn>;
+    attachRenderJob: ReturnType<typeof vi.fn>;
+    markAsFailed: ReturnType<typeof vi.fn>;
+    markAsRendering: ReturnType<typeof vi.fn>;
+  };
+  let fileQueueService: {
+    processVideo: ReturnType<typeof vi.fn>;
+  };
+  let ingredientsService: {
+    findAll: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
+  };
+  let sharedService: {
+    saveDocuments: ReturnType<typeof vi.fn>;
+  };
+
   beforeEach(async () => {
     editorProjectsService = {
+      attachRenderJob: vi.fn().mockResolvedValue(makeProject()),
       findForRender: vi.fn().mockResolvedValue(makeProject()),
-      markAsCompleted: vi.fn().mockResolvedValue(undefined),
       markAsFailed: vi.fn().mockResolvedValue(undefined),
       markAsRendering: vi.fn().mockResolvedValue(makeProject()),
     };
     fileQueueService = {
-      processVideo: vi.fn().mockResolvedValue({ jobId: 'job-abc' }),
-      waitForJob: vi.fn().mockResolvedValue({ outputPath: '/tmp/output.mp4' }),
-    };
-    filesClientService = {
-      uploadToS3: vi.fn().mockResolvedValue({
-        duration: 10,
-        height: 1080,
-        size: 5000,
-        width: 1920,
-      }),
+      processVideo: vi
+        .fn()
+        .mockImplementation(({ id }) => Promise.resolve({ jobId: id })),
     };
     ingredientsService = {
-      findOne: vi.fn().mockResolvedValue({
-        id: videoIngredientId,
-        brand: null,
+      findAll: vi.fn().mockImplementation(({ where }) => {
+        const ids = where._id.in as string[];
+        return Promise.resolve({
+          docs: ids.map((id) => ({
+            brandId: 'brand-123',
+            category:
+              id === audioIngredientId
+                ? IngredientCategory.MUSIC
+                : IngredientCategory.VIDEO,
+            id,
+          })),
+        });
       }),
-      patch: vi.fn().mockResolvedValue(undefined),
-    };
-    metadataService = {
-      findOne: vi
-        .fn()
-        .mockResolvedValue({ duration: 10, height: 1080, width: 1920 }),
       patch: vi.fn().mockResolvedValue(undefined),
     };
     sharedService = {
       saveDocuments: vi.fn().mockResolvedValue({
-        ingredientData: { id: 'test-object-id' },
-        metadataData: { id: 'test-object-id' },
+        ingredientData: { id: 'output-video-123' },
+        metadataData: { id: 'output-metadata-123' },
       }),
     };
-    websocketService = {
-      publishMediaFailed: vi.fn().mockResolvedValue(undefined),
-      publishVideoComplete: vi.fn().mockResolvedValue(undefined),
-    };
-    logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EditorRenderService,
         {
           provide: ConfigService,
-          useValue: {
-            get: vi.fn(),
-            ingredientsEndpoint: 'https://cdn.genfeed.ai',
-          },
+          useValue: { ingredientsEndpoint: 'https://cdn.genfeed.ai' },
         },
         { provide: EditorProjectsService, useValue: editorProjectsService },
         { provide: FileQueueService, useValue: fileQueueService },
-        { provide: FilesClientService, useValue: filesClientService },
         { provide: IngredientsService, useValue: ingredientsService },
-        { provide: LoggerService, useValue: logger },
-        { provide: MetadataService, useValue: metadataService },
+        {
+          provide: LoggerService,
+          useValue: {
+            debug: vi.fn(),
+            error: vi.fn(),
+            log: vi.fn(),
+            warn: vi.fn(),
+          },
+        },
         { provide: SharedService, useValue: sharedService },
-        { provide: NotificationsPublisherService, useValue: websocketService },
       ],
     }).compile();
 
-    service = module.get<EditorRenderService>(EditorRenderService);
+    service = module.get(EditorRenderService);
   });
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
+  it('queues the pinned renderer and persists its immutable input', async () => {
+    const result = await service.render(projectId, organizationId, user);
+
+    expect(result).toEqual({
+      jobId: expect.any(String),
+      projectId,
+      status: 'rendering',
+    });
+    expect(editorProjectsService.markAsRendering).toHaveBeenCalledWith(
+      projectId,
+      organizationId,
+      expect.objectContaining({
+        assetManifest: expect.any(Array),
+        queuedAt: expect.any(String),
+        rendererVersion: EDITOR_RENDERER_VERSION,
+        snapshot: expect.objectContaining({ projectId }),
+      }),
+    );
+    expect(fileQueueService.processVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: expect.objectContaining({
+          rendererVersion: EDITOR_RENDERER_VERSION,
+        }),
+        type: 'render-editor-composition',
+      }),
+    );
   });
 
-  describe('render', () => {
-    it('should return rendering status with jobId on success', async () => {
-      editorProjectsService.markAsRendering.mockResolvedValue(makeProject());
-
-      const result = await service.render(projectId, orgId, mockUser);
-
-      expect(result.status).toBe('rendering');
-      expect(result.jobId).toBe('job-abc');
-      expect(result.projectId).toBe(projectId);
-    });
-
-    it('should call markAsRendering with id and orgId', async () => {
-      await service.render(projectId, orgId, mockUser);
-
-      expect(editorProjectsService.markAsRendering).toHaveBeenCalledWith(
-        projectId,
-        orgId,
-      );
-    });
-
-    it('should throw UnprocessableEntityException when no video track', async () => {
-      editorProjectsService.findForRender.mockResolvedValue(makeProject([]));
-
-      await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
-        UnprocessableEntityException,
-      );
-      expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
-      expect(sharedService.saveDocuments).not.toHaveBeenCalled();
-      expect(fileQueueService.processVideo).not.toHaveBeenCalled();
-    });
-
-    it('should reject malformed export settings before render side effects', async () => {
-      editorProjectsService.findForRender.mockResolvedValue(
-        makeProject([makeTrack(EditorTrackType.VIDEO)], {
-          backgroundColor: '#000000',
-          format: IngredientFormat.LANDSCAPE,
-          fps: 30,
-          height: 1080,
-          width: 0,
-        }),
-      );
-
-      await expect(
-        service.render(projectId, orgId, mockUser),
-      ).rejects.toMatchObject({
-        response: expect.objectContaining({
-          code: 'editor_export_contract_invalid',
-          violations: expect.arrayContaining([
-            expect.objectContaining({ path: 'settings.width' }),
-          ]),
-        }),
-      });
-      expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
-      expect(sharedService.saveDocuments).not.toHaveBeenCalled();
-      expect(fileQueueService.processVideo).not.toHaveBeenCalled();
-    });
-
-    it('should throw UnprocessableEntityException when more than one video track', async () => {
-      editorProjectsService.findForRender.mockResolvedValue(
-        makeProject([
-          makeTrack(EditorTrackType.VIDEO),
-          {
-            ...makeTrack(EditorTrackType.VIDEO),
-            id: 'second-video-track',
-            clips: [
-              {
-                ...makeTrack(EditorTrackType.VIDEO).clips[0],
-                id: 'second-video-clip',
-              },
-            ],
-          },
-        ]),
-      );
-
-      await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
-        UnprocessableEntityException,
-      );
-      expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
-    });
-
-    it('should throw UnprocessableEntityException when video track has no clips', async () => {
-      editorProjectsService.findForRender.mockResolvedValue(
-        makeProject([{ ...makeTrack(EditorTrackType.VIDEO), clips: [] }]),
-      );
-
-      await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
-        UnprocessableEntityException,
-      );
-    });
-
-    it('should throw UnprocessableEntityException when video track has multiple clips', async () => {
-      const multiClipTrack = {
-        clips: [
-          {
-            ...makeTrack(EditorTrackType.VIDEO).clips[0],
-            durationFrames: 150,
-            id: 'video-clip-1',
-            sourceEndFrame: 150,
-          },
-          {
-            ...makeTrack(EditorTrackType.VIDEO).clips[0],
-            durationFrames: 150,
-            id: 'video-clip-2',
-            ingredientId: videoIngredientId,
-            sourceEndFrame: 300,
-            sourceStartFrame: 150,
-            startFrame: 150,
-          },
-        ],
-        id: 'multi-clip-track',
-        isLocked: false,
-        isMuted: false,
-        name: 'Video',
-        type: EditorTrackType.VIDEO,
-        volume: 100,
-      };
-      editorProjectsService.findForRender.mockResolvedValue(
-        makeProject([multiClipTrack]),
-      );
-
-      await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
-        UnprocessableEntityException,
-      );
-    });
-
-    it('should reject contract-valid audio tracks that the current renderer cannot consume', async () => {
-      editorProjectsService.findForRender.mockResolvedValue(
-        makeProject([
-          makeTrack(EditorTrackType.VIDEO),
-          {
-            ...makeTrack(EditorTrackType.AUDIO),
-            id: 'audio-track',
-            clips: [
-              {
-                ...makeTrack(EditorTrackType.AUDIO).clips[0],
-                id: 'audio-clip',
-              },
-            ],
-          },
-        ]),
-      );
-
-      await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
-        'Audio tracks require the multi-track renderer',
-      );
-      expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
-      expect(sharedService.saveDocuments).not.toHaveBeenCalled();
-      expect(fileQueueService.processVideo).not.toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException when source video not found', async () => {
-      ingredientsService.findOne.mockResolvedValue(null);
-
-      await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should call markAsFailed when post-transition step throws', async () => {
-      ingredientsService.findOne.mockRejectedValue(new Error('DB error'));
-
-      await expect(service.render(projectId, orgId, mockUser)).rejects.toThrow(
-        'DB error',
-      );
-      expect(editorProjectsService.markAsFailed).toHaveBeenCalledWith(
-        projectId,
-      );
-    });
-
-    it('should pass text overlay job type when text track present', async () => {
-      const textTrack = makeTrack(EditorTrackType.TEXT, {
-        ingredientId: '',
-        ingredientUrl: '',
+  it('queues multiple video, text, and audio layers with trusted asset URLs', async () => {
+    const videoTrack = makeTrack(EditorTrackType.VIDEO, [
+      makeClip('video-1', videoIngredientId, { durationFrames: 150 }),
+      makeClip('video-2', 'video-456', {
+        durationFrames: 150,
+        startFrame: 150,
+      }),
+    ]);
+    const textTrack = makeTrack(EditorTrackType.TEXT, [
+      makeClip('text-1', '', {
+        ingredientId: 'untrusted-text-asset',
+        ingredientUrl: 'https://untrusted.example/text-asset',
         textOverlay: {
           color: '#ffffff',
-          fontSize: 32,
+          fontSize: 48,
           position: { x: 50, y: 80 },
-          text: 'Hello World',
+          text: 'Launch',
         },
-      });
-      editorProjectsService.findForRender.mockResolvedValue(
-        makeProject([makeTrack(EditorTrackType.VIDEO), textTrack]),
-      );
+      }),
+    ]);
+    const audioTrack = makeTrack(EditorTrackType.AUDIO, [
+      makeClip('audio-1', audioIngredientId),
+    ]);
+    editorProjectsService.findForRender.mockResolvedValue(
+      makeProject([videoTrack, textTrack, audioTrack]),
+    );
 
-      await service.render(projectId, orgId, mockUser);
+    await service.render(projectId, organizationId, user);
 
-      expect(fileQueueService.processVideo).toHaveBeenCalledWith(
-        expect.objectContaining({
-          params: expect.objectContaining({ position: 'bottom' }),
-          type: 'add-text-overlay',
+    expect(ingredientsService.findAll).toHaveBeenCalledTimes(1);
+    expect(fileQueueService.processVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: expect.objectContaining({
+          assetManifest: expect.arrayContaining([
+            expect.objectContaining({
+              ingredientUrl: 'https://cdn.genfeed.ai/videos/video-123',
+            }),
+            expect.objectContaining({
+              ingredientUrl: 'https://cdn.genfeed.ai/musics/music-123',
+            }),
+          ]),
+          snapshot: expect.objectContaining({
+            tracks: expect.arrayContaining([
+              expect.objectContaining({
+                clips: expect.arrayContaining([
+                  expect.objectContaining({
+                    ingredientUrl: 'https://cdn.genfeed.ai/videos/video-123',
+                  }),
+                ]),
+              }),
+              expect.objectContaining({
+                clips: [
+                  expect.objectContaining({
+                    id: 'text-1',
+                    ingredientId: '',
+                    ingredientUrl: '',
+                    textOverlay: expect.objectContaining({ text: 'Launch' }),
+                  }),
+                ],
+                type: EditorTrackType.TEXT,
+              }),
+            ]),
+          }),
         }),
-      );
-    });
+      }),
+    );
+  });
 
-    it('should pass trim-video job type when no text overlay and video is trimmed', async () => {
-      const trimmedTrack = makeTrack(EditorTrackType.VIDEO, {
-        durationFrames: 120,
-        sourceEndFrame: 150,
-        sourceStartFrame: 30,
-      });
-      editorProjectsService.findForRender.mockResolvedValue(
-        makeProject([trimmedTrack]),
-      );
+  it('rejects malformed export settings before render side effects', async () => {
+    editorProjectsService.findForRender.mockResolvedValue(
+      makeProject([makeTrack(EditorTrackType.VIDEO)], {
+        backgroundColor: '#000000',
+        format: IngredientFormat.LANDSCAPE,
+        fps: 30,
+        height: 1080,
+        width: 0,
+      }),
+    );
 
-      await service.render(projectId, orgId, mockUser);
+    await expect(
+      service.render(projectId, organizationId, user),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
+    expect(fileQueueService.processVideo).not.toHaveBeenCalled();
+  });
 
-      expect(fileQueueService.processVideo).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'trim-video' }),
-      );
+  it('rejects an asset that is not owned by the organization', async () => {
+    ingredientsService.findAll.mockResolvedValue({ docs: [] });
+
+    await expect(
+      service.render(projectId, organizationId, user),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(editorProjectsService.markAsRendering).not.toHaveBeenCalled();
+  });
+
+  it('marks the project failed when queue submission fails', async () => {
+    fileQueueService.processVideo.mockRejectedValue(new Error('queue offline'));
+
+    await expect(
+      service.render(projectId, organizationId, user),
+    ).rejects.toThrow('queue offline');
+    expect(editorProjectsService.markAsFailed).toHaveBeenCalledWith(
+      projectId,
+      expect.any(String),
+    );
+    expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
+      status: 'failed',
     });
   });
 });

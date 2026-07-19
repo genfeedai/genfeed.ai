@@ -1,13 +1,30 @@
+import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { IngredientStatus, Status } from '@genfeedai/enums';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import {
+  IngredientStatus,
+  JobState,
+  Status,
+  WebSocketEventStatus,
+  WebSocketEventType,
+} from '@genfeedai/enums';
+import {
+  type IEditorRenderCorrelation,
+  type IEditorRenderOutputMetadata,
+  type IJobStatusResponse,
+  parseEditorRenderOutputMetadata,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 type VideoCompletionEvent = {
   ingredientId: string;
-  userId: string;
+  userId?: string;
   organizationId: string;
   status: Status.COMPLETED | Status.FAILED;
   result?: {
@@ -27,15 +44,21 @@ type VideoCompletionEvent = {
     [key: string]: unknown;
   };
   error?: string;
+  editorRender?: IEditorRenderCorrelation;
   timestamp: string;
 };
+
+const EDITOR_RENDER_STALE_MS = 45 * 60 * 1000;
 
 @Injectable()
 export class VideoCompletionService implements OnModuleInit {
   constructor(
     private readonly redisService: RedisService,
+    private readonly editorProjectsService: EditorProjectsService,
+    private readonly fileQueueService: FileQueueService,
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
+    private readonly notificationsPublisher: NotificationsPublisherService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -61,6 +84,15 @@ export class VideoCompletionService implements OnModuleInit {
   private async handleVideoCompletion(data: VideoCompletionEvent) {
     try {
       const { ingredientId, organizationId, status, result, error } = data;
+
+      if (data.editorRender) {
+        if (status === Status.COMPLETED) {
+          await this.completeEditorRender(data.editorRender, result);
+        } else {
+          await this.failEditorRender(data.editorRender);
+        }
+        return;
+      }
 
       if (status === Status.COMPLETED) {
         const ingredientUpdate: Record<string, unknown> = {
@@ -105,6 +137,134 @@ export class VideoCompletionService implements OnModuleInit {
         error,
       );
     }
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async reconcileEditorRenders(): Promise<void> {
+    const projects = await this.editorProjectsService.findRenderingProjects();
+
+    const results = await Promise.allSettled(
+      projects.map(async (project) => {
+        const provenance =
+          this.editorProjectsService.readRenderProvenance(project);
+        const editorRender = provenance?.job;
+        const queuedAt = provenance?.queuedAt
+          ? Date.parse(provenance.queuedAt)
+          : Number.NaN;
+        const isStale =
+          !Number.isFinite(queuedAt) ||
+          Date.now() - queuedAt >= EDITOR_RENDER_STALE_MS;
+
+        if (!editorRender) {
+          if (isStale) {
+            await this.editorProjectsService.markAsFailed(project.id);
+          }
+          return;
+        }
+
+        let job: IJobStatusResponse;
+        try {
+          job = await this.fileQueueService.getJobStatus(editorRender.jobId);
+        } catch (error: unknown) {
+          if (isStale) {
+            await this.failEditorRender(editorRender);
+            return;
+          }
+          throw error;
+        }
+
+        if (job.state === JobState.COMPLETED) {
+          await this.handleVideoCompletion({
+            editorRender,
+            ingredientId: editorRender.ingredientId,
+            organizationId: project.organizationId,
+            result: job.result as VideoCompletionEvent['result'],
+            status: Status.COMPLETED,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (job.state === JobState.FAILED) {
+          await this.handleVideoCompletion({
+            editorRender,
+            error: job.failedReason,
+            ingredientId: editorRender.ingredientId,
+            organizationId: project.organizationId,
+            status: Status.FAILED,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }),
+    );
+
+    for (const result of results) {
+      if (result.status === 'rejected') {
+        this.logger.error('Failed to reconcile editor render', result.reason);
+      }
+    }
+  }
+
+  private async completeEditorRender(
+    editorRender: IEditorRenderCorrelation,
+    result: VideoCompletionEvent['result'],
+  ): Promise<void> {
+    let output: IEditorRenderOutputMetadata;
+    try {
+      output = parseEditorRenderOutputMetadata(result);
+    } catch (error: unknown) {
+      this.logger.error('Editor renderer returned invalid output', error);
+      await this.failEditorRender(editorRender);
+      return;
+    }
+
+    // Output records are unique to this render and these writes are idempotent.
+    // Persist them before the project CAS so a transient failure remains
+    // eligible for the next reconciliation pass.
+    await Promise.all([
+      this.ingredientsService.patch(editorRender.ingredientId, {
+        s3Key: output.s3Key,
+        status: IngredientStatus.GENERATED,
+      }),
+      this.metadataService.patch(editorRender.metadataId, {
+        duration: output.durationSeconds,
+        height: output.height,
+        label: 'Editor Render',
+        size: output.size,
+        width: output.width,
+      }),
+    ]);
+    await this.editorProjectsService.markAsCompleted(
+      editorRender.projectId,
+      editorRender.ingredientId,
+      output,
+      editorRender.jobId,
+    );
+    await this.notificationsPublisher.publishVideoComplete(
+      WebSocketPaths.video(editorRender.ingredientId),
+      {
+        eventType: WebSocketEventType.VIDEO_GENERATED,
+        id: editorRender.ingredientId,
+        status: WebSocketEventStatus.COMPLETED,
+      },
+      editorRender.authProviderUserId,
+      editorRender.room,
+    );
+  }
+
+  private async failEditorRender(
+    editorRender: IEditorRenderCorrelation,
+  ): Promise<void> {
+    await this.ingredientsService.patch(editorRender.ingredientId, {
+      status: IngredientStatus.FAILED,
+    });
+    await this.editorProjectsService.markAsFailed(
+      editorRender.projectId,
+      editorRender.jobId,
+    );
+    await this.notificationsPublisher.publishMediaFailed(
+      WebSocketPaths.video(editorRender.ingredientId),
+      'Failed to render project. Please try again.',
+      editorRender.authProviderUserId,
+      editorRender.room,
+    );
   }
 
   private extractMetadataUpdate(

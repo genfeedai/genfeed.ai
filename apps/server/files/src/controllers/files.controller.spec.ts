@@ -82,6 +82,7 @@ describe('FilesController', () => {
     addMergeJob: vi.fn().mockResolvedValue(mockJob),
     addMirrorJob: vi.fn().mockResolvedValue(mockJob),
     addPortraitConversionJob: vi.fn().mockResolvedValue(mockJob),
+    addEditorCompositionJob: vi.fn().mockResolvedValue(mockJob),
     addResizeJob: vi.fn().mockResolvedValue(mockJob),
     addResizeVideoJob: vi.fn().mockResolvedValue(mockJob),
     addReverseJob: vi.fn().mockResolvedValue(mockJob),
@@ -584,6 +585,35 @@ describe('FilesController', () => {
       const result = await controller.processVideo(body);
 
       expect(videoQueueService.addGetVideoMetadataJob).toHaveBeenCalled();
+      expect(result.jobId).toBe('job_123');
+    });
+
+    it('should process an editor Remotion composition job', async () => {
+      const body = {
+        ...baseBody,
+        params: {
+          assetManifest: [],
+          rendererVersion: 'remotion@4.0.486' as const,
+          snapshot: {
+            projectId: 'project-123',
+            settings: {
+              backgroundColor: '#000000',
+              format: 'landscape' as const,
+              fps: 30,
+              height: 1080,
+              width: 1920,
+            },
+            totalDurationFrames: 300,
+            tracks: [],
+            version: 1 as const,
+          },
+        },
+        type: JOB_TYPES.RENDER_EDITOR_COMPOSITION,
+      };
+
+      const result = await controller.processVideo(body);
+
+      expect(videoQueueService.addEditorCompositionJob).toHaveBeenCalled();
       expect(result.jobId).toBe('job_123');
     });
 
