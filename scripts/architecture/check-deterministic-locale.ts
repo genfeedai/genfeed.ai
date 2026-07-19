@@ -509,7 +509,8 @@ export function runCheckDeterministicLocale(
   }
 
   for (const allowance of allowances) {
-    const actualCount = occurrencesByKey.get(allowanceKey(allowance))?.length ?? 0;
+    const actualCount =
+      occurrencesByKey.get(allowanceKey(allowance))?.length ?? 0;
     if (actualCount >= allowance.count) {
       continue;
     }
@@ -548,7 +549,8 @@ if (isMainModule()) {
             api,
             count: occurrences.length,
             file,
-            reason: 'Existing locale-sensitive UI; migrate to an explicit locale when this surface is touched.',
+            reason:
+              'Existing locale-sensitive UI; migrate to an explicit locale when this surface is touched.',
           };
         }),
         null,

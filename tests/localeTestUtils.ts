@@ -14,6 +14,12 @@ export function withSimulatedNumberLocale(
 ): void | Promise<void> {
   const originalToLocaleString = Number.prototype.toLocaleString;
   const OriginalNumberFormat = Intl.NumberFormat;
+  function simulatedNumberFormat(
+    locales?: Intl.LocalesArgument,
+    options?: Intl.NumberFormatOptions,
+  ): Intl.NumberFormat {
+    return new OriginalNumberFormat(locales ?? locale, options);
+  }
   const toLocaleStringSpy = vi
     .spyOn(Number.prototype, 'toLocaleString')
     .mockImplementation(function (
@@ -25,14 +31,7 @@ export function withSimulatedNumberLocale(
     });
   const numberFormatSpy = vi
     .spyOn(Intl, 'NumberFormat')
-    .mockImplementation(
-      function (
-        locales?: Intl.LocalesArgument,
-        options?: Intl.NumberFormatOptions,
-      ) {
-        return new OriginalNumberFormat(locales ?? locale, options);
-      },
-    );
+    .mockImplementation(simulatedNumberFormat);
 
   const restore = (): void => {
     numberFormatSpy.mockRestore();

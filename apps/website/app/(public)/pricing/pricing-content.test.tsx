@@ -1,8 +1,8 @@
+import { formatOutputs, formatPrice } from '@genfeedai/pricing';
 import {
   getProPlan,
   getScalePlan,
 } from '@helpers/business/pricing/pricing.helper';
-import { formatOutputs, formatPrice } from '@genfeedai/pricing';
 import { withSimulatedNumberLocale } from '@shared/localeTestUtils';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
@@ -112,9 +112,7 @@ describe('PricingContent launch pricing', () => {
       expect(screen.getByText('100,000 credits')).toBeInTheDocument();
       expect(screen.getByText('8,000 credits included')).toBeInTheDocument();
       expect(formatPrice(1_000_000)).toBe('$1,000,000');
-      expect(formatOutputs({ images: 1_000_000 })).toBe(
-        '1,000,000 images',
-      );
+      expect(formatOutputs({ images: 1_000_000 })).toBe('1,000,000 images');
     });
   });
 
