@@ -289,7 +289,7 @@ export class RawCutClipCompletionService {
     await this.clipResultsService.patch(clipResultId, {
       captionedVideoS3Key: s3Key,
       captionedVideoUrl: url,
-      projectReconciliationPending: true,
+      isProjectReconciliationPending: true,
       status: 'completed',
     });
     await this.reconcileProject(clipResultId, projectId, event.organizationId);
@@ -301,10 +301,10 @@ export class RawCutClipCompletionService {
     organizationId: string,
     error: string,
   ): Promise<void> {
-    const projectReconciliationPending = Boolean(projectId);
+    const isProjectReconciliationPending = Boolean(projectId);
     await this.clipResultsService.patch(clipResultId, {
       error,
-      projectReconciliationPending,
+      isProjectReconciliationPending,
       status: 'failed',
     });
 
@@ -403,20 +403,20 @@ export class RawCutClipCompletionService {
       organizationId,
     );
     await this.clipResultsService.patch(clipResultId, {
-      projectReconciliationPending: false,
+      isProjectReconciliationPending: false,
     });
   }
 
   private async reconcileProjectIfPending(
     clipResult: ClipResultDocument,
   ): Promise<void> {
-    if (clipResult.projectReconciliationPending !== true) {
+    if (clipResult.isProjectReconciliationPending !== true) {
       return;
     }
     const projectId = this.readProjectId(clipResult);
     if (!projectId) {
       await this.clipResultsService.patch(this.readId(clipResult), {
-        projectReconciliationPending: false,
+        isProjectReconciliationPending: false,
       });
       return;
     }

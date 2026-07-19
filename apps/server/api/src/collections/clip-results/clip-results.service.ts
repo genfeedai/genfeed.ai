@@ -146,7 +146,7 @@ export class ClipResultsService extends BaseService<
       where: {
         data: {
           equals: true,
-          path: ['projectReconciliationPending'],
+          path: ['isProjectReconciliationPending'],
         },
         isDeleted: false,
         mode: 'raw-cut',
@@ -166,7 +166,7 @@ export class ClipResultsService extends BaseService<
       where: {
         data: {
           equals: true,
-          path: ['projectReconciliationPending'],
+          path: ['isProjectReconciliationPending'],
         },
         isDeleted: false,
         mode: 'raw-cut',

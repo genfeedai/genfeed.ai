@@ -162,11 +162,11 @@ describe('RawCutClipCompletionService', () => {
     expect(clipResultsService.patch).toHaveBeenNthCalledWith(1, 'clip-1', {
       captionedVideoS3Key: 'videos/clip-1.mp4',
       captionedVideoUrl: 'https://cdn.genfeed.ai/videos/clip-1.mp4',
-      projectReconciliationPending: true,
+      isProjectReconciliationPending: true,
       status: 'completed',
     });
     expect(clipResultsService.patch).toHaveBeenNthCalledWith(2, 'clip-1', {
-      projectReconciliationPending: false,
+      isProjectReconciliationPending: false,
     });
     expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
       'project-1',
@@ -190,11 +190,11 @@ describe('RawCutClipCompletionService', () => {
 
     expect(clipResultsService.patch).toHaveBeenNthCalledWith(1, 'clip-1', {
       error: 'ffmpeg failed',
-      projectReconciliationPending: true,
+      isProjectReconciliationPending: true,
       status: 'failed',
     });
     expect(clipResultsService.patch).toHaveBeenNthCalledWith(2, 'clip-1', {
-      projectReconciliationPending: false,
+      isProjectReconciliationPending: false,
     });
     expect(clipProjectsService.reconcileTerminalState).toHaveBeenCalledWith(
       'project-1',
@@ -272,7 +272,7 @@ describe('RawCutClipCompletionService', () => {
   it('does not downgrade a completed clip when a failure event is replayed', async () => {
     clipResultsService.findOne.mockResolvedValue(
       makeClip({
-        projectReconciliationPending: false,
+        isProjectReconciliationPending: false,
         status: 'completed',
       }),
     );
@@ -330,7 +330,7 @@ describe('RawCutClipCompletionService', () => {
 
   it('retries parent reconciliation from a durable terminal marker', async () => {
     const clip = makeClip({
-      projectReconciliationPending: true,
+      isProjectReconciliationPending: true,
       status: 'completed',
     });
     clipResultsService.countRawCutsPendingProjectReconciliation.mockResolvedValue(
@@ -347,7 +347,7 @@ describe('RawCutClipCompletionService', () => {
       'org-1',
     );
     expect(clipResultsService.patch).toHaveBeenCalledWith('clip-1', {
-      projectReconciliationPending: false,
+      isProjectReconciliationPending: false,
     });
   });
 
