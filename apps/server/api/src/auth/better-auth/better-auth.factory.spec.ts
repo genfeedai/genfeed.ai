@@ -385,7 +385,7 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     });
   });
 
-  it('awaits provisioning with the canonical user id and email', async () => {
+  it('passes the canonical user id and email to provisioning', async () => {
     const onUserCreated = vi.fn().mockResolvedValue(undefined);
     const hooks = requireUserCreateHooks(onUserCreated);
 
@@ -403,6 +403,22 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
     });
   });
 
+  it('awaits provisioning and propagates failures', async () => {
+    const provisioningError = new Error('provisioning failed');
+    const onUserCreated = vi.fn().mockRejectedValue(provisioningError);
+    const hooks = requireUserCreateHooks(onUserCreated);
+
+    await expect(
+      hooks.after(
+        {
+          email: 'new@example.com',
+          id: 'user_canonical',
+        } as never,
+        null,
+      ),
+    ).rejects.toBe(provisioningError);
+  });
+
   it('normalizes a missing provisioning email to null', async () => {
     const onUserCreated = vi.fn().mockResolvedValue(undefined);
     const hooks = requireUserCreateHooks(onUserCreated);
@@ -413,6 +429,20 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
       email: null,
       userId: 'user_without_email',
     });
+  });
+
+  it('does not require a provisioning callback', async () => {
+    const hooks = requireUserCreateHooks();
+
+    await expect(
+      hooks.after(
+        {
+          email: 'new@example.com',
+          id: 'user_without_callback',
+        } as never,
+        null,
+      ),
+    ).resolves.toBeUndefined();
   });
 });
 
