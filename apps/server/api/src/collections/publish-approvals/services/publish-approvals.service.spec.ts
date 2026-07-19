@@ -120,6 +120,41 @@ function makeApproval(overrides: Record<string, unknown> = {}) {
 }
 
 describe('PublishApprovalsService', () => {
+  it('preserves public projection through the service facade', () => {
+    const service = new PublishApprovalsService(
+      {} as never,
+      {} as AgentArtifactReferenceService,
+    );
+
+    expect(service.toPublicInterface(makeApproval())).toEqual(
+      expect.objectContaining({
+        actorUserId: 'user-1',
+        artifactVersionPinId: 'pin-1',
+        destinations: [
+          {
+            credentialId: 'credential-1',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ],
+        policy: {
+          id: PublishApprovalPolicyId.VERSION_BOUND_V1,
+          version: 1,
+        },
+        provenance: expect.objectContaining({
+          actorUserId: 'user-1',
+          origin: ActionOrigin.UNKNOWN,
+          source: 'typed-publish-approval',
+        }),
+        scheduleIntent: {
+          kind: 'scheduled',
+          scheduledAt: '2026-07-14T10:00:00.000Z',
+          timezone: 'UTC',
+        },
+        status: PublishApprovalStatus.QUEUED,
+      }),
+    );
+  });
+
   it('binds a typed approval to the canonical version, scope, actor, target, schedule, and policy', async () => {
     const post = makePost();
     const publishApproval = {

@@ -1,19 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { canTransitionPublishApprovalStatus } from '@genfeedai/api-types/contracts';
 import {
-  type CreatePublishApprovalInput,
-  canTransitionPublishApprovalStatus,
-  createPublishApprovalSchema,
-  publishApprovalDestinationSchema,
-  publishApprovalPolicySchema,
-  publishApprovalStatusSchema,
-  publishScheduleIntentSchema,
-} from '@genfeedai/api-types/contracts';
-import {
-  CredentialPlatform,
-  PostStatus,
   PublishApprovalPolicyId,
   PublishApprovalStatus,
-  TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
   ClaimPublishExecutionParams,
@@ -21,9 +10,6 @@ import type {
   CreateCurrentPostPublishApprovalParams,
   CreatePostPublishApprovalParams,
   IPublishApproval,
-  IPublishApprovalDestination,
-  IPublishApprovalPolicy,
-  IPublishApprovalStatusTransition,
   IPublishScheduleIntent,
   PublishExecutionClaim,
 } from '@genfeedai/interfaces';
@@ -32,7 +18,6 @@ import {
   CredentialPlatform as PrismaCredentialPlatform,
 } from '@genfeedai/prisma';
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   HttpException,
@@ -42,8 +27,12 @@ import { AgentArtifactReferenceService } from '@server/agent-artifacts/agent-art
 import {
   buildApprovalProvenance,
   readApprovalOrigin,
-  restoreApprovalProvenance,
 } from '@server/publish-approvals/publish-approval-action-origin';
+import {
+  type ApprovalPost,
+  PublishApprovalContractCodec,
+  type PublishApprovalRow,
+} from '@server/publish-approvals/publish-approval-contract.codec';
 import { digestPublishApprovalValue } from '@server/publish-approvals/publish-approval-integrity';
 import type { ServerLogger, ServerPrisma } from '@server/server.dependencies';
 
@@ -84,51 +73,14 @@ const ACTIVATABLE_APPROVAL_STATUSES = [
 
 const PUBLISH_EXECUTION_LEASE_MS = 15 * 60 * 1000;
 
-type PublishApprovalRow = {
-  actorUserId: string;
-  artifactVersionPinId: string;
-  brandId: string;
-  contextVersion: number | null;
-  createdAt: Date;
-  destinations: Prisma.JsonValue;
-  executedAt: Date | null;
-  id: string;
-  invalidatedAt: Date | null;
-  invalidationReason: string | null;
-  lastError: string | null;
-  operationId: string;
-  organizationId: string;
-  policy: Prisma.JsonValue;
-  postId: string;
-  provenance: Prisma.JsonValue;
-  scheduleIntent: Prisma.JsonValue;
-  scopeDigest: string;
-  status: string;
-  statusTransitions: Prisma.JsonValue;
-  updatedAt: Date;
-};
-
 type PublishApprovalTransaction = Pick<
   Prisma.TransactionClient,
   'post' | 'publishApproval'
 >;
 
-type ApprovalPost = {
-  agentContextVersion: number | null;
-  brandId: string;
-  credentialId: string;
-  id: string;
-  isDeleted: boolean;
-  organizationId: string;
-  platform: string;
-  publishApprovalId: string | null;
-  scheduledDate: Date | null;
-  status: string;
-  targetExecutionState: string;
-  timezone: string;
-};
-
 export class PublishApprovalsService {
+  private readonly contractCodec = new PublishApprovalContractCodec();
+
   constructor(
     private readonly prisma: Pick<
       ServerPrisma,
@@ -144,7 +96,7 @@ export class PublishApprovalsService {
   ) {}
 
   toPublicInterface(row: unknown): IPublishApproval {
-    return this.toInterface(row as PublishApprovalRow);
+    return this.contractCodec.toInterface(row as PublishApprovalRow);
   }
 
   async assertPostMutable(
@@ -184,7 +136,9 @@ export class PublishApprovalsService {
       params.mode === 'scheduled'
         ? {
             kind: 'scheduled',
-            scheduledAt: this.requireScheduledDate(post).toISOString(),
+            scheduledAt: this.contractCodec
+              .requireScheduledDate(post)
+              .toISOString(),
             timezone: post.timezone,
           }
         : { kind: 'immediate' };
@@ -211,20 +165,20 @@ export class PublishApprovalsService {
     params: CreatePostPublishApprovalParams<Prisma.TransactionClient>,
   ): Promise<IPublishApproval> {
     const client = params.transaction ?? this.prisma;
-    const input = this.parseCreateInput(params.body);
+    const input = this.contractCodec.parseCreateInput(params.body);
     const post = await this.getPostOrThrow(
       params.organizationId,
       input.postId,
       client,
     );
-    this.assertTargetStatus(post);
+    this.contractCodec.assertTargetStatus(post);
     if (
       input.contextVersion !== undefined &&
       input.contextVersion !== post.agentContextVersion
     ) {
       throw new ConflictException('Publish approval context version is stale.');
     }
-    this.assertScheduleIntent(post, input.scheduleIntent);
+    this.contractCodec.assertScheduleIntent(post, input.scheduleIntent);
 
     const versionPin =
       await this.artifactReferenceService.createOrReuseVersionPin({
@@ -239,7 +193,7 @@ export class PublishApprovalsService {
         transaction: params.transaction,
       });
 
-    const destinations = this.canonicalDestinations(post);
+    const destinations = this.contractCodec.canonicalDestinations(post);
     const scope = {
       actorUserId: params.actorUserId,
       artifactVersionPinId: versionPin.id,
@@ -267,7 +221,7 @@ export class PublishApprovalsService {
         'matched',
         post.organizationId,
       );
-      return this.toInterface(existing);
+      return this.contractCodec.toInterface(existing);
     }
 
     const id = randomUUID();
@@ -278,7 +232,7 @@ export class PublishApprovalsService {
       destinations,
     });
     const now = new Date();
-    const initialTransition = this.transition(
+    const initialTransition = this.contractCodec.transition(
       null,
       PublishApprovalStatus.APPROVED,
       params.actorUserId,
@@ -299,7 +253,7 @@ export class PublishApprovalsService {
         if (
           active.some(
             (prior) =>
-              this.parseStatus(prior.status) ===
+              this.contractCodec.parseStatus(prior.status) ===
               PublishApprovalStatus.EXECUTING,
           )
         ) {
@@ -313,10 +267,10 @@ export class PublishApprovalsService {
               invalidatedAt: now,
               invalidationReason: 'A different publish scope was approved.',
               status: PublishApprovalStatus.INVALIDATED,
-              statusTransitions: this.toJson([
-                ...this.readTransitions(prior.statusTransitions),
-                this.transition(
-                  this.parseStatus(prior.status),
+              statusTransitions: this.contractCodec.toJson([
+                ...this.contractCodec.readTransitions(prior.statusTransitions),
+                this.contractCodec.transition(
+                  this.contractCodec.parseStatus(prior.status),
                   PublishApprovalStatus.INVALIDATED,
                   params.actorUserId,
                   'A different publish scope was approved.',
@@ -333,19 +287,19 @@ export class PublishApprovalsService {
             artifactVersionPinId: versionPin.id,
             brandId: post.brandId,
             contextVersion: scope.contextVersion ?? null,
-            destinations: this.toJson(destinations),
+            destinations: this.contractCodec.toJson(destinations),
             id,
             operationId,
             organizationId: post.organizationId,
-            policy: this.toJson(input.policy),
+            policy: this.contractCodec.toJson(input.policy),
             postId: post.id,
-            provenance: this.toJson(
+            provenance: this.contractCodec.toJson(
               buildApprovalProvenance(params.provenance, params.actorUserId),
             ),
-            scheduleIntent: this.toJson(input.scheduleIntent),
+            scheduleIntent: this.contractCodec.toJson(input.scheduleIntent),
             scopeDigest,
             status: PublishApprovalStatus.APPROVED,
-            statusTransitions: this.toJson([initialTransition]),
+            statusTransitions: this.contractCodec.toJson([initialTransition]),
           },
         })) as PublishApprovalRow;
 
@@ -387,7 +341,7 @@ export class PublishApprovalsService {
         'matched',
         post.organizationId,
       );
-      return this.toInterface(concurrentWinner);
+      return this.contractCodec.toInterface(concurrentWinner);
     }
 
     this.recordApprovalTelemetry(
@@ -396,7 +350,7 @@ export class PublishApprovalsService {
       'matched',
       post.organizationId,
     );
-    return this.toInterface(approval);
+    return this.contractCodec.toInterface(approval);
   }
 
   async markQueued(
@@ -431,7 +385,7 @@ export class PublishApprovalsService {
           'Queued artifact version identity is stale.',
         );
       }
-      const initialStatus = this.parseStatus(approval.status);
+      const initialStatus = this.contractCodec.parseStatus(approval.status);
       if (initialStatus === PublishApprovalStatus.PUBLISHED) {
         this.recordApprovalTelemetry(
           'execute',
@@ -440,7 +394,7 @@ export class PublishApprovalsService {
           params.organizationId,
         );
         return {
-          approval: this.toInterface(approval),
+          approval: this.contractCodec.toInterface(approval),
           executionStartedAt: null,
           isAlreadyPublished: true,
         };
@@ -454,7 +408,7 @@ export class PublishApprovalsService {
         params.postId,
       );
       try {
-        this.assertTargetStatus(post);
+        this.contractCodec.assertTargetStatus(post);
       } catch (error: unknown) {
         await this.invalidatePost(
           approval.organizationId,
@@ -487,10 +441,10 @@ export class PublishApprovalsService {
         data: {
           lastError: null,
           status: PublishApprovalStatus.EXECUTING,
-          statusTransitions: this.toJson([
-            ...this.readTransitions(approval.statusTransitions),
-            this.transition(
-              this.parseStatus(approval.status),
+          statusTransitions: this.contractCodec.toJson([
+            ...this.contractCodec.readTransitions(approval.statusTransitions),
+            this.contractCodec.transition(
+              this.contractCodec.parseStatus(approval.status),
               PublishApprovalStatus.EXECUTING,
             ),
           ]),
@@ -515,7 +469,7 @@ export class PublishApprovalsService {
         params.postId,
       );
       return {
-        approval: this.toInterface(updated),
+        approval: this.contractCodec.toInterface(updated),
         executionStartedAt: updated.updatedAt.toISOString(),
         isAlreadyPublished: false,
       };
@@ -564,7 +518,7 @@ export class PublishApprovalsService {
       if (
         approvals.some(
           (approval) =>
-            this.parseStatus(approval.status) ===
+            this.contractCodec.parseStatus(approval.status) ===
             PublishApprovalStatus.EXECUTING,
         )
       ) {
@@ -578,10 +532,10 @@ export class PublishApprovalsService {
             invalidatedAt: now,
             invalidationReason: reason,
             status: PublishApprovalStatus.INVALIDATED,
-            statusTransitions: this.toJson([
-              ...this.readTransitions(approval.statusTransitions),
-              this.transition(
-                this.parseStatus(approval.status),
+            statusTransitions: this.contractCodec.toJson([
+              ...this.contractCodec.readTransitions(approval.statusTransitions),
+              this.contractCodec.transition(
+                this.contractCodec.parseStatus(approval.status),
                 PublishApprovalStatus.INVALIDATED,
                 actorId,
                 reason,
@@ -630,12 +584,12 @@ export class PublishApprovalsService {
       );
     }
 
-    const from = this.parseStatus(current.status);
+    const from = this.contractCodec.parseStatus(current.status);
     const next = params.isSuccessful
       ? PublishApprovalStatus.PUBLISHED
       : PublishApprovalStatus.FAILED;
     if (from === next) {
-      return this.toInterface(current);
+      return this.contractCodec.toInterface(current);
     }
     if (from !== PublishApprovalStatus.EXECUTING) {
       throw new ConflictException(
@@ -643,7 +597,7 @@ export class PublishApprovalsService {
       );
     }
 
-    const executionStartedAt = this.parseExecutionStartedAt(
+    const executionStartedAt = this.contractCodec.parseExecutionStartedAt(
       params.executionStartedAt,
     );
     if (current.updatedAt.getTime() !== executionStartedAt.getTime()) {
@@ -666,9 +620,9 @@ export class PublishApprovalsService {
         ...(params.isSuccessful ? { executedAt: new Date() } : {}),
         lastError: failureReason ?? null,
         status: next,
-        statusTransitions: this.toJson([
-          ...this.readTransitions(current.statusTransitions),
-          this.transition(from, next, undefined, failureReason),
+        statusTransitions: this.contractCodec.toJson([
+          ...this.contractCodec.readTransitions(current.statusTransitions),
+          this.contractCodec.transition(from, next, undefined, failureReason),
         ]),
       },
       where: {
@@ -690,7 +644,7 @@ export class PublishApprovalsService {
       params.organizationId,
       params.approvalId,
     );
-    return this.toInterface(updated);
+    return this.contractCodec.toInterface(updated);
   }
 
   private async resetExpiredExecution(
@@ -709,15 +663,15 @@ export class PublishApprovalsService {
       data: {
         lastError: reason,
         status: PublishApprovalStatus.QUEUED,
-        statusTransitions: this.toJson([
-          ...this.readTransitions(approval.statusTransitions),
-          this.transition(
+        statusTransitions: this.contractCodec.toJson([
+          ...this.contractCodec.readTransitions(approval.statusTransitions),
+          this.contractCodec.transition(
             PublishApprovalStatus.EXECUTING,
             PublishApprovalStatus.FAILED,
             undefined,
             reason,
           ),
-          this.transition(
+          this.contractCodec.transition(
             PublishApprovalStatus.FAILED,
             PublishApprovalStatus.QUEUED,
             undefined,
@@ -769,9 +723,9 @@ export class PublishApprovalsService {
     reason?: string,
   ): Promise<IPublishApproval> {
     const current = await this.getApprovalOrThrow(organizationId, approvalId);
-    const from = this.parseStatus(current.status);
+    const from = this.contractCodec.parseStatus(current.status);
     if (from === next) {
-      return this.toInterface(current);
+      return this.contractCodec.toInterface(current);
     }
     if (!canTransitionPublishApprovalStatus(from, next)) {
       throw new ConflictException(
@@ -788,9 +742,9 @@ export class PublishApprovalsService {
           : {}),
         ...(reason ? { lastError: reason } : {}),
         status: next,
-        statusTransitions: this.toJson([
-          ...this.readTransitions(current.statusTransitions),
-          this.transition(from, next, actorId, reason),
+        statusTransitions: this.contractCodec.toJson([
+          ...this.contractCodec.readTransitions(current.statusTransitions),
+          this.contractCodec.transition(from, next, actorId, reason),
         ]),
       },
       where: { id: current.id, organizationId, status: from },
@@ -801,29 +755,33 @@ export class PublishApprovalsService {
       );
     }
     const updated = await this.getApprovalOrThrow(organizationId, approvalId);
-    return this.toInterface(updated);
+    return this.contractCodec.toInterface(updated);
   }
 
   private async assertApprovalScope(
     approval: PublishApprovalRow,
     post: ApprovalPost,
   ): Promise<void> {
-    const destinations = this.readDestinations(approval.destinations);
-    const intent = this.readScheduleIntent(approval.scheduleIntent);
-    const policy = this.readPolicy(approval.policy);
+    const destinations = this.contractCodec.readDestinations(
+      approval.destinations,
+    );
+    const intent = this.contractCodec.readScheduleIntent(
+      approval.scheduleIntent,
+    );
+    const policy = this.contractCodec.readPolicy(approval.policy);
     const expectedScope = {
       actorUserId: approval.actorUserId,
       artifactVersionPinId: approval.artifactVersionPinId,
       brandId: post.brandId,
       contextVersion: approval.contextVersion,
-      destinations: this.canonicalDestinations(post),
+      destinations: this.contractCodec.canonicalDestinations(post),
       organizationId: post.organizationId,
       policy,
       postId: post.id,
       scheduleIntent: intent,
     };
     try {
-      this.assertScheduleIntent(post, intent);
+      this.contractCodec.assertScheduleIntent(post, intent);
     } catch (error: unknown) {
       await this.invalidatePost(
         approval.organizationId,
@@ -981,223 +939,5 @@ export class PublishApprovalsService {
       throw new PublishApprovalNotFoundException('PublishApproval', approvalId);
     }
     return approval;
-  }
-
-  private parseCreateInput(body: unknown): CreatePublishApprovalInput {
-    const result = createPublishApprovalSchema.safeParse(body);
-    if (!result.success) {
-      throw new BadRequestException({
-        detail: result.error.issues
-          .map((issue) => `${issue.path.join('.') || 'body'}: ${issue.message}`)
-          .join('; '),
-        title: 'Invalid publish approval payload',
-      });
-    }
-    return result.data;
-  }
-
-  private assertScheduleIntent(
-    post: ApprovalPost,
-    intent: IPublishScheduleIntent,
-  ): void {
-    if (intent.kind === 'immediate') {
-      return;
-    }
-    if (
-      !post.scheduledDate ||
-      post.scheduledDate.toISOString() !== intent.scheduledAt ||
-      post.timezone !== intent.timezone
-    ) {
-      throw new ConflictException(
-        'Publish schedule intent does not match the canonical Post.',
-      );
-    }
-  }
-
-  private requireScheduledDate(post: ApprovalPost): Date {
-    if (!post.scheduledDate) {
-      throw new ConflictException(
-        'Scheduled publish approval requires a canonical scheduled date.',
-      );
-    }
-    return post.scheduledDate;
-  }
-
-  private canonicalDestinations(
-    post: ApprovalPost,
-  ): IPublishApprovalDestination[] {
-    const platform = Object.values(CredentialPlatform).find(
-      (value) => value === post.platform.toLowerCase(),
-    );
-    if (!platform) {
-      throw new ConflictException('Post has an unsupported publish platform.');
-    }
-    return [{ credentialId: post.credentialId, platform }];
-  }
-
-  private assertTargetStatus(post: ApprovalPost): void {
-    const postStatus = post.status.toLowerCase();
-    if (postStatus === PostStatus.PUBLIC || postStatus === PostStatus.PENDING) {
-      throw new ConflictException(
-        `Post cannot be approved from ${postStatus}.`,
-      );
-    }
-    const status = Object.values(TargetExecutionState).find(
-      (value) => value === post.targetExecutionState,
-    );
-    if (!status) {
-      throw new ConflictException(
-        'Post target contains an unknown execution status.',
-      );
-    }
-    if (
-      status === TargetExecutionState.PUBLISHED ||
-      status === TargetExecutionState.CANCELLED ||
-      status === TargetExecutionState.SKIPPED
-    ) {
-      throw new ConflictException(
-        `Post target cannot be approved from ${status}.`,
-      );
-    }
-  }
-
-  private parseStatus(value: string): PublishApprovalStatus {
-    const result = publishApprovalStatusSchema.safeParse(value);
-    if (!result.success) {
-      throw new ConflictException(
-        'Publish approval contains an unknown lifecycle status.',
-      );
-    }
-    return result.data;
-  }
-
-  private parseExecutionStartedAt(value: string): Date {
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== value) {
-      throw new ConflictException(
-        'Publish execution lease timestamp is invalid.',
-      );
-    }
-    return parsed;
-  }
-
-  private readDestinations(
-    value: Prisma.JsonValue,
-  ): IPublishApprovalDestination[] {
-    const result = publishApprovalDestinationSchema.array().safeParse(value);
-    if (!result.success || result.data.length === 0) {
-      throw new ConflictException('Publish approval destinations are invalid.');
-    }
-    return [...result.data].sort((left, right) =>
-      `${left.platform}:${left.credentialId}`.localeCompare(
-        `${right.platform}:${right.credentialId}`,
-      ),
-    );
-  }
-
-  private readScheduleIntent(value: Prisma.JsonValue): IPublishScheduleIntent {
-    const result = publishScheduleIntentSchema.safeParse(value);
-    if (!result.success) {
-      throw new ConflictException(
-        'Publish approval schedule intent is invalid.',
-      );
-    }
-    return result.data;
-  }
-
-  private readPolicy(value: Prisma.JsonValue): IPublishApprovalPolicy {
-    const result = publishApprovalPolicySchema.safeParse(value);
-    if (!result.success) {
-      throw new ConflictException('Publish approval policy is invalid.');
-    }
-    return result.data;
-  }
-
-  private readTransitions(
-    value: Prisma.JsonValue,
-  ): IPublishApprovalStatusTransition[] {
-    if (!Array.isArray(value)) {
-      throw new ConflictException(
-        'Publish approval transition history is invalid.',
-      );
-    }
-    return value.map((entry) => {
-      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
-        throw new ConflictException(
-          'Publish approval transition history is invalid.',
-        );
-      }
-      const record = entry as Record<string, unknown>;
-      const to = this.parseStatus(String(record.to));
-      const from =
-        record.from === null ? null : this.parseStatus(String(record.from));
-      if (typeof record.at !== 'string') {
-        throw new ConflictException(
-          'Publish approval transition history is invalid.',
-        );
-      }
-      return {
-        ...(typeof record.actorId === 'string'
-          ? { actorId: record.actorId }
-          : {}),
-        at: record.at,
-        from,
-        ...(typeof record.reason === 'string' ? { reason: record.reason } : {}),
-        to,
-      };
-    });
-  }
-
-  private transition(
-    from: PublishApprovalStatus | null,
-    to: PublishApprovalStatus,
-    actorId?: string,
-    reason?: string,
-  ): IPublishApprovalStatusTransition {
-    return {
-      ...(actorId ? { actorId } : {}),
-      at: new Date().toISOString(),
-      from,
-      ...(reason ? { reason } : {}),
-      to,
-    };
-  }
-
-  private toInterface(row: PublishApprovalRow): IPublishApproval {
-    return {
-      actorUserId: row.actorUserId,
-      artifactVersionPinId: row.artifactVersionPinId,
-      brandId: row.brandId,
-      contextVersion: row.contextVersion,
-      createdAt: row.createdAt.toISOString(),
-      destinations: this.readDestinations(row.destinations),
-      executedAt: row.executedAt?.toISOString() ?? null,
-      id: row.id,
-      invalidatedAt: row.invalidatedAt?.toISOString() ?? null,
-      invalidationReason: row.invalidationReason,
-      operationId: row.operationId,
-      organizationId: row.organizationId,
-      policy: this.readPolicy(row.policy),
-      postId: row.postId,
-      provenance: restoreApprovalProvenance(
-        this.asRecord(row.provenance),
-        row.actorUserId,
-      ),
-      scheduleIntent: this.readScheduleIntent(row.scheduleIntent),
-      scopeDigest: row.scopeDigest,
-      status: this.parseStatus(row.status),
-      statusTransitions: this.readTransitions(row.statusTransitions),
-      updatedAt: row.updatedAt.toISOString(),
-    };
-  }
-
-  private asRecord(value: Prisma.JsonValue): Record<string, unknown> {
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private toJson(value: unknown): Prisma.InputJsonValue {
-    return value as Prisma.InputJsonValue;
   }
 }
