@@ -4,16 +4,29 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { CreateCronJobDto } from '@api/collections/cron-jobs/dto/create-cron-job.dto';
 import { UpdateCronJobDto } from '@api/collections/cron-jobs/dto/update-cron-job.dto';
 import {
-  CRON_JOB_TYPES,
   type CronJobDocument,
-  type CronJobLastStatus,
   type CronJobType,
 } from '@api/collections/cron-jobs/schemas/cron-job.schema';
 import type {
   CronRunDocument,
   CronRunTrigger,
 } from '@api/collections/cron-jobs/schemas/cron-run.schema';
-import { validateCronPayload } from '@api/collections/cron-jobs/utils/cron-payload-validation.util';
+import {
+  asNumber,
+  asRecord,
+  asString,
+  buildCronJobConfig,
+  isWorkflowMigratedJob,
+  LEGACY_CRON_JOB_MIGRATION_STATUS,
+  toCronJobDocument,
+  toCronRunDocument,
+} from '@api/collections/cron-jobs/services/cron-job-document.util';
+import {
+  type LegacyCronJobMigrationOptions,
+  type LegacyCronJobMigrationReport,
+  LegacyCronJobMigrationService,
+} from '@api/collections/cron-jobs/services/legacy-cron-job-migration.service';
+import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/utils/cron-schedule.util';
 import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
@@ -29,26 +42,14 @@ import {
   AgentAutonomyMode,
   AgentExecutionTrigger,
   AgentType,
-  WorkflowLifecycle,
-  WorkflowStatus,
 } from '@genfeedai/enums';
-import type {
-  CronJob as PrismaCronJob,
-  CronRun as PrismaCronRun,
-} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, GoneException, Injectable } from '@nestjs/common';
-import { CronJob as CronParser } from 'cron';
 
 /** Minimum credits required before executing a paid AI cron job type. */
 const MIN_CREDITS_FOR_AI_JOB = 10;
 export const LEGACY_CRON_JOBS_RETIRED_MESSAGE =
   'Legacy cron jobs are retired. Use workflow schedules for recurring automation.';
-const LEGACY_CRON_JOB_MIGRATION_STATUS = 'workflow_migrated';
-const LEGACY_CRON_JOB_MIGRATION_SOURCE = 'legacy-cron-job';
-const LEGACY_CRON_JOB_NODE_TYPE = 'legacyCronJob';
-const LEGACY_CRON_JOB_MIGRATION_VERSION = 1;
-const LEGACY_CRON_JOB_TYPES = new Set<string>(CRON_JOB_TYPES);
 
 interface NewsletterPayload {
   topic?: string;
@@ -70,58 +71,13 @@ interface AgentStrategyPayload {
   autonomyMode?: string;
 }
 
-export type LegacyCronJobMigrationDetailStatus =
-  | 'already_migrated'
-  | 'failed'
-  | 'invalid'
-  | 'migrated'
-  | 'skipped'
-  | 'would_migrate';
-
-export interface LegacyCronJobMigrationDetail {
-  cronJobId: string;
-  errors?: string[];
-  jobType?: CronJobType;
-  reason?: string;
-  status: LegacyCronJobMigrationDetailStatus;
-  workflowId?: string;
-}
-
-export interface LegacyCronJobMigrationReport {
-  details: LegacyCronJobMigrationDetail[];
-  dryRun: boolean;
-  failed: number;
-  invalid: number;
-  migrated: number;
-  scanned: number;
-  skipped: number;
-}
-
-export interface LegacyCronJobMigrationOptions {
-  dryRun?: boolean;
-  limit?: number;
-  organizationId?: string;
-}
-
-type CronJobMigrationClient = Pick<
-  PrismaService,
-  'cronJob' | 'cronRun' | 'workflow'
->;
-
-export function computeNextRunAtOrThrow(
-  schedule: string,
-  timezone: string | undefined,
-): Date {
-  const parser = new CronParser(
-    schedule,
-    () => undefined,
-    null,
-    false,
-    timezone ?? 'UTC',
-  );
-
-  return parser.nextDate().toJSDate();
-}
+export type {
+  LegacyCronJobMigrationDetail,
+  LegacyCronJobMigrationDetailStatus,
+  LegacyCronJobMigrationOptions,
+  LegacyCronJobMigrationReport,
+} from '@api/collections/cron-jobs/services/legacy-cron-job-migration.service';
+export { computeNextRunAtOrThrow };
 
 @Injectable()
 export class CronJobsService {
@@ -133,6 +89,7 @@ export class CronJobsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly legacyCronJobMigrationService: LegacyCronJobMigrationService,
     private readonly workflowsService: WorkflowsService,
     private readonly legacyWorkflowStepRunner: LegacyWorkflowStepRunner,
     private readonly agentRunsService: AgentRunsService,
@@ -143,132 +100,6 @@ export class CronJobsService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly logger: LoggerService,
   ) {}
-
-  private toCronJobDocument(
-    job: PrismaCronJob,
-    options: { redactSecrets?: boolean } = { redactSecrets: true },
-  ): CronJobDocument {
-    const config = this.asRecord(job.config);
-    const rawPayload = this.asRecord(config.payload);
-    const payload = options.redactSecrets
-      ? this.redactWebhookSecrets(rawPayload)
-      : rawPayload;
-
-    return {
-      ...job,
-      _id: job.mongoId ?? job.id,
-      config,
-      consecutiveFailures: this.asNumber(config.consecutiveFailures, 0),
-      enabled: this.asBoolean(config.enabled, job.status === 'ACTIVE'),
-      jobType: this.asCronJobType(config.jobType),
-      lastStatus: this.asCronJobLastStatus(config.lastStatus),
-      name: this.asString(config.name) ?? job.label ?? 'Untitled cron job',
-      organization: job.organizationId,
-      payload,
-      schedule: this.asString(config.schedule) ?? job.expression ?? '* * * * *',
-      timezone: this.asString(config.timezone) ?? 'UTC',
-      user: job.userId,
-    };
-  }
-
-  /**
-   * Redact sensitive webhook fields from a payload before returning it to clients.
-   * - webhookSecret is replaced with a masked placeholder when present.
-   * - webhookHeaders has any Authorization / X-* auth-style header values masked.
-   * The original values are preserved only in the internal DB record and are
-   * read directly from the DB (not from the serialized document) during execution.
-   */
-  private redactWebhookSecrets(
-    payload: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const redacted = { ...payload };
-
-    if (redacted.webhookSecret !== undefined) {
-      redacted.webhookSecret = '[REDACTED]';
-    }
-
-    if (
-      redacted.webhookHeaders !== null &&
-      typeof redacted.webhookHeaders === 'object' &&
-      !Array.isArray(redacted.webhookHeaders)
-    ) {
-      const headers = {
-        ...(redacted.webhookHeaders as Record<string, string>),
-      };
-      for (const key of Object.keys(headers)) {
-        const lower = key.toLowerCase();
-        if (
-          lower === 'authorization' ||
-          lower.startsWith('x-') ||
-          lower.includes('token') ||
-          lower.includes('secret') ||
-          lower.includes('api-key')
-        ) {
-          headers[key] = '[REDACTED]';
-        }
-      }
-      redacted.webhookHeaders = headers;
-    }
-
-    return redacted;
-  }
-
-  private toCronRunDocument(run: PrismaCronRun): CronRunDocument {
-    const result = this.asRecord(run.result);
-
-    return {
-      ...run,
-      _id: run.mongoId ?? run.id,
-      artifacts: this.asRecord(result.artifacts),
-      organization: run.organizationId,
-      result,
-      trigger: this.asCronRunTrigger(result.trigger),
-      user: run.userId,
-    };
-  }
-
-  private buildCronJobConfig(
-    data: Partial<{
-      consecutiveFailures: number;
-      enabled: boolean;
-      jobType: CronJobType;
-      lastStatus: CronJobLastStatus;
-      name: string;
-      payload: Record<string, unknown>;
-      schedule: string;
-      timezone: string;
-    }>,
-    existingConfig?: unknown,
-  ): Record<string, unknown> {
-    const payload = this.asRecord(existingConfig);
-
-    if (data.consecutiveFailures !== undefined) {
-      payload.consecutiveFailures = data.consecutiveFailures;
-    }
-    if (data.enabled !== undefined) {
-      payload.enabled = data.enabled;
-    }
-    if (data.jobType !== undefined) {
-      payload.jobType = data.jobType;
-    }
-    if (data.lastStatus !== undefined) {
-      payload.lastStatus = data.lastStatus;
-    }
-    if (data.name !== undefined) {
-      payload.name = data.name;
-    }
-    if (data.payload !== undefined) {
-      payload.payload = data.payload;
-    }
-    if (data.schedule !== undefined) {
-      payload.schedule = data.schedule;
-    }
-    if (data.timezone !== undefined) {
-      payload.timezone = data.timezone;
-    }
-
-    return payload;
-  }
 
   private normalizeAgentStrategy(
     strategy: PrismaService['agentStrategy'] extends {
@@ -282,95 +113,23 @@ export class CronJobsService {
     }
 
     const raw = strategy as unknown as Record<string, unknown>;
-    const config = this.asRecord(raw.config);
-    const policies = this.asRecord(raw.policies);
+    const config = asRecord(raw.config);
+    const policies = asRecord(raw.policies);
 
     return {
       ...(strategy as unknown as AgentStrategyDocument),
-      _id: this.asString(raw.mongoId) ?? this.asString(raw.id) ?? '',
-      agentType:
-        this.asString(config.agentType) ?? this.asString(raw.agentType),
-      autonomyMode:
-        this.asString(config.autonomyMode) ?? this.asString(raw.autonomyMode),
-      brand: this.asString(raw.brandId) ?? this.asString(raw.brand) ?? null,
-      dailyCreditBudget: this.asNumber(config.dailyCreditBudget, 0),
-      model: this.asString(config.model) ?? null,
+      _id: asString(raw.mongoId) ?? asString(raw.id) ?? '',
+      agentType: asString(config.agentType) ?? asString(raw.agentType),
+      autonomyMode: asString(config.autonomyMode) ?? asString(raw.autonomyMode),
+      brand: asString(raw.brandId) ?? asString(raw.brand) ?? null,
+      dailyCreditBudget: asNumber(config.dailyCreditBudget, 0),
+      model: asString(config.model) ?? null,
       organization:
-        this.asString(raw.organizationId) ??
-        this.asString(raw.organization) ??
-        '',
-      user: this.asString(raw.userId) ?? this.asString(raw.user) ?? '',
+        asString(raw.organizationId) ?? asString(raw.organization) ?? '',
+      user: asString(raw.userId) ?? asString(raw.user) ?? '',
       config,
       policies,
     };
-  }
-
-  private asRecord(value: unknown): Record<string, unknown> {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return {};
-    }
-
-    return { ...(value as Record<string, unknown>) };
-  }
-
-  private asString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  private asBoolean(value: unknown, fallback: boolean): boolean {
-    if (typeof value === 'boolean') {
-      return value;
-    }
-
-    return fallback;
-  }
-
-  private asNumber(value: unknown, fallback: number): number {
-    if (typeof value === 'number' && Number.isFinite(value)) {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const parsed = Number(value);
-      if (Number.isFinite(parsed)) {
-        return parsed;
-      }
-    }
-
-    return fallback;
-  }
-
-  private asCronJobType(value: unknown): CronJobType {
-    return value === 'agent_strategy_execution' ||
-      value === 'newsletter_substack' ||
-      value === 'workflow_execution'
-      ? value
-      : 'workflow_execution';
-  }
-
-  private readCronJobType(value: unknown): CronJobType | undefined {
-    return typeof value === 'string' && LEGACY_CRON_JOB_TYPES.has(value)
-      ? (value as CronJobType)
-      : undefined;
-  }
-
-  private isWorkflowMigratedConfig(config: unknown): boolean {
-    const migration = this.asRecord(this.asRecord(config).migration);
-    return migration.status === LEGACY_CRON_JOB_MIGRATION_STATUS;
-  }
-
-  private isWorkflowMigratedJob(job: CronJobDocument): boolean {
-    return this.isWorkflowMigratedConfig(job.config);
-  }
-
-  private asCronJobLastStatus(value: unknown): CronJobLastStatus {
-    return value === 'failed' || value === 'running' || value === 'success'
-      ? value
-      : 'never';
-  }
-
-  private asCronRunTrigger(value: unknown): CronRunTrigger | undefined {
-    return value === 'manual' || value === 'scheduled' ? value : undefined;
   }
 
   private throwRetiredMutation(): never {
@@ -404,7 +163,7 @@ export class CronJobsService {
     });
 
     return docs
-      .map((doc) => this.toCronJobDocument(doc))
+      .map((doc) => toCronJobDocument(doc))
       .filter((doc) =>
         filters.jobType ? doc.jobType === filters.jobType : true,
       );
@@ -422,7 +181,7 @@ export class CronJobsService {
       },
     });
 
-    return job ? this.toCronJobDocument(job) : null;
+    return job ? toCronJobDocument(job) : null;
   }
 
   async update(
@@ -468,7 +227,7 @@ export class CronJobsService {
       },
     });
 
-    return runs.map((run) => this.toCronRunDocument(run));
+    return runs.map((run) => toCronRunDocument(run));
   }
 
   async getRun(
@@ -485,7 +244,7 @@ export class CronJobsService {
       },
     });
 
-    return run ? this.toCronRunDocument(run) : null;
+    return run ? toCronRunDocument(run) : null;
   }
 
   async runNow(
@@ -514,12 +273,12 @@ export class CronJobsService {
       })
     )
       // Use unredacted documents for execution so webhook secrets are available.
-      .map((job) => this.toCronJobDocument(job, { redactSecrets: false }));
+      .map((job) => toCronJobDocument(job, { redactSecrets: false }));
 
     let processed = 0;
 
     for (const job of dueJobs) {
-      if (this.isWorkflowMigratedJob(job)) {
+      if (isWorkflowMigratedJob(job)) {
         continue;
       }
 
@@ -544,111 +303,7 @@ export class CronJobsService {
   async migrateLegacyJobsToWorkflows(
     options: LegacyCronJobMigrationOptions = {},
   ): Promise<LegacyCronJobMigrationReport> {
-    const dryRun = options.dryRun !== false;
-    const report: LegacyCronJobMigrationReport = {
-      details: [],
-      dryRun,
-      failed: 0,
-      invalid: 0,
-      migrated: 0,
-      scanned: 0,
-      skipped: 0,
-    };
-
-    const rows = await this.prisma.cronJob.findMany({
-      orderBy: { createdAt: 'asc' },
-      ...(options.limit ? { take: options.limit } : {}),
-      where: {
-        isDeleted: false,
-        ...(options.organizationId
-          ? { organizationId: options.organizationId }
-          : {}),
-      },
-    });
-
-    for (const row of rows) {
-      const rawConfig = this.asRecord(row.config);
-      const jobType = this.readCronJobType(rawConfig.jobType);
-      const cronJobId = row.id;
-      report.scanned += 1;
-
-      if (!jobType) {
-        report.skipped += 1;
-        report.details.push({
-          cronJobId,
-          reason: 'unsupported_job_type',
-          status: 'skipped',
-        });
-        continue;
-      }
-
-      const job = this.toCronJobDocument(row, { redactSecrets: false });
-      const existingWorkflow = await this.findMigratedWorkflow(
-        this.prisma,
-        cronJobId,
-      );
-
-      if (this.isWorkflowMigratedJob(job)) {
-        report.skipped += 1;
-        report.details.push({
-          cronJobId,
-          jobType,
-          reason: 'already_migrated',
-          status: 'already_migrated',
-          workflowId:
-            this.asString(this.asRecord(job.config?.migration).workflowId) ??
-            existingWorkflow?.id,
-        });
-        continue;
-      }
-
-      const errors = await this.validateMigrationCandidate(job);
-      if (errors.length > 0) {
-        report.invalid += 1;
-        report.details.push({
-          cronJobId,
-          errors,
-          jobType,
-          status: 'invalid',
-        });
-        continue;
-      }
-
-      if (dryRun) {
-        report.migrated += 1;
-        report.details.push({
-          cronJobId,
-          jobType,
-          reason: existingWorkflow
-            ? 'existing_migrated_workflow_found'
-            : 'dry_run',
-          status: 'would_migrate',
-          workflowId: existingWorkflow?.id,
-        });
-        continue;
-      }
-
-      try {
-        const workflowId = await this.migrateCronJobToWorkflow(job);
-        report.migrated += 1;
-        report.details.push({
-          cronJobId,
-          jobType,
-          status: 'migrated',
-          workflowId,
-        });
-      } catch (error: unknown) {
-        report.failed += 1;
-        report.details.push({
-          cronJobId,
-          errors: [error instanceof Error ? error.message : String(error)],
-          jobType,
-          status: 'failed',
-        });
-      }
-    }
-
-    return report;
+    return this.legacyCronJobMigrationService.migrate(options);
   }
 
   async executeMigratedLegacyCronJob(params: {
@@ -669,188 +324,12 @@ export class CronJobsService {
       throw new Error('Migrated legacy cron job not found');
     }
 
-    const job = this.toCronJobDocument(row, { redactSecrets: false });
-    if (!this.isWorkflowMigratedJob(job)) {
+    const job = toCronJobDocument(row, { redactSecrets: false });
+    if (!isWorkflowMigratedJob(job)) {
       throw new Error('Legacy cron job has not been migrated to workflow');
     }
 
     return await this.executeByType(job.jobType, job.payload, job);
-  }
-
-  private async validateMigrationCandidate(
-    job: CronJobDocument,
-  ): Promise<string[]> {
-    const errors = validateCronPayload(job.jobType, job.payload);
-
-    try {
-      computeNextRunAtOrThrow(job.schedule, job.timezone);
-    } catch {
-      errors.push('schedule or timezone is invalid');
-    }
-
-    if (!job.organizationId) {
-      errors.push('organizationId is required');
-    }
-    if (!job.userId) {
-      errors.push('userId is required');
-    }
-
-    if (job.jobType === 'workflow_execution') {
-      const workflowId = this.asString(job.payload.workflowId);
-      if (workflowId) {
-        const workflow = await this.prisma.workflow.findFirst({
-          select: { id: true },
-          where: {
-            id: workflowId,
-            isDeleted: false,
-            organizationId: job.organizationId,
-            userId: job.userId,
-          },
-        });
-        if (!workflow) {
-          errors.push('payload.workflowId does not reference a live workflow');
-        }
-      }
-    }
-
-    return errors;
-  }
-
-  private async migrateCronJobToWorkflow(
-    job: CronJobDocument,
-  ): Promise<string> {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        return await this.prisma.$transaction(
-          async (tx) => {
-            const existing = await this.findMigratedWorkflow(tx, job.id);
-            const workflowId =
-              existing?.id ?? (await this.createMigratedWorkflow(tx, job)).id;
-
-            await this.markCronJobMigrated(tx, job, workflowId);
-            return workflowId;
-          },
-          { isolationLevel: 'Serializable' },
-        );
-      } catch (error: unknown) {
-        if ((error as { code?: string }).code === 'P2034' && attempt === 0) {
-          continue;
-        }
-        throw error;
-      }
-    }
-
-    throw new Error('Failed to migrate legacy cron job after retry');
-  }
-
-  private async findMigratedWorkflow(
-    client: CronJobMigrationClient,
-    legacyCronJobId: string,
-  ): Promise<{ id: string } | null> {
-    return await client.workflow.findFirst({
-      select: { id: true },
-      where: {
-        isDeleted: false,
-        metadata: {
-          equals: legacyCronJobId,
-          path: ['legacyCronJobId'],
-        },
-      },
-    });
-  }
-
-  private async createMigratedWorkflow(
-    client: CronJobMigrationClient,
-    job: CronJobDocument,
-  ): Promise<{ id: string }> {
-    const executionCount = await client.cronRun.count({
-      where: {
-        cronJobId: job.id,
-        isDeleted: false,
-        status: 'COMPLETED',
-      },
-    });
-
-    return await client.workflow.create({
-      data: {
-        edges: [] as never,
-        executionCount,
-        inputVariables: [] as never,
-        isDeleted: false,
-        isScheduleEnabled: job.status === 'ACTIVE' && job.enabled,
-        label: `Migrated: ${job.name}`,
-        lastExecutedAt: job.lastRunAt,
-        lifecycle: WorkflowLifecycle.PUBLISHED,
-        metadata: {
-          legacyCronJobId: job.id,
-          legacyCronJobMongoId: job.mongoId,
-          legacyCronJobType: job.jobType,
-          migrationVersion: LEGACY_CRON_JOB_MIGRATION_VERSION,
-          originalEnabled: job.enabled,
-          originalNextRunAt: job.nextRunAt?.toISOString(),
-          originalStatus: job.status,
-          sourceIssue: 789,
-          sourceType: LEGACY_CRON_JOB_MIGRATION_SOURCE,
-        } as never,
-        nodes: [
-          {
-            data: {
-              config: {
-                jobType: job.jobType,
-                legacyCronJobId: job.id,
-              },
-              label: this.legacyCronNodeLabel(job.jobType),
-            },
-            id: LEGACY_CRON_JOB_NODE_TYPE,
-            position: { x: 0, y: 120 },
-            type: LEGACY_CRON_JOB_NODE_TYPE,
-          },
-        ] as never,
-        organizationId: job.organizationId,
-        progress: 0,
-        schedule: job.schedule,
-        status: WorkflowStatus.ACTIVE,
-        steps: [] as never,
-        timezone: job.timezone,
-        userId: job.userId,
-      },
-      select: { id: true },
-    });
-  }
-
-  private legacyCronNodeLabel(jobType: CronJobType): string {
-    switch (jobType) {
-      case 'workflow_execution':
-        return 'Execute Legacy Workflow Schedule';
-      case 'agent_strategy_execution':
-        return 'Execute Legacy Agent Strategy';
-      case 'newsletter_substack':
-        return 'Generate Legacy Substack Newsletter';
-    }
-  }
-
-  private async markCronJobMigrated(
-    client: CronJobMigrationClient,
-    job: CronJobDocument,
-    workflowId: string,
-  ): Promise<void> {
-    const nextConfig = this.buildCronJobConfig({ enabled: false }, job.config);
-    nextConfig.migration = {
-      migratedAt: new Date().toISOString(),
-      originalEnabled: job.enabled,
-      originalNextRunAt: job.nextRunAt?.toISOString(),
-      originalStatus: job.status,
-      status: LEGACY_CRON_JOB_MIGRATION_STATUS,
-      workflowId,
-    };
-
-    await client.cronJob.update({
-      data: {
-        config: nextConfig as never,
-        status: 'PAUSED',
-      },
-      where: { id: job.id },
-    });
   }
 
   private async assertCreditBalance(
@@ -905,7 +384,7 @@ export class CronJobsService {
 
     await this.prisma.cronJob.update({
       data: {
-        config: this.buildCronJobConfig(
+        config: buildCronJobConfig(
           { lastStatus: 'running' },
           job.config,
         ) as never,
@@ -933,7 +412,7 @@ export class CronJobsService {
 
       await this.prisma.cronJob.update({
         data: {
-          config: this.buildCronJobConfig(
+          config: buildCronJobConfig(
             {
               consecutiveFailures: 0,
               lastStatus: 'success',
@@ -949,7 +428,7 @@ export class CronJobsService {
         where: { id: runId },
       });
 
-      return this.toCronRunDocument(completedRun ?? run);
+      return toCronRunDocument(completedRun ?? run);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
 
@@ -971,7 +450,7 @@ export class CronJobsService {
 
       await this.prisma.cronJob.update({
         data: {
-          config: this.buildCronJobConfig(
+          config: buildCronJobConfig(
             {
               consecutiveFailures: job.consecutiveFailures + 1,
               lastStatus: 'failed',
@@ -987,7 +466,7 @@ export class CronJobsService {
         where: { id: runId },
       });
 
-      return this.toCronRunDocument(failedRun ?? run);
+      return toCronRunDocument(failedRun ?? run);
     }
   }
 

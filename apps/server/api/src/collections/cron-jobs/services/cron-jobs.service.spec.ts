@@ -3,6 +3,7 @@ import {
   computeNextRunAtOrThrow,
   LEGACY_CRON_JOBS_RETIRED_MESSAGE,
 } from '@api/collections/cron-jobs/services/cron-jobs.service';
+import { LegacyCronJobMigrationService } from '@api/collections/cron-jobs/services/legacy-cron-job-migration.service';
 import type { CronJob as PrismaCronJob } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -17,7 +18,7 @@ describe('CronJobsService schedule validation', () => {
   });
 });
 
-describe('CronJobsService legacy cron workflow migration', () => {
+describe('Legacy cron workflow migration', () => {
   const now = new Date('2026-06-24T08:00:00.000Z');
 
   function buildCronJob(overrides: Partial<PrismaCronJob> = {}): PrismaCronJob {
@@ -93,8 +94,12 @@ describe('CronJobsService legacy cron workflow migration', () => {
       warn: vi.fn(),
     };
 
+    const legacyCronJobMigrationService = new LegacyCronJobMigrationService(
+      prisma as never,
+    );
     const service = new CronJobsService(
       prisma as never,
+      legacyCronJobMigrationService,
       workflowsService as never,
       legacyWorkflowStepRunner as never,
       { create: vi.fn() } as never,
@@ -111,6 +116,7 @@ describe('CronJobsService legacy cron workflow migration', () => {
       creditsUtilsService,
       legacyWorkflowStepRunner,
       logger,
+      legacyCronJobMigrationService,
       prisma,
       service,
       workflowsService,
@@ -118,7 +124,7 @@ describe('CronJobsService legacy cron workflow migration', () => {
   }
 
   it('reports invalid supported rows without creating workflows', async () => {
-    const { prisma, service } = createService();
+    const { legacyCronJobMigrationService, prisma } = createService();
     prisma.cronJob.findMany.mockResolvedValue([
       buildCronJob({
         config: {
@@ -132,7 +138,7 @@ describe('CronJobsService legacy cron workflow migration', () => {
     ]);
     prisma.workflow.findFirst.mockResolvedValue(null);
 
-    const report = await service.migrateLegacyJobsToWorkflows();
+    const report = await legacyCronJobMigrationService.migrate();
 
     expect(report.invalid).toBe(1);
     expect(report.details[0]).toMatchObject({
@@ -148,7 +154,7 @@ describe('CronJobsService legacy cron workflow migration', () => {
   });
 
   it('creates a scheduled workflow and marks the legacy row migrated', async () => {
-    const { prisma, service } = createService();
+    const { legacyCronJobMigrationService, prisma } = createService();
     prisma.cronJob.findMany.mockResolvedValue([
       buildCronJob({
         config: {
@@ -170,7 +176,7 @@ describe('CronJobsService legacy cron workflow migration', () => {
     prisma.cronRun.count.mockResolvedValue(7);
     prisma.workflow.create.mockResolvedValue({ id: 'workflow-migrated' });
 
-    const report = await service.migrateLegacyJobsToWorkflows({
+    const report = await legacyCronJobMigrationService.migrate({
       dryRun: false,
     });
 
@@ -189,7 +195,12 @@ describe('CronJobsService legacy cron workflow migration', () => {
       timezone: 'Europe/Malta',
       userId: 'user-1',
     });
-    expect(JSON.stringify(createArg.data.nodes)).not.toContain('super-secret');
+    expect(
+      JSON.stringify({
+        metadata: createArg.data.metadata,
+        nodes: createArg.data.nodes,
+      }),
+    ).not.toContain('super-secret');
     expect(createArg.data.nodes).toMatchObject([
       {
         data: {
@@ -218,11 +229,11 @@ describe('CronJobsService legacy cron workflow migration', () => {
   });
 
   it('reuses an existing migrated workflow on rerun', async () => {
-    const { prisma, service } = createService();
+    const { legacyCronJobMigrationService, prisma } = createService();
     prisma.cronJob.findMany.mockResolvedValue([buildCronJob()]);
     prisma.workflow.findFirst.mockResolvedValue({ id: 'workflow-existing' });
 
-    const report = await service.migrateLegacyJobsToWorkflows({
+    const report = await legacyCronJobMigrationService.migrate({
       dryRun: false,
     });
 
@@ -239,6 +250,48 @@ describe('CronJobsService legacy cron workflow migration', () => {
         }),
       }),
     );
+  });
+
+  it('retries a serializable transaction conflict once', async () => {
+    const { legacyCronJobMigrationService, prisma } = createService();
+    prisma.cronJob.findMany.mockResolvedValue([buildCronJob()]);
+    prisma.workflow.findFirst.mockResolvedValue(null);
+    prisma.workflow.create.mockResolvedValue({ id: 'workflow-migrated' });
+    prisma.$transaction.mockRejectedValueOnce({ code: 'P2034' });
+
+    const report = await legacyCronJobMigrationService.migrate({
+      dryRun: false,
+    });
+
+    expect(report.migrated).toBe(1);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves the CronJobsService migration facade', async () => {
+    const { legacyCronJobMigrationService, service } = createService();
+    const report = {
+      details: [],
+      dryRun: true,
+      failed: 0,
+      invalid: 0,
+      migrated: 0,
+      scanned: 0,
+      skipped: 0,
+    };
+    const migrate = vi
+      .spyOn(legacyCronJobMigrationService, 'migrate')
+      .mockResolvedValue(report);
+
+    await expect(
+      service.migrateLegacyJobsToWorkflows({
+        limit: 5,
+        organizationId: 'org-1',
+      }),
+    ).resolves.toBe(report);
+    expect(migrate).toHaveBeenCalledWith({
+      limit: 5,
+      organizationId: 'org-1',
+    });
   });
 
   it('skips migrated rows in the legacy runner even if they are returned', async () => {

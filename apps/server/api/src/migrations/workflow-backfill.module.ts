@@ -2,6 +2,7 @@ import type { AgentRunsService } from '@api/collections/agent-runs/services/agen
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
+import { LegacyCronJobMigrationService } from '@api/collections/cron-jobs/services/legacy-cron-job-migration.service';
 import type { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -28,16 +29,24 @@ import { Module } from '@nestjs/common';
     // Logger) come from the imported modules; WorkflowExecutionQueueService is
     // @Optional and guarded in the seeder, so it's safe to omit here.
     WorkflowTemplateSeederService,
+    LegacyCronJobMigrationService,
     {
-      inject: [PrismaService, WorkflowsService, LoggerService],
+      inject: [
+        PrismaService,
+        LegacyCronJobMigrationService,
+        WorkflowsService,
+        LoggerService,
+      ],
       provide: CronJobsService,
       useFactory: (
         prisma: PrismaService,
+        legacyCronJobMigrationService: LegacyCronJobMigrationService,
         workflowsService: WorkflowsService,
         logger: LoggerService,
       ) =>
         new CronJobsService(
           prisma,
+          legacyCronJobMigrationService,
           workflowsService,
           {} as LegacyWorkflowStepRunner,
           {} as AgentRunsService,
