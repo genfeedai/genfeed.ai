@@ -28,6 +28,11 @@ describe('check-deterministic-locale', () => {
         '  new Date().toLocaleTimeString(),',
         '  new Intl.NumberFormat().format(1000),',
         '  Intl.DateTimeFormat().format(new Date()),',
+        '  (1000).toLocaleString(undefined, { maximumFractionDigits: 0 }),',
+        "  new Date().toLocaleDateString(undefined, { weekday: 'short' }),",
+        "  new Date().toLocaleTimeString(undefined, { hour: '2-digit' }),",
+        '  new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(1000),',
+        "  Intl.DateTimeFormat(undefined, { weekday: 'short' }).format(new Date()),",
         '];',
       ].join('\n'),
     );
@@ -37,8 +42,13 @@ describe('check-deterministic-locale', () => {
       rootDir: testDir,
     });
 
-    expect(result.violations).toHaveLength(5);
+    expect(result.violations).toHaveLength(10);
     expect(result.occurrences.map(({ api }) => api)).toEqual([
+      'to-locale-string',
+      'to-locale-date-string',
+      'to-locale-time-string',
+      'intl-number-format',
+      'intl-date-time-format',
       'to-locale-string',
       'to-locale-date-string',
       'to-locale-time-string',

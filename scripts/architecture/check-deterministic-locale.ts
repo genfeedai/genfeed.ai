@@ -237,6 +237,11 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     2,
   ),
   legacyUiAllowance(
+    'packages/agent/src/components/ContentCalendarCard.tsx',
+    'to-locale-date-string',
+    1,
+  ),
+  legacyUiAllowance(
     'packages/agent/src/components/CreditsBalanceCard.tsx',
     'to-locale-string',
     1,
@@ -250,6 +255,11 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'packages/agent/src/components/blocks/DynamicBlockGrid.tsx',
     'to-locale-string',
     2,
+  ),
+  legacyUiAllowance(
+    'packages/agent/src/components/agent-workspace-run.helpers.ts',
+    'intl-date-time-format',
+    1,
   ),
   allowance(
     'packages/helpers/src/formatting/timezone/timezone.helper.ts',
@@ -374,6 +384,11 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     2,
   ),
   legacyUiAllowance(
+    'packages/ui/src/components/posts/post-detail-sidebar/PostSidebarReviewCard.tsx',
+    'to-locale-string',
+    2,
+  ),
+  legacyUiAllowance(
     'packages/ui/src/components/time/ClientDateTime.tsx',
     'to-locale-string',
     1,
@@ -401,23 +416,24 @@ const IMPLICIT_LOCALE_PATTERNS: Array<{
 }> = [
   {
     api: 'to-locale-date-string',
-    pattern: /\.toLocaleDateString\(\s*\)/gu,
+    pattern: /\.toLocaleDateString\(\s*(?:\)|undefined\s*(?:,|\)))/gu,
   },
   {
     api: 'to-locale-string',
-    pattern: /\.toLocaleString\(\s*\)/gu,
+    pattern: /\.toLocaleString\(\s*(?:\)|undefined\s*(?:,|\)))/gu,
   },
   {
     api: 'to-locale-time-string',
-    pattern: /\.toLocaleTimeString\(\s*\)/gu,
+    pattern: /\.toLocaleTimeString\(\s*(?:\)|undefined\s*(?:,|\)))/gu,
   },
   {
     api: 'intl-number-format',
-    pattern: /(?:new\s+)?Intl\.NumberFormat\(\s*\)/gu,
+    pattern: /(?:new\s+)?Intl\.NumberFormat\(\s*(?:\)|undefined\s*(?:,|\)))/gu,
   },
   {
     api: 'intl-date-time-format',
-    pattern: /(?:new\s+)?Intl\.DateTimeFormat\(\s*\)/gu,
+    pattern:
+      /(?:new\s+)?Intl\.DateTimeFormat\(\s*(?:\)|undefined\s*(?:,|\)))/gu,
   },
 ];
 
