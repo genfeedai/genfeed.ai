@@ -117,6 +117,16 @@
       }
     },
     {
+      "includes": ["apps/server/notifications/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "error"
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "ee/packages/**/*.{controller,service,module,resolver,guard,interceptor,pipe,middleware,filter}.ts"
       ],
