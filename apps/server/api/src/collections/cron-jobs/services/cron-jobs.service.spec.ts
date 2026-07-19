@@ -1,3 +1,4 @@
+import { toCronJobDocument } from '@api/collections/cron-jobs/services/cron-job-document.util';
 import {
   CronJobsService,
   computeNextRunAtOrThrow,
@@ -291,6 +292,35 @@ describe('Legacy cron workflow migration', () => {
     expect(migrate).toHaveBeenCalledWith({
       limit: 5,
       organizationId: 'org-1',
+    });
+  });
+
+  it('redacts webhook credentials when mapper options are empty', () => {
+    const document = toCronJobDocument(
+      buildCronJob({
+        config: {
+          enabled: true,
+          jobType: 'newsletter_substack',
+          payload: {
+            webhookHeaders: {
+              Authorization: 'Bearer secret-token',
+              'Content-Type': 'application/json',
+            },
+            webhookSecret: 'super-secret',
+          },
+          schedule: '0 9 * * 1',
+          timezone: 'UTC',
+        },
+      }),
+      {},
+    );
+
+    expect(document.payload).toMatchObject({
+      webhookHeaders: {
+        Authorization: '[REDACTED]',
+        'Content-Type': 'application/json',
+      },
+      webhookSecret: '[REDACTED]',
     });
   });
 

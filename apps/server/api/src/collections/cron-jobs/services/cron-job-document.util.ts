@@ -66,6 +66,11 @@ function asCronRunTrigger(value: unknown): CronRunTrigger | undefined {
   return value === 'manual' || value === 'scheduled' ? value : undefined;
 }
 
+/**
+ * Redacts webhook credentials before cron-job documents cross a response
+ * boundary. Execution paths must opt out explicitly and read the original
+ * values from the database.
+ */
 function redactWebhookSecrets(
   payload: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -161,13 +166,14 @@ export function readCronJobType(value: unknown): CronJobType | undefined {
 
 export function toCronJobDocument(
   job: PrismaCronJob,
-  options: { redactSecrets?: boolean } = { redactSecrets: true },
+  options: { redactSecrets?: boolean } = {},
 ): CronJobDocument {
   const config = asRecord(job.config);
   const rawPayload = asRecord(config.payload);
-  const payload = options.redactSecrets
-    ? redactWebhookSecrets(rawPayload)
-    : rawPayload;
+  const payload =
+    (options.redactSecrets ?? true)
+      ? redactWebhookSecrets(rawPayload)
+      : rawPayload;
 
   return {
     ...job,
