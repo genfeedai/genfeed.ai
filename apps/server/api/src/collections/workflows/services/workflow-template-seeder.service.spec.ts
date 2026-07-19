@@ -4,7 +4,10 @@ import {
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import {
+  buildSystemWorkflowDuplicateMetadata,
   buildSystemWorkflowMetadata,
+  getSystemWorkflowDuplicateMetadata,
+  SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY,
   SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
   SYSTEM_WORKFLOW_TEMPLATE_VERSION,
 } from '@api/collections/workflows/system-workflow.contract';
@@ -28,6 +31,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
       findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
   };
   const workflowExecutionQueueService = {
@@ -48,6 +52,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     prisma.workflow.findFirst.mockResolvedValue(null);
     prisma.workflow.findMany.mockResolvedValue([]);
     prisma.workflow.update.mockResolvedValue({});
+    prisma.workflow.updateMany.mockResolvedValue({ count: 0 });
     workflowExecutionQueueService.syncWorkflowScheduler.mockResolvedValue(
       undefined,
     );
@@ -201,6 +206,203 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
       where: { id: 'workflow-1' },
     });
     expect(tx.workflow.create).not.toHaveBeenCalled();
+  });
+
+  it('marks stale system workflow duplicates as upgrade available', async () => {
+    const sourceSystemWorkflow = buildSystemWorkflowMetadata({
+      canonicalId: 'daily-trends-digest',
+      changeSummary: 'Initial daily digest.',
+      version: 1,
+    });
+    const duplicateMetadata = buildSystemWorkflowDuplicateMetadata(
+      { customFlag: true, systemWorkflow: sourceSystemWorkflow },
+      'system-workflow-1',
+    );
+    const currentSystemWorkflow = buildSystemWorkflowMetadata({
+      canonicalId: 'daily-trends-digest',
+      changeSummary: 'Add owner summary delivery.',
+      version: 2,
+    });
+    prisma.workflow.findMany.mockResolvedValue([
+      {
+        id: 'duplicate-1',
+        metadata: duplicateMetadata,
+      },
+    ]);
+
+    await service.reconcileSystemWorkflowDuplicates(
+      'org-1',
+      currentSystemWorkflow,
+    );
+
+    expect(prisma.workflow.findMany).toHaveBeenCalledWith({
+      select: { id: true, metadata: true },
+      where: {
+        isDeleted: false,
+        metadata: {
+          equals: 'daily-trends-digest',
+          path: [
+            SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY,
+            'canonicalId',
+          ],
+        },
+        organizationId: 'org-1',
+      },
+    });
+    expect(prisma.workflow.updateMany).toHaveBeenCalledWith({
+      data: {
+        metadata: expect.objectContaining({
+          customFlag: true,
+          duplicatedFromSystemWorkflow: expect.objectContaining({
+            canonicalId: 'daily-trends-digest',
+            currentSystemWorkflowChangeSummary:
+              'Add owner summary delivery.',
+            currentSystemWorkflowVersion: 2,
+            sourceWorkflowVersion: 1,
+            upgradeEligible: true,
+            upgradeStatus: 'upgrade_available',
+          }),
+        }),
+      },
+      where: {
+        id: 'duplicate-1',
+        isDeleted: false,
+        metadata: { equals: duplicateMetadata },
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('does not write duplicate metadata that already matches the canonical version', async () => {
+    const currentSystemWorkflow = buildSystemWorkflowMetadata({
+      canonicalId: 'daily-trends-digest',
+      changeSummary: 'Current daily digest.',
+      version: 2,
+    });
+    prisma.workflow.findMany.mockResolvedValue([
+      {
+        id: 'duplicate-1',
+        metadata: buildSystemWorkflowDuplicateMetadata(
+          { systemWorkflow: currentSystemWorkflow },
+          'system-workflow-1',
+        ),
+      },
+    ]);
+
+    await service.reconcileSystemWorkflowDuplicates(
+      'org-1',
+      currentSystemWorkflow,
+    );
+
+    expect(prisma.workflow.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('retries duplicate reconciliation after a metadata compare-and-swap miss', async () => {
+    const currentSystemWorkflow = buildSystemWorkflowMetadata({
+      canonicalId: 'livestream-bot-session-processing',
+      sourceIssue: 793,
+      version: 1,
+    });
+    const duplicateMetadata = buildSystemWorkflowDuplicateMetadata(
+      { systemWorkflow: currentSystemWorkflow },
+      'system-workflow-1',
+    );
+    const duplicateProvenance =
+      getSystemWorkflowDuplicateMetadata(duplicateMetadata);
+
+    if (!duplicateProvenance) {
+      throw new Error('Expected valid duplicate provenance fixture');
+    }
+
+    const staleMetadata = {
+      ...duplicateMetadata,
+      duplicatedFromSystemWorkflow: {
+        ...duplicateProvenance,
+        currentSystemWorkflowChangeSummary: 'Stale projection.',
+        currentSystemWorkflowVersion: 2,
+        upgradeEligible: true,
+        upgradeStatus: 'upgrade_available' as const,
+      },
+    };
+    prisma.workflow.findFirst.mockResolvedValue({
+      id: 'system-workflow-1',
+      metadata: {
+        sourceIssue: 793,
+        sourceTemplateChangeSummary: SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+        sourceTemplateId: 'livestream-bot-session-processing',
+        sourceTemplateVersion: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+        sourceType: 'seeded-template',
+        systemWorkflow: currentSystemWorkflow,
+      },
+    });
+    prisma.workflow.findMany.mockResolvedValue([
+      {
+        id: 'duplicate-1',
+        metadata: staleMetadata,
+      },
+    ]);
+    prisma.workflow.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
+    await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
+
+    expect(prisma.workflow.updateMany).toHaveBeenCalledTimes(2);
+    expect(prisma.workflow.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: {
+          metadata: expect.objectContaining({
+            duplicatedFromSystemWorkflow: expect.objectContaining({
+              currentSystemWorkflowVersion: 1,
+              upgradeEligible: false,
+              upgradeStatus: 'current',
+            }),
+          }),
+        },
+        where: expect.objectContaining({
+          id: 'duplicate-1',
+          metadata: { equals: staleMetadata },
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+  });
+
+  it('skips malformed and foreign system workflow duplicate metadata', async () => {
+    const currentSystemWorkflow = buildSystemWorkflowMetadata({
+      canonicalId: 'daily-trends-digest',
+      changeSummary: 'Current daily digest.',
+      version: 2,
+    });
+    prisma.workflow.findMany.mockResolvedValue([
+      {
+        id: 'malformed-duplicate',
+        metadata: {
+          duplicatedFromSystemWorkflow: {
+            canonicalId: 'daily-trends-digest',
+          },
+        },
+      },
+      {
+        id: 'foreign-duplicate',
+        metadata: buildSystemWorkflowDuplicateMetadata(
+          {
+            systemWorkflow: buildSystemWorkflowMetadata({
+              canonicalId: 'scheduled-post-publishing',
+            }),
+          },
+          'system-workflow-2',
+        ),
+      },
+    ]);
+
+    await service.reconcileSystemWorkflowDuplicates(
+      'org-1',
+      currentSystemWorkflow,
+    );
+
+    expect(prisma.workflow.updateMany).not.toHaveBeenCalled();
   });
 
   it('seeds action-level system workflows for hardcoded product action replacements', async () => {
