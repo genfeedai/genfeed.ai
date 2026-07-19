@@ -54,6 +54,7 @@ import { CreditTransactionsService } from '@api/collections/credits/services/cre
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
@@ -213,32 +214,40 @@ const createImageGenerationService = () => {
     warn: vi.fn(),
   } as unknown as LoggerService;
 
-  const service = new ImageGenerationService(
-    configService as never,
+  const providerDispatchService = new ImageGenerationProviderDispatchService(
     activitiesService as never,
-    assetsService as never,
-    brandsService as never,
     comfyUIService as never,
-    creditsUtilsService as never,
     failedGenerationService as never,
     filesClientService as never,
     falService as never,
-    ingredientCompletionService as never,
     imagesService as never,
-    ingredientsService as never,
-    organizationSettingsService as never,
     klingAIService as never,
     leonardoaiService as never,
     loggerService,
     metadataService as never,
+    promptBuilderService as never,
+    replicateService as never,
+    sharedService as never,
+    websocketService as never,
+  );
+
+  const service = new ImageGenerationService(
+    configService as never,
+    assetsService as never,
+    brandsService as never,
+    creditsUtilsService as never,
+    ingredientCompletionService as never,
+    providerDispatchService,
+    imagesService as never,
+    ingredientsService as never,
+    organizationSettingsService as never,
+    loggerService,
     modelRegistrationService as never,
     modelsService as never,
     promptBuilderService as never,
     promptsService as never,
-    replicateService as never,
     routerService as never,
     sharedService as never,
-    websocketService as never,
   );
 
   return {
