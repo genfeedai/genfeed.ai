@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
 import { JobState } from '@genfeedai/enums';
 import type {
@@ -16,11 +17,16 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 type FileProcessingJob = IFileProcessingJob;
 type JobResponse = IJobResponse;
+type UpstreamHttpError = {
+  response?: {
+    status?: number;
+  };
+};
 
 export type { FileProcessingJob, JobResponse };
 
@@ -191,6 +197,13 @@ export class FileQueueService {
         `Failed to cancel editor render ${jobId}`,
         error,
       );
+      const status = (error as UpstreamHttpError).response?.status;
+      if (status === 404) {
+        throw new NotFoundException('Editor render job', jobId);
+      }
+      if (status === 409) {
+        throw new ConflictException('Editor render job is already terminal');
+      }
       throw error;
     }
   }

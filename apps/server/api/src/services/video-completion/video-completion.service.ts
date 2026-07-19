@@ -12,6 +12,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import {
+  EDITOR_RENDER_PUBLIC_MESSAGES,
   type EditorRenderTerminalReason,
   type IEditorRenderCorrelation,
   type IEditorRenderOutputMetadata,
@@ -20,7 +21,11 @@ import {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  type OnModuleInit,
+} from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 type VideoCompletionEvent = {
@@ -213,7 +218,18 @@ export class VideoCompletionService implements OnModuleInit {
             job.state === JobState.DELAYED ||
             job.state === JobState.PENDING)
         ) {
-          await this.fileQueueService.cancelEditorRender(editorRender.jobId);
+          try {
+            await this.fileQueueService.cancelEditorRender(editorRender.jobId);
+          } catch (error: unknown) {
+            this.logger.warn(
+              'Stale editor render cancellation was not accepted',
+              {
+                jobId: editorRender.jobId,
+                reason: error instanceof Error ? error.name : 'unknown',
+              },
+            );
+            return;
+          }
           await this.failEditorRender(editorRender, 'timed_out');
         }
       }),
@@ -263,6 +279,9 @@ export class VideoCompletionService implements OnModuleInit {
         editorRender.jobId,
       );
     } catch (error: unknown) {
+      if (!(error instanceof ConflictException)) {
+        throw error;
+      }
       // Cancellation can win after upload but before the project CAS.
       // Keep the generated ingredient terminal and retry-safe instead of
       // leaving it as a successful orphan detached from the project.
@@ -296,9 +315,6 @@ export class VideoCompletionService implements OnModuleInit {
     reason: EditorRenderTerminalReason = 'renderer_failed',
     attempt: number = 0,
   ): Promise<void> {
-    await this.ingredientsService.patch(editorRender.ingredientId, {
-      status: IngredientStatus.FAILED,
-    });
     const failure = {
       attempt,
       failedAt: new Date().toISOString(),
@@ -317,6 +333,9 @@ export class VideoCompletionService implements OnModuleInit {
         failure,
       );
     }
+    await this.ingredientsService.patch(editorRender.ingredientId, {
+      status: IngredientStatus.FAILED,
+    });
     this.logger.error('Editor render reached a terminal failure', {
       attempt,
       jobId: editorRender.jobId,
@@ -325,7 +344,7 @@ export class VideoCompletionService implements OnModuleInit {
     });
     await this.notificationsPublisher.publishMediaFailed(
       WebSocketPaths.video(editorRender.ingredientId),
-      'Failed to render project. Please try again.',
+      EDITOR_RENDER_PUBLIC_MESSAGES[reason],
       editorRender.authProviderUserId,
       editorRender.room,
     );

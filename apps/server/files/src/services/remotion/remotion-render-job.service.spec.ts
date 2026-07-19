@@ -191,15 +191,23 @@ describe('RemotionRenderJobService', () => {
   });
 
   it('rejects an unapproved asset origin before renderer execution', async () => {
-    const job = makeJob();
+    const job = makeJob(0);
     job.data.params.assetManifest[0] = {
       ...job.data.params.assetManifest[0],
       ingredientUrl: 'https://attacker.example/video.mp4',
     };
 
-    await expect(makeService().process(job)).rejects.toThrow(
-      'asset origin is not approved',
-    );
+    await expect(makeService().process(job)).rejects.toMatchObject({
+      message: expect.stringContaining('asset origin is not approved'),
+      name: 'UnrecoverableError',
+    });
     expect(remotionRendererService.render).not.toHaveBeenCalled();
+    expect(redisService.publish).toHaveBeenCalledWith(
+      'video-processing-complete',
+      expect.objectContaining({
+        status: 'failed',
+        terminalReason: 'asset_unavailable',
+      }),
+    );
   });
 });

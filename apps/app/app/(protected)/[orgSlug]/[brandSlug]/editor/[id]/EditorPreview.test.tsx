@@ -260,14 +260,19 @@ describe('EditorPreview', () => {
       top: '40%',
     });
 
-    const videoProps = JSON.parse(
-      screen.getByTestId('video').getAttribute('data-props') ?? '{}',
-    );
+    const videos = screen.getAllByTestId('video');
+    const videoProps = JSON.parse(videos[0].getAttribute('data-props') ?? '{}');
     expect(videoProps).toMatchObject({
       src: 'https://example.test/video.mp4',
       trimAfter: 120,
       trimBefore: 15,
       volume: 0.4,
+    });
+    expect(
+      JSON.parse(videos[1].getAttribute('data-props') ?? '{}'),
+    ).toMatchObject({
+      src: 'https://example.test/muted.mp4',
+      volume: 0,
     });
     expect(screen.getAllByTestId('absolute-fill')[0]).toHaveStyle({
       backgroundColor: '#123456',

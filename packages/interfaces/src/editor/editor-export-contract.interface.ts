@@ -15,6 +15,17 @@ export type EditorRenderTerminalReason =
   | 'timed_out'
   | 'worker_lost';
 
+export const EDITOR_RENDER_PUBLIC_MESSAGES: Record<
+  EditorRenderTerminalReason,
+  string
+> = {
+  asset_unavailable: 'A required render asset could not be loaded.',
+  cancelled: 'The render was cancelled.',
+  renderer_failed: 'The renderer could not complete this project.',
+  timed_out: 'The render exceeded its time limit.',
+  worker_lost: 'The render worker stopped before completion.',
+};
+
 export interface IEditorRenderFailure {
   attempt: number;
   failedAt: string;

@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
   FileProcessingJob,
   FileQueueService,
@@ -8,6 +9,7 @@ import type { IFrameInput, IJobStatusResponse } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
+import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
@@ -228,6 +230,19 @@ describe('FileQueueService', () => {
         {},
       );
     });
+
+    it.each([
+      [404, NotFoundException],
+      [409, ConflictException],
+    ])('maps an upstream %i cancellation race to a domain exception', async (status, ExceptionType) => {
+      vi.spyOn(httpService, 'post').mockReturnValue(
+        throwError(() => ({ response: { status } })),
+      );
+
+      await expect(
+        service.cancelEditorRender('job_123'),
+      ).rejects.toBeInstanceOf(ExceptionType);
+    });
   });
 
   describe('waitForJob', () => {
@@ -279,7 +294,6 @@ describe('FileQueueService', () => {
   describe('getQueueStats', () => {
     it('should get queue statistics successfully', async () => {
       const mockStats = { completed: 100, pending: 5, processing: 2 };
-      const mockResponse = { data: mockStats };
       vi.spyOn(httpService, 'get').mockReturnValue(httpResponse(mockStats));
 
       const result = await service.getQueueStats();

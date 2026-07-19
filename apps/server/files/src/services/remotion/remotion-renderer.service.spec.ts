@@ -175,10 +175,13 @@ describe('RemotionRendererService', () => {
       timeoutCancellationService as never,
     );
     const render = service.render(params, '/tmp/output.mp4', vi.fn());
+    const timeoutAssertion = expect(render).rejects.toBeInstanceOf(
+      EditorRenderTimeoutError,
+    );
 
     await registered;
     await vi.advanceTimersByTimeAsync(EDITOR_RENDER_TIMEOUT_MS);
 
-    await expect(render).rejects.toBeInstanceOf(EditorRenderTimeoutError);
+    await timeoutAssertion;
   });
 });

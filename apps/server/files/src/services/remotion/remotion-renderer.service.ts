@@ -69,10 +69,7 @@ export class RemotionRendererService {
       rejectLifecycle?.(new EditorRenderCancelledError());
     };
     const unregister = this.cancellationService.register(jobId, cancel);
-    const timeoutId = setTimeout(() => {
-      renderCancellation.cancel();
-      rejectLifecycle?.(new EditorRenderTimeoutError());
-    }, EDITOR_RENDER_TIMEOUT_MS);
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
     try {
       const renderOperation = (async () => {
@@ -83,6 +80,10 @@ export class RemotionRendererService {
           inputProps,
           serveUrl,
         });
+        timeoutId = setTimeout(() => {
+          renderCancellation.cancel();
+          rejectLifecycle?.(new EditorRenderTimeoutError());
+        }, EDITOR_RENDER_TIMEOUT_MS);
 
         await renderMedia({
           audioCodec: 'aac',
@@ -105,7 +106,9 @@ export class RemotionRendererService {
 
       await Promise.race([renderOperation, lifecycleAbort]);
     } finally {
-      clearTimeout(timeoutId);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       unregister();
     }
   }

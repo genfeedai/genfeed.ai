@@ -7,6 +7,7 @@ import { VideoCompletionService } from '@api/services/video-completion/video-com
 import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('VideoCompletionService', () => {
@@ -185,7 +186,7 @@ describe('VideoCompletionService', () => {
         room: 'user-auth-user',
       };
       editorProjectsService.markAsCompleted.mockRejectedValueOnce(
-        new Error('Render job no longer owns this project'),
+        new ConflictException('Render job no longer owns this project'),
       );
 
       await service.onModuleInit();
@@ -217,6 +218,78 @@ describe('VideoCompletionService', () => {
       expect(
         notificationsPublisher.publishVideoComplete,
       ).not.toHaveBeenCalled();
+    });
+
+    it('keeps generated output retryable when completion persistence fails transiently', async () => {
+      const editorRender = {
+        authProviderUserId: 'auth-user',
+        ingredientId: mockIngredientId,
+        jobId: 'job-123',
+        metadataId: 'metadata-123',
+        projectId: 'project-123',
+        room: 'user-auth-user',
+      };
+      editorProjectsService.markAsCompleted.mockRejectedValueOnce(
+        new Error('database unavailable'),
+      );
+
+      await service.onModuleInit();
+      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+        .calls[0][1];
+      await subscribeCallback({
+        editorRender,
+        ingredientId: mockIngredientId,
+        organizationId: mockOrganizationId,
+        result: {
+          durationFrames: 300,
+          durationSeconds: 10,
+          fps: 30,
+          height: 1080,
+          rendererVersion: 'remotion@4.0.486',
+          s3Key: 'videos/output.mp4',
+          size: 4096,
+          url: 'https://cdn.example.com/videos/output.mp4',
+          width: 1920,
+        },
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+      });
+
+      expect(ingredientsService.patch).not.toHaveBeenCalledWith(
+        mockIngredientId,
+        { status: IngredientStatus.FAILED },
+      );
+      expect(
+        notificationsPublisher.publishVideoComplete,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('does not duplicate terminal side effects after another writer wins', async () => {
+      editorProjectsService.markAsFailed.mockRejectedValueOnce(
+        new ConflictException('Render job no longer owns this project'),
+      );
+
+      await service.onModuleInit();
+      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+        .calls[0][1];
+      await subscribeCallback({
+        editorRender: {
+          authProviderUserId: 'auth-user',
+          ingredientId: mockIngredientId,
+          jobId: 'job-123',
+          metadataId: 'metadata-123',
+          projectId: 'project-123',
+          room: 'user-auth-user',
+        },
+        ingredientId: mockIngredientId,
+        organizationId: mockOrganizationId,
+        status: 'failed',
+        terminalReason: 'renderer_failed',
+        timestamp: new Date().toISOString(),
+      });
+
+      expect(ingredientsService.patch).not.toHaveBeenCalled();
+      expect(notificationsPublisher.publishMediaFailed).not.toHaveBeenCalled();
     });
 
     it('should update ingredient status to COMPLETED on successful processing', async () => {
@@ -556,5 +629,35 @@ describe('VideoCompletionService', () => {
       'job-123',
       expect.objectContaining({ reason: 'timed_out' }),
     );
+  });
+
+  it('leaves a stale render retryable when cancellation loses a race', async () => {
+    const editorRender = {
+      authProviderUserId: 'auth-user',
+      ingredientId: mockIngredientId,
+      jobId: 'job-123',
+      metadataId: 'metadata-123',
+      projectId: 'project-123',
+      room: 'user-auth-user',
+    };
+    editorProjectsService.findRenderingProjects.mockResolvedValue([
+      { id: 'project-123', organizationId: mockOrganizationId },
+    ]);
+    editorProjectsService.readRenderProvenance.mockReturnValue({
+      job: editorRender,
+      queuedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    });
+    fileQueueService.getJobStatus.mockResolvedValue({
+      jobId: 'job-123',
+      state: 'active',
+    });
+    fileQueueService.cancelEditorRender.mockRejectedValueOnce(
+      new ConflictException('Editor render job is already terminal'),
+    );
+
+    await service.reconcileEditorRenders();
+
+    expect(editorProjectsService.markAsFailed).not.toHaveBeenCalled();
+    expect(notificationsPublisher.publishMediaFailed).not.toHaveBeenCalled();
   });
 });

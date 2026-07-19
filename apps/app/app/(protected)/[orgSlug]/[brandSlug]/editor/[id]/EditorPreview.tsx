@@ -127,7 +127,11 @@ function EditorComposition({
                   }}
                   trimAfter={clip.sourceEndFrame}
                   trimBefore={clip.sourceStartFrame}
-                  volume={(track.volume / 100) * ((clip.volume ?? 100) / 100)}
+                  volume={
+                    track.isMuted
+                      ? 0
+                      : (track.volume / 100) * ((clip.volume ?? 100) / 100)
+                  }
                 />
               </VisualLayer>
             </Sequence>
@@ -184,7 +188,11 @@ function EditorComposition({
               src={clip.ingredientUrl}
               trimAfter={clip.sourceEndFrame}
               trimBefore={clip.sourceStartFrame}
-              volume={(track.volume / 100) * ((clip.volume ?? 100) / 100)}
+              volume={
+                track.isMuted
+                  ? 0
+                  : (track.volume / 100) * ((clip.volume ?? 100) / 100)
+              }
             />
           </Sequence>
         )),

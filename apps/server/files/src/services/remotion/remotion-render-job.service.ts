@@ -148,51 +148,7 @@ export class RemotionRenderJobService {
       });
       return result;
     } catch (error: unknown) {
-      const classified = classifyEditorRenderError(error);
-      const configuredAttempts = job.opts.attempts ?? 1;
-      // BullMQ 5 increments attemptsMade in moveToFailed, after the processor
-      // rejects. Inside this catch it is therefore zero-based.
-      const isFinalAttempt = job.attemptsMade + 1 >= configuredAttempts;
-      const isTerminal = classified.reason === 'cancelled' || isFinalAttempt;
-      this.logger.error('Editor render attempt failed', {
-        attempt: job.attemptsMade + 1,
-        isTerminal,
-        jobId: String(job.id),
-        projectId: params.editorRender.projectId,
-        reason: classified.reason,
-        rendererVersion: EDITOR_RENDERER_VERSION,
-      });
-      if (isTerminal) {
-        this.webSocketService.emitError(
-          metadata.websocketUrl,
-          classified.publicMessage,
-          authProviderUserId,
-          room,
-        );
-        await this.redisService
-          .publish('video-processing-complete', {
-            editorRender: params.editorRender,
-            error: classified.publicMessage,
-            ingredientId,
-            organizationId,
-            status: 'failed',
-            terminalAttempt: job.attemptsMade + 1,
-            terminalReason: classified.reason,
-            timestamp: new Date().toISOString(),
-            userId,
-          })
-          .catch((publishError: unknown) => {
-            this.logger.warn('Failed to publish editor render failure event', {
-              jobId: String(job.id),
-              reason:
-                publishError instanceof Error ? publishError.name : 'unknown',
-            });
-          });
-      }
-      if (classified.reason === 'cancelled') {
-        throw new UnrecoverableError(classified.publicMessage);
-      }
-      throw error;
+      await this.handleProcessFailure(error, job, params);
     } finally {
       await rm(tempPath, { force: true, recursive: true }).catch(
         (error: unknown) => {
@@ -203,6 +159,71 @@ export class RemotionRenderJobService {
         },
       );
     }
+  }
+
+  private async handleProcessFailure(
+    error: unknown,
+    job: Job<VideoJobData>,
+    params: EditorRenderParams,
+  ): Promise<never> {
+    const {
+      authProviderUserId,
+      ingredientId,
+      metadata,
+      organizationId,
+      room,
+      userId,
+    } = job.data;
+    const classified = classifyEditorRenderError(error);
+    const configuredAttempts = job.opts.attempts ?? 1;
+    // BullMQ 5 increments attemptsMade in moveToFailed, after the processor
+    // rejects. Inside this catch it is therefore zero-based.
+    const isFinalAttempt = job.attemptsMade + 1 >= configuredAttempts;
+    const isUnrecoverable = error instanceof UnrecoverableError;
+    const isTerminal =
+      isUnrecoverable || classified.reason === 'cancelled' || isFinalAttempt;
+    this.logger.error('Editor render attempt failed', {
+      attempt: job.attemptsMade + 1,
+      isTerminal,
+      jobId: String(job.id),
+      projectId: params.editorRender.projectId,
+      reason: classified.reason,
+      rendererVersion: EDITOR_RENDERER_VERSION,
+    });
+    if (isTerminal) {
+      this.webSocketService.emitError(
+        metadata.websocketUrl,
+        classified.publicMessage,
+        authProviderUserId,
+        room,
+      );
+      await this.redisService
+        .publish('video-processing-complete', {
+          editorRender: params.editorRender,
+          error: classified.publicMessage,
+          ingredientId,
+          organizationId,
+          status: 'failed',
+          terminalAttempt: job.attemptsMade + 1,
+          terminalReason: classified.reason,
+          timestamp: new Date().toISOString(),
+          userId,
+        })
+        .catch((publishError: unknown) => {
+          this.logger.warn('Failed to publish editor render failure event', {
+            jobId: String(job.id),
+            reason:
+              publishError instanceof Error ? publishError.name : 'unknown',
+          });
+        });
+    }
+    if (isUnrecoverable) {
+      throw error;
+    }
+    if (classified.reason === 'cancelled') {
+      throw new UnrecoverableError(classified.publicMessage);
+    }
+    throw error;
   }
 
   async requestCancellation(
@@ -235,7 +256,7 @@ export class RemotionRenderJobService {
       !snapshot ||
       rendererVersion !== EDITOR_RENDERER_VERSION
     ) {
-      throw new Error(
+      throw new UnrecoverableError(
         'Editor render job is missing its validated snapshot or completion correlation.',
       );
     }
@@ -258,7 +279,9 @@ export class RemotionRenderJobService {
       try {
         url = new URL(asset.ingredientUrl);
       } catch {
-        throw new Error('Editor render asset URL is not approved.');
+        throw new UnrecoverableError(
+          'Editor render asset URL is not approved.',
+        );
       }
       if (
         url.origin !== trustedBase.origin ||
@@ -268,7 +291,9 @@ export class RemotionRenderJobService {
         url.search ||
         url.hash
       ) {
-        throw new Error('Editor render asset origin is not approved.');
+        throw new UnrecoverableError(
+          'Editor render asset origin is not approved.',
+        );
       }
     }
 
@@ -278,7 +303,7 @@ export class RemotionRenderJobService {
       }
       for (const clip of track.clips) {
         if (trustedUrlByClipId.get(clip.id) !== clip.ingredientUrl) {
-          throw new Error(
+          throw new UnrecoverableError(
             'Editor render snapshot contains an untrusted asset.',
           );
         }
