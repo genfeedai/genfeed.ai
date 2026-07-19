@@ -7,6 +7,7 @@ import {
 } from '@files/queues/queue.constants';
 import type { VideoJobData } from '@files/shared/interfaces/job.interface';
 import { BaseQueueService } from '@files/shared/services/base-queue/base-queue.service';
+import { RAW_CUT_JOB_PREFIX } from '@genfeedai/interfaces';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';
@@ -91,6 +92,10 @@ const VIDEO_JOB_CONFIGS: Partial<Record<JobType, JobConfig>> = {
   },
 };
 
+function getRawCutJobId(data: VideoJobData): string | undefined {
+  return data.id.startsWith(RAW_CUT_JOB_PREFIX) ? data.id : undefined;
+}
+
 @Injectable()
 export class VideoQueueService extends BaseQueueService<VideoJobData> {
   protected readonly jobConfigs = VIDEO_JOB_CONFIGS;
@@ -116,7 +121,13 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
   }
 
   async addCaptionsJob(data: VideoJobData): Promise<Job<VideoJobData>> {
-    return this.addJob(JOB_TYPES.ADD_CAPTIONS, data, 'captions');
+    return this.addJob(
+      JOB_TYPES.ADD_CAPTIONS,
+      data,
+      'captions',
+      undefined,
+      getRawCutJobId(data),
+    );
   }
 
   async addGifConversionJob(data: VideoJobData): Promise<Job<VideoJobData>> {
@@ -154,7 +165,13 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
   }
 
   async addClipTrimJob(data: VideoJobData): Promise<Job<VideoJobData>> {
-    return this.addJob(JOB_TYPES.CLIP_TRIM, data, 'clip trim');
+    return this.addJob(
+      JOB_TYPES.CLIP_TRIM,
+      data,
+      'clip trim',
+      undefined,
+      getRawCutJobId(data),
+    );
   }
 
   async addExtractFramesJob(data: VideoJobData): Promise<Job<VideoJobData>> {

@@ -50,6 +50,7 @@ function createPrisma() {
       },
     },
     clipResult: {
+      count: vi.fn(),
       create: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -233,6 +234,23 @@ describe('ClipResultsService', () => {
         title: 'Clip',
       }),
     );
+  });
+
+  it('returns a bounded oldest-first set of active raw-cut clips', async () => {
+    prisma.clipResult.findMany.mockResolvedValue([]);
+
+    await service.findActiveRawCuts(25);
+
+    expect(prisma.clipResult.findMany).toHaveBeenCalledWith({
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+      skip: 0,
+      take: 25,
+      where: {
+        isDeleted: false,
+        mode: 'raw-cut',
+        status: { in: ['extracting', 'captioning'] },
+      },
+    });
   });
 
   it('resolves a project clip result by id, mongo id, or provider job id for handoff', async () => {

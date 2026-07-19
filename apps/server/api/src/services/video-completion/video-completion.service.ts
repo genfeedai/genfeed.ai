@@ -1,7 +1,9 @@
+import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { EditorProjectsService } from '@api/collections/editor-projects/editor-projects.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
@@ -18,6 +20,7 @@ import {
   type IEditorRenderOutputMetadata,
   type IJobStatusResponse,
   parseEditorRenderOutputMetadata,
+  RAW_CUT_JOB_PREFIX,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
@@ -57,6 +60,8 @@ type VideoCompletionEvent = {
 };
 
 const EDITOR_RENDER_STALE_MS = 45 * 60 * 1000;
+const RAW_CUT_RECONCILIATION_LOCK = 'raw-cut-clip-reconciliation';
+const RAW_CUT_RECONCILIATION_LOCK_TTL_SECONDS = 300;
 
 @Injectable()
 export class VideoCompletionService implements OnModuleInit {
@@ -67,6 +72,8 @@ export class VideoCompletionService implements OnModuleInit {
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
     private readonly notificationsPublisher: NotificationsPublisherService,
+    private readonly rawCutClipCompletionService: RawCutClipCompletionService,
+    private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -103,6 +110,11 @@ export class VideoCompletionService implements OnModuleInit {
             data.terminalAttempt,
           );
         }
+        return;
+      }
+
+      if (this.isRawCutCompletion(data)) {
+        await this.rawCutClipCompletionService.handleCompletion(data);
         return;
       }
 
@@ -240,6 +252,22 @@ export class VideoCompletionService implements OnModuleInit {
         this.logger.error('Failed to reconcile editor render', result.reason);
       }
     }
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
+  async reconcileRawCutClips(): Promise<void> {
+    await this.cacheService.withLock(
+      RAW_CUT_RECONCILIATION_LOCK,
+      async () => {
+        await this.rawCutClipCompletionService.reconcileActiveClips();
+      },
+      RAW_CUT_RECONCILIATION_LOCK_TTL_SECONDS,
+    );
+  }
+
+  private isRawCutCompletion(data: VideoCompletionEvent): boolean {
+    const jobId = data.result?.jobId;
+    return typeof jobId === 'string' && jobId.startsWith(RAW_CUT_JOB_PREFIX);
   }
 
   private async completeEditorRender(

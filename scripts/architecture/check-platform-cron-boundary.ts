@@ -97,6 +97,13 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
       'Platform recovery for durable editor render completion after missed Redis pub/sub events or API restarts.',
   },
   {
+    file: 'apps/server/api/src/services/video-completion/video-completion.service.ts',
+    id: 'raw-cut-clip-reconciliation',
+    methodName: 'reconcileRawCutClips',
+    reason:
+      'Platform recovery for deterministic raw-cut clip jobs after missed Redis pub/sub events or API restarts.',
+  },
+  {
     file: 'apps/server/api/src/collections/trends/services/trends-warmup.service.ts',
     id: 'trends-warmup',
     methodName: 'warmGlobalTrendDatasets',

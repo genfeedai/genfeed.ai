@@ -8,6 +8,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { generateClipSrt, type TranscriptSegment } from './clip-srt.util';
 import {
+  getRawCutTrimJobId,
   RAW_CUT_PROVIDER_NAME,
   RawCutClipService,
 } from './raw-cut-clip.service';
@@ -70,7 +71,7 @@ export interface ClipGenerationResult {
  */
 interface ClipDispatchOutcome {
   jobId: string;
-  patch: Record<string, unknown>;
+  patch?: Record<string, unknown>;
 }
 
 /**
@@ -218,6 +219,18 @@ export class ClipGenerationService {
           highlight.start_time,
           highlight.end_time,
         );
+        const providerJobId = getRawCutTrimJobId(clipResultId);
+
+        await this.clipResultsService.patch(clipResultId, {
+          authProviderUserId,
+          captionSrt,
+          providerJobId,
+          providerName: RAW_CUT_PROVIDER_NAME,
+          room,
+          sourceVideoS3Key,
+          sourceVideoUrl,
+          userId,
+        });
 
         const dispatch = await this.rawCutClipService.dispatchClip({
           authProviderUserId,
@@ -234,11 +247,6 @@ export class ClipGenerationService {
 
         return {
           jobId: dispatch.jobId,
-          patch: {
-            captionSrt,
-            providerJobId: dispatch.jobId,
-            providerName: dispatch.providerName,
-          },
         };
       },
       failureProviderName: RAW_CUT_PROVIDER_NAME,
@@ -300,7 +308,9 @@ export class ClipGenerationService {
           index: i,
         });
 
-        await this.clipResultsService.patch(clipResultId, patch);
+        if (patch) {
+          await this.clipResultsService.patch(clipResultId, patch);
+        }
 
         providerJobIds.push(jobId);
         queuedClipCount += 1;
@@ -362,7 +372,7 @@ export class ClipGenerationService {
         summary: highlight.summary,
         tags: highlight.tags,
         title: highlight.title,
-        user: userId,
+        userId,
         viralityScore: highlight.virality_score,
       } as unknown as CreateClipResultDto,
     );

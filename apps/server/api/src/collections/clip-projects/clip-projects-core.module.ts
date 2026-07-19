@@ -12,6 +12,7 @@ import { ClipProjectsService } from '@api/collections/clip-projects/clip-project
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { RawCutClipService } from '@api/collections/clip-projects/services/raw-cut-clip.service';
+import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { AvatarVideoModule } from '@api/services/avatar-video/avatar-video.module';
@@ -24,6 +25,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ClipProjectsService,
     ClipGenerationService,
     HighlightRewriteService,
+    RawCutClipCompletionService,
     RawCutClipService,
   ],
   imports: [
@@ -37,6 +39,7 @@ import { forwardRef, Module } from '@nestjs/common';
     ClipProjectsService,
     ClipGenerationService,
     HighlightRewriteService,
+    RawCutClipCompletionService,
     RawCutClipService,
   ],
 })
