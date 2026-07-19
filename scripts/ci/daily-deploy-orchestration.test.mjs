@@ -162,11 +162,20 @@ test('keeps the daily and deploy workflow correlation contract wired', () => {
   );
 
   assert.match(deployWorkflow, /^run-name: .*orchestrator_run_id/m);
+  assert.match(
+    deployWorkflow,
+    /format\('Deploy ECS \(production\) · daily:\{0\}', inputs\.orchestrator_run_id\)/,
+  );
   assert.match(deployWorkflow, /^ {6}orchestrator_run_id:/m);
   assert.match(dailyWorkflow, /daily-deploy-orchestration\.mjs/);
   assert.match(dailyWorkflow, /matchesCorrelatedDeployRun/);
   assert.match(dailyWorkflow, /orchestrator_run_id: correlationId/);
   assert.match(dailyWorkflow, /listJobsForWorkflowRun/);
+  assert.match(dailyWorkflow, /filter: 'latest'/);
+  assert.match(
+    dailyWorkflow,
+    /skip\(\s*process\.env\.PRECHECK_SKIPPED_REASON \|\|\s*'Daily production deploy precheck skipped\.',\s*'clean no-op',\s*\)/,
+  );
   assert.match(dailyWorkflow, /failure_stage/);
   assert.match(dailyWorkflow, /OUTCOME: .*'failed'/);
   assert.match(dailyWorkflow, /echo "- Outcome:/);

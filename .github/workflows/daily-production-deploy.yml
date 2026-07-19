@@ -213,7 +213,11 @@ jobs:
 
             try {
               if (process.env.SHOULD_CONTINUE !== 'true') {
-                skip(process.env.PRECHECK_SKIPPED_REASON || 'Daily production deploy precheck skipped.');
+                skip(
+                  process.env.PRECHECK_SKIPPED_REASON ||
+                    'Daily production deploy precheck skipped.',
+                  'clean no-op',
+                );
                 return;
               }
 
@@ -493,7 +497,7 @@ jobs:
                 owner,
                 repo,
                 run_id: run.id,
-                filter: 'all',
+                filter: 'latest',
                 per_page: 100,
               },
             );
