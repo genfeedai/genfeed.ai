@@ -8,6 +8,23 @@ export const SCHEDULER_TOOL_NAMES = new Set([
   'update_scheduled_release',
 ]);
 
+const RELEASE_UPDATE_FIELDS = new Set([
+  'attachments',
+  'baseContent',
+  'media',
+  'recurrence',
+  'scheduledDate',
+  'timezone',
+  'title',
+]);
+
+const TARGET_UPDATE_FIELDS = new Set([
+  'order',
+  'scheduledDate',
+  'settings',
+  'timezone',
+]);
+
 /**
  * Scheduler MCP handlers. These only validate the routing boundary and proxy
  * canonical request bodies to `/post-groups`; the API owns all scheduler
@@ -57,7 +74,7 @@ export function handleSchedulerTool(
 
       const result = await client.updateScheduledRelease(
         requiredString(a, 'releaseId'),
-        requiredNonEmptyRecord(a, 'changes'),
+        updateChanges(a, scope),
         targetId,
       );
       return textJsonResult('Scheduled release updated', result);
@@ -115,6 +132,26 @@ function updateScope(args: Record<string, unknown>): 'release' | 'target' {
     throw new Error('scope must be "release" or "target"');
   }
   return scope;
+}
+
+function updateChanges(
+  args: Record<string, unknown>,
+  scope: 'release' | 'target',
+): Record<string, unknown> {
+  const changes = requiredNonEmptyRecord(args, 'changes');
+  const allowedFields =
+    scope === 'release' ? RELEASE_UPDATE_FIELDS : TARGET_UPDATE_FIELDS;
+  const unsupportedFields = Object.keys(changes).filter(
+    (field) => !allowedFields.has(field),
+  );
+
+  if (unsupportedFields.length > 0) {
+    throw new Error(
+      `changes contains fields that are not editable for ${scope} scope: ${unsupportedFields.join(', ')}`,
+    );
+  }
+
+  return changes;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

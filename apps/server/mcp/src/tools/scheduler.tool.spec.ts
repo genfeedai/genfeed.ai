@@ -131,6 +131,46 @@ describe('handleSchedulerTool', () => {
     expect(client.updateScheduledRelease).not.toHaveBeenCalled();
   });
 
+  it('rejects lifecycle fields from release updates', async () => {
+    const client = buildClient();
+
+    await expect(
+      call(client, 'update_scheduled_release', {
+        changes: { status: 'published' },
+        releaseId: 'release-1',
+        scope: 'release',
+      }),
+    ).rejects.toThrow(/not editable for release scope: status/);
+    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+  });
+
+  it('rejects ownership fields from release updates', async () => {
+    const client = buildClient();
+
+    await expect(
+      call(client, 'update_scheduled_release', {
+        changes: { brandId: 'other-brand' },
+        releaseId: 'release-1',
+        scope: 'release',
+      }),
+    ).rejects.toThrow(/not editable for release scope: brandId/);
+    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+  });
+
+  it('rejects release fields from target updates', async () => {
+    const client = buildClient();
+
+    await expect(
+      call(client, 'update_scheduled_release', {
+        changes: { title: 'Wrong scope' },
+        releaseId: 'release-1',
+        scope: 'target',
+        targetId: 'target-1',
+      }),
+    ).rejects.toThrow(/not editable for target scope: title/);
+    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+  });
+
   it('maps lifecycle controls to the canonical action', async () => {
     const client = buildClient();
 

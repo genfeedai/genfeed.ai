@@ -137,61 +137,26 @@ const releaseCreateProperties = {
   title: { description: 'Release title', type: 'string' },
 };
 
-const updateProperties = {
+const releaseUpdateProperties = {
   attachments: { items: attachmentSchema, type: 'array' },
   baseContent: { type: 'string' },
-  brandId: { type: 'string' },
-  error: {
-    description: 'Target publishing failure detail; target scope only',
-    type: ['object', 'null'],
-  },
-  executionState: {
-    description: 'Target execution state; target scope only',
-    enum: [
-      'draft',
-      'scheduled',
-      'paused',
-      'cancelled',
-      'publishing',
-      'published',
-      'failed',
-      'skipped',
-    ],
-    type: 'string',
-  },
-  externalProviderId: { type: ['string', 'null'] },
-  externalShortcode: { type: ['string', 'null'] },
-  idempotencyKey: { type: 'string' },
-  lastAttemptAt: { type: 'string' },
   media: { items: mediaSchema, type: 'array' },
-  order: { minimum: 0, type: 'number' },
-  publishedAt: { type: 'string' },
-  readiness: { type: ['object', 'null'] },
   recurrence: { ...recurrenceSchema, type: ['object', 'null'] },
-  retryCount: { minimum: 0, type: 'number' },
   scheduledDate: { type: 'string' },
-  settings: { type: 'object' },
-  status: {
-    enum: [
-      'draft',
-      'scheduled',
-      'paused',
-      'cancelled',
-      'publishing',
-      'published',
-      'failed',
-      'partially-published',
-    ],
-    type: 'string',
-  },
   timezone: { type: 'string' },
   title: { type: 'string' },
-  url: { type: ['string', 'null'] },
-  validationIssues: { items: { type: 'string' }, type: 'array' },
-  validationState: {
-    enum: ['pending', 'valid', 'warning', 'invalid'],
-    type: 'string',
-  },
+};
+
+const targetUpdateProperties = {
+  order: { minimum: 0, type: 'number' },
+  scheduledDate: { type: 'string' },
+  settings: { type: 'object' },
+  timezone: { type: 'string' },
+};
+
+const updateProperties = {
+  ...releaseUpdateProperties,
+  ...targetUpdateProperties,
 };
 
 /** Thin MCP access to the canonical `/post-groups` scheduler lifecycle. */
@@ -241,7 +206,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
       properties: {
         changes: {
           description:
-            'Fields to update. Release and target fields share this bounded schema; the API validates the selected scope.',
+            'Editable release or target fields. Lifecycle and worker-owned execution fields are intentionally excluded; use control_scheduled_release for lifecycle changes.',
           properties: updateProperties,
           type: 'object',
         },
