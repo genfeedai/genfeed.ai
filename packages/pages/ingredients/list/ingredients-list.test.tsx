@@ -67,7 +67,20 @@ vi.mock('@ui/ingredients/list/header/IngredientsListHeader', () => ({
 }));
 
 vi.mock('@ui/ingredients/list/content/IngredientsListContent', () => ({
-  default: () => <div data-testid="ingredients-content" />,
+  default: ({
+    filteredIngredients,
+    hasFilteredEmptyState,
+  }: {
+    filteredIngredients: unknown[];
+    hasFilteredEmptyState: boolean;
+  }) => (
+    <div
+      data-filtered-empty={hasFilteredEmptyState}
+      data-testid="ingredients-content"
+    >
+      {filteredIngredients.length} assets
+    </div>
+  ),
 }));
 
 vi.mock('@ui/ingredients/list/footer/IngredientsListFooter', () => ({
@@ -131,6 +144,7 @@ function buildIngredientsListReturn(overrides: Record<string, unknown> = {}) {
     isPortraiting: false,
     isReversing: false,
     isUsingCache: false,
+    loadError: null,
     lightboxIndex: 0,
     lightboxOpen: false,
     mediaIngredients: [],
@@ -154,6 +168,58 @@ function buildIngredientsListReturn(overrides: Record<string, unknown> = {}) {
 }
 
 describe('IngredientsList', () => {
+  it('renders the canonical empty content state', () => {
+    mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+    mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
+
+    render(<IngredientsList />);
+
+    expect(screen.getByTestId('ingredients-content')).toHaveTextContent(
+      '0 assets',
+    );
+    expect(screen.getByTestId('ingredients-content')).toHaveAttribute(
+      'data-filtered-empty',
+      'false',
+    );
+  });
+
+  it('passes populated assets through the shared list content', () => {
+    mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+    mockUseIngredientsList.mockReturnValue(
+      buildIngredientsListReturn({
+        filteredIngredients: [{ id: 'image-1' }],
+      }),
+    );
+
+    render(<IngredientsList />);
+
+    expect(screen.getByTestId('ingredients-content')).toHaveTextContent(
+      '1 assets',
+    );
+  });
+
+  it('renders a recoverable error state and retries the shared query', () => {
+    const handleRefresh = vi.fn().mockResolvedValue(undefined);
+    mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+    mockUseIngredientsList.mockReturnValue(
+      buildIngredientsListReturn({
+        handleRefresh,
+        loadError: 'Failed to load images',
+      }),
+    );
+
+    render(<IngredientsList />);
+
+    expect(screen.getByText('Failed to load images')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('ingredients-content'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(handleRefresh).toHaveBeenCalledWith(true);
+  });
+
   it('enables campaign publish for approved darkroom images in one campaign', () => {
     const selectedIngredients = [
       {

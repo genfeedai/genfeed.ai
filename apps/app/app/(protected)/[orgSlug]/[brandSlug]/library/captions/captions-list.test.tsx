@@ -1,10 +1,11 @@
 import type { Caption } from '@models/content/caption.model';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CaptionsList from './captions-list';
 import '@testing-library/jest-dom/vitest';
 
 const findAllMock = vi.fn<() => Promise<Caption[]>>();
+const loggerErrorMock = vi.fn();
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() =>
@@ -42,6 +43,13 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+vi.mock('@services/core/logger.service', () => ({
+  logger: {
+    error: loggerErrorMock,
+    info: vi.fn(),
+  },
+}));
+
 describe('CaptionsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -72,5 +80,31 @@ describe('CaptionsList', () => {
     expect(await screen.findByText('Label')).toBeInTheDocument();
     expect(screen.getByText('Format')).toBeInTheDocument();
     expect(screen.getByText('Created')).toBeInTheDocument();
+  });
+
+  it('should render a recoverable error state and retry without console errors', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    findAllMock
+      .mockRejectedValueOnce(new Error('network unavailable'))
+      .mockResolvedValueOnce([]);
+
+    try {
+      render(<CaptionsList />);
+
+      expect(
+        await screen.findByText('Captions could not be loaded.'),
+      ).toBeInTheDocument();
+      expect(loggerErrorMock).toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+      expect(await screen.findByText('No captions found')).toBeInTheDocument();
+      expect(findAllMock).toHaveBeenCalledTimes(2);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });
