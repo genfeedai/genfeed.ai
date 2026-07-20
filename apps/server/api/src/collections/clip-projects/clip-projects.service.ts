@@ -301,11 +301,7 @@ export class ClipProjectsService extends BaseService<
       return normalizeClipReferenceFrameSet(value);
     } catch (error: unknown) {
       if (error instanceof ClipReferenceFrameValidationError) {
-        throw new ValidationException(
-          error.message,
-          'referenceFrames',
-          value,
-        );
+        throw new ValidationException(error.message, 'referenceFrames', value);
       }
       throw error;
     }

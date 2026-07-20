@@ -1,9 +1,9 @@
 import {
   CLIP_PROJECT_STATUSES,
-  type ClipReferenceFrameSet,
   type ClipReadinessContract,
-  type ClipProjectStatus as SharedClipProjectStatus,
+  type ClipReferenceFrameSet,
   type ClipResultMode,
+  type ClipProjectStatus as SharedClipProjectStatus,
 } from '@genfeedai/interfaces';
 import type { ClipProject as PrismaClipProject } from '@genfeedai/prisma';
 

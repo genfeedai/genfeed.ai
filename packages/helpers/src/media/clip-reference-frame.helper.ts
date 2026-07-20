@@ -20,6 +20,10 @@ const diagnosticSeverities = new Set<string>(
 const referenceFrameStatuses = new Set<string>(CLIP_REFERENCE_FRAME_STATUSES);
 const unsafeStorageKeySegment = /(^|[\\/])\.\.([\\/]|$)/;
 
+function hasControlCharacter(value: string): boolean {
+  return [...value].some((character) => character.charCodeAt(0) <= 31);
+}
+
 export class ClipReferenceFrameValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -27,10 +31,7 @@ export class ClipReferenceFrameValidationError extends Error {
   }
 }
 
-function readRecord(
-  value: unknown,
-  field: string,
-): Record<string, unknown> {
+function readRecord(value: unknown, field: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     throw new ClipReferenceFrameValidationError(`${field} must be an object`);
   }
@@ -48,10 +49,7 @@ function readRequiredString(value: unknown, field: string): string {
   return value.trim();
 }
 
-function readOptionalString(
-  value: unknown,
-  field: string,
-): string | undefined {
+function readOptionalString(value: unknown, field: string): string | undefined {
   if (value === undefined) {
     return undefined;
   }
@@ -67,11 +65,7 @@ function readPositiveInteger(
     return undefined;
   }
 
-  if (
-    typeof value !== 'number' ||
-    !Number.isInteger(value) ||
-    value <= 0
-  ) {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
     throw new ClipReferenceFrameValidationError(
       `${field} must be a positive integer`,
     );
@@ -121,7 +115,7 @@ function normalizeStorageKey(
     storageKey.startsWith('/') ||
     storageKey.startsWith('\\') ||
     unsafeStorageKeySegment.test(storageKey) ||
-    /[\u0000-\u001f]/.test(storageKey)
+    hasControlCharacter(storageKey)
   ) {
     throw new ClipReferenceFrameValidationError(
       `${field} must be a relative storage key without traversal segments`,
@@ -136,10 +130,7 @@ function normalizeDiagnostic(
   field: string,
 ): ClipReferenceFrameDiagnostic {
   const diagnostic = readRecord(value, field);
-  const severity = readRequiredString(
-    diagnostic.severity,
-    `${field}.severity`,
-  );
+  const severity = readRequiredString(diagnostic.severity, `${field}.severity`);
 
   if (!diagnosticSeverities.has(severity)) {
     throw new ClipReferenceFrameValidationError(
@@ -213,10 +204,7 @@ function normalizeCandidate(
     );
   }
 
-  const mimeType = readOptionalString(
-    candidate.mimeType,
-    `${field}.mimeType`,
-  );
+  const mimeType = readOptionalString(candidate.mimeType, `${field}.mimeType`);
   if (mimeType && !mimeType.startsWith('image/')) {
     throw new ClipReferenceFrameValidationError(
       `${field}.mimeType must be an image media type`,
@@ -282,9 +270,7 @@ export function normalizeClipReferenceFrameSet(
 ): ClipReferenceFrameSet {
   const referenceFrames = readRecord(value, 'referenceFrames');
 
-  if (
-    referenceFrames.schemaVersion !== CLIP_REFERENCE_FRAME_SCHEMA_VERSION
-  ) {
+  if (referenceFrames.schemaVersion !== CLIP_REFERENCE_FRAME_SCHEMA_VERSION) {
     throw new ClipReferenceFrameValidationError(
       `referenceFrames.schemaVersion must be ${CLIP_REFERENCE_FRAME_SCHEMA_VERSION}`,
     );
@@ -330,7 +316,7 @@ export function normalizeClipReferenceFrameSet(
     const selectedCandidate = candidates.find(
       (candidate) => candidate.id === selectedCandidateId,
     );
-    if (!selectedCandidate || selectedCandidate.status !== 'available') {
+    if (selectedCandidate?.status !== 'available') {
       throw new ClipReferenceFrameValidationError(
         'referenceFrames.selectedCandidateId must resolve to an available candidate',
       );
