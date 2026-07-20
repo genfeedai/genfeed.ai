@@ -72,6 +72,7 @@
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",
     "publish:package": "./scripts/publish-package.sh",
     "check:multi-tenancy": "bun run scripts/check-multi-tenancy.ts",
+    "check:nightly-test-inventory": "bun run scripts/ci/nightly-test-workspace-inventory.ts",
     "check:nested-node-modules": "bun run scripts/check-nested-node-modules.ts",
     "check:pages-boundary": "bun run scripts/check-pages-boundary.ts",
     "check:package-api-surface": "bun run scripts/check-package-api-surface.ts",
