@@ -1,5 +1,6 @@
 import type { IPublishingDiagnostic } from '@genfeedai/interfaces';
 import {
+  buildCredentialTokenPublishingReadiness,
   buildPublishingProviderReadiness,
   canScheduleWithPublishingReadiness,
   classifyPublishingDiagnostic,
@@ -22,6 +23,8 @@ function diagnostic(
 }
 
 describe('publishing diagnostics helpers', () => {
+  const now = new Date('2026-07-20T00:00:00.000Z');
+
   it('classifies common provider setup failures into stable buckets', () => {
     expect(
       classifyPublishingDiagnostic({
@@ -172,6 +175,133 @@ describe('publishing diagnostics helpers', () => {
     expect(readiness.diagnostics[0]?.details).toEqual({
       accessToken: '[REDACTED]',
       appMode: 'development',
+    });
+  });
+
+  it('marks an unexpired credential as publish capable', () => {
+    const readiness = buildCredentialTokenPublishingReadiness({
+      accessTokenExpiresAt: '2026-07-21T00:00:00.000Z',
+      credentialId: 'cred-1',
+      hasAccessCredential: true,
+      hasRefreshToken: true,
+      isConnected: true,
+      now,
+      providerKey: 'twitter',
+    });
+
+    expect(readiness).toMatchObject({
+      canSchedule: true,
+      credentialId: 'cred-1',
+      diagnostics: [],
+      lastSuccessfulValidationAt: now.toISOString(),
+      state: 'publish_capable',
+      tokenFreshness: 'pass',
+    });
+  });
+
+  it('blocks a disconnected credential with a reconnect action', () => {
+    const readiness = buildCredentialTokenPublishingReadiness({
+      credentialId: 'cred-1',
+      hasAccessCredential: true,
+      hasRefreshToken: true,
+      isConnected: false,
+      now,
+      providerKey: 'twitter',
+    });
+
+    expect(readiness).toMatchObject({
+      canSchedule: false,
+      isRetryable: true,
+      requiredAction: 'Reconnect the provider account before publishing.',
+      state: 'blocked',
+      tokenFreshness: 'fail',
+    });
+    expect(readiness.diagnostics[0]?.code).toBe('credential_disconnected');
+  });
+
+  it('blocks a connected credential when token material is absent', () => {
+    const readiness = buildCredentialTokenPublishingReadiness({
+      accessTokenExpiresAt: '2026-07-21T00:00:00.000Z',
+      credentialId: 'cred-1',
+      hasAccessCredential: false,
+      hasRefreshToken: true,
+      isConnected: true,
+      now,
+      providerKey: 'twitter',
+    });
+
+    expect(readiness).toMatchObject({
+      canSchedule: false,
+      requiredAction: 'Reconnect the provider account before publishing.',
+      state: 'blocked',
+      tokenFreshness: 'fail',
+    });
+    expect(readiness.diagnostics[0]?.code).toBe(
+      'credential_access_token_missing',
+    );
+  });
+
+  it('keeps an expired access token retryable when refresh is available', () => {
+    const readiness = buildCredentialTokenPublishingReadiness({
+      accessTokenExpiresAt: '2026-07-19T00:00:00.000Z',
+      credentialId: 'cred-1',
+      hasAccessCredential: true,
+      hasRefreshToken: true,
+      isConnected: true,
+      now,
+      providerKey: 'twitter',
+      refreshTokenExpiresAt: '2026-07-21T00:00:00.000Z',
+    });
+
+    expect(readiness).toMatchObject({
+      canSchedule: true,
+      isRetryable: true,
+      state: 'degraded',
+      tokenFreshness: 'warn',
+    });
+    expect(readiness.diagnostics[0]?.code).toBe(
+      'credential_access_token_refresh_required',
+    );
+  });
+
+  it('blocks an expired credential without a usable refresh path', () => {
+    const readiness = buildCredentialTokenPublishingReadiness({
+      accessTokenExpiresAt: '2026-07-19T00:00:00.000Z',
+      credentialId: 'cred-1',
+      hasAccessCredential: true,
+      hasRefreshToken: true,
+      isConnected: true,
+      now,
+      providerKey: 'twitter',
+      refreshTokenExpiresAt: '2026-07-19T00:00:00.000Z',
+    });
+
+    expect(readiness).toMatchObject({
+      canSchedule: false,
+      isRetryable: true,
+      state: 'blocked',
+      tokenFreshness: 'fail',
+    });
+    expect(readiness.diagnostics[0]?.code).toBe(
+      'credential_reconnect_required',
+    );
+  });
+
+  it('keeps missing expiry metadata explicit without blocking scheduling', () => {
+    const readiness = buildCredentialTokenPublishingReadiness({
+      credentialId: 'cred-1',
+      hasAccessCredential: true,
+      hasRefreshToken: false,
+      isConnected: true,
+      now,
+      providerKey: 'twitter',
+    });
+
+    expect(readiness).toMatchObject({
+      canSchedule: true,
+      diagnostics: [],
+      state: 'publish_capable',
+      tokenFreshness: 'unknown',
     });
   });
 });

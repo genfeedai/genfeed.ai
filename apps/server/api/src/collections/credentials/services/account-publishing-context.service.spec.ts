@@ -36,6 +36,7 @@ describe('AccountPublishingContextService', () => {
     credentialsService.findOne.mockResolvedValue({
       id: credentialId,
       accessToken: 'secret-token',
+      accessTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
       brand: brandId,
       externalHandle: 'vincent',
       isConnected: true,
@@ -142,12 +143,109 @@ describe('AccountPublishingContextService', () => {
       }),
     );
     expect(context.accountHealth?.state).toBe('warming');
+    expect(context.readiness).toMatchObject({
+      canSchedule: true,
+      state: 'publish_capable',
+      tokenFreshness: 'pass',
+    });
     expect(context.promptHints).toContain(
       'Account warmup: warming (medium risk, score 56)',
+    );
+    expect(context.promptHints).toContain(
+      'Provider readiness: publish_capable',
     );
     expect(serialized).not.toContain('secret-token');
     expect(serialized).not.toContain('oauth-secret');
     expect(serialized).not.toContain('refresh-secret');
+  });
+
+  it('surfaces a retryable degraded state when access can be refreshed', async () => {
+    credentialsService.findOne.mockResolvedValueOnce({
+      accessToken: 'secret-token',
+      accessTokenExpiry: new Date('2000-01-01T00:00:00.000Z'),
+      brand: brandId,
+      id: credentialId,
+      isConnected: true,
+      isDeleted: false,
+      organization: organizationId,
+      platform: CredentialPlatform.TWITTER,
+      refreshToken: 'refresh-secret',
+      refreshTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
+    });
+
+    const context = await service.resolve({
+      brandId,
+      credentialId,
+      organizationId,
+      surface: 'post',
+    });
+
+    expect(context.readiness).toMatchObject({
+      canSchedule: true,
+      isRetryable: true,
+      state: 'degraded',
+      tokenFreshness: 'warn',
+    });
+    expect(context.readiness.diagnostics[0]?.code).toBe(
+      'credential_access_token_refresh_required',
+    );
+  });
+
+  it('blocks an expired credential without a usable refresh path', async () => {
+    credentialsService.findOne.mockResolvedValueOnce({
+      accessToken: 'secret-token',
+      accessTokenExpiry: new Date('2000-01-01T00:00:00.000Z'),
+      brand: brandId,
+      id: credentialId,
+      isConnected: true,
+      isDeleted: false,
+      organization: organizationId,
+      platform: CredentialPlatform.TWITTER,
+      refreshToken: null,
+    });
+
+    const context = await service.resolve({
+      brandId,
+      credentialId,
+      organizationId,
+      surface: 'post',
+    });
+
+    expect(context.readiness).toMatchObject({
+      canSchedule: false,
+      state: 'blocked',
+      tokenFreshness: 'fail',
+    });
+    expect(context.promptHints).toContain(
+      'Provider action: Reconnect the provider account before publishing.',
+    );
+  });
+
+  it('keeps missing token expiry metadata explicit and non-blocking', async () => {
+    credentialsService.findOne.mockResolvedValueOnce({
+      accessToken: 'secret-token',
+      accessTokenExpiry: null,
+      brand: brandId,
+      id: credentialId,
+      isConnected: true,
+      isDeleted: false,
+      organization: organizationId,
+      platform: CredentialPlatform.TWITTER,
+      refreshToken: null,
+    });
+
+    const context = await service.resolve({
+      brandId,
+      credentialId,
+      organizationId,
+      surface: 'post',
+    });
+
+    expect(context.readiness).toMatchObject({
+      canSchedule: true,
+      state: 'publish_capable',
+      tokenFreshness: 'unknown',
+    });
   });
 
   it('marks X Articles as copy-only rich-copy surfaces', async () => {

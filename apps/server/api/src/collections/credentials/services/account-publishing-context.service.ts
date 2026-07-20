@@ -4,6 +4,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { buildCredentialTokenPublishingReadiness } from '@genfeedai/helpers';
 import type {
   AccountPublishingConstraints,
   AccountPublishingContext,
@@ -142,6 +143,20 @@ export class AccountPublishingContextService {
       constraints: this.getConstraints(platform, params.surface),
       promptHints: [],
       publishability: this.getPublishability(platform, params.surface),
+      readiness: buildCredentialTokenPublishingReadiness({
+        accessTokenExpiresAt: credential.accessTokenExpiry,
+        credentialId: String(credential.id),
+        hasAccessCredential: Boolean(
+          credential.accessToken ??
+            credential.accessTokenSecret ??
+            credential.oauthToken ??
+            credential.oauthTokenSecret,
+        ),
+        hasRefreshToken: Boolean(credential.refreshToken),
+        isConnected: credential.isConnected,
+        providerKey: platform,
+        refreshTokenExpiresAt: credential.refreshTokenExpiry,
+      }),
       recentPosts: recentPosts.map(
         (post): AccountPublishingRecentPost => ({
           createdAt: post.createdAt?.toISOString(),
@@ -281,6 +296,12 @@ export class AccountPublishingContextService {
           `Publishing hold: ${context.accountHealth.holdReason ?? 'Warmup guidance required before scheduling.'}`,
         );
       }
+    }
+
+    hints.push(`Provider readiness: ${context.readiness.state}`);
+
+    if (context.readiness.requiredAction) {
+      hints.push(`Provider action: ${context.readiness.requiredAction}`);
     }
 
     if (context.constraints.maxWeightedCharacters) {
