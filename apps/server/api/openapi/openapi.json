@@ -11165,6 +11165,10 @@
             "description": "Number of ready clips in the project",
             "type": "number"
           },
+          "referenceFrames": {
+            "description": "Versioned source-video reference-frame candidates and selection state",
+            "type": "object"
+          },
           "settings": {
             "allOf": [
               {
