@@ -51,6 +51,33 @@ describe('normalizeClipReferenceFrameSet', () => {
     expect(normalized.status).toBe('selected');
   });
 
+  it('normalizes null optional candidate fields as absent', () => {
+    const referenceFrames = createReferenceFrames();
+    const normalized = normalizeClipReferenceFrameSet({
+      ...referenceFrames,
+      candidates: [
+        {
+          ...referenceFrames.candidates[0],
+          assetId: null,
+          height: null,
+          mimeType: null,
+          url: null,
+          width: null,
+        },
+      ],
+    });
+
+    expect(normalized.candidates[0]).toEqual(
+      expect.objectContaining({
+        assetId: undefined,
+        height: undefined,
+        mimeType: undefined,
+        url: undefined,
+        width: undefined,
+      }),
+    );
+  });
+
   it('supports pending and unavailable states without candidates', () => {
     expect(
       normalizeClipReferenceFrameSet(

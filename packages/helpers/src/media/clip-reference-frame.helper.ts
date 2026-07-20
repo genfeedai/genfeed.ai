@@ -50,7 +50,7 @@ function readRequiredString(value: unknown, field: string): string {
 }
 
 function readOptionalString(value: unknown, field: string): string | undefined {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return undefined;
   }
 
@@ -61,7 +61,7 @@ function readPositiveInteger(
   value: unknown,
   field: string,
 ): number | undefined {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return undefined;
   }
 
