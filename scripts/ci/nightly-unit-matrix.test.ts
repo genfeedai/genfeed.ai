@@ -108,20 +108,17 @@ describe('nightly unit matrix', () => {
     ['failure', 'failed'],
     ['cancelled', 'blocked'],
     ['skipped', 'skipped'],
-  ] as const)(
-    'fails closed when one execution concludes %s',
-    (conclusion, expectedOutcome) => {
-      const plan = buildNightlyUnitMatrixPlan(inventory(), SHA);
-      const jobs = jobsForPlan(plan);
-      jobs[0] = { ...jobs[0], conclusion };
+  ] as const)('fails closed when one execution concludes %s', (conclusion, expectedOutcome) => {
+    const plan = buildNightlyUnitMatrixPlan(inventory(), SHA);
+    const jobs = jobsForPlan(plan);
+    jobs[0] = { ...jobs[0], conclusion };
 
-      const summary = aggregateNightlyUnitMatrix(plan, jobs);
+    const summary = aggregateNightlyUnitMatrix(plan, jobs);
 
-      expect(summary.passed).toBe(false);
-      expect(summary.workspaces[0].outcome).toBe(expectedOutcome);
-      expect(formatNightlyUnitMatrixSummary(summary)).toContain('`apps/app`');
-    },
-  );
+    expect(summary.passed).toBe(false);
+    expect(summary.workspaces[0].outcome).toBe(expectedOutcome);
+    expect(formatNightlyUnitMatrixSummary(summary)).toContain('`apps/app`');
+  });
 
   it('fails closed on missing and duplicate current-run job evidence', () => {
     const plan = buildNightlyUnitMatrixPlan(inventory(), SHA);
