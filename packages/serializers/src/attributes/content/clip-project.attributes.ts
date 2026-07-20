@@ -10,6 +10,7 @@ export const clipProjectAttributes = createEntityAttributes([
   'transcriptText',
   'transcriptSrt',
   'transcriptSegments',
+  'referenceFrames',
   'language',
   'status',
   'progress',

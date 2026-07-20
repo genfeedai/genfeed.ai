@@ -2,6 +2,7 @@ import { ClipProjectStatus } from '@api/collections/clip-projects/schemas/clip-p
 import {
   CLIP_RESULT_MODES,
   DEFAULT_CLIP_RESULT_MODE,
+  type ClipReferenceFrameSet,
   type ClipResultMode,
 } from '@genfeedai/interfaces';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
@@ -11,6 +12,7 @@ import {
   IsBoolean,
   IsIn,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUrl,
@@ -146,4 +148,14 @@ export class CreateClipProjectDto extends OrganizationalCreateDto {
     type: ClipProjectSettingsDto,
   })
   readonly settings?: ClipProjectSettingsDto;
+
+  @IsOptional()
+  @IsObject()
+  @ApiProperty({
+    description:
+      'Versioned source-video reference-frame candidates and selection state',
+    required: false,
+    type: Object,
+  })
+  readonly referenceFrames?: ClipReferenceFrameSet;
 }

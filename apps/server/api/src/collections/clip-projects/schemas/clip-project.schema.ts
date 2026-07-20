@@ -1,5 +1,6 @@
 import {
   CLIP_PROJECT_STATUSES,
+  type ClipReferenceFrameSet,
   type ClipReadinessContract,
   type ClipProjectStatus as SharedClipProjectStatus,
   type ClipResultMode,
@@ -61,6 +62,7 @@ export interface ClipProjectDocument extends ClipProjectRecord {
   organization?: string;
   pendingClipCount: number;
   progress: number;
+  referenceFrames?: ClipReferenceFrameSet;
   readiness: ClipReadinessContract | Record<string, unknown>;
   readyClipCount: number;
   settings?: ClipProjectSettings;
