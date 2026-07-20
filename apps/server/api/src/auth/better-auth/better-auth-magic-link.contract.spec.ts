@@ -38,7 +38,12 @@ interface SessionBody {
 }
 
 function createMagicLinkContractHarness() {
-  const database: MemoryDB = {};
+  const database: MemoryDB = {
+    account: [],
+    session: [],
+    user: [],
+    verification: [],
+  };
   let deliveredMagicLink: IBetterAuthMagicLinkParams | undefined;
   const sendMagicLink = vi.fn(
     async (params: IBetterAuthMagicLinkParams): Promise<void> => {
