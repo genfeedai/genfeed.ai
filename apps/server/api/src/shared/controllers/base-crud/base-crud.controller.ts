@@ -337,10 +337,6 @@ export abstract class BaseCRUDController<
     };
   }
 
-  /**
-   * Build the lookup query used by find and delete operations.
-   * Child controllers can override this to enforce resource-specific scope.
-   */
   public buildFindOneQuery(_user: User, id: string): Record<string, unknown> {
     return { _id: id };
   }
