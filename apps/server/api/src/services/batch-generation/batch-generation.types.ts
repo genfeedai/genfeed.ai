@@ -24,6 +24,7 @@ export interface BatchItemFull extends BatchItem {
     decision: 'approved' | 'rejected' | 'request_changes';
     feedback?: string;
     reviewedAt: string;
+    reviewerId?: string;
     versionPinId?: string;
   }>;
   gateOverallScore?: number;

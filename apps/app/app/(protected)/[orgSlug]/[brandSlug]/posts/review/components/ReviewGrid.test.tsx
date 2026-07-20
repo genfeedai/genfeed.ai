@@ -329,7 +329,18 @@ describe('ReviewGrid', () => {
                 decision: 'approved',
                 feedback: 'Ship this one.',
                 reviewedAt: '2026-03-09T12:00:00.000Z',
+                reviewer: {
+                  avatar: 'https://cdn.example.com/ada.png',
+                  displayName: 'Ada Lovelace',
+                  handle: 'ada',
+                  id: 'user-1',
+                },
                 reviewerId: 'user-1',
+              },
+              {
+                decision: 'request_changes',
+                feedback: 'Legacy feedback.',
+                reviewedAt: '2026-03-08T12:00:00.000Z',
               },
             ],
             reviewFeedback: 'Final approved notes',
@@ -366,6 +377,9 @@ describe('ReviewGrid', () => {
     ).toBeVisible();
     expect(screen.getByText('Review history')).toBeVisible();
     expect(screen.getByText('Ship this one.')).toBeVisible();
+    expect(screen.getByText('Ada Lovelace')).toBeVisible();
+    expect(screen.getByText('@ada')).toBeVisible();
+    expect(screen.getByText('Reviewer unavailable')).toBeVisible();
     expect(screen.getByText('Saved reviewer notes')).toBeVisible();
     expect(screen.getAllByText('Final approved notes')).toHaveLength(2);
     expect(

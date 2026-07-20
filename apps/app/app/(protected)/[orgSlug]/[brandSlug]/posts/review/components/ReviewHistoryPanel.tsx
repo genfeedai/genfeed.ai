@@ -3,12 +3,24 @@
 import type { IBatchItem } from '@genfeedai/interfaces';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
+import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 
 type ReviewEvent = NonNullable<IBatchItem['reviewEvents']>[number];
 
 interface ReviewHistoryPanelProps {
   browserTimezone: string;
   reviewEvents: ReviewEvent[];
+}
+
+function getReviewerInitials(displayName: string): string {
+  const initials = displayName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+
+  return initials || '?';
 }
 
 export default function ReviewHistoryPanel({
@@ -47,6 +59,38 @@ export default function ReviewHistoryPanel({
                 {event.feedback}
               </p>
             )}
+            <div className="mt-3 flex items-center gap-2">
+              <Avatar className="size-7 bg-background shadow-border">
+                {event.reviewer?.avatar ? (
+                  <AvatarImage
+                    alt={`${event.reviewer.displayName} profile picture`}
+                    className="object-cover"
+                    src={event.reviewer.avatar}
+                  />
+                ) : null}
+                <AvatarFallback className="text-[10px] font-semibold text-foreground/70">
+                  {event.reviewer
+                    ? getReviewerInitials(event.reviewer.displayName)
+                    : '?'}
+                </AvatarFallback>
+              </Avatar>
+              {event.reviewer ? (
+                <p className="min-w-0 text-xs text-foreground/55">
+                  <span className="font-medium text-foreground/75">
+                    {event.reviewer.displayName}
+                  </span>
+                  {event.reviewer.handle ? (
+                    <span className="ml-1">
+                      @{event.reviewer.handle.replace(/^@/, '')}
+                    </span>
+                  ) : null}
+                </p>
+              ) : (
+                <p className="text-xs text-foreground/45">
+                  Reviewer unavailable
+                </p>
+              )}
+            </div>
           </InsetSurface>
         ))}
       </div>

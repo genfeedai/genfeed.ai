@@ -1,12 +1,17 @@
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import {
   type BatchConfig,
+  type BatchItemFull,
   type BatchWithConfig,
   cloneBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BatchItemStatus, BatchStatus } from '@genfeedai/enums';
-import type { IBatchSummary } from '@genfeedai/interfaces';
+import type {
+  IBatchReviewEvent,
+  IBatchReviewEventReviewer,
+  IBatchSummary,
+} from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
 
 type PostAnalyticsSummary = {
@@ -29,6 +34,19 @@ type LinkedPostAnalytics = {
   totalViews: number;
 };
 
+interface ReviewerMemberRecord {
+  organizationId: string;
+  user: {
+    avatar: string | null;
+    firstName: string | null;
+    handle: string;
+    id: string;
+    isDeleted: boolean;
+    lastName: string | null;
+    name: string | null;
+  };
+}
+
 @Injectable()
 export class BatchGenerationSummaryService {
   constructor(
@@ -45,16 +63,9 @@ export class BatchGenerationSummaryService {
     const batchItemsById = new Map(
       batches.map((batch) => [batch.id, cloneBatchItems(batch.items)]),
     );
-    const postIds = [
-      ...new Set(
-        [...batchItemsById.values()]
-          .flat()
-          .flatMap((item) => (item.postId ? [item.postId] : [])),
-      ),
-    ];
-    const organizationIds = [
-      ...new Set(batches.map((batch) => batch.organizationId)),
-    ];
+    const postIds = this.collectPostIds(batchItemsById);
+    const organizationIds = this.collectOrganizationIds(batches);
+    const reviewerIds = this.collectReviewerIds(batchItemsById);
 
     const linkedPosts =
       postIds.length > 0
@@ -102,18 +113,17 @@ export class BatchGenerationSummaryService {
             },
           })
         : [];
-
     const analyticsMap = this.buildAnalyticsMap(linkedAnalytics);
     const linkedPostMap = new Map(linkedPosts.map((post) => [post.id, post]));
+    const reviewerMap = await this.loadReviewerMap(
+      organizationIds,
+      reviewerIds,
+    );
 
     return batches.map((batch) => {
       const batchConfig = (batch.config ?? {}) as BatchConfig;
       const batchItems = batchItemsById.get(batch.id) ?? [];
-      const pendingCount = batchItems.filter(
-        (item) =>
-          item.status === BatchItemStatus.PENDING ||
-          item.status === BatchItemStatus.GENERATING,
-      ).length;
+      const pendingCount = this.countPendingItems(batchItems);
 
       return {
         brandId: batch.brandId ?? '',
@@ -169,12 +179,11 @@ export class BatchGenerationSummaryService {
             postUrl: linkedPost?.url ?? undefined,
             prompt: item.prompt,
             reviewDecision: item.reviewDecision,
-            reviewEvents: (item.reviewEvents ?? []).map((event) => ({
-              decision: event.decision,
-              feedback: event.feedback,
-              reviewedAt: event.reviewedAt,
-              versionPinId: event.versionPinId,
-            })),
+            reviewEvents: this.toReviewEvents(
+              item,
+              batch.organizationId,
+              reviewerMap,
+            ),
             reviewedAt: item.reviewedAt,
             reviewFeedback: item.reviewFeedback,
             publishApproval:
@@ -199,6 +208,104 @@ export class BatchGenerationSummaryService {
         totalCount: batchConfig.totalCount ?? batchItems.length,
       };
     });
+  }
+
+  private collectOrganizationIds(batches: BatchWithConfig[]): string[] {
+    return [...new Set(batches.map((batch) => batch.organizationId))];
+  }
+
+  private collectPostIds(
+    batchItemsById: Map<string, BatchItemFull[]>,
+  ): string[] {
+    return [
+      ...new Set(
+        [...batchItemsById.values()]
+          .flat()
+          .flatMap((item) => (item.postId ? [item.postId] : [])),
+      ),
+    ];
+  }
+
+  private countPendingItems(batchItems: BatchItemFull[]): number {
+    return batchItems.filter(
+      (item) =>
+        item.status === BatchItemStatus.PENDING ||
+        item.status === BatchItemStatus.GENERATING,
+    ).length;
+  }
+
+  private collectReviewerIds(
+    batchItemsById: Map<string, BatchItemFull[]>,
+  ): string[] {
+    return [
+      ...new Set(
+        [...batchItemsById.values()]
+          .flat()
+          .flatMap((item) =>
+            (item.reviewEvents ?? []).flatMap((event) =>
+              event.reviewerId ? [event.reviewerId] : [],
+            ),
+          ),
+      ),
+    ];
+  }
+
+  private async loadReviewerMap(
+    organizationIds: string[],
+    reviewerIds: string[],
+  ): Promise<Map<string, IBatchReviewEventReviewer>> {
+    if (reviewerIds.length === 0) {
+      return new Map();
+    }
+
+    const reviewerMembers = (await this.prisma.member.findMany({
+      select: {
+        organizationId: true,
+        user: {
+          select: {
+            avatar: true,
+            firstName: true,
+            handle: true,
+            id: true,
+            isDeleted: true,
+            lastName: true,
+            name: true,
+          },
+        },
+      },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: { in: organizationIds },
+        userId: { in: reviewerIds },
+      },
+    })) as unknown as ReviewerMemberRecord[];
+
+    return new Map(
+      reviewerMembers
+        .filter((member) => !member.user.isDeleted)
+        .map((member) => [
+          this.reviewerKey(member.organizationId, member.user.id),
+          this.toReviewEventReviewer(member),
+        ]),
+    );
+  }
+
+  private toReviewEvents(
+    item: BatchItemFull,
+    organizationId: string,
+    reviewerMap: Map<string, IBatchReviewEventReviewer>,
+  ): IBatchReviewEvent[] {
+    return (item.reviewEvents ?? []).map((event) => ({
+      decision: event.decision,
+      feedback: event.feedback,
+      reviewedAt: event.reviewedAt,
+      reviewer: event.reviewerId
+        ? reviewerMap.get(this.reviewerKey(organizationId, event.reviewerId))
+        : undefined,
+      reviewerId: event.reviewerId,
+      versionPinId: event.versionPinId,
+    }));
   }
 
   private buildAnalyticsMap(
@@ -234,5 +341,29 @@ export class BatchGenerationSummaryService {
       }
     }
     return analyticsMap;
+  }
+
+  private reviewerKey(organizationId: string, userId: string): string {
+    return `${organizationId}:${userId}`;
+  }
+
+  private toReviewEventReviewer(
+    member: ReviewerMemberRecord,
+  ): IBatchReviewEventReviewer {
+    const fullName = [member.user.firstName, member.user.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    return {
+      ...(member.user.avatar ? { avatar: member.user.avatar } : {}),
+      displayName:
+        member.user.name ||
+        fullName ||
+        member.user.handle ||
+        `Team member ${member.user.id.slice(0, 8)}`,
+      handle: member.user.handle,
+      id: member.user.id,
+    };
   }
 }

@@ -224,14 +224,12 @@ export class BatchGenerationReviewService {
           item.reviewFeedback = undefined;
           item.versionPinId = versionPinId;
           item.reviewedAt = reviewedAt;
-          item.reviewEvents = [
-            ...(item.reviewEvents ?? []),
-            {
-              decision: 'approved',
-              reviewedAt,
-              ...(versionPinId ? { versionPinId } : {}),
-            },
-          ];
+          this.appendApprovedReviewEvent(
+            item,
+            reviewedAt,
+            createdByUserId,
+            versionPinId,
+          );
           if (item.postId && item.scheduledDate) {
             postIdsToSchedule.push(item.postId);
           }
@@ -298,6 +296,23 @@ export class BatchGenerationReviewService {
     return this.summaryService.toBatchSummary(updatedBatch);
   }
 
+  private appendApprovedReviewEvent(
+    item: BatchItemFull,
+    reviewedAt: string,
+    reviewerId: string,
+    versionPinId?: string,
+  ): void {
+    item.reviewEvents = [
+      ...(item.reviewEvents ?? []),
+      {
+        decision: 'approved',
+        reviewedAt,
+        reviewerId,
+        ...(versionPinId ? { versionPinId } : {}),
+      },
+    ];
+  }
+
   private getSelectedPostIds(
     batchItems: BatchItemFull[],
     itemIdSet: Set<string>,
@@ -344,7 +359,12 @@ export class BatchGenerationReviewService {
         item.reviewedAt = reviewedAt;
         item.reviewEvents = [
           ...(item.reviewEvents ?? []),
-          { decision: 'rejected', feedback, reviewedAt },
+          {
+            decision: 'rejected',
+            feedback,
+            reviewedAt,
+            ...(actorUserId ? { reviewerId: actorUserId } : {}),
+          },
         ];
         if (item.postId) {
           postIdsToReject.push(item.postId);
@@ -431,7 +451,12 @@ export class BatchGenerationReviewService {
         item.reviewedAt = reviewedAt;
         item.reviewEvents = [
           ...(item.reviewEvents ?? []),
-          { decision: 'request_changes', feedback, reviewedAt },
+          {
+            decision: 'request_changes',
+            feedback,
+            reviewedAt,
+            ...(actorUserId ? { reviewerId: actorUserId } : {}),
+          },
         ];
         if (item.postId) {
           postIdsToKeepAsDraft.push(item.postId);
