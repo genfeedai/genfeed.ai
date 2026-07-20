@@ -53,11 +53,11 @@ export class FoldersController extends BaseCRUDController<
     super(loggerService, foldersService, FolderSerializer, 'Folder');
   }
 
-  @Get(':folderId')
+  @Get(':id')
   async findOne(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Param('folderId') folderId: string,
+    @Param('id') folderId: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isEntityId(folderId)) {
       ErrorResponse.notFound(this.entityName, folderId);
