@@ -108,8 +108,7 @@ describe('Library folder lifecycle persistence', () => {
                 (!where.OR ||
                   where.OR.some(
                     (candidate) =>
-                      candidate.id === row.id ||
-                      candidate.mongoId === row.id,
+                      candidate.id === row.id || candidate.mongoId === row.id,
                   )),
             ) ?? null,
           ),
@@ -186,11 +185,9 @@ describe('Library folder lifecycle persistence', () => {
     } as unknown as LoggerService;
 
     foldersService = new FoldersService(prisma, logger);
-    ingredientsService = new IngredientsService(
-      prisma,
-      logger,
-      { get: vi.fn() } as unknown as ModuleRef,
-    );
+    ingredientsService = new IngredientsService(prisma, logger, {
+      get: vi.fn(),
+    } as unknown as ModuleRef);
     foldersController = new FoldersController(foldersService, logger);
     ingredientsController = new IngredientsController(
       ingredientsService,
@@ -201,7 +198,11 @@ describe('Library folder lifecycle persistence', () => {
   it('persists scalar relationships, preserves assigned assets, and hides a removed folder', async () => {
     const user = {
       id: userId,
-      publicMetadata: { brand: brandId, organization: organizationId, user: userId },
+      publicMetadata: {
+        brand: brandId,
+        organization: organizationId,
+        user: userId,
+      },
     } as unknown as User;
     const request = {
       originalUrl: '/api/folders',

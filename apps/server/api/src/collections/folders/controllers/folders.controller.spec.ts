@@ -365,11 +365,7 @@ describe('FoldersController', () => {
       };
       foldersService.findOne.mockResolvedValue(mockFolder);
 
-      const result = await controller.findOne(
-        mockRequest,
-        mockUser,
-        folderId,
-      );
+      const result = await controller.findOne(mockRequest, mockUser, folderId);
 
       expect(foldersService.findOne).toHaveBeenCalledWith({
         _id: folderId,
@@ -555,11 +551,7 @@ describe('FoldersController', () => {
         isDeleted: true,
       });
 
-      const result = await controller.remove(
-        mockRequest,
-        mockUser,
-        folderId,
-      );
+      const result = await controller.remove(mockRequest, mockUser, folderId);
 
       expect(foldersService.findOne).toHaveBeenCalledWith({ _id: folderId });
       expect(foldersService.remove).toHaveBeenCalledWith(folderId);

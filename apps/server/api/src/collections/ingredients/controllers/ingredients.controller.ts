@@ -134,10 +134,7 @@ export class IngredientsController {
       return returnNotFound(this.constructorName, ingredientId);
     }
 
-    if (
-      Object.hasOwn(processedDto, 'folder') &&
-      processedDto.folder !== null
-    ) {
+    if (Object.hasOwn(processedDto, 'folder') && processedDto.folder !== null) {
       const folder = await this.foldersService.findOne({
         _id: processedDto.folder,
         isDeleted: false,

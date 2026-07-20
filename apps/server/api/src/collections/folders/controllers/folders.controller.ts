@@ -63,10 +63,8 @@ export class FoldersController extends BaseCRUDController<
       ErrorResponse.notFound(this.entityName, folderId);
     }
 
-    const {
-      brand: brandId,
-      organization: organizationId,
-    } = getPublicMetadata(user);
+    const { brand: brandId, organization: organizationId } =
+      getPublicMetadata(user);
     const isSuperAdmin = getIsSuperAdmin(user, request);
     const folderQuery: Record<string, unknown> = {
       _id: folderId,
@@ -218,10 +216,8 @@ export class FoldersController extends BaseCRUDController<
     user: User,
     entity: FolderDocument,
   ): boolean {
-    const {
-      brand: brandId,
-      organization: organizationId,
-    } = getPublicMetadata(user);
+    const { brand: brandId, organization: organizationId } =
+      getPublicMetadata(user);
     return this.isFolderInScope(entity, organizationId, brandId);
   }
 
