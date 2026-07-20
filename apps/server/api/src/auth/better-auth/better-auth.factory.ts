@@ -46,6 +46,31 @@ export const SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE =
   'An account already exists for this email. Sign in instead.';
 
 /**
+ * Build the deployment-sensitive Better Auth options in one testable boundary.
+ *
+ * Community/self-hosted deployments keep the default host-scoped cookie when
+ * `cookieDomain` is absent. Cloud can explicitly share the session cookie
+ * across sibling subdomains, while proxy-specific IP headers remain optional
+ * for deployments without that edge topology.
+ */
+export function buildBetterAuthAdvancedOptions({
+  cookieDomain,
+  ipAddressHeaders,
+}: Pick<
+  ICreateBetterAuthOptions,
+  'cookieDomain' | 'ipAddressHeaders'
+>): NonNullable<BetterAuthOptions['advanced']> {
+  return {
+    ...(ipAddressHeaders && ipAddressHeaders.length > 0
+      ? { ipAddress: { ipAddressHeaders } }
+      : {}),
+    ...(cookieDomain
+      ? { crossSubDomainCookies: { enabled: true, domain: cookieDomain } }
+      : {}),
+  };
+}
+
+/**
  * Adapt the shared Redis KV into Better Auth's `rateLimit.customStorage` shape
  * so all API instances share one counter window (per-process memory would let
  * the effective limit scale with instance count). Reads/writes are JSON; the
@@ -591,19 +616,10 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     // Experimental single-query joins (Prisma adapter). Env-gated; off unless
     // explicitly enabled after staging verification.
     ...(experimentalJoins ? { experimental: { joins: true } } : {}),
-    advanced: {
-      // Pin the client-IP header(s) only when configured (e.g. `x-forwarded-for`
-      // behind the production ALB); unset keeps Better Auth's default detection
-      // for proxy-less / differently-fronted deployment modes.
-      ...(ipAddressHeaders && ipAddressHeaders.length > 0
-        ? { ipAddress: { ipAddressHeaders } }
-        : {}),
-      // Share the session cookie across sibling subdomains (api ↔ app) when a
-      // root domain is configured; host-scoped otherwise.
-      ...(cookieDomain
-        ? { crossSubDomainCookies: { enabled: true, domain: cookieDomain } }
-        : {}),
-    },
+    advanced: buildBetterAuthAdvancedOptions({
+      cookieDomain,
+      ipAddressHeaders,
+    }),
     user: {
       // Better Auth's `image` field maps onto the existing `User.avatar` column.
       fields: { image: 'avatar' },
