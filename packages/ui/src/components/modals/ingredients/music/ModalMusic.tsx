@@ -21,16 +21,26 @@ import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiMusicalNote, HiPause, HiPlay, HiXMark } from 'react-icons/hi2';
 
+interface MusicSelectionOverride {
+  sourceId: string;
+  value: string;
+}
+
 export default function ModalMusic({
   brandId,
   selectedMusicId,
   onConfirm,
 }: ModalMusicProps) {
-  const [selectedMusic, setSelectedMusic] = useState<string>(selectedMusicId);
+  const [selectionOverride, setSelectionOverride] =
+    useState<MusicSelectionOverride | null>(null);
   const [availableMusic, setAvailableMusic] = useState<Music[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [playingId, setPlayingId] = useState<string>('');
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const selectedMusic =
+    selectionOverride?.sourceId === selectedMusicId
+      ? selectionOverride.value
+      : selectedMusicId;
 
   const getMusicsService = useAuthedService((token: string) =>
     MusicsService.getInstance(token),
@@ -97,6 +107,7 @@ export default function ModalMusic({
     if (audioElementRef.current) {
       audioElementRef.current.pause();
     }
+    setSelectionOverride(null);
     closeModal(ModalEnum.MUSIC);
   };
 
@@ -115,7 +126,7 @@ export default function ModalMusic({
   };
 
   const handleClearSelection = () => {
-    setSelectedMusic('');
+    setSelectionOverride({ sourceId: selectedMusicId, value: '' });
   };
 
   return (
@@ -166,7 +177,12 @@ export default function ModalMusic({
                     <div className="flex items-center gap-3">
                       <Button
                         className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                        onClick={() => setSelectedMusic(music.id)}
+                        onClick={() =>
+                          setSelectionOverride({
+                            sourceId: selectedMusicId,
+                            value: music.id,
+                          })
+                        }
                         type="button"
                         variant={ButtonVariant.UNSTYLED}
                         withWrapper={false}

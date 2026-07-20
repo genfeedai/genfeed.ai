@@ -234,6 +234,24 @@ describe('PlatformTimeSeriesChart', () => {
       fireEvent.click(instagramButton);
       expect(instagramButton).toHaveClass('bg-white/10');
     });
+
+    it('reconciles active platforms when available platforms change', () => {
+      const { rerender } = render(
+        <PlatformTimeSeriesChart
+          data={mockData}
+          platforms={['instagram', 'tiktok']}
+        />,
+      );
+
+      fireEvent.click(getPlatformButton('Instagram'));
+      rerender(
+        <PlatformTimeSeriesChart data={mockData} platforms={['facebook']} />,
+      );
+
+      expect(screen.getByTestId('area-facebook')).toBeInTheDocument();
+      expect(screen.queryByTestId('area-tiktok')).not.toBeInTheDocument();
+      expect(getPlatformButton('Facebook')).toHaveClass('bg-white/10');
+    });
   });
 
   describe('Area Rendering', () => {

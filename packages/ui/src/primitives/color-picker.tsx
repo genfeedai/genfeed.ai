@@ -76,7 +76,6 @@ export default function ColorPicker({
   presetColors,
 }: ColorPickerProps) {
   const [displayColorPicker, setDisplayColorPicker] = useState(false);
-  const [color, setColor] = useState(value);
 
   const resolvedPresetColors = useMemo(() => {
     if (presetColors && presetColors.length > 0) {
@@ -100,7 +99,6 @@ export default function ColorPicker({
 
   const updateColorPicker = (colorResult: ColorResult) => {
     const nextColor = showAlpha ? colorResult.hex : colorResult.hex;
-    setColor(nextColor);
     onChange(nextColor);
   };
 
@@ -114,15 +112,15 @@ export default function ColorPicker({
             onClick={activateColorPicker}
             isDisabled={isDisabled}
             className="h-10 w-full flex items-center gap-2"
-            ariaLabel={`Select color, current: ${color}`}
+            ariaLabel={`Select color, current: ${value}`}
             aria-expanded={displayColorPicker}
           >
             <div
               className="size-8 border border-white/[0.08]"
-              style={{ backgroundColor: color }}
+              style={{ backgroundColor: value }}
               aria-hidden="true"
             />
-            <span className="flex-1 text-left">{color}</span>
+            <span className="flex-1 text-left">{value}</span>
           </Button>
 
           {displayColorPicker && (
@@ -138,7 +136,7 @@ export default function ColorPicker({
                 className={`absolute z-20 mt-2 ${position === 'right' ? 'right-0' : 'left-0'}`}
               >
                 <SketchPicker
-                  color={color}
+                  color={value}
                   onChange={updateColorPicker}
                   disableAlpha={!showAlpha}
                   presetColors={resolvedPresetColors}
