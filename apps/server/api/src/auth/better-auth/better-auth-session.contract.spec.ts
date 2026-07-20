@@ -73,9 +73,7 @@ function getSessionCookie(response: Response): {
   setCookie: string;
 } {
   const setCookie = response.headers.get('set-cookie');
-  const cookie = setCookie?.match(
-    /(?:^|, )([^=;,]*session_token=[^;,]+)/,
-  )?.[1];
+  const cookie = setCookie?.match(/(?:^|, )([^=;,]*session_token=[^;,]+)/)?.[1];
 
   if (!setCookie || !cookie) {
     throw new Error('Expected password sign-up to set a session cookie');
@@ -85,50 +83,49 @@ function getSessionCookie(response: Response): {
 }
 
 describe('Better Auth session reload deployment contract', () => {
-  it.each(SESSION_CONTRACT_MODES)(
-    'restores the $name session from a fresh request with the intended cookie scope',
-    async (mode) => {
-      const harness = createSessionContractHarness(mode);
-      const email = `session-contract-${mode.name}@example.com`;
-      const signUpResponse = await harness.request('/sign-up/email', {
-        body: JSON.stringify({
-          email,
-          name: 'Session Contract',
-          password: TEST_PASSWORD,
-        }),
-        headers: { 'content-type': 'application/json' },
-        method: 'POST',
-      });
-      const { cookie, setCookie } = getSessionCookie(signUpResponse);
+  it.each(
+    SESSION_CONTRACT_MODES,
+  )('restores the $name session from a fresh request with the intended cookie scope', async (mode) => {
+    const harness = createSessionContractHarness(mode);
+    const email = `session-contract-${mode.name}@example.com`;
+    const signUpResponse = await harness.request('/sign-up/email', {
+      body: JSON.stringify({
+        email,
+        name: 'Session Contract',
+        password: TEST_PASSWORD,
+      }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    });
+    const { cookie, setCookie } = getSessionCookie(signUpResponse);
 
-      expect(signUpResponse.status).toBe(200);
-      expect(setCookie).toMatch(/;\s*HttpOnly/i);
-      if (mode.expectedCookieDomain) {
-        expect(setCookie).toMatch(
-          new RegExp(
-            `;\\s*Domain=\\.?${mode.expectedCookieDomain.replaceAll('.', '\\.')}\\b`,
-            'i',
-          ),
-        );
-      } else {
-        expect(setCookie).not.toMatch(/;\s*Domain=/i);
-      }
+    expect(signUpResponse.status).toBe(200);
+    expect(setCookie).toMatch(/;\s*HttpOnly/i);
+    if (mode.expectedCookieDomain) {
+      expect(setCookie).toMatch(
+        new RegExp(
+          `;\\s*Domain=\\.?${mode.expectedCookieDomain.replaceAll('.', '\\.')}\\b`,
+          'i',
+        ),
+      );
+    } else {
+      expect(setCookie).not.toMatch(/;\s*Domain=/i);
+    }
 
-      const sessionResponse = await harness.request('/get-session', {
-        headers: { cookie },
-      });
-      const session = (await sessionResponse.json()) as SessionBody;
+    const sessionResponse = await harness.request('/get-session', {
+      headers: { cookie },
+    });
+    const session = (await sessionResponse.json()) as SessionBody;
 
-      expect(sessionResponse.status).toBe(200);
-      expect(session.user.email).toBe(email);
-      expect(session.session.userId).toBe(session.user.id);
-      expect(session.session.token).toBeTruthy();
-      expect(harness.database.session ?? []).toHaveLength(1);
+    expect(sessionResponse.status).toBe(200);
+    expect(session.user.email).toBe(email);
+    expect(session.session.userId).toBe(session.user.id);
+    expect(session.session.token).toBeTruthy();
+    expect(harness.database.session ?? []).toHaveLength(1);
 
-      const anonymousResponse = await harness.request('/get-session');
+    const anonymousResponse = await harness.request('/get-session');
 
-      expect(anonymousResponse.status).toBe(200);
-      await expect(anonymousResponse.json()).resolves.toBeNull();
-    },
-  );
+    expect(anonymousResponse.status).toBe(200);
+    await expect(anonymousResponse.json()).resolves.toBeNull();
+  });
 });
