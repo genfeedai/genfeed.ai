@@ -1,8 +1,8 @@
 'use client';
 
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { isEEEnabled } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   ButtonVariant,
   IngredientCategory,
@@ -28,11 +28,7 @@ import type {
 import type { AvatarVoiceOption } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { PromptBarSurfaceConfig } from '@genfeedai/props/prompt-bars/prompt-bar-surface.props';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '@ui/primitives/alert';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
@@ -169,8 +165,7 @@ export function StudioComposer({
               model.provider === ModelProvider.GENFEED_AI,
           ),
         );
-  const hasNoCredits =
-    usesManagedInference && creditsBreakdown?.total === 0;
+  const hasNoCredits = usesManagedInference && creditsBreakdown?.total === 0;
   const generationGate: GenerationGate = hasNoCompatibleModel
     ? 'model'
     : hasNoAvatarResources

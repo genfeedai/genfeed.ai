@@ -374,37 +374,37 @@ export function useStudioGenerateLayout({
     error: avatarDataError,
     isLoading: isAvatarDataLoading,
   } = useQuery<AvatarVoiceData>({
-      enabled: shouldLoadAvatarData,
-      queryFn: async () => {
-        const [avatarsService, voicesService] = await Promise.all([
-          getAvatarsService(),
-          getVoicesService(),
-        ]);
-        const query: IQueryParams = { pagination: false };
+    enabled: shouldLoadAvatarData,
+    queryFn: async () => {
+      const [avatarsService, voicesService] = await Promise.all([
+        getAvatarsService(),
+        getVoicesService(),
+      ]);
+      const query: IQueryParams = { pagination: false };
 
-        const [allAvatars, allVoices] = await Promise.all([
-          avatarsService.findAll(query),
-          voicesService.findAll(query),
-        ]);
+      const [allAvatars, allVoices] = await Promise.all([
+        avatarsService.findAll(query),
+        voicesService.findAll(query),
+      ]);
 
-        const avatars = allAvatars.filter(
-          (avatar: IIngredient) => avatar.provider === 'heygen',
-        );
-        const voices = allVoices.filter(
-          (voice: IIngredient) => voice.provider === 'elevenlabs',
-        );
+      const avatars = allAvatars.filter(
+        (avatar: IIngredient) => avatar.provider === 'heygen',
+      );
+      const voices = allVoices.filter(
+        (voice: IIngredient) => voice.provider === 'elevenlabs',
+      );
 
-        logger.info('Loaded avatars and voices', {
-          avatars: avatars.length,
-          totalAvatars: allAvatars.length,
-          totalVoices: allVoices.length,
-          voices: voices.length,
-        });
+      logger.info('Loaded avatars and voices', {
+        avatars: avatars.length,
+        totalAvatars: allAvatars.length,
+        totalVoices: allVoices.length,
+        voices: voices.length,
+      });
 
-        return { avatars, voices };
-      },
-      queryKey: ['studio-avatar-data', categoryType, brandId],
-    });
+      return { avatars, voices };
+    },
+    queryKey: ['studio-avatar-data', categoryType, brandId],
+  });
 
   useEffect(() => {
     if (avatarDataError instanceof Error) {

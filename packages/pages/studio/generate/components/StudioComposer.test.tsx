@@ -1,7 +1,4 @@
-import {
-  IngredientCategory,
-  ModelProvider,
-} from '@genfeedai/enums';
+import { IngredientCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { StudioComposer } from '@pages/studio/generate/components/StudioComposer';
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -228,9 +225,7 @@ describe('StudioComposer', () => {
       />,
     );
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'No credits available',
-    );
+    expect(screen.getByRole('alert')).toHaveTextContent('No credits available');
     expect(
       screen.getByRole('link', { name: 'Review credits' }),
     ).toHaveAttribute('href', '/test-org/~/settings/credits');
@@ -262,9 +257,7 @@ describe('StudioComposer', () => {
       />,
     );
 
-    expect(
-      screen.queryByText('No credits available'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No credits available')).not.toBeInTheDocument();
 
     const generateButton = screen.getByRole('button', {
       name: 'Generate Video (~11-21s)',
@@ -299,12 +292,8 @@ describe('StudioComposer', () => {
       />,
     );
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'No credits available',
-    );
-    expect(
-      screen.getByRole('button', { name: 'Add credits' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('No credits available');
+    expect(screen.getByRole('button', { name: 'Add credits' })).toBeDisabled();
   });
 
   it('shows only the higher-priority model gate when credits are also zero', () => {
@@ -326,9 +315,7 @@ describe('StudioComposer', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'No compatible model configured',
     );
-    expect(
-      screen.queryByText('No credits available'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('No credits available')).not.toBeInTheDocument();
   });
 
   it('waits for availability data before showing a configuration gate', () => {
@@ -365,9 +352,10 @@ describe('StudioComposer', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Avatar setup incomplete',
     );
-    expect(
-      screen.getByRole('link', { name: 'avatars' }),
-    ).toHaveAttribute('href', '/test-org/~/library/avatars');
+    expect(screen.getByRole('link', { name: 'avatars' })).toHaveAttribute(
+      'href',
+      '/test-org/~/library/avatars',
+    );
     expect(screen.getByRole('link', { name: 'voices' })).toHaveAttribute(
       'href',
       '/test-org/~/library/voices',
