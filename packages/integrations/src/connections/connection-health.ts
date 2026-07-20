@@ -1,3 +1,9 @@
+import { buildPublishingProviderReadiness } from '@genfeedai/helpers';
+import type {
+  CredentialTokenPublishingReadinessInput,
+  IPublishingProviderReadiness,
+} from '@genfeedai/interfaces';
+
 export type IntegrationConnectionHealthStatus =
   | 'disconnected'
   | 'expired'
@@ -49,6 +55,10 @@ export function resolveIntegrationCredentialHealth(
   const hasAccessToken = Boolean(credential.accessToken);
   const hasRefreshToken = Boolean(credential.refreshToken);
   const refreshAttempts = credential.refreshAttempts ?? 0;
+  const refreshIsExhausted =
+    (refreshAttempts >= maxRefreshAttempts &&
+      Boolean(credential.lastRefreshFailedAt)) ||
+    isExpired(credential.refreshTokenExpiry, now);
 
   if (credential.isDeleted || credential.isConnected === false) {
     return {
@@ -59,48 +69,212 @@ export function resolveIntegrationCredentialHealth(
     };
   }
 
-  if (refreshAttempts >= maxRefreshAttempts && credential.lastRefreshFailedAt) {
+  if (!hasAccessToken) {
+    if (!hasRefreshToken) {
+      return {
+        hasAccessToken,
+        hasRefreshToken,
+        reason: 'No usable tokens are stored.',
+        status: 'disconnected',
+      };
+    }
+
+    if (refreshIsExhausted) {
+      return {
+        hasAccessToken,
+        hasRefreshToken,
+        reason: 'Refresh credential is expired or exhausted.',
+        status: 'refresh_exhausted',
+      };
+    }
+
     return {
       hasAccessToken,
       hasRefreshToken,
-      reason: 'Refresh attempts are exhausted.',
+      reason: 'Access token is missing and can be refreshed.',
+      status: 'refreshable',
+    };
+  }
+
+  if (!hasKnownExpiry(credential.accessTokenExpiry) && refreshIsExhausted) {
+    return {
+      hasAccessToken,
+      hasRefreshToken,
+      reason: 'Refresh credential is expired or exhausted.',
       status: 'refresh_exhausted',
     };
   }
 
-  if (isExpired(credential.refreshTokenExpiry, now)) {
+  if (!isExpired(credential.accessTokenExpiry, now)) {
     return {
       hasAccessToken,
       hasRefreshToken,
-      reason: 'Refresh token is expired.',
+      reason: 'Credential has usable token material.',
+      status: 'healthy',
+    };
+  }
+
+  if (!hasRefreshToken) {
+    return {
+      hasAccessToken,
+      hasRefreshToken,
+      reason: 'Access token is expired and no refresh token is available.',
+      status: 'expired',
+    };
+  }
+
+  if (refreshIsExhausted) {
+    return {
+      hasAccessToken,
+      hasRefreshToken,
+      reason: 'Refresh credential is expired or exhausted.',
       status: 'refresh_exhausted',
-    };
-  }
-
-  if (isExpired(credential.accessTokenExpiry, now)) {
-    return {
-      hasAccessToken,
-      hasRefreshToken,
-      reason: hasRefreshToken
-        ? 'Access token is expired and can be refreshed.'
-        : 'Access token is expired and no refresh token is available.',
-      status: hasRefreshToken ? 'refreshable' : 'expired',
-    };
-  }
-
-  if (!hasAccessToken && !hasRefreshToken) {
-    return {
-      hasAccessToken,
-      hasRefreshToken,
-      reason: 'No usable tokens are stored.',
-      status: 'disconnected',
     };
   }
 
   return {
     hasAccessToken,
     hasRefreshToken,
-    reason: 'Credential has usable token material.',
-    status: 'healthy',
+    reason: 'Access token is expired and can be refreshed.',
+    status: 'refreshable',
   };
+}
+
+function firstStoredToken(
+  values: readonly (string | null | undefined)[],
+): string | null {
+  return (
+    values.find(
+      (value): value is string =>
+        typeof value === 'string' && value.trim().length > 0,
+    ) ?? null
+  );
+}
+
+function hasKnownExpiry(value: Date | string | null | undefined): boolean {
+  if (!value) {
+    return false;
+  }
+
+  const timestamp = value instanceof Date ? value.getTime() : Date.parse(value);
+  return Number.isFinite(timestamp);
+}
+
+export function buildCredentialTokenPublishingReadiness(
+  input: CredentialTokenPublishingReadinessInput,
+): IPublishingProviderReadiness {
+  const now = input.now ?? new Date();
+  const checkedAt = now.toISOString();
+  const health = resolveIntegrationCredentialHealth(
+    {
+      accessToken: firstStoredToken([
+        input.accessToken,
+        input.accessTokenSecret,
+        input.oauthToken,
+        input.oauthTokenSecret,
+      ]),
+      accessTokenExpiry: input.accessTokenExpiresAt,
+      isConnected: input.isConnected,
+      refreshToken: input.refreshToken,
+      refreshTokenExpiry: input.refreshTokenExpiresAt,
+    },
+    { now },
+  );
+
+  if (!input.isConnected) {
+    return buildPublishingProviderReadiness({
+      credentialId: input.credentialId,
+      diagnostics: [
+        {
+          checkedAt,
+          classification: 'expired_credential',
+          code: 'credential_disconnected',
+          correctiveAction: 'Reconnect the provider account before publishing.',
+          isRetryable: true,
+          message: 'The provider account is disconnected.',
+          scope: 'credential',
+          severity: 'error',
+        },
+      ],
+      providerKey: input.providerKey,
+      tokenFreshness: 'fail',
+    });
+  }
+
+  if (!health.hasAccessToken) {
+    return buildPublishingProviderReadiness({
+      credentialId: input.credentialId,
+      diagnostics: [
+        {
+          checkedAt,
+          classification: 'expired_credential',
+          code: 'credential_access_token_missing',
+          correctiveAction: 'Reconnect the provider account before publishing.',
+          isRetryable: true,
+          message: 'The provider account has no usable access credential.',
+          scope: 'credential',
+          severity: 'error',
+        },
+      ],
+      providerKey: input.providerKey,
+      tokenFreshness: 'fail',
+    });
+  }
+
+  if (!hasKnownExpiry(input.accessTokenExpiresAt)) {
+    return buildPublishingProviderReadiness({
+      credentialId: input.credentialId,
+      providerKey: input.providerKey,
+      tokenFreshness: 'unknown',
+    });
+  }
+
+  if (health.status === 'healthy') {
+    return buildPublishingProviderReadiness({
+      credentialId: input.credentialId,
+      providerKey: input.providerKey,
+      tokenFreshness: 'pass',
+    });
+  }
+
+  if (health.status === 'refreshable') {
+    return buildPublishingProviderReadiness({
+      credentialId: input.credentialId,
+      diagnostics: [
+        {
+          checkedAt,
+          classification: 'expired_credential',
+          code: 'credential_access_token_refresh_required',
+          correctiveAction:
+            'Refresh the provider credential before the next publish attempt.',
+          isRetryable: true,
+          message:
+            'The access token is expired, but a refresh credential is available.',
+          scope: 'credential',
+          severity: 'warning',
+        },
+      ],
+      providerKey: input.providerKey,
+      tokenFreshness: 'warn',
+    });
+  }
+
+  return buildPublishingProviderReadiness({
+    credentialId: input.credentialId,
+    diagnostics: [
+      {
+        checkedAt,
+        classification: 'expired_credential',
+        code: 'credential_reconnect_required',
+        correctiveAction: 'Reconnect the provider account before publishing.',
+        isRetryable: true,
+        message:
+          'The provider credential is expired and cannot be refreshed safely.',
+        scope: 'credential',
+        severity: 'error',
+      },
+    ],
+    providerKey: input.providerKey,
+    tokenFreshness: 'fail',
+  });
 }

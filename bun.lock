@@ -961,6 +961,8 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/enums": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
+        "@genfeedai/interfaces": "workspace:*",
       },
       "devDependencies": {
         "@types/node": "26.1.1",
