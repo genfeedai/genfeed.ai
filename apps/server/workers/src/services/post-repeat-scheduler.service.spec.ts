@@ -2,10 +2,10 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CronPostRepeatSchedulerService } from '@workers/crons/posts/cron.post-repeat-scheduler.service';
+import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 
-describe('CronPostRepeatSchedulerService', () => {
-  let service: CronPostRepeatSchedulerService;
+describe('PostRepeatSchedulerService', () => {
+  let service: PostRepeatSchedulerService;
   let loggerService: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -41,7 +41,7 @@ describe('CronPostRepeatSchedulerService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        CronPostRepeatSchedulerService,
+        PostRepeatSchedulerService,
         {
           provide: LoggerService,
           useValue: {
@@ -60,7 +60,7 @@ describe('CronPostRepeatSchedulerService', () => {
       ],
     }).compile();
 
-    service = module.get(CronPostRepeatSchedulerService);
+    service = module.get(PostRepeatSchedulerService);
     loggerService = module.get(LoggerService);
     postsService = module.get(PostsService);
   });

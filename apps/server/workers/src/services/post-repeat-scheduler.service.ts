@@ -14,7 +14,7 @@ type CronPostChild = {
 };
 
 @Injectable()
-export class CronPostRepeatSchedulerService {
+export class PostRepeatSchedulerService {
   constructor(
     private readonly logger: LoggerService,
     private readonly postsService: PostsService,

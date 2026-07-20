@@ -40,7 +40,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { CronPostRepeatSchedulerService } from '@workers/crons/posts/cron.post-repeat-scheduler.service';
+import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import {
   SchedulerPublishStateService,
   type SchedulerPublishTargetUpdate,
@@ -79,7 +79,7 @@ export class CronPostsService {
     private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly schedulerPublishStateService: SchedulerPublishStateService,
-    private readonly postRepeatSchedulerService: CronPostRepeatSchedulerService,
+    private readonly postRepeatSchedulerService: PostRepeatSchedulerService,
   ) {}
 
   /**

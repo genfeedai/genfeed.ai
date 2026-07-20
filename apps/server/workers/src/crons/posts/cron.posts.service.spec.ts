@@ -19,8 +19,8 @@ import {
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { CronPostRepeatSchedulerService } from '@workers/crons/posts/cron.post-repeat-scheduler.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
+import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 const APPROVAL_JOB_IDENTITY = {
@@ -199,7 +199,7 @@ describe('CronPostsService', () => {
           useValue: schedulerPublishStateService,
         },
         {
-          provide: CronPostRepeatSchedulerService,
+          provide: PostRepeatSchedulerService,
           useValue: postRepeatSchedulerService,
         },
       ],
