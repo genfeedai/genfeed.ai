@@ -53,6 +53,11 @@ import type { ImagesQueryDto } from '@api/collections/images/dto/images-query.dt
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -79,10 +84,13 @@ describe('ImagesController', () => {
   const mockImage = {
     _id: '507f191e810c19729de860ee',
     category: 'image',
+    id: 'canonical-image-id',
     metadata: { label: 'Test image' },
   };
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+
     imagesService = {
       findAll: vi.fn().mockResolvedValue({ docs: [mockImage], totalDocs: 1 }),
       findOne: vi.fn().mockResolvedValue(mockImage),
@@ -156,13 +164,20 @@ describe('ImagesController', () => {
 
       const userBranch = orBranches[0].AND[0];
       expect(userBranch).toMatchObject({
+        organizationId: mockUser.publicMetadata.organization,
         training: { not: false },
         user: mockUser.publicMetadata.user,
       });
       expect(userBranch).not.toHaveProperty('isDefault');
 
       const defaultBranch = orBranches[1].AND[0];
-      expect(defaultBranch).toMatchObject({ isDefault: true });
+      expect(defaultBranch).toMatchObject({
+        OR: [
+          { organizationId: mockUser.publicMetadata.organization },
+          { organizationId: null },
+        ],
+        isDefault: true,
+      });
     });
 
     it('should cap the latest limit at 50', async () => {
@@ -179,6 +194,27 @@ describe('ImagesController', () => {
   });
 
   describe('findAll (standard list)', () => {
+    it('partitions the latest-image cache by active organization and brand', () => {
+      const cacheConfig = Reflect.getMetadata(
+        'cache',
+        ImagesController.prototype.findAll,
+      ) as {
+        keyGenerator: (request: Record<string, unknown>) => string;
+      };
+      const buildKey = (organization: string, brand: string) =>
+        cacheConfig.keyGenerator({
+          query: { latest: 'true', limit: 10 },
+          user: {
+            id: mockUser.id,
+            publicMetadata: { brand, organization },
+          },
+        });
+
+      expect(buildKey('org-a', 'brand-a')).not.toBe(
+        buildKey('org-b', 'brand-b'),
+      );
+    });
+
     it('should build a Prisma AND query for the image list', async () => {
       const query = { limit: 10, page: 1 } as unknown as ImagesQueryDto;
 
@@ -186,9 +222,89 @@ describe('ImagesController', () => {
 
       expect(result).toBeDefined();
       const aggregate = imagesService.findAll.mock.calls[0][0] as {
-        where: { AND?: unknown[] };
+        where: {
+          AND?: Array<{
+            OR?: Array<{
+              AND?: Array<{
+                OR?: Array<Record<string, unknown>>;
+              }>;
+            }>;
+          }>;
+        };
       };
       expect(aggregate.where.AND).toBeDefined();
+      expect(aggregate.where.AND?.[0]?.OR?.[0]?.AND?.[0]).toEqual(
+        expect.objectContaining({
+          organizationId: mockUser.publicMetadata.organization,
+        }),
+      );
+      expect(serializeCollection).toHaveBeenCalledWith(
+        mockRequest,
+        IngredientSerializer,
+        expect.objectContaining({ docs: [mockImage] }),
+      );
+    });
+  });
+
+  describe('findOne', () => {
+    it('tenant-scopes the lookup and serializes the image contract', async () => {
+      await controller.findOne(mockRequest, mockImage._id, mockUser);
+
+      expect(imagesService.findOne).toHaveBeenCalledWith(
+        {
+          _id: mockImage._id,
+          category: 'IMAGE',
+          isDeleted: false,
+          OR: [
+            { organizationId: mockUser.publicMetadata.organization },
+            { isDefault: true, organizationId: null },
+          ],
+        },
+        expect.any(Array),
+      );
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        IngredientSerializer,
+        expect.objectContaining({ _id: mockImage._id }),
+      );
+    });
+
+    it('returns not found when the scoped image lookup misses', async () => {
+      imagesService.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        controller.findOne(mockRequest, mockImage._id, mockUser),
+      ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
+      expect(serializeSingle).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('remove', () => {
+    it('preflights tenant ownership and serializes the soft-deleted image', async () => {
+      await controller.remove(mockRequest, mockImage._id, mockUser);
+
+      expect(imagesService.findOne).toHaveBeenCalledWith({
+        _id: mockImage._id,
+        organizationId: mockUser.publicMetadata.organization,
+        category: 'IMAGE',
+        isDeleted: false,
+      });
+      expect(imagesService.remove).toHaveBeenCalledWith(mockImage.id);
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        IngredientSerializer,
+        mockImage,
+      );
+    });
+
+    it('does not delete an image outside the caller scope', async () => {
+      imagesService.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        controller.remove(mockRequest, mockImage._id, mockUser),
+      ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
+      expect(imagesService.remove).not.toHaveBeenCalled();
+      expect(serializeSingle).not.toHaveBeenCalled();
     });
   });
 });

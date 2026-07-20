@@ -2,7 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { IngredientCategory, VoiceProvider } from '@genfeedai/enums';
+import { VoiceProvider } from '@genfeedai/enums';
 import { HttpStatus } from '@nestjs/common';
 
 vi.mock('@api/helpers/utils/sort/sort.util', () => ({
@@ -50,7 +50,7 @@ describe('VoiceLibraryService', () => {
           ],
           OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
           brandId,
-          category: IngredientCategory.VOICE,
+          category: 'VOICE',
           isDeleted: false,
           isVoiceActive: { not: false },
           organizationId,
@@ -77,6 +77,7 @@ describe('VoiceLibraryService', () => {
     expect(voicesService.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
+          category: 'VOICE',
           isCloned: true,
           isDeleted: false,
           organizationId,

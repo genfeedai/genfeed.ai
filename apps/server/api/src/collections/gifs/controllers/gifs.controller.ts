@@ -8,7 +8,9 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -99,14 +101,11 @@ export class GifsController {
               {
                 AND: [
                   {
-                    OR: [
-                      { user: publicMetadata.user },
-                      {
-                        organization: publicMetadata.organization,
-                      },
-                    ],
+                    organizationId: publicMetadata.organization,
                     brand,
-                    category: IngredientCategory.GIF,
+                    category: CategoryPrismaUtil.toIngredientCategory(
+                      IngredientCategory.GIF,
+                    ),
                     isDeleted,
                     ...(scope !== undefined ? { scope } : {}),
                     status,
@@ -120,9 +119,17 @@ export class GifsController {
               {
                 AND: [
                   {
-                    category: IngredientCategory.GIF,
+                    category: CategoryPrismaUtil.toIngredientCategory(
+                      IngredientCategory.GIF,
+                    ),
                     isDefault: true,
                     isDeleted,
+                    OR: [
+                      {
+                        organizationId: publicMetadata.organization,
+                      },
+                      { organizationId: null },
+                    ],
                     status,
                     // Filter default GIFs by brand when brand is specified
                     ...(isEntityId(query.brand) ? { brand } : {}),
@@ -153,13 +160,26 @@ export class GifsController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    const data = await this.gifsService.findOne({ _id: gifId }, [
-      PopulatePatterns.metadataFull,
-      PopulatePatterns.promptFull,
-      PopulatePatterns.userMinimal,
-      PopulatePatterns.brandMinimal,
-      PopulatePatterns.organizationMinimal,
-    ]);
+    const data = await this.gifsService.findOne(
+      {
+        _id: gifId,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.GIF,
+        ),
+        isDeleted: false,
+        OR: [
+          { organizationId: publicMetadata.organization },
+          { isDefault: true, organizationId: null },
+        ],
+      },
+      [
+        PopulatePatterns.metadataFull,
+        PopulatePatterns.promptFull,
+        PopulatePatterns.userMinimal,
+        PopulatePatterns.brandMinimal,
+        PopulatePatterns.organizationMinimal,
+      ],
+    );
 
     if (!data) {
       return returnNotFound(this.constructorName, gifId);
@@ -181,8 +201,22 @@ export class GifsController {
   async remove(
     @Req() request: Request,
     @Param('gifId') gifId: string,
+    @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const data = await this.gifsService.remove(gifId);
+    const publicMetadata = getPublicMetadata(user);
+    const gif = await this.gifsService.findOne({
+      _id: gifId,
+      organizationId: publicMetadata.organization,
+      category: CategoryPrismaUtil.toIngredientCategory(IngredientCategory.GIF),
+      isDeleted: false,
+    });
+
+    if (!gif) {
+      return returnNotFound(this.constructorName, gifId);
+    }
+
+    const canonicalGifId = EntityIdUtil.resolveCanonicalId(gif, gifId);
+    const data = await this.gifsService.remove(canonicalGifId);
     return data
       ? serializeSingle(request, IngredientSerializer, data)
       : returnNotFound(this.constructorName, gifId);

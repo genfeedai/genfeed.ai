@@ -130,6 +130,26 @@ describe('EntityIdUtil', () => {
     });
   });
 
+  describe('resolveCanonicalId', () => {
+    it('returns the canonical Prisma id from a compatibility lookup result', () => {
+      expect(
+        EntityIdUtil.resolveCanonicalId(
+          { id: 'canonical-cuid', mongoId: '507f1f77bcf86cd799439011' },
+          '507f1f77bcf86cd799439011',
+        ),
+      ).toBe('canonical-cuid');
+    });
+
+    it('falls back to the requested id when the record has no canonical id', () => {
+      expect(
+        EntityIdUtil.resolveCanonicalId(
+          { _id: '507f1f77bcf86cd799439011' },
+          '507f1f77bcf86cd799439011',
+        ),
+      ).toBe('507f1f77bcf86cd799439011');
+    });
+  });
+
   describe('enrichWithUserContext', () => {
     it('should enrich DTO with user and organization', () => {
       const dto = { name: 'Test' };

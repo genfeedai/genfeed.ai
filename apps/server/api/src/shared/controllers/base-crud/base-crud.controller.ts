@@ -182,7 +182,7 @@ export abstract class BaseCRUDController<
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(
     @Req() request: Request,
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
     @Param('id') id: string,
   ): Promise<JsonApiSingleResponse> {
     if (!isEntityId(id)) {
@@ -190,7 +190,7 @@ export abstract class BaseCRUDController<
     }
 
     const data = await this.service.findOne(
-      { _id: id },
+      this.buildFindOneQuery(user, id),
       this.getPopulateFields(),
     );
 
@@ -288,7 +288,9 @@ export abstract class BaseCRUDController<
     }
 
     // Check ownership before deletion
-    const existing = await this.service.findOne({ _id: id });
+    const existing = await this.service.findOne(
+      this.buildFindOneQuery(user, id),
+    );
     if (!existing) {
       ErrorResponse.notFound(this.entityName, id);
     }
@@ -298,7 +300,8 @@ export abstract class BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
-    const data = await this.service.remove(id);
+    const canonicalId = EntityIdUtil.resolveCanonicalId(existing, id);
+    const data = await this.service.remove(canonicalId);
 
     if (!data) {
       ErrorResponse.notFound(this.entityName, id);
@@ -332,6 +335,14 @@ export abstract class BaseCRUDController<
       orderBy: handleQuerySort(query.sort),
       where: matchFilter,
     };
+  }
+
+  /**
+   * Build the lookup query used by find and delete operations.
+   * Child controllers can override this to enforce resource-specific scope.
+   */
+  public buildFindOneQuery(_user: User, id: string): Record<string, unknown> {
+    return { _id: id };
   }
 
   public buildFindAllPipeline(

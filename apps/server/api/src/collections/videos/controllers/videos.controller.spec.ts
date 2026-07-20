@@ -447,6 +447,27 @@ describe('VideosController', () => {
       sort: 'createdAt: -1',
     } as unknown as VideosQueryDto;
 
+    it('partitions the video-list cache by active organization and brand', () => {
+      const cacheConfig = Reflect.getMetadata(
+        'cache',
+        VideosController.prototype.findAll,
+      ) as {
+        keyGenerator: (request: Record<string, unknown>) => string;
+      };
+      const buildKey = (organization: string, brand: string) =>
+        cacheConfig.keyGenerator({
+          query: { latest: 'true', limit: 10 },
+          user: {
+            id: mockUser.id,
+            publicMetadata: { brand, organization },
+          },
+        });
+
+      expect(buildKey('org-a', 'brand-a')).not.toBe(
+        buildKey('org-b', 'brand-b'),
+      );
+    });
+
     it('should short-circuit to the user-scoped latest aggregate', async () => {
       const mockData = { docs: [mockVideo], limit: 10, page: 1, totalDocs: 1 };
       videosService.findAll.mockResolvedValue(
@@ -478,6 +499,7 @@ describe('VideosController', () => {
       // NO organization OR-branch and NO isDefault branch (unlike the list route).
       const branch = aggregate.where.AND[0];
       expect(branch).toMatchObject({
+        organizationId: mockUser.publicMetadata.organization,
         training: { not: false },
         user: mockUser.publicMetadata.user,
       });
@@ -531,6 +553,18 @@ describe('VideosController', () => {
       const result = await controller.findAll(mockRequest, mockUser, baseQuery);
 
       expect(videosService.findAll).toHaveBeenCalled();
+      const aggregate = videosService.findAll.mock.calls[0]?.[0] as {
+        where: {
+          AND: Array<{
+            OR?: Array<Record<string, unknown>>;
+            brand?: unknown;
+          }>;
+        };
+      };
+      expect(aggregate.where.AND[0]).toEqual({
+        organizationId: mockUser.publicMetadata.organization,
+      });
+      expect(aggregate.where.AND[1]?.brand).toBe(mockUser.publicMetadata.brand);
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
     });
@@ -674,6 +708,25 @@ describe('VideosController', () => {
       );
     });
 
+    it('partitions the video cache by active organization', () => {
+      const cacheConfig = Reflect.getMetadata(
+        'cache',
+        VideosController.prototype.findOne,
+      ) as {
+        keyGenerator: (request: Record<string, unknown>) => string;
+      };
+      const buildKey = (organization: string) =>
+        cacheConfig.keyGenerator({
+          params: { videoId: mockVideoId.toString() },
+          user: {
+            id: mockUser.id,
+            publicMetadata: { organization },
+          },
+        });
+
+      expect(buildKey('org-a')).not.toBe(buildKey('org-b'));
+    });
+
     it('should return a single video', async () => {
       const result = await controller.findOne(
         mockRequest,
@@ -681,8 +734,28 @@ describe('VideosController', () => {
         mockUser,
       );
 
-      expect(videosService.findOne).toHaveBeenCalled();
+      expect(videosService.findAll).toHaveBeenCalledWith(
+        {
+          where: {
+            _id: mockVideoId.toString(),
+            category: 'VIDEO',
+            isDeleted: false,
+            organizationId: mockUser.publicMetadata.organization,
+          },
+        },
+        { pagination: false },
+      );
+      expect(videosService.findOne).toHaveBeenCalledWith(
+        {
+          _id: mockVideoId.toString(),
+          category: 'VIDEO',
+          isDeleted: false,
+          organizationId: mockUser.publicMetadata.organization,
+        },
+        expect.any(Array),
+      );
       expect(result).toBeDefined();
+      expect(result.data).toMatchObject({ type: 'video' });
     });
 
     it('should include vote status', async () => {
@@ -850,12 +923,33 @@ describe('VideosController', () => {
         mockUser,
       );
 
-      expect(videosService.findOne).toHaveBeenCalled();
+      expect(videosService.findOne).toHaveBeenCalledWith({
+        _id: mockVideoId.toString(),
+        organizationId: mockUser.publicMetadata.organization,
+        category: 'VIDEO',
+        isDeleted: false,
+      });
       expect(videosService.remove).toHaveBeenCalledWith(mockVideoId.toString());
       expect(metadataService.remove).toHaveBeenCalledWith(
         mockVideoId.toString(),
       );
       expect(result).toBeDefined();
+    });
+
+    it('resolves a legacy mongoId route to the canonical id before deletion', async () => {
+      const canonicalVideoId = 'canonical-video-id';
+      const legacyVideo = { ...mockVideo, id: canonicalVideoId };
+      videosService.findOne.mockResolvedValue(
+        legacyVideo as unknown as IngredientDocument,
+      );
+      videosService.remove.mockResolvedValue(
+        legacyVideo as unknown as IngredientDocument,
+      );
+
+      await controller.remove(mockRequest, mockVideoId.toString(), mockUser);
+
+      expect(videosService.remove).toHaveBeenCalledWith(canonicalVideoId);
+      expect(metadataService.remove).toHaveBeenCalledWith(canonicalVideoId);
     });
 
     it('should return 404 when video not found', async () => {
