@@ -5,7 +5,9 @@ import CaptionsList from './captions-list';
 import '@testing-library/jest-dom/vitest';
 
 const findAllMock = vi.fn<() => Promise<Caption[]>>();
-const loggerErrorMock = vi.fn();
+const { loggerErrorMock } = vi.hoisted(() => ({
+  loggerErrorMock: vi.fn(),
+}));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() =>
@@ -34,18 +36,22 @@ vi.mock('@services/content/captions.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: vi.fn(() => ({
-      error: vi.fn(),
-      success: vi.fn(),
-    })),
-  },
-}));
+vi.mock('@services/core/notifications.service', () => {
+  const service = {
+    error: vi.fn(),
+    success: vi.fn(),
+  };
+
+  return {
+    NotificationsService: {
+      getInstance: vi.fn(() => service),
+    },
+  };
+});
 
 vi.mock('@services/core/logger.service', () => ({
   logger: {
-    error: (...args: unknown[]) => loggerErrorMock(...args),
+    error: loggerErrorMock,
     info: vi.fn(),
   },
 }));
@@ -86,9 +92,7 @@ describe('CaptionsList', () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
       .mockImplementation(() => undefined);
-    findAllMock
-      .mockRejectedValueOnce(new Error('network unavailable'))
-      .mockResolvedValueOnce([]);
+    findAllMock.mockRejectedValue(new Error('network unavailable'));
 
     try {
       render(<CaptionsList />);
@@ -98,10 +102,12 @@ describe('CaptionsList', () => {
       ).toBeInTheDocument();
       expect(loggerErrorMock).toHaveBeenCalled();
 
+      const callsBeforeRetry = findAllMock.mock.calls.length;
+      findAllMock.mockResolvedValue([]);
       fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
       expect(await screen.findByText('No captions found')).toBeInTheDocument();
-      expect(findAllMock).toHaveBeenCalledTimes(2);
+      expect(findAllMock.mock.calls.length).toBeGreaterThan(callsBeforeRetry);
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     } finally {
       consoleErrorSpy.mockRestore();

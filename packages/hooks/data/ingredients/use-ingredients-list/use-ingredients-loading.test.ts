@@ -6,8 +6,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockGetIngredientsService = vi.fn();
 const mockGetFoldersService = vi.fn();
 const mockGetOrganizationsService = vi.fn();
-const mockNotificationError = vi.fn();
-const mockLoggerError = vi.fn();
+const { mockLoggerError, mockNotificationError } = vi.hoisted(() => ({
+  mockLoggerError: vi.fn(),
+  mockNotificationError: vi.fn(),
+}));
 
 vi.mock('@helpers/data/cache/cache.helper', () => ({
   createCacheKey: vi.fn((...args: string[]) => args.join(':')),
@@ -51,18 +53,22 @@ vi.mock('@genfeedai/services/organization/organizations.service', () => ({
   },
 }));
 
-vi.mock('@genfeedai/services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: vi.fn(() => ({
-      error: mockNotificationError,
-      success: vi.fn(),
-    })),
-  },
-}));
+vi.mock('@genfeedai/services/core/notifications.service', () => {
+  const service = {
+    error: mockNotificationError,
+    success: vi.fn(),
+  };
+
+  return {
+    NotificationsService: {
+      getInstance: vi.fn(() => service),
+    },
+  };
+});
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
-    error: (...args: unknown[]) => mockLoggerError(...args),
+    error: mockLoggerError,
     info: vi.fn(),
   },
 }));
