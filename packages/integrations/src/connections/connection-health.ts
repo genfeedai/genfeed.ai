@@ -1,5 +1,8 @@
 import { buildPublishingProviderReadiness } from '@genfeedai/helpers';
-import type { IPublishingProviderReadiness } from '@genfeedai/interfaces';
+import type {
+  CredentialTokenPublishingReadinessInput,
+  IPublishingProviderReadiness,
+} from '@genfeedai/interfaces';
 
 export type IntegrationConnectionHealthStatus =
   | 'disconnected'
@@ -29,20 +32,6 @@ export interface IntegrationCredentialHealth {
 export interface ResolveIntegrationCredentialHealthOptions {
   maxRefreshAttempts?: number;
   now?: Date;
-}
-
-export interface CredentialTokenPublishingReadinessInput {
-  accessToken?: string | null;
-  accessTokenExpiresAt?: Date | string | null;
-  accessTokenSecret?: string | null;
-  credentialId: string;
-  isConnected: boolean;
-  now?: Date;
-  oauthToken?: string | null;
-  oauthTokenSecret?: string | null;
-  providerKey: IPublishingProviderReadiness['providerKey'];
-  refreshToken?: string | null;
-  refreshTokenExpiresAt?: Date | string | null;
 }
 
 function isExpired(
