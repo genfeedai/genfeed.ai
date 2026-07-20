@@ -262,10 +262,12 @@ describe('FoldersController', () => {
 
       for (const query of scenarios) {
         const { where } = controller.buildFindAllQuery(mockUser, query);
-        const orClauses = (where as { OR?: Array<Record<string, unknown>> }).OR;
+        const whereRecord = where as Record<string, unknown> & {
+          OR?: Array<Record<string, unknown>>;
+        };
+        const clauses = [whereRecord, ...(whereRecord.OR ?? [])];
 
-        expect(orClauses).toBeDefined();
-        for (const clause of orClauses ?? []) {
+        for (const clause of clauses) {
           for (const key of relationAccessorKeys) {
             expect(clause).not.toHaveProperty(key);
           }
