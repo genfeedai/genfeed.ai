@@ -55,7 +55,7 @@ export class PostRepeatSchedulerService {
         return;
       }
 
-      const newPost = await this.postsService.create({
+      const postData = {
         ...(post.agentThreadId
           ? {
               agentContextSource: post.agentContextSource,
@@ -84,7 +84,9 @@ export class PostRepeatSchedulerService {
         status: PostStatus.SCHEDULED,
         tags: post.tags,
         user: this.readPostString(post, ['userId', 'user']) ?? '',
-      });
+      };
+
+      const newPost = await this.postsService.create(postData);
 
       const children = (post.children || []) as unknown as CronPostChild[];
       if (children.length > 0) {
