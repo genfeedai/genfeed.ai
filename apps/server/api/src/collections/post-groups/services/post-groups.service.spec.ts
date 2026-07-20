@@ -93,12 +93,14 @@ describe('PostGroupsService', () => {
       create: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
+      groupBy: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
     };
     postGroup: {
       create: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
     };
     publishApproval: {
@@ -137,6 +139,7 @@ describe('PostGroupsService', () => {
           ),
         findFirst: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),
+        groupBy: vi.fn().mockResolvedValue([]),
         update: vi.fn(),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
@@ -147,6 +150,7 @@ describe('PostGroupsService', () => {
             Promise.resolve(makeGroup({ ...data, id: 'group-1' })),
           ),
         findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
         update: vi
           .fn()
           .mockImplementation(({ data }) =>
@@ -208,6 +212,39 @@ describe('PostGroupsService', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.clearAllMocks();
+  });
+
+  it('parses the validated calendar window before delegating to persistence', async () => {
+    await expect(
+      service.list('org-1', {
+        brandId: 'brand-1',
+        endDate: '2026-07-27T00:00:00.000Z',
+        startDate: '2026-07-20T00:00:00.000Z',
+        status: [ReleaseStatus.SCHEDULED],
+      }),
+    ).resolves.toEqual([]);
+
+    expect(prisma.post.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          scheduledDate: {
+            gte: new Date('2026-07-20T00:00:00.000Z'),
+            lte: new Date('2026-07-27T00:00:00.000Z'),
+          },
+        }),
+      }),
+    );
+    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          status: { in: [ReleaseStatus.SCHEDULED] },
+        }),
+      }),
+    );
   });
 
   it('creates a scheduled post group and channel target idempotently from the shared contract', async () => {

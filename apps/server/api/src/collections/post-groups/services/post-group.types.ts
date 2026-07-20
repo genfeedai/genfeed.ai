@@ -76,6 +76,14 @@ export type SchedulerPostTarget = {
   workflowExecutionId: string | null;
 };
 
+export type ReleaseGroupListQuery = {
+  brandId?: string;
+  endDate: Date;
+  organizationId: string;
+  startDate: Date;
+  statuses?: ReleaseStatus[];
+};
+
 export type CreateAttachmentPostsParams = {
   brandId: string;
   group: SchedulerPostGroup;

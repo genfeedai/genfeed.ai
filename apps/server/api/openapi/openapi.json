@@ -8551,6 +8551,19 @@
         },
         "type": "object"
       },
+      "ReleaseStatus": {
+        "enum": [
+          "draft",
+          "scheduled",
+          "paused",
+          "cancelled",
+          "publishing",
+          "published",
+          "failed",
+          "partially-published"
+        ],
+        "type": "string"
+      },
       "ReplyBotType": {
         "enum": [
           "reply_guy",
@@ -38560,6 +38573,61 @@
       }
     },
     "/post-groups": {
+      "get": {
+        "operationId": "PostGroupsController.findAll",
+        "parameters": [
+          {
+            "description": "Inclusive release window start in ISO 8601 format",
+            "in": "query",
+            "name": "startDate",
+            "required": true,
+            "schema": {
+              "example": "2026-07-20T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Inclusive release window end in ISO 8601 format",
+            "in": "query",
+            "name": "endDate",
+            "required": true,
+            "schema": {
+              "example": "2026-07-27T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter release groups by brand ID",
+            "in": "query",
+            "name": "brandId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by release status using repeated query keys (for example, ?status=scheduled&status=failed).",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "items": {
+                "$ref": "#/components/schemas/ReleaseStatus"
+              },
+              "type": "array"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "findAll",
+        "tags": [
+          "PostGroups"
+        ]
+      },
       "post": {
         "operationId": "PostGroupsController.create",
         "parameters": [

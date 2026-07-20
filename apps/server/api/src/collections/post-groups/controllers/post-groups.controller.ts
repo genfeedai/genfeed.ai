@@ -1,10 +1,14 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
 import { ReleaseGroupSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -14,6 +18,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -24,6 +29,18 @@ import type { Request } from 'express';
 @Controller('post-groups')
 export class PostGroupsController {
   constructor(private readonly postGroupsService: PostGroupsService) {}
+
+  @Get()
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findAll(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Query() query: PostGroupsQueryDto,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const docs = await this.postGroupsService.list(organization, query);
+    return serializeCollection(req, ReleaseGroupSerializer, { docs });
+  }
 
   @Post()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
