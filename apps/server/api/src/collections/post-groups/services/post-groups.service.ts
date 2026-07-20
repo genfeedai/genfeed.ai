@@ -1,3 +1,4 @@
+import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import type {
   ManualRetryResolution,
   ResolveManualRetryParams,
@@ -108,6 +109,19 @@ export class PostGroupsService {
       group.id,
     );
     return this.contractService.toReleaseGroup(group, targets);
+  }
+
+  list(
+    organizationId: string,
+    query: PostGroupsQueryDto,
+  ): Promise<IReleaseGroup[]> {
+    return this.persistenceService.listReleaseGroups({
+      ...(query.brandId ? { brandId: query.brandId } : {}),
+      endDate: new Date(query.endDate),
+      organizationId,
+      startDate: new Date(query.startDate),
+      ...(query.status?.length ? { statuses: query.status } : {}),
+    });
   }
 
   async scheduleTarget(

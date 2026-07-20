@@ -1,6 +1,7 @@
 import type {
   CreateAttachmentPostsParams,
   CreatePostGroupParams,
+  ReleaseGroupListQuery,
   SchedulerCredential,
   SchedulerPostGroup,
   SchedulerPostTarget,
@@ -189,6 +190,97 @@ export class PostGroupPersistenceService {
     return this.contractService.toReleaseGroup(group, targets);
   }
 
+  async listReleaseGroups(
+    query: ReleaseGroupListQuery,
+  ): Promise<IReleaseGroup[]> {
+    const targetRows = await this.prisma.post.groupBy({
+      by: ['groupId'],
+      where: {
+        ...(query.brandId ? { brandId: query.brandId } : {}),
+        groupId: { not: null },
+        isDeleted: false,
+        organizationId: query.organizationId,
+        parentId: null,
+        scheduledDate: {
+          gte: query.startDate,
+          lte: query.endDate,
+        },
+      },
+    });
+    const targetGroupIds = [
+      ...new Set(
+        targetRows.flatMap((target) =>
+          target.groupId ? [target.groupId] : [],
+        ),
+      ),
+    ];
+
+    const scheduleFilters: Prisma.PostGroupWhereInput[] = [
+      {
+        scheduledAt: {
+          gte: query.startDate,
+          lte: query.endDate,
+        },
+      },
+    ];
+    if (targetGroupIds.length > 0) {
+      scheduleFilters.push({ id: { in: targetGroupIds } });
+    }
+
+    const groups = (await this.prisma.postGroup.findMany({
+      orderBy: { id: 'asc' },
+      where: {
+        ...(query.brandId ? { brandId: query.brandId } : {}),
+        isDeleted: false,
+        organizationId: query.organizationId,
+        OR: scheduleFilters,
+        ...(query.statuses?.length ? { status: { in: query.statuses } } : {}),
+      },
+    })) as SchedulerPostGroup[];
+
+    if (groups.length === 0) {
+      return [];
+    }
+
+    const groupIds = groups.map((group) => group.id);
+    const targets = (await this.prisma.post.findMany({
+      orderBy: [
+        { groupId: 'asc' },
+        { order: 'asc' },
+        { createdAt: 'asc' },
+        { id: 'asc' },
+      ],
+      where: {
+        groupId: { in: groupIds },
+        isDeleted: false,
+        organizationId: query.organizationId,
+        parentId: null,
+      },
+    })) as SchedulerPostTarget[];
+    const targetsByGroup = new Map<string, SchedulerPostTarget[]>();
+    for (const target of targets) {
+      if (!target.groupId) {
+        continue;
+      }
+      const currentTargets = targetsByGroup.get(target.groupId) ?? [];
+      currentTargets.push(target);
+      targetsByGroup.set(target.groupId, currentTargets);
+    }
+
+    return groups
+      .map((group) =>
+        this.contractService.toReleaseGroup(
+          group,
+          targetsByGroup.get(group.id) ?? [],
+        ),
+      )
+      .sort((left, right) => {
+        const scheduleOrder =
+          this.getEarliestSchedule(left) - this.getEarliestSchedule(right);
+        return scheduleOrder || left.id.localeCompare(right.id);
+      });
+  }
+
   async resolveCredentials(
     tx: Pick<SchedulerTx, 'credential'>,
     organizationId: string,
@@ -369,6 +461,18 @@ export class PostGroupPersistenceService {
         parentId: null,
       },
     })) as SchedulerPostTarget[];
+  }
+
+  private getEarliestSchedule(release: IReleaseGroup): number {
+    const schedules = [
+      release.scheduledAt,
+      ...(release.targets ?? []).map((target) => target.scheduledAt),
+    ]
+      .filter((scheduledAt): scheduledAt is string => Boolean(scheduledAt))
+      .map((scheduledAt) => Date.parse(scheduledAt))
+      .filter(Number.isFinite);
+
+    return schedules.length > 0 ? Math.min(...schedules) : Number.MAX_VALUE;
   }
 
   async recalculateAndHydrate(

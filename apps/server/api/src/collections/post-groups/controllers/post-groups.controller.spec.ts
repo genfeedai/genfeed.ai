@@ -6,11 +6,13 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
 }));
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
+  serializeCollection: vi.fn((_req, _serializer, data) => data.docs),
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostGroupsController } from '@api/collections/post-groups/controllers/post-groups.controller';
+import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { ReleaseStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -22,6 +24,7 @@ describe('PostGroupsController', () => {
     cancel: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     getOne: ReturnType<typeof vi.fn>;
+    list: ReturnType<typeof vi.fn>;
     pause: ReturnType<typeof vi.fn>;
     publishNow: ReturnType<typeof vi.fn>;
     resume: ReturnType<typeof vi.fn>;
@@ -42,6 +45,7 @@ describe('PostGroupsController', () => {
             cancel: vi.fn().mockResolvedValue({ id: 'group-1' }),
             create: vi.fn().mockResolvedValue({ id: 'group-1' }),
             getOne: vi.fn().mockResolvedValue({ id: 'group-1' }),
+            list: vi.fn().mockResolvedValue([{ id: 'group-1' }]),
             pause: vi.fn().mockResolvedValue({ id: 'group-1' }),
             publishNow: vi.fn().mockResolvedValue({ id: 'group-1' }),
             resume: vi.fn().mockResolvedValue({ id: 'group-1' }),
@@ -77,6 +81,18 @@ describe('PostGroupsController', () => {
       body,
       'same-request',
     );
+  });
+
+  it('lists release groups through the organization-scoped service boundary', async () => {
+    const query = {
+      endDate: '2026-07-27T00:00:00.000Z',
+      startDate: '2026-07-20T00:00:00.000Z',
+    } as PostGroupsQueryDto;
+
+    await expect(controller.findAll(req, user, query)).resolves.toEqual([
+      { id: 'group-1' },
+    ]);
+    expect(service.list).toHaveBeenCalledWith('org-1', query);
   });
 
   it('routes target updates through the service', async () => {
