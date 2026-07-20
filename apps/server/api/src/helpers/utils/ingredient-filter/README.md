@@ -40,7 +40,7 @@ const parentConditions = IngredientFilterUtil.buildParentFilter(query.parent);
 Handles filtering by folder ID:
 - `null`, `'null'`, `''` → Root level (no folder)
 - Valid ObjectId → Ingredients in that folder
-- `undefined` → Defaults to root level
+- `undefined` → No folder filter ("All Assets")
 
 ```typescript
 const folderConditions = IngredientFilterUtil.buildFolderFilter(query.folder);

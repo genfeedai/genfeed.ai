@@ -49,11 +49,19 @@ describe('FoldersController', () => {
       user: '507f191e810c19729de860ee'.toString(),
     } as IAuthPublicMetadata,
   } as unknown as User;
+  const mockSuperAdmin = {
+    ...mockUser,
+    publicMetadata: {
+      ...mockUser.publicMetadata,
+      isSuperAdmin: true,
+    },
+  } as unknown as User;
 
   const mockRequest = {
     originalUrl: '/api/folders',
     query: {},
   } as Request;
+  const folderId = '507f191e810c19729de860ef';
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -102,7 +110,7 @@ describe('FoldersController', () => {
   });
 
   describe('buildFindAllQuery', () => {
-    it('should build query with user and organization match', () => {
+    it('should build query with current brand and organization scope', () => {
       const query: BaseQueryDto = {};
 
       const result = controller.buildFindAllQuery(mockUser, query);
@@ -112,8 +120,14 @@ describe('FoldersController', () => {
         where: expect.objectContaining({
           isDeleted: false,
           OR: [
-            { userId: '507f191e810c19729de860ee' },
-            { organizationId: '507f191e810c19729de860ee' },
+            {
+              brandId: null,
+              organizationId: '507f191e810c19729de860ee',
+            },
+            {
+              brandId: '507f191e810c19729de860ee',
+              organizationId: '507f191e810c19729de860ee',
+            },
           ],
         }),
       });
@@ -131,9 +145,9 @@ describe('FoldersController', () => {
       });
     });
 
-    it('should not include impossible global folder filters for brand context', () => {
+    it('scopes current-brand queries to the caller organization', () => {
       const result = controller.buildFindAllQuery(mockUser, {
-        brand: 'brand-1',
+        brand: '507f191e810c19729de860ee',
       } as BaseQueryDto & { brand: string });
 
       expect(result).toMatchObject({
@@ -143,20 +157,92 @@ describe('FoldersController', () => {
               brandId: null,
               organizationId: '507f191e810c19729de860ee',
             },
-            { brandId: 'brand-1' },
+            {
+              brandId: '507f191e810c19729de860ee',
+              organizationId: '507f191e810c19729de860ee',
+            },
           ],
         }),
       });
     });
 
-    it('should not include impossible global folder filters for organization context', () => {
+    it('rejects a requested foreign organization', () => {
       const result = controller.buildFindAllQuery(mockUser, {
         organization: 'org-1',
       } as BaseQueryDto & { organization: string });
 
       expect(result).toMatchObject({
         where: expect.objectContaining({
-          OR: [{ organizationId: 'org-1' }],
+          id: { in: [] },
+        }),
+      });
+    });
+
+    it('keeps ordinary members in current-brand scope when they request their organization', () => {
+      const result = controller.buildFindAllQuery(mockUser, {
+        organization: mockUser.publicMetadata.organization,
+      } as BaseQueryDto & { organization: string });
+
+      expect(result).toMatchObject({
+        where: expect.objectContaining({
+          OR: [
+            {
+              brandId: null,
+              organizationId: mockUser.publicMetadata.organization,
+            },
+            {
+              brandId: mockUser.publicMetadata.brand,
+              organizationId: mockUser.publicMetadata.organization,
+            },
+          ],
+        }),
+      });
+    });
+
+    it('allows a superadmin to list every folder in a selected organization', () => {
+      const result = controller.buildFindAllQuery(mockSuperAdmin, {
+        organization: '507f191e810c19729de860aa',
+      } as BaseQueryDto & { organization: string });
+
+      expect(result).toMatchObject({
+        where: {
+          isDeleted: false,
+          organizationId: '507f191e810c19729de860aa',
+        },
+      });
+      expect(result.where).not.toHaveProperty('OR');
+    });
+
+    it('allows a superadmin to scope a selected organization to one brand', () => {
+      const result = controller.buildFindAllQuery(mockSuperAdmin, {
+        brand: '507f191e810c19729de860ab',
+        organization: '507f191e810c19729de860aa',
+      } as BaseQueryDto & { brand: string; organization: string });
+
+      expect(result).toMatchObject({
+        where: expect.objectContaining({
+          OR: [
+            {
+              brandId: null,
+              organizationId: '507f191e810c19729de860aa',
+            },
+            {
+              brandId: '507f191e810c19729de860ab',
+              organizationId: '507f191e810c19729de860aa',
+            },
+          ],
+        }),
+      });
+    });
+
+    it('does not return folders for a requested foreign brand', () => {
+      const result = controller.buildFindAllQuery(mockUser, {
+        brand: '507f191e810c19729de860aa',
+      } as BaseQueryDto & { brand: string });
+
+      expect(result).toMatchObject({
+        where: expect.objectContaining({
+          id: { in: [] },
         }),
       });
     });
@@ -168,7 +254,9 @@ describe('FoldersController', () => {
       const relationAccessorKeys = ['brand', 'organization', 'user'];
       const scenarios: Array<BaseQueryDto & Record<string, unknown>> = [
         {},
-        { brand: 'brand-1' } as BaseQueryDto & { brand: string },
+        { brand: '507f191e810c19729de860ee' } as BaseQueryDto & {
+          brand: string;
+        },
         { organization: 'org-1' } as BaseQueryDto & { organization: string },
       ];
 
@@ -187,29 +275,76 @@ describe('FoldersController', () => {
   });
 
   describe('create', () => {
-    it('should create a folder', async () => {
+    it('creates a serialized folder in the caller organization and brand', async () => {
       const createDto: CreateFolderDto = {
         description: 'Test Description',
-        name: 'Test Folder',
+        label: 'Test Folder',
       };
 
       const mockCreatedFolder = {
-        _id: '507f191e810c19729de860ee',
+        id: folderId,
         ...createDto,
-        user: mockUser.publicMetadata.user,
+        brandId: null,
+        organizationId: mockUser.publicMetadata.organization,
+        userId: mockUser.publicMetadata.user,
       };
 
       foldersService.create.mockResolvedValue(mockCreatedFolder);
 
       const result = await controller.create(mockRequest, mockUser, createDto);
 
-      expect(foldersService.create).toHaveBeenCalled();
-      expect(result).toBeDefined();
+      expect(foldersService.create).toHaveBeenCalledWith(
+        {
+          brandId: null,
+          description: 'Test Description',
+          label: 'Test Folder',
+          organizationId: mockUser.publicMetadata.organization,
+          userId: mockUser.publicMetadata.user,
+        },
+        [],
+      );
+      expect(result).toEqual({ data: mockCreatedFolder });
+    });
+
+    it('creates a current-brand folder with scalar foreign keys', async () => {
+      foldersService.create.mockResolvedValue({
+        brandId: mockUser.publicMetadata.brand,
+        id: folderId,
+        label: 'Brand Folder',
+        organizationId: mockUser.publicMetadata.organization,
+        userId: mockUser.publicMetadata.user,
+      });
+
+      await controller.create(mockRequest, mockUser, {
+        brand: mockUser.publicMetadata.brand,
+        label: 'Brand Folder',
+      });
+
+      expect(foldersService.create).toHaveBeenCalledWith(
+        {
+          brandId: mockUser.publicMetadata.brand,
+          label: 'Brand Folder',
+          organizationId: mockUser.publicMetadata.organization,
+          userId: mockUser.publicMetadata.user,
+        },
+        [],
+      );
+    });
+
+    it('rejects a foreign brand on create', async () => {
+      await expect(
+        controller.create(mockRequest, mockUser, {
+          brand: '507f191e810c19729de860aa',
+          label: 'Foreign Brand Folder',
+        }),
+      ).rejects.toThrow(HttpException);
+
+      expect(foldersService.create).not.toHaveBeenCalled();
     });
 
     it('should handle errors during creation', async () => {
       const createDto: CreateFolderDto = {
-        name: 'Test Folder',
+        label: 'Test Folder',
       };
 
       foldersService.create.mockRejectedValue(new Error('Creation failed'));
@@ -220,17 +355,78 @@ describe('FoldersController', () => {
     });
   });
 
+  describe('findOne', () => {
+    it('returns only active folders in the caller organization', async () => {
+      const mockFolder = {
+        id: folderId,
+        isDeleted: false,
+        label: 'Scoped Folder',
+        organizationId: mockUser.publicMetadata.organization,
+      };
+      foldersService.findOne.mockResolvedValue(mockFolder);
+
+      const result = await controller.findOne(
+        mockRequest,
+        mockUser,
+        folderId,
+      );
+
+      expect(foldersService.findOne).toHaveBeenCalledWith({
+        _id: folderId,
+        isDeleted: false,
+        organizationId: mockUser.publicMetadata.organization,
+      });
+      expect(result).toEqual({ data: mockFolder });
+    });
+
+    it('returns not found when the folder is outside caller brand scope', async () => {
+      foldersService.findOne.mockResolvedValue({
+        brandId: '507f191e810c19729de860aa',
+        id: folderId,
+        isDeleted: false,
+        label: 'Foreign Folder',
+        organizationId: mockUser.publicMetadata.organization,
+      });
+
+      await expect(
+        controller.findOne(mockRequest, mockUser, folderId),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('allows a superadmin to read an active folder outside active tenant scope', async () => {
+      const foreignFolder = {
+        brandId: '507f191e810c19729de860ab',
+        id: folderId,
+        isDeleted: false,
+        label: 'Foreign Folder',
+        organizationId: '507f191e810c19729de860aa',
+      };
+      foldersService.findOne.mockResolvedValue(foreignFolder);
+
+      const result = await controller.findOne(
+        mockRequest,
+        mockSuperAdmin,
+        folderId,
+      );
+
+      expect(foldersService.findOne).toHaveBeenCalledWith({
+        _id: folderId,
+        isDeleted: false,
+      });
+      expect(result).toEqual({ data: foreignFolder });
+    });
+  });
+
   describe('update', () => {
     it('should update a folder', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateFolderDto = {
-        name: 'Updated Folder',
+        label: 'Updated Folder',
       };
 
       const mockExistingFolder = {
-        _id: id,
-        name: 'Old Folder',
-        user: mockUser.publicMetadata.user as string,
+        id: folderId,
+        label: 'Old Folder',
+        organizationId: mockUser.publicMetadata.organization,
       };
 
       const mockUpdatedFolder = {
@@ -244,71 +440,155 @@ describe('FoldersController', () => {
       const result = await controller.update(
         mockRequest,
         mockUser,
-        id,
+        folderId,
         updateDto,
       );
 
-      expect(foldersService.findOne).toHaveBeenCalled();
-      expect(foldersService.patch).toHaveBeenCalled();
-      expect(result).toBeDefined();
+      expect(foldersService.findOne).toHaveBeenCalledWith(
+        { _id: folderId },
+        [],
+      );
+      expect(foldersService.patch).toHaveBeenCalledWith(
+        folderId,
+        { label: 'Updated Folder' },
+        [],
+      );
+      expect(result).toEqual({ data: mockUpdatedFolder });
     });
 
     it('should throw error if folder not found', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateFolderDto = {
-        name: 'Updated Folder',
+        label: 'Updated Folder',
       };
 
       foldersService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.update(mockRequest, mockUser, id, updateDto),
+        controller.update(mockRequest, mockUser, folderId, updateDto),
       ).rejects.toThrow(HttpException);
+    });
+
+    it('rejects moving a folder to another brand', async () => {
+      const mockExistingFolder = {
+        id: folderId,
+        label: 'Folder',
+        organizationId: mockUser.publicMetadata.organization,
+      };
+      foldersService.findOne.mockResolvedValue(mockExistingFolder);
+      foldersService.patch.mockResolvedValue(mockExistingFolder);
+
+      await expect(
+        controller.update(mockRequest, mockUser, folderId, {
+          brand: '507f191e810c19729de860aa',
+          label: 'Updated Folder',
+        }),
+      ).rejects.toThrow(HttpException);
+      expect(foldersService.patch).not.toHaveBeenCalled();
+    });
+
+    it('moves a folder into the current brand using the scalar foreign key', async () => {
+      const mockExistingFolder = {
+        id: folderId,
+        label: 'Shared Folder',
+        organizationId: mockUser.publicMetadata.organization,
+      };
+      foldersService.findOne.mockResolvedValue(mockExistingFolder);
+      foldersService.patch.mockResolvedValue({
+        ...mockExistingFolder,
+        brandId: mockUser.publicMetadata.brand,
+      });
+
+      await controller.update(mockRequest, mockUser, folderId, {
+        brand: mockUser.publicMetadata.brand,
+      });
+
+      expect(foldersService.patch).toHaveBeenCalledWith(
+        folderId,
+        { brandId: mockUser.publicMetadata.brand },
+        [],
+      );
+    });
+
+    it('rejects updates to folders in another organization', async () => {
+      foldersService.findOne.mockResolvedValue({
+        id: folderId,
+        label: 'Foreign Folder',
+        organizationId: '507f191e810c19729de860aa',
+      });
+
+      await expect(
+        controller.update(mockRequest, mockUser, folderId, {
+          label: 'Updated Folder',
+        }),
+      ).rejects.toThrow(HttpException);
+      expect(foldersService.patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects updates to folders owned by another brand', async () => {
+      foldersService.findOne.mockResolvedValue({
+        brandId: '507f191e810c19729de860aa',
+        id: folderId,
+        label: 'Foreign Brand Folder',
+        organizationId: mockUser.publicMetadata.organization,
+      });
+
+      await expect(
+        controller.update(mockRequest, mockUser, folderId, {
+          label: 'Updated Folder',
+        }),
+      ).rejects.toThrow(HttpException);
+      expect(foldersService.patch).not.toHaveBeenCalled();
     });
   });
 
   describe('remove', () => {
     it('should remove a folder', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
       const mockFolder = {
-        _id: id,
-        name: 'Folder to Delete',
-        user: mockUser.publicMetadata.user as string,
+        id: folderId,
+        label: 'Folder to Delete',
+        organizationId: mockUser.publicMetadata.organization,
       };
 
       foldersService.findOne.mockResolvedValue(mockFolder);
-      foldersService.remove.mockResolvedValue(mockFolder);
+      foldersService.remove.mockResolvedValue({
+        ...mockFolder,
+        isDeleted: true,
+      });
 
-      const result = await controller.remove(mockRequest, mockUser, id);
+      const result = await controller.remove(
+        mockRequest,
+        mockUser,
+        folderId,
+      );
 
-      expect(foldersService.findOne).toHaveBeenCalledWith({ _id: id });
-      expect(foldersService.remove).toHaveBeenCalledWith(id);
-      expect(result).toBeDefined();
+      expect(foldersService.findOne).toHaveBeenCalledWith({ _id: folderId });
+      expect(foldersService.remove).toHaveBeenCalledWith(folderId);
+      expect(result).toEqual({
+        data: expect.objectContaining({ isDeleted: true }),
+      });
     });
 
     it('should throw error if folder not found', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
-
       foldersService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.remove(mockRequest, mockUser, id),
+        controller.remove(mockRequest, mockUser, folderId),
       ).rejects.toThrow(HttpException);
     });
 
-    it('should throw error if user does not own the folder', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+    it('should throw error if caller organization does not own the folder', async () => {
       const mockFolder = {
-        _id: id,
-        name: 'Folder',
-        user: '507f191e810c19729de860ee', // Different user
+        id: folderId,
+        label: 'Folder',
+        organizationId: '507f191e810c19729de860aa',
       };
 
       foldersService.findOne.mockResolvedValue(mockFolder);
 
       await expect(
-        controller.remove(mockRequest, mockUser, id),
+        controller.remove(mockRequest, mockUser, folderId),
       ).rejects.toThrow(HttpException);
+      expect(foldersService.remove).not.toHaveBeenCalled();
     });
   });
 

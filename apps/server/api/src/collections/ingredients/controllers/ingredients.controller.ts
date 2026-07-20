@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
@@ -38,7 +39,10 @@ import type { Request } from 'express';
 export class IngredientsController {
   private readonly constructorName: string = String(this.constructor.name);
 
-  constructor(private readonly ingredientsService: IngredientsService) {}
+  constructor(
+    private readonly ingredientsService: IngredientsService,
+    private readonly foldersService: FoldersService,
+  ) {}
 
   @Get('batch')
   @HttpCode(HttpStatus.OK)
@@ -111,20 +115,49 @@ export class IngredientsController {
       );
     }
 
-    // Find the ingredient first to ensure it exists and belongs to the user or organization
+    // Load only an active ingredient in the caller organization, then enforce
+    // current-brand or organization-shared access below.
     const ingredient = await this.ingredientsService.findOne(
       {
         _id: ingredientId,
-        OR: [
-          { user: publicMetadata.user },
-          { organization: publicMetadata.organization },
-        ],
+        isDeleted: false,
+        organizationId: publicMetadata.organization,
       },
       [PopulatePatterns.metadataFull],
     );
 
-    if (!ingredient) {
+    if (
+      !ingredient ||
+      (ingredient.brandId &&
+        ingredient.brandId.toString() !== publicMetadata.brand)
+    ) {
       return returnNotFound(this.constructorName, ingredientId);
+    }
+
+    if (
+      Object.hasOwn(processedDto, 'folder') &&
+      processedDto.folder !== null
+    ) {
+      const folder = await this.foldersService.findOne({
+        _id: processedDto.folder,
+        isDeleted: false,
+        organizationId: publicMetadata.organization,
+      });
+
+      if (
+        !folder ||
+        (folder.brandId && folder.brandId.toString() !== publicMetadata.brand)
+      ) {
+        return returnNotFound(
+          this.constructorName,
+          String(processedDto.folder),
+        );
+      }
+    }
+
+    if (Object.hasOwn(processedDto, 'folder')) {
+      processedDto.folderId = processedDto.folder;
+      Reflect.deleteProperty(processedDto, 'folder');
     }
 
     await this.ingredientsService.patch(
@@ -134,10 +167,14 @@ export class IngredientsController {
 
     // Fetch the updated document with populated fields
     // Only populate metadata fully and brand minimally (id, label, handle)
-    const data = await this.ingredientsService.findOne({ _id: ingredientId }, [
-      PopulatePatterns.metadataFull,
-      PopulatePatterns.brandMinimal,
-    ]);
+    const data = await this.ingredientsService.findOne(
+      {
+        _id: ingredientId,
+        isDeleted: false,
+        organizationId: publicMetadata.organization,
+      },
+      [PopulatePatterns.metadataFull, PopulatePatterns.brandMinimal],
+    );
 
     return serializeSingle(request, IngredientSerializer, data);
   }
