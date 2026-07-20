@@ -132,6 +132,7 @@ export function useStudioGenerateLayout({
     sounds,
     scenes,
     trainings,
+    isLoading: isModelCatalogLoading,
   } = useElements();
 
   // Initial format
@@ -368,8 +369,11 @@ export function useStudioGenerateLayout({
   const shouldLoadAvatarData =
     categoryType === IngredientCategory.AVATAR && !!brandId;
 
-  const { data: avatarData, error: avatarDataError } =
-    useQuery<AvatarVoiceData>({
+  const {
+    data: avatarData,
+    error: avatarDataError,
+    isLoading: isAvatarDataLoading,
+  } = useQuery<AvatarVoiceData>({
       enabled: shouldLoadAvatarData,
       queryFn: async () => {
         const [avatarsService, voicesService] = await Promise.all([
@@ -902,6 +906,9 @@ export function useStudioGenerateLayout({
     fontFamilies,
     generateLabel,
     isAvatarCategory,
+    isAvailabilityLoading: isAvatarCategory
+      ? isAvatarDataLoading
+      : isModelCatalogLoading,
     isGenerationCooldown,
     isMusicCategory,
     isVideoCategory,

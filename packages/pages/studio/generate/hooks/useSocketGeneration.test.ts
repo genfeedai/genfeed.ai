@@ -13,4 +13,19 @@ describe('useSocketGeneration.ts', () => {
     );
     expect(source).toContain('export function useSocketGeneration');
   });
+
+  it('runs model-less Avatar generation through one provider iteration', () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'packages/pages/studio/generate/hooks/useSocketGeneration.ts',
+      ),
+      'utf8',
+    );
+
+    expect(source).toContain(
+      'categoryType === IngredientCategory.AVATAR || isAutoSelect',
+    );
+    expect(source).toContain("selectedModelKeys = ['']");
+  });
 });

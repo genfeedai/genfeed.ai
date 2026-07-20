@@ -89,6 +89,7 @@ function createLayoutState(
     hasMore: false,
     initialLoadComplete: true,
     isAvatarCategory: false,
+    isAvailabilityLoading: false,
     isBulkUpdating: false,
     isEmptyStudioState: true,
     isGenerationCooldown: false,
