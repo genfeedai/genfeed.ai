@@ -119,9 +119,7 @@ describe('nightly unit matrix', () => {
 
       expect(summary.passed).toBe(false);
       expect(summary.workspaces[0].outcome).toBe(expectedOutcome);
-      expect(formatNightlyUnitMatrixSummary(summary)).toContain(
-        '`apps/app`',
-      );
+      expect(formatNightlyUnitMatrixSummary(summary)).toContain('`apps/app`');
     },
   );
 
@@ -145,7 +143,10 @@ describe('nightly unit matrix', () => {
 
   it('keeps the scheduled workflow isolated and fail-closed', () => {
     const workflowPath = fileURLToPath(
-      new URL('../../.github/workflows/nightly-unit-matrix.yml', import.meta.url),
+      new URL(
+        '../../.github/workflows/nightly-unit-matrix.yml',
+        import.meta.url,
+      ),
     );
     const workflow = readFileSync(workflowPath, 'utf8');
 

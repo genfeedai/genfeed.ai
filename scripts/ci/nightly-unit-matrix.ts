@@ -85,8 +85,7 @@ function createExecutionId(
   const normalizedPath = workspacePath
     .replaceAll(/[^a-zA-Z0-9]+/g, '-')
     .replaceAll(/^-|-$/g, '');
-  const shardSuffix =
-    shardCount > 1 ? `--${shard}-of-${shardCount}` : '';
+  const shardSuffix = shardCount > 1 ? `--${shard}-of-${shardCount}` : '';
 
   return `${workspaceClass}--${normalizedPath}${shardSuffix}`;
 }
@@ -117,7 +116,9 @@ export function buildNightlyUnitMatrixPlan(
   }
 
   if (!Number.isInteger(shardCount) || shardCount < 1) {
-    throw new Error('Nightly unit matrix shard count must be a positive integer.');
+    throw new Error(
+      'Nightly unit matrix shard count must be a positive integer.',
+    );
   }
 
   const entries: NightlyUnitMatrixEntry[] = [];
@@ -348,9 +349,7 @@ export function formatNightlyUnitMatrixSummary(
               .map((jobUrl, index) => `[job ${index + 1}](${jobUrl})`)
               .join(', ')
           : 'no terminal job evidence';
-      lines.push(
-        `- \`${workspace.path}\`: ${workspace.outcome} (${jobLinks})`,
-      );
+      lines.push(`- \`${workspace.path}\`: ${workspace.outcome} (${jobLinks})`);
     }
   }
 
