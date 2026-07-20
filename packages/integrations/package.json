@@ -1,6 +1,8 @@
 {
   "dependencies": {
-    "@genfeedai/enums": "workspace:*"
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*"
   },
   "description": "Shared types and utilities for platform integrations",
   "devDependencies": {

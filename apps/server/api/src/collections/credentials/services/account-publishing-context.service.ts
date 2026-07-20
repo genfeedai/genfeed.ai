@@ -4,7 +4,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { buildCredentialTokenPublishingReadiness } from '@genfeedai/helpers';
+import { buildCredentialTokenPublishingReadiness } from '@genfeedai/integrations/connections';
 import type {
   AccountPublishingConstraints,
   AccountPublishingContext,
@@ -144,17 +144,15 @@ export class AccountPublishingContextService {
       promptHints: [],
       publishability: this.getPublishability(platform, params.surface),
       readiness: buildCredentialTokenPublishingReadiness({
+        accessToken: credential.accessToken,
         accessTokenExpiresAt: credential.accessTokenExpiry,
+        accessTokenSecret: credential.accessTokenSecret,
         credentialId: String(credential.id),
-        hasAccessCredential: Boolean(
-          credential.accessToken ??
-            credential.accessTokenSecret ??
-            credential.oauthToken ??
-            credential.oauthTokenSecret,
-        ),
-        hasRefreshToken: Boolean(credential.refreshToken),
         isConnected: credential.isConnected,
+        oauthToken: credential.oauthToken,
+        oauthTokenSecret: credential.oauthTokenSecret,
         providerKey: platform,
+        refreshToken: credential.refreshToken,
         refreshTokenExpiresAt: credential.refreshTokenExpiry,
       }),
       recentPosts: recentPosts.map(

@@ -37,12 +37,14 @@ describe('AccountPublishingContextService', () => {
       id: credentialId,
       accessToken: 'secret-token',
       accessTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
+      accessTokenSecret: 'access-token-secret',
       brand: brandId,
       externalHandle: 'vincent',
       isConnected: true,
       isDeleted: false,
       label: 'Founder X',
       oauthToken: 'oauth-secret',
+      oauthTokenSecret: 'oauth-token-secret',
       organization: organizationId,
       platform: CredentialPlatform.TWITTER,
       refreshToken: 'refresh-secret',
@@ -155,8 +157,37 @@ describe('AccountPublishingContextService', () => {
       'Provider readiness: publish_capable',
     );
     expect(serialized).not.toContain('secret-token');
+    expect(serialized).not.toContain('access-token-secret');
     expect(serialized).not.toContain('oauth-secret');
+    expect(serialized).not.toContain('oauth-token-secret');
     expect(serialized).not.toContain('refresh-secret');
+  });
+
+  it('uses a later OAuth token field when an earlier token field is empty', async () => {
+    credentialsService.findOne.mockResolvedValueOnce({
+      accessToken: '',
+      accessTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
+      brand: brandId,
+      id: credentialId,
+      isConnected: true,
+      isDeleted: false,
+      oauthToken: 'oauth-secret',
+      organization: organizationId,
+      platform: CredentialPlatform.TWITTER,
+    });
+
+    const context = await service.resolve({
+      brandId,
+      credentialId,
+      organizationId,
+      surface: 'post',
+    });
+
+    expect(context.readiness).toMatchObject({
+      canSchedule: true,
+      state: 'publish_capable',
+      tokenFreshness: 'pass',
+    });
   });
 
   it('surfaces a retryable degraded state when access can be refreshed', async () => {

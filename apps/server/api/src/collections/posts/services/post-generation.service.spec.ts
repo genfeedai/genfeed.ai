@@ -18,6 +18,7 @@ import {
   PostStatus,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -64,9 +65,21 @@ describe('PostGenerationService', () => {
     },
     promptHints: ['Account: Twitter Account', 'Platform: twitter'],
     publishability: 'publishable',
+    readiness: {
+      appReviewStatus: 'unknown',
+      callbackUrlStatus: 'unknown',
+      canSchedule: true,
+      diagnostics: [],
+      isRetryable: false,
+      permissionScopeStatus: 'unknown',
+      providerKey: CredentialPlatform.TWITTER,
+      quotaStatus: 'unknown',
+      state: 'publish_capable',
+      tokenFreshness: 'pass',
+    },
     recentPosts: [],
     surface: 'post',
-  };
+  } satisfies AccountPublishingContext;
 
   const mockActivity = { id: '507f191e810c19729de860ee' };
 

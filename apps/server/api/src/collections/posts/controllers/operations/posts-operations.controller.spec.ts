@@ -46,6 +46,7 @@ import {
   PostCategory,
   PostStatus,
 } from '@genfeedai/enums';
+import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -118,9 +119,21 @@ describe('PostsOperationsController', () => {
     },
     promptHints: ['Account: Twitter Account', 'Platform: twitter'],
     publishability: 'publishable',
+    readiness: {
+      appReviewStatus: 'unknown',
+      callbackUrlStatus: 'unknown',
+      canSchedule: true,
+      diagnostics: [],
+      isRetryable: false,
+      permissionScopeStatus: 'unknown',
+      providerKey: CredentialPlatform.TWITTER,
+      quotaStatus: 'unknown',
+      state: 'publish_capable',
+      tokenFreshness: 'pass',
+    },
     recentPosts: [],
     surface: 'post',
-  };
+  } satisfies AccountPublishingContext;
 
   const mockIngredient = {
     id: ingredientId,
