@@ -211,9 +211,7 @@ describe('IngredientsList', () => {
     render(<IngredientsList />);
 
     expect(screen.getByText('Failed to load images')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('ingredients-content'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('ingredients-content')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
 
