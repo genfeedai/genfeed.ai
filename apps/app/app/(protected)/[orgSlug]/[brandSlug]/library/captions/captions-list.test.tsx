@@ -45,7 +45,7 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('@services/core/logger.service', () => ({
   logger: {
-    error: loggerErrorMock,
+    error: (...args: unknown[]) => loggerErrorMock(...args),
     info: vi.fn(),
   },
 }));

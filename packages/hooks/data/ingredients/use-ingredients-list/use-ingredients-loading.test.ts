@@ -62,7 +62,7 @@ vi.mock('@genfeedai/services/core/notifications.service', () => ({
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
-    error: mockLoggerError,
+    error: (...args: unknown[]) => mockLoggerError(...args),
     info: vi.fn(),
   },
 }));
