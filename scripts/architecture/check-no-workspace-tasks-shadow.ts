@@ -10,8 +10,6 @@ const DEFAULT_INCLUDE_GLOBS = [
   'packages/**/*.{cjs,js,mjs,ts,tsx}',
 ];
 const DEFAULT_IGNORE_GLOBS = [
-  '**/*.spec.*',
-  '**/*.test.*',
   '**/coverage/**',
   '**/dist/**',
   '**/generated/**',
