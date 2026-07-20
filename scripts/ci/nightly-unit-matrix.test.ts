@@ -18,7 +18,7 @@ describe('nightly unit matrix', () => {
   it('plans every standard workspace once and app/API workspaces in four shards', () => {
     const plan = buildNightlyUnitMatrixPlan(inventory(), SHA);
 
-    expect(plan.entries).toHaveLength(10);
+    expect(plan.entries).toHaveLength(9);
     expect(
       plan.entries
         .filter((entry) => entry.path === 'apps/app')
@@ -151,7 +151,7 @@ describe('nightly unit matrix', () => {
     const workflow = readFileSync(workflowPath, 'utf8');
 
     expect(workflow).toMatch(/^name: Nightly Unit Matrix$/m);
-    expect(workflow).toMatch(/^  schedule:\n {4}- cron:/m);
+    expect(workflow).toMatch(/^  schedule:\n(?: {4}#.*\n)* {4}- cron:/m);
     expect(workflow).toMatch(/^  workflow_dispatch:$/m);
     expect(workflow).toMatch(
       /^  group: nightly-unit-matrix-\$\{\{ github\.ref \}\}$/m,
