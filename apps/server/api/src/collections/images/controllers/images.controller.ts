@@ -76,6 +76,9 @@ export class ImagesController {
     this.loggerService.log(url, { query });
 
     const publicMetadata = getPublicMetadata(user);
+    const imageCategory = CategoryPrismaUtil.toIngredientCategory(
+      IngredientCategory.IMAGE,
+    );
 
     // `latest=true` shorthand — reproduces the exact WHERE clause of the former
     // GET /images/latest route: brand-scoped user images with training sources
@@ -94,9 +97,7 @@ export class ImagesController {
                   AND: [
                     {
                       brand: latestBrand,
-                      category: CategoryPrismaUtil.toIngredientCategory(
-                        IngredientCategory.IMAGE,
-                      ),
+                      category: imageCategory,
                       isDeleted: latestIsDeleted,
                       organizationId: publicMetadata.organization,
                       // Exclude training source images by default
@@ -110,9 +111,7 @@ export class ImagesController {
                     {
                       // Filter default images by brand when brand is specified
                       brand: latestBrand,
-                      category: CategoryPrismaUtil.toIngredientCategory(
-                        IngredientCategory.IMAGE,
-                      ),
+                      category: imageCategory,
                       isDefault: true,
                       isDeleted: latestIsDeleted,
                       OR: [
@@ -186,9 +185,7 @@ export class ImagesController {
                 AND: [
                   {
                     organizationId: publicMetadata.organization,
-                    category: CategoryPrismaUtil.toIngredientCategory(
-                      IngredientCategory.IMAGE,
-                    ),
+                    category: imageCategory,
                     isDeleted,
                     ...(query.isPublic === undefined && scope !== undefined
                       ? { scope }
@@ -211,9 +208,7 @@ export class ImagesController {
                     {
                       AND: [
                         {
-                          category: CategoryPrismaUtil.toIngredientCategory(
-                            IngredientCategory.IMAGE,
-                          ),
+                          category: imageCategory,
                           isDefault: true,
                           isDeleted,
                           OR: [
