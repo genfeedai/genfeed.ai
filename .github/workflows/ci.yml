@@ -273,7 +273,7 @@ jobs:
       - name: Architecture Guard Fixtures
         run: |
           bunx vitest run --config scripts/architecture/vitest.config.ts check-runtime-complexity.test.ts check-deterministic-locale.test.ts
-          bunx vitest run --config scripts/ci/vitest.config.ts nightly-test-workspace-inventory.test.ts
+          bunx vitest run --config scripts/ci/vitest.config.ts nightly-test-workspace-inventory.test.ts pr-validation-telemetry.test.ts
       - name: DI Value Imports
         run: bun run check:di-value-imports
       - name: Desktop Schema Drift
