@@ -21,6 +21,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-no-workspace-tasks-shadow.ts',
+    ],
+    name: 'Retired workspace-tasks shadow',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-deployment-mode-boundary.ts',
     ],
     name: 'Deployment mode boundary',
