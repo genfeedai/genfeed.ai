@@ -3,8 +3,21 @@ import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { HiCheck, HiPencil, HiPlus, HiXMark } from 'react-icons/hi2';
 import { Badge } from './badge';
 import { Button } from './button';
+import { Input } from './input';
 
 const EMPTY_ARRAY: never[] = [];
+
+interface TagsDraft {
+  sourceValue: string[];
+  tags: string[];
+}
+
+function areTagsEqual(left: string[], right: string[]) {
+  return (
+    left.length === right.length &&
+    left.every((tag, index) => tag === right[index])
+  );
+}
 
 export interface TagsEditableProps {
   label: string;
@@ -25,10 +38,13 @@ export default function TagsEditable({
   maxTags = 10,
   className = '',
 }: TagsEditableProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [tags, setTags] = useState<string[]>(value);
+  const [draft, setDraft] = useState<TagsDraft | null>(null);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const activeDraft =
+    draft && areTagsEqual(draft.sourceValue, value) ? draft : null;
+  const isEditing = activeDraft !== null;
+  const tags = activeDraft?.tags ?? value;
 
   useEffect(() => {
     if (isEditing) {
@@ -40,30 +56,41 @@ export default function TagsEditable({
   }, [isEditing]);
 
   const handleSave = () => {
-    if (onSave && JSON.stringify(tags) !== JSON.stringify(value)) {
+    if (onSave && !areTagsEqual(tags, value)) {
       onSave(tags);
     }
-    setIsEditing(false);
+    setDraft(null);
     setInputValue('');
   };
 
   const handleCancel = () => {
-    setTags(value);
-    setIsEditing(false);
+    setDraft(null);
     setInputValue('');
   };
 
   const handleAddTag = () => {
     const trimmedValue = inputValue.trim();
     if (trimmedValue && !tags.includes(trimmedValue) && tags.length < maxTags) {
-      setTags((previousTags) => [...previousTags, trimmedValue]);
+      setDraft((previousDraft) =>
+        previousDraft
+          ? {
+              ...previousDraft,
+              tags: [...previousDraft.tags, trimmedValue],
+            }
+          : previousDraft,
+      );
       setInputValue('');
     }
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags((previousTags) =>
-      previousTags.filter((tag) => tag !== tagToRemove),
+    setDraft((previousDraft) =>
+      previousDraft
+        ? {
+            ...previousDraft,
+            tags: previousDraft.tags.filter((tag) => tag !== tagToRemove),
+          }
+        : previousDraft,
     );
   };
 
@@ -84,7 +111,7 @@ export default function TagsEditable({
           <Button
             withWrapper={false}
             variant={ButtonVariant.UNSTYLED}
-            onClick={() => setIsEditing(true)}
+            onClick={() => setDraft({ sourceValue: value, tags: value })}
             className="h-6 px-2 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
             ariaLabel="Edit tags"
           >
@@ -114,16 +141,16 @@ export default function TagsEditable({
 
           {tags.length < maxTags && (
             <div className="flex gap-2">
-              <input
+              <Input
                 aria-label="Add tag"
-                ref={inputRef}
+                inputRef={inputRef}
                 type="text"
                 value={inputValue}
                 onChange={(event) => setInputValue(event.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 className="h-8 text-sm border border-input px-3 flex-1"
-                disabled={isDisabled}
+                isDisabled={isDisabled}
               />
 
               <Button

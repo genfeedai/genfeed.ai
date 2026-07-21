@@ -55,6 +55,20 @@ const PLATFORM_LABELS = {
   youtube: 'YouTube',
 };
 
+type Platform = keyof typeof PLATFORM_COLORS;
+
+interface PlatformSelectionOverride {
+  sourcePlatforms: Platform[];
+  inactivePlatforms: Platform[];
+}
+
+function arePlatformsEqual(left: Platform[], right: Platform[]) {
+  return (
+    left.length === right.length &&
+    left.every((platform, index) => platform === right[index])
+  );
+}
+
 export function PlatformTimeSeriesChart({
   data,
   platforms = ['instagram', 'tiktok', 'youtube', 'twitter'],
@@ -62,8 +76,21 @@ export function PlatformTimeSeriesChart({
   height = 300,
   className = '',
 }: PlatformTimeSeriesChartProps) {
-  const [activePlatforms, setActivePlatforms] =
-    useState<(keyof typeof PLATFORM_COLORS)[]>(platforms);
+  const [selectionOverride, setSelectionOverride] =
+    useState<PlatformSelectionOverride | null>(null);
+  const activeSelectionOverride =
+    selectionOverride &&
+    arePlatformsEqual(selectionOverride.sourcePlatforms, platforms)
+      ? selectionOverride
+      : null;
+  const inactivePlatforms = activeSelectionOverride?.inactivePlatforms ?? [];
+  const availableActivePlatforms = platforms.filter(
+    (platform) => !inactivePlatforms.includes(platform),
+  );
+  const activePlatforms =
+    availableActivePlatforms.length > 0
+      ? availableActivePlatforms
+      : platforms.slice(0, 1);
   const chartConfig = useMemo(
     () =>
       Object.fromEntries(
@@ -80,15 +107,18 @@ export function PlatformTimeSeriesChart({
 
   const isEmpty = !data || data.length === 0;
 
-  const togglePlatform = (platform: keyof typeof PLATFORM_COLORS) => {
-    setActivePlatforms((previousPlatforms) => {
-      if (!previousPlatforms.includes(platform)) {
-        return [...previousPlatforms, platform];
-      }
+  const togglePlatform = (platform: Platform) => {
+    const nextInactivePlatforms = inactivePlatforms.includes(platform)
+      ? inactivePlatforms.filter(
+          (inactivePlatform) => inactivePlatform !== platform,
+        )
+      : activePlatforms.length > 1
+        ? [...inactivePlatforms, platform]
+        : inactivePlatforms;
 
-      return previousPlatforms.length > 1
-        ? previousPlatforms.filter((p) => p !== platform)
-        : previousPlatforms;
+    setSelectionOverride({
+      sourcePlatforms: [...platforms],
+      inactivePlatforms: nextInactivePlatforms,
     });
   };
 
