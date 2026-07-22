@@ -1,8 +1,16 @@
 'use client';
 
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { ButtonVariant, type IngredientCategory } from '@genfeedai/enums';
+import { isEEEnabled } from '@genfeedai/config/license';
+import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  ButtonVariant,
+  IngredientCategory,
+  ModelProvider,
+} from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -20,10 +28,13 @@ import type {
 import type { AvatarVoiceOption } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { PromptBarSurfaceConfig } from '@genfeedai/props/prompt-bars/prompt-bar-surface.props';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { STUDIO_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
+import Link from 'next/link';
+import { HiExclamationTriangle } from 'react-icons/hi2';
 
 interface StudioComposerProps {
   promptText: string;
@@ -54,6 +65,7 @@ interface StudioComposerProps {
   scenes?: IElementScene[];
   fontFamilies?: IFontFamily[];
   blacklists?: IElementBlacklist[];
+  isAvailabilityLoading: boolean;
   isEmptyState: boolean;
 }
 
@@ -89,6 +101,14 @@ const EMPTY_STUDIO_PROMPT_BAR_SURFACE: PromptBarSurfaceConfig = {
   },
 };
 
+const MODEL_SELECTION_CATEGORIES = new Set<IngredientCategory>([
+  IngredientCategory.IMAGE,
+  IngredientCategory.MUSIC,
+  IngredientCategory.VIDEO,
+]);
+
+type GenerationGate = 'avatar' | 'credits' | 'model' | null;
+
 export function StudioComposer({
   promptText,
   onTextChange,
@@ -114,17 +134,132 @@ export function StudioComposer({
   scenes,
   fontFamilies,
   blacklists,
+  isAvailabilityLoading,
   isEmptyState,
 }: StudioComposerProps) {
+  const { creditsBreakdown } = useSubscription();
+  const { orgHref } = useOrgUrl();
   const suggestions = CATEGORY_SUGGESTIONS[categoryType] ?? [];
   const surface = isEmptyState
     ? EMPTY_STUDIO_PROMPT_BAR_SURFACE
     : STUDIO_PROMPT_BAR_SURFACE;
+  const requiresModelSelection = MODEL_SELECTION_CATEGORIES.has(categoryType);
+  const hasNoCompatibleModel =
+    !isAvailabilityLoading && requiresModelSelection && models.length === 0;
+  const hasNoAvatarResources =
+    !isAvailabilityLoading &&
+    categoryType === IngredientCategory.AVATAR &&
+    ((avatars?.length ?? 0) === 0 || (voices?.length ?? 0) === 0);
+  const selectedModelKeys =
+    Array.isArray(promptConfig.models) && promptConfig.models.length > 0
+      ? promptConfig.models
+      : [models.find((model) => model.isDefault)?.key ?? models[0]?.key];
+  const usesManagedInference =
+    promptConfig.autoSelectModel === true
+      ? models.length > 0 &&
+        models.every((model) => model.provider === ModelProvider.GENFEED_AI)
+      : selectedModelKeys.some((modelKey) =>
+          models.some(
+            (model) =>
+              model.key === modelKey &&
+              model.provider === ModelProvider.GENFEED_AI,
+          ),
+        );
+  const hasNoCredits = usesManagedInference && creditsBreakdown?.total === 0;
+  const generationGate: GenerationGate = hasNoCompatibleModel
+    ? 'model'
+    : hasNoAvatarResources
+      ? 'avatar'
+      : hasNoCredits
+        ? 'credits'
+        : null;
+  const isGenerationBlocked = isAvailabilityLoading || generationGate !== null;
+  const isBillingEnabled = isEEEnabled();
+  const resolvedGenerateLabel = isAvailabilityLoading
+    ? 'Loading options'
+    : generationGate === 'model'
+      ? 'Configure a model'
+      : generationGate === 'avatar'
+        ? 'Set up an avatar'
+        : generationGate === 'credits'
+          ? 'Add credits'
+          : generateLabel;
+  const creditsHref = orgHref(
+    isBillingEnabled
+      ? APP_ROUTES.SETTINGS.BILLING
+      : APP_ROUTES.SETTINGS.CREDITS,
+  );
+  const modelsHref = orgHref(APP_ROUTES.SETTINGS.MODELS);
+  const avatarsHref = orgHref(APP_ROUTES.LIBRARY.AVATARS);
+  const voicesHref = orgHref(APP_ROUTES.LIBRARY.VOICES);
 
   return (
     <PromptBarSurfaceRenderer
       surface={surface}
-      topContent={<LowCreditsBanner />}
+      topContent={
+        <>
+          {!isGenerationBlocked && <LowCreditsBanner />}
+          {generationGate === 'model' && (
+            <Alert className="mx-4 mt-3" variant="warning">
+              <HiExclamationTriangle className="size-4" />
+              <AlertTitle>No compatible model configured</AlertTitle>
+              <AlertDescription>
+                Enable a model for this Studio format before generating.{' '}
+                <Link
+                  className="font-medium text-foreground underline underline-offset-4"
+                  href={modelsHref}
+                >
+                  Configure models
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
+          {generationGate === 'avatar' && (
+            <Alert className="mx-4 mt-3" variant="warning">
+              <HiExclamationTriangle className="size-4" />
+              <AlertTitle>Avatar setup incomplete</AlertTitle>
+              <AlertDescription>
+                Add the missing resources before generating:{' '}
+                {(avatars?.length ?? 0) === 0 && (
+                  <Link
+                    className="font-medium text-foreground underline underline-offset-4"
+                    href={avatarsHref}
+                  >
+                    avatars
+                  </Link>
+                )}
+                {(avatars?.length ?? 0) === 0 &&
+                  (voices?.length ?? 0) === 0 &&
+                  ' and '}
+                {(voices?.length ?? 0) === 0 && (
+                  <Link
+                    className="font-medium text-foreground underline underline-offset-4"
+                    href={voicesHref}
+                  >
+                    voices
+                  </Link>
+                )}
+                .
+              </AlertDescription>
+            </Alert>
+          )}
+          {generationGate === 'credits' && (
+            <Alert className="mx-4 mt-3" variant="warning">
+              <HiExclamationTriangle className="size-4" />
+              <AlertTitle>No credits available</AlertTitle>
+              <AlertDescription>
+                Add provider capacity before starting another generation.{' '}
+                <Link
+                  className="font-medium text-foreground underline underline-offset-4"
+                  href={creditsHref}
+                >
+                  {isBillingEnabled ? 'Top up credits' : 'Review credits'}
+                </Link>
+              </AlertDescription>
+            </Alert>
+          )}
+        </>
+      }
     >
       <div className={cn('flex flex-col', isEmptyState ? 'gap-4' : 'gap-3')}>
         <div
@@ -140,7 +275,9 @@ export function StudioComposer({
             promptConfig={promptConfig}
             onConfigChange={onConfigChange}
             isGenerating={isGenerating}
-            generateLabel={generateLabel}
+            isGenerateDisabled={isGenerationBlocked}
+            requiresModelSelection={requiresModelSelection}
+            generateLabel={resolvedGenerateLabel}
             models={models}
             trainings={trainings}
             presets={presets}

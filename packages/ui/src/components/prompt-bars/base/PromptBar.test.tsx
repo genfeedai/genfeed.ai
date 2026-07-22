@@ -956,6 +956,31 @@ describe('PromptBar', () => {
       expect(mockOnSubmit).not.toHaveBeenCalled();
     });
 
+    it('permits submit without a model when model selection is not required', () => {
+      const mockOnSubmit = vi.fn();
+      mockUseWatch.mockImplementation(({ name }) => {
+        if (name === 'models') {
+          return [];
+        }
+        if (name === 'autoSelectModel') {
+          return false;
+        }
+        return null;
+      });
+
+      const { container } = render(
+        <PromptBar
+          {...(defaultProps as any)}
+          onSubmit={mockOnSubmit}
+          requiresModelSelection={false}
+        />,
+      );
+
+      fireEvent.submit(container.querySelector('form') as HTMLFormElement);
+
+      expect(mockOnSubmit).toHaveBeenCalledTimes(1);
+    });
+
     it('skips submit when the prompt bar is disabled', () => {
       const mockOnSubmit = vi.fn();
       mockUseWatch.mockImplementation(({ name }) => {

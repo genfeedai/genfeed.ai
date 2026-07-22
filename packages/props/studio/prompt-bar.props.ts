@@ -77,6 +77,7 @@ export interface PromptBarProps {
   isDisabled?: boolean;
   isGenerating?: boolean;
   isGenerateDisabled?: boolean;
+  requiresModelSelection?: boolean;
   generateLabel?: string;
   cost?: number;
   externalFormat?: string;

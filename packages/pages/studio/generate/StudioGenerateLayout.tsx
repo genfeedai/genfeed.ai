@@ -60,6 +60,7 @@ export default function StudioGenerateLayout({
     hasMore,
     initialLoadComplete,
     isAvatarCategory,
+    isAvailabilityLoading,
     isBulkUpdating,
     isEmptyStudioState,
     isGenerationCooldown,
@@ -124,6 +125,7 @@ export default function StudioGenerateLayout({
       scenes={!isMusicCategory ? scenes : undefined}
       fontFamilies={!isMusicCategory ? fontFamilies : undefined}
       blacklists={isVideoCategory ? blacklists : undefined}
+      isAvailabilityLoading={isAvailabilityLoading}
       isEmptyState={isEmptyStudioState}
     />
   );

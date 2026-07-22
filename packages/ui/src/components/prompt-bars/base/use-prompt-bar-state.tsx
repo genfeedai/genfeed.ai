@@ -87,6 +87,7 @@ type UsePromptBarStateParams = Pick<
   | 'onSubmit'
   | 'isGenerating'
   | 'isGenerateDisabled'
+  | 'requiresModelSelection'
   | 'generateLabel'
   | 'externalFormat'
   | 'externalWidth'
@@ -128,6 +129,7 @@ export function usePromptBarState({
   onSubmit,
   isGenerating = false,
   isGenerateDisabled = false,
+  requiresModelSelection = true,
   generateLabel = 'Generate',
   externalFormat,
   externalWidth,
@@ -536,7 +538,9 @@ export function usePromptBarState({
   }, [filteredSounds, form, triggerConfigChange]);
 
   const isModelNotSet =
-    watchedAutoSelectModel !== true && normalizedWatchedModels.length === 0;
+    requiresModelSelection &&
+    watchedAutoSelectModel !== true &&
+    normalizedWatchedModels.length === 0;
   const isDisabledState = isDisabled;
   const isGenerateBlocked = isDisabled || isModelNotSet;
 

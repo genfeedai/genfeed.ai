@@ -403,8 +403,8 @@ export function useSocketGeneration({
         const isAutoSelect = promptData.autoSelectModel === true;
         let selectedModelKeys: string[] = [];
 
-        if (isAutoSelect) {
-          // Backend handles model selection — use a single iteration with no model key
+        if (categoryType === IngredientCategory.AVATAR || isAutoSelect) {
+          // Avatar and auto-select resolve their provider downstream.
           selectedModelKeys = [''];
         } else if (promptData.models?.length) {
           selectedModelKeys = promptData.models.filter(
