@@ -1,6 +1,22 @@
+vi.mock('@api/helpers/utils/response/response.util', () => ({
+  serializeCollection: vi.fn(
+    (_request: unknown, _serializer: unknown, data: unknown) => data,
+  ),
+  serializeSingle: vi.fn(
+    (_request: unknown, _serializer: unknown, data: unknown) => data,
+  ),
+}));
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { MusicsController } from '@api/collections/musics/controllers/musics.controller';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
+import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
@@ -38,8 +54,23 @@ describe('MusicsController', () => {
   let controller: MusicsController;
   let musicsService: ReturnType<typeof createMockMusicsService>;
   let logger: ReturnType<typeof createMockLogger>;
+  const request = {} as Request;
+  const musicId = '507f191e810c19729de860ea';
+  const organizationId = '507f191e810c19729de860eb';
+  const brandId = '507f191e810c19729de860ec';
+  const userId = '507f191e810c19729de860ed';
+  const music = {
+    brandId,
+    category: 'music',
+    id: 'canonical-music-id',
+    isDeleted: false,
+    mongoId: musicId,
+    organizationId,
+    userId,
+  };
 
   beforeEach(() => {
+    vi.clearAllMocks();
     musicsService = createMockMusicsService();
     logger = createMockLogger();
     controller = new MusicsController(
@@ -70,13 +101,14 @@ describe('MusicsController', () => {
         where: {
           OR: expect.arrayContaining([
             expect.objectContaining({
-              brand: '507f191e810c19729de860ee',
-              category: 'music',
+              brandId: '507f191e810c19729de860ee',
+              category: 'MUSIC',
               isDeleted: false,
-              user: '507f191e810c19729de860ee',
+              organizationId: '507f191e810c19729de860ee',
+              userId: '507f191e810c19729de860ee',
             }),
             expect.objectContaining({
-              category: 'music',
+              category: 'MUSIC',
               isDeleted: false,
             }),
           ]),
@@ -156,8 +188,98 @@ describe('MusicsController', () => {
         inputQuery as never,
       );
 
-      expect(query.where.OR[0]).toMatchObject({ brand: brandId });
-      expect(query.where.OR[1]).toMatchObject({ brand: brandId });
+      expect(query.where.OR[0]).toMatchObject({ brandId });
+      expect(query.where.OR[1]).toMatchObject({ brandId });
+    });
+  });
+
+  describe('asset lifecycle contract', () => {
+    const user = createMockUser({
+      brand: brandId,
+      organization: organizationId,
+      user: userId,
+    }) as User;
+
+    it('lists tenant-owned music and serializes the collection', async () => {
+      const collection = { docs: [music], totalDocs: 1 };
+      musicsService.findAll.mockResolvedValue(collection);
+
+      await controller.findAll(request, user, {} as never);
+
+      expect(musicsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            OR: expect.arrayContaining([
+              expect.objectContaining({
+                brandId,
+                category: 'MUSIC',
+                isDeleted: false,
+                organizationId,
+                userId,
+              }),
+            ]),
+          },
+        }),
+        expect.any(Object),
+      );
+      expect(serializeCollection).toHaveBeenCalledWith(
+        request,
+        MusicSerializer,
+        collection,
+      );
+    });
+
+    it('tenant-scopes a single music lookup and uses the music serializer', async () => {
+      musicsService.findOne.mockResolvedValue(music);
+
+      await controller.findOne(request, user, musicId);
+
+      expect(musicsService.findOne).toHaveBeenCalledWith(
+        {
+          _id: musicId,
+          OR: [{ organizationId }, { isDefault: true, organizationId: null }],
+          category: 'MUSIC',
+          isDeleted: false,
+        },
+        expect.any(Array),
+      );
+      expect(serializeSingle).toHaveBeenCalledWith(
+        request,
+        MusicSerializer,
+        music,
+      );
+    });
+
+    it('soft-deletes only music owned by the canonical caller', async () => {
+      musicsService.findOne.mockResolvedValue(music);
+      musicsService.remove.mockResolvedValue({ ...music, isDeleted: true });
+
+      await controller.remove(request, user, musicId);
+
+      expect(musicsService.findOne).toHaveBeenCalledWith({
+        _id: musicId,
+        OR: [{ organizationId }, { isDefault: true, organizationId: null }],
+        category: 'MUSIC',
+        isDeleted: false,
+      });
+      expect(musicsService.remove).toHaveBeenCalledWith(music.id);
+      expect(serializeSingle).toHaveBeenCalledWith(
+        request,
+        MusicSerializer,
+        expect.objectContaining({ id: music.id, isDeleted: true }),
+      );
+    });
+
+    it('rejects another tenant record before deletion', async () => {
+      musicsService.findOne.mockResolvedValue({
+        ...music,
+        organizationId: '507f191e810c19729de860ff',
+        userId: '507f191e810c19729de860fe',
+      });
+
+      await expect(controller.remove(request, user, musicId)).rejects.toThrow();
+      expect(musicsService.remove).not.toHaveBeenCalled();
+      expect(serializeSingle).not.toHaveBeenCalled();
     });
   });
 });

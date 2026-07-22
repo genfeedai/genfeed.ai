@@ -13,6 +13,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
+import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -114,6 +115,133 @@ describe('ClipProjectsService', () => {
         status: 'pending',
       }),
     });
+  });
+
+  it('normalizes reference-frame state into clip-project config', async () => {
+    prisma.clipProject.create.mockResolvedValue({
+      config: {},
+      id: 'project-1',
+      organizationId: 'org-1',
+      progress: 0,
+      readiness: {},
+      status: 'pending',
+    });
+
+    await service.create({
+      organization: 'org-1',
+      referenceFrames: {
+        candidates: [
+          {
+            diagnostics: [],
+            id: ' frame-1 ',
+            status: 'available',
+            storageKey: 'organizations/org-1/clips/project-1/frame-1.jpg',
+            timestampSeconds: 12.5,
+          },
+        ],
+        diagnostics: [],
+        schemaVersion: 1,
+        selectedCandidateId: null,
+        status: 'ready',
+      },
+      sourceVideoUrl: 'https://youtube.com/watch?v=source',
+    } as CreateClipProjectDto);
+
+    expect(prisma.clipProject.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          referenceFrames: expect.objectContaining({
+            candidates: [
+              expect.objectContaining({
+                id: 'frame-1',
+                timestampSeconds: 12.5,
+              }),
+            ],
+            schemaVersion: 1,
+            selectedCandidateId: null,
+            status: 'ready',
+          }),
+        }),
+      }),
+    });
+  });
+
+  it('normalizes reference-frame state supplied through config updates', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue({
+      config: { name: 'Existing' },
+      id: 'project-1',
+      organizationId: 'org-1',
+      progress: 45,
+      readiness: {},
+      status: 'analyzing',
+    });
+    prisma.clipProject.update.mockResolvedValue({
+      config: {},
+      id: 'project-1',
+      organizationId: 'org-1',
+      progress: 45,
+      readiness: {},
+      status: 'analyzing',
+    });
+
+    await service.patch('project-1', {
+      config: {
+        referenceFrames: {
+          candidates: [],
+          diagnostics: [
+            {
+              code: 'clip_reference_unavailable',
+              message: 'No source frames were available.',
+              severity: 'warning',
+            },
+          ],
+          schemaVersion: 1,
+          selectedCandidateId: null,
+          status: 'unavailable',
+        },
+      },
+    });
+
+    expect(prisma.clipProject.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          name: 'Existing',
+          referenceFrames: expect.objectContaining({
+            candidates: [],
+            status: 'unavailable',
+          }),
+        }),
+      }),
+      where: { id: 'project-1' },
+    });
+  });
+
+  it('rejects invalid reference-frame state before persistence', async () => {
+    prisma.clipProject.create.mockResolvedValue({});
+
+    await expect(
+      service.create({
+        organization: 'org-1',
+        referenceFrames: {
+          candidates: [
+            {
+              diagnostics: [],
+              id: 'frame-1',
+              status: 'available',
+              storageKey: '../frame-1.jpg',
+              timestampSeconds: 1,
+            },
+          ],
+          diagnostics: [],
+          schemaVersion: 1,
+          selectedCandidateId: 'missing-frame',
+          status: 'selected',
+        },
+        sourceVideoUrl: 'https://youtube.com/watch?v=source',
+      } as CreateClipProjectDto),
+    ).rejects.toThrow(ValidationException);
+
+    expect(prisma.clipProject.create).not.toHaveBeenCalled();
   });
 
   it('merges patch config and adds terminal readiness for completed projects', async () => {

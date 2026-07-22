@@ -54,7 +54,7 @@ export class IngredientFilterUtil {
    * Handles filtering by folder ID:
    * - null/'null'/'' → root level (no folder)
    * - valid ObjectId → ingredients in that folder
-   * - undefined → defaults to root level
+   * - undefined → no folder filter ("All Assets")
    *
    * @param folder - Folder ID from query params
    * @returns Filter conditions for folder field
@@ -73,8 +73,8 @@ export class IngredientFilterUtil {
       }
     }
 
-    // Default to root level (no folder)
-    return { folder: null };
+    // No folder parameter means the Library's "All Assets" view.
+    return {};
   }
 
   /**

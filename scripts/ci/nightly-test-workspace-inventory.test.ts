@@ -35,6 +35,7 @@ describe('nightly test workspace inventory', () => {
     );
     writeWorkspace('apps/docs', '@genfeedai/docs');
     writeWorkspace('apps/app', '@genfeedai/app');
+    writeWorkspace('packages/no-tests', '@genfeedai/no-tests', null);
 
     const result = buildNightlyTestWorkspaceInventory({
       rootDir: testDir,
@@ -60,6 +61,23 @@ describe('nightly test workspace inventory', () => {
       package: 1,
       'server-service': 1,
     });
+    expect(result.summary.excludedByClass).toEqual({
+      api: 0,
+      app: 0,
+      client: 0,
+      extension: 0,
+      package: 0,
+      'server-service': 0,
+    });
+    expect(result.summary.discoveredByClass).toEqual({
+      api: 1,
+      app: 1,
+      client: 1,
+      extension: 1,
+      package: 2,
+      'server-service': 1,
+    });
+    expect(result.summary.discoveredWorkspaces).toBe(7);
     expect(result.workspaces[0]).toMatchObject({
       command: 'bun run --cwd apps/app test',
       manifestCommand: 'vitest run',
@@ -142,7 +160,13 @@ describe('nightly test workspace inventory', () => {
 
     expect(result.violations).toEqual([]);
     expect(result.workspaces).toEqual([]);
-    expect(result.excluded).toEqual(exclusions);
+    expect(result.excluded).toEqual([
+      {
+        ...exclusions[0],
+        workspaceClass: 'package',
+      },
+    ]);
+    expect(result.summary.excludedByClass.package).toBe(1);
   });
 
   it('fails when an exclusion no longer matches a test-capable workspace', () => {

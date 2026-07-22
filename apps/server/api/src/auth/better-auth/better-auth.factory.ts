@@ -10,6 +10,7 @@ import {
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import {
   jwt,
+  type MagicLinkOptions,
   magicLink,
   type OrganizationOptions,
   organization,
@@ -29,9 +30,14 @@ const RATE_LIMIT_KEY_PREFIX = 'ba:ratelimit:';
 const RATE_LIMIT_TTL_SECONDS = 86_400;
 const BETTER_AUTH_CREATOR_ROLE = 'admin';
 const BETTER_AUTH_DEFAULT_ORGANIZATION_CATEGORY = 'BUSINESS';
+const BETTER_AUTH_MAGIC_LINK_EXPIRES_IN_SECONDS = 300;
 const SIGN_UP_MAGIC_LINK_INTENT = 'signup';
 
 type BetterAuthDatabaseHooks = NonNullable<BetterAuthOptions['databaseHooks']>;
+type BetterAuthMagicLinkDependencies = Pick<
+  ICreateBetterAuthOptions,
+  'prisma' | 'sendMagicLink'
+>;
 type BetterAuthUserBeforePayload = {
   email?: string | null;
   handle?: string;
@@ -153,6 +159,31 @@ export async function assertSignupMagicLinkCanCreateUser({
       message: SIGN_UP_MAGIC_LINK_EXISTING_USER_MESSAGE,
     });
   }
+}
+
+/**
+ * Keep the production magic-link security contract in one reusable boundary.
+ * Contract tests run these exact options against Better Auth's memory adapter,
+ * while production supplies the Prisma adapter to the enclosing auth instance.
+ */
+export function buildBetterAuthMagicLinkOptions({
+  prisma,
+  sendMagicLink,
+}: BetterAuthMagicLinkDependencies): MagicLinkOptions {
+  return {
+    expiresIn: BETTER_AUTH_MAGIC_LINK_EXPIRES_IN_SECONDS,
+    // Persist only the hash of magic-link tokens so a DB read cannot replay
+    // them. Lookup re-hashes the incoming token during verification.
+    storeToken: 'hashed',
+    sendMagicLink: async ({ email, metadata, url, token }) => {
+      await assertSignupMagicLinkCanCreateUser({
+        email,
+        metadata,
+        prisma,
+      });
+      await sendMagicLink({ email, metadata, url, token });
+    },
+  };
 }
 
 /**
@@ -639,20 +670,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
     databaseHooks: buildBetterAuthUserDatabaseHooks(onUserCreated),
     plugins: [
       ...(apiKey ? [dash({ apiKey })] : []),
-      magicLink({
-        // Persist only the hash of magic-link tokens so a DB read cannot replay
-        // them. Lookup re-hashes the incoming token, so any in-flight plaintext
-        // links issued before this change fail until they expire (~min TTL).
-        storeToken: 'hashed',
-        sendMagicLink: async ({ email, metadata, url, token }) => {
-          await assertSignupMagicLinkCanCreateUser({
-            email,
-            metadata,
-            prisma,
-          });
-          await sendMagicLink({ email, metadata, url, token });
-        },
-      }),
+      magicLink(buildBetterAuthMagicLinkOptions({ prisma, sendMagicLink })),
       organization(buildBetterAuthOrganizationOptions(prisma)),
       jwt({
         jwt: {

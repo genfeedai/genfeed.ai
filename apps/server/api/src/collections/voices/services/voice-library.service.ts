@@ -4,6 +4,7 @@ import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dt
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { parseVoiceProviders } from '@api/collections/voices/utils/voice-provider.util';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -31,7 +32,9 @@ export class VoiceLibraryService {
       const where: Record<string, unknown> = {
         OR: [{ isCloned: true }, { externalVoiceCatalogId: { not: null } }],
         brandId: publicMetadata.brand,
-        category: IngredientCategory.VOICE,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.VOICE,
+        ),
         isDeleted: false,
         organizationId: publicMetadata.organization,
       };
@@ -100,6 +103,9 @@ export class VoiceLibraryService {
         {
           orderBy: { createdAt: -1 as const },
           where: {
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.VOICE,
+            ),
             isCloned: true,
             isDeleted: false,
             organizationId: publicMetadata.organization,

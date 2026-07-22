@@ -185,6 +185,7 @@ describe('VoiceCloneService', () => {
 
     expect(voices.findOne).toHaveBeenCalledWith({
       _id: ingredientId,
+      category: 'VOICE',
       isCloned: true,
       isDeleted: false,
       organizationId,

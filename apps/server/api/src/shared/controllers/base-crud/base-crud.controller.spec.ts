@@ -371,6 +371,7 @@ describe('BaseCRUDController', () => {
       const id = '507f1f77bcf86cd799439019';
       const mockDeletedEntity = {
         _id: id,
+        id: 'canonical-entity-id',
         isDeleted: true,
         name: 'Deleted Entity',
         user: MOCK_USER_ID,
@@ -382,7 +383,7 @@ describe('BaseCRUDController', () => {
       const result = await controller.remove(mockRequest, mockUser, id);
 
       expect(service.findOne).toHaveBeenCalledWith({ _id: id });
-      expect(service.remove).toHaveBeenCalledWith(id);
+      expect(service.remove).toHaveBeenCalledWith(mockDeletedEntity.id);
       expect(result).toEqual({ data: mockDeletedEntity });
     });
 

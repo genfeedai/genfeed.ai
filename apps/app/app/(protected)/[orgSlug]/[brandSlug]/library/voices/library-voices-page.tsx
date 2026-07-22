@@ -2,7 +2,12 @@
 
 import { useIngredientsContext } from '@contexts/content/ingredients-context/ingredients-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { PageScope, VoiceProvider } from '@genfeedai/enums';
+import {
+  AlertCategory,
+  ButtonVariant,
+  PageScope,
+  VoiceProvider,
+} from '@genfeedai/enums';
 import {
   buildDefaultVoiceRefFromVoice,
   type DefaultVoiceRef,
@@ -19,7 +24,9 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { BrandsService } from '@services/social/brands.service';
+import Alert from '@ui/feedback/alert/Alert';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Button } from '@ui/primitives/button';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import VoiceCatalogList from './voice-catalog-list';
@@ -98,6 +105,7 @@ function LibraryVoicesContent() {
   );
 
   const {
+    error: voicesError,
     isLoading: isLoadingVoices,
     refresh: refreshVoices,
     voices,
@@ -294,15 +302,30 @@ function LibraryVoicesContent() {
 
   return (
     <div className="space-y-4">
-      {!isLoadingVoices ? (
+      {!isLoadingVoices && !voicesError ? (
         <p className="text-sm text-muted-foreground">
           {voices.length} voice{voices.length === 1 ? '' : 's'} on this page
         </p>
       ) : null}
 
+      {voicesError && !isLoadingVoices ? (
+        <Alert type={AlertCategory.ERROR}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{voicesError}</span>
+            <Button
+              label="Retry"
+              variant={ButtonVariant.OUTLINE}
+              onClick={() => {
+                void refreshVoices();
+              }}
+            />
+          </div>
+        </Alert>
+      ) : null}
+
       {isLoadingVoices ? (
         <VoiceLibrarySkeleton />
-      ) : (
+      ) : !voicesError ? (
         <VoiceCatalogList
           hasActiveFilters={hasActiveFilters}
           onClearFilters={handleClearFilters}
@@ -330,11 +353,13 @@ function LibraryVoicesContent() {
             />
           ))}
         </VoiceCatalogList>
-      )}
+      ) : null}
 
-      <div className="mt-4">
-        <AutoPagination showTotal totalLabel="voices" />
-      </div>
+      {!voicesError ? (
+        <div className="mt-4">
+          <AutoPagination showTotal totalLabel="voices" />
+        </div>
+      ) : null}
     </div>
   );
 }

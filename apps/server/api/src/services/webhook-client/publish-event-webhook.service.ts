@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -71,6 +72,7 @@ type TerminalTargetResolution =
 
 const PUBLISH_WEBHOOK_DEDUPE_RETENTION_SECONDS = 24 * 60 * 60;
 const PUBLISH_WEBHOOK_FAILED_RETENTION_SECONDS = 7 * 24 * 60 * 60;
+const PUBLISH_WEBHOOK_JOB_ID_PREFIX = 'publish-webhook-';
 
 @Injectable()
 export class PublishEventWebhookService {
@@ -475,11 +477,11 @@ export class PublishEventWebhookService {
       'send-webhook',
       jobData,
       options.isTest
-        ? { jobId: deliveryId }
+        ? { jobId: createPublishWebhookJobId(deliveryId) }
         : {
             // Retried publish workers must resolve to the same BullMQ jobId long
             // enough to suppress duplicate terminal events.
-            jobId: payload.eventId,
+            jobId: createPublishWebhookJobId(payload.eventId),
             removeOnComplete: {
               age: PUBLISH_WEBHOOK_DEDUPE_RETENTION_SECONDS,
               count: 10_000,
@@ -512,6 +514,12 @@ export class PublishEventWebhookService {
 
     return status;
   }
+}
+
+function createPublishWebhookJobId(eventId: string): string {
+  return `${PUBLISH_WEBHOOK_JOB_ID_PREFIX}${createHash('sha256')
+    .update(eventId)
+    .digest('hex')}`;
 }
 
 function readWebhookEventTypes(value: unknown): PublishWebhookEventType[] {

@@ -6,6 +6,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockGetIngredientsService = vi.fn();
 const mockGetFoldersService = vi.fn();
 const mockGetOrganizationsService = vi.fn();
+const { mockLoggerError, mockNotificationError } = vi.hoisted(() => ({
+  mockLoggerError: vi.fn(),
+  mockNotificationError: vi.fn(),
+}));
 
 vi.mock('@helpers/data/cache/cache.helper', () => ({
   createCacheKey: vi.fn((...args: string[]) => args.join(':')),
@@ -49,12 +53,23 @@ vi.mock('@genfeedai/services/organization/organizations.service', () => ({
   },
 }));
 
-vi.mock('@genfeedai/services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: vi.fn(() => ({
-      error: vi.fn(),
-      success: vi.fn(),
-    })),
+vi.mock('@genfeedai/services/core/notifications.service', () => {
+  const service = {
+    error: mockNotificationError,
+    success: vi.fn(),
+  };
+
+  return {
+    NotificationsService: {
+      getInstance: vi.fn(() => service),
+    },
+  };
+});
+
+vi.mock('@genfeedai/services/core/logger.service', () => ({
+  logger: {
+    error: mockLoggerError,
+    info: vi.fn(),
   },
 }));
 
@@ -101,6 +116,7 @@ describe('useIngredientsLoading', () => {
 
     expect(result.current).toHaveProperty('ingredients');
     expect(result.current).toHaveProperty('isLoading');
+    expect(result.current).toHaveProperty('loadError');
     expect(result.current).toHaveProperty('folders');
     expect(result.current).toHaveProperty('findAllIngredientsByCategory');
     expect(result.current).toHaveProperty('findAllFolders');
@@ -189,5 +205,20 @@ describe('useIngredientsLoading', () => {
     expect(firstCallParams).not.toHaveProperty('search');
     expect(firstCallParams).not.toHaveProperty('sort');
     expect(firstCallParams).not.toHaveProperty('type');
+  });
+
+  it('exposes a recoverable error when the query fails without cached assets', async () => {
+    ingredientsFindAllMock.mockRejectedValue(new Error('network unavailable'));
+
+    const { result } = renderHook(() => useIngredientsLoading(baseProps));
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.ingredients).toEqual([]);
+    expect(result.current.loadError).toBe('Failed to load videos');
+    expect(mockNotificationError).toHaveBeenCalledWith('Failed to load videos');
+    expect(mockLoggerError).toHaveBeenCalled();
   });
 });

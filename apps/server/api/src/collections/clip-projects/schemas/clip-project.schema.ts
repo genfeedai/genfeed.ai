@@ -1,8 +1,9 @@
 import {
   CLIP_PROJECT_STATUSES,
   type ClipReadinessContract,
-  type ClipProjectStatus as SharedClipProjectStatus,
+  type ClipReferenceFrameSet,
   type ClipResultMode,
+  type ClipProjectStatus as SharedClipProjectStatus,
 } from '@genfeedai/interfaces';
 import type { ClipProject as PrismaClipProject } from '@genfeedai/prisma';
 
@@ -61,6 +62,7 @@ export interface ClipProjectDocument extends ClipProjectRecord {
   organization?: string;
   pendingClipCount: number;
   progress: number;
+  referenceFrames?: ClipReferenceFrameSet;
   readiness: ClipReadinessContract | Record<string, unknown>;
   readyClipCount: number;
   settings?: ClipProjectSettings;

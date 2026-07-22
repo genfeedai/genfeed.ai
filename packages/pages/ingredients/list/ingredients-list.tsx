@@ -39,6 +39,7 @@ export default function IngredientsList({
     isLoading,
     isUsingCache,
     cachedAt,
+    loadError,
     isLoadingFolders,
     isMerging,
     filteredIngredients,
@@ -183,59 +184,80 @@ export default function IngredientsList({
           </div>
         </Alert>
       )}
-      <div className="grid gap-6 xl:grid-cols-[minmax(13rem,14rem)_minmax(0,1fr)]">
-        <IngredientsListSidebar
-          scope={scope}
-          folders={folders}
-          selectedFolderId={selectedFolderId}
-          isLoading={isLoadingFolders}
-          onSelectFolder={handleSelectFolder}
-          onDropIngredient={handleFolderDrop}
-          onCreateFolder={handleCreateFolder}
-        />
-
-        <div className="min-w-0">
-          <IngredientsListContent
-            type={type}
+      {loadError && !isUsingCache ? (
+        <Alert type={AlertCategory.ERROR}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+              <div className="font-medium">{loadError}</div>
+              <div className="text-xs text-foreground/70">
+                Retry to load the latest Library assets.
+              </div>
+            </div>
+            <Button
+              label="Retry"
+              variant={ButtonVariant.OUTLINE}
+              onClick={() => {
+                void handleRefresh(true);
+              }}
+            />
+          </div>
+        </Alert>
+      ) : null}
+      {!loadError || isUsingCache ? (
+        <div className="grid gap-6 xl:grid-cols-[minmax(13rem,14rem)_minmax(0,1fr)]">
+          <IngredientsListSidebar
             scope={scope}
-            singularType={singularType}
-            formatFilter={formatFilter}
-            isLoading={isLoading}
-            filteredIngredients={filteredIngredients}
-            hasFilteredEmptyState={hasFilteredEmptyState}
-            selectedIngredientIds={selectedIngredientIds}
-            isActionsEnabled={isActionsEnabled}
-            isDragEnabled={isDragEnabled}
-            isPortraiting={isPortraiting}
-            isGeneratingCaptions={isGeneratingCaptions}
-            isMirroring={isMirroring}
-            isReversing={isReversing}
-            onSelectionChange={setSelectedIngredientIds}
-            onDeleteIngredient={handleDeleteIngredient}
-            onArchiveIngredient={handleArchiveIngredient}
-            onConvertToPortrait={handleConvertToPortrait}
-            onGenerateCaptions={handleGenerateCaptions}
-            onReverse={handleReverse}
-            onMirror={handleMirror}
-            onSeeDetails={handleSeeDetails}
-            onUpdateParent={handleUpdateParent}
-            onRefresh={() => {
-              handleRefresh(true);
-            }}
-            onPublishIngredient={(ingredient: IIngredient) =>
-              openIngredientModal(ModalEnum.POST, ingredient)
-            }
-            onOpenIngredientModal={openIngredientModal}
-            onOpenLightbox={openLightboxForIngredient}
-            onClearFilters={clearFilters}
-            onSetIngredients={setIngredients}
-            onScopeChange={handleScopeChange}
-            onCopyPrompt={handleCopyPrompt}
-            onReprompt={handleReprompt}
-            // onConvertToVideo={handleConvertToVideo} // used in the ingredients list page. not set up right now.
+            folders={folders}
+            selectedFolderId={selectedFolderId}
+            isLoading={isLoadingFolders}
+            onSelectFolder={handleSelectFolder}
+            onDropIngredient={handleFolderDrop}
+            onCreateFolder={handleCreateFolder}
           />
+
+          <div className="min-w-0">
+            <IngredientsListContent
+              type={type}
+              scope={scope}
+              singularType={singularType}
+              formatFilter={formatFilter}
+              isLoading={isLoading}
+              filteredIngredients={filteredIngredients}
+              hasFilteredEmptyState={hasFilteredEmptyState}
+              selectedIngredientIds={selectedIngredientIds}
+              isActionsEnabled={isActionsEnabled}
+              isDragEnabled={isDragEnabled}
+              isPortraiting={isPortraiting}
+              isGeneratingCaptions={isGeneratingCaptions}
+              isMirroring={isMirroring}
+              isReversing={isReversing}
+              onSelectionChange={setSelectedIngredientIds}
+              onDeleteIngredient={handleDeleteIngredient}
+              onArchiveIngredient={handleArchiveIngredient}
+              onConvertToPortrait={handleConvertToPortrait}
+              onGenerateCaptions={handleGenerateCaptions}
+              onReverse={handleReverse}
+              onMirror={handleMirror}
+              onSeeDetails={handleSeeDetails}
+              onUpdateParent={handleUpdateParent}
+              onRefresh={() => {
+                handleRefresh(true);
+              }}
+              onPublishIngredient={(ingredient: IIngredient) =>
+                openIngredientModal(ModalEnum.POST, ingredient)
+              }
+              onOpenIngredientModal={openIngredientModal}
+              onOpenLightbox={openLightboxForIngredient}
+              onClearFilters={clearFilters}
+              onSetIngredients={setIngredients}
+              onScopeChange={handleScopeChange}
+              onCopyPrompt={handleCopyPrompt}
+              onReprompt={handleReprompt}
+              // onConvertToVideo={handleConvertToVideo} // used in the ingredients list page. not set up right now.
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <IngredientsListFooter
         scope={scope}

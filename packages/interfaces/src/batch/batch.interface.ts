@@ -64,12 +64,7 @@ export interface IBatchItem {
   reviewDecision?: 'approved' | 'rejected' | 'request_changes';
   reviewFeedback?: string;
   reviewedAt?: string;
-  reviewEvents?: Array<{
-    decision: 'approved' | 'rejected' | 'request_changes';
-    feedback?: string;
-    reviewedAt: string;
-    versionPinId?: string;
-  }>;
+  reviewEvents?: IBatchReviewEvent[];
   versionPinId?: string;
   publishApproval?: IPublishApproval;
   sourceActionId?: string;
@@ -93,6 +88,22 @@ export interface IBatchItem {
   postAvgEngagementRate?: number;
   postUrl?: string;
   createdAt: string;
+}
+
+export interface IBatchReviewEventReviewer {
+  avatar?: string;
+  displayName: string;
+  handle: string;
+  id: string;
+}
+
+export interface IBatchReviewEvent {
+  decision: 'approved' | 'rejected' | 'request_changes';
+  feedback?: string;
+  reviewedAt: string;
+  reviewer?: IBatchReviewEventReviewer;
+  reviewerId?: string;
+  versionPinId?: string;
 }
 
 /**

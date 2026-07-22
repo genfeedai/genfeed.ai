@@ -1,0 +1,230 @@
+name: Nightly Unit Matrix
+
+on:
+  schedule:
+    # Daily at 00:37 UTC. The offset avoids GitHub's top-of-hour schedule queue.
+    - cron: '37 0 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-unit-matrix-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  CI: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  TZ: UTC
+
+jobs:
+  plan:
+    name: Plan Nightly Unit Matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      entry_count: ${{ steps.plan.outputs.entry_count }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      sha: ${{ steps.plan.outputs.sha }}
+    steps:
+      - name: Checkout immutable workflow SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+          cache-turbo: 'false'
+
+      - name: Build inventory-derived matrix
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          checkout_sha="$(git rev-parse HEAD)"
+          if [ "$checkout_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::Checkout SHA $checkout_sha does not match workflow SHA $GITHUB_SHA"
+            exit 1
+          fi
+
+          bun run scripts/ci/nightly-unit-matrix.ts plan \
+            --sha "$checkout_sha" \
+            --output nightly-unit-matrix-plan.json
+
+          {
+            echo "sha=$checkout_sha"
+            echo "entry_count=$(jq '.entries | length' nightly-unit-matrix-plan.json)"
+            echo "matrix=$(jq -c '{include:.entries}' nightly-unit-matrix-plan.json)"
+          } >> "$GITHUB_OUTPUT"
+
+          bun run scripts/ci/nightly-test-workspace-inventory.ts \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload immutable matrix plan
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-unit-matrix-plan-${{ steps.plan.outputs.sha }}
+          path: nightly-unit-matrix-plan.json
+          if-no-files-found: error
+          retention-days: 30
+
+  unit:
+    name: Unit / ${{ matrix.executionId }}
+    needs: plan
+    if: needs.plan.outputs.entry_count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - name: Checkout immutable matrix SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+
+      - name: Run workspace suite
+        shell: bash
+        env:
+          BETTER_AUTH_SECRET: test-better-auth-secret
+          NODE_ENV: test
+          SHARD: ${{ matrix.shard }}
+          SHARD_COUNT: ${{ matrix.shardCount }}
+          WORKSPACE_NAME: ${{ matrix.name }}
+        run: |
+          set -euo pipefail
+
+          if [ "$SHARD_COUNT" -gt 1 ]; then
+            bunx turbo run test \
+              --filter="$WORKSPACE_NAME" \
+              -- \
+              --shard="$SHARD/$SHARD_COUNT"
+          else
+            bunx turbo run test --filter="$WORKSPACE_NAME"
+          fi
+
+  aggregate:
+    name: Nightly Unit Matrix Aggregate
+    needs: [plan, unit]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout immutable matrix SHA
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.plan.outputs.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+          cache-turbo: 'false'
+
+      - name: Download immutable matrix plan
+        if: needs.plan.result == 'success'
+        uses: actions/download-artifact@v8
+        with:
+          name: nightly-unit-matrix-plan-${{ needs.plan.outputs.sha }}
+
+      - name: Read current-run job evidence
+        if: needs.plan.result == 'success'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('node:fs');
+            const jobs = await github.paginate(
+              github.rest.actions.listJobsForWorkflowRun,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId,
+                filter: 'latest',
+                per_page: 100,
+              },
+            );
+            fs.writeFileSync(
+              'nightly-unit-matrix-jobs.json',
+              `${JSON.stringify(
+                jobs.map(({ conclusion, html_url, name }) => ({
+                  conclusion,
+                  html_url,
+                  name,
+                })),
+                null,
+                2,
+              )}\n`,
+            );
+
+      - name: Aggregate workspace results
+        id: aggregate
+        if: needs.plan.result == 'success'
+        continue-on-error: true
+        run: |
+          bun run scripts/ci/nightly-unit-matrix.ts aggregate \
+            --plan nightly-unit-matrix-plan.json \
+            --jobs nightly-unit-matrix-jobs.json \
+            --output nightly-unit-matrix-summary.json \
+            --markdown nightly-unit-matrix-summary.md
+
+      - name: Publish nightly summary
+        if: always()
+        shell: bash
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+        run: |
+          if [ -f nightly-unit-matrix-summary.md ]; then
+            cat nightly-unit-matrix-summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "# Nightly Unit Matrix"
+              echo
+              echo "- Contract: FAIL"
+              echo "- Planning result: \`$PLAN_RESULT\`"
+              echo "- No aggregate summary was produced."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload aggregate evidence
+        if: always() && hashFiles('nightly-unit-matrix-summary.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-unit-matrix-summary-${{ needs.plan.outputs.sha || github.sha }}
+          path: |
+            nightly-unit-matrix-jobs.json
+            nightly-unit-matrix-summary.json
+            nightly-unit-matrix-summary.md
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce stable aggregate
+        if: always()
+        shell: bash
+        env:
+          AGGREGATE_OUTCOME: ${{ steps.aggregate.outcome }}
+          PLAN_RESULT: ${{ needs.plan.result }}
+        run: |
+          if [ "$PLAN_RESULT" != "success" ] || [ "$AGGREGATE_OUTCOME" != "success" ]; then
+            echo "::error::Nightly unit matrix contract failed"
+            exit 1
+          fi

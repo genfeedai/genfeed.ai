@@ -28,10 +28,14 @@ describe('BatchGenerationService approval version pins', () => {
     findMany: ReturnType<typeof vi.fn>;
     updateMany: ReturnType<typeof vi.fn>;
   };
+  let memberDelegate: {
+    findMany: ReturnType<typeof vi.fn>;
+  };
   let service: BatchGenerationService;
   let prisma: {
     $transaction: ReturnType<typeof vi.fn>;
     batch: typeof batchDelegate;
+    member: typeof memberDelegate;
     post: typeof postDelegate;
     postAnalytics: { findMany: ReturnType<typeof vi.fn> };
   };
@@ -75,6 +79,9 @@ describe('BatchGenerationService approval version pins', () => {
       findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
+    memberDelegate = {
+      findMany: vi.fn().mockResolvedValue([]),
+    };
     artifactReferenceService = {
       createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
     };
@@ -90,6 +97,7 @@ describe('BatchGenerationService approval version pins', () => {
         callback({ batch: batchDelegate, post: postDelegate }),
       ),
       batch: batchDelegate,
+      member: memberDelegate,
       post: postDelegate,
       postAnalytics: { findMany: vi.fn().mockResolvedValue([]) },
     };
@@ -183,6 +191,7 @@ describe('BatchGenerationService approval version pins', () => {
         reviewEvents: [
           expect.objectContaining({
             decision: 'approved',
+            reviewerId: 'canonical-user-1',
             versionPinId: 'pin-1',
           }),
         ],
@@ -195,6 +204,90 @@ describe('BatchGenerationService approval version pins', () => {
     expect(
       publishApprovalsService.createForCurrentPost.mock.invocationCallOrder[0],
     ).toBeLessThan(postDelegate.updateMany.mock.invocationCallOrder[0] ?? 0);
+  });
+
+  it('attributes request-changes decisions to the canonical reviewer', async () => {
+    batchDelegate.findFirst.mockResolvedValue(
+      createBatchRecord([
+        {
+          _id: 'item-1',
+          format: ContentFormat.IMAGE,
+          status: BatchItemStatus.COMPLETED,
+        },
+      ]),
+    );
+
+    await service.requestChanges(
+      'batch-1',
+      ['item-1'],
+      'org-1',
+      'Use a clearer opening line.',
+      'canonical-user-1',
+    );
+
+    expect(batchDelegate.updateMany).toHaveBeenCalledWith({
+      data: {
+        items: [
+          expect.objectContaining({
+            reviewDecision: 'request_changes',
+            reviewEvents: [
+              expect.objectContaining({
+                decision: 'request_changes',
+                feedback: 'Use a clearer opening line.',
+                reviewerId: 'canonical-user-1',
+              }),
+            ],
+          }),
+        ],
+      },
+      where: {
+        id: 'batch-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('attributes reject decisions to the canonical reviewer', async () => {
+    batchDelegate.findFirst.mockResolvedValue(
+      createBatchRecord([
+        {
+          _id: 'item-1',
+          format: ContentFormat.IMAGE,
+          status: BatchItemStatus.COMPLETED,
+        },
+      ]),
+    );
+
+    await service.rejectItems(
+      'batch-1',
+      ['item-1'],
+      'org-1',
+      'This misses the brief.',
+      'canonical-user-1',
+    );
+
+    expect(batchDelegate.updateMany).toHaveBeenCalledWith({
+      data: {
+        items: [
+          expect.objectContaining({
+            reviewDecision: 'rejected',
+            reviewEvents: [
+              expect.objectContaining({
+                decision: 'rejected',
+                feedback: 'This misses the brief.',
+                reviewerId: 'canonical-user-1',
+              }),
+            ],
+          }),
+        ],
+      },
+      where: {
+        id: 'batch-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
   });
 
   it('fails before approval mutations when pin creation fails', async () => {
@@ -373,5 +466,114 @@ describe('BatchGenerationService approval version pins', () => {
         select: expect.objectContaining({ reviewVersionPinId: true }),
       }),
     );
+  });
+
+  it('hydrates reviewer identity only through an active organization membership', async () => {
+    batchDelegate.findFirst.mockResolvedValue(
+      createBatchRecord([
+        {
+          _id: 'item-1',
+          format: ContentFormat.IMAGE,
+          reviewEvents: [
+            {
+              decision: 'approved',
+              reviewedAt: '2026-07-20T08:00:00.000Z',
+              reviewerId: 'reviewer-1',
+            },
+            {
+              decision: 'request_changes',
+              reviewedAt: '2026-07-20T08:01:00.000Z',
+              reviewerId: 'cross-org-reviewer',
+            },
+            {
+              decision: 'rejected',
+              reviewedAt: '2026-07-20T08:02:00.000Z',
+              reviewerId: 'deleted-reviewer',
+            },
+            {
+              decision: 'approved',
+              reviewedAt: '2026-07-20T08:03:00.000Z',
+            },
+          ],
+          status: BatchItemStatus.COMPLETED,
+        },
+      ]),
+    );
+    memberDelegate.findMany.mockResolvedValue([
+      {
+        organizationId: 'org-1',
+        user: {
+          avatar: 'https://cdn.example.com/reviewer.png',
+          firstName: 'Ada',
+          handle: 'ada',
+          id: 'reviewer-1',
+          isDeleted: false,
+          lastName: 'Lovelace',
+          name: null,
+        },
+      },
+      {
+        organizationId: 'org-2',
+        user: {
+          avatar: null,
+          firstName: 'Other',
+          handle: 'other',
+          id: 'cross-org-reviewer',
+          isDeleted: false,
+          lastName: 'Tenant',
+          name: null,
+        },
+      },
+      {
+        organizationId: 'org-1',
+        user: {
+          avatar: null,
+          firstName: 'Deleted',
+          handle: 'deleted',
+          id: 'deleted-reviewer',
+          isDeleted: true,
+          lastName: 'Reviewer',
+          name: null,
+        },
+      },
+    ]);
+
+    const result = await service.getBatch('batch-1', 'org-1');
+
+    expect(memberDelegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isActive: true,
+          isDeleted: false,
+          organizationId: { in: ['org-1'] },
+          userId: {
+            in: ['reviewer-1', 'cross-org-reviewer', 'deleted-reviewer'],
+          },
+        },
+      }),
+    );
+    expect(result.items[0]?.reviewEvents).toEqual([
+      expect.objectContaining({
+        reviewer: {
+          avatar: 'https://cdn.example.com/reviewer.png',
+          displayName: 'Ada Lovelace',
+          handle: 'ada',
+          id: 'reviewer-1',
+        },
+        reviewerId: 'reviewer-1',
+      }),
+      expect.objectContaining({
+        reviewer: undefined,
+        reviewerId: 'cross-org-reviewer',
+      }),
+      expect.objectContaining({
+        reviewer: undefined,
+        reviewerId: 'deleted-reviewer',
+      }),
+      expect.objectContaining({
+        reviewer: undefined,
+        reviewerId: undefined,
+      }),
+    ]);
   });
 });

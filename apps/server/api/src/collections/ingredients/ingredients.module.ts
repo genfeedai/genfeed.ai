@@ -4,6 +4,7 @@
 Workflow execution, state management, and cross-content type operations.
  */
 
+import { FoldersModule } from '@api/collections/folders/folders.module';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientsRelationshipsController } from '@api/collections/ingredients/controllers/ingredients-relationships.controller';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -14,7 +15,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   controllers: [IngredientsController, IngredientsRelationshipsController],
   exports: [IngredientsService],
-  imports: [forwardRef(() => MetadataModule)],
+  imports: [FoldersModule, forwardRef(() => MetadataModule)],
   providers: [AssetAccessGuard, IngredientsService],
 })
 export class IngredientsModule {}

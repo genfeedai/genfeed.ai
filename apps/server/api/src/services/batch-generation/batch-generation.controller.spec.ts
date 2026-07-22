@@ -229,5 +229,28 @@ describe('BatchGenerationController', () => {
         'test-object-id',
       );
     });
+
+    it('passes the canonical user id when rejecting items', async () => {
+      service.rejectItems.mockResolvedValue({ id: 'batch-1' } as never);
+
+      await controller.itemAction(
+        mockReq,
+        'batch-1',
+        {
+          action: 'reject',
+          feedback: 'Not aligned with the brief.',
+          itemIds: ['item-1'],
+        } as never,
+        {} as never,
+      );
+
+      expect(service.rejectItems).toHaveBeenCalledWith(
+        'batch-1',
+        ['item-1'],
+        'test-object-id',
+        'Not aligned with the brief.',
+        'test-object-id',
+      );
+    });
   });
 });

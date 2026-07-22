@@ -289,6 +289,27 @@ describe('LibraryVoicesPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders a recoverable query error and retries without showing an empty state', () => {
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    mockUseVoiceCatalog.mockReturnValue({
+      error: 'Voices could not be loaded.',
+      isLoading: false,
+      refresh,
+      voices: [],
+    });
+
+    render(<LibraryVoicesPage />);
+
+    expect(screen.getByText('Voices could not be loaded.')).toBeInTheDocument();
+    expect(
+      screen.queryByText('No voices available yet'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(refresh).toHaveBeenCalledOnce();
+  });
+
   it('clears active filters from the current route query', () => {
     mockFilters.provider = 'elevenlabs';
     mockFilters.search = 'rachel';

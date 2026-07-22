@@ -81,7 +81,26 @@ describe('useVoiceCatalog', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.voices).toEqual([]);
+    expect(result.current.error).toBe('Voices could not be loaded.');
     expect(mockLoggerError).toHaveBeenCalled();
+  });
+
+  it('clears the recoverable error after a successful retry', async () => {
+    mockFindAll
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce([{ id: 'voice-1' }]);
+
+    const { result } = renderHook(() => useVoiceCatalog());
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBe('Voices could not be loaded.');
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.voices).toEqual([{ id: 'voice-1' }]);
   });
 
   it('allows manual refresh to replace previously loaded voices', async () => {

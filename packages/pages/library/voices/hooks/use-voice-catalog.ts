@@ -41,9 +41,11 @@ export function useVoiceCatalog({
 
   const [voices, setVoices] = useState<Voice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
 
     try {
       const service = await getVoicesService();
@@ -57,9 +59,11 @@ export function useVoiceCatalog({
         status,
       });
       setVoices(nextVoices);
+      setError(null);
     } catch (error) {
       logger.error('Failed to fetch voices', error);
       setVoices([]);
+      setError('Voices could not be loaded.');
     } finally {
       setIsLoading(false);
     }
@@ -81,6 +85,7 @@ export function useVoiceCatalog({
   }, [refresh]);
 
   return {
+    error,
     isLoading,
     refresh,
     voices,

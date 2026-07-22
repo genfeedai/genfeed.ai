@@ -110,6 +110,7 @@ export function useIngredientsLoading({
   const [isLoadingFolders, setIsLoadingFolders] = useState(true);
   const [cachedAt, setCachedAt] = useState<string | null>(null);
   const [isUsingCache, setIsUsingCache] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [ingredients, setIngredients] = useState<IIngredient[]>([]);
   const [folders, setFolders] = useState<IFolder[]>([]);
@@ -165,6 +166,7 @@ export function useIngredientsLoading({
     async (isRefreshing: boolean = false, signal?: AbortSignal) => {
       setIsLoading(!isRefreshing);
       setIsRefreshing(isRefreshing);
+      setLoadError(null);
 
       const url = `GET /${type}`;
 
@@ -260,6 +262,7 @@ export function useIngredientsLoading({
 
         setIsUsingCache(false);
         setCachedAt(null);
+        setLoadError(null);
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
           return;
@@ -272,9 +275,11 @@ export function useIngredientsLoading({
           setIngredients(cached);
           setIsUsingCache(true);
           setCachedAt(cachedTimestamp);
+          setLoadError(null);
         } else {
           setIsUsingCache(false);
           setCachedAt(null);
+          setLoadError(`Failed to load ${type}`);
           logger.error(`${url} failed`, error);
           notificationsService.error(`Failed to load ${type}`);
         }
@@ -427,6 +432,7 @@ export function useIngredientsLoading({
     isLoading,
     isLoadingFolders,
     isUsingCache,
+    loadError,
     notificationsService,
     selectedFolderId,
     setFolders,

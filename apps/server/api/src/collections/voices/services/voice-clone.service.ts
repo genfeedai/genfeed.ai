@@ -7,6 +7,7 @@ import type { CloneVoiceDto } from '@api/collections/voices/dto/clone-voice.dto'
 import { VoiceCreditsService } from '@api/collections/voices/services/voice-credits.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -94,6 +95,9 @@ export class VoiceCloneService {
     const publicMetadata = getPublicMetadata(user);
     const voice = await this.voicesService.findOne({
       _id: id,
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.VOICE,
+      ),
       isCloned: true,
       isDeleted: false,
       organizationId: publicMetadata.organization,

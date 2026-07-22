@@ -53,6 +53,11 @@ import { GifsService } from '@api/collections/gifs/services/gifs.service';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -82,11 +87,14 @@ describe('GifsController', () => {
     _id: gifId,
     category: 'gif',
     hasVoted: false,
+    id: 'canonical-gif-id',
     metadata: { label: 'Test GIF' },
     scope: 'private',
   };
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+
     gifsService = {
       findAll: vi.fn().mockResolvedValue({
         docs: [mockGif],
@@ -140,6 +148,11 @@ describe('GifsController', () => {
       const result = await controller.findAll(mockRequest, mockUser, query);
       expect(gifsService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
+      expect(serializeCollection).toHaveBeenCalledWith(
+        mockRequest,
+        IngredientSerializer,
+        expect.objectContaining({ docs: [mockGif] }),
+      );
     });
 
     it('should support collapsed "latest" queries via sort/limit/pagination params', async () => {
@@ -180,6 +193,29 @@ describe('GifsController', () => {
         orderBy: { createdAt: -1 },
         where: expect.any(Object),
       });
+      expect(findAllQuery.where).toEqual(
+        expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              OR: expect.arrayContaining([
+                expect.objectContaining({
+                  AND: expect.arrayContaining([
+                    expect.objectContaining({
+                      OR: [
+                        {
+                          organizationId: mockUser.publicMetadata.organization,
+                        },
+                        { organizationId: null },
+                      ],
+                      isDefault: true,
+                    }),
+                  ]),
+                }),
+              ]),
+            }),
+          ]),
+        }),
+      );
     });
   });
 
@@ -187,10 +223,23 @@ describe('GifsController', () => {
     it('should return a single gif', async () => {
       const result = await controller.findOne(mockRequest, gifId, mockUser);
       expect(gifsService.findOne).toHaveBeenCalledWith(
-        { _id: gifId },
+        {
+          _id: gifId,
+          category: 'GIF',
+          isDeleted: false,
+          OR: [
+            { organizationId: mockUser.publicMetadata.organization },
+            { isDefault: true, organizationId: null },
+          ],
+        },
         expect.any(Array),
       );
       expect(result).toEqual(expect.objectContaining({ _id: gifId }));
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        IngredientSerializer,
+        expect.objectContaining({ _id: gifId }),
+      );
     });
 
     it('should throw NOT_FOUND when gif does not exist', async () => {
@@ -221,16 +270,29 @@ describe('GifsController', () => {
 
   describe('remove', () => {
     it('should remove a gif and return it', async () => {
-      const result = await controller.remove(mockRequest, gifId);
-      expect(gifsService.remove).toHaveBeenCalledWith(gifId);
+      const result = await controller.remove(mockRequest, gifId, mockUser);
+      expect(gifsService.findOne).toHaveBeenCalledWith({
+        _id: gifId,
+        organizationId: mockUser.publicMetadata.organization,
+        category: 'GIF',
+        isDeleted: false,
+      });
+      expect(gifsService.remove).toHaveBeenCalledWith(mockGif.id);
       expect(result).toEqual(expect.objectContaining({ _id: gifId }));
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        IngredientSerializer,
+        mockGif,
+      );
     });
 
-    it('should throw NOT_FOUND when gif to remove does not exist', async () => {
-      gifsService.remove.mockResolvedValueOnce(null);
+    it('should reject gifs outside the caller scope before removal', async () => {
+      gifsService.findOne.mockResolvedValueOnce(null);
       await expect(
-        controller.remove(mockRequest, 'nonexistent'),
+        controller.remove(mockRequest, 'nonexistent', mockUser),
       ).rejects.toThrow(HttpException);
+      expect(gifsService.remove).not.toHaveBeenCalled();
+      expect(serializeSingle).not.toHaveBeenCalled();
     });
   });
 });

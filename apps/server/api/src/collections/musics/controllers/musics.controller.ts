@@ -7,6 +7,7 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
@@ -66,24 +67,67 @@ export class MusicsController extends BaseCRUDController<
       where: {
         OR: [
           {
-            brand,
-            category: IngredientCategory.MUSIC,
+            brandId: brand,
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.MUSIC,
+            ),
             isDeleted: query.isDeleted ?? false,
+            organizationId: publicMetadata.organization,
             status,
-            user: publicMetadata.user,
+            userId: publicMetadata.user,
           },
           {
-            category: IngredientCategory.MUSIC,
+            OR: [
+              { organizationId: publicMetadata.organization },
+              { organizationId: null },
+            ],
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.MUSIC,
+            ),
             isDefault,
             isDeleted: query.isDeleted ?? false,
             ...(scope !== undefined ? { scope } : {}),
             status,
             // Filter default musics by brand when brand is specified
-            ...(query.brand && isEntityId(query.brand) ? { brand } : {}),
+            ...(query.brand && isEntityId(query.brand)
+              ? { brandId: brand }
+              : {}),
           },
         ],
       },
       orderBy: query.sort ? handleQuerySort(query.sort) : { createdAt: -1 },
     };
+  }
+
+  public override buildFindOneQuery(
+    user: User,
+    id: string,
+  ): Record<string, unknown> {
+    const publicMetadata = getPublicMetadata(user);
+
+    return {
+      _id: id,
+      OR: [
+        { organizationId: publicMetadata.organization },
+        { isDefault: true, organizationId: null },
+      ],
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.MUSIC,
+      ),
+      isDeleted: false,
+    };
+  }
+
+  public override canUserModifyEntity(
+    user: User,
+    entity: MusicDocument,
+  ): boolean {
+    const publicMetadata = getPublicMetadata(user);
+    const music = entity as unknown as Record<string, unknown>;
+
+    return (
+      music.organizationId === publicMetadata.organization &&
+      music.userId === publicMetadata.user
+    );
   }
 }
