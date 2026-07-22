@@ -112,6 +112,7 @@ export interface UseIngredientsListReturn {
   isLoading: boolean;
   isUsingCache?: boolean;
   cachedAt?: string | null;
+  loadError: string | null;
   isLoadingFolders: boolean;
   isMerging: boolean;
   ingredients: IIngredient[];
