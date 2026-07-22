@@ -12,11 +12,18 @@ import { describe, expect, it } from 'vitest';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EXECUTOR_PATH = resolve(HERE, 'agent-tool-executor.service.ts');
+const INSTAGRAM_HANDLER_PATH = resolve(
+  HERE,
+  'agent-instagram-inspiration-tool-handler.service.ts',
+);
 
-function collectExecutorCaseMembers(sourceText: string): Set<string> {
+function collectRouteCaseMembers(
+  filePath: string,
+  methodName: string,
+): Set<string> {
   const sourceFile = ts.createSourceFile(
-    EXECUTOR_PATH,
-    sourceText,
+    filePath,
+    readFileSync(filePath, 'utf8'),
     ts.ScriptTarget.Latest,
     true,
     ts.ScriptKind.TS,
@@ -39,7 +46,7 @@ function collectExecutorCaseMembers(sourceText: string): Set<string> {
     if (
       ts.isMethodDeclaration(node) &&
       ts.isIdentifier(node.name) &&
-      node.name.text === 'dispatch' &&
+      node.name.text === methodName &&
       node.body
     ) {
       collectCases(node.body);
@@ -71,10 +78,11 @@ describe('curated Agent action catalog', () => {
     expect(missing).toEqual([]);
   });
 
-  it('maps every Agent action to a concrete executor case', () => {
-    const memberNames = collectExecutorCaseMembers(
-      readFileSync(EXECUTOR_PATH, 'utf8'),
-    );
+  it('maps every Agent action to a concrete execution route', () => {
+    const memberNames = new Set([
+      ...collectRouteCaseMembers(EXECUTOR_PATH, 'dispatch'),
+      ...collectRouteCaseMembers(INSTAGRAM_HANDLER_PATH, 'execute'),
+    ]);
     const executorNames = new Set(
       [...memberNames]
         .map((member) => AgentToolName[member as keyof typeof AgentToolName])

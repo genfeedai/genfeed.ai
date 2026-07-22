@@ -826,6 +826,7 @@ describe('AgentToolExecutorService', () => {
       httpService,
       imagesService,
       ingredientsService,
+      instagramInspirationHandler,
       instagramInspirationService,
       marketplaceApiClient,
       marketplaceInstallService,
@@ -4125,9 +4126,9 @@ describe('AgentToolExecutorService', () => {
     const {
       aiActionsService,
       brandsService,
-      authProviderService,
       credentialsService,
       imagesService,
+      instagramInspirationHandler,
       loggerService,
       organizationsService,
       postsService,
@@ -4176,7 +4177,7 @@ describe('AgentToolExecutorService', () => {
       undefined as never, // seoScorerService
       undefined as never, // ingredientsService
       undefined as never, // votesService
-      undefined as never, // instagramInspirationHandler
+      instagramInspirationHandler,
       undefined as never, // brandInterviewService
       undefined as never, // agentScopeContextService
     );
