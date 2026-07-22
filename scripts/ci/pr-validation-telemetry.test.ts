@@ -4,23 +4,33 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPullRequestObservation,
   buildPullRequestValidationReport,
+  buildSupersededValidationEvidence,
   classifyPullRequestSurface,
   collectPaginated,
   findMergedPullRequestSearchWindow,
   formatPullRequestValidationMarkdown,
   type GitHubCheckRun,
   type GitHubPullRequest,
+  type GitHubWorkflowJob,
   type GitHubWorkflowRun,
+  isWorkflowRunAssociatedWithPullRequest,
+  mapWithConcurrency,
   parseCliOptions,
+  pullRequestCommitCapReason,
   selectRecentMergedPullRequestNumbers,
 } from './pr-validation-telemetry';
 
 const HEAD_SHA = 'a'.repeat(40);
+const SUPERSEDED_SHA = 'c'.repeat(40);
 const PULL_REQUEST: GitHubPullRequest = {
   base: { ref: 'master', sha: 'b'.repeat(40) },
   changed_files: 1,
   created_at: '2026-07-20T09:00:00.000Z',
-  head: { sha: HEAD_SHA },
+  head: {
+    ref: 'codex/123-validation-evidence',
+    repo: { full_name: 'genfeedai/genfeed.ai' },
+    sha: HEAD_SHA,
+  },
   html_url: 'https://github.com/genfeedai/genfeed.ai/pull/123',
   merged_at: '2026-07-20T11:00:00.000Z',
   number: 123,
@@ -29,13 +39,18 @@ const PULL_REQUEST: GitHubPullRequest = {
 const WORKFLOW_RUN: GitHubWorkflowRun = {
   conclusion: 'success',
   created_at: '2026-07-20T10:00:00.000Z',
+  head_branch: PULL_REQUEST.head.ref,
+  head_repository: { full_name: 'genfeedai/genfeed.ai' },
   head_sha: HEAD_SHA,
   html_url: 'https://github.com/genfeedai/genfeed.ai/actions/runs/10',
   id: 10,
   name: 'CI',
+  pull_requests: [{ number: PULL_REQUEST.number }],
+  run_attempt: 1,
   run_started_at: '2026-07-20T10:00:30.000Z',
   status: 'completed',
   updated_at: '2026-07-20T10:03:00.000Z',
+  workflow_id: 100,
 };
 const CHECK_RUN: GitHubCheckRun = {
   completed_at: '2026-07-20T10:04:00.000Z',
@@ -44,6 +59,16 @@ const CHECK_RUN: GitHubCheckRun = {
   html_url: 'https://github.com/genfeedai/genfeed.ai/runs/20',
   id: 20,
   name: 'Tests',
+  started_at: '2026-07-20T10:01:00.000Z',
+  status: 'completed',
+};
+const WORKFLOW_JOB: GitHubWorkflowJob = {
+  completed_at: '2026-07-20T10:01:06.000Z',
+  conclusion: 'cancelled',
+  id: 30,
+  name: 'Tests',
+  run_attempt: 1,
+  runner_name: 'GitHub Actions 1',
   started_at: '2026-07-20T10:01:00.000Z',
   status: 'completed',
 };
@@ -64,6 +89,46 @@ function buildObservation(
     repository: 'genfeedai/genfeed.ai',
     workflowRuns: options.workflowRuns ?? [WORKFLOW_RUN],
   });
+}
+
+function supersededRun(
+  overrides: Partial<GitHubWorkflowRun> = {},
+): GitHubWorkflowRun {
+  return {
+    ...WORKFLOW_RUN,
+    conclusion: 'cancelled',
+    created_at: '2026-07-20T09:30:00.000Z',
+    head_sha: SUPERSEDED_SHA,
+    id: 9,
+    run_started_at: '2026-07-20T09:30:00.000Z',
+    updated_at: '2026-07-20T09:31:00.000Z',
+    ...overrides,
+  };
+}
+
+function replacementRun(
+  overrides: Partial<GitHubWorkflowRun> = {},
+): GitHubWorkflowRun {
+  return {
+    ...WORKFLOW_RUN,
+    conclusion: 'success',
+    head_sha: HEAD_SHA,
+    ...overrides,
+  };
+}
+
+function jobsCollection(
+  runId: number,
+  jobs: GitHubWorkflowJob[],
+  options: { complete?: boolean; error?: string | null } = {},
+) {
+  return {
+    complete: options.complete ?? true,
+    error: options.error ?? null,
+    jobs,
+    runAttempt: jobs[0]?.run_attempt ?? 1,
+    runId,
+  };
 }
 
 describe('pull-request validation telemetry', () => {
@@ -144,6 +209,280 @@ describe('pull-request validation telemetry', () => {
 
     expect(cancelled.disposition).toBe('failed');
     expect(skipped.disposition).toBe('ready');
+  });
+
+  it('associates superseded runs with their exact SHA and proves a later replacement contract', () => {
+    const cancelled = supersededRun();
+    const replacement = replacementRun();
+    const evidence = buildSupersededValidationEvidence({
+      finalHeadSha: HEAD_SHA,
+      headShas: [SUPERSEDED_SHA, HEAD_SHA],
+      jobs: [
+        jobsCollection(cancelled.id, [WORKFLOW_JOB]),
+        jobsCollection(replacement.id, [
+          {
+            ...WORKFLOW_JOB,
+            conclusion: 'success',
+            id: 31,
+            runner_name: 'GitHub Actions 2',
+          },
+        ]),
+      ],
+      workflowRuns: [cancelled, replacement],
+    });
+
+    expect(evidence.runs).toHaveLength(1);
+    expect(evidence.runs[0]).toMatchObject({
+      cancellationDisposition: 'cancelled-safe',
+      discardedRunnerTimeMs: 6_000,
+      headSha: SUPERSEDED_SHA,
+      replacement: { headSha: HEAD_SHA, runId: replacement.id },
+      workflowId: WORKFLOW_RUN.workflow_id,
+    });
+    expect(evidence.summary).toEqual({
+      cancelledSafe: 1,
+      cancelledUnresolved: 0,
+      discardedRunnerTimeMs: 6_000,
+      notCancelled: 0,
+      runs: 1,
+    });
+  });
+
+  it('keeps empty or partially collected cancelled job contracts unresolved', () => {
+    const empty = supersededRun();
+    const incomplete = supersededRun({ id: 8, workflow_id: 101 });
+    const replacement = replacementRun();
+    const evidence = buildSupersededValidationEvidence({
+      finalHeadSha: HEAD_SHA,
+      headShas: [SUPERSEDED_SHA, HEAD_SHA],
+      jobs: [
+        jobsCollection(empty.id, []),
+        jobsCollection(incomplete.id, [WORKFLOW_JOB], {
+          complete: false,
+          error: 'page 2 failed',
+        }),
+        jobsCollection(replacement.id, [
+          { ...WORKFLOW_JOB, conclusion: 'success', id: 31 },
+        ]),
+      ],
+      workflowRuns: [empty, incomplete, replacement],
+    });
+
+    expect(evidence.summary.cancelledUnresolved).toBe(2);
+    expect(evidence.summary.discardedRunnerTimeMs).toBeNull();
+    expect(
+      evidence.runs
+        .find((run) => run.id === empty.id)
+        ?.incompleteReasons.join(' '),
+    ).toContain('No later terminal run fully replaced');
+    expect(
+      evidence.runs
+        .find((run) => run.id === incomplete.id)
+        ?.incompleteReasons.join(' '),
+    ).toContain('page 2 failed');
+  });
+
+  it('requires a later head with a complete superset of terminal jobs', () => {
+    const cancelled = supersededRun();
+    const sameHeadReplacement = replacementRun({
+      head_sha: SUPERSEDED_SHA,
+      id: 11,
+    });
+    const incompleteReplacement = replacementRun({ id: 12 });
+    const evidence = buildSupersededValidationEvidence({
+      finalHeadSha: HEAD_SHA,
+      headShas: [SUPERSEDED_SHA, HEAD_SHA],
+      jobs: [
+        jobsCollection(cancelled.id, [
+          WORKFLOW_JOB,
+          { ...WORKFLOW_JOB, id: 32 },
+        ]),
+        jobsCollection(sameHeadReplacement.id, [
+          { ...WORKFLOW_JOB, conclusion: 'success', id: 33 },
+          { ...WORKFLOW_JOB, conclusion: 'success', id: 34 },
+        ]),
+        jobsCollection(incompleteReplacement.id, [
+          { ...WORKFLOW_JOB, conclusion: 'success', id: 35 },
+        ]),
+      ],
+      workflowRuns: [cancelled, sameHeadReplacement, incompleteReplacement],
+    });
+
+    expect(evidence.runs[0]?.cancellationDisposition).toBe(
+      'cancelled-unresolved',
+    );
+    expect(evidence.runs[0]?.replacement).toBeNull();
+  });
+
+  it('sums only assigned runner occupancy across all obsolete runs', () => {
+    const completed = supersededRun({
+      conclusion: 'success',
+      id: 7,
+      workflow_id: 102,
+    });
+    const evidence = buildSupersededValidationEvidence({
+      finalHeadSha: HEAD_SHA,
+      headShas: [SUPERSEDED_SHA, HEAD_SHA],
+      jobs: [
+        jobsCollection(completed.id, [
+          { ...WORKFLOW_JOB, id: 40 },
+          {
+            ...WORKFLOW_JOB,
+            completed_at: '2026-07-20T09:59:59.000Z',
+            id: 41,
+            runner_name: null,
+          },
+        ]),
+      ],
+      workflowRuns: [completed],
+    });
+
+    expect(evidence.runs[0]).toMatchObject({
+      cancellationDisposition: 'not-cancelled',
+      discardedRunnerTimeMs: 6_000,
+    });
+    expect(evidence.summary.discardedRunnerTimeMs).toBe(6_000);
+  });
+
+  it('does not report a total when assigned runner timing is invalid', () => {
+    const completed = supersededRun({
+      conclusion: 'success',
+      id: 6,
+      workflow_id: 103,
+    });
+    const evidence = buildSupersededValidationEvidence({
+      finalHeadSha: HEAD_SHA,
+      headShas: [SUPERSEDED_SHA, HEAD_SHA],
+      jobs: [
+        jobsCollection(completed.id, [
+          {
+            ...WORKFLOW_JOB,
+            completed_at: '2026-07-20T10:00:59.000Z',
+            id: 42,
+          },
+        ]),
+      ],
+      workflowRuns: [completed],
+    });
+
+    expect(evidence.runs[0]?.discardedRunnerTimeMs).toBeNull();
+    expect(evidence.summary.discardedRunnerTimeMs).toBeNull();
+    expect(evidence.incompleteReasons.join(' ')).toContain(
+      'incomplete runner timing',
+    );
+  });
+
+  it('keeps rerun attempts distinct and measures each attempt once', () => {
+    const cancelledAttempt = supersededRun({ run_attempt: 1 });
+    const successfulAttempt = supersededRun({
+      conclusion: 'success',
+      run_attempt: 2,
+    });
+    const replacement = replacementRun();
+    const evidence = buildSupersededValidationEvidence({
+      finalHeadSha: HEAD_SHA,
+      headShas: [SUPERSEDED_SHA, HEAD_SHA],
+      jobs: [
+        jobsCollection(cancelledAttempt.id, [WORKFLOW_JOB]),
+        jobsCollection(successfulAttempt.id, [
+          {
+            ...WORKFLOW_JOB,
+            completed_at: '2026-07-20T10:01:04.000Z',
+            id: 31,
+            run_attempt: 2,
+          },
+        ]),
+        jobsCollection(replacement.id, [
+          { ...WORKFLOW_JOB, conclusion: 'success', id: 32 },
+        ]),
+      ],
+      workflowRuns: [cancelledAttempt, successfulAttempt, replacement],
+    });
+
+    expect(evidence.runs).toHaveLength(2);
+    expect(evidence.runs.map((run) => run.runAttempt)).toEqual([1, 2]);
+    expect(evidence.runs[0]).toMatchObject({
+      cancellationDisposition: 'cancelled-safe',
+      replacement: { runAttempt: 1, runId: replacement.id },
+    });
+    expect(evidence.summary.discardedRunnerTimeMs).toBe(10_000);
+  });
+
+  it('fails closed instead of presenting a partial historical total', () => {
+    const supersededValidation = buildSupersededValidationEvidence({
+      collectionErrors: ['Workflow-run collection for ccc: page 2 failed'],
+      finalHeadSha: HEAD_SHA,
+      headShas: [HEAD_SHA],
+      jobs: [],
+      workflowRuns: [],
+    });
+    const observation = buildPullRequestObservation({
+      checkRuns: [CHECK_RUN],
+      files: ['apps/app/src/page.tsx'],
+      pullRequest: PULL_REQUEST,
+      repository: 'genfeedai/genfeed.ai',
+      supersededValidation,
+      workflowRuns: [WORKFLOW_RUN],
+    });
+    const report = buildPullRequestValidationReport({
+      limit: null,
+      mode: 'explicit',
+      observations: [observation],
+      pullRequests: [PULL_REQUEST.number],
+      repository: 'genfeedai/genfeed.ai',
+    });
+
+    expect(supersededValidation.summary.discardedRunnerTimeMs).toBeNull();
+    expect(
+      report.summary.supersededValidation.discardedRunnerTimeMs,
+    ).toBeNull();
+  });
+
+  it('scopes same-SHA workflow runs to the observed pull request', () => {
+    expect(
+      isWorkflowRunAssociatedWithPullRequest(
+        { ...WORKFLOW_RUN, pull_requests: [{ number: 999 }] },
+        PULL_REQUEST,
+      ),
+    ).toBe(false);
+    expect(
+      isWorkflowRunAssociatedWithPullRequest(
+        { ...WORKFLOW_RUN, pull_requests: [] },
+        PULL_REQUEST,
+      ),
+    ).toBe(true);
+    expect(
+      isWorkflowRunAssociatedWithPullRequest(
+        { ...WORKFLOW_RUN, head_branch: 'another-branch', pull_requests: [] },
+        PULL_REQUEST,
+      ),
+    ).toBe(false);
+  });
+
+  it('bounds concurrent GitHub work while preserving input order', async () => {
+    let active = 0;
+    let maximumActive = 0;
+    const results = await mapWithConcurrency(
+      Array.from({ length: 24 }, (_, index) => index),
+      4,
+      async (value) => {
+        active += 1;
+        maximumActive = Math.max(maximumActive, active);
+        await Promise.resolve();
+        active -= 1;
+        return value * 2;
+      },
+    );
+
+    expect(maximumActive).toBeLessThanOrEqual(4);
+    expect(results).toEqual(
+      Array.from({ length: 24 }, (_, index) => index * 2),
+    );
+  });
+
+  it('flags GitHub commit-history cap as incomplete evidence', () => {
+    expect(pullRequestCommitCapReason(249)).toBeNull();
+    expect(pullRequestCommitCapReason(250)).toContain('250-commit');
   });
 
   it('classifies changed-file surfaces without inventing coverage', () => {
@@ -292,13 +631,21 @@ describe('pull-request validation telemetry', () => {
     });
     const markdown = formatPullRequestValidationMarkdown(report);
 
-    expect(report.version).toBe('1.0');
+    expect(report.version).toBe('1.1');
     expect(report.summary).toMatchObject({
       byDisposition: { failed: 0, incomplete: 0, ready: 1 },
       pullRequests: 1,
+      supersededValidation: {
+        cancelledSafe: 0,
+        cancelledUnresolved: 0,
+        discardedRunnerTimeMs: 0,
+        pullRequests: 0,
+        runs: 0,
+      },
     });
     expect(markdown).toContain('| [#123](');
     expect(markdown).toContain('30s');
+    expect(markdown).toContain('Estimated discarded runner time: 0s');
     expect(markdown).toContain('Ready means the collected final-head evidence');
   });
 
@@ -337,6 +684,10 @@ describe('pull-request validation telemetry', () => {
     expect(workflow).toContain('actions/upload-artifact@v7');
     expect(workflow).toContain('report.json');
     expect(workflow).toContain('report.md');
+    expect(workflow).toMatch(
+      /group: pr-validation-telemetry-\$\{\{ github\.ref \}\}/,
+    );
+    expect(workflow).toContain('cancel-in-progress: true');
     expect(workflow).not.toContain('pulls/issues');
   });
 });

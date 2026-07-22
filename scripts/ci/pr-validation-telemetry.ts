@@ -2,13 +2,15 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const REPORT_VERSION = '1.0';
+const REPORT_VERSION = '1.1';
 const GITHUB_API_VERSION = '2026-03-10';
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 const MAX_PAGES = 100;
 const MAX_SEARCH_RESULTS = 1_000;
 const MAX_SEARCH_WINDOW_DAYS = 36_500;
+const MAX_CONCURRENT_GITHUB_REQUESTS = 8;
+const MAX_PULL_REQUEST_COMMITS = 250;
 
 export type PullRequestSurface =
   | 'api'
@@ -42,9 +44,11 @@ export type WorkflowRunEvidence = {
   id: number;
   name: string;
   queueDelayMs: number | null;
+  runAttempt: number;
   startedAt: string | null;
   status: string;
   url: string;
+  workflowId: number;
 };
 
 export type CheckRunEvidence = {
@@ -59,6 +63,56 @@ export type CheckRunEvidence = {
   url: string;
 };
 
+export type SupersededCancellationDisposition =
+  | 'cancelled-safe'
+  | 'cancelled-unresolved'
+  | 'not-cancelled';
+
+export type WorkflowJobEvidence = {
+  completedAt: string | null;
+  conclusion: string | null;
+  id: number;
+  name: string;
+  runAttempt: number;
+  runnerName: string | null;
+  runnerTimeMs: number | null;
+  startedAt: string | null;
+  status: string;
+};
+
+export type SupersededWorkflowRunEvidence = {
+  cancellationDisposition: SupersededCancellationDisposition;
+  conclusion: string | null;
+  discardedRunnerTimeMs: number | null;
+  headSha: string;
+  id: number;
+  incompleteReasons: string[];
+  jobs: WorkflowJobEvidence[];
+  name: string;
+  replacement: {
+    headSha: string;
+    runAttempt: number;
+    runId: number;
+  } | null;
+  runAttempt: number;
+  status: string;
+  url: string;
+  workflowId: number;
+};
+
+export type SupersededValidationEvidence = {
+  headShas: string[];
+  incompleteReasons: string[];
+  runs: SupersededWorkflowRunEvidence[];
+  summary: {
+    cancelledSafe: number;
+    cancelledUnresolved: number;
+    discardedRunnerTimeMs: number | null;
+    notCancelled: number;
+    runs: number;
+  };
+};
+
 export type PullRequestValidationObservation = {
   checks: CheckRunEvidence[];
   disposition: ValidationDisposition;
@@ -71,6 +125,7 @@ export type PullRequestValidationObservation = {
     url: string;
   }>;
   surface: PullRequestSurface;
+  supersededValidation: SupersededValidationEvidence;
   timing: {
     criticalPathMs: number | null;
     executionDurationMs: number | null;
@@ -93,6 +148,13 @@ export type PullRequestValidationReport = {
     byDisposition: Record<ValidationDisposition, number>;
     bySurface: Record<PullRequestSurface, number>;
     pullRequests: number;
+    supersededValidation: {
+      cancelledSafe: number;
+      cancelledUnresolved: number;
+      discardedRunnerTimeMs: number | null;
+      pullRequests: number;
+      runs: number;
+    };
   };
   version: typeof REPORT_VERSION;
 };
@@ -101,7 +163,7 @@ export type GitHubPullRequest = {
   base: { ref: string; sha: string };
   changed_files: number;
   created_at: string;
-  head: { sha: string };
+  head: { ref: string; repo: { full_name: string } | null; sha: string };
   html_url: string;
   merged_at: string | null;
   number: number;
@@ -111,13 +173,18 @@ export type GitHubPullRequest = {
 export type GitHubWorkflowRun = {
   conclusion: string | null;
   created_at: string;
+  head_branch: string | null;
+  head_repository: { full_name: string } | null;
   head_sha: string;
   html_url: string;
   id: number;
   name: string;
+  pull_requests: Array<{ number: number }>;
+  run_attempt: number;
   run_started_at: string | null;
   status: string;
   updated_at: string;
+  workflow_id: number;
 };
 
 export type GitHubCheckRun = {
@@ -127,6 +194,21 @@ export type GitHubCheckRun = {
   html_url: string;
   id: number;
   name: string;
+  started_at: string | null;
+  status: string;
+};
+
+export type GitHubPullRequestCommit = {
+  sha: string;
+};
+
+export type GitHubWorkflowJob = {
+  completed_at: string | null;
+  conclusion: string | null;
+  id: number;
+  name: string;
+  run_attempt: number;
+  runner_name: string | null;
   started_at: string | null;
   status: string;
 };
@@ -170,6 +252,23 @@ type ObservationInput = {
   files: readonly string[];
   pullRequest: GitHubPullRequest;
   repository: string;
+  supersededValidation?: SupersededValidationEvidence;
+  workflowRuns: readonly GitHubWorkflowRun[];
+};
+
+export type WorkflowJobsCollection = {
+  complete: boolean;
+  error: string | null;
+  jobs: GitHubWorkflowJob[];
+  runAttempt: number;
+  runId: number;
+};
+
+type SupersededValidationInput = {
+  collectionErrors?: readonly string[];
+  finalHeadSha: string;
+  headShas: readonly string[];
+  jobs: readonly WorkflowJobsCollection[];
   workflowRuns: readonly GitHubWorkflowRun[];
 };
 
@@ -182,6 +281,7 @@ const FAILURE_CONCLUSIONS = new Set([
   'timed_out',
 ]);
 const READY_CONCLUSIONS = new Set(['neutral', 'skipped', 'success']);
+const REPLACEMENT_CONCLUSIONS = new Set(['failure', ...READY_CONCLUSIONS]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -395,6 +495,11 @@ function isGitHubPullRequest(value: unknown): value is GitHubPullRequest {
     value.base.ref.trim().length > 0 &&
     isGitSha(value.base.sha) &&
     isRecord(value.head) &&
+    typeof value.head.ref === 'string' &&
+    value.head.ref.trim().length > 0 &&
+    (value.head.repo === null ||
+      (isRecord(value.head.repo) &&
+        typeof value.head.repo.full_name === 'string')) &&
     isGitSha(value.head.sha)
   );
 }
@@ -417,12 +522,38 @@ function isGitHubPullRequestFile(
   return isRecord(value) && typeof value.filename === 'string';
 }
 
+function isGitHubPullRequestCommit(
+  value: unknown,
+): value is GitHubPullRequestCommit {
+  return isRecord(value) && isGitSha(value.sha);
+}
+
 function isGitHubWorkflowRun(value: unknown): value is GitHubWorkflowRun {
   return (
     isRecord(value) &&
     typeof value.id === 'number' &&
+    Number.isInteger(value.id) &&
+    value.id > 0 &&
     typeof value.name === 'string' &&
-    typeof value.head_sha === 'string' &&
+    (typeof value.head_branch === 'string' || value.head_branch === null) &&
+    (value.head_repository === null ||
+      (isRecord(value.head_repository) &&
+        typeof value.head_repository.full_name === 'string')) &&
+    isGitSha(value.head_sha) &&
+    Array.isArray(value.pull_requests) &&
+    value.pull_requests.every(
+      (pullRequest) =>
+        isRecord(pullRequest) &&
+        typeof pullRequest.number === 'number' &&
+        Number.isInteger(pullRequest.number) &&
+        pullRequest.number > 0,
+    ) &&
+    typeof value.workflow_id === 'number' &&
+    Number.isInteger(value.workflow_id) &&
+    value.workflow_id > 0 &&
+    typeof value.run_attempt === 'number' &&
+    Number.isInteger(value.run_attempt) &&
+    value.run_attempt > 0 &&
     typeof value.status === 'string' &&
     (typeof value.conclusion === 'string' || value.conclusion === null) &&
     typeof value.created_at === 'string' &&
@@ -430,6 +561,24 @@ function isGitHubWorkflowRun(value: unknown): value is GitHubWorkflowRun {
       value.run_started_at === null) &&
     typeof value.updated_at === 'string' &&
     typeof value.html_url === 'string'
+  );
+}
+
+function isGitHubWorkflowJob(value: unknown): value is GitHubWorkflowJob {
+  return (
+    isRecord(value) &&
+    typeof value.id === 'number' &&
+    Number.isInteger(value.id) &&
+    value.id > 0 &&
+    typeof value.name === 'string' &&
+    typeof value.status === 'string' &&
+    (typeof value.conclusion === 'string' || value.conclusion === null) &&
+    (typeof value.started_at === 'string' || value.started_at === null) &&
+    (typeof value.completed_at === 'string' || value.completed_at === null) &&
+    (typeof value.runner_name === 'string' || value.runner_name === null) &&
+    typeof value.run_attempt === 'number' &&
+    Number.isInteger(value.run_attempt) &&
+    value.run_attempt > 0
   );
 }
 
@@ -445,6 +594,58 @@ function isGitHubCheckRun(value: unknown): value is GitHubCheckRun {
     (typeof value.completed_at === 'string' || value.completed_at === null) &&
     typeof value.html_url === 'string'
   );
+}
+
+export async function mapWithConcurrency<T, U>(
+  items: readonly T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<U>,
+): Promise<U[]> {
+  if (!Number.isInteger(concurrency) || concurrency < 1) {
+    throw new Error('Concurrency must be a positive integer');
+  }
+
+  const results = new Array<U>(items.length);
+  let nextIndex = 0;
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    async () => {
+      while (nextIndex < items.length) {
+        const index = nextIndex;
+        nextIndex += 1;
+        const item = items[index];
+        if (item !== undefined) {
+          results[index] = await mapper(item, index);
+        }
+      }
+    },
+  );
+  await Promise.all(workers);
+  return results;
+}
+
+export function isWorkflowRunAssociatedWithPullRequest(
+  run: GitHubWorkflowRun,
+  pullRequest: GitHubPullRequest,
+): boolean {
+  if (run.pull_requests.length > 0) {
+    return run.pull_requests.some(
+      (associatedPullRequest) =>
+        associatedPullRequest.number === pullRequest.number,
+    );
+  }
+
+  return (
+    pullRequest.head.repo !== null &&
+    run.head_branch === pullRequest.head.ref &&
+    run.head_repository?.full_name === pullRequest.head.repo.full_name
+  );
+}
+
+export function pullRequestCommitCapReason(commitCount: number): string | null {
+  return commitCount >= MAX_PULL_REQUEST_COMMITS
+    ? `Pull-request commit collection reached GitHub's ${MAX_PULL_REQUEST_COMMITS}-commit retrieval cap.`
+    : null;
 }
 
 function parseTypedArray<T>(
@@ -477,9 +678,11 @@ function workflowEvidence(run: GitHubWorkflowRun): WorkflowRunEvidence {
     id: run.id,
     name: run.name,
     queueDelayMs: durationBetween(run.created_at, run.run_started_at),
+    runAttempt: run.run_attempt,
     startedAt: run.run_started_at,
     status: run.status,
     url: run.html_url,
+    workflowId: run.workflow_id,
   };
 }
 
@@ -494,6 +697,260 @@ function checkEvidence(run: GitHubCheckRun): CheckRunEvidence {
     startedAt: run.started_at,
     status: run.status,
     url: run.html_url,
+  };
+}
+
+function workflowJobEvidence(job: GitHubWorkflowJob): WorkflowJobEvidence {
+  return {
+    completedAt: job.completed_at,
+    conclusion: job.conclusion,
+    id: job.id,
+    name: job.name,
+    runAttempt: job.run_attempt,
+    runnerName: job.runner_name,
+    runnerTimeMs:
+      job.runner_name === null
+        ? 0
+        : durationBetween(job.started_at, job.completed_at),
+    startedAt: job.started_at,
+    status: job.status,
+  };
+}
+
+function jobContractCounts(
+  jobs: readonly GitHubWorkflowJob[],
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const job of jobs) {
+    counts.set(job.name, (counts.get(job.name) ?? 0) + 1);
+  }
+  return counts;
+}
+
+function coversJobContract(
+  original: readonly GitHubWorkflowJob[],
+  replacement: readonly GitHubWorkflowJob[],
+): boolean {
+  if (original.length === 0) {
+    return false;
+  }
+
+  const originalCounts = jobContractCounts(original);
+  const replacementCounts = jobContractCounts(replacement);
+
+  for (const [name, count] of originalCounts) {
+    if ((replacementCounts.get(name) ?? 0) < count) {
+      return false;
+    }
+  }
+
+  return replacement.every(
+    (job) =>
+      job.status === 'completed' &&
+      job.conclusion !== null &&
+      REPLACEMENT_CONCLUSIONS.has(job.conclusion),
+  );
+}
+
+function workflowRunOrder(
+  run: GitHubWorkflowRun,
+  headIndexes: ReadonlyMap<string, number>,
+): [number, number, number, number] {
+  return [
+    headIndexes.get(run.head_sha) ?? Number.MAX_SAFE_INTEGER,
+    parseTimestamp(run.created_at) ?? Number.MAX_SAFE_INTEGER,
+    run.id,
+    run.run_attempt,
+  ];
+}
+
+function compareWorkflowRuns(
+  left: GitHubWorkflowRun,
+  right: GitHubWorkflowRun,
+  headIndexes: ReadonlyMap<string, number>,
+): number {
+  if (left.id === right.id) {
+    return left.run_attempt - right.run_attempt;
+  }
+  const leftOrder = workflowRunOrder(left, headIndexes);
+  const rightOrder = workflowRunOrder(right, headIndexes);
+  return (
+    leftOrder[0] - rightOrder[0] ||
+    leftOrder[1] - rightOrder[1] ||
+    leftOrder[2] - rightOrder[2] ||
+    leftOrder[3] - rightOrder[3]
+  );
+}
+
+export function buildSupersededValidationEvidence(
+  input: SupersededValidationInput,
+): SupersededValidationEvidence {
+  const incompleteReasons = [...(input.collectionErrors ?? [])];
+  let historyComplete = incompleteReasons.length === 0;
+  const headShas = [...new Set(input.headShas)];
+  if (headShas.length !== input.headShas.length) {
+    historyComplete = false;
+    incompleteReasons.push(
+      'Pull-request commit collection returned duplicate SHAs.',
+    );
+  }
+
+  const finalHeadIndex = headShas.indexOf(input.finalHeadSha);
+  if (finalHeadIndex === -1) {
+    historyComplete = false;
+    incompleteReasons.push(
+      'Pull-request commit collection did not contain the final head SHA.',
+    );
+  } else if (finalHeadIndex !== headShas.length - 1) {
+    historyComplete = false;
+    incompleteReasons.push(
+      'Pull-request commit collection did not end at the final head SHA.',
+    );
+  }
+
+  const headIndexes = new Map(
+    headShas.map((headSha, index) => [headSha, index] as const),
+  );
+  const jobsByRunAttempt = new Map(
+    input.jobs.map(
+      (collection) =>
+        [`${collection.runId}:${collection.runAttempt}`, collection] as const,
+    ),
+  );
+  const orderedRuns = [...input.workflowRuns].sort((left, right) =>
+    compareWorkflowRuns(left, right, headIndexes),
+  );
+  const supersededRuns = orderedRuns.filter((run) => {
+    const index = headIndexes.get(run.head_sha);
+    return index !== undefined && index < finalHeadIndex;
+  });
+
+  for (const run of input.workflowRuns) {
+    if (!headIndexes.has(run.head_sha)) {
+      historyComplete = false;
+      incompleteReasons.push(
+        `Workflow run ${run.id} targeted a SHA outside the pull-request commit history.`,
+      );
+    }
+  }
+
+  const runs = supersededRuns.map((run): SupersededWorkflowRunEvidence => {
+    const runReasons: string[] = [];
+    const jobCollection = jobsByRunAttempt.get(`${run.id}:${run.run_attempt}`);
+    if (jobCollection === undefined) {
+      runReasons.push(`Workflow run ${run.id} job collection is missing.`);
+    } else if (!jobCollection.complete) {
+      runReasons.push(
+        `Workflow run ${run.id} job collection: ${jobCollection.error ?? 'incomplete'}`,
+      );
+    }
+
+    const jobs = (jobCollection?.jobs ?? [])
+      .map(workflowJobEvidence)
+      .sort((left, right) => left.id - right.id);
+    for (const job of jobs) {
+      if (job.runnerName !== null && job.runnerTimeMs === null) {
+        runReasons.push(`Workflow job ${job.id} has incomplete runner timing.`);
+      }
+    }
+
+    const discardedRunnerTimeMs =
+      jobCollection?.complete === true &&
+      jobs.every((job) => job.runnerTimeMs !== null)
+        ? jobs.reduce((total, job) => total + (job.runnerTimeMs ?? 0), 0)
+        : null;
+
+    let replacement: SupersededWorkflowRunEvidence['replacement'] = null;
+    let cancellationDisposition: SupersededCancellationDisposition =
+      'not-cancelled';
+    if (run.conclusion === 'cancelled') {
+      const replacementRun = orderedRuns.find((candidate) => {
+        const runHeadIndex = headIndexes.get(run.head_sha);
+        const candidateHeadIndex = headIndexes.get(candidate.head_sha);
+        if (
+          candidate.workflow_id !== run.workflow_id ||
+          runHeadIndex === undefined ||
+          candidateHeadIndex === undefined ||
+          candidateHeadIndex <= runHeadIndex ||
+          candidate.status !== 'completed' ||
+          candidate.conclusion === null ||
+          !REPLACEMENT_CONCLUSIONS.has(candidate.conclusion)
+        ) {
+          return false;
+        }
+
+        const candidateJobs = jobsByRunAttempt.get(
+          `${candidate.id}:${candidate.run_attempt}`,
+        );
+        return (
+          jobCollection?.complete === true &&
+          candidateJobs?.complete === true &&
+          coversJobContract(
+            jobCollection.jobs.filter(
+              (job) => job.run_attempt === run.run_attempt,
+            ),
+            candidateJobs.jobs.filter(
+              (job) => job.run_attempt === candidate.run_attempt,
+            ),
+          )
+        );
+      });
+
+      if (replacementRun === undefined) {
+        cancellationDisposition = 'cancelled-unresolved';
+        runReasons.push(
+          `No later terminal run fully replaced workflow ${run.workflow_id}'s job contract.`,
+        );
+      } else {
+        cancellationDisposition = 'cancelled-safe';
+        replacement = {
+          headSha: replacementRun.head_sha,
+          runAttempt: replacementRun.run_attempt,
+          runId: replacementRun.id,
+        };
+      }
+    }
+
+    incompleteReasons.push(...runReasons);
+    return {
+      cancellationDisposition,
+      conclusion: run.conclusion,
+      discardedRunnerTimeMs,
+      headSha: run.head_sha,
+      id: run.id,
+      incompleteReasons: [...new Set(runReasons)].sort(),
+      jobs,
+      name: run.name,
+      replacement,
+      runAttempt: run.run_attempt,
+      status: run.status,
+      url: run.html_url,
+      workflowId: run.workflow_id,
+    };
+  });
+
+  const discardedRunnerTimeMs =
+    historyComplete && runs.every((run) => run.discardedRunnerTimeMs !== null)
+      ? runs.reduce((total, run) => total + (run.discardedRunnerTimeMs ?? 0), 0)
+      : null;
+
+  return {
+    headShas,
+    incompleteReasons: [...new Set(incompleteReasons)].sort(),
+    runs,
+    summary: {
+      cancelledSafe: runs.filter(
+        (run) => run.cancellationDisposition === 'cancelled-safe',
+      ).length,
+      cancelledUnresolved: runs.filter(
+        (run) => run.cancellationDisposition === 'cancelled-unresolved',
+      ).length,
+      discardedRunnerTimeMs,
+      notCancelled: runs.filter(
+        (run) => run.cancellationDisposition === 'not-cancelled',
+      ).length,
+      runs: runs.length,
+    },
   };
 }
 
@@ -629,6 +1086,14 @@ export function buildPullRequestObservation(
       : hasFailureConclusion(workflows, checks)
         ? 'failed'
         : 'ready';
+  const supersededValidation =
+    input.supersededValidation ??
+    buildSupersededValidationEvidence({
+      finalHeadSha: input.pullRequest.head.sha,
+      headShas: [input.pullRequest.head.sha],
+      jobs: [],
+      workflowRuns: input.workflowRuns,
+    });
 
   return {
     checks,
@@ -663,6 +1128,7 @@ export function buildPullRequestObservation(
         url: check.url,
       })),
     surface: classifyPullRequestSurface(input.files),
+    supersededValidation,
     timing: {
       criticalPathMs:
         criticalPathMs !== null && criticalPathMs >= 0 ? criticalPathMs : null,
@@ -710,6 +1176,20 @@ export function buildPullRequestValidationReport(options: {
     byDisposition[observation.disposition] += 1;
     bySurface[observation.surface] += 1;
   }
+  const supersededObservations = observations.filter(
+    (observation) => observation.supersededValidation.summary.runs > 0,
+  );
+  const supersededDiscardedRunnerTimeMs = observations.every(
+    (observation) =>
+      observation.supersededValidation.summary.discardedRunnerTimeMs !== null,
+  )
+    ? observations.reduce(
+        (total, observation) =>
+          total +
+          (observation.supersededValidation.summary.discardedRunnerTimeMs ?? 0),
+        0,
+      )
+    : null;
 
   return {
     collectedAt: options.collectedAt ?? new Date().toISOString(),
@@ -727,6 +1207,26 @@ export function buildPullRequestValidationReport(options: {
       byDisposition,
       bySurface,
       pullRequests: observations.length,
+      supersededValidation: {
+        cancelledSafe: observations.reduce(
+          (total, observation) =>
+            total + observation.supersededValidation.summary.cancelledSafe,
+          0,
+        ),
+        cancelledUnresolved: observations.reduce(
+          (total, observation) =>
+            total +
+            observation.supersededValidation.summary.cancelledUnresolved,
+          0,
+        ),
+        discardedRunnerTimeMs: supersededDiscardedRunnerTimeMs,
+        pullRequests: supersededObservations.length,
+        runs: observations.reduce(
+          (total, observation) =>
+            total + observation.supersededValidation.summary.runs,
+          0,
+        ),
+      },
     },
     version: REPORT_VERSION,
   };
@@ -758,20 +1258,28 @@ export function formatPullRequestValidationMarkdown(
     `- Selection: ${report.selection.mode}`,
     `- Pull requests: ${report.summary.pullRequests}`,
     `- Dispositions: ${report.summary.byDisposition.ready} ready, ${report.summary.byDisposition.failed} failed, ${report.summary.byDisposition.incomplete} incomplete`,
+    `- Superseded validation: ${report.summary.supersededValidation.runs} runs across ${report.summary.supersededValidation.pullRequests} pull requests; ${report.summary.supersededValidation.cancelledSafe} safely replaced cancellations, ${report.summary.supersededValidation.cancelledUnresolved} unresolved cancellations`,
+    `- Estimated discarded runner time: ${formatDuration(report.summary.supersededValidation.discardedRunnerTimeMs)}`,
     '',
-    '| PR | Surface | Base | Head | Disposition | Queue | Execution | Critical path | Slowest check |',
-    '| --- | --- | --- | --- | --- | ---: | ---: | ---: | --- |',
+    '| PR | Surface | Base | Head | Disposition | Queue | Execution | Critical path | Slowest check | Superseded runs | Discarded runner time |',
+    '| --- | --- | --- | --- | --- | ---: | ---: | ---: | --- | ---: | ---: |',
   ];
 
   for (const observation of report.observations) {
     const slowest = observation.slowestChecks[0];
+    const superseded = observation.supersededValidation.summary;
     lines.push(
-      `| [#${observation.identity.number}](${observation.identity.url}) ${escapeTable(observation.identity.title)} | ${observation.surface} | ${escapeTable(observation.identity.baseBranch)}@\`${observation.identity.baseSha.slice(0, 12)}\` | \`${observation.identity.headSha.slice(0, 12)}\` | ${observation.disposition} | ${formatDuration(observation.timing.queueDelayMs)} | ${formatDuration(observation.timing.executionDurationMs)} | ${formatDuration(observation.timing.criticalPathMs)} | ${slowest ? `${escapeTable(slowest.name)} (${formatDuration(slowest.durationMs)})` : 'n/a'} |`,
+      `| [#${observation.identity.number}](${observation.identity.url}) ${escapeTable(observation.identity.title)} | ${observation.surface} | ${escapeTable(observation.identity.baseBranch)}@\`${observation.identity.baseSha.slice(0, 12)}\` | \`${observation.identity.headSha.slice(0, 12)}\` | ${observation.disposition} | ${formatDuration(observation.timing.queueDelayMs)} | ${formatDuration(observation.timing.executionDurationMs)} | ${formatDuration(observation.timing.criticalPathMs)} | ${slowest ? `${escapeTable(slowest.name)} (${formatDuration(slowest.durationMs)})` : 'n/a'} | ${superseded.runs} | ${formatDuration(superseded.discardedRunnerTimeMs)} |`,
     );
 
     if (observation.incompleteReasons.length > 0) {
       lines.push(
-        `|  |  |  |  | Reasons |  |  |  | ${escapeTable(observation.incompleteReasons.join('; '))} |`,
+        `|  |  |  |  | Reasons |  |  |  | ${escapeTable(observation.incompleteReasons.join('; '))} |  |  |`,
+      );
+    }
+    if (observation.supersededValidation.incompleteReasons.length > 0) {
+      lines.push(
+        `|  |  |  |  | Superseded evidence |  |  |  | ${escapeTable(observation.supersededValidation.incompleteReasons.join('; '))} |  |  |`,
       );
     }
   }
@@ -992,12 +1500,73 @@ export async function findMergedPullRequestSearchWindow(
   );
 }
 
+type WorkflowRunAttemptsCollection = {
+  complete: boolean;
+  error: string | null;
+  runs: GitHubWorkflowRun[];
+};
+
+async function collectWorkflowRunAttempts(
+  client: GitHubClient,
+  repository: string,
+  pullRequest: GitHubPullRequest,
+  run: GitHubWorkflowRun,
+): Promise<WorkflowRunAttemptsCollection> {
+  if (run.run_attempt === 1) {
+    return { complete: true, error: null, runs: [run] };
+  }
+
+  const priorAttempts = Array.from(
+    { length: run.run_attempt - 1 },
+    (_, index) => index + 1,
+  );
+  const results = await mapWithConcurrency(
+    priorAttempts,
+    MAX_CONCURRENT_GITHUB_REQUESTS,
+    async (attempt) => {
+      try {
+        const page = await client.loadPage(
+          `/repos/${repository}/actions/runs/${run.id}/attempts/${attempt}`,
+        );
+        if (!isGitHubWorkflowRun(page.data)) {
+          throw new Error('Workflow run attempt returned an invalid response');
+        }
+        if (!isWorkflowRunAssociatedWithPullRequest(page.data, pullRequest)) {
+          throw new Error(
+            `Workflow run ${run.id} attempt ${attempt} is not associated with pull request #${pullRequest.number}`,
+          );
+        }
+        return { error: null, run: page.data };
+      } catch (error) {
+        return {
+          error: error instanceof Error ? error.message : String(error),
+          run: null,
+        };
+      }
+    },
+  );
+  const errors = results
+    .map((result) => result.error)
+    .filter((error): error is string => error !== null);
+
+  return {
+    complete: errors.length === 0,
+    error: errors.length === 0 ? null : errors.join('; '),
+    runs: [
+      ...results
+        .map((result) => result.run)
+        .filter((attempt): attempt is GitHubWorkflowRun => attempt !== null),
+      run,
+    ].sort((left, right) => left.run_attempt - right.run_attempt),
+  };
+}
+
 async function collectObservation(
   client: GitHubClient,
   repository: string,
   pullRequest: GitHubPullRequest,
 ): Promise<PullRequestValidationObservation> {
-  const [filesResult, workflowsResult, checksResult] = await Promise.all([
+  const [filesResult, commitsResult, checksResult] = await Promise.all([
     collectPaginated(
       `/repos/${repository}/pulls/${pullRequest.number}/files?per_page=100`,
       client.loadPage,
@@ -1009,15 +1578,14 @@ async function collectObservation(
         ),
     ),
     collectPaginated(
-      `/repos/${repository}/actions/runs?event=pull_request&head_sha=${encodeURIComponent(pullRequest.head.sha)}&per_page=100`,
+      `/repos/${repository}/pulls/${pullRequest.number}/commits?per_page=100`,
       client.loadPage,
       (data) =>
         parseTypedArray(
-          requireArrayProperty(data, 'workflow_runs', 'Workflow runs'),
-          isGitHubWorkflowRun,
-          'Workflow runs',
+          requireArray(data, 'Pull-request commits'),
+          isGitHubPullRequestCommit,
+          'Pull-request commits',
         ),
-      (data) => requireTotalCount(data, 'Workflow runs'),
     ),
     collectPaginated(
       `/repos/${repository}/commits/${pullRequest.head.sha}/check-runs?filter=latest&per_page=100`,
@@ -1031,17 +1599,126 @@ async function collectObservation(
       (data) => requireTotalCount(data, 'Check runs'),
     ),
   ]);
+  const commitHeadShas = commitsResult.items.map((commit) => commit.sha);
+  const queriedHeadShas = [
+    ...new Set([...commitHeadShas, pullRequest.head.sha]),
+  ];
+  const workflowResults = await mapWithConcurrency(
+    queriedHeadShas,
+    MAX_CONCURRENT_GITHUB_REQUESTS,
+    async (headSha) => {
+      const result = await collectPaginated(
+        `/repos/${repository}/actions/runs?event=pull_request&head_sha=${encodeURIComponent(headSha)}&per_page=100`,
+        client.loadPage,
+        (data) =>
+          parseTypedArray(
+            requireArrayProperty(data, 'workflow_runs', 'Workflow runs'),
+            isGitHubWorkflowRun,
+            'Workflow runs',
+          ),
+        (data) => requireTotalCount(data, 'Workflow runs'),
+      );
+      return {
+        headSha,
+        result: {
+          ...result,
+          items: result.items.filter((run) =>
+            isWorkflowRunAssociatedWithPullRequest(run, pullRequest),
+          ),
+        },
+      };
+    },
+  );
+  const latestWorkflowRuns = [
+    ...new Map(
+      workflowResults
+        .flatMap(({ result }) => result.items)
+        .map((run) => [run.id, run] as const),
+    ).values(),
+  ];
+  const attemptResults = await mapWithConcurrency(
+    latestWorkflowRuns,
+    MAX_CONCURRENT_GITHUB_REQUESTS,
+    (run) => collectWorkflowRunAttempts(client, repository, pullRequest, run),
+  );
+  const workflowRunAttempts = [
+    ...new Map(
+      attemptResults
+        .flatMap((result) => result.runs)
+        .map((run) => [`${run.id}:${run.run_attempt}`, run] as const),
+    ).values(),
+  ];
+  const jobResults: WorkflowJobsCollection[] = await mapWithConcurrency(
+    workflowRunAttempts,
+    MAX_CONCURRENT_GITHUB_REQUESTS,
+    async (run) => {
+      const result = await collectPaginated(
+        `/repos/${repository}/actions/runs/${run.id}/attempts/${run.run_attempt}/jobs?per_page=100`,
+        client.loadPage,
+        (data) =>
+          parseTypedArray(
+            requireArrayProperty(data, 'jobs', 'Workflow jobs'),
+            isGitHubWorkflowJob,
+            'Workflow jobs',
+          ),
+        (data) => requireTotalCount(data, 'Workflow jobs'),
+      );
+      const hasMismatchedAttempt = result.items.some(
+        (job) => job.run_attempt !== run.run_attempt,
+      );
+      return {
+        complete: result.complete && !hasMismatchedAttempt,
+        error: hasMismatchedAttempt
+          ? `Workflow jobs did not all belong to attempt ${run.run_attempt}`
+          : result.error,
+        jobs: result.items.filter((job) => job.run_attempt === run.run_attempt),
+        runAttempt: run.run_attempt,
+        runId: run.id,
+      };
+    },
+  );
+  const finalWorkflowResult = workflowResults.find(
+    ({ headSha }) => headSha === pullRequest.head.sha,
+  )?.result;
   const collectionErrors = [
     filesResult.complete
       ? null
       : `Changed-file collection: ${filesResult.error}`,
-    workflowsResult.complete
+    finalWorkflowResult?.complete === true
       ? null
-      : `Workflow-run collection: ${workflowsResult.error}`,
+      : `Workflow-run collection: ${finalWorkflowResult?.error ?? 'missing final-head result'}`,
     checksResult.complete
       ? null
       : `Check-run collection: ${checksResult.error}`,
   ].filter((reason): reason is string => reason !== null);
+  const supersededCollectionErrors = [
+    commitsResult.complete
+      ? null
+      : `Pull-request commit collection: ${commitsResult.error}`,
+    pullRequestCommitCapReason(commitsResult.items.length),
+    ...workflowResults.map(({ headSha, result }) =>
+      result.complete
+        ? null
+        : `Workflow-run collection for ${headSha}: ${result.error}`,
+    ),
+    ...attemptResults.map((result) =>
+      result.complete
+        ? null
+        : `Workflow-run attempt collection: ${result.error}`,
+    ),
+    ...jobResults.map((result) =>
+      result.complete
+        ? null
+        : `Workflow job collection for run ${result.runId} attempt ${result.runAttempt}: ${result.error}`,
+    ),
+  ].filter((reason): reason is string => reason !== null);
+  const supersededValidation = buildSupersededValidationEvidence({
+    collectionErrors: supersededCollectionErrors,
+    finalHeadSha: pullRequest.head.sha,
+    headShas: commitHeadShas,
+    jobs: jobResults,
+    workflowRuns: workflowRunAttempts,
+  });
 
   return buildPullRequestObservation({
     checkRuns: checksResult.items,
@@ -1049,7 +1726,8 @@ async function collectObservation(
     files: filesResult.items.map((file) => file.filename),
     pullRequest,
     repository,
-    workflowRuns: workflowsResult.items,
+    supersededValidation,
+    workflowRuns: finalWorkflowResult?.items ?? [],
   });
 }
 

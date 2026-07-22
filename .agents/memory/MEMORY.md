@@ -10,6 +10,8 @@
 - [Brand and Social Visual Enrichment Decisions](decisions-brand-social-visual-enrichment.md) — storage, overwrite, and failure-isolation decisions
 - [MCP Instagram and Meta Inspiration Remix Spec](spec-mcp-instagram-meta-inspiration-remix.md) — curated brand-aware public inspiration and review-only remix actions
 - [MCP Instagram and Meta Inspiration Remix Decisions](decisions-mcp-instagram-meta-inspiration-remix.md) — ephemeral discovery, strict brand resolution, and approval boundaries
+- [Superseded Pull-request Validation Waste](spec-pr-validation-superseded-waste.md) — exact-SHA cancellation replacement and discarded runner-time evidence contract
+- [Superseded Validation Waste Decisions](decisions-pr-validation-superseded-waste.md) — runner-time and replacement-proof decisions
 - [Project Overview](project_overview.md) — Genfeed.ai monorepo structure and key context
 - [One API Epic](project_one_api_epic.md) — Epic #95: consolidate self-hosted + cloud into one NestJS API, 20 issues, 8 phases
 - [Fallow Health](project_fallow.md) — Fallow codebase health analysis (#83), weekly CI, score 72/100
