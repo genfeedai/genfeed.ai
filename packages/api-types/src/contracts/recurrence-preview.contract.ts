@@ -7,12 +7,12 @@
  * so the local wall-clock time remains stable when the UTC offset changes.
  */
 
+import { PostFrequency } from '@genfeedai/enums';
+import { z } from 'zod';
 import {
   nonNegativeIntSchema,
   timezoneSchema,
-} from '@api-types/helpers/common-schemas';
-import { PostFrequency } from '@genfeedai/enums';
-import { z } from 'zod';
+} from '../helpers/common-schemas';
 import { recurrenceInputSchema } from './scheduler.contract';
 
 export const DEFAULT_RECURRENCE_PREVIEW_LIMIT = 100;
