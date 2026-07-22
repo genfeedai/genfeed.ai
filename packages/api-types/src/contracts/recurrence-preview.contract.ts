@@ -50,11 +50,15 @@ export type RecurrencePreviewInput = z.input<
   typeof recurrencePreviewInputSchema
 >;
 
-export interface RecurrencePreviewValidationIssue {
-  code: 'invalid_input' | 'invalid_local_time' | 'invalid_timezone';
-  message: string;
-  path?: string;
-}
+export const recurrencePreviewValidationIssueSchema = z.object({
+  code: z.enum(['invalid_input', 'invalid_local_time', 'invalid_timezone']),
+  message: z.string(),
+  path: z.string().optional(),
+});
+
+export type RecurrencePreviewValidationIssue = z.infer<
+  typeof recurrencePreviewValidationIssueSchema
+>;
 
 export type RecurrencePreviewResult =
   | {
@@ -71,7 +75,7 @@ type ParsedRecurrencePreviewInput = z.output<
   typeof recurrencePreviewInputSchema
 >;
 
-interface LocalDateTime {
+type LocalDateTime = {
   day: number;
   hour: number;
   millisecond: number;
@@ -79,7 +83,7 @@ interface LocalDateTime {
   month: number;
   second: number;
   year: number;
-}
+};
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
 
