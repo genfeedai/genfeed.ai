@@ -25,9 +25,9 @@ describe('IngredientFilterUtil', () => {
   });
 
   describe('buildFolderFilter', () => {
-    it('should filter root level when folder is undefined', () => {
+    it('should not filter folders when folder is undefined (All Assets)', () => {
       const result = IngredientFilterUtil.buildFolderFilter(undefined);
-      expect(result).toEqual({ folder: null });
+      expect(result).toEqual({});
     });
 
     it('should filter by folder ID when valid ObjectId provided', () => {
