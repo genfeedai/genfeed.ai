@@ -50,6 +50,7 @@ describe('createReleaseGroupSchema', () => {
       recurrence: {
         frequency: PostFrequency.WEEKLY,
         interval: 1,
+        maxRepeats: 12,
         weekdays: [1, 3, 5],
       },
       status: ReleaseStatus.SCHEDULED,
@@ -112,6 +113,59 @@ describe('recurrenceInputSchema', () => {
       frequency: PostFrequency.WEEKLY,
       interval: 1,
       weekdays: [7],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test('requires a finite max-repeat or end-date boundary', () => {
+    const result = recurrenceInputSchema.safeParse({
+      frequency: PostFrequency.DAILY,
+      interval: 1,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects a zero repeat cap', () => {
+    const result = recurrenceInputSchema.safeParse({
+      frequency: PostFrequency.DAILY,
+      interval: 1,
+      maxRepeats: 0,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test('requires at least one unique weekday for weekly recurrence', () => {
+    const missingWeekdays = recurrenceInputSchema.safeParse({
+      frequency: PostFrequency.WEEKLY,
+      interval: 1,
+      maxRepeats: 3,
+    });
+    const duplicateWeekdays = recurrenceInputSchema.safeParse({
+      frequency: PostFrequency.WEEKLY,
+      interval: 1,
+      maxRepeats: 3,
+      weekdays: [1, 1],
+    });
+
+    expect(missingWeekdays.success).toBe(false);
+    expect(duplicateWeekdays.success).toBe(false);
+  });
+
+  test('rejects weekdays for non-weekly recurrence', () => {
+    const result = recurrenceInputSchema.safeParse({
+      frequency: PostFrequency.DAILY,
+      interval: 1,
+      maxRepeats: 3,
+      weekdays: [1],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects never as a recurrence frequency', () => {
+    const result = recurrenceInputSchema.safeParse({
+      frequency: PostFrequency.NEVER,
+      interval: 1,
+      maxRepeats: 3,
     });
     expect(result.success).toBe(false);
   });

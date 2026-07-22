@@ -15,4 +15,5 @@ export * from './posts.contract';
 export * from './publish-approval.contract';
 export * from './publish-webhook-events.contract';
 export * from './publishing-readiness.contract';
+export * from './recurrence-preview.contract';
 export * from './scheduler.contract';
