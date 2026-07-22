@@ -177,6 +177,11 @@ export class FilesController {
           job = await this.videoQueueService.addExtractFramesJob(jobData);
           break;
 
+        case JOB_TYPES.EXTRACT_REFERENCE_FRAMES:
+          job =
+            await this.videoQueueService.addExtractReferenceFramesJob(jobData);
+          break;
+
         case JOB_TYPES.GET_VIDEO_METADATA:
           job = await this.videoQueueService.addGetVideoMetadataJob(jobData);
           break;

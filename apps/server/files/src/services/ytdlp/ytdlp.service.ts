@@ -36,6 +36,11 @@ export class YtDlpService {
       outputPath || path.join(outputDir, `${timestamp}.mp4`);
 
     const args = [
+      '--no-playlist',
+      '--socket-timeout',
+      '30',
+      '--max-filesize',
+      '500M',
       '-f',
       'bestvideo[height<=720]+bestaudio/best[height<=720]',
       '--merge-output-format',

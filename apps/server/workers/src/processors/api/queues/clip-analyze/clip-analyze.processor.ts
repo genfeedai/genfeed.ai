@@ -6,7 +6,8 @@
  * 2. Transcribe via WhisperService (Replicate)
  * 3. Detect highlights via OpenRouter LLM (GPT-4o)
  * 4. Filter by minViralityScore
- * 5. Save highlights to ClipProject (status: 'analyzed')
+ * 5. Extract bounded reference frames from highlight timestamps
+ * 6. Save highlights and reference frames (status: 'analyzed')
  *
  * Does NOT generate avatar videos — that's the clip-factory queue.
  */
@@ -15,6 +16,11 @@ import { randomUUID } from 'node:crypto';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { WhisperService } from '@api/services/whisper/whisper.service';
+import { normalizeClipReferenceFrameSet } from '@genfeedai/helpers';
+import {
+  CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
+  type ClipReferenceFrameSet,
+} from '@genfeedai/interfaces';
 import {
   CLIP_ANALYZE_CONCURRENCY,
   CLIP_ANALYZE_QUEUE,
@@ -28,6 +34,59 @@ import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/cli
 
 import type { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
+
+const MAX_REFERENCE_FRAMES = 5;
+
+function deriveReferenceTimestamps(highlights: IHighlight[]): number[] {
+  return [
+    ...new Set(
+      highlights
+        .filter(
+          (highlight) =>
+            Number.isFinite(highlight.start_time) &&
+            Number.isFinite(highlight.end_time) &&
+            highlight.start_time >= 0 &&
+            highlight.end_time >= highlight.start_time,
+        )
+        .sort((left, right) => left.start_time - right.start_time)
+        .map(
+          (highlight) =>
+            Math.round(
+              ((highlight.start_time + highlight.end_time) / 2) * 1000,
+            ) / 1000,
+        ),
+    ),
+  ].slice(0, MAX_REFERENCE_FRAMES);
+}
+
+function pendingReferenceFrames(timestamps: number[]): ClipReferenceFrameSet {
+  return {
+    candidates: timestamps.map((timestampSeconds, index) => ({
+      assetId: `frame-${index + 1}-${Math.round(timestampSeconds * 1000)}`,
+      diagnostics: [],
+      id: `frame-${index + 1}-${Math.round(timestampSeconds * 1000)}`,
+      status: 'pending',
+      timestampSeconds,
+    })),
+    diagnostics: [],
+    schemaVersion: CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
+    selectedCandidateId: null,
+    status: 'pending',
+  };
+}
+
+function unavailableReferenceFrames(
+  code: string,
+  message: string,
+): ClipReferenceFrameSet {
+  return {
+    candidates: [],
+    diagnostics: [{ code, message, severity: 'warning' }],
+    schemaVersion: CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
+    selectedCandidateId: null,
+    status: 'unavailable',
+  };
+}
 
 @Processor(CLIP_ANALYZE_QUEUE, {
   concurrency: CLIP_ANALYZE_CONCURRENCY,
@@ -110,10 +169,49 @@ export class ClipAnalyzeProcessor extends WorkerHost {
           id: randomUUID(),
         }));
 
-      // Stage 5: Save highlights — pipeline complete (no generation)
+      // Stage 5: Extract reference candidates without making analysis depend on
+      // source video availability.
+      const referenceTimestamps = deriveReferenceTimestamps(highlights);
+      let referenceFrames: ClipReferenceFrameSet;
+
+      if (referenceTimestamps.length === 0) {
+        referenceFrames = unavailableReferenceFrames(
+          'clip_reference_no_timestamps',
+          'No eligible highlight timestamps were available for reference extraction.',
+        );
+      } else {
+        await this.updateProject(projectId, {
+          highlights,
+          progress: 75,
+          referenceFrames: pendingReferenceFrames(referenceTimestamps),
+        });
+
+        try {
+          referenceFrames = await this.extractReferenceFrames(
+            data.youtubeUrl,
+            data.orgId,
+            data.userId,
+            projectId,
+            referenceTimestamps,
+          );
+        } catch (error: unknown) {
+          this.logger.warn(
+            `${this.logContext} reference extraction unavailable`,
+            { error, projectId },
+          );
+          referenceFrames = unavailableReferenceFrames(
+            'clip_reference_extraction_failed',
+            'Reference frames could not be extracted from the source video.',
+          );
+        }
+      }
+
+      // Stage 6: Save analysis output. Reference extraction failures are
+      // represented in the contract and do not discard transcript/highlights.
       await this.updateProject(projectId, {
         highlights,
         progress: 100,
+        referenceFrames,
         status: 'analyzed',
       });
 
@@ -139,6 +237,42 @@ export class ClipAnalyzeProcessor extends WorkerHost {
 
       throw error;
     }
+  }
+
+  private async extractReferenceFrames(
+    youtubeUrl: string,
+    organizationId: string,
+    userId: string,
+    projectId: string,
+    timestamps: number[],
+  ): Promise<ClipReferenceFrameSet> {
+    const filesUrl =
+      this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
+      'http://localhost:3012';
+
+    const response = await firstValueFrom(
+      this.httpService.post(
+        `${filesUrl}/v1/files/process/video`,
+        {
+          id: `clip-reference-frames-${projectId}`,
+          ingredientId: projectId,
+          organizationId,
+          params: { inputPath: youtubeUrl, timestamps },
+          type: 'extract-reference-frames',
+          userId,
+        },
+        { headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    const jobId = response.data?.jobId || response.data?.data?.jobId;
+    if (!jobId) {
+      throw new Error(
+        'Files microservice did not return a jobId for reference extraction',
+      );
+    }
+
+    return this.waitForReferenceFrameJob(filesUrl, jobId);
   }
 
   /**
@@ -193,11 +327,11 @@ export class ClipAnalyzeProcessor extends WorkerHost {
         this.httpService.get(`${filesUrl}/v1/files/job/${jobId}`),
       );
 
-      const status = response.data?.status || response.data?.data?.status;
+      const payload = response.data?.data || response.data;
+      const status = payload?.status || payload?.state;
 
       if (status === 'completed' || status === 'COMPLETED') {
-        const result =
-          response.data?.result || response.data?.data?.result || response.data;
+        const result = payload?.result || payload;
         return result.outputUrl || result.url;
       }
 
@@ -210,6 +344,39 @@ export class ClipAnalyzeProcessor extends WorkerHost {
 
     throw new Error(
       `Audio extraction job ${jobId} timed out after ${timeoutMs}ms`,
+    );
+  }
+
+  private async waitForReferenceFrameJob(
+    filesUrl: string,
+    jobId: string,
+    timeoutMs = 180_000,
+  ): Promise<ClipReferenceFrameSet> {
+    const pollInterval = 2_000;
+    const start = Date.now();
+
+    while (Date.now() - start < timeoutMs) {
+      const response = await firstValueFrom(
+        this.httpService.get(`${filesUrl}/v1/files/job/${jobId}`),
+      );
+      const payload = response.data?.data || response.data;
+      const status = payload?.status || payload?.state;
+
+      if (status === 'completed' || status === 'COMPLETED') {
+        return normalizeClipReferenceFrameSet(
+          payload?.result?.referenceFrames,
+        );
+      }
+
+      if (status === 'failed' || status === 'FAILED') {
+        throw new Error(`Reference extraction job ${jobId} failed`);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    }
+
+    throw new Error(
+      `Reference extraction job ${jobId} timed out after ${timeoutMs}ms`,
     );
   }
 

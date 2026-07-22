@@ -73,6 +73,11 @@ const VIDEO_JOB_CONFIGS: Partial<Record<JobType, JobConfig>> = {
     defaultPriority: JOB_PRIORITY.NORMAL,
     delay: 2000,
   },
+  [JOB_TYPES.EXTRACT_REFERENCE_FRAMES]: {
+    attempts: 2,
+    defaultPriority: JOB_PRIORITY.NORMAL,
+    delay: 1000,
+  },
   [JOB_TYPES.GET_VIDEO_METADATA]: {
     attempts: 2,
     defaultPriority: JOB_PRIORITY.HIGH,
@@ -176,6 +181,16 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
 
   async addExtractFramesJob(data: VideoJobData): Promise<Job<VideoJobData>> {
     return this.addJob(JOB_TYPES.EXTRACT_FRAMES, data, 'extract frames');
+  }
+
+  async addExtractReferenceFramesJob(
+    data: VideoJobData,
+  ): Promise<Job<VideoJobData>> {
+    return this.addJob(
+      JOB_TYPES.EXTRACT_REFERENCE_FRAMES,
+      data,
+      'extract clip reference frames',
+    );
   }
 
   async addGetVideoMetadataJob(data: VideoJobData): Promise<Job<VideoJobData>> {

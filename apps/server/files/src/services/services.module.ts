@@ -1,5 +1,6 @@
 import { ConfigModule } from '@files/config/config.module';
 import { QUEUE_NAMES } from '@files/queues/queue.constants';
+import { ClipReferenceFramesModule } from '@files/services/clip-reference-frames/clip-reference-frames.module';
 import { FFmpegModule } from '@files/services/ffmpeg/ffmpeg.module';
 import { FilesModule } from '@files/services/files/files.module';
 import { HookRemixModule } from '@files/services/hook-remix/hook-remix.module';
@@ -18,6 +19,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
+    ClipReferenceFramesModule,
     FFmpegModule,
     FilesModule,
     HookRemixModule,
@@ -33,6 +35,7 @@ import { Module } from '@nestjs/common';
     YtDlpModule,
   ],
   imports: [
+    ClipReferenceFramesModule,
     ConfigModule,
     FFmpegModule,
     FilesModule,

@@ -1,6 +1,7 @@
 import type { JobPriority, JobType } from '@files/queues/queue.constants';
 import type { VideoEaseCurve, VideoTransition } from '@genfeedai/enums';
 import type {
+  ClipReferenceFrameSet,
   IEditorRenderCorrelation,
   IEditorRenderJobParams,
 } from '@genfeedai/interfaces';
@@ -130,6 +131,7 @@ export interface VideoProcessingParams {
   // Frame extraction params
   outputDir?: string;
   frameCount?: number;
+  timestamps?: number[];
 
   // Video metadata params
   videoPath?: string;
@@ -237,6 +239,7 @@ export interface JobProgress {
 
 export interface JobResult {
   success: boolean;
+  referenceFrames?: ClipReferenceFrameSet;
   jobId?: string;
   jobType?: string;
   outputPath?: string;

@@ -135,6 +135,9 @@ describe('VideoProcessor', () => {
   let remotionRenderJobService: {
     process: ReturnType<typeof vi.fn>;
   };
+  let clipReferenceFrameExtractionService: {
+    extract: ReturnType<typeof vi.fn>;
+  };
   let ffmpegService: MockFFmpegService;
   let s3Service: MockS3Service;
   let webSocketService: MockWebSocketService;
@@ -189,6 +192,15 @@ describe('VideoProcessor', () => {
     remotionRenderJobService = {
       process: vi.fn().mockResolvedValue({ success: true }),
     };
+    clipReferenceFrameExtractionService = {
+      extract: vi.fn().mockResolvedValue({
+        candidates: [],
+        diagnostics: [],
+        schemaVersion: 1,
+        selectedCandidateId: null,
+        status: 'unavailable',
+      }),
+    };
 
     // VideoProcessor constructor order: FFmpegService, HookRemixService,
     // VideoMergeJobService, S3Service, WebSocketService, RedisService,
@@ -202,6 +214,7 @@ describe('VideoProcessor', () => {
       redisService,
       loggerService as unknown as never,
       remotionRenderJobService as never,
+      clipReferenceFrameExtractionService as never,
     );
   });
 
@@ -349,6 +362,25 @@ describe('VideoProcessor', () => {
       await processor.process(job);
 
       expect(ffmpegService.extractFrame).toHaveBeenCalled();
+    });
+
+    it('should route EXTRACT_REFERENCE_FRAMES job correctly', async () => {
+      const data = createMockJobData({
+        params: {
+          inputPath: 'https://www.youtube.com/watch?v=test',
+          timestamps: [10],
+        },
+      });
+      const job = createMockJob(JOB_TYPES.EXTRACT_REFERENCE_FRAMES, data);
+
+      await processor.process(job);
+
+      expect(clipReferenceFrameExtractionService.extract).toHaveBeenCalledWith({
+        organizationId: 'org-123',
+        projectId: 'test-ingredient-123',
+        sourceUrl: 'https://www.youtube.com/watch?v=test',
+        timestamps: [10],
+      });
     });
 
     it('should route GET_VIDEO_METADATA job correctly', async () => {

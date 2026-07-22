@@ -249,6 +249,11 @@ describe('YtDlpService', () => {
 
       await expect(promise).resolves.toBe(outputPath);
       expect(spawnMock).toHaveBeenCalledWith('yt-dlp', [
+        '--no-playlist',
+        '--socket-timeout',
+        '30',
+        '--max-filesize',
+        '500M',
         '-f',
         'bestvideo[height<=720]+bestaudio/best[height<=720]',
         '--merge-output-format',

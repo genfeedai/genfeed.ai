@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { JOB_TYPES, QUEUE_NAMES } from '@files/queues/queue.constants';
+import { ClipReferenceFrameExtractionService } from '@files/services/clip-reference-frames/clip-reference-frame-extraction.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import type { HookRemixJobData } from '@files/services/hook-remix/hook-remix.interfaces';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
@@ -53,6 +54,7 @@ export class VideoProcessor extends WorkerHost {
     private redisService: RedisService,
     private readonly logger: LoggerService,
     private readonly remotionRenderJobService: RemotionRenderJobService,
+    private readonly clipReferenceFrameExtractionService: ClipReferenceFrameExtractionService,
   ) {
     super();
   }
@@ -85,6 +87,8 @@ export class VideoProcessor extends WorkerHost {
         return await this.handleVideoToAudio(job);
       case JOB_TYPES.EXTRACT_FRAMES:
         return await this.handleExtractFrames(job);
+      case JOB_TYPES.EXTRACT_REFERENCE_FRAMES:
+        return await this.handleExtractReferenceFrames(job);
       case JOB_TYPES.GET_VIDEO_METADATA:
         return await this.handleGetVideoMetadata(job);
       case JOB_TYPES.HOOK_REMIX:
@@ -875,6 +879,21 @@ export class VideoProcessor extends WorkerHost {
       );
       throw error;
     }
+  }
+
+  async handleExtractReferenceFrames(
+    job: Job<VideoJobData>,
+  ): Promise<JobResult> {
+    const { ingredientId, organizationId, params } = job.data;
+    const referenceFrames =
+      await this.clipReferenceFrameExtractionService.extract({
+        organizationId,
+        projectId: ingredientId,
+        sourceUrl: params.inputPath || '',
+        timestamps: params.timestamps || [],
+      });
+
+    return { referenceFrames, success: true };
   }
 
   async handleGetVideoMetadata(job: Job<VideoJobData>): Promise<JobResult> {
