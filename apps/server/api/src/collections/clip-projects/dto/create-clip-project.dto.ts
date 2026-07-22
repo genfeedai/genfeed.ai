@@ -1,16 +1,18 @@
 import { ClipProjectStatus } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import {
   CLIP_RESULT_MODES,
-  DEFAULT_CLIP_RESULT_MODE,
+  type ClipReferenceFrameSet,
   type ClipResultMode,
+  DEFAULT_CLIP_RESULT_MODE,
 } from '@genfeedai/interfaces';
-import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   IsUrl,
@@ -146,4 +148,14 @@ export class CreateClipProjectDto extends OrganizationalCreateDto {
     type: ClipProjectSettingsDto,
   })
   readonly settings?: ClipProjectSettingsDto;
+
+  @IsOptional()
+  @IsObject()
+  @ApiProperty({
+    description:
+      'Versioned source-video reference-frame candidates and selection state',
+    required: false,
+    type: Object,
+  })
+  readonly referenceFrames?: ClipReferenceFrameSet;
 }

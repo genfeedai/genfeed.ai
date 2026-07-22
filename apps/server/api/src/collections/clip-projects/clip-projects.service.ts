@@ -6,9 +6,17 @@ import {
   buildClipProjectReadiness,
   isTerminalClipStatus,
 } from '@api/collections/clip-shared/clip-terminal-contract.util';
+import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import {
+  ClipReferenceFrameValidationError,
+  normalizeClipReferenceFrameSet,
+} from '@genfeedai/helpers';
+import type {
+  ClipReferenceFrameSet,
+  PopulateOption,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -207,7 +215,16 @@ export class ClipProjectsService extends BaseService<
     }
 
     const suppliedConfig = this.readRecord(dto.config);
-    data.config = { ...config, ...suppliedConfig };
+    const mergedConfig = { ...config, ...suppliedConfig };
+    if (
+      Object.hasOwn(mergedConfig, 'referenceFrames') &&
+      mergedConfig.referenceFrames !== undefined
+    ) {
+      mergedConfig.referenceFrames = this.normalizeReferenceFrames(
+        mergedConfig.referenceFrames,
+      );
+    }
+    data.config = mergedConfig;
 
     this.applyTerminalDefaults(data, mode);
 
@@ -277,5 +294,16 @@ export class ClipProjectsService extends BaseService<
     }
 
     return null;
+  }
+
+  private normalizeReferenceFrames(value: unknown): ClipReferenceFrameSet {
+    try {
+      return normalizeClipReferenceFrameSet(value);
+    } catch (error: unknown) {
+      if (error instanceof ClipReferenceFrameValidationError) {
+        throw new ValidationException(error.message, 'referenceFrames', value);
+      }
+      throw error;
+    }
   }
 }
