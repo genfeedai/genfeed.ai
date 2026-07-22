@@ -12,6 +12,14 @@ const MOCK_TOOLS: Record<
   string,
   { name: string; requiredRole?: string; surfaces: { mcp: boolean } }
 > = {
+  create_ad_remix_workflow: {
+    name: 'create_ad_remix_workflow',
+    surfaces: { mcp: true },
+  },
+  create_instagram_remix_workflow: {
+    name: 'create_instagram_remix_workflow',
+    surfaces: { mcp: true },
+  },
   create_post: { name: 'create_post', surfaces: { mcp: true } },
   create_scheduled_release: {
     name: 'create_scheduled_release',
@@ -97,6 +105,21 @@ describe('ToolRegistryService — approval queue', () => {
     expect(result.isError).toBeFalsy();
     expect(result.content[0].text).toContain('requires approval');
     expect(result.content[0].text).toContain('apr-1');
+  });
+
+  it('queues Instagram remix creation instead of executing it immediately', async () => {
+    const { client, registry } = build();
+
+    await registry.handleToolCall({
+      arguments: { shortcode: 'abc123', username: 'peer' },
+      name: 'create_instagram_remix_workflow',
+    });
+
+    expect(client.createApproval).toHaveBeenCalledWith(
+      'create_instagram_remix_workflow',
+      { shortcode: 'abc123', username: 'peer' },
+    );
+    expect(client.executeAgentTool).not.toHaveBeenCalled();
   });
 
   it('queues scheduler mutations instead of calling the scheduler API', async () => {

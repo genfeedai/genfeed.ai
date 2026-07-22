@@ -18,6 +18,9 @@ describe('agent-tool-registry', () => {
     expect(names).toContain(AgentToolName.LIST_ADS_RESEARCH);
     expect(names).toContain(AgentToolName.GET_AD_RESEARCH_DETAIL);
     expect(names).toContain(AgentToolName.CREATE_AD_REMIX_WORKFLOW);
+    expect(names).toContain(AgentToolName.LIST_INSTAGRAM_INSPIRATION);
+    expect(names).toContain(AgentToolName.GET_INSTAGRAM_INSPIRATION_DETAIL);
+    expect(names).toContain(AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW);
     expect(names).toContain(AgentToolName.GENERATE_AD_PACK);
     expect(names).toContain(AgentToolName.PREPARE_AD_LAUNCH_REVIEW);
     expect(names).toContain(AgentToolName.RATE_CONTENT);
@@ -55,6 +58,15 @@ describe('agent-tool-registry', () => {
     expect(AGENT_CREDIT_COSTS[AgentToolName.LIST_ADS_RESEARCH]).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.GET_AD_RESEARCH_DETAIL]).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.CREATE_AD_REMIX_WORKFLOW]).toBe(0);
+    expect(AGENT_CREDIT_COSTS[AgentToolName.LIST_INSTAGRAM_INSPIRATION]).toBe(
+      0,
+    );
+    expect(
+      AGENT_CREDIT_COSTS[AgentToolName.GET_INSTAGRAM_INSPIRATION_DETAIL],
+    ).toBe(0);
+    expect(
+      AGENT_CREDIT_COSTS[AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW],
+    ).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.GENERATE_AD_PACK]).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.PREPARE_AD_LAUNCH_REVIEW]).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.RATE_CONTENT]).toBe(0);

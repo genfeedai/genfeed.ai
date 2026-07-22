@@ -54,6 +54,7 @@ import {
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
+import { InstagramInspirationService } from '@api/services/instagram-inspiration/instagram-inspiration.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { isEEEnabled } from '@genfeedai/config';
 import {
@@ -64,6 +65,7 @@ import {
   BotStatus,
   CampaignPlatform,
   CampaignType,
+  CredentialPlatform,
   IngredientCategory,
   IngredientStatus,
   PostStatus,
@@ -87,6 +89,10 @@ import type {
   IBrandAgentPrompting,
   IBrandConversationStarter,
   IGeneratedBrandProfile,
+  InstagramInspirationBrandContext,
+  InstagramInspirationMediaType,
+  InstagramInspirationSort,
+  InstagramRemixMode,
   KPIGridBlock,
   TableBlock,
   TopPostsBlock,
@@ -124,7 +130,12 @@ import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import { Effect } from 'effect';
 import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
@@ -452,6 +463,7 @@ export class AgentToolExecutorService {
     private readonly votesService: VotesService,
     @Optional()
     private readonly adsResearchService: AdsResearchService | undefined,
+    private readonly instagramInspirationService: InstagramInspirationService,
     @Optional()
     private readonly brandInterviewService: BrandInterviewService | undefined,
     @Optional()
@@ -987,8 +999,17 @@ export class AgentToolExecutorService {
       case AgentToolName.GET_AD_RESEARCH_DETAIL:
         return this.getAdResearchDetail(params, ctx);
 
+      case AgentToolName.LIST_INSTAGRAM_INSPIRATION:
+        return this.listInstagramInspiration(params, ctx);
+
+      case AgentToolName.GET_INSTAGRAM_INSPIRATION_DETAIL:
+        return this.getInstagramInspirationDetail(params, ctx);
+
       case AgentToolName.CREATE_AD_REMIX_WORKFLOW:
         return this.createAdRemixWorkflow(params, ctx);
+
+      case AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW:
+        return this.createInstagramRemixWorkflow(params, ctx);
 
       case AgentToolName.GENERATE_AD_PACK:
         return this.generateAdPack(params, ctx);
@@ -3865,6 +3886,107 @@ export class AgentToolExecutorService {
     };
   }
 
+  private async listInstagramInspiration(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const brand = await this.resolveInstagramBrandContext(params, ctx);
+    const result =
+      await this.instagramInspirationService.listInstagramInspiration({
+        brand,
+        hashtags: this.readStringArray(params.hashtags),
+        limit: readOptionalNumber(params.limit),
+        mediaType: this.readInstagramMediaType(params.mediaType),
+        niche: readOptionalString(params.niche),
+        sort: this.readInstagramSort(params.sort),
+      });
+
+    return {
+      creditsUsed: 0,
+      data: { ...result },
+      success: true,
+    };
+  }
+
+  private async getInstagramInspirationDetail(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const brand = await this.resolveInstagramBrandContext(params, ctx);
+    const username = readOptionalString(params.username);
+    if (!username) {
+      return {
+        creditsUsed: 0,
+        error: 'username is required to inspect Instagram inspiration.',
+        success: false,
+      };
+    }
+
+    const result =
+      await this.instagramInspirationService.getInstagramInspirationDetail({
+        brand,
+        limit: readOptionalNumber(params.limit),
+        mediaType: this.readInstagramMediaType(params.mediaType),
+        sort: this.readInstagramSort(params.sort),
+        username,
+      });
+
+    return {
+      creditsUsed: 0,
+      data: { ...result },
+      success: true,
+    };
+  }
+
+  private async createInstagramRemixWorkflow(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const brand = await this.resolveInstagramBrandContext(params, ctx);
+    const shortcode = readOptionalString(params.shortcode);
+    const username = readOptionalString(params.username);
+    if (!shortcode || !username) {
+      return {
+        creditsUsed: 0,
+        error:
+          'username and shortcode are required to create an Instagram remix workflow.',
+        success: false,
+      };
+    }
+
+    const result =
+      await this.instagramInspirationService.createInstagramRemixWorkflow({
+        brand,
+        mode: this.readInstagramRemixMode(params.mode),
+        notes: readOptionalString(params.notes),
+        shortcode,
+        userId: ctx.userId,
+        username,
+      });
+
+    return {
+      creditsUsed: 0,
+      data: { ...result },
+      nextActions: [
+        {
+          ctas: [
+            {
+              href: `/workflows/${result.workflowId}`,
+              label: 'Review workflow',
+            },
+          ],
+          description:
+            'Draft workflow created from abstract Instagram creative signals. Review it before generation or publishing.',
+          id: `instagram-remix-workflow-${result.workflowId}`,
+          title: result.workflowName,
+          type: 'workflow_created_card',
+          workflowName: result.workflowName,
+        },
+      ],
+      success: true,
+    };
+  }
+
   private async getAdResearchDetail(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -4156,6 +4278,112 @@ export class AgentToolExecutorService {
         readOptionalString(brandRecord.niche) ??
         readOptionalString(brandRecord.category),
     };
+  }
+
+  private async resolveInstagramBrandContext(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<InstagramInspirationBrandContext> {
+    const explicitBrandId = readOptionalString(params.brandId);
+    const brand = explicitBrandId
+      ? await this.brandsService.findOne({
+          _id: explicitBrandId,
+          isDeleted: false,
+          organization: ctx.organizationId,
+        })
+      : await this.brandsService.findOne({
+          isDeleted: false,
+          isSelected: true,
+          organization: ctx.organizationId,
+          user: ctx.userId,
+        });
+
+    if (!brand) {
+      throw new BadRequestException(
+        explicitBrandId
+          ? 'The requested brand was not found in this organization.'
+          : 'No brand is currently selected. Select a brand or pass brandId.',
+      );
+    }
+
+    const brandRecord = brand as unknown as Record<string, unknown>;
+    const brandId = String(brandRecord.id ?? brandRecord._id ?? '');
+    if (!brandId) {
+      throw new BadRequestException('The selected brand has no stable ID.');
+    }
+
+    const effectiveConfig = resolveEffectiveBrandAgentConfig({
+      brand: brand as Parameters<
+        typeof resolveEffectiveBrandAgentConfig
+      >[0]['brand'],
+      platform: 'instagram',
+    });
+    const credential = this.credentialsService
+      ? await this.credentialsService.findOne({
+          brandId,
+          isConnected: true,
+          isDeleted: false,
+          organizationId: ctx.organizationId,
+          platform: CredentialPlatform.INSTAGRAM,
+        })
+      : null;
+
+    return {
+      audience: this.readStringArray(effectiveConfig.voice?.audience),
+      description: readOptionalString(brandRecord.description),
+      hashtags: this.readStringArray(effectiveConfig.voice?.hashtags),
+      id: brandId,
+      label:
+        readOptionalString(brandRecord.label) ??
+        readOptionalString(brandRecord.name) ??
+        'Brand',
+      messagingPillars: this.readStringArray(
+        effectiveConfig.voice?.messagingPillars,
+      ),
+      organizationId: ctx.organizationId,
+      ownUsername: readOptionalString(
+        (credential as unknown as Record<string, unknown> | null)
+          ?.externalHandle,
+      ),
+      style: readOptionalString(effectiveConfig.voice?.style),
+      tone: readOptionalString(effectiveConfig.voice?.tone),
+      topics: this.readStringArray(effectiveConfig.strategy?.topics),
+    };
+  }
+
+  private readInstagramMediaType(
+    value: unknown,
+  ): InstagramInspirationMediaType | undefined {
+    return value === 'all' || value === 'posts' || value === 'reels'
+      ? value
+      : undefined;
+  }
+
+  private readInstagramSort(
+    value: unknown,
+  ): InstagramInspirationSort | undefined {
+    return value === 'latest' || value === 'top' ? value : undefined;
+  }
+
+  private readInstagramRemixMode(
+    value: unknown,
+  ): InstagramRemixMode | undefined {
+    return value === 'inspired_by' ||
+      value === 'match_closely' ||
+      value === 'remix_concept'
+      ? value
+      : undefined;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   private async buildAdsWorkflowInput(

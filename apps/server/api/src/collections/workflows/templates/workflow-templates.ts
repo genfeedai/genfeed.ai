@@ -109,6 +109,54 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
   'content-loop': CONTENT_LOOP_TEMPLATE,
   'daily-trends-digest': DAILY_TRENDS_DIGEST_TEMPLATE,
   'weekly-brand-ai-content-loop': WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE,
+  'instagram-remix-review': {
+    category: 'social',
+    description:
+      'Generate an original Instagram Reel from abstract public inspiration signals and pause for human review.',
+    edges: [
+      {
+        id: 'edge-instagram-remix-review',
+        source: 'generate-instagram-remix',
+        sourceHandle: 'video',
+        target: 'review-instagram-remix',
+        targetHandle: 'media',
+      },
+    ],
+    icon: 'sparkles',
+    id: 'instagram-remix-review',
+    isScheduleEnabled: false,
+    name: 'Instagram Remix And Review',
+    nodes: [
+      {
+        data: {
+          config: {
+            aspectRatio: '9:16',
+            duration: 8,
+            model: 'kling-v2',
+          },
+          label: 'Generate Original Reel',
+        },
+        id: 'generate-instagram-remix',
+        position: { x: 80, y: 120 },
+        type: 'ai-generate-video',
+      },
+      {
+        data: {
+          config: {
+            autoApproveIfNoResponse: false,
+            notifyChannels: ['task-inbox'],
+            requireApproval: true,
+            timeoutHours: 24,
+          },
+          label: 'Review Remix',
+        },
+        id: 'review-instagram-remix',
+        position: { x: 360, y: 120 },
+        type: 'reviewGate',
+      },
+    ],
+    steps: [],
+  },
   'launch-kit': {
     category: 'launch',
     description:
