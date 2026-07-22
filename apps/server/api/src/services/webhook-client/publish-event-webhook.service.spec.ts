@@ -99,6 +99,7 @@ describe('PublishEventWebhookService', () => {
     expect(settingsService.recordWebhookDeliveryStatus).toHaveBeenCalledWith(
       'org_123',
       expect.objectContaining({
+        attempt: 0,
         deliveryId: 'publish:target.published:post_123:post_123:published',
         event: 'target.published',
         status: 'queued',
@@ -356,6 +357,7 @@ describe('PublishEventWebhookService', () => {
     });
 
     expect(status).toMatchObject({
+      attempt: 0,
       event: 'target.published',
       isTest: true,
       status: 'queued',

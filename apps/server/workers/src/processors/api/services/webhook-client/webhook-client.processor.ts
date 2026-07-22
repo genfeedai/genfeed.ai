@@ -27,10 +27,11 @@ export class WebhookClientProcessor extends WorkerHost {
   async process(job: Job<WebhookJobData>): Promise<void> {
     const { endpoint, secret, payload, organizationId, ingredientId, isTest } =
       job.data;
+    const attempt = job.attemptsMade + 1;
     const deliveryId = job.data.deliveryId ?? job.id ?? 'unknown';
 
     this.logger.log(`${this.constructorName} processing webhook job`, {
-      attempt: job.attemptsMade + 1,
+      attempt,
       deliveryId,
       event: payload.event,
       ingredientId,
@@ -70,6 +71,7 @@ export class WebhookClientProcessor extends WorkerHost {
       await job.updateProgress(100);
 
       await this.recordDeliveryStatus(organizationId, {
+        attempt,
         attemptedAt: new Date().toISOString(),
         completedAt: new Date().toISOString(),
         deliveryId,
@@ -102,6 +104,7 @@ export class WebhookClientProcessor extends WorkerHost {
       }
     } catch (error: unknown) {
       await this.recordDeliveryStatus(organizationId, {
+        attempt,
         attemptedAt: new Date().toISOString(),
         deliveryId,
         error: (error as Error)?.message || 'Webhook delivery failed',
@@ -112,7 +115,7 @@ export class WebhookClientProcessor extends WorkerHost {
       });
 
       this.logger.error(`${this.constructorName} webhook delivery failed`, {
-        attempt: job.attemptsMade + 1,
+        attempt,
         // @ts-expect-error TS2339
         code: (error as Error)?.code,
         error: (error as Error)?.message,
