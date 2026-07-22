@@ -20,9 +20,9 @@ export interface IRecurrenceRule {
   interval: number;
   /** Weekdays to fire on for weekly cadences (0 = Sunday .. 6 = Saturday). */
   weekdays: number[];
-  /** Hard cap on total occurrences; `null` for unbounded until `endDate`. */
+  /** Hard cap on repeat occurrences; omit only when a finite `endDate` exists. */
   maxRepeats?: number | null;
-  /** ISO 8601 date after which no further occurrences fire; `null` for open-ended. */
+  /** ISO 8601 date after which no further occurrences fire. */
   endDate?: string | null;
   /** ISO 8601 timestamp of the next scheduled occurrence, if any. */
   nextRunAt?: string | null;

@@ -80,13 +80,53 @@ export const releaseMediaReferenceSchema = z.object({
 });
 
 /** Recurrence rule for evergreen / repeating releases. */
-export const recurrenceInputSchema = z.object({
-  endDate: dateStringSchema.optional(),
-  frequency: z.nativeEnum(PostFrequency),
-  interval: z.number().int().positive(),
-  maxRepeats: nonNegativeIntSchema.optional(),
-  weekdays: daysOfWeekSchema.optional(),
-});
+export const recurrenceInputSchema = z
+  .object({
+    endDate: dateStringSchema.optional(),
+    frequency: z.nativeEnum(PostFrequency),
+    interval: z.number().int().positive(),
+    maxRepeats: z.number().int().positive().optional(),
+    weekdays: daysOfWeekSchema.optional(),
+  })
+  .superRefine((recurrence, context) => {
+    if (recurrence.frequency === PostFrequency.NEVER) {
+      context.addIssue({
+        code: 'custom',
+        message: 'A recurrence frequency must repeat.',
+        path: ['frequency'],
+      });
+    }
+
+    if (recurrence.maxRepeats === undefined && !recurrence.endDate) {
+      context.addIssue({
+        code: 'custom',
+        message: 'A recurrence requires maxRepeats or endDate.',
+        path: ['maxRepeats'],
+      });
+    }
+
+    if (recurrence.frequency === PostFrequency.WEEKLY) {
+      if (!recurrence.weekdays || recurrence.weekdays.length === 0) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Weekly recurrence requires at least one weekday.',
+          path: ['weekdays'],
+        });
+      } else if (new Set(recurrence.weekdays).size !== recurrence.weekdays.length) {
+        context.addIssue({
+          code: 'custom',
+          message: 'Weekly recurrence weekdays must be unique.',
+          path: ['weekdays'],
+        });
+      }
+    } else if (recurrence.weekdays !== undefined) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Weekdays are only valid for weekly recurrence.',
+        path: ['weekdays'],
+      });
+    }
+  });
 
 /** First comment / thread segment / signature attached to a release or target. */
 export const releaseAttachmentInputSchema = z.object({
