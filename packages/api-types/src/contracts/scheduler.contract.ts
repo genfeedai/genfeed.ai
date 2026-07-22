@@ -83,7 +83,7 @@ export const releaseMediaReferenceSchema = z.object({
 export const recurrenceInputSchema = z
   .object({
     endDate: dateStringSchema.optional(),
-    frequency: z.nativeEnum(PostFrequency),
+    frequency: z.enum(PostFrequency),
     interval: z.number().int().positive(),
     maxRepeats: z.number().int().positive().optional(),
     weekdays: daysOfWeekSchema.optional(),

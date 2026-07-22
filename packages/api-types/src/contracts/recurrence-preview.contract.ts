@@ -7,18 +7,18 @@
  * so the local wall-clock time remains stable when the UTC offset changes.
  */
 
-import { PostFrequency } from '@genfeedai/enums';
-import { z } from 'zod';
 import {
   nonNegativeIntSchema,
   timezoneSchema,
-} from '../helpers/common-schemas';
+} from '@api-types/helpers/common-schemas';
+import { PostFrequency } from '@genfeedai/enums';
+import { z } from 'zod';
 import { recurrenceInputSchema } from './scheduler.contract';
 
 export const DEFAULT_RECURRENCE_PREVIEW_LIMIT = 100;
 export const MAX_RECURRENCE_PREVIEW_LIMIT = 500;
 
-const absoluteDateTimeSchema = z.string().datetime({ offset: true });
+const absoluteDateTimeSchema = z.iso.datetime({ offset: true });
 
 export const recurrencePreviewInputSchema = z
   .object({
@@ -58,7 +58,7 @@ export interface RecurrencePreviewValidationIssue {
 
 export type RecurrencePreviewResult =
   | {
-      exhausted: boolean;
+      isExhausted: boolean;
       occurrences: string[];
       success: true;
     }
@@ -356,7 +356,7 @@ function collectRecurrenceOccurrences(
     (remainingRepeats !== undefined && remainingRepeats <= 0) ||
     (endInstant && endInstant <= startInstant)
   ) {
-    return { exhausted: true, occurrences: [], success: true };
+    return { isExhausted: true, occurrences: [], success: true };
   }
 
   const startLocal = readLocalDateTime(formatter, startInstant);
@@ -373,7 +373,7 @@ function collectRecurrenceOccurrences(
       remainingRepeats !== undefined &&
       occurrences.length >= remainingRepeats
     ) {
-      return { exhausted: true, occurrences, success: true };
+      return { isExhausted: true, occurrences, success: true };
     }
 
     const candidate = localDateTimeToInstant(localCandidate, formatter);
@@ -383,7 +383,6 @@ function collectRecurrenceOccurrences(
           {
             code: 'invalid_local_time',
             message: 'A recurrence occurrence falls in a missing local time.',
-            path: 'startAt',
           },
         ],
         success: false,
@@ -391,17 +390,17 @@ function collectRecurrenceOccurrences(
     }
 
     if (endInstant && candidate > endInstant) {
-      return { exhausted: true, occurrences, success: true };
+      return { isExhausted: true, occurrences, success: true };
     }
 
     if (occurrences.length >= limit) {
-      return { exhausted: false, occurrences, success: true };
+      return { isExhausted: false, occurrences, success: true };
     }
 
     occurrences.push(candidate.toISOString());
   }
 
-  return { exhausted: true, occurrences, success: true };
+  return { isExhausted: true, occurrences, success: true };
 }
 
 /**

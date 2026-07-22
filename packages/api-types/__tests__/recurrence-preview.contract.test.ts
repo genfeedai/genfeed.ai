@@ -18,7 +18,7 @@ describe('recurrence preview contract', () => {
     });
 
     expect(result).toEqual({
-      exhausted: true,
+      isExhausted: true,
       occurrences: [
         '2026-01-03T14:00:00.000Z',
         '2026-01-05T14:00:00.000Z',
@@ -41,7 +41,7 @@ describe('recurrence preview contract', () => {
     });
 
     expect(result).toEqual({
-      exhausted: true,
+      isExhausted: true,
       occurrences: [
         '2026-08-05T07:00:00.000Z',
         '2026-08-07T07:00:00.000Z',
@@ -63,7 +63,7 @@ describe('recurrence preview contract', () => {
     });
 
     expect(result).toEqual({
-      exhausted: true,
+      isExhausted: true,
       occurrences: [
         '2026-03-07T14:00:00.000Z',
         '2026-03-08T13:00:00.000Z',
@@ -85,7 +85,7 @@ describe('recurrence preview contract', () => {
     });
 
     expect(result).toEqual({
-      exhausted: true,
+      isExhausted: true,
       occurrences: ['2026-01-02T09:00:00.000Z', '2026-01-03T09:00:00.000Z'],
       success: true,
     });
@@ -104,7 +104,7 @@ describe('recurrence preview contract', () => {
     });
 
     expect(result).toEqual({
-      exhausted: true,
+      isExhausted: true,
       occurrences: [],
       success: true,
     });
@@ -147,6 +147,28 @@ describe('recurrence preview contract', () => {
     });
   });
 
+  test('returns a typed failure for a missing DST local time', () => {
+    const result = previewRecurrenceOccurrences({
+      recurrence: {
+        frequency: PostFrequency.DAILY,
+        interval: 1,
+        maxRepeats: 1,
+      },
+      startAt: '2026-03-07T07:30:00.000Z',
+      timezone: 'America/New_York',
+    });
+
+    expect(result).toEqual({
+      issues: [
+        {
+          code: 'invalid_local_time',
+          message: 'A recurrence occurrence falls in a missing local time.',
+        },
+      ],
+      success: false,
+    });
+  });
+
   test('caps previews without claiming the finite recurrence is exhausted', () => {
     const result = previewRecurrenceOccurrences({
       limit: 2,
@@ -160,7 +182,7 @@ describe('recurrence preview contract', () => {
     });
 
     expect(result).toEqual({
-      exhausted: false,
+      isExhausted: false,
       occurrences: ['2026-01-02T09:00:00.000Z', '2026-01-03T09:00:00.000Z'],
       success: true,
     });
