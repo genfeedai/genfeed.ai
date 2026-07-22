@@ -80,13 +80,54 @@ export const releaseMediaReferenceSchema = z.object({
 });
 
 /** Recurrence rule for evergreen / repeating releases. */
-export const recurrenceInputSchema = z.object({
-  endDate: dateStringSchema.optional(),
-  frequency: z.nativeEnum(PostFrequency),
-  interval: z.number().int().positive(),
-  maxRepeats: nonNegativeIntSchema.optional(),
-  weekdays: daysOfWeekSchema.optional(),
-});
+export const recurrenceInputSchema = z
+  .object({
+    endDate: dateStringSchema.optional(),
+    frequency: z.enum(PostFrequency),
+    interval: z.number().int().positive(),
+    maxRepeats: z.number().int().positive().optional(),
+    weekdays: daysOfWeekSchema.optional(),
+  })
+  .refine((recurrence) => recurrence.frequency !== PostFrequency.NEVER, {
+    message: 'A recurrence frequency must repeat.',
+    path: ['frequency'],
+  })
+  .refine(
+    (recurrence) =>
+      recurrence.maxRepeats !== undefined || Boolean(recurrence.endDate),
+    {
+      message: 'A recurrence requires maxRepeats or endDate.',
+      path: ['maxRepeats'],
+    },
+  )
+  .refine(
+    (recurrence) =>
+      recurrence.frequency !== PostFrequency.WEEKLY ||
+      Boolean(recurrence.weekdays?.length),
+    {
+      message: 'Weekly recurrence requires at least one weekday.',
+      path: ['weekdays'],
+    },
+  )
+  .refine(
+    (recurrence) =>
+      recurrence.frequency !== PostFrequency.WEEKLY ||
+      recurrence.weekdays === undefined ||
+      new Set(recurrence.weekdays).size === recurrence.weekdays.length,
+    {
+      message: 'Weekly recurrence weekdays must be unique.',
+      path: ['weekdays'],
+    },
+  )
+  .refine(
+    (recurrence) =>
+      recurrence.frequency === PostFrequency.WEEKLY ||
+      recurrence.weekdays === undefined,
+    {
+      message: 'Weekdays are only valid for weekly recurrence.',
+      path: ['weekdays'],
+    },
+  );
 
 /** First comment / thread segment / signature attached to a release or target. */
 export const releaseAttachmentInputSchema = z.object({
