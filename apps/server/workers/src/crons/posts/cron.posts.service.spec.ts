@@ -20,6 +20,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
+import { PostRepeatSchedulerService } from '@workers/services/post-repeat-scheduler.service';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
 const APPROVAL_JOB_IDENTITY = {
@@ -55,6 +56,9 @@ describe('CronPostsService', () => {
   };
   let schedulerPublishStateService: {
     transitionPost: ReturnType<typeof vi.fn>;
+  };
+  let postRepeatSchedulerService: {
+    scheduleNextRepeat: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -102,6 +106,9 @@ describe('CronPostsService', () => {
     };
     schedulerPublishStateService = {
       transitionPost: vi.fn().mockResolvedValue(false),
+    };
+    postRepeatSchedulerService = {
+      scheduleNextRepeat: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -190,6 +197,10 @@ describe('CronPostsService', () => {
         {
           provide: SchedulerPublishStateService,
           useValue: schedulerPublishStateService,
+        },
+        {
+          provide: PostRepeatSchedulerService,
+          useValue: postRepeatSchedulerService,
         },
       ],
     }).compile();
@@ -681,6 +692,60 @@ describe('CronPostsService', () => {
       organizationId: 'org-1',
       versionPinId: 'pin-1',
     });
+  });
+
+  it('delegates recurring-post scheduling after a successful publish', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    const post = {
+      brand: 'brand-1',
+      children: [],
+      credential: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      isRepeat: true,
+      organization: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      repeatFrequency: 'daily',
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        externalId: 'tweet-1',
+        platform: CredentialPlatform.TWITTER,
+        status: PostStatus.PUBLIC,
+        success: true,
+        url: 'https://x.com/example/status/tweet-1',
+      }),
+      supportsThreads: false,
+    });
+
+    await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(postRepeatSchedulerService.scheduleNextRepeat).toHaveBeenCalledWith(
+      post,
+      expect.stringContaining('CronPostsService'),
+    );
   });
 
   it('persists a grouped provider success even when the provider omits its id', async () => {
