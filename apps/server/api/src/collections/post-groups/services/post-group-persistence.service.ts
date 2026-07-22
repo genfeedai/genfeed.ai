@@ -501,28 +501,33 @@ export class PostGroupPersistenceService {
       return new Map();
     }
 
-    const rows = await client.$queryRaw<SchedulerPostAnalytics[]>(Prisma.sql`
-      SELECT DISTINCT ON ("postId")
-        "brandId",
-        "date",
-        "engagementRate",
-        "id",
-        "organizationId",
-        "platform"::text AS "platform",
-        "postId",
-        "totalComments",
-        "totalLikes",
-        "totalSaves",
-        "totalShares",
-        "totalViews",
-        "updatedAt"
-      FROM "post_analytics"
-      WHERE "organizationId" = ${organizationId}
-        AND "brandId" IN (${Prisma.join(brandIds)})
-        AND "postId" IN (${Prisma.join(targetIds)})
-        AND "platform"::text IN (${Prisma.join(platforms)})
-      ORDER BY "postId", "date" DESC, "updatedAt" DESC, "id"
-    `);
+    let rows: SchedulerPostAnalytics[];
+    try {
+      rows = await client.$queryRaw<SchedulerPostAnalytics[]>(Prisma.sql`
+        SELECT DISTINCT ON ("postId")
+          "brandId",
+          "date",
+          "engagementRate",
+          "id",
+          "organizationId",
+          "platform"::text AS "platform",
+          "postId",
+          "totalComments",
+          "totalLikes",
+          "totalSaves",
+          "totalShares",
+          "totalViews",
+          "updatedAt"
+        FROM "post_analytics"
+        WHERE "organizationId" = ${organizationId}
+          AND "brandId" IN (${Prisma.join(brandIds)})
+          AND "postId" IN (${Prisma.join(targetIds)})
+          AND "platform"::text IN (${Prisma.join(platforms)})
+        ORDER BY "postId", "date" DESC, "updatedAt" DESC, "id"
+      `);
+    } catch {
+      return new Map();
+    }
     const targetsById = new Map(targets.map((target) => [target.id, target]));
     const analyticsByTarget = new Map<string, SchedulerPostAnalytics>();
 

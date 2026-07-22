@@ -146,6 +146,19 @@ describe('PostGroupPersistenceService', () => {
     });
   });
 
+  it('degrades analytics to unavailable when the snapshot query fails', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(makeGroup());
+    prisma.post.findMany.mockResolvedValue([makeTarget()]);
+    prisma.$queryRaw.mockRejectedValue(new Error('analytics unavailable'));
+
+    const release = await service.findByIdempotencyKey('org-1', 'request-1');
+
+    expect(release?.targets?.[0]?.analytics).toEqual({
+      snapshot: null,
+      state: 'unavailable',
+    });
+  });
+
   it('enforces credential connection, platform, and brand scope', async () => {
     prisma.credential.findMany.mockResolvedValue([
       {
