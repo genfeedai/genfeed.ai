@@ -93,8 +93,9 @@ describe('PublishEventWebhookService', () => {
       schemaVersion: 1,
     });
     expect(queue.add.mock.calls[0][2]).toMatchObject({
-      jobId: 'publish:target.published:post_123:post_123:published',
+      jobId: expect.stringMatching(/^publish-webhook-[0-9a-f]{64}$/),
     });
+    expect(queue.add.mock.calls[0][2]?.jobId).not.toContain(':');
     expect(settingsService.recordWebhookDeliveryStatus).toHaveBeenCalledWith(
       'org_123',
       expect.objectContaining({
@@ -130,12 +131,13 @@ describe('PublishEventWebhookService', () => {
     await service.emitLegacyPostFailed(input);
 
     expect(queue.add).toHaveBeenCalledTimes(4);
-    expect(queue.add.mock.calls.map((call) => call[2]?.jobId)).toEqual([
-      'publish:target.failed:post_123:post_123:failed',
-      'publish:release.failed:post_123:release:failed',
-      'publish:target.failed:post_123:post_123:failed',
-      'publish:release.failed:post_123:release:failed',
-    ]);
+    const jobIds = queue.add.mock.calls.map((call) => call[2]?.jobId);
+    expect(jobIds[0]).toMatch(/^publish-webhook-[0-9a-f]{64}$/);
+    expect(jobIds[1]).toMatch(/^publish-webhook-[0-9a-f]{64}$/);
+    expect(jobIds[0]).toBe(jobIds[2]);
+    expect(jobIds[1]).toBe(jobIds[3]);
+    expect(new Set(jobIds).size).toBe(2);
+    expect(jobIds.every((jobId) => !jobId?.includes(':'))).toBe(true);
 
     for (const call of queue.add.mock.calls) {
       expect(call[2]).toMatchObject({
@@ -370,8 +372,11 @@ describe('PublishEventWebhookService', () => {
           release: expect.objectContaining({ id: 'release_test' }),
         }),
       }),
-      { jobId: status.deliveryId },
+      {
+        jobId: expect.stringMatching(/^publish-webhook-[0-9a-f]{64}$/),
+      },
     );
+    expect(queue.add.mock.calls[0][2]?.jobId).not.toContain(':');
     expect(settingsService.recordWebhookDeliveryStatus).toHaveBeenCalledWith(
       'org_123',
       expect.objectContaining({
