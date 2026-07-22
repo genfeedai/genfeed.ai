@@ -380,6 +380,10 @@ function collectRecurrenceOccurrences(
       return { isExhausted: true, occurrences, success: true };
     }
 
+    if (occurrences.length >= limit) {
+      return { isExhausted: false, occurrences, success: true };
+    }
+
     const candidate = localDateTimeToInstant(localCandidate, formatter);
     if (!candidate) {
       return {
@@ -395,10 +399,6 @@ function collectRecurrenceOccurrences(
 
     if (endInstant && candidate > endInstant) {
       return { isExhausted: true, occurrences, success: true };
-    }
-
-    if (occurrences.length >= limit) {
-      return { isExhausted: false, occurrences, success: true };
     }
 
     occurrences.push(candidate.toISOString());

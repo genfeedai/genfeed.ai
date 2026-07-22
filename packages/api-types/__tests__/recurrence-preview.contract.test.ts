@@ -188,6 +188,25 @@ describe('recurrence preview contract', () => {
     });
   });
 
+  test('does not validate occurrences beyond the requested preview limit', () => {
+    const result = previewRecurrenceOccurrences({
+      limit: 1,
+      recurrence: {
+        frequency: PostFrequency.DAILY,
+        interval: 1,
+        maxRepeats: 3,
+      },
+      startAt: '2026-03-06T07:30:00.000Z',
+      timezone: 'America/New_York',
+    });
+
+    expect(result).toEqual({
+      isExhausted: false,
+      occurrences: ['2026-03-07T07:30:00.000Z'],
+      success: true,
+    });
+  });
+
   test('applies schema defaults deterministically', () => {
     const parsed = recurrencePreviewInputSchema.parse({
       recurrence: {
