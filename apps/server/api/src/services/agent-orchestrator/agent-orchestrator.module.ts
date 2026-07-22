@@ -28,6 +28,7 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
@@ -74,6 +75,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentThreadingModule),
     forwardRef(() => AgentRunsModule),
     forwardRef(() => AiActionsModule),
+    forwardRef(() => AdsResearchModule),
     forwardRef(() => AgentStreamPublisherModule),
     forwardRef(() => AnalyticsModule),
     forwardRef(() => BatchGenerationModule),

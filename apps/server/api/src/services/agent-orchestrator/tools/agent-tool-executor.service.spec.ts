@@ -759,6 +759,7 @@ describe('AgentToolExecutorService', () => {
     };
     const instagramInspirationHandler =
       new AgentInstagramInspirationToolHandler(
+        adsResearchService as never,
         brandsService as never,
         credentialsService as never,
         instagramInspirationService as never,
@@ -801,7 +802,6 @@ describe('AgentToolExecutorService', () => {
       seoScorerService as never,
       ingredientsService as never,
       {} as never, // votesService
-      adsResearchService as never,
       instagramInspirationHandler,
       brandInterviewService as never,
       agentScopeContextService as never,
@@ -4176,7 +4176,6 @@ describe('AgentToolExecutorService', () => {
       undefined as never, // seoScorerService
       undefined as never, // ingredientsService
       undefined as never, // votesService
-      undefined as never, // adsResearchService
       undefined as never, // instagramInspirationHandler
       undefined as never, // brandInterviewService
       undefined as never, // agentScopeContextService

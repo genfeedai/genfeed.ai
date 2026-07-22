@@ -20,7 +20,6 @@ import { VotesService } from '@api/collections/votes/services/votes.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import {
   type AiActionResult,
   AiActionsService,
@@ -451,8 +450,6 @@ export class AgentToolExecutorService {
     private readonly ingredientsService: IngredientsService,
     @Optional()
     private readonly votesService: VotesService,
-    @Optional()
-    private readonly adsResearchService: AdsResearchService | undefined,
     private readonly instagramInspirationHandler: AgentInstagramInspirationToolHandler,
     @Optional()
     private readonly brandInterviewService: BrandInterviewService | undefined,
@@ -797,7 +794,13 @@ export class AgentToolExecutorService {
         this.assertToolBrandScope(toolName, parameters, context);
       }
 
-      const result = await this.dispatch(toolName, parameters, context);
+      const result = this.instagramInspirationHandler.handles(toolName)
+        ? await this.instagramInspirationHandler.execute(
+            toolName,
+            parameters,
+            context,
+          )
+        : await this.dispatch(toolName, parameters, context);
       const scopedResult = await this.routeRewriteService.scopeToolResultHrefs(
         result,
         context,
@@ -989,26 +992,8 @@ export class AgentToolExecutorService {
       case AgentToolName.GET_AD_RESEARCH_DETAIL:
         return this.getAdResearchDetail(params, ctx);
 
-      case AgentToolName.LIST_INSTAGRAM_INSPIRATION:
-        return this.instagramInspirationHandler.listInstagramInspiration(
-          params,
-          ctx,
-        );
-
-      case AgentToolName.GET_INSTAGRAM_INSPIRATION_DETAIL:
-        return this.instagramInspirationHandler.getInstagramInspirationDetail(
-          params,
-          ctx,
-        );
-
       case AgentToolName.CREATE_AD_REMIX_WORKFLOW:
         return this.createAdRemixWorkflow(params, ctx);
-
-      case AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW:
-        return this.instagramInspirationHandler.createInstagramRemixWorkflow(
-          params,
-          ctx,
-        );
 
       case AgentToolName.GENERATE_AD_PACK:
         return this.generateAdPack(params, ctx);
@@ -1209,9 +1194,7 @@ export class AgentToolExecutorService {
     }
   }
 
-  // ──────────────────────────────────────────────
   // READ-ONLY TOOLS (0 credits)
-  // ──────────────────────────────────────────────
 
   private async listGenfeedTools(
     params: Record<string, unknown>,
@@ -3806,7 +3789,7 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.adsResearchService) {
+    if (!this.instagramInspirationHandler.adsResearchService) {
       return {
         creditsUsed: 0,
         error: 'Ads research service is not available.',
@@ -3830,10 +3813,11 @@ export class AgentToolExecutorService {
       timeframe: readAdsTimeframe(params.timeframe),
     };
 
-    const result = await this.adsResearchService.listAds(
-      ctx.organizationId,
-      filters,
-    );
+    const result =
+      await this.instagramInspirationHandler.adsResearchService.listAds(
+        ctx.organizationId,
+        filters,
+      );
     const surfacedItems = [...result.publicAds, ...result.connectedAds].slice(
       0,
       6,
@@ -3889,7 +3873,7 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.adsResearchService) {
+    if (!this.instagramInspirationHandler.adsResearchService) {
       return {
         creditsUsed: 0,
         error: 'Ads research service is not available.',
@@ -3908,18 +3892,19 @@ export class AgentToolExecutorService {
       };
     }
 
-    const detail = await this.adsResearchService.getAdDetail(
-      ctx.organizationId,
-      {
-        adAccountId: readOptionalString(params.adAccountId),
-        channel: readAdsChannel(params.channel),
-        credentialId: readOptionalString(params.credentialId),
-        id: adId,
-        loginCustomerId: readOptionalString(params.loginCustomerId),
-        platform: readAdsPlatform(params.platform),
-        source,
-      },
-    );
+    const detail =
+      await this.instagramInspirationHandler.adsResearchService.getAdDetail(
+        ctx.organizationId,
+        {
+          adAccountId: readOptionalString(params.adAccountId),
+          channel: readAdsChannel(params.channel),
+          credentialId: readOptionalString(params.credentialId),
+          id: adId,
+          loginCustomerId: readOptionalString(params.loginCustomerId),
+          platform: readAdsPlatform(params.platform),
+          source,
+        },
+      );
 
     return {
       creditsUsed: 0,
@@ -3963,7 +3948,7 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.adsResearchService) {
+    if (!this.instagramInspirationHandler.adsResearchService) {
       return {
         creditsUsed: 0,
         error: 'Ads research service is not available.',
@@ -3981,7 +3966,9 @@ export class AgentToolExecutorService {
     }
 
     const workflow =
-      await this.adsResearchService.createRemixWorkflow(baseInput);
+      await this.instagramInspirationHandler.adsResearchService.createRemixWorkflow(
+        baseInput,
+      );
 
     return {
       creditsUsed: 0,
@@ -3993,10 +3980,6 @@ export class AgentToolExecutorService {
       },
       nextActions: [
         {
-          // TODO: These hrefs should be org-scoped (e.g. /{orgSlug}/{brandSlug}/workflows/...).
-          // The agent orchestrator service doesn't have org/brand context in scope.
-          // The client should prefix these with the org URL, or the service needs
-          // org/brand slugs passed through the execution context.
           ctas: [
             {
               href: `/workflows/${workflow.workflowId}`,
@@ -4026,7 +4009,7 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.adsResearchService) {
+    if (!this.instagramInspirationHandler.adsResearchService) {
       return {
         creditsUsed: 0,
         error: 'Ads research service is not available.',
@@ -4043,10 +4026,11 @@ export class AgentToolExecutorService {
       };
     }
 
-    const adPack = await this.adsResearchService.generateAdPack(
-      ctx.organizationId,
-      baseInput,
-    );
+    const adPack =
+      await this.instagramInspirationHandler.adsResearchService.generateAdPack(
+        ctx.organizationId,
+        baseInput,
+      );
 
     return {
       creditsUsed: 0,
@@ -4075,7 +4059,7 @@ export class AgentToolExecutorService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.adsResearchService) {
+    if (!this.instagramInspirationHandler.adsResearchService) {
       return {
         creditsUsed: 0,
         error: 'Ads research service is not available.',
@@ -4092,12 +4076,15 @@ export class AgentToolExecutorService {
       };
     }
 
-    const launchPrep = await this.adsResearchService.prepareCampaignForReview({
-      ...baseInput,
-      campaignName: readOptionalString(params.campaignName),
-      createWorkflow: params.createWorkflow === true,
-      dailyBudget: readOptionalNumber(params.dailyBudget),
-    });
+    const launchPrep =
+      await this.instagramInspirationHandler.adsResearchService.prepareCampaignForReview(
+        {
+          ...baseInput,
+          campaignName: readOptionalString(params.campaignName),
+          createWorkflow: params.createWorkflow === true,
+          dailyBudget: readOptionalNumber(params.dailyBudget),
+        },
+      );
 
     return {
       creditsUsed: 0,
@@ -4106,7 +4093,6 @@ export class AgentToolExecutorService {
       },
       nextActions: [
         {
-          // TODO: These hrefs should be org-scoped (see TODO above in buildAdRemixWorkflow).
           ctas: [
             ...(launchPrep.workflowId
               ? [
@@ -4225,9 +4211,7 @@ export class AgentToolExecutorService {
     };
   }
 
-  // ──────────────────────────────────────────────
   // WRITE TOOLS (credits deducted by agent orchestrator)
-  // ──────────────────────────────────────────────
 
   private async assertPublishingScope(
     ctx: ToolExecutionContext,
@@ -5783,9 +5767,7 @@ export class AgentToolExecutorService {
     };
   }
 
-  // ──────────────────────────────────────────────
   // AI TOOLS — call real LLM services
-  // ──────────────────────────────────────────────
 
   private async aiAction(
     params: Record<string, unknown>,
@@ -5951,11 +5933,9 @@ export class AgentToolExecutorService {
     };
   }
 
-  // ──────────────────────────────────────────────
   // GENERATION TOOLS — call ingredient creation endpoints
   // Provider-agnostic (Replicate, fal, genfeedai, ElevenLabs, etc.)
   // Credits handled by the endpoint's CreditsInterceptor.
-  // ──────────────────────────────────────────────
 
   private async generateImage(
     params: Record<string, unknown>,
