@@ -8,6 +8,7 @@ vi.mock(
 import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
+import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
@@ -756,6 +757,12 @@ describe('AgentToolExecutorService', () => {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
       assertResourceBrand: vi.fn(),
     };
+    const instagramInspirationHandler =
+      new AgentInstagramInspirationToolHandler(
+        brandsService as never,
+        credentialsService as never,
+        instagramInspirationService as never,
+      );
 
     const service = new AgentToolExecutorService(
       loggerService,
@@ -795,7 +802,7 @@ describe('AgentToolExecutorService', () => {
       ingredientsService as never,
       {} as never, // votesService
       adsResearchService as never,
-      instagramInspirationService as never,
+      instagramInspirationHandler,
       brandInterviewService as never,
       agentScopeContextService as never,
     );
@@ -4170,7 +4177,7 @@ describe('AgentToolExecutorService', () => {
       undefined as never, // ingredientsService
       undefined as never, // votesService
       undefined as never, // adsResearchService
-      undefined as never, // instagramInspirationService
+      undefined as never, // instagramInspirationHandler
       undefined as never, // brandInterviewService
       undefined as never, // agentScopeContextService
     );

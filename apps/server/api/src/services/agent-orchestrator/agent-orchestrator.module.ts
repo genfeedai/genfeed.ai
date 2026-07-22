@@ -41,6 +41,7 @@ import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/age
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
+import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
@@ -110,6 +111,7 @@ import { forwardRef, Module } from '@nestjs/common';
   providers: [
     AgentCompletionCardBuilderService,
     AgentDashboardToolHandler,
+    AgentInstagramInspirationToolHandler,
     AgentMemoryGoalsToolHandler,
     AgentPublishToolHandler,
     AgentOrchestratorService,
