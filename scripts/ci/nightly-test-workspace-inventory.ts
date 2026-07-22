@@ -27,6 +27,10 @@ export type NightlyTestExclusion = {
   trackingIssue: number;
 };
 
+export type NightlyTestExcludedWorkspace = NightlyTestExclusion & {
+  workspaceClass: NightlyTestWorkspaceClass;
+};
+
 export type NightlyTestInventoryViolation = {
   kind:
     | 'duplicate-exclusion'
@@ -43,10 +47,12 @@ export type NightlyTestInventoryViolation = {
 };
 
 export type NightlyTestInventoryResult = {
-  excluded: NightlyTestExclusion[];
+  excluded: NightlyTestExcludedWorkspace[];
   summary: {
     byClass: Record<NightlyTestWorkspaceClass, number>;
+    discoveredByClass: Record<NightlyTestWorkspaceClass, number>;
     discoveredWorkspaces: number;
+    excludedByClass: Record<NightlyTestWorkspaceClass, number>;
     excludedWorkspaces: number;
     executableWorkspaces: number;
     testCapableWorkspaces: number;
@@ -228,7 +234,9 @@ function validateExclusion(
 }
 
 function createClassCounts(
-  workspaces: readonly NightlyTestWorkspace[],
+  workspaces: readonly {
+    workspaceClass: NightlyTestWorkspaceClass;
+  }[],
 ): Record<NightlyTestWorkspaceClass, number> {
   const counts = Object.fromEntries(
     WORKSPACE_CLASSES.map((workspaceClass) => [workspaceClass, 0]),
@@ -264,9 +272,12 @@ export function buildNightlyTestWorkspaceInventory(
   const workspaceMatches = discoverWorkspaceMatches(rootDir, workspacePatterns);
   const violations: NightlyTestInventoryViolation[] = [];
   const exclusionsByPath = new Map<string, NightlyTestExclusion>();
+  const discoveredWorkspaces: {
+    workspaceClass: NightlyTestWorkspaceClass;
+  }[] = [];
   const testCapablePaths = new Set<string>();
   const workspaceNames = new Map<string, string>();
-  const excluded: NightlyTestExclusion[] = [];
+  const excluded: NightlyTestExcludedWorkspace[] = [];
   const workspaces: NightlyTestWorkspace[] = [];
 
   for (const exclusion of exclusions) {
@@ -299,6 +310,11 @@ export function buildNightlyTestWorkspaceInventory(
         message: `Workspace is matched by multiple root patterns: ${matchingPatterns.join(', ')}.`,
         path: workspacePath,
       });
+    }
+
+    const workspaceClass = classifyWorkspace(workspacePath);
+    if (workspaceClass) {
+      discoveredWorkspaces.push({ workspaceClass });
     }
 
     const manifest = readJsonFile<WorkspacePackageManifest>(
@@ -349,19 +365,21 @@ export function buildNightlyTestWorkspaceInventory(
       workspaceNames.set(manifest.name, workspacePath);
     }
 
-    const exclusion = exclusionsByPath.get(workspacePath);
-    if (exclusion) {
-      excluded.push(exclusion);
-      continue;
-    }
-
-    const workspaceClass = classifyWorkspace(workspacePath);
     if (!workspaceClass) {
       violations.push({
         kind: 'missing-workspace-classification',
         message:
           'Test-capable workspace is missing a nightly inventory classification.',
         path: workspacePath,
+      });
+      continue;
+    }
+
+    const exclusion = exclusionsByPath.get(workspacePath);
+    if (exclusion) {
+      excluded.push({
+        ...exclusion,
+        workspaceClass,
       });
       continue;
     }
@@ -393,7 +411,9 @@ export function buildNightlyTestWorkspaceInventory(
     excluded,
     summary: {
       byClass: createClassCounts(workspaces),
+      discoveredByClass: createClassCounts(discoveredWorkspaces),
       discoveredWorkspaces: workspaceMatches.size,
+      excludedByClass: createClassCounts(excluded),
       excludedWorkspaces: excluded.length,
       executableWorkspaces: workspaces.length,
       testCapableWorkspaces: testCapablePaths.size,
@@ -414,7 +434,7 @@ export function formatNightlyTestWorkspaceInventory(
     `- Excluded workspaces: ${result.summary.excludedWorkspaces}`,
     ...WORKSPACE_CLASSES.map(
       (workspaceClass) =>
-        `- ${workspaceClass}: ${result.summary.byClass[workspaceClass]}`,
+        `- ${workspaceClass}: ${result.summary.byClass[workspaceClass]} executable, ${result.summary.excludedByClass[workspaceClass]} excluded`,
     ),
   ];
 
