@@ -18,6 +18,29 @@ import type { IScheduleStatusTransition } from './status-transition.interface';
  */
 export type ChannelTargetSettings = Record<string, unknown>;
 
+export interface IChannelTargetAnalyticsSnapshot {
+  comments: number;
+  engagementRate: number;
+  likes: number;
+  saves: number;
+  shares: number;
+  /** ISO 8601 day represented by the daily analytics snapshot. */
+  snapshotDate: string;
+  /** ISO 8601 timestamp of the most recent write to the snapshot. */
+  updatedAt: string;
+  views: number;
+}
+
+export type IChannelTargetAnalyticsSummary =
+  | {
+      snapshot: IChannelTargetAnalyticsSnapshot;
+      state: 'ready';
+    }
+  | {
+      snapshot: null;
+      state: 'unavailable';
+    };
+
 /**
  * Structured failure detail for a channel target, surfaced to the calendar and
  * public API so operators can tell retryable provider hiccups from permanent
@@ -64,6 +87,8 @@ export interface IChannelTarget extends IBaseEntity {
    */
   readiness?: IPublishingProviderReadiness | null;
   executionState: TargetExecutionState;
+  /** Latest exact-target analytics snapshot, or an explicit empty state. */
+  analytics: IChannelTargetAnalyticsSummary;
   /** Provider's ID for the published item (used for analytics reconciliation). */
   externalProviderId?: string | null;
   /** Provider's short code / permalink slug, when distinct from the ID. */

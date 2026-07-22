@@ -3,6 +3,7 @@ import type {
   CreatePostGroupParams,
   ReleaseGroupListQuery,
   SchedulerCredential,
+  SchedulerPostAnalytics,
   SchedulerPostGroup,
   SchedulerPostTarget,
   SchedulerTx,
@@ -187,7 +188,16 @@ export class PostGroupPersistenceService {
       organizationId,
       group.id,
     );
-    return this.contractService.toReleaseGroup(group, targets);
+    const analyticsByTarget = await this.getLatestTargetAnalytics(
+      this.prisma,
+      organizationId,
+      targets,
+    );
+    return this.contractService.toReleaseGroup(
+      group,
+      targets,
+      analyticsByTarget,
+    );
   }
 
   async listReleaseGroups(
@@ -266,12 +276,18 @@ export class PostGroupPersistenceService {
       currentTargets.push(target);
       targetsByGroup.set(target.groupId, currentTargets);
     }
+    const analyticsByTarget = await this.getLatestTargetAnalytics(
+      this.prisma,
+      query.organizationId,
+      targets,
+    );
 
     return groups
       .map((group) =>
         this.contractService.toReleaseGroup(
           group,
           targetsByGroup.get(group.id) ?? [],
+          analyticsByTarget,
         ),
       )
       .sort((left, right) => {
@@ -463,6 +479,74 @@ export class PostGroupPersistenceService {
     })) as SchedulerPostTarget[];
   }
 
+  async getLatestTargetAnalytics(
+    client: Pick<SchedulerTx, '$queryRaw'>,
+    organizationId: string,
+    targets: readonly SchedulerPostTarget[],
+  ): Promise<Map<string, SchedulerPostAnalytics>> {
+    const targetIds = [...new Set(targets.map((target) => target.id))];
+    const brandIds = [
+      ...new Set(
+        targets.flatMap((target) => (target.brandId ? [target.brandId] : [])),
+      ),
+    ];
+    const platforms = [
+      ...new Set(targets.map((target) => target.platform.toUpperCase())),
+    ];
+    if (
+      targetIds.length === 0 ||
+      brandIds.length === 0 ||
+      platforms.length === 0
+    ) {
+      return new Map();
+    }
+
+    let rows: SchedulerPostAnalytics[];
+    try {
+      rows = await client.$queryRaw<SchedulerPostAnalytics[]>(Prisma.sql`
+        SELECT DISTINCT ON ("postId")
+          "brandId",
+          "date",
+          "engagementRate",
+          "id",
+          "organizationId",
+          "platform"::text AS "platform",
+          "postId",
+          "totalComments",
+          "totalLikes",
+          "totalSaves",
+          "totalShares",
+          "totalViews",
+          "updatedAt"
+        FROM "post_analytics"
+        WHERE "organizationId" = ${organizationId}
+          AND "brandId" IN (${Prisma.join(brandIds)})
+          AND "postId" IN (${Prisma.join(targetIds)})
+          AND "platform"::text IN (${Prisma.join(platforms)})
+        ORDER BY "postId", "date" DESC, "updatedAt" DESC, "id"
+      `);
+    } catch {
+      return new Map();
+    }
+    const targetsById = new Map(targets.map((target) => [target.id, target]));
+    const analyticsByTarget = new Map<string, SchedulerPostAnalytics>();
+
+    for (const row of rows) {
+      const target = targetsById.get(row.postId);
+      if (
+        !target ||
+        row.organizationId !== organizationId ||
+        row.brandId !== target.brandId ||
+        row.platform.toLowerCase() !== target.platform.toLowerCase()
+      ) {
+        continue;
+      }
+      analyticsByTarget.set(row.postId, row);
+    }
+
+    return analyticsByTarget;
+  }
+
   private getEarliestSchedule(release: IReleaseGroup): number {
     const schedules = [
       release.scheduledAt,
@@ -476,13 +560,18 @@ export class PostGroupPersistenceService {
   }
 
   async recalculateAndHydrate(
-    tx: Pick<SchedulerTx, 'post' | 'postGroup'>,
+    tx: Pick<SchedulerTx, '$queryRaw' | 'post' | 'postGroup'>,
     organizationId: string,
     groupId: string,
     userId: string,
   ): Promise<IReleaseGroup> {
     const group = await this.getGroupOrThrow(tx, organizationId, groupId);
     const targets = await this.getTargets(tx, organizationId, group.id);
+    const analyticsByTarget = await this.getLatestTargetAnalytics(
+      tx,
+      organizationId,
+      targets,
+    );
     const status = deriveReleaseStatusFromTargets(
       targets.map(
         (target) => target.targetExecutionState as TargetExecutionState,
@@ -506,6 +595,10 @@ export class PostGroupPersistenceService {
       where: { id: group.id },
     })) as SchedulerPostGroup;
 
-    return this.contractService.toReleaseGroup(updated, targets);
+    return this.contractService.toReleaseGroup(
+      updated,
+      targets,
+      analyticsByTarget,
+    );
   }
 }

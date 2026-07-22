@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "better-auth": "^1.6.23",
+    "better-auth": "1.6.23",
     "zod": "4.4.3"
   },
   "description": "Genfeed.ai first-party Better Auth client, epic #735",

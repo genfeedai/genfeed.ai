@@ -86,6 +86,7 @@ describe('PostGroupsService', () => {
     toPublicInterface: ReturnType<typeof vi.fn>;
   };
   let prisma: {
+    $queryRaw: ReturnType<typeof vi.fn>;
     $transaction: ReturnType<typeof vi.fn>;
     brand: { findFirst: ReturnType<typeof vi.fn> };
     credential: { findMany: ReturnType<typeof vi.fn> };
@@ -116,6 +117,7 @@ describe('PostGroupsService', () => {
     vi.setSystemTime(now);
 
     prisma = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
       $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
       brand: {
         findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }),
@@ -245,6 +247,36 @@ describe('PostGroupsService', () => {
         }),
       }),
     );
+  });
+
+  it('returns a release with one batched exact-target analytics summary', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(makeGroup());
+    prisma.post.findMany.mockResolvedValue([makeTarget()]);
+    prisma.$queryRaw.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        date: new Date('2026-07-21T00:00:00.000Z'),
+        engagementRate: 0.14,
+        id: 'analytics-1',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+        postId: 'target-1',
+        totalComments: 8,
+        totalLikes: 55,
+        totalSaves: 3,
+        totalShares: 5,
+        totalViews: 1000,
+        updatedAt: new Date('2026-07-21T12:30:00.000Z'),
+      },
+    ]);
+
+    const result = await service.getOne('org-1', 'group-1');
+
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(result.targets?.[0]?.analytics).toMatchObject({
+      snapshot: { likes: 55, views: 1000 },
+      state: 'ready',
+    });
   });
 
   it('creates a scheduled post group and channel target idempotently from the shared contract', async () => {

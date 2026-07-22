@@ -2,6 +2,8 @@
 
 ## Project State
 
+- [Scheduler Target Analytics Summary Spec](spec-scheduler-target-analytics.md) — typed latest-snapshot scheduler target read model for #1975
+- [Scheduler Target Analytics Decisions](decisions-scheduler-target-analytics.md) — batch hydration and response-shape tradeoffs for #1975
 - [Pull-request Validation Telemetry Spec](spec-pr-validation-telemetry.md) — exact-head, read-only validation evidence contract for issue #1966
 - [Pull-request Validation Telemetry Decisions](decisions-pr-validation-telemetry.md) — collector boundary, fail-closed semantics, and surface classification decisions
 - [Brand and Social Visual Enrichment Spec](spec-brand-social-visual-enrichment.md) — S3-backed website headers and connected-account PFPs with platform badges
