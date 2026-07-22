@@ -26,6 +26,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -99,7 +100,7 @@ export class VideosController {
   @Get()
   @Cache({
     keyGenerator: (req) =>
-      `videos:list:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
+      `videos:list:org:${(req.user?.publicMetadata?.organization as string | undefined) ?? 'global'}:brand:${(req.user?.publicMetadata?.brand as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:query:${JSON.stringify(req.query)}`,
     tags: ['videos'],
     ttl: 300, // 5 minutes
   })
@@ -115,7 +116,8 @@ export class VideosController {
     // GET /videos/latest route: brand-scoped user videos with training sources
     // excluded, ordered by createdAt desc and capped at 50. Unlike the standard
     // list route there is no organization OR-branch and no isDefault branch;
-    // it is user-scoped only and bypasses status/scope/folder/parent/search.
+    // it is scoped to the active organization and user while bypassing
+    // status/scope/folder/parent/search.
     if (query.latest) {
       const latestIsDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
       const latestBrand = publicMetadata.brand;
@@ -129,6 +131,7 @@ export class VideosController {
                 IngredientCategory.VIDEO,
               ),
               isDeleted: latestIsDeleted,
+              organizationId: publicMetadata.organization,
               // Exclude training source videos by default
               training: { not: false },
               user: publicMetadata.user,
@@ -189,14 +192,7 @@ export class VideosController {
     const aggregate = {
       where: {
         AND: [
-          {
-            OR: [
-              { user: publicMetadata.user },
-              {
-                organization: publicMetadata.organization,
-              },
-            ],
-          },
+          { organizationId: publicMetadata.organization },
           {
             brand,
             category: CategoryPrismaUtil.toIngredientCategory(
@@ -225,7 +221,7 @@ export class VideosController {
   @Get(':videoId')
   @Cache({
     keyGenerator: (req) =>
-      `video:${req.params?.videoId ?? 'unknown'}:user:${req.user?.id ?? 'anonymous'}`,
+      `video:${req.params?.videoId ?? 'unknown'}:org:${(req.user?.publicMetadata?.organization as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}`,
     tags: ['videos'],
     ttl: 900, // 15 minutes
   })
@@ -240,8 +236,11 @@ export class VideosController {
     const pipeline = {
       where: {
         _id: videoId,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.VIDEO,
+        ),
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
     };
 
@@ -256,16 +255,26 @@ export class VideosController {
     const data = result.docs[0];
 
     // Populate relationships that aren't in aggregation
-    const populatedData = await this.videosService.findOne({ _id: videoId }, [
-      PopulatePatterns.metadataFull,
-      PopulatePatterns.promptFull,
-      PopulatePatterns.userMinimal,
-      PopulatePatterns.brandMinimal,
-      PopulatePatterns.organizationMinimal,
-      { path: 'captions' },
-      { path: 'votes' },
-      { path: 'posts' },
-    ]);
+    const populatedData = await this.videosService.findOne(
+      {
+        _id: videoId,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.VIDEO,
+        ),
+        isDeleted: false,
+        organizationId: publicMetadata.organization,
+      },
+      [
+        PopulatePatterns.metadataFull,
+        PopulatePatterns.promptFull,
+        PopulatePatterns.userMinimal,
+        PopulatePatterns.brandMinimal,
+        PopulatePatterns.organizationMinimal,
+        { path: 'captions' },
+        { path: 'votes' },
+        { path: 'posts' },
+      ],
+    );
 
     if (!populatedData) {
       return returnNotFound(this.constructorName, videoId);
@@ -375,10 +384,10 @@ export class VideosController {
     // Find the video first to ensure it exists and belongs to the user or is part of the same organization
     const video = await this.videosService.findOne({
       _id: videoId,
-      OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
-      ],
+      organizationId: publicMetadata.organization,
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.VIDEO,
+      ),
       isDeleted: false,
     });
 
@@ -386,12 +395,12 @@ export class VideosController {
       return returnNotFound(this.constructorName, videoId);
     }
 
-    // Only delete if the user owns the video
-    const data = await this.videosService.remove(videoId);
+    const canonicalVideoId = EntityIdUtil.resolveCanonicalId(video, videoId);
+    const data = await this.videosService.remove(canonicalVideoId);
 
     if (data) {
-      // Send the ingredient ID, then the function will find the metadat and remove it
-      await this.metadataService.remove(videoId);
+      // Send the canonical ingredient ID so legacy mongoId routes delete metadata too.
+      await this.metadataService.remove(canonicalVideoId);
     }
 
     return data

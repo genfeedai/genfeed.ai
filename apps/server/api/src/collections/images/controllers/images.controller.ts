@@ -8,7 +8,9 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -59,7 +61,7 @@ export class ImagesController {
   @Cache({
     keyGenerator: (req) =>
       req.query.latest === 'true'
-        ? `images:latest:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`
+        ? `images:latest:org:${(req.user?.publicMetadata?.organization as string | undefined) ?? 'global'}:brand:${(req.user?.publicMetadata?.brand as string | undefined) ?? 'global'}:user:${req.user?.id ?? 'anonymous'}:limit:${req.query.limit ?? 10}`
         : '',
     tags: ['images'],
     ttl: 300, // 5 minutes
@@ -74,6 +76,9 @@ export class ImagesController {
     this.loggerService.log(url, { query });
 
     const publicMetadata = getPublicMetadata(user);
+    const imageCategory = CategoryPrismaUtil.toIngredientCategory(
+      IngredientCategory.IMAGE,
+    );
 
     // `latest=true` shorthand — reproduces the exact WHERE clause of the former
     // GET /images/latest route: brand-scoped user images with training sources
@@ -92,8 +97,9 @@ export class ImagesController {
                   AND: [
                     {
                       brand: latestBrand,
-                      category: IngredientCategory.IMAGE,
+                      category: imageCategory,
                       isDeleted: latestIsDeleted,
+                      organizationId: publicMetadata.organization,
                       // Exclude training source images by default
                       training: { not: false },
                       user: publicMetadata.user,
@@ -105,9 +111,15 @@ export class ImagesController {
                     {
                       // Filter default images by brand when brand is specified
                       brand: latestBrand,
-                      category: IngredientCategory.IMAGE,
+                      category: imageCategory,
                       isDefault: true,
                       isDeleted: latestIsDeleted,
+                      OR: [
+                        {
+                          organizationId: publicMetadata.organization,
+                        },
+                        { organizationId: null },
+                      ],
                     },
                   ],
                 },
@@ -172,27 +184,8 @@ export class ImagesController {
               {
                 AND: [
                   {
-                    OR: [
-                      // User's own ingredients (when not filtering by isPublic)
-                      ...(query.isPublic === undefined
-                        ? [
-                            { user: publicMetadata.user },
-                            {
-                              organization: publicMetadata.organization,
-                            },
-                          ]
-                        : []),
-                      // Public ingredients in user's organization (when isPublic=true)
-                      ...(query.isPublic === true
-                        ? [
-                            {
-                              isPublic: true,
-                              organization: publicMetadata.organization,
-                            },
-                          ]
-                        : []),
-                    ],
-                    category: IngredientCategory.IMAGE,
+                    organizationId: publicMetadata.organization,
+                    category: imageCategory,
                     isDeleted,
                     ...(query.isPublic === undefined && scope !== undefined
                       ? { scope }
@@ -215,9 +208,15 @@ export class ImagesController {
                     {
                       AND: [
                         {
-                          category: IngredientCategory.IMAGE,
+                          category: imageCategory,
                           isDefault: true,
                           isDeleted,
+                          OR: [
+                            {
+                              organizationId: publicMetadata.organization,
+                            },
+                            { organizationId: null },
+                          ],
                           status,
                           // Filter default images by brand when brand is specified
                           ...(isEntityId(query.brand) ? { brand } : {}),
@@ -256,8 +255,14 @@ export class ImagesController {
     const data = await this.imagesService.findOne(
       {
         _id: imageId,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.IMAGE,
+        ),
         isDeleted: false,
-        organization: publicMetadata.organization,
+        OR: [
+          { organizationId: publicMetadata.organization },
+          { isDefault: true, organizationId: null },
+        ],
       },
       [
         PopulatePatterns.metadataFull,
@@ -303,8 +308,24 @@ export class ImagesController {
   async remove(
     @Req() request: Request,
     @Param('imageId') imageId: string,
+    @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const data = await this.imagesService.remove(imageId);
+    const publicMetadata = getPublicMetadata(user);
+    const image = await this.imagesService.findOne({
+      _id: imageId,
+      organizationId: publicMetadata.organization,
+      category: CategoryPrismaUtil.toIngredientCategory(
+        IngredientCategory.IMAGE,
+      ),
+      isDeleted: false,
+    });
+
+    if (!image) {
+      return returnNotFound(this.constructorName, imageId);
+    }
+
+    const canonicalImageId = EntityIdUtil.resolveCanonicalId(image, imageId);
+    const data = await this.imagesService.remove(canonicalImageId);
     return data
       ? serializeSingle(request, IngredientSerializer, data)
       : returnNotFound(this.constructorName, imageId);

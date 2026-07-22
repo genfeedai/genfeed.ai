@@ -3,6 +3,11 @@ import { VoicesController } from '@api/collections/voices/controllers/voices.con
 import type { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
 import { VoiceCloneService } from '@api/collections/voices/services/voice-clone.service';
 import { VoiceLibraryService } from '@api/collections/voices/services/voice-library.service';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
+import { VoiceCloneSerializer, VoiceSerializer } from '@genfeedai/serializers';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -34,6 +39,7 @@ describe('VoicesController', () => {
   let controller: VoicesController;
 
   beforeEach(() => {
+    vi.clearAllMocks();
     cloneService = { deleteClonedVoice: vi.fn() };
     libraryService = { findAll: vi.fn(), findCloned: vi.fn() };
     controller = new VoicesController(
@@ -50,6 +56,11 @@ describe('VoicesController', () => {
       collection,
     );
     expect(libraryService.findAll).toHaveBeenCalledWith(user, query);
+    expect(serializeCollection).toHaveBeenCalledWith(
+      request,
+      VoiceSerializer,
+      collection,
+    );
   });
 
   it('delegates the cloned voice listing', async () => {
@@ -60,6 +71,11 @@ describe('VoicesController', () => {
       controller.findClonedVoices(request, user, query),
     ).resolves.toBe(collection);
     expect(libraryService.findCloned).toHaveBeenCalledWith(user, query);
+    expect(serializeCollection).toHaveBeenCalledWith(
+      request,
+      VoiceCloneSerializer,
+      collection,
+    );
   });
 
   it('rejects an invalid cloned voice id before delegation', async () => {
@@ -76,6 +92,11 @@ describe('VoicesController', () => {
       controller.deleteClonedVoice(request, user, voice.id),
     ).resolves.toBe(voice);
     expect(cloneService.deleteClonedVoice).toHaveBeenCalledWith(user, voice.id);
+    expect(serializeSingle).toHaveBeenCalledWith(
+      request,
+      VoiceCloneSerializer,
+      voice,
+    );
   });
 
   it('returns not found when the cloned voice does not exist', async () => {

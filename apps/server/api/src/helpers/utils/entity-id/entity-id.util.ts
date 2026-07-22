@@ -122,6 +122,21 @@ export class EntityIdUtil {
   }
 
   /**
+   * Resolve the canonical Prisma id from a record found through an `_id`
+   * compatibility lookup, falling back to the requested id for legacy mocks.
+   */
+  static resolveCanonicalId(entity: unknown, fallbackId: string): string {
+    if (typeof entity !== 'object' || entity === null) {
+      return fallbackId;
+    }
+
+    const canonicalId = (entity as Record<string, unknown>).id;
+    return typeof canonicalId === 'string' && canonicalId.length > 0
+      ? canonicalId
+      : fallbackId;
+  }
+
+  /**
    * Normalize an array of values to id strings, filtering out invalid entries.
    */
   static normalizeIds(
