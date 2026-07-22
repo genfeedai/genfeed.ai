@@ -2,7 +2,6 @@ import { CreateAgentGoalDto } from '@api/collections/agent-goals/dto/create-agen
 import { UpdateAgentGoalDto } from '@api/collections/agent-goals/dto/update-agent-goal.dto';
 import type { AgentGoalMetric } from '@api/collections/agent-goals/schemas/agent-goal.schema';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   findOrThrow,
