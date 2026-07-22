@@ -76,6 +76,22 @@ export type SchedulerPostTarget = {
   workflowExecutionId: string | null;
 };
 
+export type SchedulerPostAnalytics = {
+  brandId: string;
+  date: Date;
+  engagementRate: number;
+  id: string;
+  organizationId: string;
+  platform: string;
+  postId: string;
+  totalComments: number;
+  totalLikes: number;
+  totalSaves: number;
+  totalShares: number;
+  totalViews: number;
+  updatedAt: Date;
+};
+
 export type ReleaseGroupListQuery = {
   brandId?: string;
   endDate: Date;

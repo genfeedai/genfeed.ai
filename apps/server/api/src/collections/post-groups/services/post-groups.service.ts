@@ -108,7 +108,17 @@ export class PostGroupsService {
       organizationId,
       group.id,
     );
-    return this.contractService.toReleaseGroup(group, targets);
+    const analyticsByTarget =
+      await this.persistenceService.getLatestTargetAnalytics(
+        this.prisma,
+        organizationId,
+        targets,
+      );
+    return this.contractService.toReleaseGroup(
+      group,
+      targets,
+      analyticsByTarget,
+    );
   }
 
   list(
@@ -350,7 +360,17 @@ export class PostGroupsService {
         organizationId,
         existing.id,
       );
-      return this.contractService.toReleaseGroup(updated, targets);
+      const analyticsByTarget =
+        await this.persistenceService.getLatestTargetAnalytics(
+          tx,
+          organizationId,
+          targets,
+        );
+      return this.contractService.toReleaseGroup(
+        updated,
+        targets,
+        analyticsByTarget,
+      );
     });
     if (
       input.attachments !== undefined ||

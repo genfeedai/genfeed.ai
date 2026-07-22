@@ -1,4 +1,5 @@
 import type {
+  SchedulerPostAnalytics,
   SchedulerPostGroup,
   SchedulerPostTarget,
 } from '@api/collections/post-groups/services/post-group.types';
@@ -61,6 +62,7 @@ describe('PostGroupContractService', () => {
         },
         targets: [
           expect.objectContaining({
+            analytics: { snapshot: null, state: 'unavailable' },
             credentialId: 'credential-1',
             executionState: TargetExecutionState.SCHEDULED,
             id: 'target-1',
@@ -70,6 +72,54 @@ describe('PostGroupContractService', () => {
         ],
       }),
     );
+  });
+
+  it('maps only an exact target analytics snapshot into the release contract', () => {
+    const group = makeGroup();
+    const target = makeTarget();
+    const analytics = makeAnalytics();
+
+    const release = service.toReleaseGroup(
+      group,
+      [target],
+      new Map([[target.id, analytics]]),
+    );
+
+    expect(release.targets?.[0]?.analytics).toEqual({
+      snapshot: {
+        comments: 8,
+        engagementRate: 0.14,
+        likes: 55,
+        saves: 3,
+        shares: 5,
+        snapshotDate: '2026-07-21T00:00:00.000Z',
+        updatedAt: '2026-07-21T12:30:00.000Z',
+        views: 1000,
+      },
+      state: 'ready',
+    });
+  });
+
+  it.each([
+    ['organization', { organizationId: 'org-2' }],
+    ['brand', { brandId: 'brand-2' }],
+    ['platform', { platform: CredentialPlatform.LINKEDIN }],
+    ['target', { postId: 'target-2' }],
+  ])('rejects an analytics row from a different %s scope', (_scope, overrides) => {
+    const group = makeGroup();
+    const target = makeTarget();
+    const analytics = makeAnalytics(overrides);
+
+    const release = service.toReleaseGroup(
+      group,
+      [target],
+      new Map([[target.id, analytics]]),
+    );
+
+    expect(release.targets?.[0]?.analytics).toEqual({
+      snapshot: null,
+      state: 'unavailable',
+    });
   });
 
   it('preserves validation and strict schedule error categories', () => {
@@ -167,6 +217,27 @@ function makeTarget(
     updatedAt: new Date('2026-07-19T10:00:00.000Z'),
     url: null,
     workflowExecutionId: null,
+    ...overrides,
+  };
+}
+
+function makeAnalytics(
+  overrides: Partial<SchedulerPostAnalytics> = {},
+): SchedulerPostAnalytics {
+  return {
+    brandId: 'brand-1',
+    date: new Date('2026-07-21T00:00:00.000Z'),
+    engagementRate: 0.14,
+    id: 'analytics-1',
+    organizationId: 'org-1',
+    platform: CredentialPlatform.TWITTER,
+    postId: 'target-1',
+    totalComments: 8,
+    totalLikes: 55,
+    totalSaves: 3,
+    totalShares: 5,
+    totalViews: 1000,
+    updatedAt: new Date('2026-07-21T12:30:00.000Z'),
     ...overrides,
   };
 }

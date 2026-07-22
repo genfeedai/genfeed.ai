@@ -2,6 +2,8 @@
 
 ## Project State
 
+- [Scheduler Target Analytics Summary Spec](spec-scheduler-target-analytics.md) — typed latest-snapshot scheduler target read model for #1975
+- [Scheduler Target Analytics Decisions](decisions-scheduler-target-analytics.md) — batch hydration and response-shape tradeoffs for #1975
 - [Brand and Social Visual Enrichment Spec](spec-brand-social-visual-enrichment.md) — S3-backed website headers and connected-account PFPs with platform badges
 - [Brand and Social Visual Enrichment Decisions](decisions-brand-social-visual-enrichment.md) — storage, overwrite, and failure-isolation decisions
 - [Project Overview](project_overview.md) — Genfeed.ai monorepo structure and key context

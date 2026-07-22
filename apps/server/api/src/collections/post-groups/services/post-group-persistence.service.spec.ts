@@ -18,6 +18,7 @@ describe('PostGroupPersistenceService', () => {
   let contractService: PostGroupContractService;
   let service: PostGroupPersistenceService;
   let prisma: {
+    $queryRaw: ReturnType<typeof vi.fn>;
     brand: { findFirst: ReturnType<typeof vi.fn> };
     credential: { findMany: ReturnType<typeof vi.fn> };
     post: {
@@ -36,6 +37,7 @@ describe('PostGroupPersistenceService', () => {
   beforeEach(() => {
     contractService = new PostGroupContractService();
     prisma = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
       brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }) },
       credential: { findMany: vi.fn().mockResolvedValue([]) },
       post: {
@@ -85,6 +87,63 @@ describe('PostGroupPersistenceService', () => {
         }),
       }),
     );
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('hydrates the latest exact-target analytics in one scoped batch query', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(makeGroup());
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget(),
+      makeTarget({
+        brandId: 'brand-2',
+        id: 'target-2',
+        platform: CredentialPlatform.LINKEDIN,
+      }),
+    ]);
+    prisma.$queryRaw.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        date: new Date('2026-07-21T00:00:00.000Z'),
+        engagementRate: 0.14,
+        id: 'analytics-1',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.TWITTER,
+        postId: 'target-1',
+        totalComments: 8,
+        totalLikes: 55,
+        totalSaves: 3,
+        totalShares: 5,
+        totalViews: 1000,
+        updatedAt: new Date('2026-07-21T12:30:00.000Z'),
+      },
+      {
+        brandId: 'brand-1',
+        date: new Date('2026-07-21T00:00:00.000Z'),
+        engagementRate: 0.5,
+        id: 'analytics-cross-scope',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.LINKEDIN,
+        postId: 'target-2',
+        totalComments: 50,
+        totalLikes: 50,
+        totalSaves: 50,
+        totalShares: 50,
+        totalViews: 50,
+        updatedAt: new Date('2026-07-21T13:00:00.000Z'),
+      },
+    ]);
+
+    const release = await service.findByIdempotencyKey('org-1', 'request-1');
+
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(release?.targets?.[0]?.analytics).toMatchObject({
+      snapshot: { likes: 55, views: 1000 },
+      state: 'ready',
+    });
+    expect(release?.targets?.[1]?.analytics).toEqual({
+      snapshot: null,
+      state: 'unavailable',
+    });
   });
 
   it('enforces credential connection, platform, and brand scope', async () => {
@@ -212,6 +271,7 @@ describe('PostGroupPersistenceService', () => {
         targets: [expect.objectContaining({ id: 'target-1' })],
       }),
     ]);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
   });
 
   it('sorts releases by earliest effective schedule and uses the id as a stable tie-breaker', async () => {

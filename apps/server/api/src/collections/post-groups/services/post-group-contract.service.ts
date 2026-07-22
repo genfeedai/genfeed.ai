@@ -1,4 +1,5 @@
 import type {
+  SchedulerPostAnalytics,
   SchedulerPostGroup,
   SchedulerPostTarget,
 } from '@api/collections/post-groups/services/post-group.types';
@@ -193,6 +194,7 @@ export class PostGroupContractService {
   toReleaseGroup(
     group: SchedulerPostGroup,
     targets: readonly SchedulerPostTarget[],
+    analyticsByTarget: ReadonlyMap<string, SchedulerPostAnalytics> = new Map(),
   ): IReleaseGroup {
     return {
       attachments: this.asReleaseAttachments(group.attachments, group.id),
@@ -211,7 +213,9 @@ export class PostGroupContractService {
       status: group.status as ReleaseStatus,
       statusTransitions: this.asTransitions(group.statusTransitions),
       targetSummary: this.summarizeTargets(targets),
-      targets: targets.map((target) => this.toChannelTarget(target, group.id)),
+      targets: targets.map((target) =>
+        this.toChannelTarget(target, group, analyticsByTarget.get(target.id)),
+      ),
       timezone: group.timezone,
       title: group.title,
       updatedAt: group.updatedAt.toISOString(),
@@ -389,12 +393,14 @@ export class PostGroupContractService {
 
   private toChannelTarget(
     target: SchedulerPostTarget,
-    groupId: string,
+    group: SchedulerPostGroup,
+    analytics: SchedulerPostAnalytics | undefined,
   ): IChannelTarget {
     return {
+      analytics: this.toTargetAnalytics(target, group, analytics),
       attachments: this.asReleaseAttachments(
         target.targetAttachments,
-        groupId,
+        group.id,
         target.id,
       ),
       createdAt: target.createdAt.toISOString(),
@@ -411,7 +417,7 @@ export class PostGroupContractService {
       platform: target.platform as CredentialPlatform,
       publishedAt: this.toIso(target.publishedAt),
       readiness: this.asReadiness(target.targetReadiness),
-      releaseId: groupId,
+      releaseId: group.id,
       retryCount: target.retryCount,
       scheduledAt: this.toIso(target.scheduledDate),
       settings: this.asRecord(target.targetSettings),
@@ -421,6 +427,36 @@ export class PostGroupContractService {
       validationIssues: target.targetValidationIssues,
       validationState: target.targetValidationState as TargetValidationState,
       workflowExecutionId: target.workflowExecutionId,
+    };
+  }
+
+  private toTargetAnalytics(
+    target: SchedulerPostTarget,
+    group: SchedulerPostGroup,
+    analytics: SchedulerPostAnalytics | undefined,
+  ): IChannelTarget['analytics'] {
+    const matchesTarget =
+      analytics?.postId === target.id &&
+      analytics.organizationId === group.organizationId &&
+      analytics.brandId === target.brandId &&
+      analytics.platform.toLowerCase() === target.platform.toLowerCase();
+
+    if (!analytics || !matchesTarget) {
+      return { snapshot: null, state: 'unavailable' };
+    }
+
+    return {
+      snapshot: {
+        comments: analytics.totalComments,
+        engagementRate: analytics.engagementRate,
+        likes: analytics.totalLikes,
+        saves: analytics.totalSaves,
+        shares: analytics.totalShares,
+        snapshotDate: analytics.date.toISOString(),
+        updatedAt: analytics.updatedAt.toISOString(),
+        views: analytics.totalViews,
+      },
+      state: 'ready',
     };
   }
 

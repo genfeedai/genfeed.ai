@@ -170,6 +170,42 @@ describe('Channel target serialization', () => {
     });
   });
 
+  test('serializes ready and unavailable analytics summaries', () => {
+    const ready = ChannelTargetSerializer.serialize({
+      analytics: {
+        snapshot: {
+          comments: 8,
+          engagementRate: 0.14,
+          likes: 55,
+          saves: 3,
+          shares: 5,
+          snapshotDate: '2026-07-21T00:00:00.000Z',
+          updatedAt: '2026-07-21T12:30:00.000Z',
+          views: 1000,
+        },
+        state: 'ready',
+      },
+      executionState: 'published',
+      id: 'tgt_ready_analytics',
+      platform: 'twitter',
+    });
+    const unavailable = ChannelTargetSerializer.serialize({
+      analytics: { snapshot: null, state: 'unavailable' },
+      executionState: 'published',
+      id: 'tgt_unavailable_analytics',
+      platform: 'linkedin',
+    });
+
+    expect(ready.data.attributes.analytics).toMatchObject({
+      snapshot: { comments: 8, views: 1000 },
+      state: 'ready',
+    });
+    expect(unavailable.data.attributes.analytics).toEqual({
+      snapshot: null,
+      state: 'unavailable',
+    });
+  });
+
   test('serializes sanitized provider readiness for scheduling surfaces', () => {
     const result = ChannelTargetSerializer.serialize({
       id: 'tgt_ready',
