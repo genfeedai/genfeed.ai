@@ -9,7 +9,10 @@
 
 import { PostFrequency } from '@genfeedai/enums';
 import { z } from 'zod';
-import { nonNegativeIntSchema, timezoneSchema } from '../helpers/common-schemas';
+import {
+  nonNegativeIntSchema,
+  timezoneSchema,
+} from '../helpers/common-schemas';
 import { recurrenceInputSchema } from './scheduler.contract';
 
 export const DEFAULT_RECURRENCE_PREVIEW_LIMIT = 100;
@@ -64,6 +67,10 @@ export type RecurrencePreviewResult =
       success: false;
     };
 
+type ParsedRecurrencePreviewInput = z.output<
+  typeof recurrencePreviewInputSchema
+>;
+
 interface LocalDateTime {
   day: number;
   hour: number;
@@ -75,6 +82,14 @@ interface LocalDateTime {
 }
 
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1_000;
+
+function requiredDatePart(parts: Map<string, number>, name: string): number {
+  const value = parts.get(name);
+  if (value === undefined) {
+    throw new Error(`Intl.DateTimeFormat omitted the ${name} date part.`);
+  }
+  return value;
+}
 
 function createFormatter(timezone: string): Intl.DateTimeFormat {
   return new Intl.DateTimeFormat('en-US-u-ca-gregory-nu-latn', {
@@ -101,13 +116,13 @@ function readLocalDateTime(
   );
 
   return {
-    day: parts.get('day') ?? 0,
-    hour: parts.get('hour') ?? 0,
+    day: requiredDatePart(parts, 'day'),
+    hour: requiredDatePart(parts, 'hour'),
     millisecond: instant.getUTCMilliseconds(),
-    minute: parts.get('minute') ?? 0,
-    month: parts.get('month') ?? 0,
-    second: parts.get('second') ?? 0,
-    year: parts.get('year') ?? 0,
+    minute: requiredDatePart(parts, 'minute'),
+    month: requiredDatePart(parts, 'month'),
+    second: requiredDatePart(parts, 'second'),
+    year: requiredDatePart(parts, 'year'),
   };
 }
 
@@ -127,15 +142,7 @@ function matchesLocalDateTime(
   actual: LocalDateTime,
   expected: LocalDateTime,
 ): boolean {
-  return (
-    actual.year === expected.year &&
-    actual.month === expected.month &&
-    actual.day === expected.day &&
-    actual.hour === expected.hour &&
-    actual.minute === expected.minute &&
-    actual.second === expected.second &&
-    actual.millisecond === expected.millisecond
-  );
+  return localDateTimeValue(actual) === localDateTimeValue(expected);
 }
 
 function localDateTimeToInstant(
@@ -154,12 +161,7 @@ function localDateTimeToInstant(
     const actualValue = localDateTimeValue(
       readLocalDateTime(formatter, candidate),
     );
-    const adjustment = desiredValue - actualValue;
-
-    if (adjustment === 0) {
-      return candidate;
-    }
-    candidateValue += adjustment;
+    candidateValue += desiredValue - actualValue;
   }
 
   const candidate = new Date(candidateValue);
@@ -202,7 +204,7 @@ function addCalendarMonths(
 ): LocalDateTime | null {
   const monthIndex = local.month - 1 + months;
   const year = local.year + Math.floor(monthIndex / 12);
-  const month = ((monthIndex % 12) + 12) % 12 + 1;
+  const month = (((monthIndex % 12) + 12) % 12) + 1;
 
   return hasCalendarDay(year, month, local.day)
     ? { ...local, month, year }
@@ -298,9 +300,18 @@ function createCandidates(
   throw new Error(`Unsupported recurrence frequency: ${frequency}`);
 }
 
+type RecurrencePreviewFailure = Extract<
+  RecurrencePreviewResult,
+  { success: false }
+>;
+
+type PreviewFormatterResult =
+  | { formatter: Intl.DateTimeFormat; success: true }
+  | RecurrencePreviewFailure;
+
 function invalidInputResult(
   result: z.ZodSafeParseError<unknown>,
-): RecurrencePreviewResult {
+): RecurrencePreviewFailure {
   return {
     issues: result.error.issues.map((issue) => ({
       code: 'invalid_input',
@@ -311,21 +322,9 @@ function invalidInputResult(
   };
 }
 
-/**
- * Preview future repeat instants without creating jobs or durable records.
- */
-export function previewRecurrenceOccurrences(
-  input: RecurrencePreviewInput,
-): RecurrencePreviewResult {
-  const parsed = recurrencePreviewInputSchema.safeParse(input);
-  if (!parsed.success) {
-    return invalidInputResult(parsed);
-  }
-
-  const { limit, recurrence, repeatCount, startAt, timezone } = parsed.data;
-  let formatter: Intl.DateTimeFormat;
+function createPreviewFormatter(timezone: string): PreviewFormatterResult {
   try {
-    formatter = createFormatter(timezone);
+    return { formatter: createFormatter(timezone), success: true };
   } catch {
     return {
       issues: [
@@ -338,7 +337,13 @@ export function previewRecurrenceOccurrences(
       success: false,
     };
   }
+}
 
+function collectRecurrenceOccurrences(
+  input: ParsedRecurrencePreviewInput,
+  formatter: Intl.DateTimeFormat,
+): RecurrencePreviewResult {
+  const { limit, recurrence, repeatCount, startAt } = input;
   const startInstant = new Date(startAt);
   const endInstant = recurrence.endDate
     ? new Date(recurrence.endDate)
@@ -397,4 +402,23 @@ export function previewRecurrenceOccurrences(
   }
 
   return { exhausted: true, occurrences, success: true };
+}
+
+/**
+ * Preview future repeat instants without creating jobs or durable records.
+ */
+export function previewRecurrenceOccurrences(
+  input: RecurrencePreviewInput,
+): RecurrencePreviewResult {
+  const parsed = recurrencePreviewInputSchema.safeParse(input);
+  if (!parsed.success) {
+    return invalidInputResult(parsed);
+  }
+
+  const formatterResult = createPreviewFormatter(parsed.data.timezone);
+  if (!formatterResult.success) {
+    return formatterResult;
+  }
+
+  return collectRecurrenceOccurrences(parsed.data, formatterResult.formatter);
 }

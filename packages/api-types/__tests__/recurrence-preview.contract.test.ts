@@ -86,10 +86,7 @@ describe('recurrence preview contract', () => {
 
     expect(result).toEqual({
       exhausted: true,
-      occurrences: [
-        '2026-01-02T09:00:00.000Z',
-        '2026-01-03T09:00:00.000Z',
-      ],
+      occurrences: ['2026-01-02T09:00:00.000Z', '2026-01-03T09:00:00.000Z'],
       success: true,
     });
   });
@@ -164,10 +161,7 @@ describe('recurrence preview contract', () => {
 
     expect(result).toEqual({
       exhausted: false,
-      occurrences: [
-        '2026-01-02T09:00:00.000Z',
-        '2026-01-03T09:00:00.000Z',
-      ],
+      occurrences: ['2026-01-02T09:00:00.000Z', '2026-01-03T09:00:00.000Z'],
       success: true,
     });
   });
