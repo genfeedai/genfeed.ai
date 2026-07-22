@@ -1,0 +1,77 @@
+name: Pull-request Validation Telemetry
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Number of recent merged pull requests to inspect
+        required: false
+        default: '20'
+        type: string
+      pull_requests:
+        description: Optional comma-separated merged pull-request numbers
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: pr-validation-telemetry-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  collect:
+    name: Collect final-head validation telemetry
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Collect telemetry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_LIMIT: ${{ inputs.limit || '20' }}
+          INPUT_PULL_REQUESTS: ${{ inputs.pull_requests || '' }}
+        shell: bash
+        run: |
+          args=(
+            --repository "$GITHUB_REPOSITORY"
+            --limit "$INPUT_LIMIT"
+            --json-out artifacts/pr-validation-telemetry/report.json
+            --markdown-out artifacts/pr-validation-telemetry/report.md
+          )
+          if [ -n "$INPUT_PULL_REQUESTS" ]; then
+            args+=(--pull-requests "$INPUT_PULL_REQUESTS")
+          fi
+          GITHUB_TOKEN="$GH_TOKEN" bun run scripts/ci/pr-validation-telemetry.ts -- "${args[@]}"
+
+      - name: Publish step summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f artifacts/pr-validation-telemetry/report.md ]; then
+            cat artifacts/pr-validation-telemetry/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload telemetry artifacts
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-validation-telemetry-${{ github.run_id }}
+          path: |
+            artifacts/pr-validation-telemetry/report.json
+            artifacts/pr-validation-telemetry/report.md
+          if-no-files-found: error
+          retention-days: 30

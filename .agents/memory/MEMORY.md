@@ -2,6 +2,8 @@
 
 ## Project State
 
+- [Pull-request Validation Telemetry Spec](spec-pr-validation-telemetry.md) — exact-head, read-only validation evidence contract for issue #1966
+- [Pull-request Validation Telemetry Decisions](decisions-pr-validation-telemetry.md) — collector boundary, fail-closed semantics, and surface classification decisions
 - [Brand and Social Visual Enrichment Spec](spec-brand-social-visual-enrichment.md) — S3-backed website headers and connected-account PFPs with platform badges
 - [Brand and Social Visual Enrichment Decisions](decisions-brand-social-visual-enrichment.md) — storage, overwrite, and failure-isolation decisions
 - [Project Overview](project_overview.md) — Genfeed.ai monorepo structure and key context
