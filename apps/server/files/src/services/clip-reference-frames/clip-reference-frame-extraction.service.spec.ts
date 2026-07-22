@@ -14,7 +14,9 @@ describe('ClipReferenceFrameExtractionService', () => {
     }),
   };
   const ytDlpService = {
-    downloadVideo: vi.fn().mockResolvedValue('/tmp/reference-frames/source.mp4'),
+    downloadVideo: vi
+      .fn()
+      .mockResolvedValue('/tmp/reference-frames/source.mp4'),
   };
   const logger = {
     warn: vi.fn(),
@@ -51,9 +53,9 @@ describe('ClipReferenceFrameExtractionService', () => {
 
     expect(result.status).toBe('ready');
     expect(result.candidates).toHaveLength(5);
-    expect(result.candidates.map((candidate) => candidate.timestampSeconds)).toEqual(
-      [10, 20, 30, 40, 50],
-    );
+    expect(
+      result.candidates.map((candidate) => candidate.timestampSeconds),
+    ).toEqual([10, 20, 30, 40, 50]);
     expect(result.candidates[0]).toMatchObject({
       height: 720,
       id: 'frame-1-10000',
@@ -117,9 +119,7 @@ describe('ClipReferenceFrameExtractionService', () => {
       candidates: [],
       status: 'unavailable',
     });
-    expect(result.diagnostics[0]?.code).toBe(
-      'clip_reference_invalid_source',
-    );
+    expect(result.diagnostics[0]?.code).toBe('clip_reference_invalid_source');
     expect(ytDlpService.downloadVideo).not.toHaveBeenCalled();
   });
 
@@ -136,9 +136,7 @@ describe('ClipReferenceFrameExtractionService', () => {
     });
 
     expect(result.status).toBe('unavailable');
-    expect(result.diagnostics[0]?.code).toBe(
-      'clip_reference_download_failed',
-    );
+    expect(result.diagnostics[0]?.code).toBe('clip_reference_download_failed');
     expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
       '/tmp/reference-frames/source.mp4',
       '/tmp/reference-frames/frame-1.jpg',

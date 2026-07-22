@@ -592,9 +592,7 @@ describe('FilesController', () => {
       };
       const result = await controller.processVideo(body);
 
-      expect(
-        videoQueueService.addExtractReferenceFramesJob,
-      ).toHaveBeenCalled();
+      expect(videoQueueService.addExtractReferenceFramesJob).toHaveBeenCalled();
       expect(result.jobId).toBe('job_123');
     });
 

@@ -44,9 +44,7 @@ function normalizeTimestamps(timestamps: number[]): number[] {
   return [
     ...new Set(
       timestamps
-        .filter(
-          (timestamp) => Number.isFinite(timestamp) && timestamp >= 0,
-        )
+        .filter((timestamp) => Number.isFinite(timestamp) && timestamp >= 0)
         .map((timestamp) => Math.round(timestamp * 1000) / 1000),
     ),
   ]
@@ -133,7 +131,7 @@ export class ClipReferenceFrameExtractionService {
       for (const [index, timestampSeconds] of timestamps.entries()) {
         const timestampMs = Math.round(timestampSeconds * 1000);
         const candidateId = `frame-${index + 1}-${timestampMs}`;
-        const framePath = framePaths[index]!;
+        const framePath = path.join(tempDir, `frame-${index + 1}.jpg`);
         const storageKey =
           `ingredients/images/organizations/${organizationId}/clips/` +
           `${projectId}/reference-frames/${candidateId}.jpg`;

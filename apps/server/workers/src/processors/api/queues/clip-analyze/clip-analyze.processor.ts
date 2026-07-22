@@ -363,9 +363,7 @@ export class ClipAnalyzeProcessor extends WorkerHost {
       const status = payload?.status || payload?.state;
 
       if (status === 'completed' || status === 'COMPLETED') {
-        return normalizeClipReferenceFrameSet(
-          payload?.result?.referenceFrames,
-        );
+        return normalizeClipReferenceFrameSet(payload?.result?.referenceFrames);
       }
 
       if (status === 'failed' || status === 'FAILED') {

@@ -253,9 +253,7 @@ describe('ClipAnalyzeProcessor', () => {
           },
         }) as never,
       )
-      .mockReturnValueOnce(
-        of({ data: { state: 'failed' } }) as never,
-      );
+      .mockReturnValueOnce(of({ data: { state: 'failed' } }) as never);
 
     await processor.process(createMockJob());
 
