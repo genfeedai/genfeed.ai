@@ -1,0 +1,14 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+
+export class SelectClipReferenceFrameDto {
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  @ApiProperty({
+    description: 'ID of an available reference-frame candidate',
+  })
+  readonly candidateId!: string;
+}

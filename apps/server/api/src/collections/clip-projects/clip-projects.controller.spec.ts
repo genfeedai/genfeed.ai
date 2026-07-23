@@ -1,4 +1,5 @@
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
+import { ClipProjectReferenceFramesController } from '@api/collections/clip-projects/clip-project-reference-frames.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
@@ -6,6 +7,7 @@ import {
   type GenerateClipHighlightDto,
   GenerateClipsDto,
 } from '@api/collections/clip-projects/dto/generate-clips.dto';
+import { SelectClipReferenceFrameDto } from '@api/collections/clip-projects/dto/select-clip-reference-frame.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import type { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import type { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
@@ -19,6 +21,7 @@ import type { PublishHandoffService } from '@api/services/clip-orchestrator/publ
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
+import type { Request } from 'express';
 
 function createMockLogger(): LoggerService {
   return {
@@ -32,13 +35,18 @@ function createMockLogger(): LoggerService {
 
 function createMockClipProjectsService(): Pick<
   ClipProjectsService,
-  'create' | 'findOne' | 'patch' | 'reconcileTerminalState'
+  | 'create'
+  | 'findOne'
+  | 'patch'
+  | 'reconcileTerminalState'
+  | 'selectReferenceFrame'
 > {
   return {
     create: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
     reconcileTerminalState: vi.fn(),
+    selectReferenceFrame: vi.fn(),
   };
 }
 
@@ -89,6 +97,7 @@ describe('ClipProjectsController', () => {
 
   let controller: ClipProjectsController;
   let handoffsController: ClipProjectHandoffsController;
+  let referenceFramesController: ClipProjectReferenceFramesController;
   let clipProjectsService: ReturnType<typeof createMockClipProjectsService>;
   let clipGenerationService: ReturnType<typeof createMockClipGenerationService>;
   let clipFactoryQueueService: { enqueue: ReturnType<typeof vi.fn> };
@@ -139,6 +148,10 @@ describe('ClipProjectsController', () => {
       clipResultsService as unknown as ClipResultsService,
       editorProjectsService as unknown as EditorProjectsService,
       publishHandoffService as unknown as PublishHandoffService,
+    );
+    referenceFramesController = new ClipProjectReferenceFramesController(
+      createMockLogger(),
+      clipProjectsService as ClipProjectsService,
     );
   });
 
@@ -237,6 +250,63 @@ describe('ClipProjectsController', () => {
         expect.objectContaining({
           settings: expect.objectContaining({ mode: 'raw-cut' }),
         }),
+      );
+    });
+  });
+
+  describe('selectReferenceFrame', () => {
+    it('selects the candidate within the current organization scope', async () => {
+      const selectedProject = {
+        ...createProject(projectId, organizationId),
+        referenceFrames: {
+          candidates: [
+            {
+              diagnostics: [],
+              id: 'frame-1',
+              status: 'available',
+              storageKey: 'organizations/org-1/clips/frame-1.jpg',
+              timestampSeconds: 12,
+            },
+          ],
+          diagnostics: [],
+          schemaVersion: 1,
+          selectedCandidateId: 'frame-1',
+          status: 'selected',
+        },
+      } as ClipProjectDocument;
+      vi.mocked(clipProjectsService.selectReferenceFrame).mockResolvedValue(
+        selectedProject,
+      );
+
+      const result = await referenceFramesController.selectReferenceFrame(
+        {
+          originalUrl: `/clip-projects/${projectId}/reference-frame`,
+        } as Request,
+        currentUser as never,
+        projectId,
+        { candidateId: 'frame-1' },
+      );
+
+      expect(clipProjectsService.selectReferenceFrame).toHaveBeenCalledWith(
+        projectId,
+        organizationId,
+        'frame-1',
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('trims candidate IDs and rejects blank values at the DTO boundary', () => {
+      const validDto = plainToInstance(SelectClipReferenceFrameDto, {
+        candidateId: ' frame-1 ',
+      });
+      const blankDto = plainToInstance(SelectClipReferenceFrameDto, {
+        candidateId: '   ',
+      });
+
+      expect(validDto.candidateId).toBe('frame-1');
+      expect(validateSync(validDto)).toEqual([]);
+      expect(validateSync(blankDto).map((error) => error.property)).toContain(
+        'candidateId',
       );
     });
   });

@@ -10,8 +10,8 @@ import {
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import { type ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
+import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -33,12 +33,12 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
 } from '@genfeedai/interfaces';
+import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
 import { ClipProjectSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

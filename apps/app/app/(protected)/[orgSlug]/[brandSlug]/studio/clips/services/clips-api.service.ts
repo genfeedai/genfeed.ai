@@ -1,3 +1,4 @@
+import type { ClipReferenceFrameSet } from '@genfeedai/interfaces';
 import type {
   ClipResult,
   ClipResultMode,
@@ -55,6 +56,7 @@ interface CreateFromYoutubeResponse {
 }
 
 interface ProjectResponse {
+  referenceFrames?: ClipReferenceFrameSet;
   status?: string;
 }
 
@@ -245,6 +247,34 @@ export class ClipsApiService {
       { signal },
     );
     return this.extractPayload<ProjectResponse>(data) ?? {};
+  }
+
+  async selectReferenceFrame(
+    projectId: string,
+    candidateId: string,
+  ): Promise<ClipReferenceFrameSet | null> {
+    const data = await this.fetchJson<unknown>(
+      `${this.apiEndpoint}/clip-projects/${projectId}/reference-frame`,
+      {
+        body: JSON.stringify({ candidateId }),
+        method: 'PUT',
+      },
+    );
+    const payload = this.extractPayload<ProjectResponse>(data);
+
+    if (payload?.referenceFrames) {
+      return payload.referenceFrames;
+    }
+
+    if (
+      payload &&
+      'candidates' in payload &&
+      'selectedCandidateId' in payload
+    ) {
+      return payload as unknown as ClipReferenceFrameSet;
+    }
+
+    return null;
   }
 
   async getClipResults(

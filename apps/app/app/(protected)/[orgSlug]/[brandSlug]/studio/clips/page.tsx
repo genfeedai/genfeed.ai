@@ -7,6 +7,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { HiOutlineMagnifyingGlass, HiOutlineSparkles } from 'react-icons/hi2';
 import ClipModeSelector from './components/ClipModeSelector';
+import ClipReferenceFrameSelector from './components/ClipReferenceFrameSelector';
 import ClipsInputForm from './components/ClipsInputForm';
 import ClipsProgressView from './components/ClipsProgressView';
 import HighlightReviewCard from './components/HighlightReviewCard';
@@ -31,13 +32,17 @@ export default function StudioClipsPage() {
     generationMode,
     handleAnalyze,
     handleGenerate,
+    handleSelectReferenceFrame,
     handleStartFromYoutube,
     identityDefaults,
     isSubmitting,
     maxClips,
     minViralityScore,
+    pendingReferenceFrameId,
     project,
+    referenceFrameError,
     resetToInput,
+    retryReferenceFrameSelection,
     selectedCount,
     selectedIds,
     setAvatarId,
@@ -110,6 +115,18 @@ export default function StudioClipsPage() {
           </div>
         ) : (
           <>
+            <div className="mb-6">
+              <ClipReferenceFrameSelector
+                error={referenceFrameError}
+                onRetry={retryReferenceFrameSelection}
+                onSelect={(candidateId) =>
+                  void handleSelectReferenceFrame(candidateId)
+                }
+                pendingCandidateId={pendingReferenceFrameId}
+                referenceFrames={project.referenceFrames}
+              />
+            </div>
+
             <div className="space-y-3">
               {editedHighlights.map((highlight) => (
                 <HighlightReviewCard

@@ -129,6 +129,15 @@ export function useStudioClipsPage() {
 
   // Project state
   const [project, setProject] = useState<ProjectState | null>(null);
+  const [pendingReferenceFrameId, setPendingReferenceFrameId] = useState<
+    string | null
+  >(null);
+  const [failedReferenceFrameId, setFailedReferenceFrameId] = useState<
+    string | null
+  >(null);
+  const [referenceFrameError, setReferenceFrameError] = useState<string | null>(
+    null,
+  );
 
   // Highlight selection state (maps highlight id -> highlight with edits)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -309,6 +318,9 @@ export function useStudioClipsPage() {
           project.projectId,
           abortController.signal,
         );
+        const projectData = await clipsService
+          .getProject(project.projectId, abortController.signal)
+          .catch(() => ({}));
 
         if (cancelled) {
           return;
@@ -317,7 +329,15 @@ export function useStudioClipsPage() {
         if (data.status === 'analyzed') {
           const highlights: IHighlight[] = data.highlights ?? [];
           setProject((prev) =>
-            prev ? { ...prev, highlights, status: 'analyzed' } : prev,
+            prev
+              ? {
+                  ...prev,
+                  highlights,
+                  referenceFrames:
+                    projectData.referenceFrames ?? prev.referenceFrames,
+                  status: 'analyzed',
+                }
+              : prev,
           );
           setEditedHighlights(highlights);
           setSelectedIds(new Set(highlights.map((h: IHighlight) => h.id)));
@@ -326,6 +346,15 @@ export function useStudioClipsPage() {
           setProject((prev) => (prev ? { ...prev, status: 'failed' } : prev));
           clearPendingPoll();
         } else {
+          setProject((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  referenceFrames:
+                    projectData.referenceFrames ?? prev.referenceFrames,
+                }
+              : prev,
+          );
           scheduleNextPoll();
         }
       } catch (pollError: unknown) {
@@ -357,6 +386,65 @@ export function useStudioClipsPage() {
     clipsService,
     isDocumentVisible,
   ]);
+
+  const handleSelectReferenceFrame = useCallback(
+    async (candidateId: string) => {
+      if (
+        !project?.projectId ||
+        candidateId === project.referenceFrames?.selectedCandidateId
+      ) {
+        return;
+      }
+
+      setPendingReferenceFrameId(candidateId);
+      setFailedReferenceFrameId(candidateId);
+      setReferenceFrameError(null);
+
+      try {
+        const referenceFrames = await clipsService.selectReferenceFrame(
+          project.projectId,
+          candidateId,
+        );
+
+        setProject((previous) => {
+          if (!previous) {
+            return previous;
+          }
+
+          return {
+            ...previous,
+            referenceFrames:
+              referenceFrames ??
+              (previous.referenceFrames
+                ? {
+                    ...previous.referenceFrames,
+                    selectedCandidateId: candidateId,
+                    status: 'selected',
+                  }
+                : undefined),
+          };
+        });
+        setFailedReferenceFrameId(null);
+      } catch {
+        setReferenceFrameError(
+          'Reference frame selection could not be saved. Try again.',
+        );
+      } finally {
+        setPendingReferenceFrameId(null);
+      }
+    },
+    [
+      clipsService,
+      project?.projectId,
+      project?.referenceFrames?.selectedCandidateId,
+    ],
+  );
+
+  const retryReferenceFrameSelection = useCallback(() => {
+    if (failedReferenceFrameId) {
+      void handleSelectReferenceFrame(failedReferenceFrameId);
+    }
+  }, [failedReferenceFrameId, handleSelectReferenceFrame]);
 
   // ─── Step 2: Generate selected highlights ─────────────────────
   const handleGenerate = useCallback(async () => {
@@ -536,6 +624,9 @@ export function useStudioClipsPage() {
     setSelectedIds(new Set());
     setEditedHighlights([]);
     setError(null);
+    setPendingReferenceFrameId(null);
+    setFailedReferenceFrameId(null);
+    setReferenceFrameError(null);
   }, []);
 
   const selectedCount = selectedIds.size;
@@ -549,13 +640,17 @@ export function useStudioClipsPage() {
     generationMode,
     handleAnalyze,
     handleGenerate,
+    handleSelectReferenceFrame,
     handleStartFromYoutube,
     identityDefaults,
     isSubmitting,
     maxClips,
     minViralityScore,
+    pendingReferenceFrameId,
     project,
+    referenceFrameError,
     resetToInput,
+    retryReferenceFrameSelection,
     selectedCount,
     selectedIds,
     setAvatarId,
