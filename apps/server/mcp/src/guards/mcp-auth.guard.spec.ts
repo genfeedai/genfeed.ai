@@ -106,6 +106,10 @@ describe('McpAuthGuard', () => {
       await expect(guard.canActivate(context)).rejects.toThrow(
         'Authorization header with Bearer token required',
       );
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        'WWW-Authenticate',
+        expect.stringContaining('resource_metadata='),
+      );
     });
 
     it('should throw UnauthorizedException for invalid token', async () => {
@@ -121,6 +125,10 @@ describe('McpAuthGuard', () => {
         UnauthorizedException,
       );
       await expect(guard.canActivate(context)).rejects.toThrow('Invalid token');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith(
+        'WWW-Authenticate',
+        expect.stringContaining('resource_metadata='),
+      );
     });
 
     it('should allow access and attach context for valid token', async () => {
@@ -132,7 +140,10 @@ describe('McpAuthGuard', () => {
         valid: true,
       });
 
-      const mockRequest: any = {
+      const mockRequest: {
+        authContext?: Record<string, unknown>;
+        headers: { authorization: string };
+      } = {
         headers: { authorization: 'Bearer valid-token' },
       };
       const context = {
@@ -165,7 +176,10 @@ describe('McpAuthGuard', () => {
         valid: true,
       });
 
-      const mockRequest: any = {
+      const mockRequest: {
+        authContext?: Record<string, unknown>;
+        headers: { authorization: string };
+      } = {
         headers: { authorization: `Bearer ${apiKey}` },
       };
       const context = {

@@ -1,6 +1,17 @@
-import { getPublicMcpUrl, renderSetupPage } from '@mcp/mcp/setup-page';
+import {
+  getMcpProtectedResourceMetadata,
+  getMcpWwwAuthenticateHeader,
+  getPublicMcpResourceMetadataUrl,
+  getPublicMcpUrl,
+  renderSetupPage,
+} from '@mcp/mcp/setup-page';
 
 describe('MCP setup page', () => {
+  beforeEach(() => {
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', '');
+    vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', '');
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -18,7 +29,25 @@ describe('MCP setup page', () => {
     expect(html).toContain('codex mcp add genfeed --url');
     expect(html).toContain('https://app.genfeed.ai/connect');
     expect(html).toContain('Start guided setup');
+    expect(html).toContain('Connect automatically via OAuth');
     expect(html).not.toContain('http://localhost:3014');
+  });
+
+  it('publishes consistent protected-resource metadata and challenge headers', () => {
+    vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai');
+    vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', 'https://mcp.genfeed.ai/mcp');
+
+    expect(getMcpProtectedResourceMetadata()).toMatchObject({
+      authorization_servers: ['https://api.genfeed.ai'],
+      bearer_methods_supported: ['header'],
+      resource: 'https://mcp.genfeed.ai/mcp',
+    });
+    expect(getPublicMcpResourceMetadataUrl()).toBe(
+      'https://mcp.genfeed.ai/.well-known/oauth-protected-resource',
+    );
+    expect(getMcpWwwAuthenticateHeader()).toContain(
+      'resource_metadata="https://mcp.genfeed.ai/.well-known/oauth-protected-resource"',
+    );
   });
 
   it('renders a copyable agent prompt that configures MCP without embedding a key', () => {

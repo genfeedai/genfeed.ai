@@ -7848,6 +7848,14 @@
         ],
         "type": "object"
       },
+      "OAuthAuthorizeDecisionDto": {
+        "properties": {},
+        "type": "object"
+      },
+      "OAuthTokenExchangeDto": {
+        "properties": {},
+        "type": "object"
+      },
       "OnboardingJourneyMissionStateDto": {
         "properties": {
           "completedAt": {
@@ -8553,6 +8561,10 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "RegisterOAuthClientDto": {
+        "properties": {},
         "type": "object"
       },
       "ReleaseStatus": {
@@ -34929,6 +34941,101 @@
         "summary": "publish",
         "tags": [
           "newsletters"
+        ]
+      }
+    },
+    "/oauth/authorize": {
+      "get": {
+        "operationId": "OAuthAuthorizeController.authorize",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Begin an OAuth authorization-code flow",
+        "tags": [
+          "OAuth"
+        ]
+      }
+    },
+    "/oauth/authorize/decision": {
+      "post": {
+        "operationId": "OAuthAuthorizeController.decide",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthAuthorizeDecisionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve or deny OAuth access",
+        "tags": [
+          "OAuth"
+        ]
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "operationId": "OAuthRegisterController.register",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOAuthClientDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Dynamically register a public OAuth client",
+        "tags": [
+          "OAuth"
+        ]
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "operationId": "OAuthTokenController.exchange",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthTokenExchangeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Exchange an OAuth code for an MCP access token",
+        "tags": [
+          "OAuth"
         ]
       }
     },

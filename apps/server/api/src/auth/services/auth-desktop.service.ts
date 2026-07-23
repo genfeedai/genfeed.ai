@@ -1,9 +1,15 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import type {
   CreateDesktopAuthCodeDto,
   ExchangeDesktopAuthCodeDto,
 } from '@api/auth/dto/desktop-auth.dto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  buildCodeChallenge,
+  hashToken,
+  safeEqual,
+  toBase64Url,
+} from '@api/auth/shared/pkce.util';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import {
   getIsSuperAdmin,
@@ -54,29 +60,6 @@ type DesktopAuthRecord = {
   userEmail?: string;
   userId: string;
   userName?: string;
-};
-
-const toBase64Url = (input: Buffer): string =>
-  input
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-
-const buildCodeChallenge = (verifier: string): string =>
-  toBase64Url(createHash('sha256').update(verifier).digest());
-
-const hashToken = (value: string): string =>
-  createHash('sha256').update(value).digest('hex');
-
-const safeEqual = (left: string, right: string): boolean => {
-  const leftBuffer = Buffer.from(left);
-  const rightBuffer = Buffer.from(right);
-
-  return (
-    leftBuffer.length === rightBuffer.length &&
-    timingSafeEqual(leftBuffer, rightBuffer)
-  );
 };
 
 @Injectable()

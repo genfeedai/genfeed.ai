@@ -7,9 +7,11 @@ import { conditionalRequired } from '../helpers';
  * Genfeed internal URLs and services
  */
 export const genfeedaiUrlsSchema = {
+  GENFEEDAI_API_PUBLIC_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_API_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_APP_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_CDN_URL: conditionalRequired(Joi.string().uri()),
+  GENFEEDAI_MCP_PUBLIC_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_WEBHOOKS_URL: conditionalRequired(Joi.string().uri()),
 };
 
@@ -61,5 +63,7 @@ export const internalAuthSchema = {
  * Minimal Genfeed config for microservices (just API URL)
  */
 export const genfeedaiMinimalSchema = {
+  GENFEEDAI_API_PUBLIC_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_API_URL: conditionalRequired(Joi.string().uri()),
+  GENFEEDAI_MCP_PUBLIC_URL: conditionalRequired(Joi.string().uri()),
 };
