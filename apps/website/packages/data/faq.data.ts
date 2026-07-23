@@ -37,7 +37,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   },
   {
     answer:
-      'AI content generation just hit a critical threshold: quality now matches human output while production costs dropped 95%. This technology inflection point enables SMBs and agencies to create professional, on-brand content at scale without scaling headcount.',
+      'AI generation has reached the point where a small team can produce professional, on-brand content at a fraction of the old cost and effort. Genfeed puts that capability in one workspace, so creators, marketers, and agencies can scale output without scaling headcount.',
     question: 'Why now? What changed?',
   },
 ];

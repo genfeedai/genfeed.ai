@@ -9,18 +9,18 @@ describe('HomeHow', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /your ai client creates\. genfeed controls distribution\./i,
+        name: /create, review, schedule, and publish — in one place\./i,
       }),
     ).toBeInTheDocument();
   });
 
-  it('renders the complete agent-to-analytics lifecycle as an ordered list', () => {
+  it('renders the complete brief-to-analytics lifecycle as an ordered list', () => {
     render(<HomeHow />);
 
     for (const title of [
-      'Create in your AI client',
-      'Route through Genfeed',
-      'Approve and publish',
+      'Start from a brief',
+      'Review and refine',
+      'Schedule and publish',
       'Measure what shipped',
     ]) {
       expect(
@@ -30,7 +30,7 @@ describe('HomeHow', () => {
 
     expect(screen.getByRole('list')).toHaveAttribute(
       'aria-labelledby',
-      'distribution-loop-heading',
+      'home-workflow-heading',
     );
     expect(screen.getAllByRole('listitem')).toHaveLength(4);
   });

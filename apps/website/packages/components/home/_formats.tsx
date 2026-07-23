@@ -77,10 +77,11 @@ export default function HomeFormats(): React.ReactElement {
               as="h2"
               className="max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
             >
-              Every format, priced per output.
+              Every format your channels need, from one brief.
             </Heading>
             <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-              Every format from one brief, each with its price up front.
+              Images, video, ads, avatars, voice, and long-form — generated in
+              the studio, each with its price up front.
             </Text>
           </VStack>
 

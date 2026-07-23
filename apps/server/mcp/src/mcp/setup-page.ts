@@ -5,6 +5,8 @@ import {
   staticSurfaceCss,
 } from '@genfeedai/ui/static/surface';
 
+import { SATOSHI_VARIABLE_WOFF2_BASE64 } from './satoshi-font';
+
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
 const DEFAULT_DOCS_URL = 'https://docs.genfeed.ai';
 const DEFAULT_MCP_URL = 'https://mcp.genfeed.ai/mcp';
@@ -121,6 +123,16 @@ bearer_token_env_var = "GENFEED_API_KEY"`);
 :root {
   color-scheme: dark;
 }
+/* Self-hosted Satoshi (the product's sans). One variable face covers 300-900,
+   so the MCP page renders in the same brand type as the marketing site and app
+   with no CDN, no extra route, no editorial serif. */
+@font-face {
+  font-family: "Satoshi";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("data:font/woff2;base64,${SATOSHI_VARIABLE_WOFF2_BASE64}") format("woff2");
+}
 ${staticSurfaceCss}
 * { box-sizing: border-box; }
 html { min-height: 100%; background: #050607; }
@@ -129,7 +141,9 @@ body {
   margin: 0;
   background: var(--gf-bg-primary);
   color: var(--gf-text-primary);
-  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--gf-font-sans);
+  font-size: 13px;
+  line-height: 1.5;
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
 }
@@ -222,17 +236,17 @@ a { color: inherit; text-decoration: none; }
   max-width: 680px;
   margin: 18px 0 0;
   color: var(--gf-text-primary);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 72px;
-  font-weight: 700;
-  line-height: 0.94;
-  letter-spacing: 0;
+  font-family: var(--gf-font-sans);
+  font-size: 68px;
+  font-weight: 600;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
 }
 .hero h1 em {
   display: block;
   color: var(--gf-text-muted);
-  font-style: italic;
-  font-weight: 400;
+  font-style: normal;
+  font-weight: 600;
 }
 .lede {
   max-width: 600px;
@@ -350,16 +364,16 @@ a { color: inherit; text-decoration: none; }
 }
 .section-title {
   margin: 14px 0 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 44px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0;
+  font-family: var(--gf-font-sans);
+  font-size: 42px;
+  font-weight: 600;
+  line-height: 1.02;
+  letter-spacing: -0.03em;
 }
 .section-title em {
   color: var(--gf-text-muted);
-  font-style: italic;
-  font-weight: 400;
+  font-style: normal;
+  font-weight: 600;
 }
 .section-copy {
   margin: 0;
@@ -443,10 +457,10 @@ a { color: inherit; text-decoration: none; }
 .instruction-title {
   margin: 0;
   color: var(--gf-text-primary);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 0;
+  font-family: var(--gf-font-sans);
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 .steps {
   display: grid;
@@ -467,9 +481,10 @@ a { color: inherit; text-decoration: none; }
 .step:last-child { border-bottom: 0; }
 .step-number {
   color: var(--gf-text-faint);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 34px;
-  font-weight: 700;
+  font-family: var(--gf-font-sans);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 .step-title {

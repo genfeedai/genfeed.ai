@@ -33,18 +33,18 @@ describe('HomeAudiences', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /for developers and distribution teams\./i,
+        name: /for creators and marketing teams\./i,
       }),
     ).toBeInTheDocument();
   });
 
-  it('splits developer self-serve from the agency demo path', () => {
+  it('splits creator self-serve from the agency demo path', () => {
     render(<HomeAudiences />);
 
     expect(
       screen.getByRole('heading', {
         level: 3,
-        name: /keep your ai client\. add a control plane\./i,
+        name: /everything you publish, in one studio\./i,
       }),
     ).toBeInTheDocument();
     expect(
@@ -53,13 +53,12 @@ describe('HomeAudiences', () => {
         name: /run every client's creative from one place\./i,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /connect mcp/i })).toHaveAttribute(
-      'href',
-      'https://app.genfeed.ai/connect',
-    );
     expect(
-      screen.getByRole('link', { name: /explore the mcp server/i }),
-    ).toHaveAttribute('href', '/mcp');
+      screen.getByRole('link', { name: /start for free/i }),
+    ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
+    expect(
+      screen.getByRole('link', { name: /see how it works/i }),
+    ).toHaveAttribute('href', '#how');
     expect(
       screen.getByRole('link', { name: /genfeed for agencies/i }),
     ).toHaveAttribute('href', '/use-cases/agencies');

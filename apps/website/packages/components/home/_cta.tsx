@@ -17,31 +17,27 @@ export default function HomeCTA(): React.ReactElement {
             as="h2"
             className="text-5xl font-semibold leading-none tracking-[-0.03em] sm:text-6xl md:text-7xl"
           >
-            Give your AI agent a way to ship.
+            Ship on-brand content, faster.
           </Heading>
 
           <Text
             as="p"
             className="text-lg md:text-xl gen-text-muted max-w-xl leading-relaxed"
           >
-            Connect Claude Code or Codex through MCP, keep publishing under
-            human control, and measure the result. Book a demo if you&apos;re
-            rolling this out across a team or client roster.
+            Generate, review, schedule, and publish from one workspace — with a
+            human in the approval seat. Book a demo if you&apos;re rolling this
+            out across a team or client roster.
           </Text>
 
           <HStack className="flex-wrap justify-center gap-3">
             <ButtonTracked
               asChild
               size={ButtonSize.PUBLIC}
-              trackingData={{ action: 'connect_mcp_bottom_cta' }}
+              trackingData={{ action: 'start_free_bottom_cta' }}
               trackingName="cta_final_click"
             >
-              <a
-                href={EnvironmentService.mcpConnectHref}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Connect MCP
+              <a href={`${EnvironmentService.apps.app}/sign-up`}>
+                Start for free
                 <LuArrowRight className="size-4" />
               </a>
             </ButtonTracked>

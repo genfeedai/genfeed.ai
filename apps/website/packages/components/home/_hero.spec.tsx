@@ -32,52 +32,51 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 describe('HomeHero', () => {
-  it('leads with the developer distribution promise and CTA hierarchy', () => {
+  it('leads with the SaaS studio promise and CTA hierarchy', () => {
     render(<HomeHero />);
 
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /your product deserves to be discovered\./i,
+        name: /one studio for every piece of content you publish\./i,
       }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/the ai content studio/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/distribution infrastructure for ai agents/i),
+      screen.getByText(
+        /generate, review, schedule, and publish — all in one workspace\./i,
+      ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/one prompt\. publish everywhere\./i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/connect claude code, codex, or any mcp client/i),
+      screen.getByText(/genfeed is the content studio where a brief becomes/i),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
-    ).toEqual(['Connect MCP', 'Book a Demo']);
+    ).toEqual(['Start for free', 'Book a Demo']);
   });
 
-  it('points the primary CTA at the canonical Connect Genfeed flow', () => {
+  it('points the primary CTA at the app sign-up flow', () => {
     render(<HomeHero />);
 
-    expect(screen.getByRole('link', { name: /connect mcp/i })).toHaveAttribute(
-      'href',
-      'https://app.genfeed.ai/connect',
-    );
+    expect(
+      screen.getByRole('link', { name: /start for free/i }),
+    ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
   });
 
-  it('tracks Connect MCP separately from Book a Demo', () => {
+  it('tracks Start for free separately from Book a Demo', () => {
     const listener = vi.fn();
     window.addEventListener('genfeed:marketing:button-click', listener);
     render(<HomeHero />);
 
-    fireEvent.click(screen.getByRole('link', { name: /connect mcp/i }));
+    fireEvent.click(screen.getByRole('link', { name: /start for free/i }));
     fireEvent.click(screen.getByRole('link', { name: /book a demo/i }));
 
     expect(listener).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
         detail: {
-          trackingData: { action: 'connect_mcp_hero' },
+          trackingData: { action: 'start_free_hero' },
           trackingName: 'hero_cta_click',
         },
       }),
