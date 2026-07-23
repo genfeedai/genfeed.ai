@@ -7,6 +7,7 @@ const CORE_TEST_PATHS = [
   'playwright/e2e/tests/smoke',
   'playwright/e2e/tests/core',
   'playwright/e2e/tests/shell/page-context-contract.spec.ts',
+  'playwright/e2e/tests/studio/clips.spec.ts',
 ];
 
 function writeStdout(message) {
