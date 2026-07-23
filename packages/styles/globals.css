@@ -299,8 +299,9 @@ body.gf-studio-app {
  */
 :root {
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: Georgia, "Times New Roman", serif;
+    var(--font-satoshi), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --font-serif: var(--font-zodiak), Georgia, "Times New Roman", serif;
 }
 
 html,
