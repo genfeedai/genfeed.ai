@@ -23,8 +23,12 @@ export default function ClipsProgressView({
 }: ClipsProgressViewProps) {
   const pendingDescription =
     selectedCount > 0
-      ? `Generating ${selectedCount} clips...`
-      : 'Processing YouTube video and generating clips...';
+      ? project.mode === 'raw-cut'
+        ? `Cutting ${selectedCount} selected highlights...`
+        : `Generating ${selectedCount} avatar clips...`
+      : project.mode === 'raw-cut'
+        ? 'Processing YouTube video and creating raw cuts...'
+        : 'Processing YouTube video and generating avatar clips...';
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
@@ -37,7 +41,7 @@ export default function ClipsProgressView({
         </div>
         <p className="mt-2 text-sm text-zinc-500">
           {project.status === 'completed'
-            ? `Done -- ${project.clips.length} clips generated`
+            ? `Done — ${project.clips.length} clip${project.clips.length === 1 ? '' : 's'} generated`
             : project.status === 'failed'
               ? 'Pipeline failed. Check logs for details.'
               : pendingDescription}
@@ -62,6 +66,7 @@ export default function ClipsProgressView({
               key={clip._id}
               clip={clip}
               clipsService={clipsService}
+              mode={project.mode}
               projectId={project.projectId}
             />
           ))}
@@ -71,7 +76,9 @@ export default function ClipsProgressView({
           <div className="flex flex-col items-center justify-center rounded-xl bg-secondary py-20 shadow-border">
             <Spinner size={ComponentSize.LG} className="mb-4 text-primary" />
             <p className="text-sm text-zinc-500">
-              Processing YouTube video and generating avatar clips…
+              {project.mode === 'raw-cut'
+                ? 'Processing YouTube video and creating captioned raw cuts…'
+                : 'Processing YouTube video and generating avatar clips…'}
             </p>
           </div>
         )

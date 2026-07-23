@@ -216,7 +216,7 @@ export default function HighlightReviewCard({
         onChange={(e) => onScriptEdit(e.target.value)}
         rows={3}
         className="w-full resize-none text-xs"
-        placeholder="Edit the script that will be read by the avatar..."
+        placeholder="Edit the script or caption text for this clip..."
       />
 
       {/* Viral rewrite controls */}

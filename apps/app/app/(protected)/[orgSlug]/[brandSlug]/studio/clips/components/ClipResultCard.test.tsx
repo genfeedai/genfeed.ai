@@ -18,6 +18,14 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+vi.mock('@ui/display/video-player/VideoPlayer', () => ({
+  default: ({ ariaLabel, src }: { ariaLabel: string; src: string }) => (
+    <div aria-label={ariaLabel} data-testid="video-player" role="img">
+      {src}
+    </div>
+  ),
+}));
+
 function makeClip(overrides?: Partial<ClipResult>): ClipResult {
   return {
     _id: 'clip-1',
@@ -88,6 +96,28 @@ describe('ClipResultCard', () => {
     );
 
     expect(screen.getByText('Generating')).toBeInTheDocument();
+  });
+
+  it('previews a completed raw cut', () => {
+    render(
+      <ClipResultCard
+        clip={makeClip({
+          mode: 'raw-cut',
+          status: 'completed',
+          videoUrl: 'https://cdn.example.com/raw-cut.mp4',
+        })}
+        clipsService={clipsService as never}
+        projectId="project-1"
+      />,
+    );
+
+    expect(screen.getByText('Raw cut')).toBeInTheDocument();
+    expect(screen.getByTestId('video-player')).toHaveTextContent(
+      'https://cdn.example.com/raw-cut.mp4',
+    );
+    expect(
+      screen.getByLabelText('Preview Test Clip Title'),
+    ).toBeInTheDocument();
   });
 
   it('should show action buttons only when status is completed', () => {

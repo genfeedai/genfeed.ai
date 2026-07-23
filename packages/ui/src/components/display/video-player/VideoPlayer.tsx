@@ -76,6 +76,7 @@ function VideoOverlayContent({
 }
 
 export default function VideoPlayer({
+  ariaLabel = 'Video player',
   videoRef,
   src = '',
   thumbnail = '',
@@ -161,7 +162,7 @@ export default function VideoPlayer({
       )}
 
       <video
-        aria-label="Video player"
+        aria-label={ariaLabel}
         controls={config?.controls}
         muted={config?.muted}
         loop={config?.loop}

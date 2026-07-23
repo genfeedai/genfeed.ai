@@ -6,7 +6,7 @@ import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { HiOutlineMagnifyingGlass, HiOutlineSparkles } from 'react-icons/hi2';
-
+import ClipModeSelector from './components/ClipModeSelector';
 import ClipsInputForm from './components/ClipsInputForm';
 import ClipsProgressView from './components/ClipsProgressView';
 import HighlightReviewCard from './components/HighlightReviewCard';
@@ -28,6 +28,7 @@ export default function StudioClipsPage() {
     clipsService,
     editedHighlights,
     error,
+    generationMode,
     handleAnalyze,
     handleGenerate,
     handleStartFromYoutube,
@@ -41,6 +42,7 @@ export default function StudioClipsPage() {
     selectedIds,
     setAvatarId,
     setAvatarProvider,
+    setGenerationMode,
     setMaxClips,
     setMinViralityScore,
     setVoiceId,
@@ -127,78 +129,87 @@ export default function StudioClipsPage() {
               ))}
             </div>
 
-            {/* Avatar & Voice config */}
-            <div className="mt-6 space-y-4 rounded-xl bg-secondary p-4 shadow-border">
-              <h3 className="text-sm font-medium text-zinc-300">
-                Avatar Configuration
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="avatar-id-review"
-                    className="mb-1 block text-xs text-zinc-500"
-                  >
-                    Avatar ID
-                  </label>
-                  <Input
-                    id="avatar-id-review"
-                    type="text"
-                    value={avatarId}
-                    onChange={(e) => setAvatarId(e.target.value)}
-                    placeholder="HeyGen avatar ID"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="voice-id-review"
-                    className="mb-1 block text-xs text-zinc-500"
-                  >
-                    Voice ID
-                  </label>
-                  <Input
-                    id="voice-id-review"
-                    type="text"
-                    value={voiceId}
-                    onChange={(e) => setVoiceId(e.target.value)}
-                    placeholder="HeyGen voice ID"
-                  />
-                </div>
-              </div>
-
-              <p className="text-xs text-zinc-500">
-                {identityDefaults.isComplete
-                  ? identityDefaults.source === 'brand'
-                    ? 'Using saved brand HeyGen avatar and voice defaults.'
-                    : 'Using saved organization HeyGen voice default.'
-                  : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
-              </p>
-
-              {/* Provider */}
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {PROVIDER_OPTIONS.map((opt) => (
-                  <Button
-                    key={opt.value}
-                    variant={ButtonVariant.UNSTYLED}
-                    isDisabled={opt.disabled}
-                    onClick={() => setAvatarProvider(opt.value)}
-                    className={`relative rounded-lg border px-3 py-2 text-left transition-colors ${
-                      avatarProvider === opt.value
-                        ? 'border-primary bg-primary/10'
-                        : opt.disabled
-                          ? 'cursor-not-allowed border-zinc-800 bg-zinc-900/30 opacity-50'
-                          : 'border-zinc-700 bg-zinc-800/30 hover:border-zinc-600'
-                    }`}
-                  >
-                    <div className="text-xs font-medium text-zinc-200">
-                      {opt.label}
-                    </div>
-                    <div className="text-[10px] text-zinc-500">
-                      {opt.description}
-                    </div>
-                  </Button>
-                ))}
-              </div>
+            <div className="mt-6 rounded-xl bg-secondary p-4 shadow-border">
+              <ClipModeSelector
+                mode={generationMode}
+                onModeChange={setGenerationMode}
+              />
             </div>
+
+            {/* Avatar & Voice config */}
+            {generationMode === 'avatar' && (
+              <div className="mt-4 space-y-4 rounded-xl bg-secondary p-4 shadow-border">
+                <h3 className="text-sm font-medium text-zinc-300">
+                  Avatar Configuration
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      htmlFor="avatar-id-review"
+                      className="mb-1 block text-xs text-zinc-500"
+                    >
+                      Avatar ID
+                    </label>
+                    <Input
+                      id="avatar-id-review"
+                      type="text"
+                      value={avatarId}
+                      onChange={(e) => setAvatarId(e.target.value)}
+                      placeholder="HeyGen avatar ID"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="voice-id-review"
+                      className="mb-1 block text-xs text-zinc-500"
+                    >
+                      Voice ID
+                    </label>
+                    <Input
+                      id="voice-id-review"
+                      type="text"
+                      value={voiceId}
+                      onChange={(e) => setVoiceId(e.target.value)}
+                      placeholder="HeyGen voice ID"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-zinc-500">
+                  {identityDefaults.isComplete
+                    ? identityDefaults.source === 'brand'
+                      ? 'Using saved brand HeyGen avatar and voice defaults.'
+                      : 'Using saved organization HeyGen voice default.'
+                    : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
+                </p>
+
+                {/* Provider */}
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {PROVIDER_OPTIONS.map((opt) => (
+                    <Button
+                      key={opt.value}
+                      variant={ButtonVariant.UNSTYLED}
+                      isDisabled={opt.disabled}
+                      onClick={() => setAvatarProvider(opt.value)}
+                      className={`relative rounded-lg border px-3 py-2 text-left transition-colors ${
+                        avatarProvider === opt.value
+                          ? 'border-primary bg-primary/10'
+                          : opt.disabled
+                            ? 'cursor-not-allowed border-zinc-800 bg-zinc-900/30 opacity-50'
+                            : 'border-zinc-700 bg-zinc-800/30 hover:border-zinc-600'
+                      }`}
+                    >
+                      <div className="text-xs font-medium text-zinc-200">
+                        {opt.label}
+                      </div>
+                      <div className="text-[10px] text-zinc-500">
+                        {opt.description}
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Error */}
             {error && (
@@ -220,7 +231,9 @@ export default function StudioClipsPage() {
                 variant={ButtonVariant.UNSTYLED}
                 onClick={handleGenerate}
                 isDisabled={
-                  isSubmitting || selectedCount === 0 || !avatarId || !voiceId
+                  isSubmitting ||
+                  selectedCount === 0 ||
+                  (generationMode === 'avatar' && (!avatarId || !voiceId))
                 }
                 isLoading={isSubmitting}
                 className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary disabled:cursor-not-allowed disabled:opacity-50"
@@ -234,7 +247,7 @@ export default function StudioClipsPage() {
                 label={
                   isSubmitting
                     ? 'Generating…'
-                    : `Generate ${selectedCount} clip${selectedCount !== 1 ? 's' : ''} (${selectedCount} credit${selectedCount !== 1 ? 's' : ''})`
+                    : `Generate ${selectedCount} ${generationMode === 'raw-cut' ? 'raw cut' : 'avatar clip'}${selectedCount !== 1 ? 's' : ''} (${selectedCount} credit${selectedCount !== 1 ? 's' : ''})`
                 }
               />
             </div>
@@ -260,6 +273,7 @@ export default function StudioClipsPage() {
   // ═══════════════════════════════════════════════════════════════
   return (
     <ClipsInputForm
+      generationMode={generationMode}
       youtubeUrl={youtubeUrl}
       onSetYoutubeUrl={setYoutubeUrl}
       maxClips={maxClips}
@@ -269,13 +283,16 @@ export default function StudioClipsPage() {
       error={error}
       isSubmitting={isSubmitting}
       onAnalyze={handleAnalyze}
+      onModeChange={setGenerationMode}
       onStartQuick={handleStartFromYoutube}
       quickStartHint={
-        identityDefaults.isComplete
-          ? identityDefaults.source === 'brand'
-            ? 'Uses saved brand avatar and voice defaults.'
-            : 'Uses saved organization voice default.'
-          : 'No saved HeyGen defaults. Review highlights first to enter IDs manually.'
+        generationMode === 'raw-cut'
+          ? 'Uses the source footage and burns captions. No avatar defaults required.'
+          : identityDefaults.isComplete
+            ? identityDefaults.source === 'brand'
+              ? 'Uses saved brand avatar and voice defaults.'
+              : 'Uses saved organization voice default.'
+            : 'No saved HeyGen defaults. Review highlights first to enter IDs manually.'
       }
     />
   );

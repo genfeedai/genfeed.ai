@@ -1,4 +1,8 @@
-import type { ClipResult, IHighlight } from '@props/studio/clips.props';
+import type {
+  ClipResult,
+  ClipResultMode,
+  IHighlight,
+} from '@props/studio/clips.props';
 import { EnvironmentService } from '@services/core/environment.service';
 
 // ─── API Response Types ───────────────────────────────────────────
@@ -26,18 +30,20 @@ interface GenerateClipsPayload {
     title: string;
     summary: string;
   }>;
-  avatarId: string;
-  voiceId: string;
-  avatarProvider: string;
+  avatarId?: string;
+  avatarProvider?: string;
+  mode: ClipResultMode;
+  voiceId?: string;
 }
 
 interface CreateFromYoutubePayload {
-  avatarId: string;
-  avatarProvider: string;
+  avatarId?: string;
+  avatarProvider?: string;
   language: string;
   maxClips: number;
   minViralityScore: number;
-  voiceId: string;
+  mode: ClipResultMode;
+  voiceId?: string;
   youtubeUrl: string;
 }
 
