@@ -704,6 +704,12 @@ jobs:
             echo "::error::apps/server/api/openapi/openapi.json is stale — regenerate with: bun run --filter=@genfeedai/api openapi:emit"
             exit 1
           fi
+      - name: Upload generated spec
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: openapi-generated
+          path: /tmp/openapi-emit-1.json
       - name: Validate spec (operationId coverage/uniqueness + allowlist)
         run: cd apps/server/api && bun run openapi:validate
 
