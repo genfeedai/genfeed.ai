@@ -2690,6 +2690,14 @@ model AgentThread {
   status         String?      @default("active")
   config         Json         @default("{}")
   contextVersion Int          @default(1)
+  isPinned       Boolean      @default(false)
+  planModeEnabled Boolean     @default(false)
+  requestedModel String?
+  runtimeKey     String?
+  source         String?
+  systemPrompt   String?
+  memoryEntryIds String[]     @default([])
+  parentThreadId String?
   scopeChangeProvenance Json  @default("[]")
   isLegacyBrandFallbackEligible Boolean @default(false)
   legacyBrandFallbackCount Int @default(0)
