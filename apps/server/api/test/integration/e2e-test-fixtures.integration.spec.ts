@@ -2,11 +2,20 @@ import { BrandGenerationService } from '@api/collections/brands/services/brand-g
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
+import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
+import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { RolesService } from '@api/collections/roles/services/roles.service';
+import { StreaksService } from '@api/collections/streaks/services/streaks.service';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createTestUser } from '@api-test/e2e/e2e-test.utils';
 import {
   BRAND_SERVICE_E2E_MOCK_PROVIDERS,
+  COLLECTION_E2E_MOCK_PROVIDERS,
   E2ETestModule,
   TestDatabaseHelper,
 } from '@api-test/e2e-test.module';
@@ -42,18 +51,32 @@ describe('E2E fixture contracts', () => {
   });
 
   it('provides every optional BrandsService collaborator to CRUD E2E modules', async () => {
-    const expectedTokens = [
+    const expectedBrandTokens = [
       CacheInvalidationService,
       BrandRelocationService,
       BrandGenerationService,
       BrandKitAssetsService,
       BrandKitDraftService,
     ];
-    const configuredTokens = BRAND_SERVICE_E2E_MOCK_PROVIDERS.map(
+    const expectedCollectionTokens = [
+      CredentialCryptoService,
+      StreaksService,
+      DefaultRecurringContentService,
+      RolesService,
+      OrganizationSettingsService,
+      RequestContextCacheService,
+      AccessBootstrapCacheService,
+      BetterAuthIdentityCacheService,
+    ];
+    const configuredBrandTokens = BRAND_SERVICE_E2E_MOCK_PROVIDERS.map(
+      (provider) => provider.provide,
+    );
+    const configuredCollectionTokens = COLLECTION_E2E_MOCK_PROVIDERS.map(
       (provider) => provider.provide,
     );
 
-    expect(configuredTokens).toEqual(expectedTokens);
+    expect(configuredBrandTokens).toEqual(expectedBrandTokens);
+    expect(configuredCollectionTokens).toEqual(expectedCollectionTokens);
 
     const moduleConfig = await E2ETestModule.forRoot({
       providers: [BrandGenerationService],
@@ -64,6 +87,11 @@ describe('E2E fixture contracts', () => {
         : provider,
     );
 
-    expect(providerTokens).toEqual(expect.arrayContaining(expectedTokens));
+    expect(providerTokens).toEqual(
+      expect.arrayContaining([
+        ...expectedBrandTokens,
+        ...expectedCollectionTokens,
+      ]),
+    );
   });
 });
