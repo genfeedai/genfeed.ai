@@ -1,6 +1,9 @@
 import * as crypto from 'node:crypto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { assertSafeWebhookEndpoint } from '@api/services/webhook-client/webhook-endpoint.validator';
+import {
+  assertSafeWebhookEndpoint,
+  WebhookEndpointValidationError,
+} from '@api/services/webhook-client/webhook-endpoint.validator';
 import { redactPublishWebhookText } from '@api-types/contracts/publish-webhook-events.contract';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import {
@@ -44,11 +47,10 @@ export class WebhookClientProcessor extends WorkerHost {
       try {
         await assertSafeWebhookEndpoint(endpoint);
       } catch (error: unknown) {
-        throw new UnrecoverableError(
-          redactPublishWebhookText(
-            readErrorMessage(error) || 'Webhook endpoint is invalid',
-          ),
-        );
+        if (error instanceof WebhookEndpointValidationError) {
+          throw new UnrecoverableError(redactPublishWebhookText(error.message));
+        }
+        throw error;
       }
       await job.updateProgress(10);
 

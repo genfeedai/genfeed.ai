@@ -187,4 +187,14 @@ describe('publish webhook helpers', () => {
       'Provider failed with access_token=[REDACTED], oauth_token=[REDACTED], token=[REDACTED], id_token=[REDACTED], session_token=[REDACTED], signature=[REDACTED], Bearer [REDACTED], and Basic [REDACTED]',
     );
   });
+
+  test('redacts quoted secret keys from provider JSON errors', () => {
+    expect(
+      redactPublishWebhookText(
+        'Provider error {"access_token":"access-live","webhook_secret":"webhook-live","id_token":"id-live"}',
+      ),
+    ).toBe(
+      'Provider error {"access_token":"[REDACTED]","webhook_secret":"[REDACTED]","id_token":"[REDACTED]"}',
+    );
+  });
 });

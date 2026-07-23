@@ -179,6 +179,9 @@ describe('WebhookClientProcessor', () => {
 
     await expect(processor.process(job as never)).resolves.toBeUndefined();
 
+    const requestOptions = httpService.post.mock.calls[0]?.[2];
+    expect(requestOptions.validateStatus(422)).toBe(true);
+    expect(requestOptions.validateStatus(503)).toBe(false);
     expect(
       organizationSettingsService.recordWebhookDeliveryStatus,
     ).toHaveBeenCalledWith(
