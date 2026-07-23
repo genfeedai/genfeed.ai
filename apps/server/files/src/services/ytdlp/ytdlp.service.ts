@@ -88,23 +88,23 @@ export class YtDlpService {
       const proc = spawn('yt-dlp', args, {
         detached: process.platform !== 'win32',
       });
-      let settled = false;
-      let timedOut = false;
+      let isSettled = false;
+      let hasTimedOut = false;
       const settle = (callback: () => void): void => {
-        if (settled) {
+        if (isSettled) {
           return;
         }
-        settled = true;
+        isSettled = true;
         callback();
       };
       const timeout = setTimeout(() => {
-        timedOut = true;
+        hasTimedOut = true;
         this.terminateProcessTree(proc);
       }, YT_DLP_PROCESS_TIMEOUT_MS);
 
       proc.on('close', (code: number | null) => {
         clearTimeout(timeout);
-        if (timedOut) {
+        if (hasTimedOut) {
           this.cleanupPartialOutput(outputPath);
           settle(() =>
             reject(
@@ -135,7 +135,7 @@ export class YtDlpService {
       });
       proc.on('error', (error) => {
         clearTimeout(timeout);
-        if (!timedOut) {
+        if (!hasTimedOut) {
           settle(() => reject(error));
         }
       });
