@@ -6,6 +6,7 @@ import {
   type GenerateClipHighlightDto,
   GenerateClipsDto,
 } from '@api/collections/clip-projects/dto/generate-clips.dto';
+import { SelectClipReferenceFrameDto } from '@api/collections/clip-projects/dto/select-clip-reference-frame.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import type { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import type { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
@@ -19,6 +20,7 @@ import type { PublishHandoffService } from '@api/services/clip-orchestrator/publ
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
+import type { Request } from 'express';
 
 function createMockLogger(): LoggerService {
   return {
@@ -32,13 +34,18 @@ function createMockLogger(): LoggerService {
 
 function createMockClipProjectsService(): Pick<
   ClipProjectsService,
-  'create' | 'findOne' | 'patch' | 'reconcileTerminalState'
+  | 'create'
+  | 'findOne'
+  | 'patch'
+  | 'reconcileTerminalState'
+  | 'selectReferenceFrame'
 > {
   return {
     create: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
     reconcileTerminalState: vi.fn(),
+    selectReferenceFrame: vi.fn(),
   };
 }
 
@@ -241,6 +248,63 @@ describe('ClipProjectsController', () => {
     });
   });
 
+  describe('selectReferenceFrame', () => {
+    it('selects the candidate within the current organization scope', async () => {
+      const selectedProject = {
+        ...createProject(projectId, organizationId),
+        referenceFrames: {
+          candidates: [
+            {
+              diagnostics: [],
+              id: 'frame-1',
+              status: 'available',
+              storageKey: 'organizations/org-1/clips/frame-1.jpg',
+              timestampSeconds: 12,
+            },
+          ],
+          diagnostics: [],
+          schemaVersion: 1,
+          selectedCandidateId: 'frame-1',
+          status: 'selected',
+        },
+      } as ClipProjectDocument;
+      vi.mocked(clipProjectsService.selectReferenceFrame).mockResolvedValue(
+        selectedProject,
+      );
+
+      const result = await controller.selectReferenceFrame(
+        {
+          originalUrl: `/clip-projects/${projectId}/reference-frame`,
+        } as Request,
+        currentUser as never,
+        projectId,
+        { candidateId: 'frame-1' },
+      );
+
+      expect(clipProjectsService.selectReferenceFrame).toHaveBeenCalledWith(
+        projectId,
+        organizationId,
+        'frame-1',
+      );
+      expect(result).toBeDefined();
+    });
+
+    it('trims candidate IDs and rejects blank values at the DTO boundary', () => {
+      const validDto = plainToInstance(SelectClipReferenceFrameDto, {
+        candidateId: ' frame-1 ',
+      });
+      const blankDto = plainToInstance(SelectClipReferenceFrameDto, {
+        candidateId: '   ',
+      });
+
+      expect(validDto.candidateId).toBe('frame-1');
+      expect(validateSync(validDto)).toEqual([]);
+      expect(validateSync(blankDto).map((error) => error.property)).toContain(
+        'candidateId',
+      );
+    });
+  });
+
   describe('CreateClipProjectFromYoutubeDto validation', () => {
     it('should require avatar credentials when mode is omitted', () => {
       const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
@@ -304,27 +368,26 @@ describe('ClipProjectsController', () => {
       expect(messages).toContain('Must be a valid YouTube URL');
     });
 
-    it.each([
-      'did',
-      'tavus',
-      'musetalk',
-    ] as const)('should reject unsupported avatar provider %s', (avatarProvider) => {
-      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
-        avatarId: 'avatar-1',
-        avatarProvider,
-        voiceId: 'voice-1',
-        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-      });
+    it.each(['did', 'tavus', 'musetalk'] as const)(
+      'should reject unsupported avatar provider %s',
+      (avatarProvider) => {
+        const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
+          avatarId: 'avatar-1',
+          avatarProvider,
+          voiceId: 'voice-1',
+          youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+        });
 
-      const errors = validateSync(dto);
-      const messages = errors.flatMap((error) =>
-        Object.values(error.constraints ?? {}),
-      );
+        const errors = validateSync(dto);
+        const messages = errors.flatMap((error) =>
+          Object.values(error.constraints ?? {}),
+        );
 
-      expect(messages).toContain(
-        'avatarProvider must be one of the following values: heygen',
-      );
-    });
+        expect(messages).toContain(
+          'avatarProvider must be one of the following values: heygen',
+        );
+      },
+    );
   });
 
   describe('GenerateClipsDto validation', () => {
@@ -399,28 +462,27 @@ describe('ClipProjectsController', () => {
       );
     });
 
-    it.each([
-      'did',
-      'tavus',
-      'musetalk',
-    ] as const)('should reject unsupported avatar provider %s', (avatarProvider) => {
-      const dto = plainToInstance(GenerateClipsDto, {
-        avatarId: 'avatar-1',
-        avatarProvider,
-        editedHighlights,
-        selectedHighlightIds: ['highlight-1'],
-        voiceId: 'voice-1',
-      });
+    it.each(['did', 'tavus', 'musetalk'] as const)(
+      'should reject unsupported avatar provider %s',
+      (avatarProvider) => {
+        const dto = plainToInstance(GenerateClipsDto, {
+          avatarId: 'avatar-1',
+          avatarProvider,
+          editedHighlights,
+          selectedHighlightIds: ['highlight-1'],
+          voiceId: 'voice-1',
+        });
 
-      const errors = validateSync(dto);
-      const messages = errors.flatMap((error) =>
-        Object.values(error.constraints ?? {}),
-      );
+        const errors = validateSync(dto);
+        const messages = errors.flatMap((error) =>
+          Object.values(error.constraints ?? {}),
+        );
 
-      expect(messages).toContain(
-        'avatarProvider must be one of the following values: heygen',
-      );
-    });
+        expect(messages).toContain(
+          'avatarProvider must be one of the following values: heygen',
+        );
+      },
+    );
   });
 
   it('should persist edited highlights and keep the project generating while jobs are queued', async () => {

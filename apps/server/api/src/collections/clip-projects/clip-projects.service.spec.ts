@@ -244,6 +244,164 @@ describe('ClipProjectsService', () => {
     expect(prisma.clipProject.create).not.toHaveBeenCalled();
   });
 
+  it('persists selection of an available project reference frame', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue({
+      config: {
+        referenceFrames: {
+          candidates: [
+            {
+              diagnostics: [],
+              id: 'frame-1',
+              status: 'available',
+              storageKey: 'organizations/org-1/clips/frame-1.jpg',
+              timestampSeconds: 12,
+            },
+          ],
+          diagnostics: [],
+          schemaVersion: 1,
+          selectedCandidateId: null,
+          status: 'ready',
+        },
+      },
+      id: 'project-1',
+      organizationId: 'org-1',
+      progress: 100,
+      readiness: {},
+      status: 'analyzed',
+    });
+    prisma.clipProject.update.mockResolvedValue({
+      config: {},
+      id: 'project-1',
+      organizationId: 'org-1',
+      progress: 100,
+      readiness: {},
+      status: 'analyzed',
+    });
+
+    await service.selectReferenceFrame('project-1', 'org-1', 'frame-1');
+
+    expect(prisma.clipProject.findFirst).toHaveBeenNthCalledWith(1, {
+      where: {
+        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(prisma.clipProject.update).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          referenceFrames: expect.objectContaining({
+            selectedCandidateId: 'frame-1',
+            status: 'selected',
+          }),
+        }),
+      }),
+      where: { id: 'project-1' },
+    });
+  });
+
+  it('does not mutate when the selected reference frame is already persisted', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue({
+      config: {
+        referenceFrames: {
+          candidates: [
+            {
+              diagnostics: [],
+              id: 'frame-1',
+              status: 'available',
+              storageKey: 'organizations/org-1/clips/frame-1.jpg',
+              timestampSeconds: 12,
+            },
+          ],
+          diagnostics: [],
+          schemaVersion: 1,
+          selectedCandidateId: 'frame-1',
+          status: 'selected',
+        },
+      },
+      id: 'project-1',
+      organizationId: 'org-1',
+      progress: 100,
+      readiness: {},
+      status: 'analyzed',
+    });
+
+    await service.selectReferenceFrame('project-1', 'org-1', 'frame-1');
+
+    expect(prisma.clipProject.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      candidateId: 'missing-frame',
+      candidateStatus: 'available',
+      expectedMessage: 'does not belong to this project',
+      referenceFrameStatus: 'ready',
+    },
+    {
+      candidateId: 'frame-1',
+      candidateStatus: 'failed',
+      expectedMessage: 'is not available',
+      referenceFrameStatus: 'unavailable',
+    },
+  ])(
+    'rejects $candidateId without mutation when the candidate is invalid',
+    async ({
+      candidateId,
+      candidateStatus,
+      expectedMessage,
+      referenceFrameStatus,
+    }) => {
+      prisma.clipProject.findFirst.mockResolvedValue({
+        config: {
+          referenceFrames: {
+            candidates: [
+              {
+                diagnostics: [],
+                id: 'frame-1',
+                status: candidateStatus,
+                storageKey: 'organizations/org-1/clips/frame-1.jpg',
+                timestampSeconds: 12,
+              },
+            ],
+            diagnostics: [],
+            schemaVersion: 1,
+            selectedCandidateId: null,
+            status: referenceFrameStatus,
+          },
+        },
+        id: 'project-1',
+        organizationId: 'org-1',
+        progress: 100,
+        readiness: {},
+        status: 'analyzed',
+      });
+
+      await expect(
+        service.selectReferenceFrame('project-1', 'org-1', candidateId),
+      ).rejects.toThrow(expectedMessage);
+
+      expect(prisma.clipProject.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects projects outside the organization scope without mutation', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.selectReferenceFrame('project-1', 'other-org', 'frame-1'),
+    ).rejects.toThrow('ClipProject');
+
+    expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
+      where: {
+        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        isDeleted: false,
+        organizationId: 'other-org',
+      },
+    });
+    expect(prisma.clipProject.update).not.toHaveBeenCalled();
+  });
+
   it('merges patch config and adds terminal readiness for completed projects', async () => {
     prisma.clipProject.findFirst.mockResolvedValue({
       config: {

@@ -135,4 +135,47 @@ describe('ClipsApiService', () => {
       }),
     );
   });
+
+  it('selects a reference frame through the project mutation route', async () => {
+    const referenceFrames = {
+      candidates: [
+        {
+          diagnostics: [],
+          id: 'frame-1',
+          status: 'available',
+          timestampSeconds: 12,
+          url: 'https://cdn.test/frame-1.jpg',
+        },
+      ],
+      diagnostics: [],
+      schemaVersion: 1,
+      selectedCandidateId: 'frame-1',
+      status: 'selected',
+    };
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ data: { attributes: { referenceFrames } } }),
+        { status: 200 },
+      ),
+    );
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-reference-frame'),
+    );
+
+    await expect(
+      service.selectReferenceFrame('clip-project-1', 'frame-1'),
+    ).resolves.toEqual(referenceFrames);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/clip-project-1/reference-frame',
+      expect.objectContaining({
+        body: JSON.stringify({ candidateId: 'frame-1' }),
+        headers: {
+          Authorization: 'Bearer token-reference-frame',
+          'Content-Type': 'application/json',
+        },
+        method: 'PUT',
+      }),
+    );
+  });
 });
