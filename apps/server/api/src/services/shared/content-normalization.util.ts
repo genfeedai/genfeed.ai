@@ -150,5 +150,5 @@ export const CommonExtractors = {
    * Parse Unix timestamp to Date
    */
   unixToDate: (timestamp: number | undefined): Date | undefined =>
-    timestamp ? new Date(timestamp * 1000) : undefined,
+    timestamp === undefined ? undefined : new Date(timestamp * 1000),
 };

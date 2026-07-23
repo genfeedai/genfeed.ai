@@ -53,6 +53,13 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../server/src/$1'),
       },
       {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/api-types/src/$1',
+        ),
+      },
+      {
         find: '@credits',
         replacement: path.resolve(serviceDir, './src/collections/credits'),
       },

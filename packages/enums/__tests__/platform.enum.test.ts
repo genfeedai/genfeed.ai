@@ -3,8 +3,8 @@ import { Platform } from '../src/platform.enum';
 
 describe('platform.enum', () => {
   describe('Platform', () => {
-    it('should have 29 members', () => {
-      expect(Object.values(Platform)).toHaveLength(29);
+    it('should have 28 members', () => {
+      expect(Object.values(Platform)).toHaveLength(28);
     });
 
     it('should have correct values', () => {

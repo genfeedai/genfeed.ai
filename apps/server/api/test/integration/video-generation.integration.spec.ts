@@ -3,6 +3,7 @@ import { VideosService } from '@api/collections/videos/services/videos.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
+import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
@@ -60,7 +61,7 @@ describe('Video Generation Integration Tests', () => {
     // Start in-memory MongoDB
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [PrismaModule],
+      imports: [ConfigModule, PrismaModule],
       providers: [
         VideosService,
         {

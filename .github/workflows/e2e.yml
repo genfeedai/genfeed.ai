@@ -95,6 +95,7 @@ jobs:
           --health-retries 10
     env:
       NODE_ENV: test
+      PORT: "3000"
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       REDIS_URL: redis://localhost:6379
       # Mock all external service keys
@@ -166,6 +167,7 @@ jobs:
           --health-retries 10
     env:
       NODE_ENV: test
+      PORT: "3000"
       DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
       REDIS_URL: redis://localhost:6379
       REPLICATE_API_TOKEN: test-mock-key

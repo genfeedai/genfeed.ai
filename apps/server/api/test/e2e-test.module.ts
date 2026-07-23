@@ -7,20 +7,32 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
+import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
+import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
+import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
+import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 // Controller imports
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import { OrganizationsIntegrationsController } from '@api/collections/organizations/controllers/organizations-integrations.controller';
 // Service imports
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { StreaksService } from '@api/collections/streaks/services/streaks.service';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
+import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
@@ -139,6 +151,96 @@ export const GUARD_OVERRIDE_PROVIDERS = [
     provide: APP_GUARD,
     useClass: MockBetterAuthGuard,
   },
+];
+
+/**
+ * Collaborators used only by optional brand operations. CRUD-oriented E2E
+ * modules provide inert tokens so Nest can construct BrandsService without
+ * pulling provider-backed generation, crawling, file, or relocation paths into
+ * the hermetic test boundary.
+ */
+export const BRAND_SERVICE_E2E_MOCK_PROVIDERS = [
+  {
+    provide: CacheInvalidationService,
+    useValue: {
+      invalidate: () => Promise.resolve(),
+      invalidateByTags: () => Promise.resolve(0),
+      invalidatePattern: () => Promise.resolve(),
+    },
+  },
+  {
+    provide: BrandRelocationService,
+    useValue: {
+      previewRelocation: () => Promise.resolve(null),
+      relocateToOrganization: () => Promise.resolve(null),
+    },
+  },
+  {
+    provide: BrandGenerationService,
+    useValue: {
+      generateBrandVoice: () => Promise.resolve(null),
+      generateFastlaneIdeas: () => Promise.resolve([]),
+    },
+  },
+  {
+    provide: BrandKitAssetsService,
+    useValue: { importBrandKitAssets: () => Promise.resolve(null) },
+  },
+  {
+    provide: BrandKitDraftService,
+    useValue: {
+      applyBrandKitDraft: () => Promise.resolve(null),
+      buildManualBrandKitDraft: () => Promise.resolve(null),
+      crawlWebsiteBrandKitDraft: () => Promise.resolve(null),
+    },
+  },
+];
+
+/**
+ * Side-effecting collaborators required by collection controllers and services.
+ * Individual E2E modules can override any token by providing it after these
+ * defaults, while CRUD suites remain hermetic as constructor graphs evolve.
+ */
+export const COLLECTION_E2E_MOCK_PROVIDERS = [
+  {
+    provide: CredentialCryptoService,
+    useFactory: () => createMockCryptoService(),
+  },
+  {
+    provide: StreaksService,
+    useValue: {
+      checkAndUpdate: () => Promise.resolve(),
+      isQualifyingActivityKey: () => false,
+    },
+  },
+  {
+    provide: DefaultRecurringContentService,
+    useValue: {
+      ensureDefaultBundle: () =>
+        Promise.resolve({ isConfigured: false, items: [] }),
+      getStatus: () => Promise.resolve({ isConfigured: false, items: [] }),
+    },
+  },
+  {
+    provide: RolesService,
+    useValue: { findOne: () => Promise.resolve(null) },
+  },
+  {
+    provide: OrganizationSettingsService,
+    useValue: {
+      create: () => Promise.resolve(null),
+      findOne: () => Promise.resolve(null),
+      getLatestMajorVersionModelIds: () => Promise.resolve([]),
+    },
+  },
+  ...[
+    RequestContextCacheService,
+    AccessBootstrapCacheService,
+    BetterAuthIdentityCacheService,
+  ].map((service) => ({
+    provide: service,
+    useValue: { invalidateForUser: () => Promise.resolve() },
+  })),
 ];
 
 type PrismaDelegate = {
@@ -295,6 +397,13 @@ export class TestDatabaseHelper {
     this.rename(data, 'brand', 'brandId');
     this.rename(data, 'credential', 'credentialId');
 
+    if (delegateName === 'user') {
+      // Removed during the Prisma identity migration. Some legacy E2E fixtures
+      // still pass this Mongo-era field, so strip it at the shared seed boundary
+      // instead of letting Prisma reject every suite during beforeEach.
+      delete data.isActive;
+    }
+
     if (delegateName === 'organization') {
       data['slug'] ??= this.slugify(String(data['label'] ?? data['id']));
       data['userId'] ??= 'e2e-test-user';
@@ -433,6 +542,8 @@ export class E2ETestModule {
         }),
         PrismaService,
         ...guardProviders,
+        ...BRAND_SERVICE_E2E_MOCK_PROVIDERS,
+        ...COLLECTION_E2E_MOCK_PROVIDERS,
         ...providers,
       ],
     };

@@ -53,4 +53,83 @@ describe('ViralScoringUtil', () => {
       expect(score).toBeLessThanOrEqual(100);
     });
   });
+
+  describe('calculateVideoMetrics', () => {
+    it('calculates engagement and hourly velocity', () => {
+      expect(
+        ViralScoringUtil.calculateVideoMetrics({
+          commentCount: 5,
+          hoursAgo: 2,
+          likeCount: 10,
+          shareCount: 5,
+          viewCount: 100,
+        }),
+      ).toMatchObject({
+        engagementRate: 20,
+        velocity: 50,
+      });
+    });
+
+    it('handles zero views and non-positive elapsed time', () => {
+      expect(
+        ViralScoringUtil.calculateVideoMetrics({
+          commentCount: 0,
+          hoursAgo: 0,
+          likeCount: 0,
+          shareCount: 0,
+          viewCount: 0,
+        }),
+      ).toEqual({ engagementRate: 0, velocity: 0, viralScore: 0 });
+      expect(
+        ViralScoringUtil.calculateVideoMetrics({
+          commentCount: 0,
+          hoursAgo: -1,
+          likeCount: 0,
+          shareCount: 0,
+          viewCount: 12,
+        }).velocity,
+      ).toBe(12);
+    });
+
+    it('uses the default 24-hour window', () => {
+      expect(
+        ViralScoringUtil.calculateVideoMetrics({
+          commentCount: 0,
+          likeCount: 0,
+          shareCount: 0,
+          viewCount: 48,
+        }).velocity,
+      ).toBe(2);
+    });
+  });
+
+  describe('calculateGrowthRate', () => {
+    it('handles empty baselines and positive or negative growth', () => {
+      expect(ViralScoringUtil.calculateGrowthRate(10, 0)).toBe(100);
+      expect(ViralScoringUtil.calculateGrowthRate(0, 0)).toBe(0);
+      expect(ViralScoringUtil.calculateGrowthRate(150, 100)).toBe(50);
+      expect(ViralScoringUtil.calculateGrowthRate(50, 100)).toBe(-50);
+    });
+  });
+
+  describe('calculateRankViralityScore', () => {
+    it('uses the default rank count and caps out-of-range ranks', () => {
+      expect(ViralScoringUtil.calculateRankViralityScore(1)).toBe(100);
+      expect(ViralScoringUtil.calculateRankViralityScore(10, 10)).toBe(10);
+      expect(ViralScoringUtil.calculateRankViralityScore(20, 10)).toBe(10);
+    });
+
+    it('clamps ranks below 1 to the top score', () => {
+      expect(ViralScoringUtil.calculateRankViralityScore(0, 10)).toBe(100);
+      expect(ViralScoringUtil.calculateRankViralityScore(-5, 10)).toBe(100);
+    });
+  });
+
+  describe('normalizeScore', () => {
+    it('rounds and clamps scores to the supported range', () => {
+      expect(ViralScoringUtil.normalizeScore(-1)).toBe(0);
+      expect(ViralScoringUtil.normalizeScore(42.6)).toBe(43);
+      expect(ViralScoringUtil.normalizeScore(101)).toBe(100);
+    });
+  });
 });

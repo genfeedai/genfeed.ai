@@ -413,10 +413,30 @@ async function assertRouteLoads(
   route: string,
   options: { allowRedirectToLogin?: boolean } = {},
 ): Promise<void> {
-  const response: Response | null = await page.goto(route, {
-    timeout: 180_000,
-    waitUntil: 'commit',
-  });
+  let response: Response | null = null;
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      response = await page.goto(route, {
+        timeout: 180_000,
+        waitUntil: 'commit',
+      });
+      break;
+    } catch (error) {
+      const isRetryableAbort =
+        error instanceof Error && error.message.includes('net::ERR_ABORTED');
+
+      if (!isRetryableAbort || attempt === 2) {
+        throw error;
+      }
+
+      // Next can cancel an in-flight document request while a previous route
+      // finishes redirecting under V8 coverage instrumentation. Retry only this
+      // browser-level abort once; HTTP, timeout, and assertion failures remain
+      // hard failures.
+      await page.waitForTimeout(250);
+    }
+  }
 
   expect(response?.status() ?? 0, `${route} returned HTTP error`).toBeLessThan(
     400,

@@ -8,8 +8,8 @@ import {
 
 describe('activity.enum', () => {
   describe('ActivitySource', () => {
-    it('should have 34 members', () => {
-      expect(Object.values(ActivitySource)).toHaveLength(34);
+    it('should have 37 members', () => {
+      expect(Object.values(ActivitySource)).toHaveLength(37);
     });
 
     it('should have correct values', () => {
@@ -51,12 +51,15 @@ describe('activity.enum', () => {
       expect(ActivitySource.WEB).toBe('web');
       expect(ActivitySource.BOT_GENERATION).toBe('bot-generate');
       expect(ActivitySource.VOICE_GENERATION).toBe('voice-generate');
+      expect(ActivitySource.TREND_SCAN).toBe('trend-scan');
+      expect(ActivitySource.BRAND_INTERVIEW).toBe('brand-interview');
+      expect(ActivitySource.BRAND_RELOCATION).toBe('brand-relocation');
     });
   });
 
   describe('ActivityKey', () => {
-    it('should have 50 members', () => {
-      expect(Object.values(ActivityKey)).toHaveLength(50);
+    it('should have 51 members', () => {
+      expect(Object.values(ActivityKey)).toHaveLength(51);
     });
 
     it('should have correct values', () => {
@@ -140,6 +143,7 @@ describe('activity.enum', () => {
       );
       expect(ActivityKey.PROMPT_REMIX_COMPLETED).toBe('prompt-remix-completed');
       expect(ActivityKey.PROMPT_REMIX_FAILED).toBe('prompt-remix-failed');
+      expect(ActivityKey.BRAND_RELOCATED).toBe('brand-relocated');
     });
   });
 

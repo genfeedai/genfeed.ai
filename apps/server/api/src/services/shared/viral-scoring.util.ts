@@ -107,7 +107,9 @@ export class ViralScoringUtil {
    * Used for: Twitter trends, ranked lists
    */
   static calculateRankViralityScore(rank: number, totalRanks = 20): number {
-    const normalizedRank = Math.min(rank, totalRanks);
+    // Ranks are 1-based; clamp to [1, totalRanks] so out-of-range inputs
+    // (rank 0 or negatives) stay within the 0-100 score range.
+    const normalizedRank = Math.min(Math.max(rank, 1), totalRanks);
     return Math.round(100 - (normalizedRank - 1) * (100 / totalRanks));
   }
 

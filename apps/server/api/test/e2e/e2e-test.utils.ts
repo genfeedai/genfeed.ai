@@ -262,7 +262,6 @@ export const createTestUser = (overrides: Record<string, unknown> = {}) => ({
   email: `test-${Date.now()}@example.com`,
   firstName: 'Test',
   handle: `user-${Date.now()}`,
-  isActive: true,
   isDeleted: false,
   lastName: 'User',
   updatedAt: new Date(),

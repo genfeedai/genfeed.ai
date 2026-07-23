@@ -1,7 +1,6 @@
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { TasksController } from '@api/collections/tasks/controllers/tasks.controller';
-import { Task, TaskSchema } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import {
   createTestOrganization,
@@ -90,7 +89,6 @@ describe('Tasks E2E Tests', () => {
           },
         },
       ],
-      schemas: [{ name: Task.name, schema: TaskSchema }],
       useMockGuards: false,
     });
 
