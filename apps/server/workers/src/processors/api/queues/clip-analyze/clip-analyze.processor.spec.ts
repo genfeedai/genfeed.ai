@@ -45,8 +45,8 @@ describe('ClipAnalyzeProcessor', () => {
             content: JSON.stringify([
               {
                 clip_type: 'hook',
-                end_time: 30,
-                start_time: 0,
+                end_time: 90,
+                start_time: 10,
                 summary: 'Great opening',
                 tags: ['intro'],
                 title: 'Epic intro',
@@ -54,7 +54,7 @@ describe('ClipAnalyzeProcessor', () => {
               },
               {
                 clip_type: 'educational',
-                end_time: 60,
+                end_time: 40,
                 start_time: 25,
                 summary: 'Key insight',
                 tags: ['learning'],
@@ -122,17 +122,45 @@ describe('ClipAnalyzeProcessor', () => {
     httpService.post
       .mockReturnValueOnce(of({ data: { jobId: 'audio-job-1' } }) as never)
       // OpenRouter LLM call
-      .mockReturnValueOnce(of(mockHighlightsResponse) as never);
+      .mockReturnValueOnce(of(mockHighlightsResponse) as never)
+      // Reference frame extraction POST
+      .mockReturnValueOnce(of({ data: { jobId: 'frames-job-1' } }) as never);
 
     // Audio job poll GET
-    httpService.get.mockReturnValueOnce(
-      of({
-        data: {
-          result: { outputUrl: 'https://cdn.test/audio.mp3' },
-          status: 'completed',
-        },
-      }) as never,
-    );
+    httpService.get
+      .mockReturnValueOnce(
+        of({
+          data: {
+            result: { outputUrl: 'https://cdn.test/audio.mp3' },
+            state: 'completed',
+          },
+        }) as never,
+      )
+      .mockReturnValueOnce(
+        of({
+          data: {
+            result: {
+              referenceFrames: {
+                candidates: [
+                  {
+                    assetId: 'frame-1-32500',
+                    diagnostics: [],
+                    id: 'frame-1-32500',
+                    status: 'available',
+                    timestampSeconds: 32.5,
+                    url: 'https://cdn.test/frame.jpg',
+                  },
+                ],
+                diagnostics: [],
+                schemaVersion: 1,
+                selectedCandidateId: null,
+                status: 'ready',
+              },
+            },
+            state: 'completed',
+          },
+        }) as never,
+      );
   }
 
   it('should complete the analysis pipeline and set status to analyzed', async () => {
@@ -143,6 +171,7 @@ describe('ClipAnalyzeProcessor', () => {
     expect(lastPatchCall?.[0]).toBe('proj-123');
     expect(lastPatchCall?.[1]).toMatchObject({
       progress: 100,
+      referenceFrames: { status: 'ready' },
       status: 'analyzed',
     });
     expect(lastPatchCall?.[1]).toHaveProperty('highlights');
@@ -187,6 +216,61 @@ describe('ClipAnalyzeProcessor', () => {
     expect(transcriptPatch).toBeDefined();
     expect(transcriptPatch?.[1]?.transcriptText).toBe(mockTranscription.text);
     expect(transcriptPatch?.[1]?.transcriptSrt).toBe(mockTranscription.srt);
+  });
+
+  it('should derive bounded reference timestamps from accepted highlights', async () => {
+    setupHttpMocks();
+    await processor.process(createMockJob());
+
+    expect(httpService.post).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining('/v1/files/process/video'),
+      expect.objectContaining({
+        ingredientId: 'proj-123',
+        params: {
+          inputPath: mockJobData.youtubeUrl,
+          timestamps: [32.5, 50],
+        },
+        type: 'extract-reference-frames',
+      }),
+      expect.any(Object),
+    );
+    const pendingPatch = clipProjectsService.patch.mock.calls.find(
+      (call) => call[1]?.referenceFrames?.status === 'pending',
+    );
+    expect(pendingPatch?.[1]).toMatchObject({ progress: 75 });
+    expect(
+      pendingPatch?.[1]?.referenceFrames?.candidates.map(
+        (candidate) => candidate.id,
+      ),
+    ).toEqual(['frame-1-32500', 'frame-2-50000']);
+  });
+
+  it('should preserve analysis when reference extraction fails', async () => {
+    setupHttpMocks();
+    httpService.get.mockReset();
+    httpService.get
+      .mockReturnValueOnce(
+        of({
+          data: {
+            result: { outputUrl: 'https://cdn.test/audio.mp3' },
+            state: 'completed',
+          },
+        }) as never,
+      )
+      .mockReturnValueOnce(of({ data: { state: 'failed' } }) as never);
+
+    await processor.process(createMockJob());
+
+    const lastPatchCall = clipProjectsService.patch.mock.calls.at(-1);
+    expect(lastPatchCall?.[1]).toMatchObject({
+      progress: 100,
+      referenceFrames: {
+        status: 'unavailable',
+      },
+      status: 'analyzed',
+    });
+    expect(lastPatchCall?.[1]).toHaveProperty('highlights');
   });
 
   it('should set status to failed on error', async () => {

@@ -56,3 +56,10 @@ export interface ClipReferenceFrameSet {
   selectedCandidateId: string | null;
   diagnostics: ClipReferenceFrameDiagnostic[];
 }
+
+export interface ClipReferenceFrameExtractionInput {
+  organizationId: string;
+  projectId: string;
+  sourceUrl: string;
+  timestamps: number[];
+}

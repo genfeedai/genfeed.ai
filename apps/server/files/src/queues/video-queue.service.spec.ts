@@ -97,4 +97,28 @@ describe('VideoQueueService', () => {
       expect.not.objectContaining({ jobId: expect.anything() }),
     );
   });
+
+  it('queues clip reference extraction with the bounded job type', async () => {
+    const data = {
+      createdAt: new Date(),
+      id: 'clip-reference-frames-project-1',
+      ingredientId: 'project-1',
+      metadata: { websocketUrl: '' },
+      organizationId: 'org-1',
+      params: {
+        inputPath: 'https://www.youtube.com/watch?v=test',
+        timestamps: [5, 15],
+      },
+      type: JOB_TYPES.EXTRACT_REFERENCE_FRAMES,
+      userId: 'user-1',
+    } as VideoJobData;
+
+    await service.addExtractReferenceFramesJob(data);
+
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      JOB_TYPES.EXTRACT_REFERENCE_FRAMES,
+      data,
+      expect.objectContaining({ attempts: 2 }),
+    );
+  });
 });

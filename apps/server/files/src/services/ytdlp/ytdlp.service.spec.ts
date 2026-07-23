@@ -17,6 +17,7 @@ vi.mock('node:child_process', () => ({
       on: (event: string, cb: (...args: unknown[]) => void) => {
         events[event] = cb;
       },
+      kill: vi.fn(),
     };
   }),
 }));
@@ -25,15 +26,18 @@ vi.mock('node:fs', () => ({
   default: {
     existsSync: vi.fn(),
     mkdirSync: vi.fn(),
+    unlinkSync: vi.fn(),
   },
   existsSync: vi.fn(),
   mkdirSync: vi.fn(),
+  unlinkSync: vi.fn(),
 }));
 
 type ProcessHandler = (...args: unknown[]) => void;
 
 type MockProcess = {
   emit: Mock<(event: string, ...args: unknown[]) => void>;
+  kill: Mock<(signal: NodeJS.Signals) => boolean>;
   on: Mock<(event: string, cb: ProcessHandler) => void>;
 };
 
@@ -44,6 +48,7 @@ function createMockProcess(): MockProcess {
     emit: vi.fn((event: string, ...args: unknown[]) => {
       events[event]?.(...args);
     }),
+    kill: vi.fn(() => true),
     on: vi.fn((event: string, cb: ProcessHandler) => {
       events[event] = cb;
     }),
@@ -79,6 +84,7 @@ describe('YtDlpService', () => {
   beforeEach(async () => {
     loggerMock = {
       log: vi.fn(),
+      warn: vi.fn(),
     };
 
     spawnMock = spawn as MockedFunction<typeof spawn>;
@@ -115,14 +121,20 @@ describe('YtDlpService', () => {
 
       const result = await promise;
 
-      expect(spawnMock).toHaveBeenCalledWith('yt-dlp', [
-        '-x',
-        '--audio-format',
-        'mp3',
-        '-o',
-        expect.stringContaining('public/tmp/clips/'),
-        url,
-      ]);
+      expect(spawnMock).toHaveBeenCalledWith(
+        'yt-dlp',
+        [
+          '-x',
+          '--audio-format',
+          'mp3',
+          '-o',
+          expect.stringContaining('public/tmp/clips/'),
+          url,
+        ],
+        {
+          detached: process.platform !== 'win32',
+        },
+      );
       expect(result).toMatch(/\.mp3$/);
       expect(loggerMock.log).toHaveBeenCalledWith(
         expect.stringContaining('yt-dlp'),
@@ -248,15 +260,71 @@ describe('YtDlpService', () => {
       closeProcess(mockProcess, 0);
 
       await expect(promise).resolves.toBe(outputPath);
-      expect(spawnMock).toHaveBeenCalledWith('yt-dlp', [
-        '-f',
-        'bestvideo[height<=720]+bestaudio/best[height<=720]',
-        '--merge-output-format',
-        'mp4',
-        '-o',
+      expect(spawnMock).toHaveBeenCalledWith(
+        'yt-dlp',
+        [
+          '--no-playlist',
+          '--socket-timeout',
+          '30',
+          '--max-filesize',
+          '500M',
+          '-f',
+          'bestvideo[height<=720]+bestaudio/best[height<=720]',
+          '--merge-output-format',
+          'mp4',
+          '-o',
+          outputPath,
+          url,
+        ],
+        {
+          detached: process.platform !== 'win32',
+        },
+      );
+    });
+
+    it('kills a timed-out process and removes partial output after close', async () => {
+      vi.useFakeTimers();
+      const outputPath = '/tmp/genfeed/video.mp4';
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync.mockReturnValue(true);
+
+      const promise = service.downloadVideo(
+        'https://youtube.com/watch?v=test',
         outputPath,
-        url,
-      ]);
+      );
+      const settled = vi.fn();
+      void promise.then(settled, settled);
+      const rejection = expect(promise).rejects.toThrow('yt-dlp timed out');
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+
+      expect(mockProcess.kill).toHaveBeenCalledWith('SIGKILL');
+      expect(settled).not.toHaveBeenCalled();
+      expect(fsMock.unlinkSync).not.toHaveBeenCalled();
+
+      closeProcess(mockProcess, 137);
+
+      await rejection;
+      expect(settled).toHaveBeenCalledOnce();
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(outputPath);
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(`${outputPath}.part`);
+      vi.useRealTimers();
+    });
+
+    it('rejects a successful process that did not create an output file', async () => {
+      const outputPath = '/tmp/genfeed/video.mp4';
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false)
+        .mockReturnValue(false);
+
+      const promise = service.downloadVideo(
+        'https://youtube.com/watch?v=test',
+        outputPath,
+      );
+      closeProcess(mockProcess, 0);
+
+      await expect(promise).rejects.toThrow('without creating an output file');
     });
   });
 
@@ -272,16 +340,22 @@ describe('YtDlpService', () => {
       closeProcess(mockProcess, 0);
 
       await expect(promise).resolves.toBe(outputPath);
-      expect(spawnMock).toHaveBeenCalledWith('yt-dlp', [
-        '-x',
-        '--audio-format',
-        'mp3',
-        '--audio-quality',
-        '9',
-        '-o',
-        outputPath,
-        url,
-      ]);
+      expect(spawnMock).toHaveBeenCalledWith(
+        'yt-dlp',
+        [
+          '-x',
+          '--audio-format',
+          'mp3',
+          '--audio-quality',
+          '9',
+          '-o',
+          outputPath,
+          url,
+        ],
+        {
+          detached: process.platform !== 'win32',
+        },
+      );
     });
   });
 });

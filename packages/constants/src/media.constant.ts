@@ -18,6 +18,11 @@ export const VIDEO_MERGE_LIMITS = {
   MIN_VIDEOS: 2,
 } as const;
 
+export const CLIP_REFERENCE_FRAME_MAX_CANDIDATES = 5;
+export const YT_DLP_PROCESS_TIMEOUT_MS = 5 * 60_000;
+export const CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS =
+  YT_DLP_PROCESS_TIMEOUT_MS + 60_000;
+
 export const DEFAULT_LABELS = {
   MERGED_STORYBOARD: 'Merged Storyboard',
 } as const;

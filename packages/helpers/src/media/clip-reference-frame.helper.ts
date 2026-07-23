@@ -1,3 +1,4 @@
+import { CLIP_REFERENCE_FRAME_MAX_CANDIDATES } from '@genfeedai/constants';
 import {
   CLIP_REFERENCE_FRAME_CANDIDATE_STATUSES,
   CLIP_REFERENCE_FRAME_DIAGNOSTIC_SEVERITIES,
@@ -19,6 +20,20 @@ const diagnosticSeverities = new Set<string>(
 );
 const referenceFrameStatuses = new Set<string>(CLIP_REFERENCE_FRAME_STATUSES);
 const unsafeStorageKeySegment = /(^|[\\/])\.\.([\\/]|$)/;
+
+export function normalizeClipReferenceTimestamps(
+  timestamps: readonly number[],
+): number[] {
+  return [
+    ...new Set(
+      timestamps
+        .filter((timestamp) => Number.isFinite(timestamp) && timestamp >= 0)
+        .map((timestamp) => Math.round(timestamp * 1000) / 1000),
+    ),
+  ]
+    .sort((left, right) => left - right)
+    .slice(0, CLIP_REFERENCE_FRAME_MAX_CANDIDATES);
+}
 
 function hasControlCharacter(value: string): boolean {
   return [...value].some((character) => character.charCodeAt(0) <= 31);

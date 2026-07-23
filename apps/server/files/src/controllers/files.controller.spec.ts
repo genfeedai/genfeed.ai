@@ -77,6 +77,7 @@ describe('FilesController', () => {
   const mockVideoQueueService = {
     addCaptionsJob: vi.fn().mockResolvedValue(mockJob),
     addExtractFramesJob: vi.fn().mockResolvedValue(mockJob),
+    addExtractReferenceFramesJob: vi.fn().mockResolvedValue(mockJob),
     addGetVideoMetadataJob: vi.fn().mockResolvedValue(mockJob),
     addGifConversionJob: vi.fn().mockResolvedValue(mockJob),
     addMergeJob: vi.fn().mockResolvedValue(mockJob),
@@ -577,6 +578,21 @@ describe('FilesController', () => {
       const result = await controller.processVideo(body);
 
       expect(videoQueueService.addExtractFramesJob).toHaveBeenCalled();
+      expect(result.jobId).toBe('job_123');
+    });
+
+    it('should process EXTRACT_REFERENCE_FRAMES job', async () => {
+      const body = {
+        ...baseBody,
+        params: {
+          inputPath: 'https://www.youtube.com/watch?v=test',
+          timestamps: [5, 15],
+        },
+        type: JOB_TYPES.EXTRACT_REFERENCE_FRAMES,
+      };
+      const result = await controller.processVideo(body);
+
+      expect(videoQueueService.addExtractReferenceFramesJob).toHaveBeenCalled();
       expect(result.jobId).toBe('job_123');
     });
 

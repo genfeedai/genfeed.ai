@@ -1,6 +1,7 @@
-import { spawn } from 'node:child_process';
+import { type ChildProcess, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { YT_DLP_PROCESS_TIMEOUT_MS } from '@genfeedai/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -36,6 +37,11 @@ export class YtDlpService {
       outputPath || path.join(outputDir, `${timestamp}.mp4`);
 
     const args = [
+      '--no-playlist',
+      '--socket-timeout',
+      '30',
+      '--max-filesize',
+      '500M',
       '-f',
       'bestvideo[height<=720]+bestaudio/best[height<=720]',
       '--merge-output-format',
@@ -79,15 +85,91 @@ export class YtDlpService {
     this.logger.log(`yt-dlp ${args.join(' ')}`);
 
     return new Promise((resolve, reject) => {
-      const proc = spawn('yt-dlp', args);
+      const proc = spawn('yt-dlp', args, {
+        detached: process.platform !== 'win32',
+      });
+      let isSettled = false;
+      let hasTimedOut = false;
+      const settle = (callback: () => void): void => {
+        if (isSettled) {
+          return;
+        }
+        isSettled = true;
+        callback();
+      };
+      const timeout = setTimeout(() => {
+        hasTimedOut = true;
+        this.terminateProcessTree(proc);
+      }, YT_DLP_PROCESS_TIMEOUT_MS);
+
       proc.on('close', (code: number | null) => {
+        clearTimeout(timeout);
+        if (hasTimedOut) {
+          this.cleanupPartialOutput(outputPath);
+          settle(() =>
+            reject(
+              new Error(
+                `yt-dlp timed out after ${YT_DLP_PROCESS_TIMEOUT_MS}ms`,
+              ),
+            ),
+          );
+          return;
+        }
+
         if (code === 0) {
-          resolve(outputPath);
+          if (!fs.existsSync(outputPath)) {
+            this.cleanupPartialOutput(outputPath);
+            settle(() =>
+              reject(
+                new Error(
+                  'yt-dlp exited successfully without creating an output file',
+                ),
+              ),
+            );
+            return;
+          }
+          settle(() => resolve(outputPath));
         } else {
-          reject(new Error(`yt-dlp exited with code ${code}`));
+          settle(() => reject(new Error(`yt-dlp exited with code ${code}`)));
         }
       });
-      proc.on('error', reject);
+      proc.on('error', (error) => {
+        clearTimeout(timeout);
+        if (!hasTimedOut) {
+          settle(() => reject(error));
+        }
+      });
     });
+  }
+
+  private terminateProcessTree(proc: ChildProcess): void {
+    if (process.platform !== 'win32' && proc.pid) {
+      try {
+        process.kill(-proc.pid, 'SIGKILL');
+        return;
+      } catch (error: unknown) {
+        this.logger.warn('Failed to terminate yt-dlp process group', {
+          error,
+          pid: proc.pid,
+        });
+      }
+    }
+
+    proc.kill('SIGKILL');
+  }
+
+  private cleanupPartialOutput(outputPath: string): void {
+    for (const partialPath of [outputPath, `${outputPath}.part`]) {
+      try {
+        if (fs.existsSync(partialPath)) {
+          fs.unlinkSync(partialPath);
+        }
+      } catch (error: unknown) {
+        this.logger.warn('Failed to clean timed-out yt-dlp output', {
+          error,
+          outputPath: partialPath,
+        });
+      }
+    }
   }
 }

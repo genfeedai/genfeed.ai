@@ -21,6 +21,7 @@ export const JOB_TYPES = {
   // File operations
   DOWNLOAD_FILE: 'download-file',
   EXTRACT_FRAMES: 'extract-frames',
+  EXTRACT_REFERENCE_FRAMES: 'extract-reference-frames',
   GET_VIDEO_METADATA: 'get-video-metadata',
   HOOK_REMIX: 'hook-remix',
 
