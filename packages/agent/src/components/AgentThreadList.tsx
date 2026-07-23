@@ -173,7 +173,7 @@ export function AgentThreadList({
               </div>
             ) : null}
             {pinnedThreads.length > 0 && regularThreads.length > 0 ? (
-              <div aria-hidden="true" className="mx-1 border-t border-border" />
+              <div aria-hidden="true" className="border-t border-border" />
             ) : null}
             <div className="flex flex-col gap-0.5">
               {regularThreads.map((conv) => (

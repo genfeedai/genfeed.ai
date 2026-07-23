@@ -143,7 +143,7 @@ export function AgentThreadListRow({
     <div
       key={conv.id}
       className={cn(
-        'group relative flex h-9 w-full items-center rounded-md transition-colors',
+        'group relative flex h-9 w-full items-center transition-colors',
         conv.status === AgentThreadStatus.ARCHIVED && 'opacity-55',
         conv.id === activeThreadId
           ? 'bg-foreground/[0.06]'
@@ -184,7 +184,7 @@ export function AgentThreadListRow({
       ) : (
         <Link
           href={getThreadHref(conv.id)}
-          className="flex h-full min-w-0 flex-1 items-center gap-1.5 rounded-md px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          className="flex h-full min-w-0 flex-1 items-center gap-1.5 px-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
           onClick={() => {
             onSelect(conv);
           }}
