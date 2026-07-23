@@ -6,6 +6,7 @@ import {
   CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
   type ClipReferenceFrameCandidate,
   type ClipReferenceFrameDiagnostic,
+  type ClipReferenceFrameExtractionInput,
   type ClipReferenceFrameSet,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -19,13 +20,6 @@ const YOUTUBE_HOSTS = new Set([
   'youtu.be',
   'youtube.com',
 ]);
-
-export interface ClipReferenceFrameExtractionInput {
-  organizationId: string;
-  projectId: string;
-  sourceUrl: string;
-  timestamps: number[];
-}
 
 function unavailableReferenceFrames(
   code: string,

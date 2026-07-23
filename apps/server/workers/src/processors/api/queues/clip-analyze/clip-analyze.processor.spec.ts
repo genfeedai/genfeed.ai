@@ -45,7 +45,7 @@ describe('ClipAnalyzeProcessor', () => {
             content: JSON.stringify([
               {
                 clip_type: 'hook',
-                end_time: 30,
+                end_time: 60,
                 start_time: 0,
                 summary: 'Great opening',
                 tags: ['intro'],
@@ -54,7 +54,7 @@ describe('ClipAnalyzeProcessor', () => {
               },
               {
                 clip_type: 'educational',
-                end_time: 60,
+                end_time: 30,
                 start_time: 25,
                 summary: 'Key insight',
                 tags: ['learning'],
@@ -143,11 +143,11 @@ describe('ClipAnalyzeProcessor', () => {
               referenceFrames: {
                 candidates: [
                   {
-                    assetId: 'frame-1-15000',
+                    assetId: 'frame-1-27500',
                     diagnostics: [],
-                    id: 'frame-1-15000',
+                    id: 'frame-1-27500',
                     status: 'available',
-                    timestampSeconds: 15,
+                    timestampSeconds: 27.5,
                     url: 'https://cdn.test/frame.jpg',
                   },
                 ],
@@ -229,7 +229,7 @@ describe('ClipAnalyzeProcessor', () => {
         ingredientId: 'proj-123',
         params: {
           inputPath: mockJobData.youtubeUrl,
-          timestamps: [15, 42.5],
+          timestamps: [27.5, 30],
         },
         type: 'extract-reference-frames',
       }),
@@ -239,6 +239,11 @@ describe('ClipAnalyzeProcessor', () => {
       (call) => call[1]?.referenceFrames?.status === 'pending',
     );
     expect(pendingPatch?.[1]).toMatchObject({ progress: 75 });
+    expect(
+      pendingPatch?.[1]?.referenceFrames?.candidates.map(
+        (candidate) => candidate.id,
+      ),
+    ).toEqual(['frame-1-27500', 'frame-2-30000']);
   });
 
   it('should preserve analysis when reference extraction fails', async () => {

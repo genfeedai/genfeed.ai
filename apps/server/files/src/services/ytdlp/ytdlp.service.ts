@@ -6,6 +6,8 @@ import { Injectable } from '@nestjs/common';
 
 // Download audio from a YouTube video
 
+const YT_DLP_PROCESS_TIMEOUT_MS = 5 * 60_000;
+
 @Injectable()
 export class YtDlpService {
   constructor(private readonly logger: LoggerService) {}
@@ -85,14 +87,43 @@ export class YtDlpService {
 
     return new Promise((resolve, reject) => {
       const proc = spawn('yt-dlp', args);
+      const timeout = setTimeout(() => {
+        proc.kill('SIGKILL');
+        this.cleanupPartialOutput(outputPath);
+        reject(
+          new Error(
+            `yt-dlp timed out after ${YT_DLP_PROCESS_TIMEOUT_MS}ms`,
+          ),
+        );
+      }, YT_DLP_PROCESS_TIMEOUT_MS);
+
       proc.on('close', (code: number | null) => {
+        clearTimeout(timeout);
         if (code === 0) {
           resolve(outputPath);
         } else {
           reject(new Error(`yt-dlp exited with code ${code}`));
         }
       });
-      proc.on('error', reject);
+      proc.on('error', (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      });
     });
+  }
+
+  private cleanupPartialOutput(outputPath: string): void {
+    for (const partialPath of [outputPath, `${outputPath}.part`]) {
+      try {
+        if (fs.existsSync(partialPath)) {
+          fs.unlinkSync(partialPath);
+        }
+      } catch (error: unknown) {
+        this.logger.warn('Failed to clean timed-out yt-dlp output', {
+          error,
+          outputPath: partialPath,
+        });
+      }
+    }
   }
 }

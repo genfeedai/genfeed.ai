@@ -17,6 +17,7 @@ vi.mock('node:child_process', () => ({
       on: (event: string, cb: (...args: unknown[]) => void) => {
         events[event] = cb;
       },
+      kill: vi.fn(),
     };
   }),
 }));
@@ -25,15 +26,18 @@ vi.mock('node:fs', () => ({
   default: {
     existsSync: vi.fn(),
     mkdirSync: vi.fn(),
+    unlinkSync: vi.fn(),
   },
   existsSync: vi.fn(),
   mkdirSync: vi.fn(),
+  unlinkSync: vi.fn(),
 }));
 
 type ProcessHandler = (...args: unknown[]) => void;
 
 type MockProcess = {
   emit: Mock<(event: string, ...args: unknown[]) => void>;
+  kill: Mock<(signal: NodeJS.Signals) => boolean>;
   on: Mock<(event: string, cb: ProcessHandler) => void>;
 };
 
@@ -44,6 +48,7 @@ function createMockProcess(): MockProcess {
     emit: vi.fn((event: string, ...args: unknown[]) => {
       events[event]?.(...args);
     }),
+    kill: vi.fn(() => true),
     on: vi.fn((event: string, cb: ProcessHandler) => {
       events[event] = cb;
     }),
@@ -79,6 +84,7 @@ describe('YtDlpService', () => {
   beforeEach(async () => {
     loggerMock = {
       log: vi.fn(),
+      warn: vi.fn(),
     };
 
     spawnMock = spawn as MockedFunction<typeof spawn>;
@@ -262,6 +268,26 @@ describe('YtDlpService', () => {
         outputPath,
         url,
       ]);
+    });
+
+    it('kills a timed-out process and removes partial output', async () => {
+      vi.useFakeTimers();
+      const outputPath = '/tmp/genfeed/video.mp4';
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync.mockReturnValue(true);
+
+      const promise = service.downloadVideo(
+        'https://youtube.com/watch?v=test',
+        outputPath,
+      );
+      const rejection = expect(promise).rejects.toThrow('yt-dlp timed out');
+      await vi.advanceTimersByTimeAsync(5 * 60_000);
+
+      await rejection;
+      expect(mockProcess.kill).toHaveBeenCalledWith('SIGKILL');
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(outputPath);
+      expect(fsMock.unlinkSync).toHaveBeenCalledWith(`${outputPath}.part`);
+      vi.useRealTimers();
     });
   });
 

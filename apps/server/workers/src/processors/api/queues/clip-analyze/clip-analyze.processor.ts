@@ -48,7 +48,6 @@ function deriveReferenceTimestamps(highlights: IHighlight[]): number[] {
             highlight.start_time >= 0 &&
             highlight.end_time >= highlight.start_time,
         )
-        .sort((left, right) => left.start_time - right.start_time)
         .map(
           (highlight) =>
             Math.round(
@@ -56,7 +55,9 @@ function deriveReferenceTimestamps(highlights: IHighlight[]): number[] {
             ) / 1000,
         ),
     ),
-  ].slice(0, MAX_REFERENCE_FRAMES);
+  ]
+    .sort((left, right) => left - right)
+    .slice(0, MAX_REFERENCE_FRAMES);
 }
 
 function pendingReferenceFrames(timestamps: number[]): ClipReferenceFrameSet {
