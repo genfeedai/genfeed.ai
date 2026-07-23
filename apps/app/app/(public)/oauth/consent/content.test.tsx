@@ -112,11 +112,15 @@ describe('OAuthConsentPage', () => {
 
     const link = screen.getByRole('link', { name: 'Sign in to continue' });
     const href = link.getAttribute('href') ?? '';
-    expect(decodeURIComponent(href)).toContain(
-      '/login?callbackUrl=/oauth/consent?client_id=oauth_client',
-    );
-    expect(decodeURIComponent(href)).toContain(
-      'resource=https://mcp.genfeed.ai/mcp',
+    const loginUrl = new URL(href, 'https://app.genfeed.ai');
+    const callbackUrl = loginUrl.searchParams.get('callbackUrl');
+    expect(callbackUrl).not.toBeNull();
+
+    const consentUrl = new URL(callbackUrl ?? '', 'https://app.genfeed.ai');
+    expect(consentUrl.pathname).toBe('/oauth/consent');
+    expect(consentUrl.searchParams.get('client_id')).toBe('oauth_client');
+    expect(consentUrl.searchParams.get('resource')).toBe(
+      'https://mcp.genfeed.ai/mcp',
     );
   });
 
