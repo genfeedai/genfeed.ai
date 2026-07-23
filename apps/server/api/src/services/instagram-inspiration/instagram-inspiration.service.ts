@@ -100,14 +100,20 @@ export class InstagramInspirationService {
     }
 
     const startedAt = Date.now();
-    const postsBySeed = await Promise.all(
-      seedResult.seeds.map(async (seed) => ({
-        posts: await this.apifyService.searchInstagramByHashtag(seed, {
+    const settledPostsBySeed = await Promise.allSettled(
+      seedResult.seeds.map((seed) =>
+        this.apifyService.searchInstagramByHashtag(seed, {
           limit: DISCOVERY_POSTS_PER_SEED,
         }),
-        seed,
-      })),
+      ),
     );
+    const postsBySeed = seedResult.seeds.map((seed, index) => {
+      const outcome = settledPostsBySeed[index];
+      return {
+        posts: outcome?.status === 'fulfilled' ? outcome.value : [],
+        seed,
+      };
+    });
     const accounts = rankInstagramAccounts({
       mediaType,
       ownUsername: input.brand.ownUsername,
@@ -141,6 +147,9 @@ export class InstagramInspirationService {
       brandId: input.brand.id,
       degraded,
       durationMs: Date.now() - startedAt,
+      failedSeedCount: settledPostsBySeed.filter(
+        (outcome) => outcome.status === 'rejected',
+      ).length,
       organizationId: input.brand.organizationId,
       seedCount: seedResult.seeds.length,
     });

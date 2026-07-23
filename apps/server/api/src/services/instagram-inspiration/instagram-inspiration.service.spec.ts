@@ -90,7 +90,7 @@ describe('InstagramInspirationService', () => {
 
   it('returns successful candidates with degraded status after a partial provider failure', async () => {
     apifyService.searchInstagramByHashtag
-      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(new Error('provider unavailable'))
       .mockResolvedValueOnce([
         {
           caption: 'A practical creator workflow',
