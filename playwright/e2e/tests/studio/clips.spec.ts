@@ -144,7 +144,9 @@ test.describe('Clip Factory', () => {
     await expect(
       authenticatedPage.getByRole('heading', { name: /review highlights/i }),
     ).toBeVisible();
-    await expect(authenticatedPage.getByDisplayValue('The Hook')).toBeVisible();
+    await expect(authenticatedPage.getByRole('textbox').first()).toHaveValue(
+      'The Hook',
+    );
     await expect(
       authenticatedPage.getByText(/found 3 highlights/i),
     ).toBeVisible();
@@ -210,7 +212,8 @@ test.describe('Clip Factory', () => {
     ).toBeVisible();
 
     await authenticatedPage
-      .getByDisplayValue('The Hook')
+      .getByRole('textbox')
+      .first()
       .fill('Edited Hook Title');
     await authenticatedPage
       .locator('textarea')
@@ -477,7 +480,9 @@ test.describe('Clip Factory', () => {
     });
     expect(createRequestBody).not.toHaveProperty('avatarId');
     expect(createRequestBody).not.toHaveProperty('voiceId');
-    await expect(authenticatedPage.getByText('Raw cut')).toBeVisible();
+    await expect(
+      authenticatedPage.getByText('Raw cut', { exact: true }),
+    ).toBeVisible();
     await expect(
       authenticatedPage.getByLabel('Preview Edited Hook Title'),
     ).toBeVisible();
