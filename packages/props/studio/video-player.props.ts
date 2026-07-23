@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 
 export interface VideoPlayerProps {
+  ariaLabel?: string;
   videoRef?: RefObject<HTMLVideoElement | null>;
   src?: string;
   thumbnail?: string;

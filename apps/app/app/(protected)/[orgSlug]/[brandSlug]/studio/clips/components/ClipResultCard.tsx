@@ -2,14 +2,17 @@
 
 import { COMPOSE_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   ClipReadyAction,
   ClipResult,
+  ClipResultMode,
   ClipStatus,
   ViralityBadgeProps,
 } from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -25,6 +28,7 @@ import type { ClipsApiService } from '../services/clips-api.service';
 interface ClipResultCardProps {
   clip: ClipResult;
   clipsService: ClipsApiService;
+  mode?: ClipResultMode;
   projectId: string;
 }
 
@@ -73,6 +77,7 @@ function formatDuration(seconds: number): string {
 export default function ClipResultCard({
   clip,
   clipsService,
+  mode,
   projectId,
 }: ClipResultCardProps) {
   const { push } = useRouter();
@@ -139,13 +144,13 @@ export default function ClipResultCard({
     push,
   ]);
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = useCallback(async () => {
     if (!videoUrl) return;
-    const link = document.createElement('a');
-    link.href = videoUrl;
-    link.download = `${clip.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`;
-    link.target = '_blank';
-    link.click();
+
+    await downloadUrl(
+      videoUrl,
+      `${clip.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp4`,
+    );
   }, [videoUrl, clip.title]);
 
   return (
@@ -170,9 +175,35 @@ export default function ClipResultCard({
               {clip.clipType}
             </Badge>
           )}
+          <Badge
+            variant="secondary"
+            className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
+          >
+            {(clip.mode ?? mode ?? 'avatar') === 'raw-cut'
+              ? 'Raw cut'
+              : 'AI avatar'}
+          </Badge>
         </div>
         <ViralityBadge score={clip.viralityScore} />
       </div>
+
+      {clip.status === 'completed' && videoUrl && (
+        <div className="mb-3 aspect-video overflow-hidden rounded-lg bg-black">
+          <VideoPlayer
+            ariaLabel={`Preview ${clip.title}`}
+            src={videoUrl}
+            className="bg-black"
+            config={{
+              autoPlay: false,
+              controls: true,
+              loop: false,
+              muted: false,
+              playsInline: true,
+              preload: 'metadata',
+            }}
+          />
+        </div>
+      )}
 
       {/* Title & Summary */}
       <h3 className="mb-1 line-clamp-2 text-sm font-medium text-foreground">

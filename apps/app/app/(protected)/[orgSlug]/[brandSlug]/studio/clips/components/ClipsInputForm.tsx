@@ -1,31 +1,21 @@
 'use client';
 
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import type { ClipsInputFormProps } from '@props/studio/clips.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { HiOutlineMagnifyingGlass, HiOutlineSparkles } from 'react-icons/hi2';
-
-interface ClipsInputFormProps {
-  error: string | null;
-  isSubmitting: boolean;
-  maxClips: number;
-  minViralityScore: number;
-  onAnalyze: () => void;
-  onStartQuick: () => void;
-  onSetMaxClips: (value: number) => void;
-  onSetMinViralityScore: (value: number) => void;
-  onSetYoutubeUrl: (value: string) => void;
-  quickStartHint: string;
-  youtubeUrl: string;
-}
+import ClipModeSelector from './ClipModeSelector';
 
 export default function ClipsInputForm({
   error,
+  generationMode,
   isSubmitting,
   maxClips,
   minViralityScore,
   onAnalyze,
+  onModeChange,
   onStartQuick,
   onSetMaxClips,
   onSetMinViralityScore,
@@ -45,8 +35,7 @@ export default function ClipsInputForm({
           AI Clip Factory
         </h1>
         <p className="mt-2 text-sm text-zinc-500">
-          Drop a YouTube URL, review AI-detected highlights, generate avatar
-          clips
+          Turn a YouTube video into captioned raw cuts or AI avatar clips
         </p>
       </div>
 
@@ -67,6 +56,8 @@ export default function ClipsInputForm({
             placeholder="https://www.youtube.com/watch?v=..."
           />
         </div>
+
+        <ClipModeSelector mode={generationMode} onModeChange={onModeChange} />
 
         {/* Max Clips Slider */}
         <div>

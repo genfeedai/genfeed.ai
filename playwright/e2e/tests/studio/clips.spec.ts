@@ -9,6 +9,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
 
 const CLIPS_URL = '/studio/clips';
 const API_ANALYZE = '**/clip-projects/analyze';
+const API_CREATE_FROM_YOUTUBE = '**/clip-projects/from-youtube';
 const API_GENERATE = '**/clip-projects/*/generate';
 const API_HIGHLIGHTS = '**/clip-projects/*/highlights';
 const API_PROJECT = '**/clip-projects/*';
@@ -122,7 +123,9 @@ test.describe('Clip Factory', () => {
       'range',
     );
     await expect(
-      authenticatedPage.getByRole('button', { name: /analyze video/i }),
+      authenticatedPage.getByRole('button', {
+        name: /review highlights first/i,
+      }),
     ).toBeVisible();
   });
 
@@ -135,7 +138,7 @@ test.describe('Clip Factory', () => {
     await authenticatedPage.goto(CLIPS_URL);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /analyze video/i })
+      .getByRole('button', { name: /review highlights first/i })
       .click();
 
     await expect(
@@ -172,7 +175,7 @@ test.describe('Clip Factory', () => {
 
     await authenticatedPage.route(API_PROJECT, async (route) => {
       if (route.request().method() !== 'GET') {
-        await route.continue();
+        await route.fallback();
         return;
       }
 
@@ -199,7 +202,7 @@ test.describe('Clip Factory', () => {
     await authenticatedPage.goto(CLIPS_URL);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /analyze video/i })
+      .getByRole('button', { name: /review highlights first/i })
       .click();
 
     await expect(
@@ -217,7 +220,7 @@ test.describe('Clip Factory', () => {
     await authenticatedPage.getByLabel(/voice id/i).fill('heygen-voice-1');
 
     await authenticatedPage
-      .getByRole('button', { name: /generate 3 clips/i })
+      .getByRole('button', { name: /generate 3 avatar clips/i })
       .click();
 
     await expect.poll(() => generateRequestBody).not.toBeNull();
@@ -231,11 +234,12 @@ test.describe('Clip Factory', () => {
         }),
       ]),
       selectedHighlightIds: ['h1', 'h2', 'h3'],
+      mode: 'avatar',
       voiceId: 'heygen-voice-1',
     });
 
     await expect(
-      authenticatedPage.getByText(/generating 3 clips/i),
+      authenticatedPage.getByText(/generating 3 avatar clips/i),
     ).toBeVisible();
   });
 
@@ -262,7 +266,7 @@ test.describe('Clip Factory', () => {
 
     await authenticatedPage.route(API_PROJECT, async (route) => {
       if (route.request().method() !== 'GET') {
-        await route.continue();
+        await route.fallback();
         return;
       }
 
@@ -303,18 +307,18 @@ test.describe('Clip Factory', () => {
     await authenticatedPage.goto(CLIPS_URL);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /analyze video/i })
+      .getByRole('button', { name: /review highlights first/i })
       .click();
 
     await authenticatedPage.getByLabel(/avatar id/i).fill('heygen-avatar-1');
     await authenticatedPage.getByLabel(/voice id/i).fill('heygen-voice-1');
 
     await authenticatedPage
-      .getByRole('button', { name: /generate 3 clips/i })
+      .getByRole('button', { name: /generate 3 avatar clips/i })
       .click();
 
     await expect(
-      authenticatedPage.getByText(/generating 3 clips/i),
+      authenticatedPage.getByText(/generating 3 avatar clips/i),
     ).toBeVisible();
     await expect
       .poll(() => projectPollCount, { timeout: 7000 })
@@ -323,7 +327,7 @@ test.describe('Clip Factory', () => {
       .poll(() => clipPollCount, { timeout: 7000 })
       .toBeGreaterThan(1);
     await expect(
-      authenticatedPage.getByText(/done — 1 clips generated/i),
+      authenticatedPage.getByText(/done — 1 clip generated/i),
     ).toBeVisible({ timeout: 8000 });
     await expect(
       authenticatedPage.getByRole('button', { name: /^edit$/i }),
@@ -351,7 +355,7 @@ test.describe('Clip Factory', () => {
     await authenticatedPage.goto(CLIPS_URL);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /analyze video/i })
+      .getByRole('button', { name: /review highlights first/i })
       .click();
 
     await authenticatedPage
@@ -378,13 +382,145 @@ test.describe('Clip Factory', () => {
     await authenticatedPage.goto(CLIPS_URL);
     await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
     await authenticatedPage
-      .getByRole('button', { name: /analyze video/i })
+      .getByRole('button', { name: /review highlights first/i })
       .click();
 
     await expect(
       authenticatedPage.getByText(/internal server error/i),
     ).toBeVisible();
     await expect(authenticatedPage.getByLabel(/youtube url/i)).toBeVisible();
+  });
+
+  test('should complete a raw-cut project without avatar identity', async ({
+    authenticatedPage,
+  }) => {
+    let createRequestBody: Record<string, unknown> | null = null;
+
+    await authenticatedPage.route(API_CREATE_FROM_YOUTUBE, async (route) => {
+      createRequestBody = JSON.parse(
+        route.request().postData() ?? '{}',
+      ) as Record<string, unknown>;
+      await route.fulfill({
+        body: JSON.stringify({
+          batchJobId: 'raw-cut-job-1',
+          estimatedClips: 1,
+          projectId: MOCK_PROJECT_ID,
+          status: 'processing',
+        }),
+        contentType: 'application/json',
+        status: 202,
+      });
+    });
+
+    await authenticatedPage.route(API_PROJECT, async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+
+      await route.fulfill({
+        body: JSON.stringify({
+          data: { _id: MOCK_PROJECT_ID, status: 'completed' },
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+
+    await authenticatedPage.route(API_CLIP_RESULTS, async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({
+          data: [
+            {
+              attributes: {
+                ...mockCompletedClipResult,
+                mode: 'raw-cut',
+                readiness: {
+                  blockingReasons: [],
+                  readyActions: ['download'],
+                  state: 'ready',
+                  terminal: true,
+                },
+              },
+              id: 'raw-cut-1',
+            },
+          ],
+        }),
+        contentType: 'application/json',
+        status: 200,
+      });
+    });
+
+    await authenticatedPage.route(
+      'https://cdn.genfeed.ai/**',
+      async (route) => {
+        await route.fulfill({
+          body: '',
+          contentType: 'video/mp4',
+          headers: { 'Access-Control-Allow-Origin': '*' },
+          status: 200,
+        });
+      },
+    );
+
+    await authenticatedPage.goto(CLIPS_URL);
+    await authenticatedPage.getByRole('button', { name: /raw cut/i }).click();
+    await authenticatedPage.getByLabel(/youtube url/i).fill(MOCK_YOUTUBE_URL);
+    await authenticatedPage
+      .getByRole('button', { name: /start clip factory/i })
+      .click();
+
+    await expect.poll(() => createRequestBody).not.toBeNull();
+    expect(createRequestBody).toMatchObject({
+      mode: 'raw-cut',
+      youtubeUrl: MOCK_YOUTUBE_URL,
+    });
+    expect(createRequestBody).not.toHaveProperty('avatarId');
+    expect(createRequestBody).not.toHaveProperty('voiceId');
+    await expect(authenticatedPage.getByText('Raw cut')).toBeVisible();
+    await expect(
+      authenticatedPage.getByLabel('Preview Edited Hook Title'),
+    ).toBeVisible();
+    await authenticatedPage.evaluate(() => {
+      const target = window as Window & {
+        clipDownloadHref?: string;
+        clipDownloadName?: string;
+      };
+      const originalDispatchEvent = HTMLAnchorElement.prototype.dispatchEvent;
+
+      HTMLAnchorElement.prototype.dispatchEvent = function captureDownloadClick(
+        event,
+      ) {
+        target.clipDownloadHref = this.href;
+        target.clipDownloadName = this.download;
+        HTMLAnchorElement.prototype.dispatchEvent = originalDispatchEvent;
+        return event.type === 'click';
+      };
+    });
+
+    await authenticatedPage
+      .getByRole('button', { name: /download video/i })
+      .click();
+    await expect
+      .poll(() =>
+        authenticatedPage.evaluate(
+          () =>
+            (window as Window & { clipDownloadHref?: string }).clipDownloadHref,
+        ),
+      )
+      .toMatch(/^blob:/);
+    await expect
+      .poll(() =>
+        authenticatedPage.evaluate(
+          () =>
+            (
+              window as Window & {
+                clipDownloadName?: string;
+              }
+            ).clipDownloadName,
+        ),
+      )
+      .toBe('Edited_Hook_Title.mp4');
   });
 
   test('unauthenticated user is redirected away from clip factory', async ({

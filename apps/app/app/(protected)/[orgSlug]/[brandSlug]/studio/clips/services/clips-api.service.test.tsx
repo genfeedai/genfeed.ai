@@ -47,6 +47,7 @@ describe('ClipsApiService', () => {
         language: 'en',
         maxClips: 4,
         minViralityScore: 60,
+        mode: 'avatar',
         voiceId: 'voice-1',
         youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       }),
@@ -66,6 +67,7 @@ describe('ClipsApiService', () => {
           language: 'en',
           maxClips: 4,
           minViralityScore: 60,
+          mode: 'avatar',
           voiceId: 'voice-1',
           youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         }),
@@ -73,6 +75,62 @@ describe('ClipsApiService', () => {
           Authorization: 'Bearer token-1',
           'Content-Type': 'application/json',
         },
+        method: 'POST',
+      }),
+    );
+  });
+
+  it('starts a raw-cut project without avatar identity fields', async () => {
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-raw-cut'),
+    );
+
+    await service.createFromYoutube({
+      language: 'en',
+      maxClips: 3,
+      minViralityScore: 70,
+      mode: 'raw-cut',
+      youtubeUrl: 'https://www.youtube.com/watch?v=rawCut123',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/from-youtube',
+      expect.objectContaining({
+        body: JSON.stringify({
+          language: 'en',
+          maxClips: 3,
+          minViralityScore: 70,
+          mode: 'raw-cut',
+          youtubeUrl: 'https://www.youtube.com/watch?v=rawCut123',
+        }),
+        method: 'POST',
+      }),
+    );
+  });
+
+  it('generates selected raw cuts without avatar identity fields', async () => {
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-raw-cut'),
+    );
+
+    await service.generateClips('clip-project-1', {
+      editedHighlights: [
+        { id: 'highlight-1', summary: 'Edited caption', title: 'Hook' },
+      ],
+      mode: 'raw-cut',
+      selectedHighlightIds: ['highlight-1'],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/clip-project-1/generate',
+      expect.objectContaining({
+        body: JSON.stringify({
+          editedHighlights: [
+            { id: 'highlight-1', summary: 'Edited caption', title: 'Hook' },
+          ],
+          mode: 'raw-cut',
+          selectedHighlightIds: ['highlight-1'],
+        }),
         method: 'POST',
       }),
     );

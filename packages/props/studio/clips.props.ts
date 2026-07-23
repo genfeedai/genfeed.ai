@@ -1,6 +1,7 @@
 import type {
   ClipReadinessContract,
   ClipReadyAction,
+  ClipResultMode,
   ClipResultStatus,
 } from '@genfeedai/interfaces';
 
@@ -12,7 +13,7 @@ export type ClipStatus = ClipResultStatus;
 
 export type ClipReadiness = ClipReadinessContract;
 
-export type { ClipReadyAction };
+export type { ClipReadyAction, ClipResultMode };
 
 export type ClipsStep = 'input' | 'review' | 'progress';
 
@@ -48,6 +49,7 @@ export interface ClipResult {
   videoUrl?: string;
   captionedVideoUrl?: string;
   clipType?: string;
+  mode?: ClipResultMode;
   duration: number;
   startTime: number;
   endTime: number;
@@ -60,10 +62,32 @@ export interface ProjectState {
   highlights: IHighlight[];
   clips: ClipResult[];
   estimatedClips?: number;
+  mode: ClipResultMode;
 }
 
 // ─── Component Props ──────────────────────────────────────────────
 
 export interface ViralityBadgeProps {
   score: number;
+}
+
+export interface ClipModeSelectorProps {
+  mode: ClipResultMode;
+  onModeChange: (mode: ClipResultMode) => void;
+}
+
+export interface ClipsInputFormProps {
+  error: string | null;
+  generationMode: ClipResultMode;
+  isSubmitting: boolean;
+  maxClips: number;
+  minViralityScore: number;
+  onAnalyze: () => void;
+  onModeChange: (mode: ClipResultMode) => void;
+  onStartQuick: () => void;
+  onSetMaxClips: (value: number) => void;
+  onSetMinViralityScore: (value: number) => void;
+  onSetYoutubeUrl: (value: string) => void;
+  quickStartHint: string;
+  youtubeUrl: string;
 }

@@ -6,6 +6,7 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
 import type {
   AvatarProvider,
+  ClipResultMode,
   ClipsStep,
   IHighlight,
   ProjectState,
@@ -119,6 +120,8 @@ export function useStudioClipsPage() {
   const [voiceId, setVoiceId] = useState('');
   const [avatarProvider, setAvatarProvider] =
     useState<AvatarProvider>('heygen');
+  const [generationMode, setGenerationMode] =
+    useState<ClipResultMode>('avatar');
   const [maxClips, setMaxClips] = useState(10);
   const [minViralityScore, setMinViralityScore] = useState(50);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -184,6 +187,7 @@ export function useStudioClipsPage() {
       setProject({
         clips: [],
         highlights: [],
+        mode: generationMode,
         projectId: data.projectId,
         status: 'analyzing',
       });
@@ -193,7 +197,7 @@ export function useStudioClipsPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [youtubeUrl, maxClips, minViralityScore, clipsService]);
+  }, [youtubeUrl, maxClips, minViralityScore, generationMode, clipsService]);
 
   // ─── Step 1: One-click YouTube clip factory ───────────────────
   const handleStartFromYoutube = useCallback(async () => {
@@ -205,7 +209,7 @@ export function useStudioClipsPage() {
     const quickAvatarId = avatarId || identityDefaults.avatarId;
     const quickVoiceId = voiceId || identityDefaults.voiceId;
 
-    if (!quickAvatarId || !quickVoiceId) {
+    if (generationMode === 'avatar' && (!quickAvatarId || !quickVoiceId)) {
       setError(
         'Saved HeyGen avatar and voice defaults are required for one-click generation. Review highlights first to enter IDs manually.',
       );
@@ -221,21 +225,29 @@ export function useStudioClipsPage() {
 
     try {
       const data = await clipsService.createFromYoutube({
-        avatarId: quickAvatarId,
-        avatarProvider,
+        ...(generationMode === 'avatar'
+          ? {
+              avatarId: quickAvatarId,
+              avatarProvider,
+              voiceId: quickVoiceId,
+            }
+          : {}),
         language: 'en',
         maxClips,
         minViralityScore,
-        voiceId: quickVoiceId,
+        mode: generationMode,
         youtubeUrl,
       });
 
-      setAvatarId(quickAvatarId);
-      setVoiceId(quickVoiceId);
+      if (generationMode === 'avatar') {
+        setAvatarId(quickAvatarId ?? '');
+        setVoiceId(quickVoiceId ?? '');
+      }
       setProject({
         clips: [],
         estimatedClips: data.estimatedClips,
         highlights: [],
+        mode: generationMode,
         projectId: data.projectId,
         status: data.status ?? 'processing',
       });
@@ -257,6 +269,7 @@ export function useStudioClipsPage() {
     voiceId,
     identityDefaults.avatarId,
     identityDefaults.voiceId,
+    generationMode,
     avatarProvider,
     maxClips,
     minViralityScore,
@@ -347,7 +360,12 @@ export function useStudioClipsPage() {
 
   // ─── Step 2: Generate selected highlights ─────────────────────
   const handleGenerate = useCallback(async () => {
-    if (!project?.projectId || !avatarId || !voiceId) {
+    if (!project?.projectId) {
+      setError('Clip project is required to generate clips.');
+      return;
+    }
+
+    if (generationMode === 'avatar' && (!avatarId || !voiceId)) {
       setError('Avatar ID and Voice ID are required to generate clips.');
       return;
     }
@@ -371,18 +389,21 @@ export function useStudioClipsPage() {
 
     try {
       await clipsService.generateClips(project.projectId, {
-        avatarId,
-        avatarProvider,
+        ...(generationMode === 'avatar'
+          ? { avatarId, avatarProvider, voiceId }
+          : {}),
         editedHighlights: selectedEditedHighlights.map((highlight) => ({
           id: highlight.id,
           summary: highlight.summary,
           title: highlight.title,
         })),
+        mode: generationMode,
         selectedHighlightIds: ids,
-        voiceId,
       });
 
-      setProject((prev) => (prev ? { ...prev, status: 'generating' } : prev));
+      setProject((prev) =>
+        prev ? { ...prev, mode: generationMode, status: 'generating' } : prev,
+      );
       setStep('progress');
     } catch (err: unknown) {
       clipCompletionReportedRef.current = project.projectId;
@@ -399,6 +420,7 @@ export function useStudioClipsPage() {
     avatarId,
     voiceId,
     avatarProvider,
+    generationMode,
     selectedIds,
     editedHighlights,
     clipsService,
@@ -524,6 +546,7 @@ export function useStudioClipsPage() {
     clipsService,
     editedHighlights,
     error,
+    generationMode,
     handleAnalyze,
     handleGenerate,
     handleStartFromYoutube,
@@ -537,6 +560,7 @@ export function useStudioClipsPage() {
     selectedIds,
     setAvatarId,
     setAvatarProvider,
+    setGenerationMode,
     setMaxClips,
     setMinViralityScore,
     setVoiceId,

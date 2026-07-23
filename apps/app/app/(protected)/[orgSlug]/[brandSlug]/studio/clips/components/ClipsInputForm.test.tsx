@@ -9,10 +9,12 @@ function renderForm(
 ) {
   const props = {
     error: null,
+    generationMode: 'avatar' as const,
     isSubmitting: false,
     maxClips: 10,
     minViralityScore: 50,
     onAnalyze: vi.fn(),
+    onModeChange: vi.fn(),
     onSetMaxClips: vi.fn(),
     onSetMinViralityScore: vi.fn(),
     onSetYoutubeUrl: vi.fn(),
@@ -62,5 +64,13 @@ describe('ClipsInputForm', () => {
         'No saved HeyGen defaults. Review highlights first to enter IDs manually.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('lets the user select raw-cut before starting a project', () => {
+    const { props } = renderForm();
+
+    fireEvent.click(screen.getByRole('button', { name: /raw cut/i }));
+
+    expect(props.onModeChange).toHaveBeenCalledWith('raw-cut');
   });
 });
