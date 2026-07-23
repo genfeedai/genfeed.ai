@@ -66,6 +66,29 @@ describe('feature test coverage', () => {
     expect(isTestFile('scripts/ci/tests-gate.test.mjs')).toBe(true);
   });
 
+  it('treats runtime source inside a test directory as a test file', () => {
+    expect(isTestFile('apps/server/api/test/helpers/factory.ts')).toBe(true);
+    expect(isTestFile('playwright/e2e/support/commands.ts')).toBe(true);
+  });
+
+  it('does not count non-source files under a test directory as tests', () => {
+    expect(isTestFile('apps/server/api/test/README.md')).toBe(false);
+    expect(isTestFile('apps/server/api/test/fixtures/payload.json')).toBe(
+      false,
+    );
+    expect(isTestFile('playwright/e2e/fixtures/user.yaml')).toBe(false);
+  });
+
+  it('rejects a feature PR whose only test-dir change is a non-source file', () => {
+    const result = evaluateFeatureTestCoverage('feat(api): add scheduling', [
+      { path: 'apps/server/api/src/scheduler.service.ts', status: 'M' },
+      { path: 'apps/server/api/test/README.md', status: 'A' },
+    ]);
+
+    expect(result.passed).toBe(false);
+    expect(result.testFiles).toEqual([]);
+  });
+
   it('limits production classification to authored runtime source', () => {
     expect(isProductionSourceFile('apps/app/src/page.tsx')).toBe(true);
     expect(isProductionSourceFile('packages/ui/src/button.tsx')).toBe(true);

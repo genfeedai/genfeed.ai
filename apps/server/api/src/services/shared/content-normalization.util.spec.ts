@@ -176,6 +176,7 @@ describe('content-normalization.util', () => {
       expect(CommonExtractors.unixToDate(1_753_264_800)).toEqual(
         new Date(1_753_264_800_000),
       );
+      expect(CommonExtractors.unixToDate(0)).toEqual(new Date(0));
       expect(CommonExtractors.unixToDate(undefined)).toBeUndefined();
     });
 

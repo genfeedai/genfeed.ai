@@ -118,6 +118,11 @@ describe('ViralScoringUtil', () => {
       expect(ViralScoringUtil.calculateRankViralityScore(10, 10)).toBe(10);
       expect(ViralScoringUtil.calculateRankViralityScore(20, 10)).toBe(10);
     });
+
+    it('clamps ranks below 1 to the top score', () => {
+      expect(ViralScoringUtil.calculateRankViralityScore(0, 10)).toBe(100);
+      expect(ViralScoringUtil.calculateRankViralityScore(-5, 10)).toBe(100);
+    });
   });
 
   describe('normalizeScore', () => {

@@ -18,8 +18,8 @@ export interface FeatureTestCoverageResult {
 const TEST_BEARING_PR_TITLE = /^(?:feat|fix|refactor)(?:\([^)]+\))?[!:]/iu;
 const RUNTIME_SOURCE_FILE = /\.(?:cjs|js|jsx|mjs|ts|tsx)$/u;
 const RUNTIME_ROOT = /^(?:apps|ee|packages|scripts)\//u;
-const TEST_FILE =
-  /(?:^|\/)(?:__tests__|e2e|test|tests)(?:\/|$)|\.(?:e2e-)?(?:spec|test)\.(?:cjs|js|jsx|mjs|ts|tsx)$/u;
+const TEST_DIRECTORY = /(?:^|\/)(?:__tests__|e2e|test|tests)(?:\/|$)/u;
+const TEST_EXTENSION = /\.(?:e2e-)?(?:spec|test)\.(?:cjs|js|jsx|mjs|ts|tsx)$/u;
 const NON_RUNTIME_SOURCE =
   /(?:^|\/)(?:dist|generated|node_modules)(?:\/|$)|\.d\.ts$|(?:^|\/)(?:next|playwright|vitest)\.config\.[cm]?[jt]s$/u;
 
@@ -38,14 +38,21 @@ export function parseChangedFiles(output: string): ChangedFile[] {
 }
 
 export function isTestFile(path: string): boolean {
-  return TEST_FILE.test(path);
+  // A file counts as an executable test only when it carries a `.spec`/`.test`
+  // extension, or is a runtime source file living inside a test directory.
+  // Matching a test directory alone (e.g. a README or JSON fixture under
+  // `test/`) must NOT satisfy the coverage gate.
+  return (
+    TEST_EXTENSION.test(path) ||
+    (TEST_DIRECTORY.test(path) && RUNTIME_SOURCE_FILE.test(path))
+  );
 }
 
 export function isProductionSourceFile(path: string): boolean {
   return (
     RUNTIME_ROOT.test(path) &&
     RUNTIME_SOURCE_FILE.test(path) &&
-    !TEST_FILE.test(path) &&
+    !isTestFile(path) &&
     !NON_RUNTIME_SOURCE.test(path)
   );
 }
