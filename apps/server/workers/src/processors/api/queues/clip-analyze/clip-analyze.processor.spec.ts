@@ -45,8 +45,8 @@ describe('ClipAnalyzeProcessor', () => {
             content: JSON.stringify([
               {
                 clip_type: 'hook',
-                end_time: 100,
-                start_time: 0,
+                end_time: 90,
+                start_time: 10,
                 summary: 'Great opening',
                 tags: ['intro'],
                 title: 'Epic intro',
