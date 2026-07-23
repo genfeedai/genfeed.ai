@@ -15,8 +15,7 @@ export interface FeatureTestCoverageResult {
   testFiles: string[];
 }
 
-const TEST_BEARING_PR_TITLE =
-  /^(?:feat|fix|perf|refactor)(?:\([^)]+\))?[!:]/iu;
+const TEST_BEARING_PR_TITLE = /^(?:feat|fix|perf|refactor)(?:\([^)]+\))?[!:]/iu;
 const RUNTIME_SOURCE_FILE = /\.(?:cjs|js|jsx|mjs|ts|tsx)$/u;
 const RUNTIME_ROOT = /^(?:apps|ee|packages|scripts)\//u;
 const TEST_DIRECTORY = /(?:^|\/)(?:__tests__|e2e|test|tests)(?:\/|$)/u;
