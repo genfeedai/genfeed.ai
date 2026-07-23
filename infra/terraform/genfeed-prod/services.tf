@@ -59,7 +59,7 @@ module "service" {
 # ── One-off migration task (run via `aws ecs run-task` before api rolls) ─
 resource "aws_cloudwatch_log_group" "migrate" {
   name              = "/ecs/${local.name_prefix}/migrate"
-  retention_in_days = 30
+  retention_in_days = 7
 }
 
 resource "aws_ecs_task_definition" "migrate" {
@@ -97,7 +97,7 @@ resource "aws_ecs_task_definition" "migrate" {
 # ── One-off workflow backfill (run after Prisma migrations, before api rolls) ─
 resource "aws_cloudwatch_log_group" "workflow_backfill" {
   name              = "/ecs/${local.name_prefix}/workflow-backfill"
-  retention_in_days = 30
+  retention_in_days = 7
 }
 
 resource "aws_ecs_task_definition" "workflow_backfill" {
@@ -137,7 +137,7 @@ resource "aws_ecs_task_definition" "workflow_backfill" {
 # under the prod path — the same mechanism that feeds the running api service.
 resource "aws_cloudwatch_log_group" "credential_backfill" {
   name              = "/ecs/${local.name_prefix}/credential-backfill"
-  retention_in_days = 30
+  retention_in_days = 7
 }
 
 resource "aws_ecs_task_definition" "credential_backfill" {
@@ -176,7 +176,7 @@ resource "aws_ecs_task_definition" "credential_backfill" {
 # failures before any service rolls.
 resource "aws_cloudwatch_log_group" "boot_smoke" {
   name              = "/ecs/${local.name_prefix}/boot-smoke"
-  retention_in_days = 30
+  retention_in_days = 7
 }
 
 resource "aws_ecs_task_definition" "boot_smoke" {
@@ -246,7 +246,7 @@ resource "aws_ecs_task_definition" "boot_smoke" {
 # then fails with a dedicated CloudWatch log instead of churning ECS tasks.
 resource "aws_cloudwatch_log_group" "worker_boot_smoke" {
   name              = "/ecs/${local.name_prefix}/worker-boot-smoke"
-  retention_in_days = 30
+  retention_in_days = 7
 }
 
 resource "aws_ecs_task_definition" "worker_boot_smoke" {
