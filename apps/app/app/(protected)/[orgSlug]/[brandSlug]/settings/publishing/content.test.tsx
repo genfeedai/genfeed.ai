@@ -100,14 +100,16 @@ vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
     isDisabled,
+    label,
     onClick,
   }: {
     children?: ReactNode;
     isDisabled?: boolean;
+    label?: string;
     onClick?: () => void;
   }) => (
     <button disabled={isDisabled} type="button" onClick={onClick}>
-      {children}
+      {label ?? children}
     </button>
   ),
 }));
