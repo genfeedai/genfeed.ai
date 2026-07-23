@@ -7,7 +7,10 @@ import {
   discoverApiE2eSpecs,
   validateApiE2eTierManifest,
 } from './api-e2e-tiers';
-import type { ApiE2eTierManifest } from './api-e2e-tiers.manifest';
+import {
+  API_E2E_TIER_MANIFEST,
+  type ApiE2eTierManifest,
+} from './api-e2e-tiers.manifest';
 
 const testDirectories: string[] = [];
 
@@ -39,6 +42,16 @@ const manifest = (
 });
 
 describe('API E2E tiers', () => {
+  it('keeps every repository exclusion discoverable and issue-tracked', () => {
+    expect(
+      validateApiE2eTierManifest(
+        discoverApiE2eSpecs(),
+        API_E2E_TIER_MANIFEST,
+        'full',
+      ),
+    ).toEqual([]);
+  });
+
   it('discovers every spec recursively and ignores support files', () => {
     const rootDir = createFixture([
       'test/e2e/auth.e2e-spec.ts',
