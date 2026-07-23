@@ -17,7 +17,7 @@ describe('HomeFormats', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /every format, priced per output\./i,
+        name: /every format your channels need, from one brief\./i,
       }),
     ).toBeInTheDocument();
     expect(

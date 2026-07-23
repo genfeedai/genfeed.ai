@@ -9,16 +9,16 @@ import {
   HiChartBar,
   HiCommandLine,
   HiPaperAirplane,
-  HiServerStack,
   HiShieldCheck,
+  HiSparkles,
 } from 'react-icons/hi2';
 
 const PRODUCT_LINKS = [
   {
-    description: 'Connect Claude Code, Codex, and other MCP clients',
-    href: '/mcp',
-    icon: HiCommandLine,
-    label: 'MCP Server',
+    description: 'Generate images, video, ads, voice, and articles on-brand',
+    href: '/studio',
+    icon: HiSparkles,
+    label: 'Studio',
   },
   {
     description: 'Review, schedule, and publish across every channel',
@@ -27,22 +27,22 @@ const PRODUCT_LINKS = [
     label: 'Publishing',
   },
   {
-    description: 'Approvals, assets, integrations, and audit in one place',
-    href: '/features',
-    icon: HiShieldCheck,
-    label: 'Control Plane',
-  },
-  {
     description: 'Track revenue, not vanity metrics',
     href: '/analytics',
     icon: HiChartBar,
     label: 'Analytics',
   },
   {
-    description: 'Own the stack, data, keys, and deployment',
-    href: '/self-hosted',
-    icon: HiServerStack,
-    label: 'Self-hosting',
+    description: 'Approvals, assets, integrations, and audit in one place',
+    href: '/features',
+    icon: HiShieldCheck,
+    label: 'Control Plane',
+  },
+  {
+    description: 'Connect Claude Code, Codex, and other MCP clients',
+    href: '/mcp',
+    icon: HiCommandLine,
+    label: 'MCP Server',
   },
 ];
 
@@ -88,15 +88,11 @@ export default function WebsiteTopbar() {
                 asChild
                 size={ButtonSize.PUBLIC}
                 className="h-9 px-5 text-sm uppercase"
-                trackingData={{ action: 'connect_mcp_topbar' }}
+                trackingData={{ action: 'start_free_topbar' }}
                 trackingName="topbar_cta_click"
               >
-                <a
-                  href={EnvironmentService.mcpConnectHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Connect MCP
+                <a href={`${EnvironmentService.apps.app}/sign-up`}>
+                  Start for free
                 </a>
               </ButtonTracked>
             </>

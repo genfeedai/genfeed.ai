@@ -36,13 +36,12 @@ vi.mock('next/link', () => ({
 }));
 
 describe('WebsiteTopbar', () => {
-  it('prioritizes MCP with the simplified developer navigation', () => {
+  it('leads with a free SaaS sign-up and the studio navigation', () => {
     render(<WebsiteTopbar />);
 
-    expect(screen.getByRole('link', { name: /connect mcp/i })).toHaveAttribute(
-      'href',
-      'https://app.genfeed.ai/connect',
-    );
+    expect(
+      screen.getByRole('link', { name: /start for free/i }),
+    ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
     expect(screen.getByRole('link', { name: /book a demo/i })).toHaveAttribute(
       'href',
       'https://calendly.com/genfeed/demo',
@@ -60,17 +59,17 @@ describe('WebsiteTopbar', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('exposes MCP, publishing, control plane, analytics, and self-hosting', () => {
+  it('exposes studio, publishing, analytics, control plane, and MCP server', () => {
     render(<WebsiteTopbar />);
 
     fireEvent.mouseEnter(screen.getByRole('button', { name: /product/i }));
 
     for (const destination of [
-      'MCP Server',
+      'Studio',
       'Publishing',
-      'Control Plane',
       'Analytics',
-      'Self-hosting',
+      'Control Plane',
+      'MCP Server',
     ]) {
       expect(
         screen.getByRole('link', { name: new RegExp(destination, 'i') }),

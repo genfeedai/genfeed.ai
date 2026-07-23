@@ -11,25 +11,25 @@ const EYEBROW_CLASS =
 const HOW_STEPS: HowStep[] = [
   {
     description:
-      'Keep Claude Code or Codex as your workbench. Connect once through the standard MCP transport.',
+      'Describe the campaign or drop in a reference. Genfeed drafts platform-native posts, images, and video from a single brief.',
     step: '01',
-    title: 'Create in your AI client',
+    title: 'Start from a brief',
   },
   {
     description:
-      'Curated, scoped actions send assets and distribution work into the right brand workspace.',
+      'Edit copy, regenerate variants, and enforce brand voice in the workspace before anything goes out.',
     step: '02',
-    title: 'Route through Genfeed',
+    title: 'Review and refine',
   },
   {
     description:
-      'Review the output, enforce brand policy, and require human approval before consequential actions.',
+      'Approve, then schedule to every connected channel from one shared calendar.',
     step: '03',
-    title: 'Approve and publish',
+    title: 'Schedule and publish',
   },
   {
     description:
-      'Track channel performance, content outcomes, and the full audit trail in one analytics layer.',
+      'Track reach, engagement, and hook rate across every channel in one analytics view.',
     step: '04',
     title: 'Measure what shipped',
   },
@@ -40,22 +40,23 @@ export default function HomeHow(): React.ReactElement {
     <section id="how" className="gen-section-spacing-lg border-b border-edge/5">
       <div className="container mx-auto px-6">
         <VStack className="mb-10 max-w-3xl gap-4">
-          <Text className={EYEBROW_CLASS}>Agent to outcome</Text>
+          <Text className={EYEBROW_CLASS}>Brief to published</Text>
           <Heading
-            id="distribution-loop-heading"
+            id="home-workflow-heading"
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
           >
-            Your AI client creates. Genfeed controls distribution.
+            Create, review, schedule, and publish — in one place.
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-            Claude Code and Codex stay focused on the work. Genfeed adds scoped
-            MCP actions, approvals, publishing, and analytics around it.
+            Genfeed is one workspace for the whole content loop: generate on
+            brand, keep a human in the approval seat, publish everywhere, and
+            see what landed.
           </Text>
         </VStack>
 
         <ol
-          aria-labelledby="distribution-loop-heading"
+          aria-labelledby="home-workflow-heading"
           className="grid grid-cols-1 gap-px bg-edge/5 sm:grid-cols-2 lg:grid-cols-4"
         >
           {HOW_STEPS.map((item) => (

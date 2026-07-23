@@ -15,10 +15,10 @@ import { LuArrowRight, LuCheck } from 'react-icons/lu';
 const EYEBROW_CLASS =
   'text-xs font-bold uppercase tracking-widest text-surface/65';
 
-const DEVELOPER_BENEFITS: AudienceBenefit[] = [
-  { label: 'Use Claude Code, Codex, or any MCP client' },
+const CREATOR_BENEFITS: AudienceBenefit[] = [
+  { label: 'Generate posts, images, and video from one brief' },
   { label: 'Review and approve content before it ships' },
-  { label: 'Track performance across every channel' },
+  { label: 'Schedule and track performance across every channel' },
 ];
 
 const AGENCY_BENEFITS: AudienceBenefit[] = [
@@ -47,11 +47,11 @@ export default function HomeAudiences(): React.ReactElement {
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
           >
-            For developers and distribution teams.
+            For creators and marketing teams.
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-            Connect your AI client self-serve, or bring your whole client roster
-            and run distribution through one supervised control plane.
+            Run your own content self-serve, or bring your whole client roster
+            and manage every brand from one supervised workspace.
           </Text>
         </VStack>
 
@@ -60,14 +60,14 @@ export default function HomeAudiences(): React.ReactElement {
             <HStack className="items-center gap-2 text-surface/72">
               <HiUser className="size-4" />
               <Text className={EYEBROW_CLASS}>
-                Developers &amp; solo operators
+                Creators &amp; solo marketers
               </Text>
             </HStack>
             <Heading as="h3" className="text-2xl font-semibold text-surface">
-              Keep your AI client. Add a control plane.
+              Everything you publish, in one studio.
             </Heading>
             <ul className="flex flex-col gap-3">
-              {DEVELOPER_BENEFITS.map((benefit) => (
+              {CREATOR_BENEFITS.map((benefit) => (
                 <li key={benefit.label} className="flex items-start gap-3">
                   <LuCheck className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/72">
@@ -83,23 +83,19 @@ export default function HomeAudiences(): React.ReactElement {
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
-                trackingData={{ action: 'connect_mcp_audience' }}
+                trackingData={{ action: 'start_free_audience' }}
                 trackingName="audience_cta_click"
               >
-                <a
-                  href={EnvironmentService.mcpConnectHref}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  Connect MCP
+                <a href={`${EnvironmentService.apps.app}/sign-up`}>
+                  Start for free
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
               <Link
-                href="/mcp"
+                href="#how"
                 className="text-sm font-medium text-surface/72 underline-offset-4 hover:text-surface hover:underline"
               >
-                Explore the MCP server →
+                See how it works →
               </Link>
             </HStack>
           </div>

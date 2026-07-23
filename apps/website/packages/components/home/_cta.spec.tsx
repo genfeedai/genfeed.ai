@@ -4,27 +4,29 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
+    apps: {
+      app: 'https://app.genfeed.ai',
+    },
     calendly: 'https://calendly.com/genfeed/demo',
     mcpConnectHref: 'https://app.genfeed.ai/connect',
   },
 }));
 
 describe('HomeCTA', () => {
-  it('repeats the Connect MCP primary and demo secondary actions', () => {
+  it('repeats the Start for free primary and demo secondary actions', () => {
     render(<HomeCTA />);
 
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /give your ai agent a way to ship\./i,
+        name: /ship on-brand content, faster\./i,
       }),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
-    ).toEqual(['Connect MCP', 'Book a Demo']);
-    expect(screen.getByRole('link', { name: /connect mcp/i })).toHaveAttribute(
-      'href',
-      'https://app.genfeed.ai/connect',
-    );
+    ).toEqual(['Start for free', 'Book a Demo']);
+    expect(
+      screen.getByRole('link', { name: /start for free/i }),
+    ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
   });
 });

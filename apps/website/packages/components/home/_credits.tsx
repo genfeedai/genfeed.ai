@@ -41,8 +41,8 @@ export default function HomeCredits(): React.ReactElement {
             </Heading>
             <Text className="max-w-2xl text-base leading-7 gen-text-muted">
               Signing up is free. Credits buy the content you generate, and a
-              subscription only exists to make those credits cheaper, add API
-              access, and support shared team seats.
+              subscription only exists to make those credits cheaper and support
+              shared team seats.
             </Text>
           </VStack>
 

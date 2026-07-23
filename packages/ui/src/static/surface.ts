@@ -24,6 +24,12 @@ export const staticSurfaceClassNames = {
 
 export const staticSurfaceCss = `
 .gf-ui {
+  /* Brand typography contract. "Satoshi" resolves wherever a real
+     @font-face{font-family:"Satoshi"} is present (the MCP setup page inlines it);
+     otherwise it falls through to the system sans stack. This is the single knob
+     that keeps every static-surface consumer on the product's sans, not Georgia. */
+  --gf-font-sans: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --gf-font-serif: "Zodiak", Georgia, "Times New Roman", serif;
   --gf-bg-primary: ${darkColors.background.hex};
   --gf-bg-secondary: ${darkColors.card.hex};
   --gf-bg-tertiary: ${darkColors.backgroundSecondary.hex};
@@ -105,11 +111,11 @@ export const staticSurfaceCss = `
 .gf-feature-card-title {
   max-width: 350px;
   margin: 18px 0 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 42px;
-  font-weight: 700;
-  line-height: 0.98;
-  letter-spacing: 0;
+  font-family: var(--gf-font-sans);
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
 }
 .gf-feature-card-copy {
   max-width: 330px;

@@ -80,30 +80,30 @@ export default function HomeHero(): React.ReactElement {
         <div className="grid min-h-[calc(100svh-5.5rem)] items-center gap-12 py-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(440px,0.95fr)] lg:gap-14 lg:py-16 xl:gap-20">
           <div className="max-w-[42rem] self-center">
             <Text className="mb-5 text-xs font-bold uppercase tracking-[0.16em] text-surface/65">
-              Distribution infrastructure for AI agents
+              The AI content studio
             </Text>
             <Heading
               as="h1"
               className="hero-headline max-w-[44rem] text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.035em] text-surface sm:text-5xl md:text-[3.5rem] lg:text-[3.5rem] xl:text-[4rem] 2xl:text-[4.5rem]"
             >
-              Your product deserves to be discovered.
+              One studio for every piece of content you publish.
             </Heading>
 
             <Text
               as="p"
               className="mt-6 text-xl font-semibold tracking-[-0.02em] text-surface md:text-2xl"
             >
-              One prompt. Publish everywhere.
+              Generate, review, schedule, and publish — all in one workspace.
             </Text>
 
             <Text
               as="p"
               className="hero-description mt-4 max-w-2xl text-base leading-7 text-surface/62 md:text-lg"
             >
-              Connect Claude Code, Codex, or any MCP client. Genfeed turns your
-              product brief into platform-native content, distributes it across
-              every channel, and brings approvals, scheduling, and performance
-              back into one control plane.
+              Genfeed is the content studio where a brief becomes
+              platform-native posts, images, and video. Draft, refine, and
+              approve in one workspace, schedule to every channel, and see
+              what&apos;s working — without stitching six tools together.
             </Text>
 
             <HStack className="mt-8 flex-wrap gap-3">
@@ -111,15 +111,11 @@ export default function HomeHero(): React.ReactElement {
                 asChild
                 size={ButtonSize.PUBLIC}
                 className="hero-cta"
-                trackingData={{ action: 'connect_mcp_hero' }}
+                trackingData={{ action: 'start_free_hero' }}
                 trackingName="hero_cta_click"
               >
-                <a
-                  href={EnvironmentService.mcpConnectHref}
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  Connect MCP
+                <a href={`${EnvironmentService.apps.app}/sign-up`}>
+                  Start for free
                   <LuArrowRight className="size-4" />
                 </a>
               </ButtonTracked>
@@ -174,7 +170,7 @@ export default function HomeHero(): React.ReactElement {
 
             <div className="relative z-10 mx-3 -mt-12 overflow-hidden rounded-md bg-edge/10 shadow-border-strong lg:mx-8">
               <p className="border-b border-edge/5 bg-background/95 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-surface/45 backdrop-blur">
-                Sample distribution readout
+                Sample studio readout
               </p>
               <div className="grid sm:grid-cols-4">
                 {HERO_METRICS.map((metric) => (
