@@ -1,7 +1,9 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   AccountHealthSummary,
+  AccountPublishingContext,
   AssessAccountHealthRequest,
+  ContentSurface,
   ManualAccountHealthOverrideRequest,
 } from '@genfeedai/interfaces';
 import type { QuotaStatus } from '@genfeedai/interfaces/organization/quota-status.interface';
@@ -50,6 +52,21 @@ export class CredentialsService extends BaseService<Credential> {
   ): Promise<AccountHealthSummary[]> {
     const response = await this.instance.get<AccountHealthSummary[]>(
       `/brand/${brandId}/account-health`,
+    );
+    return response.data;
+  }
+
+  public async getPublishingContext(
+    credentialId: string,
+    surface: ContentSurface = 'post',
+    signal?: AbortSignal,
+  ): Promise<AccountPublishingContext> {
+    const response = await this.instance.get<AccountPublishingContext>(
+      `/${credentialId}/publishing-context`,
+      {
+        params: { surface },
+        signal,
+      },
     );
     return response.data;
   }

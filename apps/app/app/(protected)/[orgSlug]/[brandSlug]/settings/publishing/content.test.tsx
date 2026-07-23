@@ -21,8 +21,13 @@ const mocks = vi.hoisted(() => ({
     hasBrandId: true,
     isLoading: false,
   },
+  brandsService: {},
+  copyToClipboard: vi.fn(),
+  credentialsService: {},
   error: vi.fn(),
   getBrandsService: vi.fn(),
+  getCredentialsService: vi.fn(),
+  getPublishingContext: vi.fn(),
   loggerError: vi.fn(),
   success: vi.fn(),
   updateAgentConfig: vi.fn(),
@@ -33,7 +38,13 @@ vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => mocks.getBrandsService,
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const service = factory('test-token');
+
+    return service === mocks.credentialsService
+      ? mocks.getCredentialsService
+      : mocks.getBrandsService;
+  },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -51,9 +62,23 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
+vi.mock('@services/core/clipboard.service', () => ({
+  ClipboardService: {
+    getInstance: () => ({
+      copyToClipboard: mocks.copyToClipboard,
+    }),
+  },
+}));
+
+vi.mock('@services/organization/credentials.service', () => ({
+  CredentialsService: {
+    getInstance: () => mocks.credentialsService,
+  },
+}));
+
 vi.mock('@services/social/brands.service', () => ({
   BrandsService: {
-    getInstance: vi.fn(),
+    getInstance: () => mocks.brandsService,
   },
 }));
 
@@ -137,9 +162,17 @@ describe('BrandSettingsPublishingPage', () => {
       isLoading: false,
     };
     mocks.updateAgentConfig.mockResolvedValue(undefined);
+    mocks.getPublishingContext.mockReset();
+    Object.assign(mocks.brandsService, {
+      updateAgentConfig: mocks.updateAgentConfig,
+    });
+    Object.assign(mocks.credentialsService, {
+      getPublishingContext: mocks.getPublishingContext,
+    });
     mocks.getBrandsService.mockResolvedValue({
       updateAgentConfig: mocks.updateAgentConfig,
     });
+    mocks.getCredentialsService.mockResolvedValue(mocks.credentialsService);
   });
 
   it('loads publishing defaults and saves schedule/autopublish settings', async () => {
@@ -224,5 +257,192 @@ describe('BrandSettingsPublishingPage', () => {
     expect(mocks.error).toHaveBeenCalledWith(
       'Failed to save brand publishing defaults',
     );
+  });
+
+  it('renders publish-capable and blocked account readiness safely', async () => {
+    mocks.brandDetail = {
+      ...mocks.brandDetail,
+      brand: {
+        agentConfig: {},
+        credentials: [
+          {
+            externalHandle: 'ready-account',
+            id: 'credential-ready',
+            isConnected: true,
+            platform: 'twitter',
+          },
+          {
+            externalHandle: 'blocked-account',
+            id: 'credential-blocked',
+            isConnected: true,
+            platform: 'linkedin',
+          },
+        ],
+      },
+    };
+    mocks.getPublishingContext.mockImplementation(
+      async (credentialId: string) => {
+        if (credentialId === 'credential-ready') {
+          return {
+            account: {
+              handle: 'ready-account',
+              id: credentialId,
+              label: 'Ready account',
+              platform: 'twitter',
+            },
+            readiness: {
+              appReviewStatus: 'pass',
+              callbackUrlStatus: 'pass',
+              canSchedule: true,
+              diagnostics: [],
+              isRetryable: false,
+              permissionScopeStatus: 'pass',
+              providerKey: 'twitter',
+              quotaStatus: 'pass',
+              state: 'publish_capable',
+              tokenFreshness: 'pass',
+            },
+            surface: 'post',
+          };
+        }
+
+        return {
+          account: {
+            handle: 'blocked-account',
+            id: credentialId,
+            label: 'Blocked account',
+            platform: 'linkedin',
+          },
+          readiness: {
+            appReviewStatus: 'fail',
+            callbackUrlStatus: 'pass',
+            canSchedule: false,
+            diagnostics: [
+              {
+                classification: 'missing_permission_scope',
+                code: 'missing_scope',
+                correctiveAction: 'Reconnect with publishing permissions.',
+                details: { token: 'must-not-render-or-copy' },
+                isRetryable: false,
+                message:
+                  'Publishing permission is missing. token=must-not-render-or-copy',
+                severity: 'error',
+              },
+            ],
+            isRetryable: false,
+            permissionScopeStatus: 'fail',
+            providerKey: 'linkedin',
+            quotaStatus: 'unknown',
+            requiredAction: 'Reconnect the LinkedIn account.',
+            state: 'blocked',
+            tokenFreshness: 'pass',
+          },
+          surface: 'post',
+        };
+      },
+    );
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(await screen.findByText('Ready account')).toBeVisible();
+    expect(screen.getByText('Publish Capable')).toBeVisible();
+    expect(screen.getByText('Blocked account')).toBeVisible();
+    expect(screen.getByText('Blocked')).toBeVisible();
+    expect(screen.getByText('Reconnect the LinkedIn account.')).toBeVisible();
+    expect(
+      screen.queryByText('must-not-render-or-copy'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Publishing permission is missing. token=[REDACTED]'),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getAllByText('Copy diagnostics')[1]);
+
+    await waitFor(() => {
+      expect(mocks.copyToClipboard).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Publishing permission is missing. token=[REDACTED]',
+        ),
+      );
+    });
+    expect(mocks.copyToClipboard.mock.calls.at(-1)?.[0]).not.toContain(
+      'must-not-render-or-copy',
+    );
+    expect(mocks.copyToClipboard.mock.calls.at(-1)?.[0]).toContain(
+      'Token: Pass',
+    );
+  });
+
+  it('renders the no-connected-account state', () => {
+    mocks.brandDetail = {
+      ...mocks.brandDetail,
+      brand: {
+        agentConfig: {},
+        credentials: [],
+      },
+    };
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(
+      screen.getByText('No connected accounts are available for this brand.'),
+    ).toBeVisible();
+    expect(mocks.getPublishingContext).not.toHaveBeenCalled();
+  });
+
+  it('preserves successful readiness when another account fails', async () => {
+    mocks.brandDetail = {
+      ...mocks.brandDetail,
+      brand: {
+        agentConfig: {},
+        credentials: [
+          {
+            externalHandle: 'ready-account',
+            id: 'credential-ready',
+            isConnected: true,
+            platform: 'twitter',
+          },
+          {
+            externalHandle: 'failed-account',
+            id: 'credential-failed',
+            isConnected: true,
+            platform: 'youtube',
+          },
+        ],
+      },
+    };
+    mocks.getPublishingContext
+      .mockResolvedValueOnce({
+        account: {
+          id: 'credential-ready',
+          label: 'Ready account',
+          platform: 'twitter',
+        },
+        readiness: {
+          appReviewStatus: 'pass',
+          callbackUrlStatus: 'pass',
+          canSchedule: true,
+          diagnostics: [],
+          isRetryable: false,
+          permissionScopeStatus: 'pass',
+          providerKey: 'twitter',
+          quotaStatus: 'pass',
+          state: 'publish_capable',
+          tokenFreshness: 'pass',
+        },
+        surface: 'post',
+      })
+      .mockRejectedValueOnce(new Error('network error'));
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(await screen.findByText('Ready account')).toBeVisible();
+    expect(screen.getByText('@failed-account')).toBeVisible();
+    expect(screen.getByText('Unavailable')).toBeVisible();
+    expect(
+      screen.getByText(
+        'Publishing readiness could not be loaded for this account. Retry by refreshing this page.',
+      ),
+    ).toBeVisible();
   });
 });
