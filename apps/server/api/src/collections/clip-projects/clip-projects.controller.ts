@@ -8,7 +8,6 @@ import {
   GenerateClipsDto,
 } from '@api/collections/clip-projects/dto/generate-clips.dto';
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
-import { SelectClipReferenceFrameDto } from '@api/collections/clip-projects/dto/select-clip-reference-frame.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import { type ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
@@ -52,7 +51,6 @@ import {
   Param,
   Patch,
   Post,
-  Put,
   Query,
   Req,
   UseGuards,
@@ -235,30 +233,6 @@ export class ClipProjectsController {
       projectId: String(project.id),
       status: project.status,
     };
-  }
-
-  @Put(':projectId/reference-frame')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    description:
-      'Select an available source-video reference-frame candidate for this clip project.',
-    summary: 'Select a clip reference frame',
-  })
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async selectReferenceFrame(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('projectId') projectId: string,
-    @Body() dto: SelectClipReferenceFrameDto,
-  ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const data = await this.clipProjectsService.selectReferenceFrame(
-      projectId,
-      publicMetadata.organization,
-      dto.candidateId,
-    );
-
-    return serializeSingle(request, ClipProjectSerializer, data);
   }
 
   @Post(':projectId/highlights/:highlightId/rewrite')

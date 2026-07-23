@@ -1,4 +1,5 @@
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
+import { ClipProjectReferenceFramesController } from '@api/collections/clip-projects/clip-project-reference-frames.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
@@ -96,6 +97,7 @@ describe('ClipProjectsController', () => {
 
   let controller: ClipProjectsController;
   let handoffsController: ClipProjectHandoffsController;
+  let referenceFramesController: ClipProjectReferenceFramesController;
   let clipProjectsService: ReturnType<typeof createMockClipProjectsService>;
   let clipGenerationService: ReturnType<typeof createMockClipGenerationService>;
   let clipFactoryQueueService: { enqueue: ReturnType<typeof vi.fn> };
@@ -146,6 +148,10 @@ describe('ClipProjectsController', () => {
       clipResultsService as unknown as ClipResultsService,
       editorProjectsService as unknown as EditorProjectsService,
       publishHandoffService as unknown as PublishHandoffService,
+    );
+    referenceFramesController = new ClipProjectReferenceFramesController(
+      createMockLogger(),
+      clipProjectsService as ClipProjectsService,
     );
   });
 
@@ -272,7 +278,7 @@ describe('ClipProjectsController', () => {
         selectedProject,
       );
 
-      const result = await controller.selectReferenceFrame(
+      const result = await referenceFramesController.selectReferenceFrame(
         {
           originalUrl: `/clip-projects/${projectId}/reference-frame`,
         } as Request,

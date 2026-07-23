@@ -1,4 +1,5 @@
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
+import { ClipProjectReferenceFramesController } from '@api/collections/clip-projects/clip-project-reference-frames.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
 import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
@@ -10,7 +11,11 @@ import { ClipOrchestratorModule } from '@api/services/clip-orchestrator/clip-orc
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [ClipProjectsController, ClipProjectHandoffsController],
+  controllers: [
+    ClipProjectsController,
+    ClipProjectHandoffsController,
+    ClipProjectReferenceFramesController,
+  ],
   exports: [ClipProjectsCoreModule],
   imports: [
     forwardRef(() => ClipProjectsCoreModule),
