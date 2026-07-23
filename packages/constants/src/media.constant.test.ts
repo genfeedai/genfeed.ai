@@ -1,10 +1,13 @@
 import { IngredientFormat } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
+  CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS,
+  CLIP_REFERENCE_FRAME_MAX_CANDIDATES,
   DEFAULT_LABELS,
   VIDEO_DIMENSIONS,
   VIDEO_FORMAT_DIMENSIONS,
   VIDEO_MERGE_LIMITS,
+  YT_DLP_PROCESS_TIMEOUT_MS,
 } from './media.constant';
 
 describe('media.constant', () => {
@@ -44,6 +47,15 @@ describe('media.constant', () => {
     it('requires at least 2 and at most 10 videos', () => {
       expect(VIDEO_MERGE_LIMITS.MIN_VIDEOS).toBe(2);
       expect(VIDEO_MERGE_LIMITS.MAX_VIDEOS).toBe(10);
+    });
+  });
+
+  describe('clip reference frame limits', () => {
+    it('keeps the job budget above the source download timeout', () => {
+      expect(CLIP_REFERENCE_FRAME_MAX_CANDIDATES).toBe(5);
+      expect(CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS).toBeGreaterThan(
+        YT_DLP_PROCESS_TIMEOUT_MS,
+      );
     });
   });
 

@@ -16,7 +16,11 @@ import { randomUUID } from 'node:crypto';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { WhisperService } from '@api/services/whisper/whisper.service';
-import { normalizeClipReferenceFrameSet } from '@genfeedai/helpers';
+import { CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS } from '@genfeedai/constants';
+import {
+  normalizeClipReferenceFrameSet,
+  normalizeClipReferenceTimestamps,
+} from '@genfeedai/helpers';
 import {
   CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
   type ClipReferenceFrameSet,
@@ -35,29 +39,18 @@ import { ClipHighlightDetector } from '@workers/processors/api/queues/shared/cli
 import type { Job } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 
-const MAX_REFERENCE_FRAMES = 5;
-
 function deriveReferenceTimestamps(highlights: IHighlight[]): number[] {
-  return [
-    ...new Set(
-      highlights
-        .filter(
-          (highlight) =>
-            Number.isFinite(highlight.start_time) &&
-            Number.isFinite(highlight.end_time) &&
-            highlight.start_time >= 0 &&
-            highlight.end_time >= highlight.start_time,
-        )
-        .map(
-          (highlight) =>
-            Math.round(
-              ((highlight.start_time + highlight.end_time) / 2) * 1000,
-            ) / 1000,
-        ),
-    ),
-  ]
-    .sort((left, right) => left - right)
-    .slice(0, MAX_REFERENCE_FRAMES);
+  return normalizeClipReferenceTimestamps(
+    highlights
+      .filter(
+        (highlight) =>
+          Number.isFinite(highlight.start_time) &&
+          Number.isFinite(highlight.end_time) &&
+          highlight.start_time >= 0 &&
+          highlight.end_time >= highlight.start_time,
+      )
+      .map((highlight) => (highlight.start_time + highlight.end_time) / 2),
+  );
 }
 
 function pendingReferenceFrames(timestamps: number[]): ClipReferenceFrameSet {
@@ -351,7 +344,7 @@ export class ClipAnalyzeProcessor extends WorkerHost {
   private async waitForReferenceFrameJob(
     filesUrl: string,
     jobId: string,
-    timeoutMs = 180_000,
+    timeoutMs = CLIP_REFERENCE_FRAME_JOB_TIMEOUT_MS,
   ): Promise<ClipReferenceFrameSet> {
     const pollInterval = 2_000;
     const start = Date.now();

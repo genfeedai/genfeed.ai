@@ -5,6 +5,7 @@ import {
 import {
   ClipReferenceFrameValidationError,
   normalizeClipReferenceFrameSet,
+  normalizeClipReferenceTimestamps,
 } from '@helpers/media/clip-reference-frame.helper';
 
 function createReferenceFrames(
@@ -212,5 +213,23 @@ describe('normalizeClipReferenceFrameSet', () => {
         }),
       ),
     ).toThrow(/assetId, storageKey, or url/);
+  });
+});
+
+describe('normalizeClipReferenceTimestamps', () => {
+  it('filters, rounds, deduplicates, sorts, and caps timestamps', () => {
+    expect(
+      normalizeClipReferenceTimestamps([
+        30,
+        Number.NaN,
+        10.0004,
+        -1,
+        20,
+        40,
+        50,
+        60,
+        10.00049,
+      ]),
+    ).toEqual([10, 20, 30, 40, 50]);
   });
 });

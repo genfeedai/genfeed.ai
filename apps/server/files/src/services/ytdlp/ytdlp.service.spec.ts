@@ -128,7 +128,9 @@ describe('YtDlpService', () => {
         '-o',
         expect.stringContaining('public/tmp/clips/'),
         url,
-      ]);
+      ], {
+        detached: process.platform !== 'win32',
+      });
       expect(result).toMatch(/\.mp3$/);
       expect(loggerMock.log).toHaveBeenCalledWith(
         expect.stringContaining('yt-dlp'),
@@ -267,10 +269,12 @@ describe('YtDlpService', () => {
         '-o',
         outputPath,
         url,
-      ]);
+      ], {
+        detached: process.platform !== 'win32',
+      });
     });
 
-    it('kills a timed-out process and removes partial output', async () => {
+    it('kills a timed-out process and removes partial output after close', async () => {
       vi.useFakeTimers();
       const outputPath = '/tmp/genfeed/video.mp4';
       const mockProcess = useMockProcess(spawnMock);
@@ -280,14 +284,41 @@ describe('YtDlpService', () => {
         'https://youtube.com/watch?v=test',
         outputPath,
       );
+      const settled = vi.fn();
+      void promise.then(settled, settled);
       const rejection = expect(promise).rejects.toThrow('yt-dlp timed out');
       await vi.advanceTimersByTimeAsync(5 * 60_000);
 
-      await rejection;
       expect(mockProcess.kill).toHaveBeenCalledWith('SIGKILL');
+      expect(settled).not.toHaveBeenCalled();
+      expect(fsMock.unlinkSync).not.toHaveBeenCalled();
+
+      closeProcess(mockProcess, 137);
+
+      await rejection;
+      expect(settled).toHaveBeenCalledOnce();
       expect(fsMock.unlinkSync).toHaveBeenCalledWith(outputPath);
       expect(fsMock.unlinkSync).toHaveBeenCalledWith(`${outputPath}.part`);
       vi.useRealTimers();
+    });
+
+    it('rejects a successful process that did not create an output file', async () => {
+      const outputPath = '/tmp/genfeed/video.mp4';
+      const mockProcess = useMockProcess(spawnMock);
+      fsMock.existsSync
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false)
+        .mockReturnValue(false);
+
+      const promise = service.downloadVideo(
+        'https://youtube.com/watch?v=test',
+        outputPath,
+      );
+      closeProcess(mockProcess, 0);
+
+      await expect(promise).rejects.toThrow(
+        'without creating an output file',
+      );
     });
   });
 
@@ -312,7 +343,9 @@ describe('YtDlpService', () => {
         '-o',
         outputPath,
         url,
-      ]);
+      ], {
+        detached: process.platform !== 'win32',
+      });
     });
   });
 });

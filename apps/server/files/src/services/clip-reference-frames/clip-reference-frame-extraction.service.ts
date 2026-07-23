@@ -2,6 +2,7 @@ import path from 'node:path';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
+import { normalizeClipReferenceTimestamps } from '@genfeedai/helpers';
 import {
   CLIP_REFERENCE_FRAME_SCHEMA_VERSION,
   type ClipReferenceFrameCandidate,
@@ -12,7 +13,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-const MAX_REFERENCE_FRAMES = 5;
 const YOUTUBE_HOSTS = new Set([
   'm.youtube.com',
   'music.youtube.com',
@@ -32,18 +32,6 @@ function unavailableReferenceFrames(
     selectedCandidateId: null,
     status: 'unavailable',
   };
-}
-
-function normalizeTimestamps(timestamps: number[]): number[] {
-  return [
-    ...new Set(
-      timestamps
-        .filter((timestamp) => Number.isFinite(timestamp) && timestamp >= 0)
-        .map((timestamp) => Math.round(timestamp * 1000) / 1000),
-    ),
-  ]
-    .sort((left, right) => left - right)
-    .slice(0, MAX_REFERENCE_FRAMES);
 }
 
 function validatePublicYoutubeUrl(sourceUrl: string): string {
@@ -86,7 +74,7 @@ export class ClipReferenceFrameExtractionService {
   async extract(
     input: ClipReferenceFrameExtractionInput,
   ): Promise<ClipReferenceFrameSet> {
-    const timestamps = normalizeTimestamps(input.timestamps);
+    const timestamps = normalizeClipReferenceTimestamps(input.timestamps);
     if (timestamps.length === 0) {
       return unavailableReferenceFrames(
         'clip_reference_no_timestamps',
@@ -126,9 +114,10 @@ export class ClipReferenceFrameExtractionService {
         const timestampMs = Math.round(timestampSeconds * 1000);
         const candidateId = `frame-${index + 1}-${timestampMs}`;
         const framePath = path.join(tempDir, `frame-${index + 1}.jpg`);
-        const storageKey =
-          `ingredients/images/organizations/${organizationId}/clips/` +
-          `${projectId}/reference-frames/${candidateId}.jpg`;
+        const uploadKey =
+          `organizations/${organizationId}/clips/${projectId}/` +
+          `reference-frames/${candidateId}.jpg`;
+        const storageKey = `ingredients/images/${uploadKey}`;
 
         try {
           await this.ffmpegService.extractFrame(
@@ -137,8 +126,7 @@ export class ClipReferenceFrameExtractionService {
             timestampSeconds,
           );
           const uploaded = await this.uploadService.uploadToS3(
-            `organizations/${organizationId}/clips/${projectId}/` +
-              `reference-frames/${candidateId}.jpg`,
+            uploadKey,
             'images',
             { path: framePath, type: 'file' },
           );
