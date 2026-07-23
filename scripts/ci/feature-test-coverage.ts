@@ -15,7 +15,8 @@ export interface FeatureTestCoverageResult {
   testFiles: string[];
 }
 
-const TEST_BEARING_PR_TITLE = /^(?:feat|fix|refactor)(?:\([^)]+\))?[!:]/iu;
+const TEST_BEARING_PR_TITLE =
+  /^(?:feat|fix|perf|refactor)(?:\([^)]+\))?[!:]/iu;
 const RUNTIME_SOURCE_FILE = /\.(?:cjs|js|jsx|mjs|ts|tsx)$/u;
 const RUNTIME_ROOT = /^(?:apps|ee|packages|scripts)\//u;
 const TEST_DIRECTORY = /(?:^|\/)(?:__tests__|e2e|test|tests)(?:\/|$)/u;
@@ -76,7 +77,7 @@ export function evaluateFeatureTestCoverage(
       applicable,
       passed: true,
       productionFiles,
-      reason: 'PR title is outside feat/fix/refactor test enforcement.',
+      reason: 'PR title is outside feat/fix/perf/refactor test enforcement.',
       testFiles,
     };
   }
@@ -97,7 +98,7 @@ export function evaluateFeatureTestCoverage(
       passed: false,
       productionFiles,
       reason:
-        'Feature, fix, and refactor PRs that change production source must add or update a test file.',
+        'Feature, fix, performance, and refactor PRs that change production source must add or update a test file.',
       testFiles,
     };
   }

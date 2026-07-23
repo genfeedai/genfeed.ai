@@ -25,6 +25,7 @@ describe('feature test coverage', () => {
   it.each([
     'feat',
     'fix(auth)',
+    'perf(api)',
     'refactor!',
   ])('accepts %s changes when a test is added', (prefix) => {
     const result = evaluateFeatureTestCoverage(`${prefix}: covered change`, [
