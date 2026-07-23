@@ -401,6 +401,14 @@ export default function SettingsWebhooksPage() {
             <dd>{formatDate(deliveryStatus?.completedAt)}</dd>
           </div>
           <div>
+            <dt className="text-muted-foreground">Attempt</dt>
+            <dd>
+              {typeof deliveryStatus?.attempt === 'number'
+                ? deliveryStatus.attempt
+                : 'Unknown'}
+            </dd>
+          </div>
+          <div>
             <dt className="text-muted-foreground">HTTP status</dt>
             <dd>{formatHttpStatus(deliveryStatus)}</dd>
           </div>

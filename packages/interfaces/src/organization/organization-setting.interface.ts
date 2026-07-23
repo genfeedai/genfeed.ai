@@ -27,6 +27,7 @@ export type WebhookDeliveryStatusValue =
   | 'failed';
 
 export interface IWebhookDeliveryStatus {
+  attempt?: number;
   deliveryId: string;
   event: string;
   status: WebhookDeliveryStatusValue;

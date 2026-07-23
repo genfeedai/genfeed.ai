@@ -60,6 +60,7 @@ describe('WebhookClientProcessor', () => {
     ).toHaveBeenCalledWith(
       'org-1',
       expect.objectContaining({
+        attempt: 1,
         deliveryId: 'job-1',
         event: 'ingredient.generated',
         status: 'failed',
@@ -98,6 +99,7 @@ describe('WebhookClientProcessor', () => {
     ).toHaveBeenCalledWith(
       'org-1',
       expect.objectContaining({
+        attempt: 1,
         deliveryId: 'job-1',
         event: 'ingredient.generated',
         status: 'delivered',
@@ -138,6 +140,7 @@ describe('WebhookClientProcessor', () => {
     ).toHaveBeenCalledWith(
       'org-1',
       expect.objectContaining({
+        attempt: 1,
         deliveryId: 'job-1',
         event: 'ingredient.generated',
         status: 'failed',
@@ -178,6 +181,16 @@ describe('WebhookClientProcessor', () => {
         jobId: 'publish:target.failed:release-1:target-1:failed',
         maxAttempts: 5,
         organizationId: 'org-1',
+      }),
+    );
+    expect(
+      organizationSettingsService.recordWebhookDeliveryStatus,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({
+        attempt: 2,
+        deliveryId: 'publish:target.failed:release-1:target-1:failed',
+        status: 'failed',
       }),
     );
   });

@@ -494,6 +494,7 @@ export class PublishEventWebhookService {
     );
 
     const status: IWebhookDeliveryStatus = {
+      attempt: 0,
       deliveryId,
       event: payload.event,
       isTest: Boolean(options.isTest),
