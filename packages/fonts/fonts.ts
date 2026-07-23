@@ -35,7 +35,10 @@ export const satoshi = localFont({
       weight: '900',
     },
   ],
-  variable: '--font-sans',
+  // Distinct name so next/font's <html> class never collides with the
+  // `:root { --font-sans }` token. `:root` bridges --font-sans -> --font-satoshi
+  // with the system stack as fallback, removing the injection-order footgun.
+  variable: '--font-satoshi',
 });
 
 /**
@@ -85,7 +88,8 @@ export const zodiak = localFont({
       weight: '700',
     },
   ],
-  variable: '--font-serif',
+  // Distinct name — `:root` bridges --font-serif -> --font-zodiak (see satoshi).
+  variable: '--font-zodiak',
 });
 
 /**
