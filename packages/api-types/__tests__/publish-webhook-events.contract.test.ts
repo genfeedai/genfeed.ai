@@ -181,10 +181,20 @@ describe('publish webhook helpers', () => {
   test('redacts secret-like text from error messages', () => {
     expect(
       redactPublishWebhookText(
-        'Provider failed with access_token=abc123 and Bearer xyz987',
+        'Provider failed with access_token=abc123, oauth_token=oauth987, token=bare123, id_token=id456, session_token=session789, signature=signed123, Bearer xyz987, and Basic dXNlcjpwYXNz',
       ),
     ).toBe(
-      'Provider failed with access_token=[REDACTED] and Bearer [REDACTED]',
+      'Provider failed with access_token=[REDACTED], oauth_token=[REDACTED], token=[REDACTED], id_token=[REDACTED], session_token=[REDACTED], signature=[REDACTED], Bearer [REDACTED], and Basic [REDACTED]',
+    );
+  });
+
+  test('redacts quoted secret keys from provider JSON errors', () => {
+    expect(
+      redactPublishWebhookText(
+        'Provider error {"access_token":"access-live","webhook_secret":"webhook-live","id_token":"id-live"}',
+      ),
+    ).toBe(
+      'Provider error {"access_token":"[REDACTED]","webhook_secret":"[REDACTED]","id_token":"[REDACTED]"}',
     );
   });
 });

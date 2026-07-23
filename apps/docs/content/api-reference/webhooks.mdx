@@ -21,15 +21,15 @@ The API test action is `POST /organizations/{organizationId}/settings/webhooks/t
 
 ## Delivery
 
-Webhook delivery is asynchronous and does not block publish execution. Events are queued on the `webhook-client` queue and retried up to five times with exponential backoff. Consumer `5xx` and network failures are retried; `4xx` responses are treated as delivered but rejected by the receiver.
+Webhook delivery is asynchronous and does not block publish execution. Events are queued on the `webhook-client` queue and retried up to five times with exponential backoff. Consumer `5xx`, network failures, and the 30-second delivery timeout are retried; `4xx` responses are treated as delivered but rejected by the receiver.
 
 Each request includes:
 
 - `X-Genfeed-Event`: event type
-- `X-Genfeed-Delivery`: BullMQ delivery job id
+- `X-Genfeed-Delivery`: stable delivery identifier for this event attempt
 - `X-Genfeed-Signature`: `sha256=` HMAC over the JSON payload with the endpoint secret
 
-Payloads include `eventId` for consumer idempotency. Delivery is at-least-once, so consumers should store processed `eventId` values before running side effects and safely ignore duplicates. The `X-Genfeed-Delivery` header is a transport diagnostic; use the payload `eventId` as the durable idempotency key.
+Payloads include `eventId` for consumer idempotency. Delivery is at-least-once, so consumers should store processed `eventId` values before running side effects and safely ignore duplicates. The `X-Genfeed-Delivery` header is a transport diagnostic and may differ for test deliveries; use the payload `eventId` as the durable idempotency key.
 
 Publish events use stable `eventId` values derived from release, target, event type, and terminal status. If a publish worker retries the same terminal transition, Genfeed enqueues the same webhook job id while the queue record is retained. Consumer endpoints must still be idempotent because delivery retries can resend the same event.
 
@@ -82,4 +82,4 @@ All publish webhook payloads use `schemaVersion: 1`. Breaking payload changes wi
 }
 ```
 
-Failure payloads include a stable `error.class` value: `misconfiguration`, `credential`, `provider_outage`, `rate_limit`, `validation`, or `unknown`. Provider tokens, webhook secrets, bearer tokens, and API keys are redacted from error messages before delivery.
+Failure payloads include a stable `error.class` value: `misconfiguration`, `credential`, `provider_outage`, `rate_limit`, `validation`, or `unknown`. OAuth and provider tokens, webhook secrets, bearer tokens, and API keys are redacted from payload errors, delivery-status snapshots, queue failure reasons, and worker diagnostics.
