@@ -64,7 +64,7 @@ variable "route53_zone_id" {
 # Push the image, get services healthy, smoke-test the ALB DNS, THEN apply with
 # enable_dns_cutover=true to flip api/mcp/notifications hostnames onto the ALB.
 #
-# ⚠ CI passes TF_VAR_enable_dns_cutover=true. The `false` default is a first-run
+# ⚠ CI passes -var="enable_dns_cutover=true". The `false` default is a first-run
 # safety only — a bare local apply inherits it and would DESTROY the live
 # api/mcp/notifications A-records. See the header warning in providers.tf.
 variable "enable_dns_cutover" {
@@ -94,13 +94,13 @@ variable "asg_desired" {
 }
 
 # ── Image ────────────────────────────────────────────────────────────
-# ⚠ CI passes TF_VAR_image_tag=<commit-sha>. The "latest" default is a
+# ⚠ CI passes -var="image_tag=<commit-sha>". The "latest" default is a
 # placeholder — a bare local apply inherits it and would replace every task
 # definition (a full prod redeploy to :latest). See the header in providers.tf.
 variable "image_tag" {
   type        = string
   default     = "latest"
-  description = "ECR tag of genfeed/server to deploy (CI passes the commit SHA via TF_VAR_image_tag)."
+  description = "ECR tag of genfeed/server to deploy (CI passes the commit SHA via -var=\"image_tag=<sha>\")."
 }
 
 # ── Secrets ──────────────────────────────────────────────────────────

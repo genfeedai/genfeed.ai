@@ -6,9 +6,9 @@
 # only exist so the config parses:
 #
 #   • image_tag          default "latest"  → CI passes the real commit SHA
-#                                             (TF_VAR_image_tag)
+#                                             (-var="image_tag=<sha>")
 #   • enable_dns_cutover  default false     → CI passes true
-#                                             (TF_VAR_enable_dns_cutover)
+#                                             (-var="enable_dns_cutover=true")
 #
 # A plain local apply runs with those wrong defaults and will plan destructive
 # drift against healthy production: it reverts all task definitions to :latest
@@ -18,7 +18,8 @@
 #
 # Deploy through CI. For an out-of-band change (e.g. a cost tweak), use a
 # `-target`ed apply scoped to the specific resources, never a full apply — or
-# export TF_VAR_image_tag=<current-sha> and TF_VAR_enable_dns_cutover=true first.
+# pass -var="image_tag=<current-sha>" -var="enable_dns_cutover=true" (or the
+# equivalent TF_VAR_* env vars) first.
 
 terraform {
   required_version = ">= 1.10"
