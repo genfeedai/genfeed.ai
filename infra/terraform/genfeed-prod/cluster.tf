@@ -1,8 +1,12 @@
 resource "aws_ecs_cluster" "main" {
   name = local.name_prefix
+  # Container Insights publishes per-task/container custom metrics (~$40/mo at
+  # our service count) that we don't currently use — Sentry covers errors/perf
+  # and free ECS service metrics still drive alarms/autoscaling. Re-enable
+  # temporarily when debugging task-level resource issues (OOM, right-sizing).
   setting {
     name  = "containerInsights"
-    value = "enabled"
+    value = "disabled"
   }
 }
 
