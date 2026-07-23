@@ -101,13 +101,12 @@ if (isCoverageRun) {
 const coverageThresholds = isShardRun
   ? undefined
   : {
-      // Ratchet floor set to current actual (~42.9%) so the merged Coverage
-      // gate is green and non-regressing. functions/lines/statements already
-      // clear 50%. Raise this back toward 50 as branch coverage improves —
-      // tracked in genfeedai/genfeed.ai#686.
-      branches: 42,
-      functions: 50,
-      lines: 50,
+      // Ratcheted below the latest merged report (52.38% branches, 67.28%
+      // functions, 63.89% lines/statements) so coverage can fluctuate slightly
+      // without returning to the obsolete 42/50 floors.
+      branches: 50,
+      functions: 65,
+      lines: 60,
       // Ratchet floor for integration code (current actual ~67.5% lines /
       // ~56% branches). Raise these toward 100 as integration test gaps fill.
       'src/{services/integrations,endpoints/integrations,marketplace-integration}/**':
@@ -117,7 +116,7 @@ const coverageThresholds = isShardRun
           lines: 65,
           statements: 65,
         },
-      statements: 50,
+      statements: 60,
     };
 
 export default defineConfig({

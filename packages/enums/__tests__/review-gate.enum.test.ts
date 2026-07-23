@@ -16,14 +16,13 @@ describe('review-gate.enum', () => {
   });
 
   describe('NotificationChannel', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(NotificationChannel)).toHaveLength(3);
-    });
-
-    it('should have correct values', () => {
-      expect(NotificationChannel.EMAIL).toBe('email');
-      expect(NotificationChannel.WEBHOOK).toBe('webhook');
-      expect(NotificationChannel.SLACK).toBe('slack');
+    it('should have the intended members', () => {
+      expect(Object.entries(NotificationChannel)).toEqual([
+        ['EMAIL', 'email'],
+        ['WEBHOOK', 'webhook'],
+        ['SLACK', 'slack'],
+        ['TASK_INBOX', 'task-inbox'],
+      ]);
     });
   });
 });

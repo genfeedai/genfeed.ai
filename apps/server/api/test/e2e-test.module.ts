@@ -7,6 +7,10 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
+import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
+import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
+import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
+import { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -21,6 +25,7 @@ import { SettingsService } from '@api/collections/settings/services/settings.ser
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { InternalIntegrationsController } from '@api/endpoints/integrations/integrations.controller';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
@@ -138,6 +143,49 @@ export const GUARD_OVERRIDE_PROVIDERS = [
   {
     provide: APP_GUARD,
     useClass: MockBetterAuthGuard,
+  },
+];
+
+/**
+ * Collaborators used only by optional brand operations. CRUD-oriented E2E
+ * modules provide inert tokens so Nest can construct BrandsService without
+ * pulling provider-backed generation, crawling, file, or relocation paths into
+ * the hermetic test boundary.
+ */
+export const BRAND_SERVICE_E2E_MOCK_PROVIDERS = [
+  {
+    provide: CacheInvalidationService,
+    useValue: {
+      invalidate: () => Promise.resolve(),
+      invalidateByTags: () => Promise.resolve(0),
+      invalidatePattern: () => Promise.resolve(),
+    },
+  },
+  {
+    provide: BrandRelocationService,
+    useValue: {
+      previewRelocation: () => Promise.resolve(null),
+      relocateToOrganization: () => Promise.resolve(null),
+    },
+  },
+  {
+    provide: BrandGenerationService,
+    useValue: {
+      generateBrandVoice: () => Promise.resolve(null),
+      generateFastlaneIdeas: () => Promise.resolve([]),
+    },
+  },
+  {
+    provide: BrandKitAssetsService,
+    useValue: { importBrandKitAssets: () => Promise.resolve(null) },
+  },
+  {
+    provide: BrandKitDraftService,
+    useValue: {
+      applyBrandKitDraft: () => Promise.resolve(null),
+      buildManualBrandKitDraft: () => Promise.resolve(null),
+      crawlWebsiteBrandKitDraft: () => Promise.resolve(null),
+    },
   },
 ];
 
@@ -295,6 +343,13 @@ export class TestDatabaseHelper {
     this.rename(data, 'brand', 'brandId');
     this.rename(data, 'credential', 'credentialId');
 
+    if (delegateName === 'user') {
+      // Removed during the Prisma identity migration. Some legacy E2E fixtures
+      // still pass this Mongo-era field, so strip it at the shared seed boundary
+      // instead of letting Prisma reject every suite during beforeEach.
+      delete data.isActive;
+    }
+
     if (delegateName === 'organization') {
       data['slug'] ??= this.slugify(String(data['label'] ?? data['id']));
       data['userId'] ??= 'e2e-test-user';
@@ -445,6 +500,7 @@ export class E2ETestModule {
     return E2ETestModule.forRoot({
       controllers: [OrganizationsController],
       providers: [
+        ...BRAND_SERVICE_E2E_MOCK_PROVIDERS,
         OrganizationsService,
         BrandsService,
         MembersService,
@@ -467,6 +523,7 @@ export class E2ETestModule {
     return E2ETestModule.forRoot({
       controllers: [BrandsController],
       providers: [
+        ...BRAND_SERVICE_E2E_MOCK_PROVIDERS,
         BrandsService,
         OrganizationsService,
         MembersService,
