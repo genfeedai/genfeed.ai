@@ -1520,31 +1520,31 @@ async function collectWorkflowRunAttempts(
     { length: run.run_attempt - 1 },
     (_, index) => index + 1,
   );
-  const results = await mapWithConcurrency(
-    priorAttempts,
-    MAX_CONCURRENT_GITHUB_REQUESTS,
-    async (attempt) => {
-      try {
-        const page = await client.loadPage(
-          `/repos/${repository}/actions/runs/${run.id}/attempts/${attempt}`,
-        );
-        if (!isGitHubWorkflowRun(page.data)) {
-          throw new Error('Workflow run attempt returned an invalid response');
-        }
-        if (!isWorkflowRunAssociatedWithPullRequest(page.data, pullRequest)) {
-          throw new Error(
-            `Workflow run ${run.id} attempt ${attempt} is not associated with pull request #${pullRequest.number}`,
-          );
-        }
-        return { error: null, run: page.data };
-      } catch (error) {
-        return {
-          error: error instanceof Error ? error.message : String(error),
-          run: null,
-        };
+  const results: Array<{ error: string | null; run: GitHubWorkflowRun | null }> =
+    [];
+  // The caller owns the global request concurrency. Keep attempts within each
+  // run sequential so nested fan-out cannot multiply that limit.
+  for (const attempt of priorAttempts) {
+    try {
+      const page = await client.loadPage(
+        `/repos/${repository}/actions/runs/${run.id}/attempts/${attempt}`,
+      );
+      if (!isGitHubWorkflowRun(page.data)) {
+        throw new Error('Workflow run attempt returned an invalid response');
       }
-    },
-  );
+      if (!isWorkflowRunAssociatedWithPullRequest(page.data, pullRequest)) {
+        throw new Error(
+          `Workflow run ${run.id} attempt ${attempt} is not associated with pull request #${pullRequest.number}`,
+        );
+      }
+      results.push({ error: null, run: page.data });
+    } catch (error) {
+      results.push({
+        error: error instanceof Error ? error.message : String(error),
+        run: null,
+      });
+    }
+  }
   const errors = results
     .map((result) => result.error)
     .filter((error): error is string => error !== null);
