@@ -28,6 +28,7 @@ import { UsersModule } from '@api/collections/users/users.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
+import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
@@ -41,6 +42,7 @@ import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/age
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
+import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
@@ -49,6 +51,7 @@ import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
+import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
@@ -72,6 +75,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentThreadingModule),
     forwardRef(() => AgentRunsModule),
     forwardRef(() => AiActionsModule),
+    forwardRef(() => AdsResearchModule),
     forwardRef(() => AgentStreamPublisherModule),
     forwardRef(() => AnalyticsModule),
     forwardRef(() => BatchGenerationModule),
@@ -87,6 +91,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => DashboardLayoutsModule),
     forwardRef(() => HttpModule),
     forwardRef(() => ImagesModule),
+    InstagramInspirationModule,
     forwardRef(() => LoggerModule),
     forwardRef(() => LlmDispatcherModule),
     forwardRef(() => MarketplaceIntegrationModule),
@@ -108,6 +113,7 @@ import { forwardRef, Module } from '@nestjs/common';
   providers: [
     AgentCompletionCardBuilderService,
     AgentDashboardToolHandler,
+    AgentInstagramInspirationToolHandler,
     AgentMemoryGoalsToolHandler,
     AgentPublishToolHandler,
     AgentOrchestratorService,

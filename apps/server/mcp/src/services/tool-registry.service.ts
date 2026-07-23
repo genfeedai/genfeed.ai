@@ -159,6 +159,9 @@ const APPROVAL_REQUIRED_TOOLS: ReadonlySet<string> = new Set<string>([
   'analyze_clip_project',
   'create_clip_project_from_youtube',
   'generate_clips',
+  // Inspiration remixes — tenant writes remain draft-only until approved
+  'create_ad_remix_workflow',
+  'create_instagram_remix_workflow',
   // Scheduler releases — stateful publishing mutations require confirmation
   'create_scheduled_release',
   'update_scheduled_release',

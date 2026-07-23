@@ -153,6 +153,7 @@ export * from './integrations/ghost.interface';
 export * from './integrations/google-search-console.interface';
 export * from './integrations/heygen.interface';
 export * from './integrations/instagram.interface';
+export * from './integrations/instagram-inspiration.interface';
 export * from './integrations/integration.interface';
 export * from './integrations/news.interface';
 export * from './integrations/research-finding-reference.interface';

@@ -2,6 +2,22 @@ import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflo
 import { describe, expect, it } from 'vitest';
 
 describe('WorkflowTemplates', () => {
+  it('includes the draft-only Instagram remix template with a review gate', () => {
+    const template = WORKFLOW_TEMPLATES['instagram-remix-review'];
+
+    expect(template?.isScheduleEnabled).toBe(false);
+    expect(template?.nodes?.map((node) => node.type)).toEqual([
+      'ai-generate-video',
+      'reviewGate',
+    ]);
+    expect(template?.edges).toEqual([
+      expect.objectContaining({
+        source: 'generate-instagram-remix',
+        target: 'review-instagram-remix',
+      }),
+    ]);
+  });
+
   it('includes the X landscape avatar starter in the public template registry', () => {
     expect(WORKFLOW_TEMPLATES).toHaveProperty('avatar-ugc-x-landscape-heygen');
   });

@@ -8,15 +8,12 @@ const BASE_AGENT_CREDIT_COSTS: Record<string, number> = Object.fromEntries(
 
 const EXTRA_AGENT_CREDIT_COSTS: Record<string, number> = {
   [AgentToolName.CAPTURE_MEMORY]: 0,
-  [AgentToolName.CREATE_AD_REMIX_WORKFLOW]: 0,
   [AgentToolName.CREATE_LIVESTREAM_BOT]: 0,
   [AgentToolName.CREATE_POST]: 0,
   [AgentToolName.DRAFT_BRAND_VOICE_PROFILE]:
     BRAND_PROFILE_GENERATION_CREDIT_COST,
   [AgentToolName.GENERATE_AD_PACK]: 0,
-  [AgentToolName.GET_AD_RESEARCH_DETAIL]: 0,
   [AgentToolName.GET_TOP_INGREDIENTS]: 0,
-  [AgentToolName.LIST_ADS_RESEARCH]: 0,
   [AgentToolName.MANAGE_LIVESTREAM_BOT]: 0,
   [AgentToolName.PREPARE_AD_LAUNCH_REVIEW]: 0,
   [AgentToolName.RATE_CONTENT]: 0,

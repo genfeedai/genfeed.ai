@@ -9,6 +9,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [AdsResearchController],
+  exports: [AdsResearchService],
   imports: [
     forwardRef(() => AdPerformanceModule),
     forwardRef(() => CreativePatternsModule),

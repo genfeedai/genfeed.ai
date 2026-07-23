@@ -8,6 +8,8 @@
 - [Pull-request Validation Telemetry Decisions](decisions-pr-validation-telemetry.md) — collector boundary, fail-closed semantics, and surface classification decisions
 - [Brand and Social Visual Enrichment Spec](spec-brand-social-visual-enrichment.md) — S3-backed website headers and connected-account PFPs with platform badges
 - [Brand and Social Visual Enrichment Decisions](decisions-brand-social-visual-enrichment.md) — storage, overwrite, and failure-isolation decisions
+- [MCP Instagram and Meta Inspiration Remix Spec](spec-mcp-instagram-meta-inspiration-remix.md) — curated brand-aware public inspiration and review-only remix actions
+- [MCP Instagram and Meta Inspiration Remix Decisions](decisions-mcp-instagram-meta-inspiration-remix.md) — ephemeral discovery, strict brand resolution, and approval boundaries
 - [Project Overview](project_overview.md) — Genfeed.ai monorepo structure and key context
 - [One API Epic](project_one_api_epic.md) — Epic #95: consolidate self-hosted + cloud into one NestJS API, 20 issues, 8 phases
 - [Fallow Health](project_fallow.md) — Fallow codebase health analysis (#83), weekly CI, score 72/100

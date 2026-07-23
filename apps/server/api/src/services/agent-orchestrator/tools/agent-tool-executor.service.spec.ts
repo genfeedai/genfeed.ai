@@ -8,6 +8,7 @@ vi.mock(
 import 'reflect-metadata';
 import { AiActionType } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
+import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentMemoryGoalsToolHandler } from '@api/services/agent-orchestrator/tools/agent-memory-goals-tool-handler.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import { AgentRouteRewriteService } from '@api/services/agent-orchestrator/tools/agent-route-rewrite.service';
@@ -674,6 +675,33 @@ describe('AgentToolExecutorService', () => {
         workflowName: 'Brand Google Ad Remix',
       }),
     };
+    const instagramInspirationService = {
+      createInstagramRemixWorkflow: vi.fn().mockResolvedValue({
+        reviewRequired: true,
+        source: {
+          ownerUsername: 'peer',
+          permalink: 'https://www.instagram.com/reel/ABC123/',
+          shortcode: 'ABC123',
+        },
+        status: 'draft',
+        workflowDescription: 'Review the remix before generation.',
+        workflowId: 'wf-instagram-1',
+        workflowName: 'Genfeed Instagram Remix',
+      }),
+      getInstagramInspirationDetail: vi.fn().mockResolvedValue({
+        degraded: false,
+        posts: [],
+        signals: { formats: [], hooks: [], pacing: [], styles: [] },
+        source: 'live',
+        username: 'peer',
+      }),
+      listInstagramInspiration: vi.fn().mockResolvedValue({
+        accounts: [],
+        degraded: false,
+        seeds: ['creatorops'],
+        source: 'live',
+      }),
+    };
 
     const brandInterviewService = {
       getCompleteness: vi.fn().mockResolvedValue({
@@ -729,6 +757,13 @@ describe('AgentToolExecutorService', () => {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
       assertResourceBrand: vi.fn(),
     };
+    const instagramInspirationHandler =
+      new AgentInstagramInspirationToolHandler(
+        adsResearchService as never,
+        brandsService as never,
+        credentialsService as never,
+        instagramInspirationService as never,
+      );
 
     const service = new AgentToolExecutorService(
       loggerService,
@@ -767,7 +802,7 @@ describe('AgentToolExecutorService', () => {
       seoScorerService as never,
       ingredientsService as never,
       {} as never, // votesService
-      adsResearchService as never,
+      instagramInspirationHandler,
       brandInterviewService as never,
       agentScopeContextService as never,
     );
@@ -791,6 +826,8 @@ describe('AgentToolExecutorService', () => {
       httpService,
       imagesService,
       ingredientsService,
+      instagramInspirationHandler,
+      instagramInspirationService,
       marketplaceApiClient,
       marketplaceInstallService,
       livestreamBotId: livestreamBotId.toString(),
@@ -1441,6 +1478,144 @@ describe('AgentToolExecutorService', () => {
         type: 'ads_search_results_card',
       }),
     ]);
+  });
+
+  it('lists Instagram inspiration for the selected organization brand', async () => {
+    const {
+      brandsService,
+      credentialsService,
+      instagramInspirationService,
+      service,
+    } = createService();
+    brandsService.findOne.mockResolvedValueOnce({
+      agentConfig: {
+        strategy: { topics: ['creator systems'] },
+        voice: { audience: ['founders'], hashtags: ['creatorops'] },
+      },
+      id: '67a123456789012345678903',
+      isSelected: true,
+      label: 'Genfeed',
+    });
+    credentialsService.findOne.mockResolvedValueOnce({
+      externalHandle: 'genfeed',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_INSTAGRAM_INSPIRATION,
+      { sort: 'latest' },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      isDeleted: false,
+      isSelected: true,
+      organization: '67a123456789012345678901',
+      user: '67a123456789012345678902',
+    });
+    expect(
+      instagramInspirationService.listInstagramInspiration,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brand: expect.objectContaining({
+          id: '67a123456789012345678903',
+          organizationId: '67a123456789012345678901',
+          ownUsername: 'genfeed',
+        }),
+        sort: 'latest',
+      }),
+    );
+  });
+
+  it('rejects Instagram remix creation when no brand is selected', async () => {
+    const { instagramInspirationService, service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW,
+      { shortcode: 'ABC123', username: 'peer' },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('No brand is currently selected');
+    expect(
+      instagramInspirationService.createInstagramRemixWorkflow,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('rejects an explicit Instagram inspiration brand outside the organization', async () => {
+    const { brandsService, instagramInspirationService, service } =
+      createService();
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_INSTAGRAM_INSPIRATION,
+      { brandId: '67a123456789012345678999' },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      _id: '67a123456789012345678999',
+      isDeleted: false,
+      organization: '67a123456789012345678901',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toContain(
+      'requested brand was not found in this organization',
+    );
+    expect(
+      instagramInspirationService.listInstagramInspiration,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('creates a review-only Instagram remix workflow for an explicit organization brand', async () => {
+    const { brandsService, instagramInspirationService, service } =
+      createService();
+    brandsService.findOne.mockResolvedValueOnce({
+      id: '67a123456789012345678903',
+      label: 'Genfeed',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW,
+      {
+        brandId: '67a123456789012345678903',
+        mode: 'remix_concept',
+        shortcode: 'ABC123',
+        username: 'peer',
+      },
+      {
+        organizationId: '67a123456789012345678901',
+        userId: '67a123456789012345678902',
+      },
+    );
+
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      _id: '67a123456789012345678903',
+      isDeleted: false,
+      organization: '67a123456789012345678901',
+    });
+    expect(
+      instagramInspirationService.createInstagramRemixWorkflow,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'remix_concept',
+        shortcode: 'ABC123',
+        username: 'peer',
+      }),
+    );
+    expect(result).toMatchObject({
+      data: { reviewRequired: true, status: 'draft' },
+      success: true,
+    });
   });
 
   it('creates an ad remix workflow and returns a workflow card', async () => {
@@ -3951,9 +4126,9 @@ describe('AgentToolExecutorService', () => {
     const {
       aiActionsService,
       brandsService,
-      authProviderService,
       credentialsService,
       imagesService,
+      instagramInspirationHandler,
       loggerService,
       organizationsService,
       postsService,
@@ -4002,7 +4177,7 @@ describe('AgentToolExecutorService', () => {
       undefined as never, // seoScorerService
       undefined as never, // ingredientsService
       undefined as never, // votesService
-      undefined as never, // adsResearchService
+      instagramInspirationHandler,
       undefined as never, // brandInterviewService
       undefined as never, // agentScopeContextService
     );

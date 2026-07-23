@@ -36,6 +36,9 @@ describe('ToolRegistryService.classify', () => {
     // generate_content_batch is an AgentToolName, so it routes through the
     // agent-executor to /agent-tools/:name/execute (re-surfaced in PR 5/6).
     ['generate_content_batch', 'agent-executor'],
+    ['list_instagram_inspiration', 'agent-executor'],
+    ['create_instagram_remix_workflow', 'agent-executor'],
+    ['create_ad_remix_workflow', 'agent-executor'],
     ['analyze_clip_project', 'clip-projects'],
     ['generate_clips', 'clip-projects'],
     ['get_clip_project', 'clip-projects'],
@@ -75,6 +78,8 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       'analyze_clip_project',
       'create_clip_project_from_youtube',
       'generate_clips',
+      'create_ad_remix_workflow',
+      'create_instagram_remix_workflow',
       'create_scheduled_release',
       'update_scheduled_release',
       'control_scheduled_release',

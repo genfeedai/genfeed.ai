@@ -7,6 +7,12 @@ const BASE_AGENT_TOOLS: AgentToolDefinition[] = toAgentTools(
   getToolsForSurface('agent'),
 ) as AgentToolDefinition[];
 
+const CANONICAL_OVERLAP_TOOL_NAMES = new Set<AgentToolName>([
+  AgentToolName.CREATE_AD_REMIX_WORKFLOW,
+  AgentToolName.GET_AD_RESEARCH_DETAIL,
+  AgentToolName.LIST_ADS_RESEARCH,
+]);
+
 const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
   ...AGENT_BRAND_PROFILE_TOOLS,
   {
@@ -1045,7 +1051,7 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
       type: 'object',
     },
   },
-];
+].filter((tool) => !CANONICAL_OVERLAP_TOOL_NAMES.has(tool.name));
 
 function mergeAgentTools(
   baseTools: AgentToolDefinition[],

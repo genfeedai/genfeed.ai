@@ -67,4 +67,26 @@ describe('curated action catalog', () => {
   it('contains no generated endpoint mirrors', () => {
     expect(ALL_TOOLS.some((tool) => tool.name.includes('__'))).toBe(false);
   });
+
+  it('publishes Instagram inspiration and review-only remix schemas on both surfaces', () => {
+    const listTool = getToolByName('list_instagram_inspiration');
+    const remixTool = getToolByName('create_instagram_remix_workflow');
+
+    expect(listTool?.surfaces).toMatchObject({ agent: true, mcp: true });
+    expect(listTool?.parameters.properties).toHaveProperty('brandId');
+    expect(remixTool?.surfaces).toMatchObject({ agent: true, mcp: true });
+    expect(remixTool?.parameters.required).toEqual(['username', 'shortcode']);
+    expect(remixTool?.description).toContain('review-only');
+
+    for (const name of [
+      'list_ads_research',
+      'get_ad_research_detail',
+      'create_ad_remix_workflow',
+    ]) {
+      expect(getToolByName(name)?.surfaces).toMatchObject({
+        agent: true,
+        mcp: true,
+      });
+    }
+  });
 });
