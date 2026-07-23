@@ -55,19 +55,15 @@ describe('E2E fixture contracts', () => {
 
     expect(configuredTokens).toEqual(expectedTokens);
 
-    for (const moduleConfig of [
-      await E2ETestModule.forBrands(),
-      await E2ETestModule.forOrganizations(),
-    ]) {
-      const providerTokens = (moduleConfig.providers ?? []).map((provider) =>
-        typeof provider === 'object' &&
-        provider !== null &&
-        'provide' in provider
-          ? provider.provide
-          : provider,
-      );
+    const moduleConfig = await E2ETestModule.forRoot({
+      providers: [BrandGenerationService],
+    });
+    const providerTokens = (moduleConfig.providers ?? []).map((provider) =>
+      typeof provider === 'object' && provider !== null && 'provide' in provider
+        ? provider.provide
+        : provider,
+    );
 
-      expect(providerTokens).toEqual(expect.arrayContaining(expectedTokens));
-    }
+    expect(providerTokens).toEqual(expect.arrayContaining(expectedTokens));
   });
 });

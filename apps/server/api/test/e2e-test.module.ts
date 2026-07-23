@@ -488,6 +488,7 @@ export class E2ETestModule {
         }),
         PrismaService,
         ...guardProviders,
+        ...BRAND_SERVICE_E2E_MOCK_PROVIDERS,
         ...providers,
       ],
     };
@@ -500,7 +501,6 @@ export class E2ETestModule {
     return E2ETestModule.forRoot({
       controllers: [OrganizationsController],
       providers: [
-        ...BRAND_SERVICE_E2E_MOCK_PROVIDERS,
         OrganizationsService,
         BrandsService,
         MembersService,
@@ -523,7 +523,6 @@ export class E2ETestModule {
     return E2ETestModule.forRoot({
       controllers: [BrandsController],
       providers: [
-        ...BRAND_SERVICE_E2E_MOCK_PROVIDERS,
         BrandsService,
         OrganizationsService,
         MembersService,

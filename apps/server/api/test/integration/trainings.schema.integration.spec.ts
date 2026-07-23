@@ -1,5 +1,6 @@
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ConfigModule } from '@libs/config/config.module';
 import { Test, TestingModule } from '@nestjs/testing';
 
 // Allow skipping this file when the Prisma DB is not available
@@ -21,7 +22,7 @@ describe('Training Schema (integration)', () => {
 
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [PrismaModule],
+      imports: [ConfigModule, PrismaModule],
     }).compile();
 
     prisma = moduleRef.get<PrismaService>(PrismaService);

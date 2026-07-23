@@ -27,6 +27,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { IngredientStatus } from '@genfeedai/enums';
+import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { INestApplication } from '@nestjs/common';
@@ -134,7 +135,7 @@ describe('Social Media Publishing Integration Tests', () => {
 
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
-      imports: [PrismaModule],
+      imports: [ConfigModule, PrismaModule],
       providers: [
         {
           provide: TwitterService,
