@@ -22,8 +22,8 @@ export default function AgentSidebarContent({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col px-3 pb-2 pt-2">
-        <div className="group/collapsible flex w-full items-center p-1 text-foreground/30">
+      <div className="flex min-h-0 flex-1 flex-col pb-2 pt-2">
+        <div className="group/collapsible flex w-full items-center px-3 py-1 text-foreground/30">
           <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
             Conversations
           </span>
@@ -35,7 +35,7 @@ export default function AgentSidebarContent({
         <div className="pb-1 pt-1">
           <Button
             asChild
-            className="group flex h-8 w-full cursor-pointer items-center gap-3 rounded px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            className="group flex h-8 w-full cursor-pointer items-center gap-3 px-3 py-1.5 text-left text-foreground/72 transition-colors duration-150 hover:bg-foreground/[0.06] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
           >
