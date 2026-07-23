@@ -77,12 +77,20 @@ function buildHarness() {
           where,
         }: {
           data: Record<string, unknown>;
-          where: { clientId: string; id: string; usedAt: null };
+          where: {
+            clientId: string;
+            id: string;
+            organizationId: string;
+            usedAt: null;
+            userId: string;
+          };
         }) => {
           const record = Array.from(records.values()).find(
             (candidate) =>
               candidate.clientId === where.clientId &&
               candidate.id === where.id &&
+              candidate.organizationId === where.organizationId &&
+              candidate.userId === where.userId &&
               candidate.usedAt === where.usedAt,
           );
           if (!record) return { count: 0 };

@@ -178,7 +178,9 @@ export class OAuthAuthorizeService {
       where: {
         clientId: record.clientId,
         id: record.id,
+        organizationId: record.organizationId,
         usedAt: null,
+        userId: record.userId,
       },
     });
     if (consumeResult.count !== 1) {
