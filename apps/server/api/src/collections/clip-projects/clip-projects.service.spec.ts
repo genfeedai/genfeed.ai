@@ -344,46 +344,43 @@ describe('ClipProjectsService', () => {
       expectedMessage: 'is not available',
       referenceFrameStatus: 'unavailable',
     },
-  ])(
-    'rejects $candidateId without mutation when the candidate is invalid',
-    async ({
-      candidateId,
-      candidateStatus,
-      expectedMessage,
-      referenceFrameStatus,
-    }) => {
-      prisma.clipProject.findFirst.mockResolvedValue({
-        config: {
-          referenceFrames: {
-            candidates: [
-              {
-                diagnostics: [],
-                id: 'frame-1',
-                status: candidateStatus,
-                storageKey: 'organizations/org-1/clips/frame-1.jpg',
-                timestampSeconds: 12,
-              },
-            ],
-            diagnostics: [],
-            schemaVersion: 1,
-            selectedCandidateId: null,
-            status: referenceFrameStatus,
-          },
+  ])('rejects $candidateId without mutation when the candidate is invalid', async ({
+    candidateId,
+    candidateStatus,
+    expectedMessage,
+    referenceFrameStatus,
+  }) => {
+    prisma.clipProject.findFirst.mockResolvedValue({
+      config: {
+        referenceFrames: {
+          candidates: [
+            {
+              diagnostics: [],
+              id: 'frame-1',
+              status: candidateStatus,
+              storageKey: 'organizations/org-1/clips/frame-1.jpg',
+              timestampSeconds: 12,
+            },
+          ],
+          diagnostics: [],
+          schemaVersion: 1,
+          selectedCandidateId: null,
+          status: referenceFrameStatus,
         },
-        id: 'project-1',
-        organizationId: 'org-1',
-        progress: 100,
-        readiness: {},
-        status: 'analyzed',
-      });
+      },
+      id: 'project-1',
+      organizationId: 'org-1',
+      progress: 100,
+      readiness: {},
+      status: 'analyzed',
+    });
 
-      await expect(
-        service.selectReferenceFrame('project-1', 'org-1', candidateId),
-      ).rejects.toThrow(expectedMessage);
+    await expect(
+      service.selectReferenceFrame('project-1', 'org-1', candidateId),
+    ).rejects.toThrow(expectedMessage);
 
-      expect(prisma.clipProject.update).not.toHaveBeenCalled();
-    },
-  );
+    expect(prisma.clipProject.update).not.toHaveBeenCalled();
+  });
 
   it('rejects projects outside the organization scope without mutation', async () => {
     prisma.clipProject.findFirst.mockResolvedValue(null);

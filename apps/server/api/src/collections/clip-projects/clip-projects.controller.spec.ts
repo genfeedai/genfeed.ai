@@ -374,26 +374,27 @@ describe('ClipProjectsController', () => {
       expect(messages).toContain('Must be a valid YouTube URL');
     });
 
-    it.each(['did', 'tavus', 'musetalk'] as const)(
-      'should reject unsupported avatar provider %s',
-      (avatarProvider) => {
-        const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
-          avatarId: 'avatar-1',
-          avatarProvider,
-          voiceId: 'voice-1',
-          youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
-        });
+    it.each([
+      'did',
+      'tavus',
+      'musetalk',
+    ] as const)('should reject unsupported avatar provider %s', (avatarProvider) => {
+      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
+        avatarId: 'avatar-1',
+        avatarProvider,
+        voiceId: 'voice-1',
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      });
 
-        const errors = validateSync(dto);
-        const messages = errors.flatMap((error) =>
-          Object.values(error.constraints ?? {}),
-        );
+      const errors = validateSync(dto);
+      const messages = errors.flatMap((error) =>
+        Object.values(error.constraints ?? {}),
+      );
 
-        expect(messages).toContain(
-          'avatarProvider must be one of the following values: heygen',
-        );
-      },
-    );
+      expect(messages).toContain(
+        'avatarProvider must be one of the following values: heygen',
+      );
+    });
   });
 
   describe('GenerateClipsDto validation', () => {
@@ -468,27 +469,28 @@ describe('ClipProjectsController', () => {
       );
     });
 
-    it.each(['did', 'tavus', 'musetalk'] as const)(
-      'should reject unsupported avatar provider %s',
-      (avatarProvider) => {
-        const dto = plainToInstance(GenerateClipsDto, {
-          avatarId: 'avatar-1',
-          avatarProvider,
-          editedHighlights,
-          selectedHighlightIds: ['highlight-1'],
-          voiceId: 'voice-1',
-        });
+    it.each([
+      'did',
+      'tavus',
+      'musetalk',
+    ] as const)('should reject unsupported avatar provider %s', (avatarProvider) => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        avatarId: 'avatar-1',
+        avatarProvider,
+        editedHighlights,
+        selectedHighlightIds: ['highlight-1'],
+        voiceId: 'voice-1',
+      });
 
-        const errors = validateSync(dto);
-        const messages = errors.flatMap((error) =>
-          Object.values(error.constraints ?? {}),
-        );
+      const errors = validateSync(dto);
+      const messages = errors.flatMap((error) =>
+        Object.values(error.constraints ?? {}),
+      );
 
-        expect(messages).toContain(
-          'avatarProvider must be one of the following values: heygen',
-        );
-      },
-    );
+      expect(messages).toContain(
+        'avatarProvider must be one of the following values: heygen',
+      );
+    });
   });
 
   it('should persist edited highlights and keep the project generating while jobs are queued', async () => {
