@@ -75,7 +75,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentThreadingModule),
     forwardRef(() => AgentRunsModule),
     forwardRef(() => AiActionsModule),
-    forwardRef(() => AdsResearchModule),
+    AdsResearchModule,
     forwardRef(() => AgentStreamPublisherModule),
     forwardRef(() => AnalyticsModule),
     forwardRef(() => BatchGenerationModule),
