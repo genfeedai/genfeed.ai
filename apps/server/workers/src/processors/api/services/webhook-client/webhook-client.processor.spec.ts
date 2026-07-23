@@ -1,4 +1,5 @@
 import { WebhookClientProcessor } from '@workers/processors/api/services/webhook-client/webhook-client.processor';
+import { UnrecoverableError } from 'bullmq';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -50,7 +51,9 @@ describe('WebhookClientProcessor', () => {
       updateProgress: vi.fn(),
     };
 
-    await expect(processor.process(job as never)).rejects.toThrow(
+    const delivery = processor.process(job as never);
+    await expect(delivery).rejects.toBeInstanceOf(UnrecoverableError);
+    await expect(delivery).rejects.toThrow(
       'Webhook endpoint cannot target private or reserved IPs',
     );
 
@@ -152,6 +155,50 @@ describe('WebhookClientProcessor', () => {
     );
     expect(JSON.stringify(logger.error.mock.calls)).not.toContain(
       'raw-provider-key',
+    );
+  });
+
+  it('records 4xx responses as rejected without triggering a retry', async () => {
+    httpService.post.mockReturnValueOnce(of({ status: 422 }));
+    const job = {
+      attemptsMade: 0,
+      data: {
+        endpoint: 'https://8.8.8.8/webhook',
+        organizationId: 'org-1',
+        payload: {
+          event: 'target.failed',
+          eventId: 'publish:target.failed:release-1:target-1:failed',
+          timestamp: '2026-05-17T10:00:00.000Z',
+        },
+        secret: 'secret',
+      },
+      id: 'publish-webhook-rejected',
+      opts: { attempts: 5 },
+      updateProgress: vi.fn(),
+    };
+
+    await expect(processor.process(job as never)).resolves.toBeUndefined();
+
+    expect(
+      organizationSettingsService.recordWebhookDeliveryStatus,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({
+        attempt: 1,
+        deliveryId: 'publish-webhook-rejected',
+        event: 'target.failed',
+        status: 'rejected',
+        statusCode: 422,
+      }),
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('webhook rejected by endpoint'),
+      expect.objectContaining({
+        jobId: 'publish-webhook-rejected',
+        organizationId: 'org-1',
+        statusCode: 422,
+      }),
     );
   });
 
@@ -258,6 +305,41 @@ describe('WebhookClientProcessor', () => {
     );
     expect(JSON.stringify(logger.error.mock.calls)).not.toContain(
       'raw-access-token',
+    );
+  });
+
+  it('redacts status persistence diagnostics', async () => {
+    organizationSettingsService.recordWebhookDeliveryStatus.mockRejectedValueOnce(
+      new Error('write failed session_token=raw-session-token'),
+    );
+    const job = {
+      attemptsMade: 0,
+      data: {
+        endpoint: 'https://8.8.8.8/webhook',
+        organizationId: 'org-1',
+        payload: {
+          event: 'target.published',
+          timestamp: '2026-05-17T10:00:00.000Z',
+        },
+        secret: 'secret',
+      },
+      id: 'publish-webhook-status-log',
+      opts: { attempts: 5 },
+      updateProgress: vi.fn(),
+    };
+
+    await processor.process(job as never);
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('failed to record status'),
+      expect.objectContaining({
+        deliveryId: 'publish-webhook-status-log',
+        error: 'write failed session_token=[REDACTED]',
+        organizationId: 'org-1',
+      }),
+    );
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+      'raw-session-token',
     );
   });
 });

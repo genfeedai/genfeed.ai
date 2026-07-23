@@ -290,8 +290,9 @@ export function classifyPublishWebhookError(
 export function redactPublishWebhookText(value: string): string {
   return value
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
+    .replace(/\bBasic\s+[A-Za-z0-9+/=]+/gi, 'Basic [REDACTED]')
     .replace(
-      /\b(access[_-]?token|refresh[_-]?token|oauth[_-]?token|api[_-]?key|client[_-]?secret|webhook[_-]?secret|password|secret)(\s*[:=]\s*)([^\s,;]+)/gi,
+      /\b(access[_-]?token|refresh[_-]?token|oauth[_-]?token|session[_-]?token|id[_-]?token|api[_-]?key|client[_-]?secret|webhook[_-]?secret|password|signature|secret|token)(\s*[:=]\s*)([^\s,;]+)/gi,
       '$1$2[REDACTED]',
     );
 }

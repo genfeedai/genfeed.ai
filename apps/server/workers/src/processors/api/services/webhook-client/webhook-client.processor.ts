@@ -10,7 +10,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 
 @Processor(WEBHOOK_CLIENT_QUEUE)
@@ -41,7 +41,15 @@ export class WebhookClientProcessor extends WorkerHost {
     });
 
     try {
-      await assertSafeWebhookEndpoint(endpoint);
+      try {
+        await assertSafeWebhookEndpoint(endpoint);
+      } catch (error: unknown) {
+        throw new UnrecoverableError(
+          redactPublishWebhookText(
+            readErrorMessage(error) || 'Webhook endpoint is invalid',
+          ),
+        );
+      }
       await job.updateProgress(10);
 
       const payloadString = JSON.stringify(payload);
@@ -130,9 +138,11 @@ export class WebhookClientProcessor extends WorkerHost {
         organizationId,
       });
 
-      // Re-throw a sanitized error so BullMQ retries without persisting
-      // credential material in the job's failedReason or stack.
-      throw new Error(errorMessage);
+      // Re-throw a sanitized error with the original retry class so BullMQ
+      // never persists credential material in the job's failedReason or stack.
+      throw error instanceof UnrecoverableError
+        ? new UnrecoverableError(errorMessage)
+        : new Error(errorMessage);
     }
   }
 
@@ -148,7 +158,9 @@ export class WebhookClientProcessor extends WorkerHost {
     } catch (error: unknown) {
       this.logger.warn(`${this.constructorName} failed to record status`, {
         deliveryId: status.deliveryId,
-        error: (error as Error)?.message,
+        error: redactPublishWebhookText(
+          readErrorMessage(error) || 'Failed to record webhook delivery status',
+        ),
         organizationId,
       });
     }
