@@ -91,9 +91,7 @@ export class YtDlpService {
         proc.kill('SIGKILL');
         this.cleanupPartialOutput(outputPath);
         reject(
-          new Error(
-            `yt-dlp timed out after ${YT_DLP_PROCESS_TIMEOUT_MS}ms`,
-          ),
+          new Error(`yt-dlp timed out after ${YT_DLP_PROCESS_TIMEOUT_MS}ms`),
         );
       }, YT_DLP_PROCESS_TIMEOUT_MS);
 
