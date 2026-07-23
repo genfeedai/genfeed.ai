@@ -181,10 +181,10 @@ describe('publish webhook helpers', () => {
   test('redacts secret-like text from error messages', () => {
     expect(
       redactPublishWebhookText(
-        'Provider failed with access_token=abc123 and Bearer xyz987',
+        'Provider failed with access_token=abc123, oauth_token=oauth987, and Bearer xyz987',
       ),
     ).toBe(
-      'Provider failed with access_token=[REDACTED] and Bearer [REDACTED]',
+      'Provider failed with access_token=[REDACTED], oauth_token=[REDACTED], and Bearer [REDACTED]',
     );
   });
 });

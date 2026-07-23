@@ -1,6 +1,7 @@
 import * as crypto from 'node:crypto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { assertSafeWebhookEndpoint } from '@api/services/webhook-client/webhook-endpoint.validator';
+import { redactPublishWebhookText } from '@api-types/contracts/publish-webhook-events.contract';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import {
   WEBHOOK_CLIENT_QUEUE,
@@ -95,7 +96,6 @@ export class WebhookClientProcessor extends WorkerHost {
         this.logger.warn(
           `${this.constructorName} webhook rejected by endpoint`,
           {
-            endpoint,
             jobId: job.id,
             organizationId,
             statusCode: response.status,
@@ -103,11 +103,16 @@ export class WebhookClientProcessor extends WorkerHost {
         );
       }
     } catch (error: unknown) {
+      const errorMessage = redactPublishWebhookText(
+        readErrorMessage(error) || 'Webhook delivery failed',
+      );
+      const errorCode = readErrorCode(error);
+
       await this.recordDeliveryStatus(organizationId, {
         attempt,
         attemptedAt: new Date().toISOString(),
         deliveryId,
-        error: (error as Error)?.message || 'Webhook delivery failed',
+        error: errorMessage,
         event: payload.event,
         isTest: Boolean(isTest),
         status: 'failed',
@@ -116,9 +121,8 @@ export class WebhookClientProcessor extends WorkerHost {
 
       this.logger.error(`${this.constructorName} webhook delivery failed`, {
         attempt,
-        // @ts-expect-error TS2339
-        code: (error as Error)?.code,
-        error: (error as Error)?.message,
+        code: errorCode ? redactPublishWebhookText(errorCode) : undefined,
+        error: errorMessage,
         event: payload.event,
         ingredientId,
         jobId: job.id,
@@ -126,8 +130,9 @@ export class WebhookClientProcessor extends WorkerHost {
         organizationId,
       });
 
-      // Re-throw to trigger retry
-      throw error;
+      // Re-throw a sanitized error so BullMQ retries without persisting
+      // credential material in the job's failedReason or stack.
+      throw new Error(errorMessage);
     }
   }
 
@@ -154,4 +159,14 @@ function readHttpStatusCode(error: unknown): number | undefined {
   const status = (error as { response?: { status?: unknown } })?.response
     ?.status;
   return typeof status === 'number' ? status : undefined;
+}
+
+function readErrorMessage(error: unknown): string | undefined {
+  const message = (error as { message?: unknown })?.message;
+  return typeof message === 'string' ? message : undefined;
+}
+
+function readErrorCode(error: unknown): string | undefined {
+  const code = (error as { code?: unknown })?.code;
+  return typeof code === 'string' ? code : undefined;
 }

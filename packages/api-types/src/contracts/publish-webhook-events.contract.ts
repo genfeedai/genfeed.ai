@@ -291,7 +291,7 @@ export function redactPublishWebhookText(value: string): string {
   return value
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [REDACTED]')
     .replace(
-      /\b(access[_-]?token|refresh[_-]?token|api[_-]?key|client[_-]?secret|webhook[_-]?secret|password|secret)(\s*[:=]\s*)([^\s,;]+)/gi,
+      /\b(access[_-]?token|refresh[_-]?token|oauth[_-]?token|api[_-]?key|client[_-]?secret|webhook[_-]?secret|password|secret)(\s*[:=]\s*)([^\s,;]+)/gi,
       '$1$2[REDACTED]',
     );
 }
