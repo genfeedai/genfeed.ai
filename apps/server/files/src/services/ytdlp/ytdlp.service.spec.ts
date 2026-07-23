@@ -121,16 +121,20 @@ describe('YtDlpService', () => {
 
       const result = await promise;
 
-      expect(spawnMock).toHaveBeenCalledWith('yt-dlp', [
-        '-x',
-        '--audio-format',
-        'mp3',
-        '-o',
-        expect.stringContaining('public/tmp/clips/'),
-        url,
-      ], {
-        detached: process.platform !== 'win32',
-      });
+      expect(spawnMock).toHaveBeenCalledWith(
+        'yt-dlp',
+        [
+          '-x',
+          '--audio-format',
+          'mp3',
+          '-o',
+          expect.stringContaining('public/tmp/clips/'),
+          url,
+        ],
+        {
+          detached: process.platform !== 'win32',
+        },
+      );
       expect(result).toMatch(/\.mp3$/);
       expect(loggerMock.log).toHaveBeenCalledWith(
         expect.stringContaining('yt-dlp'),
@@ -256,22 +260,26 @@ describe('YtDlpService', () => {
       closeProcess(mockProcess, 0);
 
       await expect(promise).resolves.toBe(outputPath);
-      expect(spawnMock).toHaveBeenCalledWith('yt-dlp', [
-        '--no-playlist',
-        '--socket-timeout',
-        '30',
-        '--max-filesize',
-        '500M',
-        '-f',
-        'bestvideo[height<=720]+bestaudio/best[height<=720]',
-        '--merge-output-format',
-        'mp4',
-        '-o',
-        outputPath,
-        url,
-      ], {
-        detached: process.platform !== 'win32',
-      });
+      expect(spawnMock).toHaveBeenCalledWith(
+        'yt-dlp',
+        [
+          '--no-playlist',
+          '--socket-timeout',
+          '30',
+          '--max-filesize',
+          '500M',
+          '-f',
+          'bestvideo[height<=720]+bestaudio/best[height<=720]',
+          '--merge-output-format',
+          'mp4',
+          '-o',
+          outputPath,
+          url,
+        ],
+        {
+          detached: process.platform !== 'win32',
+        },
+      );
     });
 
     it('kills a timed-out process and removes partial output after close', async () => {
@@ -316,9 +324,7 @@ describe('YtDlpService', () => {
       );
       closeProcess(mockProcess, 0);
 
-      await expect(promise).rejects.toThrow(
-        'without creating an output file',
-      );
+      await expect(promise).rejects.toThrow('without creating an output file');
     });
   });
 
@@ -334,18 +340,22 @@ describe('YtDlpService', () => {
       closeProcess(mockProcess, 0);
 
       await expect(promise).resolves.toBe(outputPath);
-      expect(spawnMock).toHaveBeenCalledWith('yt-dlp', [
-        '-x',
-        '--audio-format',
-        'mp3',
-        '--audio-quality',
-        '9',
-        '-o',
-        outputPath,
-        url,
-      ], {
-        detached: process.platform !== 'win32',
-      });
+      expect(spawnMock).toHaveBeenCalledWith(
+        'yt-dlp',
+        [
+          '-x',
+          '--audio-format',
+          'mp3',
+          '--audio-quality',
+          '9',
+          '-o',
+          outputPath,
+          url,
+        ],
+        {
+          detached: process.platform !== 'win32',
+        },
+      );
     });
   });
 });
