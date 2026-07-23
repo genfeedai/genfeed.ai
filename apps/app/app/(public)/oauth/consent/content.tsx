@@ -1,7 +1,9 @@
 'use client';
 
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants/api-key-presets.constant';
-import { API_KEY_SCOPE_OPTIONS } from '@genfeedai/constants/api-key-scope-labels.constant';
+import {
+  API_KEY_SCOPE_OPTIONS,
+  API_KEY_SCOPE_PRESETS,
+} from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';

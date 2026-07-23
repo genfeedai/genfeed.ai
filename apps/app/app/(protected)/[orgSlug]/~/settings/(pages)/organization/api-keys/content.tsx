@@ -5,8 +5,10 @@ import {
   isDesktopClient,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
-import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants/api-key-presets.constant';
-import { API_KEY_SCOPE_OPTIONS } from '@genfeedai/constants/api-key-scope-labels.constant';
+import {
+  API_KEY_SCOPE_OPTIONS,
+  API_KEY_SCOPE_PRESETS,
+} from '@genfeedai/constants';
 import type { ButtonVariant } from '@genfeedai/enums';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';

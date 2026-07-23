@@ -85,7 +85,7 @@ describe('ClientService (MCP)', () => {
   });
 
   describe('setBearerToken', () => {
-    it('should update bearer token', () => {
+    it('should update the bearer token without replacing the service proof', () => {
       const newToken = 'new-test-token';
       service.setBearerToken(newToken);
       expect(mockAxiosInstance.defaults?.headers.Authorization).toBe(
@@ -93,10 +93,10 @@ describe('ClientService (MCP)', () => {
       );
       expect(
         mockAxiosInstance.defaults?.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
-      ).toBe(createHash('sha256').update(newToken).digest('base64url'));
+      ).toBe(createHash('sha256').update('test-api-key').digest('base64url'));
     });
 
-    it('should remove the action-origin proof when clearing the token', () => {
+    it('should retain the service proof when clearing the caller token', () => {
       const headers = mockAxiosInstance.defaults?.headers;
       if (!headers) {
         throw new Error('Expected Axios default headers');
@@ -108,7 +108,7 @@ describe('ClientService (MCP)', () => {
       expect(mockAxiosInstance.defaults?.headers.Authorization).toBeUndefined();
       expect(
         mockAxiosInstance.defaults?.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
-      ).toBeUndefined();
+      ).toBe(createHash('sha256').update('test-api-key').digest('base64url'));
     });
   });
 
