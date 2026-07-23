@@ -353,7 +353,7 @@ describe('BrandSettingsPublishingPage', () => {
       screen.queryByText('must-not-render-or-copy'),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText('Publishing permission is missing. token=[REDACTED]'),
+      screen.getByText(/Publishing permission is missing\. token=\[REDACTED\]/),
     ).toBeVisible();
 
     fireEvent.click(screen.getAllByText('Copy diagnostics')[1]);
