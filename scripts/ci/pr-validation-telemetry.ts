@@ -1520,8 +1520,10 @@ async function collectWorkflowRunAttempts(
     { length: run.run_attempt - 1 },
     (_, index) => index + 1,
   );
-  const results: Array<{ error: string | null; run: GitHubWorkflowRun | null }> =
-    [];
+  const results: Array<{
+    error: string | null;
+    run: GitHubWorkflowRun | null;
+  }> = [];
   // The caller owns the global request concurrency. Keep attempts within each
   // run sequential so nested fan-out cannot multiply that limit.
   for (const attempt of priorAttempts) {
