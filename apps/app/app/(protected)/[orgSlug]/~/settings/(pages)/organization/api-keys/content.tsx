@@ -6,6 +6,7 @@ import {
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants/api-key-presets.constant';
+import { API_KEY_SCOPE_OPTIONS } from '@genfeedai/constants/api-key-scope-labels.constant';
 import type { ButtonVariant } from '@genfeedai/enums';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
@@ -81,29 +82,6 @@ type ProductApiKeyScope =
   (typeof API_KEY_SCOPE_PRESETS)[keyof typeof API_KEY_SCOPE_PRESETS][number];
 
 const SECONDARY_BUTTON_VARIANT = 'secondary' as ButtonVariant;
-
-const API_KEY_SCOPE_OPTIONS = [
-  {
-    label: 'Videos',
-    scopes: ['videos:read', 'videos:create'],
-  },
-  {
-    label: 'Images',
-    scopes: ['images:read', 'images:create'],
-  },
-  {
-    label: 'Prompts',
-    scopes: ['prompts:read', 'prompts:create'],
-  },
-  {
-    label: 'Articles',
-    scopes: ['articles:read', 'articles:create'],
-  },
-  { label: 'Posts', scopes: ['posts:create'] },
-  { label: 'Brands', scopes: ['brands:read'] },
-  { label: 'Credits', scopes: ['credits:read'] },
-  { label: 'Analytics', scopes: ['analytics:read'] },
-] as const;
 
 const PRODUCT_API_KEY_PRESETS = [
   { label: 'MCP', scopes: API_KEY_SCOPE_PRESETS.mcp },

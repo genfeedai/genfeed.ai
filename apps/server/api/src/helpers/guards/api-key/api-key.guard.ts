@@ -1,4 +1,5 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
 import {
   CanActivate,
   ExecutionContext,
@@ -39,6 +40,17 @@ export class ApiKeyAuthGuard implements CanActivate {
     const apiKey = await this.apiKeysService.findByKey(key);
     if (!apiKey) {
       throw new UnauthorizedException('Invalid or expired API key');
+    }
+
+    if (
+      this.apiKeysService.isMcpOAuthSession(apiKey) &&
+      !this.apiKeysService.hasTrustedMcpOriginProof(
+        request.headers[MCP_ACTION_ORIGIN_PROOF_HEADER],
+      )
+    ) {
+      throw new UnauthorizedException(
+        'MCP OAuth tokens are restricted to the MCP resource',
+      );
     }
 
     // Check IP restriction

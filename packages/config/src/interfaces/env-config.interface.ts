@@ -14,9 +14,11 @@ export interface IEnvConfig {
   GENFEED_CLOUD?: string;
 
   // === Genfeed Internal URLs ===
+  GENFEEDAI_API_PUBLIC_URL?: string;
   GENFEEDAI_API_URL?: string;
   GENFEEDAI_CDN_URL?: string;
   GENFEEDAI_APP_URL?: string;
+  GENFEEDAI_MCP_PUBLIC_URL?: string;
   GENFEEDAI_PUBLIC_URL?: string;
   GENFEEDAI_WEBHOOKS_URL?: string;
 

@@ -1,5 +1,6 @@
 import process from 'node:process';
 
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants/api-key-presets.constant';
 import {
   staticSurfaceClassNames,
   staticSurfaceCss,
@@ -8,6 +9,7 @@ import {
 import { SATOSHI_VARIABLE_WOFF2_BASE64 } from './satoshi-font';
 
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
+const DEFAULT_API_URL = 'https://api.genfeed.ai';
 const DEFAULT_DOCS_URL = 'https://docs.genfeed.ai';
 const DEFAULT_MCP_URL = 'https://mcp.genfeed.ai/mcp';
 const CONNECT_GENFEED_PATH = '/connect';
@@ -46,6 +48,16 @@ function readPublicUrl(name: string, fallback: string): string {
   return trimTrailingSlash(raw);
 }
 
+function readFirstPublicUrl(names: string[], fallback: string): string {
+  for (const name of names) {
+    const value = readEnv(name);
+    if (value) {
+      return readPublicUrl(name, fallback);
+    }
+  }
+  return trimTrailingSlash(fallback);
+}
+
 function buildAgentSetupPrompt(params: {
   apiKeysUrl: string;
   mcpUrl: string;
@@ -76,7 +88,38 @@ bearer_token_env_var = "GENFEED_API_KEY"
 }
 
 export function getPublicMcpUrl(): string {
-  return readPublicUrl('GENFEED_MCP_RESOURCE_URL', DEFAULT_MCP_URL);
+  return readFirstPublicUrl(
+    ['GENFEEDAI_MCP_PUBLIC_URL', 'GENFEED_MCP_RESOURCE_URL'],
+    DEFAULT_MCP_URL,
+  );
+}
+
+export function getOAuthIssuerUrl(): string {
+  return readFirstPublicUrl(
+    ['GENFEEDAI_API_PUBLIC_URL', 'GENFEEDAI_API_URL'],
+    DEFAULT_API_URL,
+  );
+}
+
+export function getPublicMcpResourceMetadataUrl(): string {
+  return new URL(
+    '/.well-known/oauth-protected-resource',
+    getPublicMcpUrl(),
+  ).toString();
+}
+
+export function getMcpWwwAuthenticateHeader(): string {
+  return `Bearer resource_metadata="${getPublicMcpResourceMetadataUrl()}", scope="${API_KEY_SCOPE_PRESETS.mcp.join(' ')}"`;
+}
+
+export function getMcpProtectedResourceMetadata() {
+  return {
+    authorization_servers: [getOAuthIssuerUrl()],
+    bearer_methods_supported: ['header'],
+    resource: getPublicMcpUrl(),
+    resource_name: 'Genfeed MCP',
+    scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
+  };
 }
 
 export function getPublicDocsUrl(): string {
@@ -94,11 +137,13 @@ export function renderSetupPage(): string {
   const docsUrl = getPublicDocsUrl();
   const connectUrl = `${appUrl}${CONNECT_GENFEED_PATH}`;
   const docsGuideUrl = `${docsUrl}${DOCS_GUIDE_PATH}`;
+  const oauthDocsUrl = `${docsGuideUrl}#connect-via-oauth`;
 
   const mcpUrlSafe = escapeHtml(mcpUrl);
   const connectUrlSafe = escapeHtml(connectUrl);
   const docsUrlSafe = escapeHtml(docsUrl);
   const docsGuideUrlSafe = escapeHtml(docsGuideUrl);
+  const oauthDocsUrlSafe = escapeHtml(oauthDocsUrl);
   const claudeCommandSafe = escapeHtml(
     `claude mcp add --transport http genfeed --scope user ${mcpUrl} --header "Authorization: Bearer $GENFEED_API_KEY"`,
   );
@@ -607,9 +652,10 @@ pre.command {
     <div>
       <p class="eyebrow">&lt; MCP server &gt;</p>
       <h1>Genfeed MCP.<em>Claude + Codex.</em></h1>
-      <p class="lede">Connect AI clients to Genfeed content, workflows, publishing, analytics, and ads with an API key.</p>
+      <p class="lede">Connect AI clients to Genfeed content, workflows, publishing, analytics, and ads with OAuth or an API key.</p>
       <div class="hero-actions">
         <a class="${ui.buttonPrimary}" href="${connectUrlSafe}" rel="noopener noreferrer">Start guided setup</a>
+        <a class="${ui.buttonSecondary}" href="${oauthDocsUrlSafe}" rel="noopener noreferrer">Connect automatically via OAuth</a>
         <a class="${ui.buttonSecondary}" href="${docsGuideUrlSafe}" rel="noopener noreferrer">Read MCP docs</a>
       </div>
     </div>

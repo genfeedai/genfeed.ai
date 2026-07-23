@@ -475,6 +475,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/tools": "workspace:*",

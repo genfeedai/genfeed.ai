@@ -58,6 +58,7 @@ export class ActionOriginInterceptor implements NestInterceptor {
     if (metadata?.isApiKey === true) {
       const storedOrigin = normalizeActionOrigin(metadata.actionOrigin);
       return storedOrigin === ActionOrigin.CLI ||
+        storedOrigin === ActionOrigin.MCP ||
         storedOrigin === ActionOrigin.UI
         ? storedOrigin
         : ActionOrigin.API;

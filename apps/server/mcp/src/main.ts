@@ -12,7 +12,12 @@ import { getGenfeedCorsOptions } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
-import { getPublicMcpUrl, renderSetupPage } from '@mcp/mcp/setup-page';
+import {
+  getMcpProtectedResourceMetadata,
+  getMcpWwwAuthenticateHeader,
+  getPublicMcpUrl,
+  renderSetupPage,
+} from '@mcp/mcp/setup-page';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import {
   applyRateLimitHeaders,
@@ -46,6 +51,7 @@ const MCP_CORS_EXPOSED_HEADERS = [
   'Mcp-Protocol-Version',
   'Mcp-Session-Id',
   'Retry-After',
+  'WWW-Authenticate',
   'X-RateLimit-Limit',
   'X-RateLimit-Remaining',
   'X-RateLimit-Reset',
@@ -108,7 +114,7 @@ async function main(): Promise<void> {
     }
 
     if (!token) {
-      res.setHeader('WWW-Authenticate', 'Bearer');
+      res.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
       res.status(401).json({
         error: {
           code: -32001,
@@ -123,7 +129,7 @@ async function main(): Promise<void> {
     const authResult = await authService.authenticateRequest(token);
 
     if (!authResult.valid) {
-      res.setHeader('WWW-Authenticate', 'Bearer');
+      res.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
       res.status(401).json({
         error: {
           code: -32001,
@@ -144,6 +150,16 @@ async function main(): Promise<void> {
 
     next();
   };
+
+  expressApp.get(
+    '/.well-known/oauth-protected-resource',
+    (_req: Request, res: Response) => {
+      res
+        .set('Cache-Control', 'public, max-age=300')
+        .status(200)
+        .json(getMcpProtectedResourceMetadata());
+    },
+  );
 
   expressApp.post('/mcp', mcpAuthMiddleware, (req: Request, res: Response) => {
     streamableHttpService.handlePost(req, res).catch((err) => {

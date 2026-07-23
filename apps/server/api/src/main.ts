@@ -28,6 +28,7 @@ import {
 } from '@api/helpers/utils/openapi/openapi-document.util';
 import { maybeEmitOpenApiDocument } from '@api/helpers/utils/openapi/openapi-emit.util';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
+import { buildOAuthAuthorizationServerMetadata } from '@api/oauth/oauth-metadata.util';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
@@ -345,6 +346,16 @@ async function main() {
     expressApp.get('/robots.txt', (_req: Request, res: Response) => {
       res.type('text/plain').send('User-agent: *\nDisallow: /\n');
     });
+
+    expressApp.get(
+      '/.well-known/oauth-authorization-server',
+      (_req: Request, res: Response) => {
+        res
+          .set('Cache-Control', 'public, max-age=300')
+          .status(200)
+          .json(buildOAuthAuthorizationServerMetadata(configService));
+      },
+    );
 
     const bullBoardAuth = (req: Request, res: Response, next: NextFunction) => {
       const authHeader = req.headers.authorization;

@@ -1411,6 +1411,50 @@ model DesktopAuthCode {
   @@map("desktop_auth_codes")
 }
 
+model OAuthClient {
+  id                      String   @id @default(cuid())
+  clientId                String   @unique
+  clientName              String?
+  redirectUris            String[]
+  grantTypes              String[] @default(["authorization_code"])
+  responseTypes           String[] @default(["code"])
+  tokenEndpointAuthMethod String   @default("none")
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  authCodes McpOAuthAuthCode[]
+
+  @@index([createdAt])
+  @@map("oauth_clients")
+}
+
+model McpOAuthAuthCode {
+  id                  String    @id @default(cuid())
+  codeHash            String    @unique
+  codeChallenge       String
+  codeChallengeMethod String    @default("S256")
+  stateHash           String
+  clientId            String
+  redirectUri         String
+  resource            String
+  scopes              String[]  @default([])
+  userId              String
+  organizationId      String
+  userEmail           String?
+  userName            String?
+  expiresAt           DateTime
+  usedAt              DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  client OAuthClient @relation(fields: [clientId], references: [clientId])
+
+  @@index([expiresAt])
+  @@index([userId, organizationId])
+  @@index([clientId])
+  @@map("mcp_oauth_auth_codes")
+}
+
 model OrgIntegration {
   id               String              @id @default(cuid())
   mongoId          String?             @unique

@@ -45,7 +45,9 @@ describe('ApiKeyAuthGuard', () => {
       checkRateLimit: vi.fn(),
       findByKey: vi.fn(),
       hasScope: vi.fn(),
+      hasTrustedMcpOriginProof: vi.fn().mockReturnValue(true),
       isIpAllowed: vi.fn(),
+      isMcpOAuthSession: vi.fn().mockReturnValue(false),
       resolveActionOrigin: vi.fn().mockReturnValue(ActionOrigin.API),
       updateLastUsed: vi.fn(),
     };
@@ -130,6 +132,20 @@ describe('ApiKeyAuthGuard', () => {
       await expect(guard.canActivate(mockContext)).rejects.toThrow(
         new UnauthorizedException('IP address not allowed'),
       );
+    });
+
+    it('rejects an MCP OAuth token replayed directly against the API', async () => {
+      mockContext = createMockExecutionContext({ request });
+      vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
+      vi.spyOn(apiKeysService, 'isMcpOAuthSession').mockReturnValue(true);
+      vi.spyOn(apiKeysService, 'hasTrustedMcpOriginProof').mockReturnValue(
+        false,
+      );
+
+      await expect(guard.canActivate(mockContext)).rejects.toThrow(
+        'MCP OAuth tokens are restricted to the MCP resource',
+      );
+      expect(apiKeysService.isIpAllowed).not.toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException for rate limit exceeded', async () => {
