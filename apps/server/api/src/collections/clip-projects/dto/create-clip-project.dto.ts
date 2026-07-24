@@ -1,4 +1,5 @@
 import { ClipProjectStatus } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { OrganizationalCreateDto } from '@api/shared/dto/base/base.dto';
 import {
   CLIP_RESULT_MODES,
@@ -95,6 +96,14 @@ export class ClipProjectSettingsDto {
 }
 
 export class CreateClipProjectDto extends OrganizationalCreateDto {
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Brand context for clip identity and downstream ownership',
+    required: false,
+  })
+  readonly brandId?: string;
+
   @IsOptional()
   @IsString()
   @ApiProperty({

@@ -3,14 +3,13 @@ import { ClipProjectsService } from '@api/collections/clip-projects/clip-project
 import { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
 import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
-import {
-  type GenerateClipHighlightDto,
-  GenerateClipsDto,
-} from '@api/collections/clip-projects/dto/generate-clips.dto';
+import { GenerateClipsDto } from '@api/collections/clip-projects/dto/generate-clips.dto';
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
-import { type ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
+import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -34,6 +33,7 @@ import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.q
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type {
+  AgentClipRunIdentity,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
@@ -42,7 +42,6 @@ import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
 import { ClipProjectSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -72,6 +71,8 @@ export class ClipProjectsController {
     private readonly clipFactoryQueueService: ClipFactoryQueueService,
     private readonly clipAnalyzeQueueService: ClipAnalyzeQueueService,
     private readonly clipGenerationService: ClipGenerationService,
+    private readonly clipGenerationRequestService: ClipGenerationRequestService,
+    private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
     private readonly highlightRewriteService: HighlightRewriteService,
     private readonly creditsUtilsService: CreditsUtilsService,
   ) {}
@@ -90,6 +91,7 @@ export class ClipProjectsController {
   ): Promise<{
     batchJobId: string;
     estimatedClips: number;
+    identity?: AgentClipRunIdentity;
     projectId: string;
     status: string;
   }> {
@@ -98,6 +100,19 @@ export class ClipProjectsController {
     const userId = publicMetadata.user;
     const estimatedClips = dto.maxClips ?? 10;
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
+    const resolvedIdentity =
+      mode === 'avatar' || dto.brandId
+        ? await this.clipIdentityResolutionService.resolve({
+            avatarId: dto.avatarId,
+            avatarProvider: dto.avatarProvider,
+            brandId: dto.brandId,
+            organizationId: orgId,
+            voiceId: dto.voiceId,
+          })
+        : undefined;
+    const identity = mode === 'avatar' ? resolvedIdentity : undefined;
+
+    this.clipGenerationRequestService.assertCompleteAvatarIdentity(identity);
 
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
@@ -113,6 +128,7 @@ export class ClipProjectsController {
 
     // Create the ClipProject record
     const project: ClipProjectDocument = await this.clipProjectsService.create({
+      brandId: dto.brandId,
       language: dto.language ?? 'en',
       name:
         dto.name ??
@@ -135,7 +151,7 @@ export class ClipProjectsController {
 
     // Enqueue the async pipeline
     const batchJobId = await this.clipFactoryQueueService.enqueue({
-      avatarId: dto.avatarId,
+      avatarId: identity?.avatarId,
       avatarProvider: dto.avatarProvider ?? 'heygen',
       language: dto.language ?? 'en',
       maxClips: estimatedClips,
@@ -144,13 +160,14 @@ export class ClipProjectsController {
       orgId,
       projectId,
       userId,
-      voiceId: dto.voiceId,
+      voiceId: identity?.voiceId,
       youtubeUrl: dto.youtubeUrl,
     });
 
     return {
       batchJobId,
       estimatedClips,
+      identity,
       projectId,
       status: 'processing',
     };
@@ -167,12 +184,21 @@ export class ClipProjectsController {
   async analyzeYoutube(
     @CurrentUser() user: User,
     @Body() dto: AnalyzeYoutubeDto,
-  ): Promise<{ projectId: string; status: string }> {
+  ): Promise<{
+    identity: AgentClipRunIdentity;
+    projectId: string;
+    status: string;
+  }> {
     const publicMetadata = getPublicMetadata(user);
     const orgId = publicMetadata.organization;
     const userId = publicMetadata.user;
+    const identity = await this.clipIdentityResolutionService.resolve({
+      brandId: dto.brandId,
+      organizationId: orgId,
+    });
 
     const project: ClipProjectDocument = await this.clipProjectsService.create({
+      brandId: dto.brandId,
       language: dto.language ?? 'en',
       name:
         dto.name ?? `Clip Analysis — ${new Date().toISOString().slice(0, 10)}`,
@@ -202,7 +228,7 @@ export class ClipProjectsController {
       youtubeUrl: dto.youtubeUrl,
     });
 
-    return { projectId, status: 'analyzing' };
+    return { identity, projectId, status: 'analyzing' };
   }
 
   @Get(':projectId/highlights')
@@ -286,66 +312,18 @@ export class ClipProjectsController {
     const publicMetadata = getPublicMetadata(user);
     const orgId = publicMetadata.organization;
     const userId = publicMetadata.user;
-    const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
 
-    const project = await this.clipProjectsService.findOne({
-      _id: projectId,
-      isDeleted: false,
-      organization: publicMetadata.organization,
+    const {
+      identity,
+      mode,
+      persistedHighlights,
+      project,
+      selectedHighlights: selectedEditedHighlights,
+    } = await this.clipGenerationRequestService.prepare({
+      dto,
+      organizationId: orgId,
+      projectId,
     });
-
-    if (!project) {
-      throw new NotFoundException('ClipProject', projectId);
-    }
-
-    if (project.status !== 'analyzed') {
-      throw new BadRequestException(
-        `Project is in '${project.status}' status. Must be 'analyzed' to generate clips.`,
-      );
-    }
-
-    if (mode === 'avatar' && (!dto.avatarId || !dto.voiceId)) {
-      throw new BadRequestException(
-        'Avatar clip generation requires avatarId and voiceId.',
-      );
-    }
-
-    if (
-      mode === 'raw-cut' &&
-      !project.sourceVideoS3Key &&
-      !project.sourceVideoUrl
-    ) {
-      throw new BadRequestException(
-        'Raw-cut clip generation requires a source video.',
-      );
-    }
-
-    const allHighlights = project.highlights || [];
-    const editedHighlightsById = new Map<string, GenerateClipHighlightDto>(
-      dto.editedHighlights.map((highlight) => [highlight.id, highlight]),
-    );
-    const persistedHighlights = allHighlights.map((highlight) => {
-      const editedHighlight = editedHighlightsById.get(highlight.id);
-
-      if (!editedHighlight) {
-        return highlight;
-      }
-
-      return {
-        ...highlight,
-        summary: editedHighlight.summary,
-        title: editedHighlight.title,
-      };
-    });
-    const selectedEditedHighlights = persistedHighlights.filter((highlight) =>
-      dto.selectedHighlightIds.includes(highlight.id),
-    );
-
-    if (selectedEditedHighlights.length === 0) {
-      throw new BadRequestException(
-        'No valid highlights matched the selected IDs.',
-      );
-    }
 
     await this.clipProjectsService.patch(projectId, {
       highlights: persistedHighlights,
@@ -358,7 +336,7 @@ export class ClipProjectsController {
     });
 
     const result = await this.clipGenerationService.generateClips({
-      avatarId: dto.avatarId,
+      avatarId: identity?.avatarId,
       highlights: selectedEditedHighlights,
       mode,
       orgId,
@@ -371,7 +349,7 @@ export class ClipProjectsController {
         : [],
       transcriptText: project.transcriptText,
       userId,
-      voiceId: dto.voiceId,
+      voiceId: identity?.voiceId,
     });
 
     if (result.queuedClipCount === 0) {
@@ -397,6 +375,13 @@ export class ClipProjectsController {
     @Body() createDto: CreateClipProjectDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
+
+    if (createDto.brandId) {
+      await this.clipIdentityResolutionService.resolve({
+        brandId: createDto.brandId,
+        organizationId: publicMetadata.organization,
+      });
+    }
 
     const data: ClipProjectDocument = await this.clipProjectsService.create({
       ...createDto,

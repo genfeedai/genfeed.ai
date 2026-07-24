@@ -1,4 +1,7 @@
-import type { ClipReferenceFrameSet } from '@genfeedai/interfaces';
+import type {
+  AgentClipRunIdentity,
+  ClipReferenceFrameSet,
+} from '@genfeedai/interfaces';
 import type {
   ClipResult,
   ClipResultMode,
@@ -9,6 +12,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 // ─── API Response Types ───────────────────────────────────────────
 
 interface AnalyzeVideoPayload {
+  brandId?: string;
   youtubeUrl: string;
   maxClips: number;
   minViralityScore: number;
@@ -16,6 +20,7 @@ interface AnalyzeVideoPayload {
 }
 
 interface AnalyzeVideoResponse {
+  identity: AgentClipRunIdentity;
   projectId: string;
 }
 
@@ -40,6 +45,7 @@ interface GenerateClipsPayload {
 interface CreateFromYoutubePayload {
   avatarId?: string;
   avatarProvider?: string;
+  brandId?: string;
   language: string;
   maxClips: number;
   minViralityScore: number;
@@ -51,6 +57,7 @@ interface CreateFromYoutubePayload {
 interface CreateFromYoutubeResponse {
   batchJobId: string;
   estimatedClips: number;
+  identity?: AgentClipRunIdentity;
   projectId: string;
   status: string;
 }

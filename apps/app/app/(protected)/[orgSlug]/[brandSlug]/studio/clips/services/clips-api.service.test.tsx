@@ -44,6 +44,7 @@ describe('ClipsApiService', () => {
       service.createFromYoutube({
         avatarId: 'avatar-1',
         avatarProvider: 'heygen',
+        brandId: 'brand-1',
         language: 'en',
         maxClips: 4,
         minViralityScore: 60,
@@ -64,6 +65,7 @@ describe('ClipsApiService', () => {
         body: JSON.stringify({
           avatarId: 'avatar-1',
           avatarProvider: 'heygen',
+          brandId: 'brand-1',
           language: 'en',
           maxClips: 4,
           minViralityScore: 60,
@@ -102,6 +104,34 @@ describe('ClipsApiService', () => {
           minViralityScore: 70,
           mode: 'raw-cut',
           youtubeUrl: 'https://www.youtube.com/watch?v=rawCut123',
+        }),
+        method: 'POST',
+      }),
+    );
+  });
+
+  it('sends the selected brand when analyzing before reviewed generation', async () => {
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-analysis'),
+    );
+
+    await service.analyzeVideo({
+      brandId: 'brand-2',
+      language: 'en',
+      maxClips: 6,
+      minViralityScore: 55,
+      youtubeUrl: 'https://www.youtube.com/watch?v=analyze123',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/v1/clip-projects/analyze',
+      expect.objectContaining({
+        body: JSON.stringify({
+          brandId: 'brand-2',
+          language: 'en',
+          maxClips: 6,
+          minViralityScore: 55,
+          youtubeUrl: 'https://www.youtube.com/watch?v=analyze123',
         }),
         method: 'POST',
       }),
