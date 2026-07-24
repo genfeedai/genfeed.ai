@@ -12,9 +12,9 @@ import type {
   TimeSeriesDataPointWithPlatforms,
   TopContent,
 } from '@api/collections/posts/services/analytics-aggregation.types';
-import type { PostsService } from '@api/collections/posts/services/posts.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
