@@ -17,4 +17,10 @@ export interface ContentCalendarProps<T extends CalendarItem> {
   getEventColor: (item: T) => string;
   filterControls?: ReactNode;
   modal?: ReactNode;
+  /**
+   * Rendered in place of the (otherwise blank) time grid when there are no
+   * schedulable events. Lets the host surface a meaningful empty state instead
+   * of a full 48-row grid that reads as broken rather than "no events".
+   */
+  emptyState?: ReactNode;
 }

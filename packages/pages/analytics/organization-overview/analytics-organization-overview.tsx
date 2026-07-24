@@ -1,7 +1,7 @@
 'use client';
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { APP_ROUTES, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { AnalyticsMetric, PageScope } from '@genfeedai/enums';
 import {
   formatCompactNumberIntl,
@@ -21,11 +21,12 @@ import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Table from '@ui/display/table/Table';
+import { EmptyStateCard } from '@ui/feedback';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { HiArrowRight } from 'react-icons/hi2';
+import { HiArrowRight, HiBuildingOffice2 } from 'react-icons/hi2';
 
 const BrandPerformanceChart = dynamic(
   () =>
@@ -78,6 +79,8 @@ function OrganizationMetricStrip({
   analytics: ReturnType<typeof useAnalytics>['analytics'];
   isLoading: boolean;
 }) {
+  const router = useRouter();
+
   const metrics: OrganizationMetricCard[] = [
     {
       accent: 'Active brands',
@@ -101,6 +104,15 @@ function OrganizationMetricStrip({
     },
   ];
 
+  // Once loaded, an org with no brands/posts/views/members has nothing to chart.
+  // Show a real "create your first brand" next step instead of a strip of 0s.
+  const hasNoData =
+    !isLoading &&
+    !analytics?.totalBrands &&
+    !analytics?.totalPosts &&
+    !analytics?.totalViews &&
+    !analytics?.totalUsers;
+
   return (
     <section aria-labelledby="organization-metrics-heading">
       <h2
@@ -110,29 +122,41 @@ function OrganizationMetricStrip({
         Organization Metrics
       </h2>
 
-      <DashboardGrid>
-        {metrics.map((metric) => (
-          <Card key={metric.label} bodyClassName="p-4">
-            {isLoading ? (
-              <Skeleton variant="text" height={32} className="w-16" />
-            ) : (
-              <div className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
-                {metric.value}
-              </div>
-            )}
-            <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-foreground/55">
-              {metric.label}
-            </p>
-            {isLoading ? (
-              <Skeleton variant="text" height={12} className="mt-2 w-28" />
-            ) : (
-              <p className="mt-1.5 text-[11px] text-foreground/45">
-                {metric.accent}
+      {hasNoData ? (
+        <EmptyStateCard
+          icon={HiBuildingOffice2}
+          title="No organization activity yet"
+          description="Create your first brand to start publishing content and tracking performance across your organization."
+          action={{
+            label: 'Create your first brand',
+            onClick: () => router.push(APP_ROUTES.ONBOARDING.BRAND),
+          }}
+        />
+      ) : (
+        <DashboardGrid>
+          {metrics.map((metric) => (
+            <Card key={metric.label} bodyClassName="p-4">
+              {isLoading ? (
+                <Skeleton variant="text" height={32} className="w-16" />
+              ) : (
+                <div className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+                  {metric.value}
+                </div>
+              )}
+              <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-foreground/55">
+                {metric.label}
               </p>
-            )}
-          </Card>
-        ))}
-      </DashboardGrid>
+              {isLoading ? (
+                <Skeleton variant="text" height={12} className="mt-2 w-28" />
+              ) : (
+                <p className="mt-1.5 text-[11px] text-foreground/45">
+                  {metric.accent}
+                </p>
+              )}
+            </Card>
+          ))}
+        </DashboardGrid>
+      )}
     </section>
   );
 }

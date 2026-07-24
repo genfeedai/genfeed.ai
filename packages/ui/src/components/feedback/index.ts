@@ -1,4 +1,8 @@
-export { EmptyState, EmptyStateCard } from '@ui/feedback/EmptyState';
+export {
+  EmptyState,
+  EmptyStateCard,
+  type EmptyStateProps,
+} from '@ui/feedback/EmptyState';
 export {
   default as LoadingState,
   type LoadingStateProps,
