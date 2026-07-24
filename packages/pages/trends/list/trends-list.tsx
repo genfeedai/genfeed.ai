@@ -25,6 +25,7 @@ import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { EmptyStateCard } from '@ui/feedback';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
@@ -283,39 +284,50 @@ function TrendContentEmptyTable({
   );
 }
 
-function ViralVideosEmptyState({ isLoading }: { isLoading: boolean }) {
-  const cards = [
-    {
-      label: 'Hook pattern',
-      value: isLoading ? 'Loading' : 'Pending',
-    },
-    {
-      label: 'Creator format',
-      value: isLoading ? 'Loading' : 'Pending',
-    },
-    {
-      label: 'Remix angle',
-      value: isLoading ? 'Loading' : 'Pending',
-    },
-  ];
+function ViralVideosLoadingCards() {
+  const labels = ['Hook pattern', 'Creator format', 'Remix angle'];
 
   return (
     <div className="overflow-hidden rounded-card border border-white/[0.06] bg-card">
       <div className="grid grid-cols-1 divide-y divide-white/[0.06] md:grid-cols-3 md:divide-x md:divide-y-0">
-        {cards.map((card) => (
-          <div key={card.label} className="bg-background/30 p-4">
+        {labels.map((label) => (
+          <div key={label} className="bg-background/30 p-4">
             <div className="flex items-center gap-2 text-sm font-medium text-foreground">
               <HiOutlineSparkles className="size-4 text-foreground/52" />
-              {card.label}
+              {label}
             </div>
             <div className="mt-4 text-xs uppercase tracking-[0.18em] text-foreground/35">
-              {card.value}
+              Loading
             </div>
             <div className="mt-2 h-2 w-full rounded-full bg-white/[0.04]" />
           </div>
         ))}
       </div>
     </div>
+  );
+}
+
+function ViralVideosEmptyState({
+  isLoading,
+  onRefresh,
+}: {
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  if (isLoading) {
+    return <ViralVideosLoadingCards />;
+  }
+
+  return (
+    <EmptyStateCard
+      icon={HiOutlineFilm}
+      title="No viral videos yet"
+      description="Breakout video patterns will surface here once trend syncs pull in videos adjacent to your saved feed."
+      action={{
+        label: 'Refresh videos',
+        onClick: onRefresh,
+      }}
+    />
   );
 }
 
@@ -526,7 +538,12 @@ export default function TrendsList() {
               />
 
               {viralVideos.length === 0 ? (
-                <ViralVideosEmptyState isLoading={isLoadingVideos} />
+                <ViralVideosEmptyState
+                  isLoading={isLoadingVideos}
+                  onRefresh={() => {
+                    void refetchVideos();
+                  }}
+                />
               ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {viralVideos.map((video: ITrendVideo) => {
