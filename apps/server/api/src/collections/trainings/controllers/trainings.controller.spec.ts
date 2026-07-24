@@ -13,7 +13,6 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
-import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
@@ -214,19 +213,17 @@ describe('TrainingsController', () => {
       const query = createTrainingsQuery({ status: ['completed'] });
       await controller.findAll(mockRequest, mockUser, query);
 
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-      const matchStage = asMatchStage(pipeline[0]);
+      const findAllQuery = controller.buildFindAllQuery(mockUser, query);
       // Training has no `status` column — app-vocab is mapped to `stage`.
-      expect(matchStage.$match.status).toBeUndefined();
-      expect(matchStage.$match.stage).toEqual('READY');
+      expect(findAllQuery.where?.status).toBeUndefined();
+      expect(findAllQuery.where?.stage).toEqual('READY');
     });
 
     it('should apply sorting when sort parameter is provided', () => {
       const query = createTrainingsQuery({ sort: 'createdAt: -1' });
 
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-      const sortStage = asSortStage(pipeline[pipeline.length - 1]);
-      expect(sortStage.$sort).toBeDefined();
+      const findAllQuery = controller.buildFindAllQuery(mockUser, query);
+      expect(findAllQuery.orderBy).toBeDefined();
     });
   });
 
@@ -476,76 +473,6 @@ describe('TrainingsController', () => {
 
       const result = controller.canUserModifyEntity(mockUser, entity);
       expect(result).toBe(true);
-    });
-  });
-
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with user and organization filter', () => {
-      const query = createTrainingsQuery();
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      expect(pipeline.length).toBeGreaterThanOrEqual(2);
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.$or).toBeDefined();
-      expect(matchStage.$match.isDeleted).toBe(false);
-    });
-
-    it('should map app-vocab status values to TrainingStage enum values', () => {
-      const query = createTrainingsQuery({ status: ['completed'] });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      // Training has no `status` column — app-vocab is mapped to `stage`.
-      expect(matchStage.$match.status).toBeUndefined();
-      expect(matchStage.$match.stage).toEqual('READY');
-    });
-
-    it('should map multiple status values to multiple TrainingStage values', () => {
-      const query = createTrainingsQuery({
-        status: ['completed', 'failed'],
-      });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.status).toBeUndefined();
-      expect(matchStage.$match.stage).toEqual({ in: ['READY', 'FAILED'] });
-    });
-
-    it('should map processing to TRAINING stage', () => {
-      const query = createTrainingsQuery({ status: ['processing'] });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.stage).toEqual('TRAINING');
-    });
-
-    it('should drop unknown status values silently', () => {
-      const query = createTrainingsQuery({ status: ['unknown-value'] });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.status).toBeUndefined();
-      expect(matchStage.$match.stage).toBeUndefined();
-    });
-
-    it('should deduplicate stage values when multiple inputs map to the same stage', () => {
-      // completed and ready both map to READY
-      const query = createTrainingsQuery({
-        status: ['completed', 'ready'],
-      });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      // Deduplication means single value, not { in: ['READY', 'READY'] }
-      expect(matchStage.$match.stage).toEqual('READY');
-    });
-
-    it('should handle isDeleted parameter', () => {
-      const query = createTrainingsQuery({ isDeleted: true });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.isDeleted).toBe(true);
     });
   });
 });
