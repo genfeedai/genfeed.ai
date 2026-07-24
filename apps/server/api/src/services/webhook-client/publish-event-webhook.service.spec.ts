@@ -15,6 +15,11 @@ vi.mock('@api/services/webhook-client/webhook-endpoint.validator', () => ({
 }));
 
 describe('PublishEventWebhookService', () => {
+  let logger: {
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
   let queue: { add: ReturnType<typeof vi.fn> };
   let postsService: { findAll: ReturnType<typeof vi.fn> };
   let service: PublishEventWebhookService;
@@ -26,6 +31,11 @@ describe('PublishEventWebhookService', () => {
   beforeEach(async () => {
     queue = {
       add: vi.fn().mockResolvedValue({ id: 'job-1' }),
+    };
+    logger = {
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
     };
     settingsService = {
       findOne: vi.fn().mockResolvedValue({
@@ -48,11 +58,7 @@ describe('PublishEventWebhookService', () => {
         },
         {
           provide: LoggerService,
-          useValue: {
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
+          useValue: logger,
         },
         {
           provide: OrganizationSettingsService,
@@ -226,7 +232,7 @@ describe('PublishEventWebhookService', () => {
 
   it('snapshots failed payloads without secret-bearing source fields', async () => {
     await service.emitLegacyPostFailed({
-      errorCode: 'provider_503',
+      errorCode: 'provider_503 api_key=raw-code-key',
       errorMessage:
         'Provider timeout 503 with api_key=raw-provider-key, Bearer raw-bearer-token, webhook_secret=raw-webhook-secret',
       occurredAt: new Date('2026-07-07T10:00:00.000Z'),
@@ -256,6 +262,7 @@ describe('PublishEventWebhookService', () => {
     expect(serializedPayload).not.toContain('raw-provider-key');
     expect(serializedPayload).not.toContain('raw-bearer-token');
     expect(serializedPayload).not.toContain('raw-webhook-secret');
+    expect(serializedPayload).not.toContain('raw-code-key');
     expect(serializedPayload).not.toContain('encrypted-access-token');
     expect(serializedPayload).not.toContain('encrypted-refresh-token');
     expect(serializedPayload).not.toContain('direct-post-api-key');
@@ -285,7 +292,7 @@ describe('PublishEventWebhookService', () => {
           },
           "error": {
             "class": "provider_outage",
-            "code": "provider_503",
+            "code": "provider_503 api_key=[REDACTED]",
             "message": "Provider timeout 503 with api_key=[REDACTED], Bearer [REDACTED], webhook_secret=[REDACTED]",
             "retryable": false,
           },
@@ -301,6 +308,39 @@ describe('PublishEventWebhookService', () => {
         "timestamp": "2026-07-07T10:00:00.000Z",
       }
     `);
+  });
+
+  it('keeps publish outcomes non-blocking and redacts queue diagnostics', async () => {
+    queue.add.mockRejectedValueOnce(
+      new Error(
+        'Queue unavailable api_key=raw-api-key webhook_secret=raw-webhook-secret',
+      ),
+    );
+
+    await expect(
+      service.emitLegacyPostPublished({
+        post: {
+          credential: 'cred_123',
+          id: 'post_123',
+          organization: 'org_123',
+          platform: 'twitter',
+        },
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining('failed to emit publish event'),
+      expect.objectContaining({
+        error: 'Queue unavailable api_key=[REDACTED] webhook_secret=[REDACTED]',
+        postId: 'post_123',
+      }),
+    );
+    expect(JSON.stringify(logger.error.mock.calls)).not.toContain(
+      'raw-api-key',
+    );
+    expect(JSON.stringify(logger.error.mock.calls)).not.toContain(
+      'raw-webhook-secret',
+    );
   });
 
   it('does not enqueue when org webhooks are disabled', async () => {
