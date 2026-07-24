@@ -226,9 +226,9 @@ function WorkspacePageContentContent({
       right={isOverviewSection ? undefined : workspaceHeaderActions}
     >
       {workspaceActionError ? (
-        <p className="mb-4 rounded-md border border-rose-400/30 bg-rose-400/8 px-3 py-2 text-xs text-rose-200">
+        <Alert type={AlertCategory.ERROR} className="mb-4">
           {workspaceActionError}
-        </p>
+        </Alert>
       ) : null}
 
       {workspaceLoadWarning ? (

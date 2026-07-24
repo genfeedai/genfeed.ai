@@ -38,10 +38,25 @@ export class HttpExceptionFilter extends AllExceptionFilter {
       detail = response;
     }
 
-    if (this.SENTRY_ENVIRONMENT !== 'development' && status >= 500) {
-      Sentry.captureException(exception);
+    if (status >= 500) {
+      if (this.SENTRY_ENVIRONMENT !== 'development') {
+        Sentry.captureException(exception);
+      } else {
+        this.loggerService.error('HTTP exception occurred', exception, {
+          method: req.method,
+          operation: 'catch',
+          service: 'HttpExceptionFilter',
+          status,
+          url: req.originalUrl,
+        });
+      }
     } else {
-      this.loggerService.error('HTTP exception occurred', exception, {
+      // 4xx are expected client/bot traffic (bad input, 404 probes such as
+      // /favicon.ico). Log at warn without the exception stack and never page
+      // Sentry — mirrors AllExceptionFilter's 4xx handling. Previously every
+      // 4xx hit .error() with the raw exception, emitting a stack trace on
+      // every missing-static-asset request.
+      this.loggerService.warn('HTTP client error occurred', {
         method: req.method,
         operation: 'catch',
         service: 'HttpExceptionFilter',
