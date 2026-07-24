@@ -1,10 +1,20 @@
 import type {
   DistinctPostCountRow,
+  EngagementBreakdown,
+  GrowthTrends,
+  NumericSqlValue,
+  OverviewMetrics,
+  PlatformComparison,
   PlatformComparisonRow,
+  PlatformMetrics,
+  PostViewsRow,
+  TimeSeriesDataPoint,
+  TimeSeriesDataPointWithPlatforms,
+  TopContent,
 } from '@api/collections/posts/services/analytics-aggregation.types';
-import { PostsService } from '@api/collections/posts/services/posts.service';
+import type { PostsService } from '@api/collections/posts/services/posts.service';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
@@ -22,7 +32,7 @@ export type {
   TimeSeriesDataPoint,
   TimeSeriesDataPointWithPlatforms,
   TopContent,
-} from '@api/collections/posts/services/analytics-aggregation.types';
+};
 
 @Injectable()
 export class AnalyticsAggregationService {
