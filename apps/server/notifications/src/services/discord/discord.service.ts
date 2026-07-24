@@ -21,12 +21,11 @@ export class DiscordService {
     private readonly loggerService: LoggerService,
     private readonly discordBotService: DiscordBotService,
   ) {
+    // Only the enabled path logs here. The "not configured" boot warning is
+    // owned solely by DiscordBotService.onModuleInit — emitting it here too
+    // double-warned on every boot with Discord disabled.
     if (this.configService.isDiscordEnabled()) {
       this.loggerService.log('Discord service initialized with bot webhooks');
-    } else {
-      this.loggerService.warn(
-        'Discord service is not configured - notifications disabled',
-      );
     }
   }
 
