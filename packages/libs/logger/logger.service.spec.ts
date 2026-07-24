@@ -105,7 +105,7 @@ describe('LoggerService', () => {
   });
 
   describe('error', () => {
-    it('should call winston.error and super.error with formatted message', () => {
+    it('should call winston.error with formatted message', () => {
       const message = 'Test error message';
       const trace = new Error('Test error');
       const context = { operation: 'test-op', service: 'test' };

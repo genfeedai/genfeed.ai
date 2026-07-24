@@ -63,10 +63,11 @@ export class LoggerService extends ConsoleLogger {
       ...(errorData !== undefined && { error: errorData }),
     };
 
+    // winston already serializes the full error (message, name, stack) into
+    // errorContext.error above. Emitting a second line via super.error() only
+    // duplicated every backend error in the console — removed. winston is the
+    // single sink for this runtime (see class-level boundary note).
     this.winston.error(formattedMessage, errorContext);
-
-    const contextString = this.extractContextString(context, contextObj);
-    this.logToConsole(formattedMessage, trace, contextString);
   }
 
   private serializeError(trace?: string | Error | unknown): unknown {
@@ -104,33 +105,6 @@ export class LoggerService extends ConsoleLogger {
       return trace;
     }
     return undefined;
-  }
-
-  private extractContextString(
-    context?: unknown,
-    contextObj?: Record<string, unknown>,
-  ): string | undefined {
-    if (typeof context === 'string') {
-      return context;
-    }
-    if (typeof contextObj?.service === 'string') {
-      return contextObj.service;
-    }
-    return undefined;
-  }
-
-  private logToConsole(
-    message: string,
-    trace?: string | Error | unknown,
-    contextString?: string,
-  ): void {
-    if (trace instanceof Error) {
-      super.error(message, trace.stack, contextString);
-    } else if (typeof trace === 'string') {
-      super.error(message, trace, contextString);
-    } else {
-      super.error(message, contextString);
-    }
   }
 
   protected formatMessage(
