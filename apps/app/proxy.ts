@@ -118,6 +118,41 @@ function redirectDroppingSearch(req: NextRequest, pathname: string) {
   return NextResponse.redirect(createSafeRedirectUrl(req, pathname));
 }
 
+/**
+ * Bounce an unauthenticated request to `/login`, preserving the route the user
+ * was actually heading to as a `callbackUrl` param so the login flow returns
+ * them there after auth.
+ *
+ * Finding #25: the previous `redirectPreservingSearch(req, '/login')` copied the
+ * protected route's *query string* onto `/login` but dropped its *pathname*, so
+ * every cold-compile bounce lost the destination and stranded the user on the
+ * seeded workspace after sign-in. The destination is the original pathname +
+ * search; `callbackUrl` is the exact param the login surface consumes
+ * (`getAuthCallbackURL` reads `callbackUrl` | `return_to` | `redirect_url`).
+ *
+ * The destination is inherently same-origin (it is the incoming request's own
+ * path), but we still only forward a single-slash-rooted path — mirroring the
+ * open-redirect guards in `createSafeRedirectUrl` and, on the consuming side,
+ * `toAbsoluteAuthCallbackURL`. The bare root `/` and any `/login*` path are
+ * skipped: `/` is already the login flow's default callback (`ROOT_CALLBACK_URL`)
+ * so encoding it is redundant noise, and a `/login` destination would be a
+ * self-referential loop.
+ */
+function redirectToLoginPreservingDestination(req: NextRequest) {
+  const url = createSafeRedirectUrl(req, '/login');
+  const { pathname, search } = req.nextUrl;
+  const destination = `${pathname}${search}`;
+  const isPreservableDestination =
+    destination.startsWith('/') &&
+    !destination.startsWith('//') &&
+    pathname !== '/' &&
+    !pathname.startsWith('/login');
+  if (isPreservableDestination) {
+    url.searchParams.set('callbackUrl', destination);
+  }
+  return NextResponse.redirect(url);
+}
+
 function getTopLevelSegment(pathname: string): string | null {
   const [segment] = pathname.split('/').filter(Boolean);
   return segment ?? null;
@@ -789,7 +824,7 @@ export async function proxy(req: NextRequest) {
         return response;
       }
 
-      return redirectPreservingSearch(req, '/login');
+      return redirectToLoginPreservingDestination(req);
     }
 
     return NextResponse.next();
@@ -831,12 +866,12 @@ export async function proxy(req: NextRequest) {
     }
 
     if (!hasSession) {
-      return redirectPreservingSearch(req, '/login');
+      return redirectToLoginPreservingDestination(req);
     }
 
     const token = await getBetterAuthBearerToken(req);
     if (!token) {
-      return redirectPreservingSearch(req, '/login');
+      return redirectToLoginPreservingDestination(req);
     }
 
     if (await shouldRedirectSignedInUserToOnboarding(token)) {
