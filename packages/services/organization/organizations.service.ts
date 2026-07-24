@@ -47,7 +47,28 @@ import { deserializeCollection } from '@services/core/json-api';
 
 const ORGANIZATION_LIST_PAGE_SIZE = 100;
 
+/**
+ * Cross-org membership summary returned by `GET /organizations/mine`. A bespoke
+ * projection (not a serialized Organization) consumed structurally by the org
+ * switcher, post-signup routing, and scope controls.
+ */
+type MyOrganizationSummary = {
+  id: string;
+  label: string;
+  slug: string;
+  isActive: boolean;
+  isOwner: boolean;
+  brand: { id: string; label: string } | null;
+};
+
 export class OrganizationsService extends BaseService<Organization> {
+  /**
+   * In-flight `GET /organizations/mine` request shared across concurrent
+   * callers. Null when no request is pending. See {@link getMyOrganizations}.
+   */
+  private myOrganizationsInFlight: Promise<MyOrganizationSummary[]> | null =
+    null;
+
   constructor(token: string) {
     super(
       API_ENDPOINTS.ORGANIZATIONS,
@@ -382,27 +403,21 @@ export class OrganizationsService extends BaseService<Organization> {
    * Returns all organizations the current user belongs to.
    * Cross-org endpoint — not scoped to active org.
    */
-  public async getMyOrganizations(): Promise<
-    {
-      id: string;
-      label: string;
-      slug: string;
-      isActive: boolean;
-      isOwner: boolean;
-      brand: { id: string; label: string } | null;
-    }[]
-  > {
-    return await this.instance
-      .get<
-        {
-          id: string;
-          label: string;
-          slug: string;
-          isActive: boolean;
-          isOwner: boolean;
-          brand: { id: string; label: string } | null;
-        }[]
-      >('/mine')
+  public async getMyOrganizations(): Promise<MyOrganizationSummary[]> {
+    // Coalesce concurrent callers onto a single request. The protected sidebar
+    // mounts OrganizationSwitcher twice at once (desktop + CSS-hidden mobile),
+    // so a naive fetch fires GET /mine ×2 on every shell mount. BaseService
+    // pools this service per auth token (getDataServiceInstance), so this
+    // in-flight promise is shared across both mounts and is automatically
+    // identity-scoped: a different token resolves to a different pooled
+    // instance with its own field. Mirrors the /token in-flight dedupe in
+    // packages/auth-client/src/client.ts.
+    if (this.myOrganizationsInFlight) {
+      return this.myOrganizationsInFlight;
+    }
+
+    const request = this.instance
+      .get<MyOrganizationSummary[]>('/mine')
       .then((res) =>
         // Defensive dedup by org id: a duplicate entry here renders twice in
         // the org switcher with the active checkmark on both rows (the
@@ -412,7 +427,18 @@ export class OrganizationsService extends BaseService<Organization> {
           (org, index, list) =>
             list.findIndex((candidate) => candidate.id === org.id) === index,
         ),
-      );
+      )
+      .finally(() => {
+        // Clear only if still the active request. In-flight-only (no TTL): once
+        // settled, the next mount cycle refetches fresh membership data.
+        if (this.myOrganizationsInFlight === request) {
+          this.myOrganizationsInFlight = null;
+        }
+      });
+
+    this.myOrganizationsInFlight = request;
+
+    return request;
   }
 
   /**
