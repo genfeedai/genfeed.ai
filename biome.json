@@ -137,6 +137,16 @@
       }
     },
     {
+      "includes": ["apps/server/api/src/collections/assets/**/*.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "error"
+          }
+        }
+      }
+    },
+    {
       "includes": [
         "ee/packages/**/*.{controller,service,module,resolver,guard,interceptor,pipe,middleware,filter}.ts"
       ],
