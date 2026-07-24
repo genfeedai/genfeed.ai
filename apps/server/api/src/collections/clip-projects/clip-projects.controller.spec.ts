@@ -9,6 +9,7 @@ import {
 } from '@api/collections/clip-projects/dto/generate-clips.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import type { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
 import type {
   ClipIdentityResolutionService,
   ResolveClipIdentityParams,
@@ -184,6 +185,12 @@ describe('ClipProjectsController', () => {
       clipFactoryQueueService as unknown as ClipFactoryQueueService,
       { enqueue: vi.fn() } as unknown as ClipAnalyzeQueueService,
       clipGenerationService as ClipGenerationService,
+      // Real request-preparation service over the same mocks: the validation
+      // logic simply moved out of the controller, so behaviour is unchanged.
+      new ClipGenerationRequestService(
+        clipProjectsService as ClipProjectsService,
+        clipIdentityResolutionService as ClipIdentityResolutionService,
+      ),
       clipIdentityResolutionService as ClipIdentityResolutionService,
       { rewrite: vi.fn() } as unknown as HighlightRewriteService,
       creditsUtilsService as unknown as CreditsUtilsService,
