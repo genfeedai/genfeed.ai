@@ -403,7 +403,7 @@ export class OrganizationsService extends BaseService<Organization> {
    * Returns all organizations the current user belongs to.
    * Cross-org endpoint — not scoped to active org.
    */
-  public async getMyOrganizations(): Promise<MyOrganizationSummary[]> {
+  public getMyOrganizations(): Promise<MyOrganizationSummary[]> {
     // Coalesce concurrent callers onto a single request. The protected sidebar
     // mounts OrganizationSwitcher twice at once (desktop + CSS-hidden mobile),
     // so a naive fetch fires GET /mine ×2 on every shell mount. BaseService
