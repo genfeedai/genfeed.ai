@@ -43,8 +43,17 @@ function readRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
+// `Object.hasOwn` reports true for a key that is explicitly set to `undefined`,
+// which every server-side DTO built by object spread produces for an omitted
+// optional field (`artifactReferences: request.artifactReferences`). Treating
+// that as "supplied" made a plain text turn fail the array guard below with
+// `artifactReferences must be an array`. Nullish means not supplied.
 function hasOwn(record: Record<string, unknown>, key: string): boolean {
-  return Object.hasOwn(record, key);
+  return (
+    Object.hasOwn(record, key) &&
+    record[key] !== undefined &&
+    record[key] !== null
+  );
 }
 
 function readArrayField(
