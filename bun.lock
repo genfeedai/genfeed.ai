@@ -398,7 +398,7 @@
         "@prisma/adapter-pg": "7.8.0",
         "archiver": "8.0.0",
         "bcrypt": "6.0.0",
-        "better-auth": "^1.6.23",
+        "better-auth": "1.6.23",
         "class-transformer": "0.5.1",
         "class-validator": "0.15.1",
         "compression": "1.8.1",
@@ -501,7 +501,7 @@
       "name": "@genfeedai/server",
       "version": "0.1.0",
       "dependencies": {
-        "@genfeedai/api-types": "*",
+        "@genfeedai/api-types": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
@@ -726,7 +726,7 @@
       "name": "@genfeedai/auth-client",
       "version": "0.1.0",
       "dependencies": {
-        "better-auth": "^1.6.23",
+        "better-auth": "1.6.23",
         "zod": "4.4.3",
       },
       "devDependencies": {
@@ -1067,16 +1067,6 @@
       },
       "devDependencies": {
         "prisma": "7.8.0",
-      },
-    },
-    "packages/prompts": {
-      "name": "@genfeedai/prompts",
-      "version": "0.2.3",
-      "devDependencies": {
-        "@genfeedai/types": "workspace:*",
-        "@types/node": "26.1.1",
-        "tsup": "8.5.1",
-        "typescript": "6.0.2",
       },
     },
     "packages/props": {
@@ -1980,8 +1970,6 @@
     "@genfeedai/pricing": ["@genfeedai/pricing@workspace:packages/pricing"],
 
     "@genfeedai/prisma": ["@genfeedai/prisma@workspace:packages/prisma"],
-
-    "@genfeedai/prompts": ["@genfeedai/prompts@workspace:packages/prompts"],
 
     "@genfeedai/props": ["@genfeedai/props@workspace:packages/props"],
 
