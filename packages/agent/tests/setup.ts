@@ -140,6 +140,39 @@ if (!Element.prototype.releasePointerCapture) {
   Element.prototype.releasePointerCapture = vi.fn();
 }
 
+// jsdom's Range implements no geometry, but ProseMirror's composition/coords
+// tracking creates a Range and calls getClientRects()/getBoundingClientRect()
+// on it (e.g. when an IME composition is active). Without these the composing
+// contenteditable editor throws "target.getClientRects is not a function" as an
+// unhandled error and fails the run even though every assertion passes. Return
+// empty geometry so the composition path is a no-op in tests.
+const createEmptyDomRect = (): DOMRect =>
+  ({
+    bottom: 0,
+    height: 0,
+    left: 0,
+    right: 0,
+    toJSON: () => ({}),
+    top: 0,
+    width: 0,
+    x: 0,
+    y: 0,
+  }) as DOMRect;
+
+const createEmptyDomRectList = (): DOMRectList =>
+  ({
+    item: () => null,
+    length: 0,
+    [Symbol.iterator]: [][Symbol.iterator].bind([]),
+  }) as unknown as DOMRectList;
+
+if (!Range.prototype.getClientRects) {
+  Range.prototype.getClientRects = () => createEmptyDomRectList();
+}
+if (!Range.prototype.getBoundingClientRect) {
+  Range.prototype.getBoundingClientRect = () => createEmptyDomRect();
+}
+
 // Mock fetch
 global.fetch = vi.fn();
 
