@@ -177,11 +177,7 @@ export default function StudioClipsPage() {
 
                 <p className="text-xs text-zinc-500">
                   {identityDefaults.isComplete
-                    ? identityDefaults.source === 'brand'
-                      ? 'Using saved brand HeyGen avatar and voice defaults.'
-                      : identityDefaults.source === 'explicit'
-                        ? 'Using the explicit HeyGen avatar and voice IDs.'
-                        : 'Using saved organization HeyGen voice default.'
+                    ? 'Using configured HeyGen identity defaults and overrides.'
                     : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
                 </p>
 
@@ -291,11 +287,7 @@ export default function StudioClipsPage() {
         generationMode === 'raw-cut'
           ? 'Uses the source footage and burns captions. No avatar defaults required.'
           : identityDefaults.isComplete
-            ? identityDefaults.source === 'brand'
-              ? 'Uses saved brand avatar and voice defaults.'
-              : identityDefaults.source === 'explicit'
-                ? 'Uses the explicit avatar and voice IDs.'
-                : 'Uses saved organization voice default.'
+            ? 'Uses configured avatar and voice defaults.'
             : 'No saved HeyGen defaults. Review highlights first to enter IDs manually.'
       }
     />

@@ -40,7 +40,10 @@ interface StudioClipIdentityDefaults {
 
 interface StudioClipIdentityContext {
   selectedBrand?: Pick<IBrand, 'agentConfig'> | null;
-  settings?: Pick<IOrganizationSetting, 'defaultVoiceRef'> | null;
+  settings?: Pick<
+    IOrganizationSetting,
+    'defaultVoiceId' | 'defaultVoiceProvider' | 'defaultVoiceRef'
+  > | null;
 }
 
 function isHeygenProvider(provider?: string | null): boolean {
@@ -69,6 +72,18 @@ function resolveHeygenVoiceRef(
   return readNonEmptyString(ref.externalVoiceId);
 }
 
+/**
+ * Mirrors the API's legacy voice fallback (`defaultVoiceProvider` +
+ * `defaultVoiceId`) so a brand configured that way is not blocked locally
+ * before the server resolver ever runs.
+ */
+function resolveHeygenVoiceFallback(
+  provider?: string | null,
+  voiceId?: string | null,
+): string | undefined {
+  return isHeygenProvider(provider) ? readNonEmptyString(voiceId) : undefined;
+}
+
 export function resolveStudioClipIdentityDefaults({
   selectedBrand,
   settings,
@@ -77,8 +92,17 @@ export function resolveStudioClipIdentityDefaults({
   const brandAvatarId = readNonEmptyString(brandConfig?.heygenAvatarId);
   const brandVoiceId =
     readNonEmptyString(brandConfig?.heygenVoiceId) ??
-    resolveHeygenVoiceRef(brandConfig?.defaultVoiceRef);
-  const organizationVoiceId = resolveHeygenVoiceRef(settings?.defaultVoiceRef);
+    resolveHeygenVoiceRef(brandConfig?.defaultVoiceRef) ??
+    resolveHeygenVoiceFallback(
+      brandConfig?.defaultVoiceProvider,
+      brandConfig?.defaultVoiceId,
+    );
+  const organizationVoiceId =
+    resolveHeygenVoiceRef(settings?.defaultVoiceRef) ??
+    resolveHeygenVoiceFallback(
+      settings?.defaultVoiceProvider,
+      settings?.defaultVoiceId,
+    );
   const avatarId = brandAvatarId;
   const voiceId = brandVoiceId ?? organizationVoiceId;
   const missing: StudioClipIdentityField[] = [];
