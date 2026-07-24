@@ -226,103 +226,96 @@ describe('useSocketGeneration', () => {
     IngredientCategory.VIDEO,
     IngredientCategory.MUSIC,
     IngredientCategory.AVATAR,
-  ])(
-    'runs the healthy %s lifecycle from selected provider to completed asset',
-    async (category) => {
-      const selectedModelKey =
-        category === IngredientCategory.AVATAR
-          ? undefined
-          : `${category}-selected`;
-      const currentModels = selectedModelKey
-        ? [
-            createModel(
-              getModelCategory(category),
-              `${category}-fallback`,
-              true,
-            ),
-            createModel(getModelCategory(category), selectedModelKey),
-          ]
-        : [];
-      const pendingId = `${category}-pending`;
-      const completedId = `${category}-completed`;
-      const createMock = getCreateMock(category);
-      const findOneMock = getFindOneMock(category);
-      const findAllAssets = vi.fn().mockResolvedValue(undefined);
-      const setGeneratedAssetId = vi.fn();
+  ])('runs the healthy %s lifecycle from selected provider to completed asset', async (category) => {
+    const selectedModelKey =
+      category === IngredientCategory.AVATAR
+        ? undefined
+        : `${category}-selected`;
+    const currentModels = selectedModelKey
+      ? [
+          createModel(getModelCategory(category), `${category}-fallback`, true),
+          createModel(getModelCategory(category), selectedModelKey),
+        ]
+      : [];
+    const pendingId = `${category}-pending`;
+    const completedId = `${category}-completed`;
+    const createMock = getCreateMock(category);
+    const findOneMock = getFindOneMock(category);
+    const findAllAssets = vi.fn().mockResolvedValue(undefined);
+    const setGeneratedAssetId = vi.fn();
 
-      createMock.mockResolvedValue({ id: pendingId });
-      findOneMock.mockResolvedValue({ id: completedId });
+    createMock.mockResolvedValue({ id: pendingId });
+    findOneMock.mockResolvedValue({ id: completedId });
 
-      const { result } = renderHook(() =>
-        useSocketGeneration({
-          brandId: 'brand-1',
-          categoryType: category,
-          currentModels,
-          findAllAssets,
-          setGeneratedAssetId,
-        }),
+    const { result } = renderHook(() =>
+      useSocketGeneration({
+        brandId: 'brand-1',
+        categoryType: category,
+        currentModels,
+        findAllAssets,
+        setGeneratedAssetId,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleGenerateSubmit(
+        createPrompt(category, selectedModelKey),
       );
+    });
 
-      await act(async () => {
-        await result.current.handleGenerateSubmit(
-          createPrompt(category, selectedModelKey),
-        );
+    if (category === IngredientCategory.AVATAR) {
+      expect(mocks.heyGenGenerate).toHaveBeenCalledWith({
+        avatarId: 'avatar-1',
+        speech: 'A product update from the team',
+        text: 'Create a avatar asset',
+        voiceId: 'voice-1',
       });
-
-      if (category === IngredientCategory.AVATAR) {
-        expect(mocks.heyGenGenerate).toHaveBeenCalledWith({
-          avatarId: 'avatar-1',
-          speech: 'A product update from the team',
-          text: 'Create a avatar asset',
-          voiceId: 'voice-1',
-        });
-      } else {
-        expect(createMock).toHaveBeenCalledWith(
-          expect.objectContaining({
-            model: selectedModelKey,
-            text: `Create a ${category} asset`,
-          }),
-        );
-      }
-
-      expect(setGeneratedAssetId).toHaveBeenCalledWith(pendingId);
-      expect(mocks.addToGenerationQueue).toHaveBeenCalledWith(
+    } else {
+      expect(createMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: pendingId,
-          prompt: `Create a ${category} asset`,
-          status: [IngredientStatus.PROCESSING],
-          type: category,
+          model: selectedModelKey,
+          text: `Create a ${category} asset`,
         }),
       );
+    }
 
-      const subscriptionPath = `/${category}s/${pendingId}`;
-      expect(mocks.subscribe).toHaveBeenCalledWith(
-        subscriptionPath,
-        expect.any(Object),
-      );
-      expect(findAllAssets).toHaveBeenCalledTimes(1);
+    expect(setGeneratedAssetId).toHaveBeenCalledWith(pendingId);
+    expect(mocks.addToGenerationQueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: pendingId,
+        prompt: `Create a ${category} asset`,
+        status: [IngredientStatus.PROCESSING],
+        type: category,
+      }),
+    );
 
-      const handler = mocks.handlers.get(subscriptionPath);
-      expect(handler).toBeDefined();
+    const subscriptionPath = `/${category}s/${pendingId}`;
+    expect(mocks.subscribe).toHaveBeenCalledWith(
+      subscriptionPath,
+      expect.any(Object),
+    );
+    expect(findAllAssets).toHaveBeenCalledTimes(1);
 
-      await act(async () => {
-        await handler?.onSuccess({ id: completedId });
-      });
+    const handler = mocks.handlers.get(subscriptionPath);
+    expect(handler).toBeDefined();
 
-      expect(findOneMock).toHaveBeenCalledWith(completedId);
-      expect(mocks.updateGenerationStatus).toHaveBeenCalledWith(
-        pendingId,
-        expect.objectContaining({
-          currentPhase: 'Completed',
-          remainingDurationMs: 0,
-          resultId: completedId,
-          status: [IngredientStatus.GENERATED],
-        }),
-      );
-      expect(findAllAssets).toHaveBeenCalledTimes(2);
-      expect(mocks.unsubscribe).toHaveBeenCalledTimes(1);
-    },
-  );
+    await act(async () => {
+      await handler?.onSuccess({ id: completedId });
+    });
+
+    expect(findOneMock).toHaveBeenCalledWith(completedId);
+    expect(mocks.updateGenerationStatus).toHaveBeenCalledWith(
+      pendingId,
+      expect.objectContaining({
+        currentPhase: 'Completed',
+        remainingDurationMs: 0,
+        resultId: completedId,
+        status: [IngredientStatus.GENERATED],
+      }),
+    );
+    expect(findAllAssets).toHaveBeenCalledTimes(2);
+    expect(mocks.unsubscribe).toHaveBeenCalledTimes(1);
+  });
 
   it('uses the first compatible model when the composer has no explicit model override', async () => {
     const findAllAssets = vi.fn().mockResolvedValue(undefined);
