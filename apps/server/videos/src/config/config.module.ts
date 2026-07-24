@@ -1,14 +1,12 @@
-import { Global, Module } from '@nestjs/common';
+import { createConfigModule } from '@libs/config/create-config-module';
 import { ConfigService } from '@videos/config/config.service';
 
-@Global()
-@Module({
-  exports: [ConfigService],
-  providers: [
-    {
-      provide: ConfigService,
-      useValue: new ConfigService(),
-    },
-  ],
-})
-export class ConfigModule {}
+/**
+ * Global config module for the Videos service.
+ *
+ * Wiring lives in the shared `createConfigModule` factory — see
+ * `packages/libs/config/create-config-module.ts`.
+ */
+export const ConfigModule = createConfigModule({
+  configService: ConfigService,
+});

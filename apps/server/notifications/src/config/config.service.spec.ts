@@ -72,10 +72,8 @@ describe('ConfigService (Notifications)', () => {
       'SLACK_NOTIFICATION_BOT_TOKEN', // slack.service
       'GENFEED_CLOUD', // terminal.service cloud gate
       'NEXT_PUBLIC_GENFEED_CLOUD', // terminal.service cloud gate
-      'VALIDATION_MAX_FILE_SIZE', // validation.config
-      'VALIDATION_VIDEO_FORMATS', // validation.config
-      'VALIDATION_IMAGE_FORMATS', // validation.config
-      'VALIDATION_AUDIO_FORMATS', // validation.config
+      // The `VALIDATION_*` keys were removed with the service-local
+      // `ValidationConfigService` copy — notifications reads none of them.
     ] as const;
 
     it.each(consumedKeys)('validates %s', (key) => {

@@ -20,6 +20,23 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: '@', replacement: path.resolve(serviceDir, './src') },
+      // `@genfeedai/config` resolves to source so specs don't depend on a built
+      // `packages/config/dist`. It transitively value-imports `@genfeedai/pricing`
+      // (schemas/stripe.schema.ts), so that alias has to come along with it.
+      {
+        find: '@genfeedai/config',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/config/src/index.ts',
+        ),
+      },
+      {
+        find: '@genfeedai/pricing',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/pricing/src/index.ts',
+        ),
+      },
       {
         find: '@genfeedai/enums',
         replacement: path.resolve(
