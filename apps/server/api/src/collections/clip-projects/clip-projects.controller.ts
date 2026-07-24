@@ -10,9 +10,9 @@ import {
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import { type ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -102,8 +102,8 @@ export class ClipProjectsController {
     const userId = publicMetadata.user;
     const estimatedClips = dto.maxClips ?? 10;
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
-    const identity =
-      mode === 'avatar'
+    const resolvedIdentity =
+      mode === 'avatar' || dto.brandId
         ? await this.clipIdentityResolutionService.resolve({
             avatarId: dto.avatarId,
             avatarProvider: dto.avatarProvider,
@@ -112,6 +112,7 @@ export class ClipProjectsController {
             voiceId: dto.voiceId,
           })
         : undefined;
+    const identity = mode === 'avatar' ? resolvedIdentity : undefined;
 
     this.assertCompleteAvatarIdentity(identity);
 
@@ -423,9 +424,7 @@ export class ClipProjectsController {
     };
   }
 
-  private assertCompleteAvatarIdentity(
-    identity?: AgentClipRunIdentity,
-  ): void {
+  private assertCompleteAvatarIdentity(identity?: AgentClipRunIdentity): void {
     if (!identity || identity.isComplete) {
       return;
     }

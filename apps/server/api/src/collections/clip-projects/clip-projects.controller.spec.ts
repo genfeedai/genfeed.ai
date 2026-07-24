@@ -64,37 +64,39 @@ function createMockClipIdentityResolutionService(): Pick<
   'resolve'
 > {
   return {
-    resolve: vi.fn().mockImplementation(
-      async ({
-        avatarId,
-        voiceId,
-      }: ResolveClipIdentityParams): Promise<AgentClipRunIdentity> => {
-        const missing: AgentClipRunIdentityField[] = [];
-
-        if (!avatarId) {
-          missing.push('avatar');
-        }
-
-        if (!voiceId) {
-          missing.push('voice');
-        }
-
-        return {
+    resolve: vi
+      .fn()
+      .mockImplementation(
+        async ({
           avatarId,
-          avatarProvider: avatarId ? 'heygen' : undefined,
-          isComplete: missing.length === 0,
-          label:
-            missing.length === 0
-              ? 'Explicit clip identity'
-              : `Missing ${missing.join(' and ')} defaults`,
-          missing,
-          source: avatarId || voiceId ? 'explicit' : 'missing',
-          useIdentity: true,
           voiceId,
-          voiceProvider: voiceId ? 'heygen' : undefined,
-        };
-      },
-    ),
+        }: ResolveClipIdentityParams): Promise<AgentClipRunIdentity> => {
+          const missing: AgentClipRunIdentityField[] = [];
+
+          if (!avatarId) {
+            missing.push('avatar');
+          }
+
+          if (!voiceId) {
+            missing.push('voice');
+          }
+
+          return {
+            avatarId,
+            avatarProvider: avatarId ? 'heygen' : undefined,
+            isComplete: missing.length === 0,
+            label:
+              missing.length === 0
+                ? 'Explicit clip identity'
+                : `Missing ${missing.join(' and ')} defaults`,
+            missing,
+            source: avatarId || voiceId ? 'explicit' : 'missing',
+            useIdentity: true,
+            voiceId,
+            voiceProvider: voiceId ? 'heygen' : undefined,
+          };
+        },
+      ),
   };
 }
 
@@ -339,6 +341,33 @@ describe('ClipProjectsController', () => {
           settings: expect.objectContaining({ mode: 'raw-cut' }),
         }),
       );
+    });
+
+    it('should validate selected brand ownership before raw-cut creation', async () => {
+      const brandId = '507f191e810c19729de860ef';
+      const dto: CreateClipProjectFromYoutubeDto = {
+        brandId,
+        mode: 'raw-cut',
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      };
+
+      vi.mocked(clipIdentityResolutionService.resolve).mockRejectedValue(
+        new Error('Brand not found'),
+      );
+
+      await expect(
+        controller.createFromYoutube(currentUser as never, dto),
+      ).rejects.toThrow('Brand not found');
+
+      expect(clipIdentityResolutionService.resolve).toHaveBeenCalledWith({
+        avatarId: undefined,
+        avatarProvider: undefined,
+        brandId,
+        organizationId,
+        voiceId: undefined,
+      });
+      expect(clipProjectsService.create).not.toHaveBeenCalled();
+      expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
     });
   });
 

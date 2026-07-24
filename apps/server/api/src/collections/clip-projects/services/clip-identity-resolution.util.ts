@@ -38,9 +38,7 @@ function isHeygenProvider(value: unknown): boolean {
   );
 }
 
-function readHeygenVoiceIdFromDefaultRef(
-  value: unknown,
-): string | undefined {
+function readHeygenVoiceIdFromDefaultRef(value: unknown): string | undefined {
   const ref = readRecord(value) as DefaultVoiceRefLike | undefined;
 
   if (ref?.source !== 'catalog' || !isHeygenProvider(ref.provider)) {

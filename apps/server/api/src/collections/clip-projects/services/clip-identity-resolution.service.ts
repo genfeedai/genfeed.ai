@@ -1,6 +1,6 @@
+import { resolveClipIdentity } from '@api/collections/clip-projects/services/clip-identity-resolution.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { resolveClipIdentity } from '@api/collections/clip-projects/services/clip-identity-resolution.util';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
 
