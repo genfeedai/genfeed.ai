@@ -13,6 +13,7 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import type { CredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -145,15 +146,23 @@ export class PostAnalyticsService extends BaseService<
       return null;
     }
 
+    // Scalar FKs only. The relation aliases are populated objects on this call
+    // path (PostsService.findOne populates brand + user), so `String(post.brand)`
+    // wrote "[object Object]" and every upsert failed with a P2003 FK violation.
+    const owner = this.resolvePostOwner(post);
+    if (!owner) {
+      return null;
+    }
+
     const result = await this.prisma.postAnalytics.upsert({
       create: {
-        brandId: String(post.brand),
+        brandId: owner.brandId,
         date: today,
         engagementRate,
-        organizationId: String(post.organization),
+        organizationId: owner.organizationId,
         platform,
         postId,
-        userId: String(post.user),
+        userId: owner.userId,
         ...metrics,
         ...increments,
       } as never,
@@ -320,10 +329,20 @@ export class PostAnalyticsService extends BaseService<
 
   async trackPostAnalytics(
     post: PostDocument,
-    credential: CredentialEntity,
+    credential: CredentialEntity | null | undefined,
     url: string,
   ) {
     try {
+      const postId = post.id?.toString() || String(post.id);
+
+      // `credential` is undefined whenever the post was loaded without a
+      // populate (BaseService never back-fills the credential alias), which
+      // used to blow up on `credential.platform` and get swallowed below.
+      if (!credential?.platform) {
+        this.logger.error(`${url} Missing credential for post ${postId}`);
+        return;
+      }
+
       const platform = credential.platform;
       let analytics: {
         totalViews: number;
@@ -333,62 +352,76 @@ export class PostAnalyticsService extends BaseService<
         totalSaves: number;
       } | null = null;
 
-      const postId = post.id?.toString() || String(post.id);
       if (!post.externalId) {
         this.logger.warn(`${url} No external ID for post ${postId}`);
         return;
       }
 
+      // `PostDocument` types `externalId` through its index signature, so the
+      // truthiness guard above narrows it to `{}` rather than `string`.
+      const externalId = String(post.externalId);
+
+      // Scalar FKs, never the relation aliases: depending on the caller's
+      // populate those aliases are objects, id strings, or undefined, so
+      // `post.brand.toString()` silently produced "[object Object]" and
+      // queried the wrong brand's analytics.
+      const owner = this.resolvePostOwner(post);
+      if (!owner) {
+        return;
+      }
+
+      const { brandId, organizationId, userId } = owner;
+
       switch (platform) {
         case CREDENTIAL_PLATFORM.YOUTUBE:
           analytics = await this.getYoutubeAnalytics(
-            post.organization.toString(),
-            post.brand.toString(),
-            post.externalId,
+            organizationId,
+            brandId,
+            externalId,
           );
           break;
 
         case CREDENTIAL_PLATFORM.TIKTOK:
           analytics = await this.getTiktokAnalytics(
-            post.organization.toString(),
-            post.brand.toString(),
-            post.externalId,
+            organizationId,
+            brandId,
+            externalId,
           );
           break;
 
         case CREDENTIAL_PLATFORM.INSTAGRAM:
           analytics = await this.getInstagramAnalytics(
-            post.organization.toString(),
-            post.brand.toString(),
-            post.externalId,
+            organizationId,
+            brandId,
+            externalId,
           );
           break;
 
         case CREDENTIAL_PLATFORM.TWITTER:
-          analytics = await this.getTwitterAnalytics(post.externalId);
+          analytics = await this.getTwitterAnalytics(externalId);
           break;
 
         case CREDENTIAL_PLATFORM.PINTEREST:
           analytics = await this.getPinterestAnalytics(
-            post.organization.toString(),
-            post.brand.toString(),
-            post.externalId,
+            organizationId,
+            brandId,
+            externalId,
           );
           break;
 
         case CREDENTIAL_PLATFORM.LINKEDIN:
           analytics = await this.getLinkedInAnalytics(
-            post.organization.toString(),
-            post.brand.toString(),
-            post.externalId,
+            organizationId,
+            brandId,
+            externalId,
           );
           break;
 
         case CREDENTIAL_PLATFORM.MASTODON:
           analytics = await this.getMastodonAnalytics(
-            post.organization.toString(),
-            post.brand.toString(),
-            post.externalId,
+            organizationId,
+            brandId,
+            externalId,
           );
           break;
         default:
@@ -400,7 +433,7 @@ export class PostAnalyticsService extends BaseService<
         const postIngredients = Array.isArray(post.ingredients)
           ? post.ingredients
           : [];
-        if (!post.id || postIngredients.length === 0 || !post.user) {
+        if (!post.id || postIngredients.length === 0) {
           this.logger.error(`${url} Missing required post fields`, {
             postId: postId,
           });
@@ -411,10 +444,10 @@ export class PostAnalyticsService extends BaseService<
         today.setHours(0, 0, 0, 0);
 
         await this.findOrCreateTodayAnalytics(postId, platform, {
-          brandId: post.brand.toString(),
+          brandId,
           date: today,
           engagementRate: 0,
-          organizationId: post.organization.toString(),
+          organizationId,
           platform,
           postId,
           totalComments: 0,
@@ -427,7 +460,7 @@ export class PostAnalyticsService extends BaseService<
           totalSharesIncrement: 0,
           totalViews: 0,
           totalViewsIncrement: 0,
-          userId: post.user.toString(),
+          userId,
         } as never);
 
         await this.updateTodayAnalytics(postId, platform, analytics);
@@ -448,6 +481,41 @@ export class PostAnalyticsService extends BaseService<
         error,
       );
     }
+  }
+
+  /**
+   * Resolves the post's owning brand/organization/user from its scalar foreign
+   * keys, falling back to the legacy relation aliases only when they carry a
+   * usable id. Returns null (and logs) rather than letting an unresolvable id
+   * reach a non-nullable FK column or a platform analytics lookup.
+   *
+   * @see .agents/memory/rules/prisma_legacy_alias_fields.md
+   */
+  private resolvePostOwner(post: PostDocument): {
+    brandId: string;
+    organizationId: string;
+    userId: string;
+  } | null {
+    const brandId = resolveRelationId(post.brandId, post.brand);
+    const organizationId = resolveRelationId(
+      post.organizationId,
+      post.organization,
+    );
+    const userId = resolveRelationId(post.userId, post.user);
+
+    if (!brandId || !organizationId || !userId) {
+      this.logger.error(
+        `Post ${post.id ?? 'unknown'} is missing resolvable owner ids for analytics`,
+        {
+          hasBrandId: Boolean(brandId),
+          hasOrganizationId: Boolean(organizationId),
+          hasUserId: Boolean(userId),
+        },
+      );
+      return null;
+    }
+
+    return { brandId, organizationId, userId };
   }
 
   private async getYoutubeAnalytics(

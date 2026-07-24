@@ -19,6 +19,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import {
@@ -217,12 +218,14 @@ export class AgentRunsController extends BaseCRUDController<
       return true;
     }
 
-    const entityOrganizationId =
-      (entity.organization as unknown as { id: string })?.id?.toString() ||
-      entity.organization?.toString();
-    const entityBrandId =
-      (entity.brand as unknown as { id?: string })?.id?.toString() ||
-      entity.brand?.toString();
+    // Scalar FKs first — the relations are only present when the row was
+    // loaded with a populate, so reading the aliases alone denied legitimate
+    // owners and skipped the brand check entirely.
+    const entityOrganizationId = resolveRelationId(
+      entity.organizationId,
+      entity.organization,
+    );
+    const entityBrandId = resolveRelationId(entity.brandId, entity.brand);
 
     if (
       publicMetadata.brand &&

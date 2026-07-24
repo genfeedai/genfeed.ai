@@ -14,6 +14,10 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import {
+  requireRelationId,
+  resolveRelationId,
+} from '@api/shared/utils/relation-id/relation-id.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import type {
@@ -379,13 +383,20 @@ export class PostsService extends BaseService<
   }
 
   private async completePublishFirstPostMission(
-    post: Pick<PostDocument, 'organization'>,
+    post: Pick<PostDocument, 'organization'> & { organizationId?: unknown },
   ): Promise<void> {
     if (!this.organizationSettingsService || !this.creditsUtilsService) {
       return;
     }
 
-    const organizationId = String(post.organization);
+    // `String(post.organization)` yielded the literal "undefined" (truthy, so
+    // the guard below never fired) whenever the patched post carried no
+    // populated organization — which then looked up settings for a
+    // non-existent organization id.
+    const organizationId = resolveRelationId(
+      post.organizationId,
+      post.organization,
+    );
     if (!organizationId) {
       return;
     }
@@ -490,13 +501,33 @@ export class PostsService extends BaseService<
           ? user.authProviderId
           : undefined;
 
+      // Scalar FKs first. `post.user` is a populated relation object on this
+      // call path (needed above for `authProviderId`), so `post.user.toString()`
+      // produced "[object Object]"; `post.brand` / `post.organization` are
+      // whatever the caller's populate happened to load. Fail closed rather
+      // than enqueueing a job with an unusable owner id.
+      const postRef = `Post ${postId}`;
+      const brandId = requireRelationId(
+        post.brandId,
+        post.brand,
+        'brand',
+        postRef,
+      );
+      const organizationId = requireRelationId(
+        post.organizationId,
+        post.organization,
+        'organization',
+        postRef,
+      );
+      const userId = requireRelationId(post.userId, post.user, 'user', postRef);
+
       await this.fileQueueService?.uploadYoutube({
-        brandId: post.brand.toString(),
+        brandId,
         authProviderUserId,
         credentialId: credential.id.toString(),
         description: post.description || '',
         ingredientId: ingredient.id.toString(),
-        organizationId: post.organization.toString(),
+        organizationId,
         postId,
         room: authProviderUserId
           ? getUserRoomName(authProviderUserId)
@@ -509,7 +540,7 @@ export class PostsService extends BaseService<
               typeof tag === 'object' && tag?.name ? tag.name : String(tag),
           ) || [],
         title: post.label || 'Untitled',
-        userId: post.user.toString(),
+        userId,
         websocketUrl: process.env.WEBSOCKET_URL,
       });
 

@@ -22,6 +22,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -236,9 +237,16 @@ export class TasksController extends BaseCRUDController<
     entity: TaskDocument,
   ): boolean {
     const publicMetadata = getPublicMetadata(user);
-    const entityOrganizationId =
-      (entity.organization as unknown as { id?: string })?.id?.toString() ||
-      entity.organization?.toString();
+    // Scalar FK first, and both sides must be present: comparing two absent
+    // ids (`undefined === undefined`) previously granted write access.
+    const entityOrganizationId = resolveRelationId(
+      entity.organizationId,
+      entity.organization,
+    );
+
+    if (!entityOrganizationId || !publicMetadata.organization) {
+      return false;
+    }
 
     return entityOrganizationId === publicMetadata.organization;
   }

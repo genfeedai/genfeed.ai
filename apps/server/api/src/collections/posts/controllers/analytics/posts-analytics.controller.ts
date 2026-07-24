@@ -10,6 +10,10 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
+import {
+  requireRelationId,
+  resolveRelationId,
+} from '@api/shared/utils/relation-id/relation-id.util';
 import { MemberRole, PostStatus, PublishStatus } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -172,11 +176,39 @@ export class PostsAnalyticsController {
       }
     }
 
-    // Get credential for the post
+    // Get credential for the post.
+    //
+    // Scalar FKs only. `post.credential` is never back-filled by
+    // `BaseService.normalizeDocument`, and `post.brand` / `post.organization`
+    // are populated relation objects on this call path — so the previous
+    // `{ _id: post.credential, brand: post.brand, organization: post.organization }`
+    // filter had `undefined` and object values that `normalizeWhere` drops,
+    // silently unscoping the lookup from both the brand and the organization.
+    // `requireRelationId` fails closed instead: no id, no query.
+    const postRef = `Post ${postId}`;
+    const credentialId = requireRelationId(
+      post.credentialId,
+      post.credential,
+      'credential',
+      postRef,
+    );
+    const brandId = requireRelationId(
+      post.brandId,
+      post.brand,
+      'brand',
+      postRef,
+    );
+    const organizationId = requireRelationId(
+      post.organizationId,
+      post.organization,
+      'organization',
+      postRef,
+    );
+
     const credential = await this.credentialsService.findOne({
-      _id: post.credential,
-      brand: post.brand,
-      organization: post.organization,
+      _id: credentialId,
+      brandId,
+      organizationId,
     });
 
     if (!credential) {
@@ -274,12 +306,49 @@ export class PostsAnalyticsController {
       let successCount = 0;
       let errorCount = 0;
 
+      // `findAll` loads no relations, so `post.credential` was always
+      // `undefined` here — every post in the batch reached the analytics
+      // service without a credential. Resolve it from the scalar FK instead,
+      // memoized per credential id so one connected account is fetched once
+      // rather than once per post.
+      const credentialCache = new Map<string, CredentialEntity | null>();
+
       for (const post of posts.docs || []) {
         try {
+          const credentialId = resolveRelationId(
+            post.credentialId,
+            post.credential,
+          );
+
+          if (!credentialId) {
+            errorCount++;
+            this.loggerService.error(
+              `Post ${post.id} has no resolvable credential id`,
+            );
+            continue;
+          }
+
+          let credential = credentialCache.get(credentialId);
+          if (credential === undefined) {
+            credential = (await this.credentialsService.findOne({
+              _id: credentialId,
+              organizationId: publicMetadata.organization,
+            })) as unknown as CredentialEntity | null;
+            credentialCache.set(credentialId, credential);
+          }
+
+          if (!credential) {
+            errorCount++;
+            this.loggerService.error(
+              `Credential ${credentialId} is not available for post ${post.id}`,
+            );
+            continue;
+          }
+
           const trackUrl = `${url} trackPostAnalytics:${post.id}`;
           await this.postAnalyticsService.trackPostAnalytics(
             post,
-            post.credential as unknown as CredentialEntity,
+            credential,
             trackUrl,
           );
           successCount++;
