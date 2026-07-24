@@ -117,6 +117,20 @@ describe('ApiKeysService', () => {
           userId: 'user-1',
         } as ApiKeyDocument),
       ).toBe(ActionOrigin.CLI);
+      const mcpProof = createHmac('sha256', 'test-signing-secret')
+        .update('mcp:user-1:org-1:fingerprint')
+        .digest('base64url');
+      expect(
+        service.resolveActionOrigin({
+          metadata: {
+            [API_KEY_ACTION_ORIGIN_METADATA_KEY]: ActionOrigin.MCP,
+            [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: mcpProof,
+          },
+          keyFingerprint: 'fingerprint',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        } as ApiKeyDocument),
+      ).toBe(ActionOrigin.MCP);
       expect(
         service.resolveActionOrigin({
           metadata: {

@@ -6,7 +6,6 @@ import { ElementsSoundsService } from '@api/collections/elements/sounds/services
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
-import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import { SoundCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -49,14 +48,6 @@ describe('ElementsSoundsController', () => {
     publicMetadata: {
       brand: '507f191e810c19729de860ee'.toString(),
       organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
-  } as unknown as User;
-
-  const mockUserWithoutOrg = {
-    id: 'user-456',
-    publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
     } as IAuthPublicMetadata,
   } as unknown as User;
@@ -305,75 +296,6 @@ describe('ElementsSoundsController', () => {
     });
   });
 
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline for user with organization', () => {
-      const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      expect(pipeline).toHaveLength(2);
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.$or).toBeDefined();
-      expect(matchStage.$match.$or).toHaveLength(1);
-      expect(matchStage.$match.isDeleted).toBe(false);
-    });
-
-    it('should build pipeline for user without organization', () => {
-      const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(
-        mockUserWithoutOrg,
-        query,
-      );
-
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.$or).toBeUndefined();
-      expect(matchStage.$match.isDeleted).toBe(false);
-    });
-
-    it('should filter by isFavorite when provided', () => {
-      const query = createBaseQuery({ isFavorite: true });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.isFavorite).toBe(true);
-    });
-
-    it('should handle isDeleted parameter', () => {
-      const query = createBaseQuery({ isDeleted: true });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.isDeleted).toBe(true);
-    });
-
-    it('should include sorting stage', () => {
-      const query = createBaseQuery({ sort: 'name: 1, duration: -1' });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      expect(pipeline).toHaveLength(2);
-      const sortStage = asSortStage(pipeline[1]);
-      expect(sortStage.$sort).toBeDefined();
-    });
-
-    it('should load organization sounds', () => {
-      const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      const orConditions = matchStage.$match.$or as Array<
-        Record<string, unknown>
-      >;
-
-      expect(orConditions).toEqual([
-        {
-          organizationId: mockUser.publicMetadata.organization as string,
-        },
-      ]);
-      expect(orConditions[0].organizationId).toEqual(
-        mockUser.publicMetadata.organization as string,
-      );
-    });
-  });
-
   describe('role restrictions', () => {
     it('should have roles metadata on controller methods', () => {
       // Test that the controller has the expected methods decorated
@@ -462,9 +384,8 @@ describe('ElementsSoundsController', () => {
       const query = createBaseQuery({ isFavorite: true });
       await controller.findAll(mockRequest, mockUser, query);
 
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.isFavorite).toBe(true);
+      const findAllQuery = controller.buildFindAllQuery(mockUser, query);
+      expect(findAllQuery.where?.isFavorite).toBe(true);
     });
   });
 

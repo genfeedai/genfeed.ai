@@ -6,7 +6,6 @@ import { ElementsLightingsService } from '@api/collections/elements/lightings/se
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
-import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import { LightingSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -54,16 +53,6 @@ describe('ElementsLightingsController', () => {
     publicMetadata: {
       brand: '507f191e810c19729de860ee'.toString(),
       isSuperAdmin: true,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
-  } as unknown as User;
-
-  const mockRegularUser = {
-    id: 'user-456',
-    publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      isSuperAdmin: false,
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
     } as IAuthPublicMetadata,
@@ -120,49 +109,6 @@ describe('ElementsLightingsController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with organization filter', () => {
-      const query = createBaseQuery();
-
-      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
-
-      expect(result).toHaveLength(2);
-      expect(result[0]).toHaveProperty('$match');
-      expect(asMatchStage(result[0]).$match).toHaveProperty('isDeleted', false);
-      expect(result[1]).toHaveProperty('$sort');
-    });
-
-    it('should build pipeline with search filter', () => {
-      const query = createBaseQuery({ search: 'soft' });
-
-      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
-
-      expect(result.length).toBeGreaterThan(1);
-      const searchStage = result.find((stage) => {
-        const match = asMatchStage(stage).$match;
-        return match?.$or;
-      });
-      expect(searchStage).toBeDefined();
-    });
-
-    it('should build pipeline with custom sort', () => {
-      const query = createBaseQuery({ sort: '-label' });
-
-      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
-
-      expect(result).toHaveLength(2);
-      expect(asSortStage(result[1]).$sort).toBeDefined();
-    });
-
-    it('should build pipeline for users with organization', () => {
-      const query = createBaseQuery();
-
-      const result = controller.buildFindAllPipeline(mockRegularUser, query);
-
-      expect(asMatchStage(result[0]).$match).toHaveProperty('$or');
-    });
   });
 
   describe('create', () => {

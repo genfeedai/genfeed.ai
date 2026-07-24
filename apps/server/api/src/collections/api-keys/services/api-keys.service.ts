@@ -109,7 +109,7 @@ export class ApiKeysService extends BaseService<
       userId: string;
       organizationId: string;
     },
-    trustedOrigin?: ActionOrigin.CLI | ActionOrigin.UI,
+    trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI,
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
     const scopes = createApiKeyDto.scopes ?? [...DEFAULT_API_KEY_SCOPES];
     this.assertValidScopes(scopes);
@@ -145,7 +145,7 @@ export class ApiKeysService extends BaseService<
       userId: string;
       organizationId: string;
     },
-    trustedOrigin?: ActionOrigin.CLI | ActionOrigin.UI,
+    trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI,
   ): Promise<{ apiKey: ApiKeyDocument; plainKey: string }> {
     const replacement = trustedOrigin
       ? await this.createWithKey(createApiKeyDto, trustedOrigin)
@@ -281,7 +281,9 @@ export class ApiKeysService extends BaseService<
     const origin = metadata[API_KEY_ACTION_ORIGIN_METADATA_KEY];
     const proof = metadata[API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY];
     if (
-      (origin !== ActionOrigin.CLI && origin !== ActionOrigin.UI) ||
+      (origin !== ActionOrigin.CLI &&
+        origin !== ActionOrigin.MCP &&
+        origin !== ActionOrigin.UI) ||
       typeof proof !== 'string'
     ) {
       return ActionOrigin.API;
@@ -302,13 +304,47 @@ export class ApiKeysService extends BaseService<
       : ActionOrigin.API;
   }
 
+  isMcpOAuthSession(apiKey: ApiKeyDocument): boolean {
+    const metadata =
+      apiKey.metadata &&
+      typeof apiKey.metadata === 'object' &&
+      !Array.isArray(apiKey.metadata)
+        ? (apiKey.metadata as Record<string, unknown>)
+        : {};
+    return metadata.kind === 'mcp-oauth-session';
+  }
+
+  hasTrustedMcpOriginProof(supplied: unknown): boolean {
+    if (!isCloudDeployment()) {
+      return true;
+    }
+
+    const configured = this.configService.get('GENFEEDAI_API_KEY');
+    if (
+      typeof configured !== 'string' ||
+      configured.length === 0 ||
+      typeof supplied !== 'string'
+    ) {
+      return false;
+    }
+
+    const expected = crypto
+      .createHash('sha256')
+      .update(configured)
+      .digest('base64url');
+    return (
+      expected.length === supplied.length &&
+      crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(supplied))
+    );
+  }
+
   private buildApiKeyMetadata(
     dto: Pick<CreateApiKeyDto, 'metadata'> & {
       organizationId: string;
       userId: string;
     },
     keyFingerprint: string,
-    trustedOrigin?: ActionOrigin.CLI | ActionOrigin.UI,
+    trustedOrigin?: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI,
   ): Record<string, unknown> | undefined {
     const {
       [API_KEY_ACTION_ORIGIN_METADATA_KEY]: _untrustedOrigin,
@@ -338,7 +374,7 @@ export class ApiKeysService extends BaseService<
   }
 
   private signActionOrigin(
-    origin: ActionOrigin.CLI | ActionOrigin.UI,
+    origin: ActionOrigin.CLI | ActionOrigin.MCP | ActionOrigin.UI,
     userId: string,
     organizationId: string,
     keyFingerprint: string | null,

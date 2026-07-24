@@ -1,6 +1,10 @@
 import * as crypto from 'node:crypto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { assertSafeWebhookEndpoint } from '@api/services/webhook-client/webhook-endpoint.validator';
+import {
+  assertSafeWebhookEndpoint,
+  WebhookEndpointValidationError,
+} from '@api/services/webhook-client/webhook-endpoint.validator';
+import { redactPublishWebhookText } from '@api-types/contracts/publish-webhook-events.contract';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import {
   WEBHOOK_CLIENT_QUEUE,
@@ -9,7 +13,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import { firstValueFrom } from 'rxjs';
 
 @Processor(WEBHOOK_CLIENT_QUEUE)
@@ -40,7 +44,14 @@ export class WebhookClientProcessor extends WorkerHost {
     });
 
     try {
-      await assertSafeWebhookEndpoint(endpoint);
+      try {
+        await assertSafeWebhookEndpoint(endpoint);
+      } catch (error: unknown) {
+        if (error instanceof WebhookEndpointValidationError) {
+          throw new UnrecoverableError(redactPublishWebhookText(error.message));
+        }
+        throw error;
+      }
       await job.updateProgress(10);
 
       const payloadString = JSON.stringify(payload);
@@ -95,7 +106,6 @@ export class WebhookClientProcessor extends WorkerHost {
         this.logger.warn(
           `${this.constructorName} webhook rejected by endpoint`,
           {
-            endpoint,
             jobId: job.id,
             organizationId,
             statusCode: response.status,
@@ -103,11 +113,16 @@ export class WebhookClientProcessor extends WorkerHost {
         );
       }
     } catch (error: unknown) {
+      const errorMessage = redactPublishWebhookText(
+        readErrorMessage(error) || 'Webhook delivery failed',
+      );
+      const errorCode = readErrorCode(error);
+
       await this.recordDeliveryStatus(organizationId, {
         attempt,
         attemptedAt: new Date().toISOString(),
         deliveryId,
-        error: (error as Error)?.message || 'Webhook delivery failed',
+        error: errorMessage,
         event: payload.event,
         isTest: Boolean(isTest),
         status: 'failed',
@@ -116,9 +131,8 @@ export class WebhookClientProcessor extends WorkerHost {
 
       this.logger.error(`${this.constructorName} webhook delivery failed`, {
         attempt,
-        // @ts-expect-error TS2339
-        code: (error as Error)?.code,
-        error: (error as Error)?.message,
+        code: errorCode ? redactPublishWebhookText(errorCode) : undefined,
+        error: errorMessage,
         event: payload.event,
         ingredientId,
         jobId: job.id,
@@ -126,8 +140,11 @@ export class WebhookClientProcessor extends WorkerHost {
         organizationId,
       });
 
-      // Re-throw to trigger retry
-      throw error;
+      // Re-throw a sanitized error with the original retry class so BullMQ
+      // never persists credential material in the job's failedReason or stack.
+      throw error instanceof UnrecoverableError
+        ? new UnrecoverableError(errorMessage)
+        : new Error(errorMessage);
     }
   }
 
@@ -143,7 +160,9 @@ export class WebhookClientProcessor extends WorkerHost {
     } catch (error: unknown) {
       this.logger.warn(`${this.constructorName} failed to record status`, {
         deliveryId: status.deliveryId,
-        error: (error as Error)?.message,
+        error: redactPublishWebhookText(
+          readErrorMessage(error) || 'Failed to record webhook delivery status',
+        ),
         organizationId,
       });
     }
@@ -154,4 +173,14 @@ function readHttpStatusCode(error: unknown): number | undefined {
   const status = (error as { response?: { status?: unknown } })?.response
     ?.status;
   return typeof status === 'number' ? status : undefined;
+}
+
+function readErrorMessage(error: unknown): string | undefined {
+  const message = (error as { message?: unknown })?.message;
+  return typeof message === 'string' ? message : undefined;
+}
+
+function readErrorCode(error: unknown): string | undefined {
+  const code = (error as { code?: unknown })?.code;
+  return typeof code === 'string' ? code : undefined;
 }

@@ -11,7 +11,7 @@ Next.js App Router. Next 16: the middleware file is `proxy.ts`, not `middleware.
 ## Component rules
 
 - `function` declarations (not arrow), default export. Colocated `*.test.tsx`.
-- Never raw HTML elements (`<button>`, `<input>`, `<table>`, …) — use `@ui/primitives/*`. Enforced by `scripts/lint-no-raw-html.sh` pre-commit. Unstyled usage: `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button` inside `Button` — restructure as siblings.
+- Never raw HTML elements (`<button>`, `<input>`, `<table>`, …) — use `@ui/primitives/*`. Enforced by `scripts/ui/control-guard.ts` (pre-commit via lint-staged, and CI `check:ui-guards`). Unstyled usage: `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button` inside `Button` — restructure as siblings.
 - Every `useEffect` with async calls uses an `AbortController`.
 - Prop interfaces live in `packages/props/`, never inline.
 - Card sizing via `size` prop; padding via `bodyClassName`. Premium surfaces use `gen-*` design classes.

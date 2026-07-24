@@ -1,6 +1,7 @@
 'use client';
 
 import AppProtectedLayout from '@app-components/app-protected-layout';
+import { SessionKeepAlive } from '@genfeedai/auth-client';
 import { FeatureFlagProvider } from '@hooks/feature-flags/provider';
 import type { ProtectedBootstrapProps } from '@props/layout/protected-bootstrap.props';
 import { ErrorBoundary } from '@ui/error';
@@ -20,6 +21,14 @@ export default function ProtectedLayoutClient({
 
   return (
     <FeatureFlagProvider fallbacks={CORE_APP_FEATURE_FLAG_FALLBACKS}>
+      {/*
+        Pins the Better Auth session store active for the whole protected shell.
+        Mounted here — above AppProtectedLayout's internal Suspense boundaries —
+        so it never unmounts while lazy children suspend, collapsing the
+        cold-compile get-session request storm to a single fetch. See
+        SessionKeepAlive for the nanostores STORE_UNMOUNT_DELAY details.
+      */}
+      <SessionKeepAlive />
       <AppProtectedLayout initialBootstrap={initialBootstrap}>
         <ErrorBoundary>{children}</ErrorBoundary>
       </AppProtectedLayout>

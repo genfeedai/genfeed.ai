@@ -82,12 +82,6 @@ export { Modal } from './modals/compound/modal.compound';
 export * from './primitives';
 export { SidebarNavItem } from './sidebar/SidebarNavItem';
 export { SidebarSection } from './sidebar/SidebarSection';
-// Task Composer
-export {
-  type ContentType,
-  ContentTypePresets,
-} from './task-composer/ContentTypePresets';
-export { TaskComposerModal } from './task-composer/TaskComposerModal';
 
 // Status & priority color tokens
 export {

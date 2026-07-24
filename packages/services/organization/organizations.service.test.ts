@@ -75,6 +75,82 @@ describe('OrganizationsService', () => {
     });
   });
 
+  describe('getMyOrganizations', () => {
+    it('coalesces concurrent callers onto a single GET /mine request', async () => {
+      const testableService =
+        service as unknown as TestableOrganizationsService;
+      let resolveGet: (value: { data: OrganizationListItem[] }) => void =
+        () => {
+          // assigned synchronously by the Promise executor below
+        };
+      const get = vi.fn().mockReturnValue(
+        new Promise<{ data: OrganizationListItem[] }>((resolve) => {
+          resolveGet = resolve;
+        }),
+      );
+      testableService.instance = { get };
+
+      const first = service.getMyOrganizations();
+      const second = service.getMyOrganizations();
+
+      // Both callers share the one in-flight promise while it is pending.
+      expect(get).toHaveBeenCalledTimes(1);
+      expect(first).toBe(second);
+
+      resolveGet({ data: [{ id: 'org_1', label: 'Org 1', slug: 'org-1' }] });
+      await first;
+    });
+
+    it('refetches after the in-flight request settles', async () => {
+      const testableService =
+        service as unknown as TestableOrganizationsService;
+      const get = vi
+        .fn()
+        .mockResolvedValue({ data: [] as OrganizationListItem[] });
+      testableService.instance = { get };
+
+      await service.getMyOrganizations();
+      await service.getMyOrganizations();
+
+      // The cache is in-flight-only (no TTL): a settled request clears the
+      // field, so the next mount cycle fetches fresh membership data.
+      expect(get).toHaveBeenCalledTimes(2);
+    });
+
+    it('drops duplicate organizations by id', async () => {
+      const testableService =
+        service as unknown as TestableOrganizationsService;
+      const get = vi.fn().mockResolvedValue({
+        data: [
+          { id: 'org_1', label: 'Org 1', slug: 'org-1' },
+          { id: 'org_1', label: 'Org 1 dupe', slug: 'org-1' },
+          { id: 'org_2', label: 'Org 2', slug: 'org-2' },
+        ],
+      });
+      testableService.instance = { get };
+
+      const result = await service.getMyOrganizations();
+
+      expect(get).toHaveBeenCalledWith('/mine');
+      expect(result.map((org) => org.id)).toEqual(['org_1', 'org_2']);
+    });
+
+    it('clears the in-flight promise when the request rejects', async () => {
+      const testableService =
+        service as unknown as TestableOrganizationsService;
+      const get = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('network'))
+        .mockResolvedValueOnce({ data: [] as OrganizationListItem[] });
+      testableService.instance = { get };
+
+      await expect(service.getMyOrganizations()).rejects.toThrow('network');
+      // A failed request must not poison the cache — the next caller retries.
+      await expect(service.getMyOrganizations()).resolves.toEqual([]);
+      expect(get).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('getAllOrganizations', () => {
     it('uses API-safe pagination and returns all organization pages', async () => {
       const testableService =

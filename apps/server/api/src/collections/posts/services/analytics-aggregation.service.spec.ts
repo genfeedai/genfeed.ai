@@ -11,8 +11,12 @@ describe('AnalyticsAggregationService', () => {
     });
     const postAnalyticsGroupBy = vi.fn().mockResolvedValue([]);
     const postsCount = vi.fn().mockResolvedValue(0);
+    const brandCount = vi.fn().mockResolvedValue(0);
     const service = new AnalyticsAggregationService(
       {
+        brand: {
+          count: brandCount,
+        },
         postAnalytics: {
           aggregate: postAnalyticsAggregate,
           groupBy: postAnalyticsGroupBy,
@@ -53,6 +57,46 @@ describe('AnalyticsAggregationService', () => {
       brandId: 'brand_1',
       isDeleted: false,
       organizationId: 'org_1',
+    });
+    expect(brandCount).toHaveBeenCalledWith({
+      where: { isDeleted: false, organizationId: 'org_1' },
+    });
+  });
+
+  it('counts brands org-scoped, ignoring the brand filter', async () => {
+    const postAnalyticsAggregate = vi.fn().mockResolvedValue({
+      _avg: { engagementRate: null },
+      _count: { _all: 0 },
+      _sum: {},
+    });
+    const postAnalyticsGroupBy = vi.fn().mockResolvedValue([]);
+    const postsCount = vi.fn().mockResolvedValue(0);
+    const brandCount = vi.fn().mockResolvedValue(3);
+    const service = new AnalyticsAggregationService(
+      {
+        brand: {
+          count: brandCount,
+        },
+        postAnalytics: {
+          aggregate: postAnalyticsAggregate,
+          groupBy: postAnalyticsGroupBy,
+        },
+      } as unknown as PrismaService,
+      {
+        count: postsCount,
+      } as unknown as PostsService,
+    );
+
+    const metrics = await service.getOverviewMetrics(
+      'org_1',
+      undefined,
+      '2026-04-01',
+      '2026-04-14',
+    );
+
+    expect(metrics.totalBrands).toBe(3);
+    expect(brandCount).toHaveBeenCalledWith({
+      where: { isDeleted: false, organizationId: 'org_1' },
     });
   });
 });

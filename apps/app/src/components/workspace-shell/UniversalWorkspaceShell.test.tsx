@@ -543,9 +543,10 @@ describe('UniversalWorkspaceShell', () => {
       screen.getAllByText('Authoritative Analytics context').length,
     ).toBeGreaterThan(0);
     expect(screen.getByText('Visible analytics query')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Registered analytics adapter slot'),
-    ).not.toBeInTheDocument();
+    // The inspector renders the adapter's real context, never developer copy:
+    // no raw `route:/…` breadcrumb and no `Registered … adapter slot` fallback.
+    expect(screen.queryByText(/adapter slot/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^route:\//)).not.toBeInTheDocument();
   });
 
   it('mounts the brand overview registration in the harness inspector', async () => {
@@ -563,9 +564,30 @@ describe('UniversalWorkspaceShell', () => {
       await screen.findByTestId('workspace-surface-adapter-inspector'),
     ).toHaveTextContent('Brand Workspace overview');
     expect(screen.getByTestId('canonical-brand-overview')).toBeInTheDocument();
+    // Resolved workspace adapters render the human title/description, never the
+    // terminal developer fallback string or a raw route pattern.
+    expect(screen.queryByText(/adapter slot/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^route:\//)).not.toBeInTheDocument();
+  });
+
+  it('renders a human empty state — not developer copy — when no surface adapter resolves', () => {
+    navigation.pathname = '/acme/moonrise/analytics/posts';
+    navigation.searchParams = new URLSearchParams({ thread: 'thread-1' });
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div data-testid="canonical-canvas">Analytics canvas</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    // With no adapter registered, the inspector shows a user-facing empty state…
+    expect(screen.getByText(/context yet$/)).toBeInTheDocument();
     expect(
-      screen.queryByText('Registered workspace-overview adapter slot'),
-    ).not.toBeInTheDocument();
+      screen.queryByTestId('workspace-surface-adapter-inspector'),
+    ).toBeNull();
+    // …and never leaks the terminal adapter-slot string or a raw route pattern.
+    expect(screen.queryByText(/adapter slot/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^route:\//)).not.toBeInTheDocument();
   });
 
   it('launches the organization overview from organization conversation scope', () => {

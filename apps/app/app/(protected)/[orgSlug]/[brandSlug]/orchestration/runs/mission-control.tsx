@@ -74,6 +74,17 @@ function MissionControlContent() {
   });
   const { activeRuns, refresh: refreshActive } = useActiveAgentRuns();
 
+  // The active-runs poll (/runs/active) and the history query (/runs?historyOnly)
+  // overlap the instant a run finishes: the just-failed run lands in history
+  // while it's still in the active poll, so the same run.error rendered in both
+  // ActiveRunsPanel and RunHistoryList — one failure shown twice. History is the
+  // canonical/persistent source, so drop any active run already present there.
+  const dedupedActiveRuns = useMemo(() => {
+    if (activeRuns.length === 0) return activeRuns;
+    const historyRunIds = new Set(runs.map((run) => run.id));
+    return activeRuns.filter((run) => !historyRunIds.has(run.id));
+  }, [activeRuns, runs]);
+
   const refreshAll = useCallback(async () => {
     await Promise.all([refresh(), refreshActive()]);
   }, [refresh, refreshActive]);
@@ -165,7 +176,7 @@ function MissionControlContent() {
 
         <RunRoutingInsights stats={stats} />
 
-        <ActiveRunsPanel runs={activeRuns} onCancel={cancelRun} />
+        <ActiveRunsPanel runs={dedupedActiveRuns} onCancel={cancelRun} />
 
         <div className="grid gap-3 md:grid-cols-4">
           <FormSearchbar

@@ -10,7 +10,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
-import { AssetEntity } from '@api/collections/assets/entities/asset.entity';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';

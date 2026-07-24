@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
+import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
+import { createMcpOriginProof } from '@mcp/shared/utils/mcp-origin-proof.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
@@ -74,6 +76,9 @@ export class AuthService {
       const baseUrl = resolveApiBaseUrl(
         this.configService.get('GENFEEDAI_API_URL') as string | undefined,
       );
+      const mcpOriginProof = createMcpOriginProof(
+        this.configService.get('GENFEEDAI_API_KEY') as string | undefined,
+      );
 
       // Single identity endpoint for BOTH token types: the API's global
       // CombinedAuthGuard routes `gf_` keys to ApiKeyAuthGuard and Better Auth
@@ -83,6 +88,9 @@ export class AuthService {
         this.httpService.get(`${baseUrl}/auth/whoami`, {
           headers: {
             Authorization: `Bearer ${bearerToken}`,
+            ...(mcpOriginProof
+              ? { [MCP_ACTION_ORIGIN_PROOF_HEADER]: mcpOriginProof }
+              : {}),
           },
           timeout: 5000,
         }),
@@ -159,7 +167,7 @@ export class AuthService {
   }
 
   extractBearerToken(authHeader: string | undefined): string | null {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return null;
     }
     return authHeader.substring(7);
