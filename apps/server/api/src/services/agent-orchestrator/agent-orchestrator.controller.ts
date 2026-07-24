@@ -10,12 +10,12 @@ import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AGENT_MODEL_TURN_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
+import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
 import type { AgentPageContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   authorizeResearchFindingReferences,
   isAuthorizedAnalyticsQueryReference,
 } from '@api/services/agent-orchestrator/utils/agent-page-context-authorization.util';
-import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -31,26 +31,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-
-interface AgentChatAttachment {
-  ingredientId: string;
-  url: string;
-  kind?: string;
-  name?: string;
-}
-
-interface AgentChatBody {
-  artifactReferences?: AgentArtifactReference[];
-  brandId?: string | null;
-  content: string;
-  expectedContextVersion?: number;
-  pageContext?: AgentPageContext;
-  planModeEnabled?: boolean;
-  threadId?: string;
-  model?: string;
-  source?: 'agent' | 'proactive' | 'onboarding';
-  attachments?: AgentChatAttachment[];
-}
 
 @ApiTags('Agent')
 @Controller('agent')
@@ -68,7 +48,7 @@ export class AgentOrchestratorController {
   @Post('threads/turns')
   @ApiOperation({ summary: 'Start an agent turn in a new or provided thread' })
   async createTurn(
-    @Body() body: AgentChatBody,
+    @Body() body: AgentChatBodyDto,
     @CurrentUser() user: User,
     @Headers('authorization') authorization?: string,
   ) {
@@ -79,7 +59,7 @@ export class AgentOrchestratorController {
   @ApiOperation({ summary: 'Start an agent turn in a thread' })
   async createThreadTurn(
     @Param('threadId') threadId: string,
-    @Body() body: AgentChatBody,
+    @Body() body: AgentChatBodyDto,
     @CurrentUser() user: User,
     @Headers('authorization') authorization?: string,
   ) {
@@ -91,7 +71,7 @@ export class AgentOrchestratorController {
     summary: 'Start a streaming agent turn in a new or provided thread',
   })
   async createTurnStream(
-    @Body() body: AgentChatBody,
+    @Body() body: AgentChatBodyDto,
     @CurrentUser() user: User,
     @Headers('authorization') authorization?: string,
   ) {
@@ -102,7 +82,7 @@ export class AgentOrchestratorController {
   @ApiOperation({ summary: 'Start a streaming agent turn in a thread' })
   async createThreadTurnStream(
     @Param('threadId') threadId: string,
-    @Body() body: AgentChatBody,
+    @Body() body: AgentChatBodyDto,
     @CurrentUser() user: User,
     @Headers('authorization') authorization?: string,
   ) {
@@ -110,7 +90,7 @@ export class AgentOrchestratorController {
   }
 
   private async runAgentTurn(
-    body: AgentChatBody,
+    body: AgentChatBodyDto,
     user: User,
     authorization?: string,
     routeThreadId?: string,
@@ -140,7 +120,7 @@ export class AgentOrchestratorController {
   }
 
   private async runAgentTurnStream(
-    body: AgentChatBody,
+    body: AgentChatBodyDto,
     user: User,
     authorization?: string,
     routeThreadId?: string,
@@ -173,9 +153,9 @@ export class AgentOrchestratorController {
   }
 
   private resolveAgentChatBody(
-    body: AgentChatBody,
+    body: AgentChatBodyDto,
     routeThreadId?: string,
-  ): AgentChatBody {
+  ): AgentChatBodyDto {
     if (routeThreadId && body.threadId && body.threadId !== routeThreadId) {
       throw new BadRequestException(
         'Request body threadId must match route threadId.',
@@ -202,11 +182,11 @@ export class AgentOrchestratorController {
   }
 
   private async resolveAuthorizedAgentChatBody(
-    body: AgentChatBody,
+    body: AgentChatBodyDto,
     user: User,
     organizationId: string,
     userId: string,
-  ): Promise<AgentChatBody> {
+  ): Promise<AgentChatBodyDto> {
     const pageContext = body.pageContext;
     if (!pageContext) {
       return body;
