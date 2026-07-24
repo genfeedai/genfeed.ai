@@ -1,4 +1,3 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -31,7 +30,6 @@ type SummaryCardProps = {
 export function useContentTeamPage() {
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
-  const { brands } = useBrand();
   const {
     strategies,
     isLoading: isStrategiesLoading,
@@ -73,11 +71,6 @@ export function useContentTeamPage() {
   const strategiesById = useMemo(
     () => new Map(strategies.map((strategy) => [strategy.id, strategy])),
     [strategies],
-  );
-
-  const brandLabelsById = useMemo(
-    () => new Map(brands.map((brand) => [brand.id, brand.label])),
-    [brands],
   );
 
   const groupedStrategies = useMemo(() => {
@@ -237,9 +230,9 @@ export function useContentTeamPage() {
       },
       {
         accent:
-          brandLabelsById.size > 0
-            ? `${brandLabelsById.size} brand context${brandLabelsById.size === 1 ? '' : 's'} available for shared defaults.`
-            : 'No brand context loaded.',
+          reviewInbox.readyCount > 0
+            ? `${reviewInbox.readyCount} ready for approval, ${reviewInbox.pendingCount} still generating.`
+            : 'Nothing waiting for approval right now.',
         href: APP_ROUTES.POSTS.REVIEW,
         label: 'Review Inbox',
         tone: 'Approvals',
@@ -247,8 +240,8 @@ export function useContentTeamPage() {
       },
     ],
     [
-      brandLabelsById.size,
       href,
+      reviewInbox.pendingCount,
       reviewInbox.readyCount,
       strategies,
       workflows.length,
