@@ -148,7 +148,9 @@ export class PublishEventWebhookService {
       }
 
       throw new BadRequestException(
-        (error as Error)?.message || 'Webhook test delivery failed',
+        redactPublishWebhookText(
+          (error as Error)?.message || 'Webhook test delivery failed',
+        ),
       );
     }
   }
@@ -216,7 +218,9 @@ export class PublishEventWebhookService {
       this.logger.error(
         `${this.constructorName} failed to emit publish event`,
         {
-          error: (error as Error)?.message,
+          error: redactPublishWebhookText(
+            (error as Error)?.message || 'Publish webhook emission failed',
+          ),
           postId: readReferenceId(input.post.id ?? input.post._id),
         },
       );
@@ -339,7 +343,10 @@ export class PublishEventWebhookService {
       this.logger.warn(
         `${this.constructorName} failed to resolve release target group`,
         {
-          error: (error as Error)?.message,
+          error: redactPublishWebhookText(
+            (error as Error)?.message ||
+              'Publish webhook target resolution failed',
+          ),
           groupId,
           targetId: currentTarget.id,
         },
@@ -372,7 +379,9 @@ export class PublishEventWebhookService {
         errorMessage && errorClass
           ? {
               class: errorClass,
-              code: input.errorCode ?? errorClass,
+              code: input.errorCode
+                ? redactPublishWebhookText(input.errorCode)
+                : errorClass,
               message: errorMessage,
               retryable: input.retryable ?? false,
             }

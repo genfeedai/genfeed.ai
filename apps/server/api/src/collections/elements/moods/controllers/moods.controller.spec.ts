@@ -6,7 +6,6 @@ import { ElementsMoodsService } from '@api/collections/elements/moods/services/m
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
-import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -52,14 +51,6 @@ describe('ElementsMoodsController', () => {
     publicMetadata: {
       brand: '507f191e810c19729de860ee'.toString(),
       organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
-  } as unknown as User;
-
-  const mockUserWithoutOrg = {
-    id: 'user-456',
-    publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
     } as IAuthPublicMetadata,
   } as unknown as User;
@@ -247,87 +238,6 @@ describe('ElementsMoodsController', () => {
         controller.remove(mockRequest, mockUser, moodId),
       ).rejects.toThrow();
       expect(moodsService.remove).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline for user with organization', () => {
-      const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      expect(pipeline).toHaveLength(2);
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.$or).toBeDefined();
-      expect(matchStage.$match.$or).toEqual([
-        { organizationId: mockUser.publicMetadata.organization },
-      ]);
-      expect(matchStage.$match.isDeleted).toBe(false);
-    });
-
-    it('should build pipeline for user without organization', () => {
-      const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(
-        mockUserWithoutOrg,
-        query,
-      );
-
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.$or).toBeUndefined();
-      expect(matchStage.$match.isDeleted).toBe(false);
-    });
-
-    it('should handle isDeleted parameter', () => {
-      const query = createBaseQuery({ isDeleted: true });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.isDeleted).toBe(true);
-    });
-
-    it('should include sorting stage with default sort', () => {
-      const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      expect(pipeline).toHaveLength(2);
-      const sortStage = asSortStage(pipeline[1]);
-      expect(sortStage.$sort).toBeDefined();
-      expect(sortStage.$sort).toHaveProperty('createdAt', -1);
-    });
-
-    it('should include sorting stage with custom sort', () => {
-      const query = createBaseQuery({ sort: 'name: 1' });
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      expect(pipeline).toHaveLength(2);
-      const sortStage = asSortStage(pipeline[1]);
-      expect(sortStage.$sort).toBeDefined();
-    });
-
-    it('should load organization moods', () => {
-      const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(mockUser, query);
-
-      const matchStage = asMatchStage(pipeline[0]);
-      const orConditions = matchStage.$match.$or as Array<
-        Record<string, unknown>
-      >;
-
-      expect(orConditions).toHaveLength(1);
-      expect(orConditions[0].organizationId).toEqual(
-        mockUser.publicMetadata.organization as string,
-      );
-    });
-
-    it('should not add tenant filter when no organization is available', () => {
-      const query = createBaseQuery();
-      const pipeline = controller.buildFindAllPipeline(
-        mockUserWithoutOrg,
-        query,
-      );
-
-      const matchStage = asMatchStage(pipeline[0]);
-      expect(matchStage.$match.$or).toBeUndefined();
-      expect(matchStage.$match.isDeleted).toBe(false);
     });
   });
 

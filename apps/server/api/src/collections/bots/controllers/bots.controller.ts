@@ -6,10 +6,7 @@ import { BotLivestreamTranscriptDto } from '@api/collections/bots/dto/bot-livest
 import { BotsQueryDto } from '@api/collections/bots/dto/bots-query.dto';
 import { CreateBotDto } from '@api/collections/bots/dto/create-bot.dto';
 import { UpdateBotDto } from '@api/collections/bots/dto/update-bot.dto';
-import {
-  Bot,
-  type BotDocument,
-} from '@api/collections/bots/schemas/bot.schema';
+import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';

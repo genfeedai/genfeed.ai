@@ -64,7 +64,7 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 - AbortController in every useEffect with async calls
 - No `deletedAt` field — use `isDeleted: boolean`
 - Components use `function` declarations (not arrow), default export
-- **Never raw HTML elements** — use `@ui/primitives/*` instead. `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`, `<table>`, `<hr>`, etc. are blocked by `scripts/lint-no-raw-html.sh` pre-commit hook. For unstyled usage, use `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button` inside `Button` (invalid HTML) — restructure as siblings.
+- **Never raw HTML elements** — use `@ui/primitives/*` instead. `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`, `<table>`, `<hr>`, etc. are blocked by the canonical raw-control scanner `scripts/ui/control-guard.ts`, run pre-commit via lint-staged (`lint-staged.config.mjs`) and repo-wide in CI via `bun run check:ui-guards` (`scripts/ui/check-ui-guards.ts`). For unstyled usage, use `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button` inside `Button` (invalid HTML) — restructure as siblings.
 
 ### Backend (ALWAYS)
 - Compound indexes live in Prisma schema `@@index` directives or explicit migrations

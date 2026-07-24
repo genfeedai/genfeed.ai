@@ -6,7 +6,6 @@ import { ElementsCamerasService } from '@api/collections/elements/cameras/servic
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
-import { asMatchStage, asSortStage } from '@api/test/query-stage-assertions';
 import { CameraSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -51,16 +50,6 @@ describe('ElementsCamerasController', () => {
     publicMetadata: {
       brand: '507f191e810c19729de860ee'.toString(),
       isSuperAdmin: true,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
-    } as IAuthPublicMetadata,
-  } as unknown as User;
-
-  const mockRegularUser = {
-    id: 'user-456',
-    publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      isSuperAdmin: false,
       organization: '507f191e810c19729de860ee'.toString(),
       user: '507f191e810c19729de860ee'.toString(),
     } as IAuthPublicMetadata,
@@ -117,36 +106,6 @@ describe('ElementsCamerasController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
-  });
-
-  describe('buildFindAllPipeline', () => {
-    it('should build pipeline with isDeleted filter', () => {
-      const query = createBaseQuery();
-
-      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
-
-      expect(result).toHaveLength(2);
-      expect(asMatchStage(result[0]).$match).toHaveProperty('isDeleted', false);
-      expect(asSortStage(result[1]).$sort).toBeDefined();
-    });
-
-    it('should build pipeline with custom sort', () => {
-      const query = createBaseQuery({ sort: '-label' });
-
-      const result = controller.buildFindAllPipeline(mockSuperAdminUser, query);
-
-      expect(result).toHaveLength(2);
-      expect(asSortStage(result[1]).$sort).toBeDefined();
-    });
-
-    it('should build pipeline for regular users with $or filter', () => {
-      const query = createBaseQuery();
-
-      const result = controller.buildFindAllPipeline(mockRegularUser, query);
-
-      expect(asMatchStage(result[0]).$match).toHaveProperty('isDeleted', false);
-      expect(asMatchStage(result[0]).$match).toHaveProperty('$or');
-    });
   });
 
   describe('create', () => {

@@ -320,7 +320,7 @@ describe('BaseCRUDController', () => {
 
       const existingEntity = {
         _id: id,
-        user: MOCK_USER_ID,
+        userId: MOCK_USER_ID,
       };
 
       const updatedEntity = {
@@ -374,7 +374,7 @@ describe('BaseCRUDController', () => {
         id: 'canonical-entity-id',
         isDeleted: true,
         name: 'Deleted Entity',
-        user: MOCK_USER_ID,
+        userId: MOCK_USER_ID,
       };
 
       service.findOne.mockResolvedValue(mockDeletedEntity);
@@ -411,6 +411,42 @@ describe('BaseCRUDController', () => {
           },
         },
       ]);
+    });
+  });
+
+  describe('canUserModifyEntity', () => {
+    // Prisma rows expose the scalar FK `userId`. The Mongo-era `user` alias is
+    // a type-only field that is undefined at runtime on an unpopulated row
+    // (getPopulateForOwnershipCheck() returns []), so ownership must resolve
+    // from the scalar FK — see docs/identity-resolution.md.
+    it('allows the owner identified by the scalar userId FK', () => {
+      const entity = { _id: '507f1f77bcf86cd79943901a', userId: MOCK_USER_ID };
+
+      expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
+    });
+
+    it('denies a non-owner identified by the scalar userId FK', () => {
+      const entity = {
+        _id: '507f1f77bcf86cd79943901b',
+        userId: '507f1f77bcf86cd7994390ff',
+      };
+
+      expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
+    });
+
+    it('denies when the entity carries no user pointer', () => {
+      const entity = { _id: '507f1f77bcf86cd79943901c' };
+
+      expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
+    });
+
+    it('allows the owner via a populated user relation object (compat)', () => {
+      const entity = {
+        _id: '507f1f77bcf86cd79943901d',
+        user: { id: MOCK_USER_ID },
+      };
+
+      expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
     });
   });
 });

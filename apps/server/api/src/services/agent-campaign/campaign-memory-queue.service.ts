@@ -3,6 +3,7 @@ import {
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
   CampaignMemoryExtractionJobData,
 } from '@genfeedai/queue-contracts';
+import { reserveIdempotentJob } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -25,23 +26,20 @@ export class CampaignMemoryQueueService {
     scheduledAt?: Date;
   }): Promise<string> {
     const jobId = `campaign-memory-${data.campaignId}`;
-    const existingJob = await this.campaignMemoryQueue.getJob(jobId);
-
-    if (existingJob) {
-      const state = await existingJob.getState();
-      if (['active', 'waiting', 'delayed'].includes(state)) {
-        this.logger.warn(
-          `${this.logContext} campaign extraction already queued`,
-          {
-            campaignId: data.campaignId,
-            jobId,
-            state,
-          },
-        );
-        return jobId;
-      }
-
-      await existingJob.remove();
+    const reservation = await reserveIdempotentJob(
+      this.campaignMemoryQueue,
+      jobId,
+    );
+    if (reservation.alreadyQueued) {
+      this.logger.warn(
+        `${this.logContext} campaign extraction already queued`,
+        {
+          campaignId: data.campaignId,
+          jobId,
+          state: reservation.state,
+        },
+      );
+      return jobId;
     }
 
     const scheduledAt = data.scheduledAt ?? new Date();

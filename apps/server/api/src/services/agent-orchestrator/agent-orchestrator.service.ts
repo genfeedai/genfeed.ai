@@ -2160,7 +2160,7 @@ export class AgentOrchestratorService {
       source: request.source || 'agent',
       title: seedTitle,
       userId: context.userId,
-    } as Record<string, unknown>);
+    });
     return {
       isCreated: true,
       seedTitle,
@@ -2178,9 +2178,7 @@ export class AgentOrchestratorService {
       organization: organizationId,
     });
 
-    return Boolean(
-      (thread as { planModeEnabled?: boolean } | null)?.planModeEnabled,
-    );
+    return Boolean(thread?.planModeEnabled);
   }
 
   private buildSeedThreadTitle(content: string): string {

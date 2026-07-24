@@ -91,6 +91,10 @@ export {
   PublishApprovalsService,
   type PublishExecutionClaim,
 } from './publish-approvals/publish-approvals.service';
+export {
+  type IdempotentJobReservation,
+  reserveIdempotentJob,
+} from './queues/idempotent-job';
 export { PostPublishQueueService } from './queues/post-publish/post-publish-queue.service';
 export {
   SERVER_TOKENS,

@@ -1,3 +1,4 @@
+import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { AuthResult, AuthService } from '@mcp/services/auth.service';
@@ -16,7 +17,11 @@ describe('AuthService (MCP)', () => {
 
   // GENFEEDAI_API_URL is configured WITHOUT /v1; the service normalizes it.
   const mockConfigService = {
-    get: vi.fn().mockReturnValue('https://api.genfeed.ai'),
+    get: vi.fn((key: string) =>
+      key === 'GENFEEDAI_API_KEY'
+        ? 'internal-service-key'
+        : 'https://api.genfeed.ai',
+    ),
   };
 
   const mockHttpService = {
@@ -81,7 +86,11 @@ describe('AuthService (MCP)', () => {
       const result: AuthResult = await service.authenticateRequest(apiKey);
 
       expect(mockHttpService.get).toHaveBeenCalledWith(WHOAMI_URL, {
-        headers: { Authorization: `Bearer ${apiKey}` },
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          [MCP_ACTION_ORIGIN_PROOF_HEADER]:
+            'Qr4bP6k-qVZGg3vfc9dLxHTynsF-ZfeCH_0bjXWLlaA',
+        },
         timeout: 5000,
       });
       expect(result).toMatchObject({
@@ -105,7 +114,11 @@ describe('AuthService (MCP)', () => {
       const result: AuthResult = await service.authenticateRequest(jwtToken);
 
       expect(mockHttpService.get).toHaveBeenCalledWith(WHOAMI_URL, {
-        headers: { Authorization: `Bearer ${jwtToken}` },
+        headers: {
+          Authorization: `Bearer ${jwtToken}`,
+          [MCP_ACTION_ORIGIN_PROOF_HEADER]:
+            'Qr4bP6k-qVZGg3vfc9dLxHTynsF-ZfeCH_0bjXWLlaA',
+        },
         timeout: 5000,
       });
       // `owner` is the highest org role → maps to the admin MCP tier.

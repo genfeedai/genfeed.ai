@@ -57,50 +57,6 @@ type AggregatePaginateResult<T> = {
   [key: string]: unknown;
 };
 
-function toLegacyMatchValue(key: string, value: unknown): unknown {
-  if ((key === 'organization' || key === 'user') && value === null) {
-    return { $exists: false };
-  }
-
-  if (Array.isArray(value)) {
-    return value.map((item) =>
-      typeof item === 'object' && item !== null
-        ? toLegacyMatchObject(item as Record<string, unknown>)
-        : item,
-    );
-  }
-
-  return value;
-}
-
-function toLegacyMatchObject(match: Record<string, unknown>) {
-  return Object.fromEntries(
-    Object.entries(match).map(([key, value]) => [
-      key,
-      toLegacyMatchValue(key, value),
-    ]),
-  );
-}
-
-function toLegacyMatchStage(match: Record<string, unknown>) {
-  const legacyMatch = toLegacyMatchObject(match);
-
-  if (Array.isArray(legacyMatch.OR)) {
-    legacyMatch.$or = legacyMatch.OR;
-    delete legacyMatch.OR;
-  }
-
-  if (Array.isArray(legacyMatch.AND)) {
-    legacyMatch.$and = legacyMatch.AND;
-    delete legacyMatch.AND;
-  }
-
-  return {
-    $match: legacyMatch,
-    match: legacyMatch,
-  };
-}
-
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
 @AutoSwagger()
@@ -341,34 +297,6 @@ export abstract class BaseCRUDController<
     return { _id: id };
   }
 
-  public buildFindAllPipeline(
-    user: User,
-    query: QueryDto,
-  ): Record<string, unknown>[] {
-    const findAllQuery = this.buildFindAllQuery(user, query);
-    const stages: Record<string, unknown>[] = [];
-
-    if (findAllQuery.where) {
-      const { AND: andConditions, ...baseWhere } = findAllQuery.where;
-      stages.push(toLegacyMatchStage(baseWhere));
-
-      if (Array.isArray(andConditions)) {
-        for (const condition of andConditions) {
-          stages.push(toLegacyMatchStage(condition));
-        }
-      }
-    }
-
-    if (findAllQuery.orderBy) {
-      stages.push({
-        $sort: findAllQuery.orderBy,
-        orderBy: findAllQuery.orderBy,
-      });
-    }
-
-    return stages;
-  }
-
   /**
    * Enrich create DTO with user context
    * Child controllers can override this to add more context
@@ -470,9 +398,11 @@ export abstract class BaseCRUDController<
   public canUserModifyEntity(user: User, entity: T): boolean {
     const publicMetadata = getPublicMetadata(user);
 
-    // Default: user can only modify their own entities
+    // Default: user can only modify their own entities. Read the scalar
+    // `userId` FK first — `user` is a Mongo-era alias, undefined unless a
+    // child controller populates it via getPopulateForOwnershipCheck().
     const entityRecord = entity as Record<string, unknown>;
-    const entityUser = entityRecord.user as
+    const entityUser = (entityRecord.userId ?? entityRecord.user) as
       | { id?: { toString(): string }; toString(): string }
       | undefined;
     const entityUserId = entityUser?.id?.toString() || entityUser?.toString();
@@ -492,8 +422,7 @@ export abstract class BaseCRUDController<
    * Child controllers can override this for entities without user field
    */
   public getPopulateForOwnershipCheck(): PopulateOption[] {
-    // User field contains ObjectId directly — no populate needed.
-    // canUserModifyEntity() handles both populated and unpopulated user fields.
+    // Ownership resolves from the scalar `userId` FK — no populate needed.
     return [];
   }
 }

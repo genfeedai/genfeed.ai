@@ -13,6 +13,7 @@ import {
   CAMPAIGN_PROCESSING_QUEUE,
   CampaignProcessingJobData,
 } from '@genfeedai/queue-contracts';
+import { reserveIdempotentJob } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -106,19 +107,14 @@ export class CampaignQueueService implements OnModuleInit {
     const jobId = `campaign-${campaignId}`;
 
     try {
-      // Check if job already exists by trying to get it
-      const existingJob = await this.campaignQueue.getJob(jobId);
-      if (existingJob) {
-        const state = await existingJob.getState();
-        if (state === 'active' || state === 'waiting' || state === 'delayed') {
-          this.logger.log(
-            `${this.constructorName} skipping - job already queued`,
-            { campaignId, jobId, state },
-          );
-          return { id: undefined };
-        }
-        // Job exists but in completed/failed state - remove it to allow new job
-        await existingJob.remove();
+      // Check if job already exists to prevent duplicate processing.
+      const reservation = await reserveIdempotentJob(this.campaignQueue, jobId);
+      if (reservation.alreadyQueued) {
+        this.logger.log(
+          `${this.constructorName} skipping - job already queued`,
+          { campaignId, jobId, state: reservation.state },
+        );
+        return { id: undefined };
       }
 
       return this.campaignQueue.add(

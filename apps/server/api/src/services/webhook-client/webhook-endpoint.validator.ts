@@ -3,6 +3,13 @@ import { isIP } from 'node:net';
 
 const BLOCKED_HOSTNAMES = new Set(['localhost']);
 
+export class WebhookEndpointValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'WebhookEndpointValidationError';
+  }
+}
+
 function isBlockedIPv4(address: string): boolean {
   const parts = address.split('.').map((part) => Number.parseInt(part, 10));
   if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
@@ -51,22 +58,30 @@ export async function assertSafeWebhookEndpoint(
   try {
     url = new URL(endpoint);
   } catch {
-    throw new Error('Webhook endpoint must be a valid URL');
+    throw new WebhookEndpointValidationError(
+      'Webhook endpoint must be a valid URL',
+    );
   }
 
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    throw new Error('Webhook endpoint must use http or https');
+    throw new WebhookEndpointValidationError(
+      'Webhook endpoint must use http or https',
+    );
   }
 
   const hostname = url.hostname.toLowerCase();
   if (BLOCKED_HOSTNAMES.has(hostname) || hostname.endsWith('.localhost')) {
-    throw new Error('Webhook endpoint cannot target localhost');
+    throw new WebhookEndpointValidationError(
+      'Webhook endpoint cannot target localhost',
+    );
   }
 
   const literalVersion = isIP(hostname);
   if (literalVersion !== 0) {
     if (isBlockedAddress(hostname)) {
-      throw new Error('Webhook endpoint cannot target private or reserved IPs');
+      throw new WebhookEndpointValidationError(
+        'Webhook endpoint cannot target private or reserved IPs',
+      );
     }
     return;
   }
@@ -76,7 +91,7 @@ export async function assertSafeWebhookEndpoint(
     addresses.length === 0 ||
     addresses.some((address) => isBlockedAddress(address.address))
   ) {
-    throw new Error(
+    throw new WebhookEndpointValidationError(
       'Webhook endpoint cannot resolve to private or reserved IPs',
     );
   }

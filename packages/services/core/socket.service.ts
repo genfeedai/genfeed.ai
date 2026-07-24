@@ -38,6 +38,13 @@ export class SocketService {
       timeout: 20_000,
       transports: ['websocket', 'polling'],
       upgrade: true,
+      // Capped exponential backoff. Without these, socket.io-client falls back
+      // to a 5s reconnect ceiling and retries forever, flooding the gateway on
+      // every outage. Delay doubles from 1s up to a 30s cap (with jitter).
+      reconnection: true,
+      reconnectionDelay: 1_000,
+      reconnectionDelayMax: 30_000,
+      randomizationFactor: 0.5,
       ...(token && {
         auth: { token },
         extraHeaders: { Authorization: `Bearer ${token}` },

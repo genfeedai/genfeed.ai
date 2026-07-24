@@ -153,9 +153,12 @@ describe('proxy', () => {
     expect(response.headers.get('location')).toBeNull();
   });
 
-  it('redirects a signed-out user on a protected route to /login', async () => {
+  it('redirects a signed-out user on a protected route to /login preserving the destination', async () => {
     // No session cookie → getBetterAuthSessionCookie returns null → the auth
-    // gate sends any non-public protected route to /login.
+    // gate sends any non-public protected route to /login. Finding #25: the
+    // route the user was heading to is preserved as `callbackUrl` so the login
+    // flow returns them there after auth instead of stranding them on the
+    // seeded workspace.
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
@@ -164,8 +167,29 @@ describe('proxy', () => {
     );
 
     expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/login',
+    const location = new URL(response.headers.get('location') ?? '');
+    expect(location.origin).toBe('http://localhost:3000');
+    expect(location.pathname).toBe('/login');
+    expect(location.searchParams.get('callbackUrl')).toBe(
+      '/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('preserves the query string of the destination in the login callbackUrl', async () => {
+    // The whole original destination — pathname *and* search — round-trips
+    // through `callbackUrl` so deep links with query params survive the bounce.
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedOutRequest('/acme/moonrise-studio/library?tab=drafts'),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get('location') ?? '');
+    expect(location.pathname).toBe('/login');
+    expect(location.searchParams.get('callbackUrl')).toBe(
+      '/acme/moonrise-studio/library?tab=drafts',
     );
   });
 
@@ -190,9 +214,9 @@ describe('proxy', () => {
     );
 
     expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/login',
-    );
+    const location = new URL(response.headers.get('location') ?? '');
+    expect(location.pathname).toBe('/login');
+    expect(location.searchParams.get('callbackUrl')).toBe('/request-access');
   });
 
   it('normalizes a bare API_URL origin before calling versioned auth endpoints', async () => {
@@ -596,7 +620,9 @@ describe('proxy', () => {
     expect(response.status).toBe(200);
   });
 
-  it('redirects unauthenticated root to login', async () => {
+  it('redirects unauthenticated root to login without a redundant callbackUrl', async () => {
+    // Root `/` is already the login flow's default callback, so the bounce
+    // must not append a noisy `callbackUrl=/` param (Finding #25 guard).
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(makeSignedOutRequest('/'), {} as never);
@@ -1039,8 +1065,10 @@ describe('proxy', () => {
     );
 
     expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/login',
+    const location = new URL(response.headers.get('location') ?? '');
+    expect(location.pathname).toBe('/login');
+    expect(location.searchParams.get('callbackUrl')).toBe(
+      '/settings/organization/members',
     );
   });
 

@@ -21,10 +21,11 @@ import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
+import { EmptyState } from '@ui/feedback';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { HiDocumentText, HiListBullet } from 'react-icons/hi2';
+import { HiCalendarDays, HiDocumentText, HiListBullet } from 'react-icons/hi2';
 
 const DEFAULT_COLOR = '#8b5cf6';
 const ARTICLE_STATUS_COLORS: Record<string, string> = {
@@ -98,6 +99,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
   const [posts, setPosts] = useState<Post[]>([]);
   const [articles, setArticles] = useState<IArticle[]>([]);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dateRange, setDateRange] = useCalendarWeekRange();
 
   useEffect(() => {
@@ -105,7 +107,11 @@ export default function ContentCalendarPage(): React.JSX.Element {
       return;
     }
 
+    let isActive = true;
+
     const loadContent = async () => {
+      setIsLoading(true);
+
       try {
         const [postsService, articlesService] = await Promise.all([
           getPostsService(),
@@ -129,15 +135,30 @@ export default function ContentCalendarPage(): React.JSX.Element {
           articlesService.findAll(articlesQuery),
         ]);
 
+        if (!isActive) {
+          return;
+        }
+
         setPosts(fetchedPosts);
         setArticles(fetchedArticles);
       } catch (error) {
+        if (!isActive) {
+          return;
+        }
         logger.error('Failed to load calendar content', error);
         notificationsService.error('Failed to load calendar content');
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadContent();
+
+    return () => {
+      isActive = false;
+    };
   }, [
     dateRange,
     brandId,
@@ -223,6 +244,19 @@ export default function ContentCalendarPage(): React.JSX.Element {
     />
   );
 
+  const emptyState =
+    !isLoading && calendarItems.length === 0 ? (
+      <EmptyState
+        icon={HiCalendarDays}
+        title="Nothing scheduled yet"
+        description="Plan and schedule your first post to see it on the calendar."
+        action={{
+          label: 'Create a post',
+          onClick: () => push(COMPOSE_ROUTES.POST),
+        }}
+      />
+    ) : undefined;
+
   return (
     <ContentCalendar
       items={calendarItems}
@@ -231,6 +265,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
       getEventColor={getEventColor}
       filterControls={filterControls}
       modal={modal}
+      emptyState={emptyState}
     />
   );
 }

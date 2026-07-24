@@ -1,1 +1,5 @@
-export { EmptyState, EmptyStateCard } from '@ui/card/EmptyState';
+export {
+  EmptyState,
+  EmptyStateCard,
+  type EmptyStateProps,
+} from '@ui/card/EmptyState';

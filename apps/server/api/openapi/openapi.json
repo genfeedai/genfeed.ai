@@ -140,6 +140,63 @@
         ],
         "type": "object"
       },
+      "AgentChatBodyDto": {
+        "properties": {
+          "artifactReferences": {
+            "description": "Scoped pointers to canonical records; re-authorized server-side",
+            "type": "array"
+          },
+          "attachments": {
+            "description": "Ingredient attachments",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "brandId": {
+            "description": "Brand scope for this turn",
+            "nullable": true,
+            "type": "object"
+          },
+          "content": {
+            "description": "The user message content for this turn",
+            "type": "string"
+          },
+          "expectedContextVersion": {
+            "description": "Optimistic-concurrency guard for the thread context version",
+            "type": "number"
+          },
+          "model": {
+            "description": "Model override for this turn",
+            "type": "string"
+          },
+          "pageContext": {
+            "description": "Page context; nested references re-authorized server-side",
+            "type": "object"
+          },
+          "planModeEnabled": {
+            "description": "Whether plan mode is enabled",
+            "type": "boolean"
+          },
+          "source": {
+            "description": "Origin of the turn",
+            "enum": [
+              "agent",
+              "proactive",
+              "onboarding"
+            ],
+            "type": "string"
+          },
+          "threadId": {
+            "description": "Existing thread to append the turn to",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "type": "object"
+      },
       "AgentCreditGovernanceDto": {
         "properties": {
           "agentDailyCreditCap": {
@@ -7848,6 +7905,14 @@
         ],
         "type": "object"
       },
+      "OAuthAuthorizeDecisionDto": {
+        "properties": {},
+        "type": "object"
+      },
+      "OAuthTokenExchangeDto": {
+        "properties": {},
+        "type": "object"
+      },
       "OnboardingJourneyMissionStateDto": {
         "properties": {
           "completedAt": {
@@ -8553,6 +8618,10 @@
             "type": "array"
           }
         },
+        "type": "object"
+      },
+      "RegisterOAuthClientDto": {
+        "properties": {},
         "type": "object"
       },
       "ReleaseStatus": {
@@ -17822,6 +17891,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatBodyDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -17846,6 +17925,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatBodyDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -18196,6 +18285,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatBodyDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -18228,6 +18327,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatBodyDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -34929,6 +35038,101 @@
         "summary": "publish",
         "tags": [
           "newsletters"
+        ]
+      }
+    },
+    "/oauth/authorize": {
+      "get": {
+        "operationId": "OAuthAuthorizeController.authorize",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Begin an OAuth authorization-code flow",
+        "tags": [
+          "OAuth"
+        ]
+      }
+    },
+    "/oauth/authorize/decision": {
+      "post": {
+        "operationId": "OAuthAuthorizeController.decide",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthAuthorizeDecisionDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve or deny OAuth access",
+        "tags": [
+          "OAuth"
+        ]
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "operationId": "OAuthRegisterController.register",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterOAuthClientDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Dynamically register a public OAuth client",
+        "tags": [
+          "OAuth"
+        ]
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "operationId": "OAuthTokenController.exchange",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OAuthTokenExchangeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Exchange an OAuth code for an MCP access token",
+        "tags": [
+          "OAuth"
         ]
       }
     },

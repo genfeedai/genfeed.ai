@@ -137,6 +137,7 @@ import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-au
 import { ActionOriginInterceptor } from '@api/helpers/interceptors/action-origin/action-origin.interceptor';
 import { MemoryModule } from '@api/helpers/memory/memory.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
+import { OAuthModule } from '@api/oauth/oauth.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { SelfHostedSeedModule } from '@api/seeds/self-hosted-seed.module';
 import { AdsGatewayModule } from '@api/services/ads-gateway/ads-gateway.module';
@@ -257,6 +258,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     AssetsModule,
     AuthModule,
     BetterAuthModule,
+    OAuthModule,
     AvatarsModule,
     BookmarksModule,
     BotsModule,

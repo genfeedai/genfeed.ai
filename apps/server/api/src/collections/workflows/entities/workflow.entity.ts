@@ -37,38 +37,47 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare organizationId: string;
   declare brandId: string | null;
   declare userId: string;
-  brand?: string | null;
-  user?: string;
-  organization?: string;
-  label!: string;
-  description!: WorkflowDocument['description'];
-  templateId?: string;
-  trigger?: WorkflowDocument['trigger'];
-  status!: WorkflowDocument['status'];
-  sourceAsset?: string;
-  sourceAssetModel?: string;
-  steps!: WorkflowDocument['steps'];
-  metadata?: Record<string, unknown>;
-  progress?: number;
-  startedAt?: Date;
-  completedAt?: Date;
-  scheduledFor?: Date;
-  isTemplate?: boolean;
-  executionCount?: number;
-  lastExecutedAt?: Date;
-  recurrence?: WorkflowRecurrenceEntity;
-  tags?: string[];
-  nodes!: WorkflowVisualNode[];
-  edges!: WorkflowEdge[];
-  inputVariables!: WorkflowInputVariable[];
-  thumbnail?: string | null;
-  thumbnailNodeId?: string | null;
-  schedule?: string;
-  timezone?: string;
-  isScheduleEnabled!: boolean;
-  isPublic!: boolean;
+  // Every field below is populated exclusively by BaseEntity's
+  // `Object.assign(this, partial)` constructor call. Under this codebase's
+  // spec-compliant class-field ("define") transpilation, a plain field
+  // declaration with no initializer re-runs after `super()` returns and
+  // resets the assigned value back to `undefined` — silently discarding
+  // everything Object.assign just set. `declare` fields emit zero runtime
+  // code, so they cannot clobber the constructor's assignment. See
+  // .agents/memory/rules/prisma_legacy_alias_fields.md and the identical
+  // pattern in post.entity.ts / post-analytics.entity.ts.
+  declare brand?: string | null;
+  declare user?: string;
+  declare organization?: string;
+  declare label: string;
+  declare description: WorkflowDocument['description'];
+  declare templateId?: string;
+  declare trigger?: WorkflowDocument['trigger'];
+  declare status: WorkflowDocument['status'];
+  declare sourceAsset?: string;
+  declare sourceAssetModel?: string;
+  declare steps: WorkflowDocument['steps'];
+  declare metadata?: Record<string, unknown>;
+  declare progress?: number;
+  declare startedAt?: Date;
+  declare completedAt?: Date;
+  declare scheduledFor?: Date;
+  declare isTemplate?: boolean;
+  declare executionCount?: number;
+  declare lastExecutedAt?: Date;
+  declare recurrence?: WorkflowRecurrenceEntity;
+  declare tags?: string[];
+  declare nodes: WorkflowVisualNode[];
+  declare edges: WorkflowEdge[];
+  declare inputVariables: WorkflowInputVariable[];
+  declare thumbnail?: string | null;
+  declare thumbnailNodeId?: string | null;
+  declare schedule?: string;
+  declare timezone?: string;
+  declare isScheduleEnabled: boolean;
+  declare isPublic: boolean;
 
   // New workflow engine fields
-  lifecycle?: WorkflowDocument['lifecycle'];
-  lockedNodeIds?: string[];
+  declare lifecycle?: WorkflowDocument['lifecycle'];
+  declare lockedNodeIds?: string[];
 }
