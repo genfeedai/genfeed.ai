@@ -106,6 +106,7 @@ export default function ContentCalendar<T extends CalendarItem>({
   getEventColor,
   filterControls,
   modal,
+  emptyState,
 }: ContentCalendarProps<T>) {
   const dateRangeRef = useRef<CalendarDateRange | null>(null);
   const [, setDateRange] = useState<CalendarDateRange | null>(null);
@@ -206,9 +207,13 @@ export default function ContentCalendar<T extends CalendarItem>({
             border-color: rgba(255, 255, 255, 0.06) !important;
           }
         `}</style>
-        <div className="fullcalendar-container">
-          <FullCalendarHost options={calendarOptions} />
-        </div>
+        {events.length === 0 && emptyState ? (
+          emptyState
+        ) : (
+          <div className="fullcalendar-container">
+            <FullCalendarHost options={calendarOptions} />
+          </div>
+        )}
       </Card>
 
       {modal}
