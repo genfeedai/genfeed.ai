@@ -8,6 +8,10 @@ import {
 } from '@api/collections/clip-projects/dto/generate-clips.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import type { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
+import type {
+  ClipIdentityResolutionService,
+  ResolveClipIdentityParams,
+} from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import type { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -16,6 +20,10 @@ import { InsufficientCreditsException } from '@api/helpers/exceptions/business/b
 import type { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import type { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import type { PublishHandoffService } from '@api/services/clip-orchestrator/publish-handoff.service';
+import type {
+  AgentClipRunIdentity,
+  AgentClipRunIdentityField,
+} from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
@@ -48,6 +56,45 @@ function createMockClipGenerationService(): Pick<
 > {
   return {
     generateClips: vi.fn(),
+  };
+}
+
+function createMockClipIdentityResolutionService(): Pick<
+  ClipIdentityResolutionService,
+  'resolve'
+> {
+  return {
+    resolve: vi.fn().mockImplementation(
+      async ({
+        avatarId,
+        voiceId,
+      }: ResolveClipIdentityParams): Promise<AgentClipRunIdentity> => {
+        const missing: AgentClipRunIdentityField[] = [];
+
+        if (!avatarId) {
+          missing.push('avatar');
+        }
+
+        if (!voiceId) {
+          missing.push('voice');
+        }
+
+        return {
+          avatarId,
+          avatarProvider: avatarId ? 'heygen' : undefined,
+          isComplete: missing.length === 0,
+          label:
+            missing.length === 0
+              ? 'Explicit clip identity'
+              : `Missing ${missing.join(' and ')} defaults`,
+          missing,
+          source: avatarId || voiceId ? 'explicit' : 'missing',
+          useIdentity: true,
+          voiceId,
+          voiceProvider: voiceId ? 'heygen' : undefined,
+        };
+      },
+    ),
   };
 }
 
@@ -91,6 +138,9 @@ describe('ClipProjectsController', () => {
   let handoffsController: ClipProjectHandoffsController;
   let clipProjectsService: ReturnType<typeof createMockClipProjectsService>;
   let clipGenerationService: ReturnType<typeof createMockClipGenerationService>;
+  let clipIdentityResolutionService: ReturnType<
+    typeof createMockClipIdentityResolutionService
+  >;
   let clipFactoryQueueService: { enqueue: ReturnType<typeof vi.fn> };
   let clipResultsService: {
     findProjectResultForHandoff: ReturnType<typeof vi.fn>;
@@ -107,6 +157,7 @@ describe('ClipProjectsController', () => {
   beforeEach(() => {
     clipProjectsService = createMockClipProjectsService();
     clipGenerationService = createMockClipGenerationService();
+    clipIdentityResolutionService = createMockClipIdentityResolutionService();
     clipFactoryQueueService = {
       enqueue: vi.fn(),
     };
@@ -130,6 +181,7 @@ describe('ClipProjectsController', () => {
       clipFactoryQueueService as unknown as ClipFactoryQueueService,
       { enqueue: vi.fn() } as unknown as ClipAnalyzeQueueService,
       clipGenerationService as ClipGenerationService,
+      clipIdentityResolutionService as ClipIdentityResolutionService,
       { rewrite: vi.fn() } as unknown as HighlightRewriteService,
       creditsUtilsService as unknown as CreditsUtilsService,
     );
@@ -188,9 +240,58 @@ describe('ClipProjectsController', () => {
       expect(result).toEqual({
         batchJobId: 'clip-factory-job-1',
         estimatedClips: 12,
+        identity: expect.objectContaining({
+          avatarId: 'avatar-1',
+          isComplete: true,
+          source: 'explicit',
+          voiceId: 'voice-1',
+        }),
         projectId,
         status: 'processing',
       });
+    });
+
+    it('should resolve and queue saved identity from the selected brand', async () => {
+      const brandId = '507f191e810c19729de860ef';
+      const dto: CreateClipProjectFromYoutubeDto = {
+        brandId,
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      };
+
+      vi.mocked(clipIdentityResolutionService.resolve).mockResolvedValue({
+        avatarId: 'saved-avatar-1',
+        avatarProvider: 'heygen',
+        isComplete: true,
+        label: 'Brand clip defaults',
+        missing: [],
+        source: 'brand',
+        useIdentity: true,
+        voiceId: 'saved-voice-1',
+        voiceProvider: 'heygen',
+      });
+      vi.mocked(clipProjectsService.create).mockResolvedValue({
+        id: projectId,
+      } as ClipProjectDocument);
+      clipFactoryQueueService.enqueue.mockResolvedValue('clip-factory-job-1');
+
+      await controller.createFromYoutube(currentUser as never, dto);
+
+      expect(clipIdentityResolutionService.resolve).toHaveBeenCalledWith({
+        avatarId: undefined,
+        avatarProvider: undefined,
+        brandId,
+        organizationId,
+        voiceId: undefined,
+      });
+      expect(clipProjectsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ brand: brandId }),
+      );
+      expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          avatarId: 'saved-avatar-1',
+          voiceId: 'saved-voice-1',
+        }),
+      );
     });
 
     it('should reject before creating the project when credits are insufficient', async () => {
@@ -242,16 +343,12 @@ describe('ClipProjectsController', () => {
   });
 
   describe('CreateClipProjectFromYoutubeDto validation', () => {
-    it('should require avatar credentials when mode is omitted', () => {
+    it('should allow the controller to resolve omitted avatar credentials', () => {
       const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
         youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
       });
 
-      const errors = validateSync(dto);
-
-      expect(errors.map((error) => error.property)).toEqual(
-        expect.arrayContaining(['avatarId', 'voiceId']),
-      );
+      expect(validateSync(dto)).toEqual([]);
     });
 
     it('should accept raw-cut mode without avatar credentials', () => {
@@ -348,17 +445,13 @@ describe('ClipProjectsController', () => {
       expect(validateSync(dto)).toEqual([]);
     });
 
-    it('should require avatar credentials when mode is omitted', () => {
+    it('should allow the controller to resolve omitted avatar credentials', () => {
       const dto = plainToInstance(GenerateClipsDto, {
         editedHighlights,
         selectedHighlightIds: ['highlight-1'],
       });
 
-      const errors = validateSync(dto);
-
-      expect(errors.map((error) => error.property)).toEqual(
-        expect.arrayContaining(['avatarId', 'voiceId']),
-      );
+      expect(validateSync(dto)).toEqual([]);
     });
 
     it('should accept raw-cut mode without avatar credentials', () => {
@@ -486,6 +579,59 @@ describe('ClipProjectsController', () => {
       clipResultIds: ['clip-result-1'],
       status: 'generating',
     });
+  });
+
+  it('should resolve persisted brand defaults before reviewed generation', async () => {
+    const brandId = '507f191e810c19729de860ef';
+    const project = {
+      ...createProject(projectId, organizationId),
+      brand: brandId,
+    } as ClipProjectDocument;
+    const dto: GenerateClipsDto = {
+      editedHighlights: [
+        {
+          id: 'highlight-1',
+          summary: 'Edited summary',
+          title: 'Edited title',
+        },
+      ],
+      selectedHighlightIds: ['highlight-1'],
+    };
+
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(project);
+    vi.mocked(clipProjectsService.patch).mockResolvedValue(project);
+    vi.mocked(clipIdentityResolutionService.resolve).mockResolvedValue({
+      avatarId: 'saved-avatar-2',
+      avatarProvider: 'heygen',
+      isComplete: true,
+      label: 'Brand clip defaults',
+      missing: [],
+      source: 'brand',
+      useIdentity: true,
+      voiceId: 'saved-voice-2',
+      voiceProvider: 'heygen',
+    });
+    vi.mocked(clipGenerationService.generateClips).mockResolvedValue({
+      clipResultIds: ['clip-result-2'],
+      providerJobIds: ['provider-job-2'],
+      queuedClipCount: 1,
+    });
+
+    await controller.generateClips(currentUser as never, projectId, dto);
+
+    expect(clipIdentityResolutionService.resolve).toHaveBeenCalledWith({
+      avatarId: undefined,
+      avatarProvider: undefined,
+      brandId,
+      organizationId,
+      voiceId: undefined,
+    });
+    expect(clipGenerationService.generateClips).toHaveBeenCalledWith(
+      expect.objectContaining({
+        avatarId: 'saved-avatar-2',
+        voiceId: 'saved-voice-2',
+      }),
+    );
   });
 
   it('should mark the project failed when every provider job fails before queueing', async () => {

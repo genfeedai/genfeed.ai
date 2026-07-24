@@ -15,7 +15,6 @@ import {
   IsIn,
   IsOptional,
   IsString,
-  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -76,11 +75,7 @@ export class GenerateClipsDto {
   })
   readonly editedHighlights!: GenerateClipHighlightDto[];
 
-  @ValidateIf(
-    (dto: GenerateClipsDto) =>
-      (dto.mode ?? DEFAULT_CLIP_RESULT_MODE) === 'avatar' ||
-      dto.avatarId !== undefined,
-  )
+  @IsOptional()
   @IsString()
   @ApiProperty({
     description: 'Avatar ID for avatar-mode clip generation',
@@ -88,11 +83,7 @@ export class GenerateClipsDto {
   })
   readonly avatarId?: string;
 
-  @ValidateIf(
-    (dto: GenerateClipsDto) =>
-      (dto.mode ?? DEFAULT_CLIP_RESULT_MODE) === 'avatar' ||
-      dto.voiceId !== undefined,
-  )
+  @IsOptional()
   @IsString()
   @ApiProperty({
     description: 'Voice ID for avatar-mode clip generation',

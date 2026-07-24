@@ -62,7 +62,7 @@ export class ClipProjectsService extends BaseService<
   }
 
   override async create(
-    createDto: CreateClipProjectDto,
+    createDto: CreateClipProjectDto & { readonly brand?: string },
     populate: PopulateInput = [],
   ): Promise<ClipProjectDocument> {
     return await super.create(
