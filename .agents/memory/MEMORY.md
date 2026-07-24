@@ -29,7 +29,7 @@
 - [Never lose code](never_lose_code.md) — Always branch+push WIP before destructive git ops
 - [Trunk PR workflow](trunk_pr_workflow.md) — Trunk-based: commit/push/PR on short-lived branches; master is PR-only; secret-scan every commit.
 - [proxy.ts is middleware](proxy_middleware.md) — Next.js 16 renamed middleware.ts → proxy.ts
-- [Use @ui/primitives](ui_primitives.md) — Never raw HTML elements — blocked by lint-no-raw-html.sh
+- [Use @ui/primitives](ui_primitives.md) — Never raw HTML elements — blocked by scripts/ui/control-guard.ts
 - [Codex adversarial review](codex_adversarial_review.md) — MANDATORY before ExitPlanMode
 - [GitHub issue worktree workflow](gh_issue_worktree_workflow.md) — Assigned issues use worktrees from master → PR to master
 - [Ready PRs by default](ready_pr_default.md) — Open normal ready PRs to master by default; draft only by explicit request or blocked WIP
