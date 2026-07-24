@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import type { ReactElement } from 'react';
@@ -24,6 +25,35 @@ interface AgentComposerStatusStackProps {
   onSubmitInputRequest: (answer: string) => void | Promise<void>;
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
+}
+
+// Every notice in this stack sits on the same opaque surface. Translucent
+// tone fills (10% alpha) were unreadable over the conversation behind the
+// composer, so tone now drives only the border and the icon — never the text
+// contrast.
+const STATUS_SURFACE_CLASS =
+  'rounded-lg border bg-background-secondary px-3 py-2 shadow-sm';
+
+// Transport errors arrive as "<action>: <status> - <server detail>". The
+// server detail can be a raw ORM message, so it is split out and rendered as
+// bounded secondary text instead of one unreadable run-on line.
+function splitComposerError(error: string): {
+  detail: string | null;
+  summary: string;
+} {
+  const match = error.match(/^(.*?):\s*(\d{3})(?:\s*-\s*([\s\S]+))?$/);
+
+  if (!match) {
+    return { detail: null, summary: error };
+  }
+
+  const [, action, status, serverDetail] = match;
+  const trimmedDetail = serverDetail?.trim();
+
+  return {
+    detail: trimmedDetail || null,
+    summary: `${action} (${status})`,
+  };
 }
 
 function getDeterminateProgress(event: AgentWorkEvent): number | null {
@@ -49,6 +79,7 @@ export function AgentComposerStatusStack({
   pendingInputRequest,
   socketConnectionState,
 }: AgentComposerStatusStackProps): ReactElement | null {
+  const composerError = error ? splitComposerError(error) : null;
   const determinateProgress = activeWorkEvent
     ? getDeterminateProgress(activeWorkEvent)
     : null;
@@ -81,13 +112,25 @@ export function AgentComposerStatusStack({
         />
       ) : null}
 
-      {error ? (
+      {composerError ? (
         <div
-          className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          className={cn(
+            STATUS_SURFACE_CLASS,
+            'flex items-start gap-2 border-destructive/50',
+          )}
           role="alert"
         >
-          <HiOutlineExclamationTriangle className="mt-0.5 size-4 shrink-0" />
-          <span className="min-w-0 flex-1 leading-5">{error}</span>
+          <HiOutlineExclamationTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="font-medium text-foreground text-sm leading-5">
+              {composerError.summary}
+            </p>
+            {composerError.detail ? (
+              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-muted-foreground text-xs leading-5">
+                {composerError.detail}
+              </p>
+            ) : null}
+          </div>
           <Button
             ariaLabel="Dismiss composer error"
             className="size-7 shrink-0"
@@ -102,10 +145,13 @@ export function AgentComposerStatusStack({
       {hasConnectionWarning ? (
         <div
           aria-live="polite"
-          className="flex items-center gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning"
+          className={cn(
+            STATUS_SURFACE_CLASS,
+            'flex items-center gap-2 border-warning/50 text-foreground text-sm leading-5',
+          )}
           role="status"
         >
-          <HiOutlineSignalSlash className="size-4 shrink-0" />
+          <HiOutlineSignalSlash className="size-4 shrink-0 text-warning" />
           {socketConnectionState === 'offline'
             ? 'Offline. Your draft is safe; sending is paused.'
             : socketConnectionState === 'connecting'
@@ -117,7 +163,7 @@ export function AgentComposerStatusStack({
       {activeWorkEvent ? (
         <div
           aria-live="polite"
-          className="rounded-lg border border-border bg-background-secondary/92 px-3 py-2"
+          className={cn(STATUS_SURFACE_CLASS, 'border-border')}
           role="status"
         >
           <div className="flex items-center justify-between gap-3 text-xs">
@@ -150,7 +196,10 @@ export function AgentComposerStatusStack({
 
       {hasPlanReview ? (
         <div
-          className="rounded-lg border border-border bg-background-secondary/92 px-3 py-2 text-xs leading-5 text-foreground/72"
+          className={cn(
+            STATUS_SURFACE_CLASS,
+            'border-border text-muted-foreground text-xs leading-5',
+          )}
           role="status"
         >
           A plan is ready for explicit review in the conversation. This notice

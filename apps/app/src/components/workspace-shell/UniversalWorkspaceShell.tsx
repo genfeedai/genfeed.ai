@@ -13,13 +13,14 @@ import {
   useAgentChatStore,
 } from '@genfeedai/agent';
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, CardEmptySize } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   WorkspaceShellOverlayRequest,
 } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
 import {
   Drawer,
@@ -282,13 +283,17 @@ function UniversalWorkspaceShellContent({
     [rawPathname, searchParamsString],
   );
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
+  // Human-readable breadcrumb leaf resolved from the route registry
+  // (param-interpolated), never the raw `route:/…` pattern from `routeKey`.
+  const inspectorBreadcrumbLabel =
+    routeRegistration?.breadcrumb.leafLabel ?? 'Workspace';
   const shellContextLabel =
     resolvedSurfacePresentationAdapter?.contextLabel ??
     (state === 'conversation'
       ? 'Conversation'
       : state === 'overlay'
         ? 'Overlay · conversation connected'
-        : `Canvas · ${shellLocation.routeKey.replace(/^canvas:/, '')}`);
+        : `Canvas · ${inspectorBreadcrumbLabel}`);
   const activeResearchSurfaceAdapter =
     researchSurfaceAdapter?.registration.surfaceKey === surfaceKey
       ? researchSurfaceAdapter.registration
@@ -883,31 +888,29 @@ function UniversalWorkspaceShellContent({
           activeResearchSurfaceAdapter.inspectorContent
         ) : resolvedSurfacePresentationAdapter ? (
           resolvedSurfacePresentationAdapter.inspector
-        ) : (
+        ) : resolvedWorkspaceSurfaceAdapter ? (
           <div
             className="gen-shell-empty-state p-4"
-            data-testid={
-              resolvedWorkspaceSurfaceAdapter
-                ? 'workspace-surface-adapter-inspector'
-                : undefined
-            }
+            data-testid="workspace-surface-adapter-inspector"
           >
             <p className="text-sm font-medium text-foreground">
-              {resolvedWorkspaceSurfaceAdapter
-                ? resolvedWorkspaceSurfaceAdapter.registration.title
-                : `Registered ${surfaceKey} adapter slot`}
+              {resolvedWorkspaceSurfaceAdapter.registration.title}
             </p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {resolvedWorkspaceSurfaceAdapter
-                ? resolvedWorkspaceSurfaceAdapter.registration.description
-                : 'Product-owned context adapters land here without changing their canonical route or granting execution authority.'}
+              {resolvedWorkspaceSurfaceAdapter.registration.description}
             </p>
-            {resolvedWorkspaceSurfaceAdapter ? (
-              <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                Full management remains available on this canonical route.
-              </p>
-            ) : null}
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">
+              Full management remains available on this canonical route.
+            </p>
           </div>
+        ) : (
+          <CardEmptyContent
+            className="gen-shell-empty-state rounded-lg py-8"
+            description={`Start a conversation or choose a workflow to build ${inspectorBreadcrumbLabel} context here.`}
+            icon={HiOutlineSquares2X2}
+            label={`No ${inspectorBreadcrumbLabel} context yet`}
+            size={CardEmptySize.SM}
+          />
         )}
         <Button
           icon={<HiOutlineBolt className="size-4" />}

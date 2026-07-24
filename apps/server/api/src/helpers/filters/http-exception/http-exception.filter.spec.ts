@@ -116,7 +116,8 @@ describe('HttpExceptionFilter', () => {
 
     filter.catch(exception, mockArgumentsHost);
 
-    expect(mockLoggerService.error).toHaveBeenCalled();
+    expect(mockLoggerService.warn).toHaveBeenCalled();
+    expect(mockLoggerService.error).not.toHaveBeenCalled();
     expect(Sentry.captureException).not.toHaveBeenCalled();
     expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
     expect(mockResponse.json).toHaveBeenCalledWith(
@@ -336,20 +337,21 @@ describe('HttpExceptionFilter', () => {
   });
 
   describe('Logging Behavior', () => {
-    it('should log 4xx errors locally without reporting them to Sentry in production', () => {
+    it('should log 4xx errors locally at warn without a stack trace or Sentry in production', () => {
       // Production environment setup is already done in beforeEach
       const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
 
       filter.catch(exception, mockArgumentsHost);
 
-      expect(mockLoggerService.error).toHaveBeenCalledWith(
-        'HTTP exception occurred',
-        exception,
+      // 4xx must not pass the exception (stack trace) and must not hit .error().
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        'HTTP client error occurred',
         expect.objectContaining({
           status: HttpStatus.BAD_REQUEST,
           url: '/test',
         }),
       );
+      expect(mockLoggerService.error).not.toHaveBeenCalled();
       expect(Sentry.captureException).not.toHaveBeenCalled();
       expect(mockLoggerService.log).not.toHaveBeenCalled();
     });

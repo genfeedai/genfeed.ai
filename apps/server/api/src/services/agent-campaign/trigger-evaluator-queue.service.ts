@@ -3,6 +3,7 @@ import {
   TRIGGER_EVALUATION_QUEUE,
   TriggerEvaluationJobData,
 } from '@genfeedai/queue-contracts';
+import { reserveIdempotentJob } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -25,20 +26,17 @@ export class TriggerEvaluatorQueueService {
     scheduledAt?: Date;
   }): Promise<string> {
     const jobId = `trigger-evaluation-${data.campaignId}`;
-    const existingJob = await this.triggerEvaluationQueue.getJob(jobId);
-
-    if (existingJob) {
-      const state = await existingJob.getState();
-      if (['active', 'waiting', 'delayed'].includes(state)) {
-        this.logger.warn(`${this.logContext} campaign already queued`, {
-          campaignId: data.campaignId,
-          jobId,
-          state,
-        });
-        return jobId;
-      }
-
-      await existingJob.remove();
+    const reservation = await reserveIdempotentJob(
+      this.triggerEvaluationQueue,
+      jobId,
+    );
+    if (reservation.alreadyQueued) {
+      this.logger.warn(`${this.logContext} campaign already queued`, {
+        campaignId: data.campaignId,
+        jobId,
+        state: reservation.state,
+      });
+      return jobId;
     }
 
     const scheduledAt = data.scheduledAt ?? new Date();

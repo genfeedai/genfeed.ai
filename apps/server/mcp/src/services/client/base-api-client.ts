@@ -1,8 +1,8 @@
-import { createHash } from 'node:crypto';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
+import { createMcpOriginProof } from '@mcp/shared/utils/mcp-origin-proof.util';
 import type { HttpService } from '@nestjs/axios';
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import type { ApiError } from './client.types';
@@ -19,6 +19,7 @@ import type { ApiError } from './client.types';
 export class BaseApiClient {
   private readonly http: AxiosInstance;
   private bearerToken: string;
+  private readonly mcpOriginProof: string | undefined;
 
   constructor(
     readonly logger: LoggerService,
@@ -26,6 +27,9 @@ export class BaseApiClient {
     configService: ConfigService,
   ) {
     this.bearerToken = (configService.get('GENFEEDAI_API_KEY') as string) || '';
+    this.mcpOriginProof = createMcpOriginProof(
+      configService.get('GENFEEDAI_API_KEY') as string | undefined,
+    );
     const baseURL = resolveApiBaseUrl(
       configService.get('GENFEEDAI_API_URL') as string | undefined,
     );
@@ -35,11 +39,9 @@ export class BaseApiClient {
       headers: {
         Authorization: `Bearer ${this.bearerToken}`,
         'Content-Type': 'application/json',
-        ...(this.bearerToken
+        ...(this.mcpOriginProof
           ? {
-              [MCP_ACTION_ORIGIN_PROOF_HEADER]: this.createActionOriginProof(
-                this.bearerToken,
-              ),
+              [MCP_ACTION_ORIGIN_PROOF_HEADER]: this.mcpOriginProof,
             }
           : {}),
       },
@@ -51,16 +53,15 @@ export class BaseApiClient {
     this.bearerToken = token;
     if (token) {
       this.http.defaults.headers.Authorization = `Bearer ${token}`;
-      this.http.defaults.headers[MCP_ACTION_ORIGIN_PROOF_HEADER] =
-        this.createActionOriginProof(token);
     } else {
       delete this.http.defaults.headers.Authorization;
+    }
+    if (this.mcpOriginProof) {
+      this.http.defaults.headers[MCP_ACTION_ORIGIN_PROOF_HEADER] =
+        this.mcpOriginProof;
+    } else {
       delete this.http.defaults.headers[MCP_ACTION_ORIGIN_PROOF_HEADER];
     }
-  }
-
-  private createActionOriginProof(token: string): string {
-    return createHash('sha256').update(token).digest('base64url');
   }
 
   /**

@@ -137,6 +137,16 @@
       }
     },
     {
+      "includes": ["apps/server/api/src/collections/assets/**/*.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedImports": "error"
+          }
+        }
+      }
+    },
+    {
       "includes": ["apps/server/api/src/collections/bots/**/*.ts"],
       "linter": {
         "rules": {

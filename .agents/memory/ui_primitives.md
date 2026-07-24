@@ -1,10 +1,10 @@
 ---
 name: Always use @ui/primitives components, never raw HTML
-description: Genfeed blocks raw HTML elements (button, input, textarea, select, dialog, table, hr, etc.) via scripts/lint-no-raw-html.sh — use @ui/primitives/* instead
+description: Genfeed blocks raw HTML elements (button, input, textarea, select, dialog, table, hr, etc.) via scripts/ui/control-guard.ts — use @ui/primitives/* instead
 type: feedback
 ---
 
-In this repo, **never write raw `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`, `<table>`, `<details>`, `<summary>`, `<progress>`, or `<hr>` elements** in production `.tsx` files. They are blocked by `scripts/lint-no-raw-html.sh` which runs as a pre-commit hook.
+In this repo, **never write raw `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`, `<table>`, `<details>`, `<summary>`, `<progress>`, or `<hr>` elements** in production `.tsx` files. They are blocked by `scripts/ui/control-guard.ts` — the single canonical raw-control scanner that replaced the old `check-raw-button-usage.ts`, `check-raw-ui-controls.ts`, and `lint-no-raw-html.sh`. It runs pre-commit via lint-staged (`lint-staged.config.mjs`) and repo-wide in CI via `bun run check:ui-guards`.
 
 **Use `@ui/primitives/*` instead:**
 - `<button>` → `Button` from `@ui/primitives/button`
@@ -24,4 +24,4 @@ In this repo, **never write raw `<button>`, `<input>`, `<textarea>`, `<select>`,
 
 **Why:** Enforces design system consistency and a11y. User has called out raw HTML violations multiple times.
 
-**How to apply:** Before adding any `<button>`, `<input>`, `<dialog>`, etc., check `packages/ui/src/primitives/` for the corresponding component. If a div with `role="button"` would be the natural choice, use `Button` with `variant={ButtonVariant.UNSTYLED}` instead. Exclusions (primitives, editors, tests, mocks, storybook) are hardcoded in `scripts/lint-no-raw-html.sh`.
+**How to apply:** Before adding any `<button>`, `<input>`, `<dialog>`, etc., check `packages/ui/src/primitives/` for the corresponding component. If a div with `role="button"` would be the natural choice, use `Button` with `variant={ButtonVariant.UNSTYLED}` instead. Exclusions (primitives, editors, tests, mocks, storybook) live in the single `ALLOWLIST` in `scripts/ui/control-guard.ts`.

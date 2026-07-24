@@ -9,6 +9,7 @@
 import { ActionOrigin } from '@genfeedai/enums';
 import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
 import {
+  reserveIdempotentJob,
   resolveNestedActionOrigin,
   sanitizeActionOriginContext,
 } from '@genfeedai/server';
@@ -47,17 +48,13 @@ export class AgentRunQueueService implements OnModuleInit {
       ),
     };
 
-    // Check for existing job to prevent duplicates
-    const existingJob = await this.agentRunQueue.getJob(jobId);
-    if (existingJob) {
-      const state = await existingJob.getState();
-      if (['active', 'waiting', 'delayed'].includes(state)) {
-        this.logger.warn(
-          `${url} agent run ${data.runId} already queued (${state})`,
-        );
-        return jobId;
-      }
-      await existingJob.remove();
+    // Prevent duplicate runs sharing the deterministic job id.
+    const reservation = await reserveIdempotentJob(this.agentRunQueue, jobId);
+    if (reservation.alreadyQueued) {
+      this.logger.warn(
+        `${url} agent run ${data.runId} already queued (${reservation.state})`,
+      );
+      return jobId;
     }
 
     const job = await this.agentRunQueue.add('execute-agent-run', payload, {

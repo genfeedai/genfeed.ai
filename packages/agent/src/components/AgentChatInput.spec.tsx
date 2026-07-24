@@ -354,4 +354,137 @@ describe('AgentChatInput', () => {
     expect(screen.getByText('1 reference')).toBeInTheDocument();
     expect(within(tray).getAllByText('^Launch post')).toHaveLength(1);
   });
+
+  it('sends the draft when Enter is pressed without a modifier', async () => {
+    const onSend = vi.fn();
+    storeState.composerSeed = {
+      content: 'Ship the composer fix',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(<AgentChatInput onSend={onSend} />);
+
+    const composer = screen.getByRole('textbox');
+    await waitFor(() =>
+      expect(composer).toHaveTextContent('Ship the composer fix'),
+    );
+
+    fireEvent.keyDown(composer, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(onSend).toHaveBeenCalledWith(
+        'Ship the composer fix',
+        undefined,
+        undefined,
+        { planModeEnabled: false },
+      );
+    });
+  });
+
+  it('inserts a newline instead of sending on Shift+Enter', async () => {
+    const onSend = vi.fn();
+    storeState.composerSeed = {
+      content: 'First line',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(<AgentChatInput onSend={onSend} />);
+
+    const composer = screen.getByRole('textbox');
+    await waitFor(() => expect(composer).toHaveTextContent('First line'));
+
+    fireEvent.keyDown(composer, { key: 'Enter', shiftKey: true });
+
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('does not send on Enter when the composer is empty', () => {
+    const onSend = vi.fn();
+
+    render(<AgentChatInput onSend={onSend} />);
+
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' });
+
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('does not send on Enter while an IME composition is active', async () => {
+    const onSend = vi.fn();
+    storeState.composerSeed = {
+      content: 'こんにちは',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(<AgentChatInput onSend={onSend} />);
+
+    const composer = screen.getByRole('textbox');
+    await waitFor(() => expect(composer).toHaveTextContent('こんにちは'));
+
+    fireEvent.compositionStart(composer);
+    fireEvent.keyDown(composer, {
+      isComposing: true,
+      key: 'Enter',
+      keyCode: 229,
+    });
+
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('does not send on Enter when the composer is disabled', async () => {
+    const onSend = vi.fn();
+    storeState.composerSeed = {
+      content: 'Held while disabled',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(<AgentChatInput disabled onSend={onSend} />);
+
+    const composer = screen.getByRole('textbox');
+    await waitFor(() =>
+      expect(composer).toHaveTextContent('Held while disabled'),
+    );
+
+    fireEvent.keyDown(composer, { key: 'Enter' });
+
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('routes Enter only to the focused composer when two are mounted', async () => {
+    const onSendFirst = vi.fn();
+    const onSendSecond = vi.fn();
+    storeState.composerSeed = {
+      content: 'Route to the focused composer',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(
+      <>
+        <AgentChatInput onSend={onSendFirst} />
+        <AgentChatInput onSend={onSendSecond} />
+      </>,
+    );
+
+    const composers = screen.getAllByRole('textbox');
+    expect(composers).toHaveLength(2);
+    await waitFor(() =>
+      expect(composers[0]).toHaveTextContent('Route to the focused composer'),
+    );
+
+    fireEvent.keyDown(composers[0], { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(onSendFirst).toHaveBeenCalledWith(
+        'Route to the focused composer',
+        undefined,
+        undefined,
+        { planModeEnabled: false },
+      );
+    });
+    expect(onSendSecond).not.toHaveBeenCalled();
+  });
 });

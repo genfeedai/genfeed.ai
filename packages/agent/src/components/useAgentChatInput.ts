@@ -128,14 +128,29 @@ function extractMentions(json: JSONContent): ExtractedMention[] {
   return result;
 }
 
-const SendOnEnter = Extension.create({
+interface SendOnEnterOptions {
+  onEnter: () => boolean;
+}
+
+// Enter submits the message (mirroring the Send button); Shift+Enter falls
+// through to the HardBreak newline. Declared before the mention/slash
+// extensions so their Suggestion plugins keep Enter-to-select while a popup is
+// open, but ahead of the core newline keymap when no popup is active. The IME
+// guard prevents committing an in-progress composition (critical for CJK).
+const SendOnEnter = Extension.create<SendOnEnterOptions>({
   addKeyboardShortcuts() {
     return {
-      Enter: () => {
-        const event = new CustomEvent('agent-chat-send');
-        document.dispatchEvent(event);
-        return true;
+      Enter: ({ editor }) => {
+        if (editor.view.composing) {
+          return false;
+        }
+        return this.options.onEnter();
       },
+    };
+  },
+  addOptions() {
+    return {
+      onEnter: () => false,
     };
   },
   name: 'sendOnEnter',
@@ -297,6 +312,9 @@ export function useAgentChatInput({
       : [],
   );
   const editorRef = useRef<Editor | null>(null);
+  // Stable bridge so the module-scope SendOnEnter keymap can invoke the live,
+  // component-scoped handleSend without recreating the editor.
+  const handleSendRef = useRef<() => void>(() => {});
 
   const hasAttachments = attachments.length > 0;
   const hasCompletedAttachments =
@@ -348,6 +366,12 @@ export function useAgentChatInput({
       }),
       Placeholder.configure({
         placeholder,
+      }),
+      SendOnEnter.configure({
+        onEnter: () => {
+          handleSendRef.current();
+          return true;
+        },
       }),
       BrandMention.configure({
         HTMLAttributes: { class: 'mention mention-brand' },
@@ -404,7 +428,6 @@ export function useAgentChatInput({
         }),
       }),
       SlashCommands,
-      SendOnEnter,
     ],
     immediatelyRender: false,
   });
@@ -595,16 +618,12 @@ export function useAgentChatInput({
     surfaceArtifactReferences,
   ]);
 
-  // Handle Enter after handleSend is stable so keyboard and click paths share
-  // the same trusted-command checks and recovery behavior.
+  // Keep the SendOnEnter keymap pointed at the latest handleSend so the Enter
+  // and Send-button paths share the same trusted-command checks and recovery.
   useEffect(() => {
-    function handleSendEvent() {
+    handleSendRef.current = () => {
       void handleSend();
-    }
-
-    document.addEventListener('agent-chat-send', handleSendEvent);
-    return () =>
-      document.removeEventListener('agent-chat-send', handleSendEvent);
+    };
   }, [handleSend]);
 
   const handleSelectAction = useCallback(
