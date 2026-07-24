@@ -432,4 +432,59 @@ describe('AgentChatInput', () => {
 
     expect(onSend).not.toHaveBeenCalled();
   });
+
+  it('does not send on Enter when the composer is disabled', async () => {
+    const onSend = vi.fn();
+    storeState.composerSeed = {
+      content: 'Held while disabled',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(<AgentChatInput disabled onSend={onSend} />);
+
+    const composer = screen.getByRole('textbox');
+    await waitFor(() =>
+      expect(composer).toHaveTextContent('Held while disabled'),
+    );
+
+    fireEvent.keyDown(composer, { key: 'Enter' });
+
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('routes Enter only to the focused composer when two are mounted', async () => {
+    const onSendFirst = vi.fn();
+    const onSendSecond = vi.fn();
+    storeState.composerSeed = {
+      content: 'Route to the focused composer',
+      nonce: 1,
+      threadId: null,
+    };
+
+    render(
+      <>
+        <AgentChatInput onSend={onSendFirst} />
+        <AgentChatInput onSend={onSendSecond} />
+      </>,
+    );
+
+    const composers = screen.getAllByRole('textbox');
+    expect(composers).toHaveLength(2);
+    await waitFor(() =>
+      expect(composers[0]).toHaveTextContent('Route to the focused composer'),
+    );
+
+    fireEvent.keyDown(composers[0], { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(onSendFirst).toHaveBeenCalledWith(
+        'Route to the focused composer',
+        undefined,
+        undefined,
+        { planModeEnabled: false },
+      );
+    });
+    expect(onSendSecond).not.toHaveBeenCalled();
+  });
 });
