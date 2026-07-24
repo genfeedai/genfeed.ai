@@ -76,7 +76,10 @@ export class LegacyWorkflowStepRunner extends BaseService<
       throw new NotFoundException('Workflow');
     }
 
-    if (!workflow.user || !workflow.organization) {
+    // Scalar FKs `userId`/`organizationId` hold live data on Prisma rows; the
+    // Mongo-era `user`/`organization` aliases are undefined at runtime on this
+    // unpopulated fromDocument() result and would gate every execution off.
+    if (!workflow.userId || !workflow.organizationId) {
       throw new Error(
         'Systemic workflow templates cannot be executed directly. Clone the workflow first.',
       );
@@ -274,7 +277,7 @@ export class LegacyWorkflowStepRunner extends BaseService<
     await this.websocketService?.publishWorkflowStatus(
       workflowId,
       finalStatus === WorkflowStatus.COMPLETED ? 'completed' : 'failed',
-      String(workflow.user),
+      String(workflow.userId),
       {
         failedSteps: failed.size,
         workflowLabel: workflow.label,
@@ -306,7 +309,7 @@ export class LegacyWorkflowStepRunner extends BaseService<
     await this.websocketService?.publishWorkflowStatus(
       workflowId,
       'failed',
-      String(workflow.user),
+      String(workflow.userId),
       {
         error: (error as Error)?.message ?? 'Unknown error',
         workflowLabel: workflow.label,
@@ -465,14 +468,14 @@ export class LegacyWorkflowStepRunner extends BaseService<
             description: config.description as string,
             ingredients: assetId ? [assetId] : [],
             label: config.label as string,
-            organization: workflow.organization,
+            organization: workflow.organizationId,
             platform: platform as CredentialPlatform,
             scheduledDate:
               schedule === 'immediate'
                 ? new Date()
                 : (config.scheduledAt as Date),
             status: (visibility as PostStatus) || PostStatus.SCHEDULED,
-            user: workflow.user,
+            user: workflow.userId,
           } as never),
         ),
       );
