@@ -2,6 +2,7 @@ import {
   WORKSPACE_TASK_QUEUE,
   WorkspaceTaskJobData,
 } from '@genfeedai/queue-contracts';
+import { reserveIdempotentJob } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
@@ -24,17 +25,13 @@ export class WorkspaceTaskQueueService {
   async enqueue(data: WorkspaceTaskJobData): Promise<string> {
     const jobId = `workspace-task-${data.taskId}`;
 
-    // Prevent duplicate jobs
-    const existing = await this.queue.getJob(jobId);
-    if (existing) {
-      const state = await existing.getState();
-      if (['active', 'waiting', 'delayed'].includes(state)) {
-        this.logger.warn(
-          `${this.logContext}: Task ${data.taskId} already queued (${state})`,
-        );
-        return jobId;
-      }
-      await existing.remove();
+    // Prevent duplicate jobs sharing the deterministic job id.
+    const reservation = await reserveIdempotentJob(this.queue, jobId);
+    if (reservation.alreadyQueued) {
+      this.logger.warn(
+        `${this.logContext}: Task ${data.taskId} already queued (${reservation.state})`,
+      );
+      return jobId;
     }
 
     const job = await this.queue.add('orchestrate-task', data, {
