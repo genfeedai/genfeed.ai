@@ -10,8 +10,9 @@ import {
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import { type ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
+import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import { isTranscriptSegment } from '@api/collections/clip-projects/services/clip-srt.util';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -33,12 +34,13 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
 import type {
+  AgentClipRunIdentity,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
   SortObject,
 } from '@genfeedai/interfaces';
+import { DEFAULT_CLIP_RESULT_MODE } from '@genfeedai/interfaces';
 import { ClipProjectSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -72,6 +74,7 @@ export class ClipProjectsController {
     private readonly clipFactoryQueueService: ClipFactoryQueueService,
     private readonly clipAnalyzeQueueService: ClipAnalyzeQueueService,
     private readonly clipGenerationService: ClipGenerationService,
+    private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
     private readonly highlightRewriteService: HighlightRewriteService,
     private readonly creditsUtilsService: CreditsUtilsService,
   ) {}
@@ -90,6 +93,7 @@ export class ClipProjectsController {
   ): Promise<{
     batchJobId: string;
     estimatedClips: number;
+    identity?: AgentClipRunIdentity;
     projectId: string;
     status: string;
   }> {
@@ -98,6 +102,19 @@ export class ClipProjectsController {
     const userId = publicMetadata.user;
     const estimatedClips = dto.maxClips ?? 10;
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
+    const resolvedIdentity =
+      mode === 'avatar' || dto.brandId
+        ? await this.clipIdentityResolutionService.resolve({
+            avatarId: dto.avatarId,
+            avatarProvider: dto.avatarProvider,
+            brandId: dto.brandId,
+            organizationId: orgId,
+            voiceId: dto.voiceId,
+          })
+        : undefined;
+    const identity = mode === 'avatar' ? resolvedIdentity : undefined;
+
+    this.assertCompleteAvatarIdentity(identity);
 
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
@@ -113,6 +130,7 @@ export class ClipProjectsController {
 
     // Create the ClipProject record
     const project: ClipProjectDocument = await this.clipProjectsService.create({
+      brandId: dto.brandId,
       language: dto.language ?? 'en',
       name:
         dto.name ??
@@ -135,7 +153,7 @@ export class ClipProjectsController {
 
     // Enqueue the async pipeline
     const batchJobId = await this.clipFactoryQueueService.enqueue({
-      avatarId: dto.avatarId,
+      avatarId: identity?.avatarId,
       avatarProvider: dto.avatarProvider ?? 'heygen',
       language: dto.language ?? 'en',
       maxClips: estimatedClips,
@@ -144,13 +162,14 @@ export class ClipProjectsController {
       orgId,
       projectId,
       userId,
-      voiceId: dto.voiceId,
+      voiceId: identity?.voiceId,
       youtubeUrl: dto.youtubeUrl,
     });
 
     return {
       batchJobId,
       estimatedClips,
+      identity,
       projectId,
       status: 'processing',
     };
@@ -167,12 +186,21 @@ export class ClipProjectsController {
   async analyzeYoutube(
     @CurrentUser() user: User,
     @Body() dto: AnalyzeYoutubeDto,
-  ): Promise<{ projectId: string; status: string }> {
+  ): Promise<{
+    identity: AgentClipRunIdentity;
+    projectId: string;
+    status: string;
+  }> {
     const publicMetadata = getPublicMetadata(user);
     const orgId = publicMetadata.organization;
     const userId = publicMetadata.user;
+    const identity = await this.clipIdentityResolutionService.resolve({
+      brandId: dto.brandId,
+      organizationId: orgId,
+    });
 
     const project: ClipProjectDocument = await this.clipProjectsService.create({
+      brandId: dto.brandId,
       language: dto.language ?? 'en',
       name:
         dto.name ?? `Clip Analysis — ${new Date().toISOString().slice(0, 10)}`,
@@ -202,7 +230,7 @@ export class ClipProjectsController {
       youtubeUrl: dto.youtubeUrl,
     });
 
-    return { projectId, status: 'analyzing' };
+    return { identity, projectId, status: 'analyzing' };
   }
 
   @Get(':projectId/highlights')
@@ -304,11 +332,18 @@ export class ClipProjectsController {
       );
     }
 
-    if (mode === 'avatar' && (!dto.avatarId || !dto.voiceId)) {
-      throw new BadRequestException(
-        'Avatar clip generation requires avatarId and voiceId.',
-      );
-    }
+    const identity =
+      mode === 'avatar'
+        ? await this.clipIdentityResolutionService.resolve({
+            avatarId: dto.avatarId,
+            avatarProvider: dto.avatarProvider,
+            brandId: project.brandId,
+            organizationId: orgId,
+            voiceId: dto.voiceId,
+          })
+        : undefined;
+
+    this.assertCompleteAvatarIdentity(identity);
 
     if (
       mode === 'raw-cut' &&
@@ -358,7 +393,7 @@ export class ClipProjectsController {
     });
 
     const result = await this.clipGenerationService.generateClips({
-      avatarId: dto.avatarId,
+      avatarId: identity?.avatarId,
       highlights: selectedEditedHighlights,
       mode,
       orgId,
@@ -371,7 +406,7 @@ export class ClipProjectsController {
         : [],
       transcriptText: project.transcriptText,
       userId,
-      voiceId: dto.voiceId,
+      voiceId: identity?.voiceId,
     });
 
     if (result.queuedClipCount === 0) {
@@ -389,6 +424,16 @@ export class ClipProjectsController {
     };
   }
 
+  private assertCompleteAvatarIdentity(identity?: AgentClipRunIdentity): void {
+    if (!identity || identity.isComplete) {
+      return;
+    }
+
+    throw new BadRequestException(
+      `${identity.label}. Configure saved brand defaults or provide explicit ${identity.missing.join(' and ')} IDs.`,
+    );
+  }
+
   @Post()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
@@ -397,6 +442,13 @@ export class ClipProjectsController {
     @Body() createDto: CreateClipProjectDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
+
+    if (createDto.brandId) {
+      await this.clipIdentityResolutionService.resolve({
+        brandId: createDto.brandId,
+        organizationId: publicMetadata.organization,
+      });
+    }
 
     const data: ClipProjectDocument = await this.clipProjectsService.create({
       ...createDto,

@@ -179,7 +179,9 @@ export default function StudioClipsPage() {
                   {identityDefaults.isComplete
                     ? identityDefaults.source === 'brand'
                       ? 'Using saved brand HeyGen avatar and voice defaults.'
-                      : 'Using saved organization HeyGen voice default.'
+                      : identityDefaults.source === 'explicit'
+                        ? 'Using the explicit HeyGen avatar and voice IDs.'
+                        : 'Using saved organization HeyGen voice default.'
                     : `Missing ${identityDefaults.missing.join(' and ')} defaults. Enter IDs manually or save them in brand defaults.`}
                 </p>
 
@@ -291,7 +293,9 @@ export default function StudioClipsPage() {
           : identityDefaults.isComplete
             ? identityDefaults.source === 'brand'
               ? 'Uses saved brand avatar and voice defaults.'
-              : 'Uses saved organization voice default.'
+              : identityDefaults.source === 'explicit'
+                ? 'Uses the explicit avatar and voice IDs.'
+                : 'Uses saved organization voice default.'
             : 'No saved HeyGen defaults. Review highlights first to enter IDs manually.'
       }
     />

@@ -80,6 +80,7 @@ describe('ClipProjectsService', () => {
   it('maps create DTO fields to durable columns and config JSON', async () => {
     prisma.clipProject.create.mockResolvedValue({
       _id: 'project-1',
+      brandId: 'brand-1',
       config: {},
       id: 'project-1',
       organizationId: 'org-1',
@@ -88,7 +89,8 @@ describe('ClipProjectsService', () => {
       status: 'pending',
     });
 
-    await service.create({
+    const project = await service.create({
+      brandId: 'brand-1',
       language: 'en',
       name: 'Launch clip',
       organization: 'org-1',
@@ -107,6 +109,7 @@ describe('ClipProjectsService', () => {
           sourceVideoUrl: 'https://example.com/source.mp4',
           user: 'user-1',
         }),
+        brandId: 'brand-1',
         organizationId: 'org-1',
         readiness: expect.objectContaining({
           state: 'pending',
@@ -115,6 +118,7 @@ describe('ClipProjectsService', () => {
         status: 'pending',
       }),
     });
+    expect(project.brandId).toBe('brand-1');
   });
 
   it('normalizes reference-frame state into clip-project config', async () => {

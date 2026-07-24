@@ -1,12 +1,13 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import {
+  CLIP_RESULT_MODES,
+  type ClipResultMode,
+  DEFAULT_CLIP_RESULT_MODE,
+} from '@genfeedai/interfaces';
 import {
   SUPPORTED_AVATAR_VIDEO_PROVIDER_NAMES,
   type SupportedAvatarVideoProviderName,
 } from '@genfeedai/queue-contracts';
-import {
-  CLIP_RESULT_MODES,
-  DEFAULT_CLIP_RESULT_MODE,
-  type ClipResultMode,
-} from '@genfeedai/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsIn,
@@ -17,7 +18,6 @@ import {
   Matches,
   Max,
   Min,
-  ValidateIf,
 } from 'class-validator';
 
 /**
@@ -27,6 +27,14 @@ const YOUTUBE_URL_REGEX =
   /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|embed\/|shorts\/)|youtu\.be\/)/;
 
 export class CreateClipProjectFromYoutubeDto {
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Selected brand used to resolve saved clip identity defaults',
+    required: false,
+  })
+  readonly brandId?: string;
+
   @IsOptional()
   @IsIn([...CLIP_RESULT_MODES])
   @ApiProperty({
@@ -49,11 +57,7 @@ export class CreateClipProjectFromYoutubeDto {
   })
   readonly youtubeUrl!: string;
 
-  @ValidateIf(
-    (dto: CreateClipProjectFromYoutubeDto) =>
-      (dto.mode ?? DEFAULT_CLIP_RESULT_MODE) === 'avatar' ||
-      dto.avatarId !== undefined,
-  )
+  @IsOptional()
   @IsString()
   @ApiProperty({
     description: 'Avatar ID for avatar-mode clip generation',
@@ -61,11 +65,7 @@ export class CreateClipProjectFromYoutubeDto {
   })
   readonly avatarId?: string;
 
-  @ValidateIf(
-    (dto: CreateClipProjectFromYoutubeDto) =>
-      (dto.mode ?? DEFAULT_CLIP_RESULT_MODE) === 'avatar' ||
-      dto.voiceId !== undefined,
-  )
+  @IsOptional()
   @IsString()
   @ApiProperty({
     description: 'Voice ID for avatar-mode clip generation',
