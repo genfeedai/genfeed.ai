@@ -10,7 +10,6 @@ const UI_FLOWS_SRC = path.resolve(UI_SRC, './flows.ts');
 const UI_GENERATORS_SRC = path.resolve(UI_SRC, './generators');
 const UI_MODALS_SRC = path.resolve(UI_SRC, './modals');
 const UI_SEMANTIC_SRC = path.resolve(UI_SRC, './semantic');
-const UI_TASK_COMPOSER_SRC = path.resolve(UI_SRC, './task-composer');
 const SERWIST_NEXT_WORKER_MOCK = path.resolve(
   __dirname,
   './tests/__mocks__/serwist-next-worker.ts',
@@ -287,14 +286,6 @@ export default defineConfig({
       {
         find: '@ui/semantic',
         replacement: UI_SEMANTIC_SRC,
-      },
-      {
-        find: /^@ui\/task-composer\/(.*)$/,
-        replacement: path.resolve(UI_TASK_COMPOSER_SRC, '$1'),
-      },
-      {
-        find: '@ui/task-composer',
-        replacement: UI_TASK_COMPOSER_SRC,
       },
       {
         find: /^@ui\/styles\/(.*)$/,
