@@ -6,11 +6,29 @@ import { Global, Module, type Type } from '@nestjs/common';
 export interface CreateConfigModuleOptions {
   /**
    * The service's concrete `ConfigService` class. Instantiated eagerly and
-   * registered with `useValue` (never `useFactory`) so config validation fails
-   * at import time rather than on first injection — the project-wide provider
-   * rule.
+   * registered with `useValue` — the project-wide provider rule — so config
+   * validation fails at import time rather than on first injection. All ten
+   * backend services use this default; see {@link CreateConfigModuleOptions.isLazy}
+   * for the single documented exception.
    */
   configService: Type<object>;
+  /**
+   * Defer construction to Nest's DI resolution (`useFactory`) instead of
+   * module-evaluation time (`useValue`). Defaults to `false`.
+   *
+   * Only the API tier sets this. Its `ConfigService` composes ~30 schemas —
+   * including `baseSchema` (`PORT` required) and `postgresSchema`
+   * (`DATABASE_URL` required) — so eager construction would make *importing*
+   * any module that reaches `@libs/config/config.module` demand a fully
+   * populated environment. That is a real cost: 86 API unit specs import
+   * collection modules without ever booting the app.
+   *
+   * Deferring changes nothing at runtime. Nest resolves every provider while
+   * compiling `AppModule` in `main.ts`, so a misconfigured deployment still
+   * dies at startup rather than on first request — identical fail-fast
+   * behaviour, minus the import-time side effect.
+   */
+  isLazy?: boolean;
   /**
    * Extra class providers registered *and* exported alongside `ConfigService`
    * (e.g. the API's `ValidationConfigService`). Nest instantiates these through
@@ -41,17 +59,16 @@ export interface CreateConfigModuleOptions {
 export function createConfigModule(
   options: CreateConfigModuleOptions,
 ): Type<object> {
-  const { configService, providers = [] } = options;
+  const { configService, isLazy = false, providers = [] } = options;
 
   @Global()
   @Module({
     exports: [configService, ...providers],
     providers: [
       ...providers,
-      {
-        provide: configService,
-        useValue: new configService(),
-      },
+      isLazy
+        ? { provide: configService, useFactory: () => new configService() }
+        : { provide: configService, useValue: new configService() },
     ],
   })
   class ConfigModule {}

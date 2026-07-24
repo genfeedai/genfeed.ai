@@ -69,6 +69,44 @@ describe('createConfigModule', () => {
     expect(consumer.config).toBe(moduleRef.get(FakeConfigService));
   });
 
+  it('defers construction until DI resolution when isLazy is set', async () => {
+    const ConfigModule = createConfigModule({
+      configService: FakeConfigService,
+      isLazy: true,
+    });
+
+    // The API tier's contract: importing the module must not construct the
+    // config service, so a spec can import a module graph without a fully
+    // populated environment. Regression guard — the eager default broke 86 API
+    // unit specs at import time.
+    expect(constructionCount).toBe(0);
+
+    const moduleRef = await Test.createTestingModule({
+      imports: [ConfigModule],
+    }).compile();
+
+    // Still fail-fast at boot: compiling the module resolves the provider.
+    expect(constructionCount).toBe(1);
+    expect(moduleRef.get(FakeConfigService)).toBeInstanceOf(FakeConfigService);
+  });
+
+  it('throws at compile time, not import time, when lazy construction fails', async () => {
+    class ThrowingConfigService {
+      constructor() {
+        throw new Error('Config validation error: "PORT" is required');
+      }
+    }
+
+    const ConfigModule = createConfigModule({
+      configService: ThrowingConfigService,
+      isLazy: true,
+    });
+
+    await expect(
+      Test.createTestingModule({ imports: [ConfigModule] }).compile(),
+    ).rejects.toThrow(/"PORT" is required/);
+  });
+
   it('registers and exports additional providers', async () => {
     const ConfigModule = createConfigModule({
       configService: FakeConfigService,

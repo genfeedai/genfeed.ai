@@ -7,11 +7,13 @@
  * everything else about the wiring is the shared `createConfigModule` factory —
  * see `packages/libs/config/create-config-module.ts`.
  *
- * Note the provider strategy changed with this factory: `ConfigService` is now
- * registered with `useValue: new ConfigService()` instead of the previous
- * `useFactory: () => new ConfigService()`. That matches the project-wide
- * provider rule and makes config validation fail at module import rather than
- * on first injection.
+ * The API keeps `useFactory` semantics via `isLazy` — the one documented
+ * exception to the project-wide `useValue` provider rule. Its `ConfigService`
+ * composes ~30 schemas, so constructing it at module-evaluation time would mean
+ * no module reachable from here could be imported without a fully populated
+ * environment. Runtime fail-fast behaviour is unchanged: Nest still resolves
+ * this provider while compiling `AppModule`. The ten backend services keep the
+ * eager default.
  */
 
 import { ConfigService } from '@libs/config/config.service';
@@ -20,5 +22,6 @@ import { ValidationConfigService } from '@libs/config/services/validation.config
 
 export const ConfigModule = createConfigModule({
   configService: ConfigService,
+  isLazy: true,
   providers: [ValidationConfigService],
 });
