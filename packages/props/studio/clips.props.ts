@@ -1,6 +1,7 @@
 import type {
   ClipReadinessContract,
   ClipReadyAction,
+  ClipReferenceFrameSet,
   ClipResultMode,
   ClipResultStatus,
 } from '@genfeedai/interfaces';
@@ -63,6 +64,7 @@ export interface ProjectState {
   clips: ClipResult[];
   estimatedClips?: number;
   mode: ClipResultMode;
+  referenceFrames?: ClipReferenceFrameSet;
 }
 
 // ─── Component Props ──────────────────────────────────────────────
@@ -74,6 +76,14 @@ export interface ViralityBadgeProps {
 export interface ClipModeSelectorProps {
   mode: ClipResultMode;
   onModeChange: (mode: ClipResultMode) => void;
+}
+
+export interface ClipReferenceFrameSelectorProps {
+  error: string | null;
+  onRetry: () => void;
+  onSelect: (candidateId: string) => void;
+  pendingCandidateId: string | null;
+  referenceFrames?: ClipReferenceFrameSet;
 }
 
 export interface ClipsInputFormProps {

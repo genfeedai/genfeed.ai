@@ -6,6 +6,7 @@ import {
   buildClipProjectReadiness,
   isTerminalClipStatus,
 } from '@api/collections/clip-shared/clip-terminal-contract.util';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -18,7 +19,7 @@ import type {
   PopulateOption,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type PopulateInput = (string | PopulateOption)[] | 'none';
 
@@ -93,6 +94,57 @@ export class ClipProjectsService extends BaseService<
       this.toPrismaWriteData(updateDto, 'update', existingConfig),
       populate,
     );
+  }
+
+  async selectReferenceFrame(
+    projectId: string,
+    organizationId: string,
+    candidateId: string,
+  ): Promise<ClipProjectDocument> {
+    const project = await this.findOne({
+      _id: projectId,
+      isDeleted: false,
+      organization: organizationId,
+    });
+
+    if (!project) {
+      throw new NotFoundException('ClipProject', projectId);
+    }
+
+    const referenceFrames = project.referenceFrames;
+    if (!referenceFrames) {
+      throw new BadRequestException(
+        `Reference-frame candidate ${candidateId} does not belong to this project.`,
+      );
+    }
+
+    const candidate = referenceFrames.candidates.find(
+      (item) => item.id === candidateId,
+    );
+
+    if (!candidate) {
+      throw new BadRequestException(
+        `Reference-frame candidate ${candidateId} does not belong to this project.`,
+      );
+    }
+
+    if (candidate.status !== 'available') {
+      throw new BadRequestException(
+        `Reference-frame candidate ${candidateId} is not available.`,
+      );
+    }
+
+    if (referenceFrames.selectedCandidateId === candidateId) {
+      return project;
+    }
+
+    return await this.patch(projectId, {
+      referenceFrames: {
+        ...referenceFrames,
+        selectedCandidateId: candidateId,
+        status: 'selected',
+      },
+    });
   }
 
   async reconcileTerminalState(

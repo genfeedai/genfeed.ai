@@ -63,3 +63,12 @@ export interface ClipReferenceFrameExtractionInput {
   sourceUrl: string;
   timestamps: number[];
 }
+
+/**
+ * Client-facing shape of a clip project read, as consumed by the studio clips
+ * surface. Shared so the API client and the page hook cannot drift.
+ */
+export interface ClipProjectReadResponse {
+  referenceFrames?: ClipReferenceFrameSet;
+  status?: string;
+}

@@ -1,4 +1,8 @@
-import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import type {
+  AgentClipRunIdentity,
+  ClipProjectReadResponse,
+  ClipReferenceFrameSet,
+} from '@genfeedai/interfaces';
 import type {
   ClipResult,
   ClipResultMode,
@@ -57,10 +61,6 @@ interface CreateFromYoutubeResponse {
   identity?: AgentClipRunIdentity;
   projectId: string;
   status: string;
-}
-
-interface ProjectResponse {
-  status?: string;
 }
 
 interface EditorHandoffResponse {
@@ -244,12 +244,40 @@ export class ClipsApiService {
   async getProject(
     projectId: string,
     signal?: AbortSignal,
-  ): Promise<ProjectResponse> {
+  ): Promise<ClipProjectReadResponse> {
     const data = await this.fetchJson<unknown>(
       `${this.apiEndpoint}/clip-projects/${projectId}`,
       { signal },
     );
-    return this.extractPayload<ProjectResponse>(data) ?? {};
+    return this.extractPayload<ClipProjectReadResponse>(data) ?? {};
+  }
+
+  async selectReferenceFrame(
+    projectId: string,
+    candidateId: string,
+  ): Promise<ClipReferenceFrameSet | null> {
+    const data = await this.fetchJson<unknown>(
+      `${this.apiEndpoint}/clip-projects/${projectId}/reference-frame`,
+      {
+        body: JSON.stringify({ candidateId }),
+        method: 'PUT',
+      },
+    );
+    const payload = this.extractPayload<ClipProjectReadResponse>(data);
+
+    if (payload?.referenceFrames) {
+      return payload.referenceFrames;
+    }
+
+    if (
+      payload &&
+      'candidates' in payload &&
+      'selectedCandidateId' in payload
+    ) {
+      return payload as unknown as ClipReferenceFrameSet;
+    }
+
+    return null;
   }
 
   async getClipResults(
