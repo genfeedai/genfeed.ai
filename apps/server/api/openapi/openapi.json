@@ -9150,6 +9150,18 @@
         },
         "type": "object"
       },
+      "SelectClipReferenceFrameDto": {
+        "properties": {
+          "candidateId": {
+            "description": "ID of an available reference-frame candidate",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidateId"
+        ],
+        "type": "object"
+      },
       "SelectModelDto": {
         "properties": {
           "category": {
@@ -25235,6 +25247,46 @@
           }
         ],
         "summary": "Viral rewrite a highlight script",
+        "tags": [
+          "clip-projects"
+        ]
+      }
+    },
+    "/clip-projects/{projectId}/reference-frame": {
+      "put": {
+        "description": "Select an available source-video reference-frame candidate for this clip project.",
+        "operationId": "ClipProjectReferenceFramesController.selectReferenceFrame",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectClipReferenceFrameDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Select a clip reference frame",
         "tags": [
           "clip-projects"
         ]
