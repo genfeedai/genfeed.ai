@@ -442,4 +442,16 @@ describe('StudioComposer', () => {
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
+
+  it('forwards the compatible model list and selection contract to the composer', () => {
+    render(<StudioComposer {...baseProps} isEmptyState={false} />);
+
+    expect(promptBarSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        categoryType: IngredientCategory.VIDEO,
+        models: baseProps.models,
+        requiresModelSelection: true,
+      }),
+    );
+  });
 });
