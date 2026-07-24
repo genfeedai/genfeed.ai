@@ -55,7 +55,7 @@ interface CreateFromYoutubeResponse {
   status: string;
 }
 
-interface ProjectResponse {
+export interface ProjectResponse {
   referenceFrames?: ClipReferenceFrameSet;
   status?: string;
 }

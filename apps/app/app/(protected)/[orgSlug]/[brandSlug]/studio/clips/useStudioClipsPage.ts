@@ -14,7 +14,10 @@ import type {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
-import { ClipsApiService } from './services/clips-api.service';
+import {
+  ClipsApiService,
+  type ProjectResponse,
+} from './services/clips-api.service';
 
 const TERMINAL_PROJECT_STATUSES = new Set(['completed', 'failed']);
 
@@ -320,7 +323,7 @@ export function useStudioClipsPage() {
         );
         const projectData = await clipsService
           .getProject(project.projectId, abortController.signal)
-          .catch(() => ({}));
+          .catch((): ProjectResponse => ({}));
 
         if (cancelled) {
           return;
