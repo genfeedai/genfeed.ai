@@ -13,6 +13,7 @@ import { Injectable } from '@nestjs/common';
 
 export interface OverviewMetrics {
   totalPosts: number;
+  totalBrands: number;
   totalViews: number;
   totalLikes: number;
   totalComments: number;
@@ -256,6 +257,12 @@ export class AnalyticsAggregationService {
       ...(brandId ? { brandId } : {}),
     });
 
+    // Authoritative brand count for the organization — org-scoped and
+    // soft-delete-aware so the "Total Brands" metric matches the brand switcher.
+    const totalBrands = await this.prisma.brand.count({
+      where: { isDeleted: false, organizationId },
+    });
+
     const currentSums =
       (
         currentAggregate as {
@@ -298,6 +305,7 @@ export class AnalyticsAggregationService {
       avgEngagementRate,
       bestPerformingPlatform: bestPlatform,
       engagementGrowth,
+      totalBrands,
       totalComments,
       totalEngagement,
       totalLikes,
@@ -1226,6 +1234,12 @@ export class AnalyticsAggregationService {
     const prevEngagement = this.totalEngagementFromSums(previousSums);
     const totalPosts = this.readNumber(postCountRows[0]?.post_count);
 
+    // Authoritative brand count for the organization — org-scoped and
+    // soft-delete-aware so the "Total Brands" metric matches the brand switcher.
+    const totalBrands = await this.prisma.brand.count({
+      where: { isDeleted: false, organizationId },
+    });
+
     return {
       activePlatforms: [platform],
       avgEngagementRate,
@@ -1234,6 +1248,7 @@ export class AnalyticsAggregationService {
         totalEngagement,
         prevEngagement,
       ),
+      totalBrands,
       totalComments,
       totalEngagement,
       totalLikes,

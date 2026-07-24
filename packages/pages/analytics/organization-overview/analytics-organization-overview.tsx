@@ -268,7 +268,7 @@ export default function AnalyticsOrganizationOverview({
       <div className="bg-background p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">
-            All Brands ({brandsData.length})
+            All Brands ({formatCompactNumberIntl(analytics?.totalBrands)})
           </h3>
         </div>
 
