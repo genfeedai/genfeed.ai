@@ -1,145 +1,28 @@
-import {
-  ViralHookPlatformMetricsEntity,
-  ViralHookSummaryEntity,
-} from '@api/collections/posts/entities/viral-hooks.entity';
-import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
+import type {
+  DistinctPostCountRow,
+  PlatformComparisonRow,
+} from '@api/collections/posts/services/analytics-aggregation.types';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AnalyticsMetric } from '@genfeedai/enums';
-import type { IViralHookPlatformAggResult } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
-export interface OverviewMetrics {
-  totalPosts: number;
-  totalBrands: number;
-  totalViews: number;
-  totalLikes: number;
-  totalComments: number;
-  totalShares: number;
-  totalSaves: number;
-  avgEngagementRate: number;
-  totalEngagement: number;
-  viewsGrowth: number;
-  engagementGrowth: number;
-  activePlatforms: string[];
-  bestPerformingPlatform: string;
-}
-
-export interface TimeSeriesDataPoint {
-  date: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  engagementRate: number;
-  totalEngagement: number;
-}
-
-export interface PlatformMetrics {
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  engagementRate: number;
-}
-
-export interface TimeSeriesDataPointWithPlatforms {
-  date: string;
-  instagram: PlatformMetrics;
-  tiktok: PlatformMetrics;
-  youtube: PlatformMetrics;
-  facebook: PlatformMetrics;
-  twitter: PlatformMetrics;
-  linkedin: PlatformMetrics;
-  reddit: PlatformMetrics;
-  pinterest: PlatformMetrics;
-  medium: PlatformMetrics;
-}
-
-export interface PlatformComparison {
-  platform: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  engagementRate: number;
-  postCount: number;
-  avgViewsPerPost: number;
-}
-
-export interface TopContent {
-  postId: string;
-  ingredientId: string;
-  title: string;
-  description: string;
-  platform: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  engagementRate: number;
-  publishDate: Date;
-  url?: string;
-}
-
-export interface GrowthTrends {
-  views: {
-    current: number;
-    previous: number;
-    growth: number;
-    growthPercentage: number;
-  };
-  engagement: {
-    current: number;
-    previous: number;
-    growth: number;
-    growthPercentage: number;
-  };
-  bestDay: {
-    date: string;
-    views: number;
-  };
-  trendingDirection: 'up' | 'down' | 'stable';
-}
-
-export interface EngagementBreakdown {
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  total: number;
-  likesPercentage: number;
-  commentsPercentage: number;
-  sharesPercentage: number;
-  savesPercentage: number;
-}
-
-type NumericSqlValue = bigint | number | string | null;
-
-type DistinctPostCountRow = {
-  post_count: NumericSqlValue;
-};
-
-type PlatformComparisonRow = {
-  comments: NumericSqlValue;
-  engagement_rate: NumericSqlValue;
-  likes: NumericSqlValue;
-  platform: string | null;
-  post_count: NumericSqlValue;
-  saves: NumericSqlValue;
-  shares: NumericSqlValue;
-  views: NumericSqlValue;
-};
-
-type PostViewsRow = {
-  post_id: string;
-  total_views: NumericSqlValue;
-};
+export type {
+  DistinctPostCountRow,
+  EngagementBreakdown,
+  GrowthTrends,
+  NumericSqlValue,
+  OverviewMetrics,
+  PlatformComparison,
+  PlatformComparisonRow,
+  PlatformMetrics,
+  PostViewsRow,
+  TimeSeriesDataPoint,
+  TimeSeriesDataPointWithPlatforms,
+  TopContent,
+} from '@api/collections/posts/services/analytics-aggregation.types';
 
 @Injectable()
 export class AnalyticsAggregationService {
@@ -181,10 +64,6 @@ export class AnalyticsAggregationService {
 
   private buildBrandSqlPredicate(brandId?: string): Prisma.Sql {
     return brandId ? Prisma.sql`AND "brandId" = ${brandId}` : Prisma.empty;
-  }
-
-  private buildAliasedBrandSqlPredicate(brandId?: string): Prisma.Sql {
-    return brandId ? Prisma.sql`AND pa."brandId" = ${brandId}` : Prisma.empty;
   }
 
   /**
@@ -911,238 +790,6 @@ export class AnalyticsAggregationService {
       sharesPercentage: total > 0 ? (shares / total) * 100 : 0,
       total,
     };
-  }
-
-  async getViralHooksSummary(
-    organizationId: string,
-    brandId?: string,
-    startDateInput?: Date | string,
-    endDateInput?: Date | string,
-  ): Promise<ViralHookSummaryEntity> {
-    const { startDate, endDate } = DateRangeUtil.parseDateRange(
-      startDateInput,
-      endDateInput,
-    );
-
-    const where: Record<string, unknown> = {
-      date: { gte: startDate, lte: endDate },
-      organizationId,
-    };
-
-    if (brandId) where.brandId = brandId;
-
-    const topPostRows = await this.prisma.$queryRaw<PostViewsRow[]>(
-      Prisma.sql`
-        WITH per_platform AS (
-          SELECT
-            "postId",
-            "platform",
-            MAX("totalViews") AS views
-          FROM "post_analytics"
-          WHERE "organizationId" = ${organizationId}
-            AND "date" >= ${startDate}
-            AND "date" <= ${endDate}
-            ${this.buildBrandSqlPredicate(brandId)}
-          GROUP BY "postId", "platform"
-        )
-        SELECT
-          "postId" AS post_id,
-          SUM(views) AS total_views
-        FROM per_platform
-        GROUP BY "postId"
-        ORDER BY total_views DESC
-        LIMIT 25
-      `,
-    );
-
-    const postIds = topPostRows.map((row) => row.post_id);
-
-    const platformRows =
-      postIds.length > 0
-        ? await this.prisma.postAnalytics.groupBy({
-            _avg: { engagementRate: true },
-            _max: {
-              totalComments: true,
-              totalLikes: true,
-              totalSaves: true,
-              totalShares: true,
-              totalViews: true,
-            },
-            by: ['postId', 'platform'],
-            where: {
-              ...where,
-              postId: { in: postIds },
-            } as never,
-          } as never)
-        : [];
-
-    const postPlatformMap = new Map<
-      string,
-      Map<
-        string,
-        {
-          comments: number;
-          engagementRate: number;
-          likes: number;
-          saves: number;
-          shares: number;
-          views: number;
-        }
-      >
-    >();
-
-    for (const row of platformRows as Array<{
-      _avg?: { engagementRate?: unknown };
-      _max?: Record<string, unknown>;
-      platform: string;
-      postId: string;
-    }>) {
-      const max = row._max ?? {};
-      const platformMap = postPlatformMap.get(row.postId) ?? new Map();
-      platformMap.set(row.platform, {
-        comments: this.readNumber(max.totalComments),
-        engagementRate: this.readNumber(row._avg?.engagementRate),
-        likes: this.readNumber(max.totalLikes),
-        saves: this.readNumber(max.totalSaves),
-        shares: this.readNumber(max.totalShares),
-        views: this.readNumber(max.totalViews),
-      });
-      postPlatformMap.set(row.postId, platformMap);
-    }
-
-    const ranked = topPostRows.map((row) => ({
-      platforms: postPlatformMap.get(row.post_id) ?? new Map(),
-      postId: row.post_id,
-      totalViews: this.readNumber(row.total_views),
-    }));
-
-    // Fetch post details
-    const posts = await this.prisma.post.findMany({
-      select: {
-        createdAt: true,
-        description: true,
-        id: true,
-        label: true,
-        publicationDate: true,
-        url: true,
-      },
-      take: postIds.length,
-      where: { id: { in: postIds } },
-    });
-
-    const postsById = new Map(
-      (
-        posts as unknown as Array<{
-          id: string;
-          createdAt?: Date;
-          description?: string;
-          label?: string;
-          publicationDate?: Date;
-          url?: string;
-        }>
-      ).map((p) => [p.id, p]),
-    );
-
-    const toIsoString = (value?: Date | string | null): string => {
-      if (!value) return new Date().toISOString();
-      if (value instanceof Date) return value.toISOString();
-      const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime())
-        ? new Date().toISOString()
-        : parsed.toISOString();
-    };
-
-    const videos = ranked.map((item) => {
-      const post = postsById.get(item.postId);
-      const platforms = Array.from(item.platforms.entries()).map(
-        ([platform, data]) => {
-          const viralScore = Math.min(
-            100,
-            Math.round(data.engagementRate * 5 + data.views / 1000),
-          );
-
-          return {
-            avgWatchTime: 0,
-            comments: data.comments,
-            completionRate: 0,
-            engagementRate: data.engagementRate,
-            likes: data.likes,
-            platform: platform.toLowerCase(),
-            saves: data.saves,
-            shares: data.shares,
-            views: data.views,
-            viralScore,
-          };
-        },
-      );
-
-      const publishDate =
-        post?.publicationDate ?? post?.createdAt ?? new Date();
-
-      return {
-        analysisNotes: undefined,
-        creator: 'Unknown Creator',
-        duration: 0,
-        hooks: [],
-        id: item.postId,
-        platforms,
-        thumbnail: undefined,
-        title: post?.label ?? post?.description ?? 'Untitled Video',
-        totalTimeTracked: 0,
-        uploadDate: toIsoString(publishDate),
-      };
-    });
-
-    const totalVideos = videos.length;
-    const totalTimeTracked = 0;
-
-    const platformStats = new Map<
-      string,
-      { totalViews: number; totalViralScore: number; count: number }
-    >();
-
-    videos.forEach((video) => {
-      video.platforms.forEach((platform: ViralHookPlatformMetricsEntity) => {
-        const stats = platformStats.get(platform.platform) ?? {
-          count: 0,
-          totalViews: 0,
-          totalViralScore: 0,
-        };
-
-        stats.totalViews += platform.views;
-        stats.totalViralScore += platform.viralScore;
-        stats.count += 1;
-
-        platformStats.set(platform.platform, stats);
-      });
-    });
-
-    const topPlatforms = Array.from(platformStats.entries())
-      .map(([platform, stats]) => ({
-        avgViralScore:
-          stats.count > 0
-            ? Number((stats.totalViralScore / stats.count).toFixed(1))
-            : 0,
-        platform,
-        totalViews: stats.totalViews,
-      }))
-      .sort((a, b) => b.totalViews - a.totalViews)
-      .slice(0, 5);
-
-    return new ViralHookSummaryEntity({
-      analysis: {
-        avgTimePerVideo:
-          totalVideos > 0
-            ? Math.round(totalTimeTracked / Math.max(totalVideos, 1))
-            : 0,
-        hookEffectiveness: [],
-        topHooks: [],
-        topPlatforms,
-        totalTime: totalTimeTracked,
-        totalVideos,
-      },
-      videos,
-    });
   }
 
   /**
