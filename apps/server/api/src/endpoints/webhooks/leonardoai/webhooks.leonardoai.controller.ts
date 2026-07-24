@@ -1,7 +1,12 @@
+import {
+  LEONARDOAI_DEFAULT_ALLOWED_IPS,
+  parseAllowedIps,
+} from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.constants';
 import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { IngredientCategory } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { LeonardoAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -14,6 +19,7 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
+import { assertWebhookToken } from '@server/webhooks/webhook-token.util';
 import type { Request } from 'express';
 
 @AutoSwagger()
@@ -23,6 +29,7 @@ export class LeonardoaiWebhookController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly leonardoaiWebhookService: LeonardoaiWebhookService,
     private readonly webhooksService: WebhooksService,
@@ -36,30 +43,32 @@ export class LeonardoaiWebhookController {
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
+    const configuredSecret = this.configService.get(
+      'LEONARDO_WEBHOOK_SECRET',
+    ) as string | undefined;
+
+    // Leonardo.AI has no HMAC scheme; it presents the webhook callback API key
+    // registered against the production API key as `Authorization: Bearer`.
+    // @Public() short-circuits CombinedAuthGuard, so that header reaches us
+    // untouched.
+    assertWebhookToken({
+      acceptBearerHeader: true,
+      configuredSecret,
+      loggerService: this.loggerService,
+      request,
+      url,
+    });
+
+    // request.ip is derived safely by Express under `trust proxy 1`.
+    // Reading x-forwarded-for directly is spoofable: an attacker sends
+    // 'X-Forwarded-For: <allowed-ip>, <self>' and the first-token split
+    // yields the allowed IP.
+    const requestIp: string = request.ip || '';
+
+    this.assertAllowedIp(requestIp, Boolean(configuredSecret));
+
     try {
       this.loggerService.log(`${url} received`, payload);
-      // request.ip is derived safely by Express under `trust proxy 1`.
-      // Reading x-forwarded-for directly is spoofable: an attacker sends
-      // 'X-Forwarded-For: <allowed-ip>, <self>' and the first-token split
-      // yields the allowed IP.
-      const requestIp: string = request.ip || '';
-
-      // Verify that the request is coming from LeonardoAI's IP addresses
-      const allowedIps = [
-        '35.173.108.170',
-        '34.239.69.60',
-        '52.73.75.186',
-        '3.229.99.26',
-        '44.218.0.197',
-        '174.129.230.221',
-      ];
-
-      if (!allowedIps.includes(requestIp)) {
-        this.loggerService.warn(
-          `Unauthorized webhook request from IP: ${requestIp}`,
-        );
-        throw new UnauthorizedException('Unauthorized webhook request');
-      }
 
       // Handle metadata-based webhook processing if customId is present
       const customId = payload?.customId;
@@ -68,30 +77,31 @@ export class LeonardoaiWebhookController {
       }
 
       const type = payload.type;
-      // @ts-expect-error TS2571
-      const images = (
-        payload.data as Record<string, unknown> as Record<string, unknown>
-      ).object.images;
-      // @ts-expect-error TS2571
-      const generatedId = (
-        payload.data as Record<string, unknown> as Record<string, unknown>
-      ).object.id;
+      const generation = payload.data?.object;
+
+      // The vendor envelope is not contractual — a payload without
+      // `data.object` is logged and acknowledged rather than thrown, so a
+      // shape change never turns into a 500 and a vendor retry storm.
+      if (!generation) {
+        this.loggerService.warn(`${url} payload missing data.object`, { type });
+
+        return { message: 'Webhook payload ignored', success: false };
+      }
+
+      const generatedId = generation.id;
+      const images = Array.isArray(generation.images) ? generation.images : [];
 
       this.loggerService.log('Received webhook from LeonardoAI', {
         generatedId,
         type,
       });
 
-      if (type === 'image-generation.complete') {
+      if (type === 'image-generation.complete' && generatedId) {
         const generatedImage = images.find(
-          (image: unknown) =>
-            typeof image === 'object' &&
-            image !== null &&
-            'generationId' in image &&
-            image.generationId === generatedId,
+          (image) => image?.generationId === generatedId,
         );
 
-        if (generatedImage) {
+        if (generatedImage?.url) {
           await this.webhooksService.processMediaFromWebhook(
             'leonardoai',
             IngredientCategory.IMAGE,
@@ -106,5 +116,45 @@ export class LeonardoaiWebhookController {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * Defence in depth on top of the shared secret. Leonardo rotates its egress
+   * addresses without notice, so the allowlist lives in config and is only
+   * enforced when a deployment opts in via `LEONARDO_WEBHOOK_ALLOWED_IPS`.
+   * While no secret is configured we still fall back to the last-known vendor
+   * list, so an un-provisioned deployment keeps today's posture instead of
+   * silently accepting anonymous callbacks.
+   */
+  private assertAllowedIp(
+    requestIp: string,
+    hasConfiguredSecret: boolean,
+  ): void {
+    const allowedIps = this.resolveAllowedIps(hasConfiguredSecret);
+
+    if (allowedIps.length === 0) {
+      return;
+    }
+
+    if (!allowedIps.includes(requestIp)) {
+      this.loggerService.warn(
+        `Unauthorized webhook request from IP: ${requestIp}`,
+      );
+      throw new UnauthorizedException('Unauthorized webhook request');
+    }
+  }
+
+  private resolveAllowedIps(hasConfiguredSecret: boolean): readonly string[] {
+    const configuredIps = parseAllowedIps(
+      this.configService.get('LEONARDO_WEBHOOK_ALLOWED_IPS') as
+        | string
+        | undefined,
+    );
+
+    if (configuredIps.length > 0) {
+      return configuredIps;
+    }
+
+    return hasConfiguredSecret ? [] : LEONARDOAI_DEFAULT_ALLOWED_IPS;
   }
 }

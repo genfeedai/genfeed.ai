@@ -2,7 +2,9 @@ import { LeonardoaiWebhookController } from '@api/endpoints/webhooks/leonardoai/
 import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -12,21 +14,46 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   },
 }));
 
+const WEBHOOK_SECRET = 'leonardo-webhook-secret';
+
 describe('LeonardoaiWebhookController', () => {
   let controller: LeonardoaiWebhookController;
   let leonardoaiWebhookService: vi.Mocked<LeonardoaiWebhookService>;
   let loggerService: vi.Mocked<LoggerService>;
+  let webhooksService: vi.Mocked<WebhooksService>;
+  let configValues: Record<string, string | undefined>;
 
-  // Use a known allowed IP from the controller allowlist
-  const mockRequest = {
-    headers: { 'x-forwarded-for': '35.173.108.170' },
-    ip: '35.173.108.170',
-  } as unknown as Request;
+  function requestFrom(options: {
+    authorization?: string;
+    ip?: string;
+  }): Request {
+    return {
+      headers: options.authorization
+        ? { authorization: options.authorization }
+        : {},
+      ip: options.ip ?? '203.0.113.10',
+      query: {},
+    } as unknown as Request;
+  }
+
+  // Authenticated request from an address that is NOT on the shipped vendor
+  // list — the rotation case the previous hardcoded allowlist rejected.
+  const authenticatedRequest = requestFrom({
+    authorization: `Bearer ${WEBHOOK_SECRET}`,
+  });
 
   beforeEach(async () => {
+    configValues = { LEONARDO_WEBHOOK_SECRET: WEBHOOK_SECRET };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LeonardoaiWebhookController],
       providers: [
+        {
+          provide: ConfigService,
+          useValue: {
+            get: vi.fn((key: string) => configValues[key]),
+          },
+        },
         {
           provide: LeonardoaiWebhookService,
           useValue: {
@@ -58,6 +85,7 @@ describe('LeonardoaiWebhookController', () => {
     );
     leonardoaiWebhookService = module.get(LeonardoaiWebhookService);
     loggerService = module.get(LoggerService);
+    webhooksService = module.get(WebhooksService);
   });
 
   it('should be defined', () => {
@@ -65,7 +93,7 @@ describe('LeonardoaiWebhookController', () => {
   });
 
   describe('handleCallback', () => {
-    it('should handle callback successfully from allowed IP', async () => {
+    it('should handle callback successfully with a valid webhook token', async () => {
       const body = {
         customId: undefined,
         data: { object: { id: 'gen_123', images: [] } },
@@ -73,7 +101,10 @@ describe('LeonardoaiWebhookController', () => {
       };
       leonardoaiWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      const result = await controller.handleCallback(mockRequest, body);
+      const result = await controller.handleCallback(
+        authenticatedRequest,
+        body,
+      );
 
       expect(loggerService.log).toHaveBeenCalledWith(
         'LeonardoaiWebhookController leonardoai callback received',
@@ -85,6 +116,31 @@ describe('LeonardoaiWebhookController', () => {
       });
     });
 
+    it('should reject a request with no webhook token', async () => {
+      const body = {
+        data: { object: { id: 'gen_123', images: [] } },
+        type: 'image-generation.complete',
+      };
+
+      await expect(
+        controller.handleCallback(requestFrom({}), body),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should reject a request with a wrong webhook token', async () => {
+      const body = {
+        data: { object: { id: 'gen_123', images: [] } },
+        type: 'image-generation.complete',
+      };
+
+      await expect(
+        controller.handleCallback(
+          requestFrom({ authorization: 'Bearer not-the-secret' }),
+          body,
+        ),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
     it('should invoke leonardoaiWebhookService when customId is present', async () => {
       const body = {
         customId: 'custom_123',
@@ -93,18 +149,108 @@ describe('LeonardoaiWebhookController', () => {
       };
       leonardoaiWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      await controller.handleCallback(mockRequest, body);
+      await controller.handleCallback(authenticatedRequest, body);
 
       expect(leonardoaiWebhookService.handleCallback).toHaveBeenCalledWith(
         body,
       );
     });
 
-    it('should throw when request comes from unauthorized IP', async () => {
-      const unauthorizedRequest = {
-        headers: {},
-        ip: '1.2.3.4',
-      } as unknown as Request;
+    it('should dispatch the matching generated image for download', async () => {
+      const body = {
+        data: {
+          object: {
+            id: 'gen_789',
+            images: [
+              {
+                generationId: 'other',
+                url: 'https://cdn.leonardo.ai/other.png',
+              },
+              {
+                generationId: 'gen_789',
+                url: 'https://cdn.leonardo.ai/hit.png',
+              },
+            ],
+          },
+        },
+        type: 'image-generation.complete',
+      };
+
+      await controller.handleCallback(authenticatedRequest, body);
+
+      expect(webhooksService.processMediaFromWebhook).toHaveBeenCalledWith(
+        'leonardoai',
+        expect.anything(),
+        'gen_789',
+        'https://cdn.leonardo.ai/hit.png',
+      );
+    });
+
+    it('should acknowledge a malformed payload without throwing', async () => {
+      const body = {
+        data: undefined,
+        type: 'image-generation.complete',
+      };
+
+      const result = await controller.handleCallback(
+        authenticatedRequest,
+        body,
+      );
+
+      expect(result).toEqual({
+        message: 'Webhook payload ignored',
+        success: false,
+      });
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        'LeonardoaiWebhookController leonardoai callback payload missing data.object',
+        { type: 'image-generation.complete' },
+      );
+      expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
+    });
+
+    it('should acknowledge a payload whose data envelope has no object', async () => {
+      const body = { data: {}, type: 'image-generation.complete' };
+
+      await expect(
+        controller.handleCallback(authenticatedRequest, body),
+      ).resolves.toEqual({
+        message: 'Webhook payload ignored',
+        success: false,
+      });
+    });
+
+    it('should enforce the configured IP allowlist as defence in depth', async () => {
+      configValues.LEONARDO_WEBHOOK_ALLOWED_IPS = '198.51.100.4, 198.51.100.5';
+
+      const body = {
+        data: { object: { id: 'gen_ip', images: [] } },
+        type: 'image-generation.complete',
+      };
+
+      await expect(
+        controller.handleCallback(authenticatedRequest, body),
+      ).rejects.toThrow('Unauthorized webhook request');
+
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        'Unauthorized webhook request from IP: 203.0.113.10',
+      );
+
+      await expect(
+        controller.handleCallback(
+          requestFrom({
+            authorization: `Bearer ${WEBHOOK_SECRET}`,
+            ip: '198.51.100.5',
+          }),
+          body,
+        ),
+      ).resolves.toEqual({
+        message: 'Webhook processed successfully',
+        success: true,
+      });
+    });
+
+    it('should fall back to the vendor IP list when no secret is configured', async () => {
+      configValues.LEONARDO_WEBHOOK_SECRET = undefined;
 
       const body = {
         data: { object: { id: 'gen_789', images: [] } },
@@ -112,12 +258,19 @@ describe('LeonardoaiWebhookController', () => {
       };
 
       await expect(
-        controller.handleCallback(unauthorizedRequest, body),
+        controller.handleCallback(requestFrom({ ip: '1.2.3.4' }), body),
       ).rejects.toThrow('Unauthorized webhook request');
 
       expect(loggerService.warn).toHaveBeenCalledWith(
         'Unauthorized webhook request from IP: 1.2.3.4',
       );
+
+      await expect(
+        controller.handleCallback(requestFrom({ ip: '35.173.108.170' }), body),
+      ).resolves.toEqual({
+        message: 'Webhook processed successfully',
+        success: true,
+      });
     });
 
     it('should rethrow error when callback handling fails', async () => {
@@ -130,7 +283,7 @@ describe('LeonardoaiWebhookController', () => {
       leonardoaiWebhookService.handleCallback.mockRejectedValue(error);
 
       await expect(
-        controller.handleCallback(mockRequest, body),
+        controller.handleCallback(authenticatedRequest, body),
       ).rejects.toThrow('Generation processing failed');
 
       expect(loggerService.error).toHaveBeenCalledWith(
