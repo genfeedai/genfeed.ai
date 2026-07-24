@@ -130,7 +130,7 @@ export class ClipProjectsController {
 
     // Create the ClipProject record
     const project: ClipProjectDocument = await this.clipProjectsService.create({
-      brand: dto.brandId,
+      brandId: dto.brandId,
       language: dto.language ?? 'en',
       name:
         dto.name ??
@@ -200,7 +200,7 @@ export class ClipProjectsController {
     });
 
     const project: ClipProjectDocument = await this.clipProjectsService.create({
-      brand: dto.brandId,
+      brandId: dto.brandId,
       language: dto.language ?? 'en',
       name:
         dto.name ?? `Clip Analysis — ${new Date().toISOString().slice(0, 10)}`,
@@ -337,7 +337,7 @@ export class ClipProjectsController {
         ? await this.clipIdentityResolutionService.resolve({
             avatarId: dto.avatarId,
             avatarProvider: dto.avatarProvider,
-            brandId: project.brand,
+            brandId: project.brandId,
             organizationId: orgId,
             voiceId: dto.voiceId,
           })
@@ -442,6 +442,13 @@ export class ClipProjectsController {
     @Body() createDto: CreateClipProjectDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
+
+    if (createDto.brandId) {
+      await this.clipIdentityResolutionService.resolve({
+        brandId: createDto.brandId,
+        organizationId: publicMetadata.organization,
+      });
+    }
 
     const data: ClipProjectDocument = await this.clipProjectsService.create({
       ...createDto,

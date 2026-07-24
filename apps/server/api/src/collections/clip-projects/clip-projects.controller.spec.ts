@@ -1,6 +1,7 @@
 import { ClipProjectHandoffsController } from '@api/collections/clip-projects/clip-project-handoffs.controller';
 import { ClipProjectsController } from '@api/collections/clip-projects/clip-projects.controller';
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
+import type { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import {
   type GenerateClipHighlightDto,
@@ -286,7 +287,7 @@ describe('ClipProjectsController', () => {
         voiceId: undefined,
       });
       expect(clipProjectsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ brand: brandId }),
+        expect.objectContaining({ brandId }),
       );
       expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -294,6 +295,21 @@ describe('ClipProjectsController', () => {
           voiceId: 'saved-voice-1',
         }),
       );
+    });
+
+    it('should return an actionable error when avatar defaults are missing', async () => {
+      const dto: CreateClipProjectFromYoutubeDto = {
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      };
+
+      await expect(
+        controller.createFromYoutube(currentUser as never, dto),
+      ).rejects.toThrow(
+        'Missing avatar and voice defaults. Configure saved brand defaults or provide explicit avatar and voice IDs.',
+      );
+
+      expect(clipProjectsService.create).not.toHaveBeenCalled();
+      expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
     });
 
     it('should reject before creating the project when credits are insufficient', async () => {
@@ -369,6 +385,28 @@ describe('ClipProjectsController', () => {
       expect(clipProjectsService.create).not.toHaveBeenCalled();
       expect(clipFactoryQueueService.enqueue).not.toHaveBeenCalled();
     });
+  });
+
+  it('should validate generic clip project brand ownership before create', async () => {
+    const brandId = '507f191e810c19729de860ef';
+    const dto = {
+      brandId,
+      sourceVideoUrl: 'https://example.com/source.mp4',
+    } as CreateClipProjectDto;
+
+    vi.mocked(clipIdentityResolutionService.resolve).mockRejectedValue(
+      new Error('Brand not found'),
+    );
+
+    await expect(
+      controller.create({} as never, currentUser as never, dto),
+    ).rejects.toThrow('Brand not found');
+
+    expect(clipIdentityResolutionService.resolve).toHaveBeenCalledWith({
+      brandId,
+      organizationId,
+    });
+    expect(clipProjectsService.create).not.toHaveBeenCalled();
   });
 
   describe('CreateClipProjectFromYoutubeDto validation', () => {
@@ -614,7 +652,7 @@ describe('ClipProjectsController', () => {
     const brandId = '507f191e810c19729de860ef';
     const project = {
       ...createProject(projectId, organizationId),
-      brand: brandId,
+      brandId,
     } as ClipProjectDocument;
     const dto: GenerateClipsDto = {
       editedHighlights: [
