@@ -29,6 +29,18 @@ export GENFEED_API_KEY=gf_live_xxx
 
 Treat API keys like passwords. Do not commit them or paste them into shared logs.
 
+## Connect via OAuth
+
+Claude.ai, ChatGPT, and other OAuth-capable MCP clients can connect without a
+manually created API key. Add `https://mcp.genfeed.ai/mcp` as the custom MCP
+server URL. The client discovers Genfeed's authorization server from
+`/.well-known/oauth-protected-resource`, opens the Genfeed sign-in and consent
+screen, and returns to the client with a resource-bound access token.
+
+The OAuth token appears in the same API key settings surface as manual keys and
+can be revoked there at any time. The manual `GENFEED_API_KEY` setup remains
+available for headless, CI, and local clients that do not support browser OAuth.
+
 ## Connect Claude Code
 
 Claude Code can connect remote HTTP MCP servers from the terminal:

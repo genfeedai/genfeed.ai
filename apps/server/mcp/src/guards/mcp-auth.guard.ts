@@ -1,4 +1,5 @@
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
+import { getMcpWwwAuthenticateHeader } from '@mcp/mcp/setup-page';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import {
   applyRateLimitHeaders,
@@ -52,6 +53,7 @@ export class McpAuthGuard implements CanActivate {
     }
 
     if (!token) {
+      response.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
       throw new UnauthorizedException(
         'Authorization header with Bearer token required',
       );
@@ -60,6 +62,7 @@ export class McpAuthGuard implements CanActivate {
     const authResult = await this.authService.authenticateRequest(token);
 
     if (!authResult.valid) {
+      response.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
       throw new UnauthorizedException(authResult.error || 'Invalid token');
     }
 

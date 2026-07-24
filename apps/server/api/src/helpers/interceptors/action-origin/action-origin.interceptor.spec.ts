@@ -81,7 +81,7 @@ describe('ActionOriginInterceptor', () => {
     });
   });
 
-  it('uses trusted API-key issuance metadata for CLI and UI otherwise', async () => {
+  it('uses trusted API-key issuance metadata for CLI, MCP, and UI otherwise', async () => {
     await expect(
       readContext({
         headers: {},
@@ -95,6 +95,19 @@ describe('ActionOriginInterceptor', () => {
         },
       }),
     ).resolves.toMatchObject({ origin: ActionOrigin.CLI });
+    await expect(
+      readContext({
+        headers: {},
+        user: {
+          publicMetadata: {
+            actionOrigin: ActionOrigin.MCP,
+            apiKeyId: 'key-2',
+            isApiKey: true,
+            user: 'user-1',
+          },
+        },
+      }),
+    ).resolves.toMatchObject({ origin: ActionOrigin.MCP });
     await expect(
       readContext({
         headers: {},
