@@ -140,6 +140,63 @@
         ],
         "type": "object"
       },
+      "AgentChatBodyDto": {
+        "properties": {
+          "artifactReferences": {
+            "description": "Scoped pointers to canonical records; re-authorized server-side",
+            "type": "array"
+          },
+          "attachments": {
+            "description": "Ingredient attachments",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "brandId": {
+            "description": "Brand scope for this turn",
+            "nullable": true,
+            "type": "object"
+          },
+          "content": {
+            "description": "The user message content for this turn",
+            "type": "string"
+          },
+          "expectedContextVersion": {
+            "description": "Optimistic-concurrency guard for the thread context version",
+            "type": "number"
+          },
+          "model": {
+            "description": "Model override for this turn",
+            "type": "string"
+          },
+          "pageContext": {
+            "description": "Page context; nested references re-authorized server-side",
+            "type": "object"
+          },
+          "planModeEnabled": {
+            "description": "Whether plan mode is enabled",
+            "type": "boolean"
+          },
+          "source": {
+            "description": "Origin of the turn",
+            "enum": [
+              "agent",
+              "proactive",
+              "onboarding"
+            ],
+            "type": "string"
+          },
+          "threadId": {
+            "description": "Existing thread to append the turn to",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "type": "object"
+      },
       "AgentCreditGovernanceDto": {
         "properties": {
           "agentDailyCreditCap": {
@@ -17834,6 +17891,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatBodyDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -17858,6 +17925,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatBodyDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -18208,6 +18285,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatBodyDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
@@ -18240,6 +18327,16 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatBodyDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "201": {
             "description": ""
