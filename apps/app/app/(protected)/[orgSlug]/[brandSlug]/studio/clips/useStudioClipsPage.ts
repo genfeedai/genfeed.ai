@@ -1,7 +1,11 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { GenerationType } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import type { IBrand, IOrganizationSetting } from '@genfeedai/interfaces';
+import type {
+  AgentClipRunIdentity,
+  IBrand,
+  IOrganizationSetting,
+} from '@genfeedai/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useDocumentVisibility } from '@hooks/ui/use-document-visibility/use-document-visibility';
 import type {
@@ -19,7 +23,11 @@ import { ClipsApiService } from './services/clips-api.service';
 const TERMINAL_PROJECT_STATUSES = new Set(['completed', 'failed']);
 
 type StudioClipIdentityField = 'avatar' | 'voice';
-type StudioClipIdentitySource = 'brand' | 'missing' | 'organization';
+type StudioClipIdentitySource =
+  | 'brand'
+  | 'explicit'
+  | 'missing'
+  | 'organization';
 
 interface StudioClipIdentityDefaults {
   avatarId?: string;
@@ -32,7 +40,10 @@ interface StudioClipIdentityDefaults {
 
 interface StudioClipIdentityContext {
   selectedBrand?: Pick<IBrand, 'agentConfig'> | null;
-  settings?: Pick<IOrganizationSetting, 'defaultVoiceRef'> | null;
+  settings?: Pick<
+    IOrganizationSetting,
+    'defaultVoiceId' | 'defaultVoiceProvider' | 'defaultVoiceRef'
+  > | null;
 }
 
 function isHeygenProvider(provider?: string | null): boolean {
@@ -61,6 +72,18 @@ function resolveHeygenVoiceRef(
   return readNonEmptyString(ref.externalVoiceId);
 }
 
+/**
+ * Mirrors the API's legacy voice fallback (`defaultVoiceProvider` +
+ * `defaultVoiceId`) so a brand configured that way is not blocked locally
+ * before the server resolver ever runs.
+ */
+function resolveHeygenVoiceFallback(
+  provider?: string | null,
+  voiceId?: string | null,
+): string | undefined {
+  return isHeygenProvider(provider) ? readNonEmptyString(voiceId) : undefined;
+}
+
 export function resolveStudioClipIdentityDefaults({
   selectedBrand,
   settings,
@@ -69,8 +92,17 @@ export function resolveStudioClipIdentityDefaults({
   const brandAvatarId = readNonEmptyString(brandConfig?.heygenAvatarId);
   const brandVoiceId =
     readNonEmptyString(brandConfig?.heygenVoiceId) ??
-    resolveHeygenVoiceRef(brandConfig?.defaultVoiceRef);
-  const organizationVoiceId = resolveHeygenVoiceRef(settings?.defaultVoiceRef);
+    resolveHeygenVoiceRef(brandConfig?.defaultVoiceRef) ??
+    resolveHeygenVoiceFallback(
+      brandConfig?.defaultVoiceProvider,
+      brandConfig?.defaultVoiceId,
+    );
+  const organizationVoiceId =
+    resolveHeygenVoiceRef(settings?.defaultVoiceRef) ??
+    resolveHeygenVoiceFallback(
+      settings?.defaultVoiceProvider,
+      settings?.defaultVoiceId,
+    );
   const avatarId = brandAvatarId;
   const voiceId = brandVoiceId ?? organizationVoiceId;
   const missing: StudioClipIdentityField[] = [];
@@ -129,6 +161,8 @@ export function useStudioClipsPage() {
 
   // Project state
   const [project, setProject] = useState<ProjectState | null>(null);
+  const [resolvedIdentity, setResolvedIdentity] =
+    useState<AgentClipRunIdentity | null>(null);
 
   // Highlight selection state (maps highlight id -> highlight with edits)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -144,9 +178,23 @@ export function useStudioClipsPage() {
   // (e.g. tab visibility toggles) after a project already reached a terminal state.
   const clipCompletionReportedRef = useRef<string | null>(null);
   const isDocumentVisible = useDocumentVisibility();
-  const identityDefaults = useMemo(
+  const localIdentityDefaults = useMemo(
     () => resolveStudioClipIdentityDefaults({ selectedBrand, settings }),
     [selectedBrand, settings],
+  );
+  const identityDefaults = useMemo<StudioClipIdentityDefaults>(
+    () =>
+      resolvedIdentity
+        ? {
+            avatarId: resolvedIdentity.avatarId,
+            avatarProvider: 'heygen',
+            isComplete: resolvedIdentity.isComplete,
+            missing: resolvedIdentity.missing,
+            source: resolvedIdentity.source,
+            voiceId: resolvedIdentity.voiceId,
+          }
+        : localIdentityDefaults,
+    [localIdentityDefaults, resolvedIdentity],
   );
 
   useEffect(() => {
@@ -178,12 +226,14 @@ export function useStudioClipsPage() {
 
     try {
       const data = await clipsService.analyzeVideo({
+        brandId: selectedBrand?.id,
         language: 'en',
         maxClips,
         minViralityScore,
         youtubeUrl,
       });
 
+      setResolvedIdentity(data.identity);
       setProject({
         clips: [],
         highlights: [],
@@ -197,7 +247,14 @@ export function useStudioClipsPage() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [youtubeUrl, maxClips, minViralityScore, generationMode, clipsService]);
+  }, [
+    youtubeUrl,
+    selectedBrand?.id,
+    maxClips,
+    minViralityScore,
+    generationMode,
+    clipsService,
+  ]);
 
   // ─── Step 1: One-click YouTube clip factory ───────────────────
   const handleStartFromYoutube = useCallback(async () => {
@@ -232,6 +289,7 @@ export function useStudioClipsPage() {
               voiceId: quickVoiceId,
             }
           : {}),
+        brandId: selectedBrand?.id,
         language: 'en',
         maxClips,
         minViralityScore,
@@ -269,6 +327,7 @@ export function useStudioClipsPage() {
     voiceId,
     identityDefaults.avatarId,
     identityDefaults.voiceId,
+    selectedBrand?.id,
     generationMode,
     avatarProvider,
     maxClips,
@@ -536,6 +595,7 @@ export function useStudioClipsPage() {
     setSelectedIds(new Set());
     setEditedHighlights([]);
     setError(null);
+    setResolvedIdentity(null);
   }, []);
 
   const selectedCount = selectedIds.size;

@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNumber,
@@ -13,6 +14,14 @@ const YOUTUBE_URL_REGEX =
   /^https?:\/\/(www\.)?(youtube\.com\/(watch\?v=|embed\/|shorts\/)|youtu\.be\/)/;
 
 export class AnalyzeYoutubeDto {
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Selected brand used to resolve saved clip identity defaults',
+    required: false,
+  })
+  readonly brandId?: string;
+
   @IsUrl()
   @Matches(YOUTUBE_URL_REGEX, {
     message: 'Must be a valid YouTube URL',

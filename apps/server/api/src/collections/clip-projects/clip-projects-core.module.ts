@@ -10,6 +10,8 @@
 
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
+import { ClipGenerationRequestService } from '@api/collections/clip-projects/services/clip-generation-request.service';
+import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { RawCutClipService } from '@api/collections/clip-projects/services/raw-cut-clip.service';
 import { RawCutClipCompletionService } from '@api/collections/clip-projects/services/raw-cut-clip-completion.service';
@@ -24,6 +26,8 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [
     ClipProjectsService,
     ClipGenerationService,
+    ClipGenerationRequestService,
+    ClipIdentityResolutionService,
     HighlightRewriteService,
     RawCutClipCompletionService,
     RawCutClipService,
@@ -38,6 +42,8 @@ import { forwardRef, Module } from '@nestjs/common';
   providers: [
     ClipProjectsService,
     ClipGenerationService,
+    ClipGenerationRequestService,
+    ClipIdentityResolutionService,
     HighlightRewriteService,
     RawCutClipCompletionService,
     RawCutClipService,

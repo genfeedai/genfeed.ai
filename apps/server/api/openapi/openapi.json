@@ -274,6 +274,10 @@
       },
       "AnalyzeYoutubeDto": {
         "properties": {
+          "brandId": {
+            "description": "Selected brand used to resolve saved clip identity defaults",
+            "type": "string"
+          },
           "language": {
             "default": "en",
             "description": "Language code for transcription",
@@ -1929,6 +1933,10 @@
             "description": "The unique identifier of the document",
             "type": "string"
           },
+          "brandId": {
+            "description": "Brand context for clip identity and downstream ownership",
+            "type": "string"
+          },
           "language": {
             "default": "en",
             "description": "Language code for transcription",
@@ -1995,6 +2003,10 @@
             "enum": [
               "heygen"
             ],
+            "type": "string"
+          },
+          "brandId": {
+            "description": "Selected brand used to resolve saved clip identity defaults",
             "type": "string"
           },
           "language": {
@@ -11190,6 +11202,10 @@
         "properties": {
           "_id": {
             "description": "The unique identifier of the document",
+            "type": "string"
+          },
+          "brandId": {
+            "description": "Brand context for clip identity and downstream ownership",
             "type": "string"
           },
           "error": {
