@@ -1,5 +1,6 @@
 import type {
   AgentClipRunIdentity,
+  ClipProjectReadResponse,
   ClipReferenceFrameSet,
 } from '@genfeedai/interfaces';
 import type {
@@ -60,11 +61,6 @@ interface CreateFromYoutubeResponse {
   identity?: AgentClipRunIdentity;
   projectId: string;
   status: string;
-}
-
-export interface ProjectResponse {
-  referenceFrames?: ClipReferenceFrameSet;
-  status?: string;
 }
 
 interface EditorHandoffResponse {
@@ -248,12 +244,12 @@ export class ClipsApiService {
   async getProject(
     projectId: string,
     signal?: AbortSignal,
-  ): Promise<ProjectResponse> {
+  ): Promise<ClipProjectReadResponse> {
     const data = await this.fetchJson<unknown>(
       `${this.apiEndpoint}/clip-projects/${projectId}`,
       { signal },
     );
-    return this.extractPayload<ProjectResponse>(data) ?? {};
+    return this.extractPayload<ClipProjectReadResponse>(data) ?? {};
   }
 
   async selectReferenceFrame(
@@ -267,7 +263,7 @@ export class ClipsApiService {
         method: 'PUT',
       },
     );
-    const payload = this.extractPayload<ProjectResponse>(data);
+    const payload = this.extractPayload<ClipProjectReadResponse>(data);
 
     if (payload?.referenceFrames) {
       return payload.referenceFrames;

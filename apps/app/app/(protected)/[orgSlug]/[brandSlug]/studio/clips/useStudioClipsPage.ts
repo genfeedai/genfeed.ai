@@ -3,6 +3,7 @@ import { GenerationType } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type {
   AgentClipRunIdentity,
+  ClipProjectReadResponse,
   IBrand,
   IOrganizationSetting,
 } from '@genfeedai/interfaces';
@@ -18,10 +19,7 @@ import type {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
-import {
-  ClipsApiService,
-  type ProjectResponse,
-} from './services/clips-api.service';
+import { ClipsApiService } from './services/clips-api.service';
 
 const TERMINAL_PROJECT_STATUSES = new Set(['completed', 'failed']);
 
@@ -382,7 +380,7 @@ export function useStudioClipsPage() {
         );
         const projectData = await clipsService
           .getProject(project.projectId, abortController.signal)
-          .catch((): ProjectResponse => ({}));
+          .catch((): ClipProjectReadResponse => ({}));
 
         if (cancelled) {
           return;
@@ -487,9 +485,11 @@ export function useStudioClipsPage() {
           };
         });
         setFailedReferenceFrameId(null);
-      } catch {
+      } catch (err: unknown) {
         setReferenceFrameError(
-          'Reference frame selection could not be saved. Try again.',
+          err instanceof Error && err.message
+            ? err.message
+            : 'Reference frame selection could not be saved. Try again.',
         );
       } finally {
         setPendingReferenceFrameId(null);
