@@ -398,9 +398,11 @@ export abstract class BaseCRUDController<
   public canUserModifyEntity(user: User, entity: T): boolean {
     const publicMetadata = getPublicMetadata(user);
 
-    // Default: user can only modify their own entities
+    // Default: user can only modify their own entities. Read the scalar
+    // `userId` FK first — `user` is a Mongo-era alias, undefined unless a
+    // child controller populates it via getPopulateForOwnershipCheck().
     const entityRecord = entity as Record<string, unknown>;
-    const entityUser = entityRecord.user as
+    const entityUser = (entityRecord.userId ?? entityRecord.user) as
       | { id?: { toString(): string }; toString(): string }
       | undefined;
     const entityUserId = entityUser?.id?.toString() || entityUser?.toString();
@@ -420,8 +422,7 @@ export abstract class BaseCRUDController<
    * Child controllers can override this for entities without user field
    */
   public getPopulateForOwnershipCheck(): PopulateOption[] {
-    // User field contains ObjectId directly — no populate needed.
-    // canUserModifyEntity() handles both populated and unpopulated user fields.
+    // Ownership resolves from the scalar `userId` FK — no populate needed.
     return [];
   }
 }
