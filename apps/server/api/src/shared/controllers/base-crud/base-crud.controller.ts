@@ -470,12 +470,9 @@ export abstract class BaseCRUDController<
   public canUserModifyEntity(user: User, entity: T): boolean {
     const publicMetadata = getPublicMetadata(user);
 
-    // Default: user can only modify their own entities.
-    // Prisma rows expose the scalar FK `userId`; the Mongo-era `user` alias is
-    // a type-only field that is undefined at runtime unless a child controller
-    // populates it via getPopulateForOwnershipCheck(). Read the scalar FK first,
-    // then fall back to a populated relation object/id. See
-    // docs/identity-resolution.md and .agents/memory/rules/prisma_legacy_alias_fields.md.
+    // Default: user can only modify their own entities. Read the scalar
+    // `userId` FK first — `user` is a Mongo-era alias, undefined unless a
+    // child controller populates it via getPopulateForOwnershipCheck().
     const entityRecord = entity as Record<string, unknown>;
     const entityUser = (entityRecord.userId ?? entityRecord.user) as
       | { id?: { toString(): string }; toString(): string }
@@ -497,9 +494,7 @@ export abstract class BaseCRUDController<
    * Child controllers can override this for entities without user field
    */
   public getPopulateForOwnershipCheck(): PopulateOption[] {
-    // Ownership resolves from the scalar `userId` FK on the row — no populate
-    // needed. canUserModifyEntity() reads that FK and still supports a
-    // populated `user` relation object for child controllers that override this.
+    // Ownership resolves from the scalar `userId` FK — no populate needed.
     return [];
   }
 }
