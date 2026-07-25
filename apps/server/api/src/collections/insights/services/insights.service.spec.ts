@@ -2,6 +2,7 @@ import { InsightsService } from '@api/collections/insights/services/insights.ser
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { Timeframe } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockInsightDelegate = {
@@ -14,6 +15,7 @@ type MockInsightDelegate = {
 describe('InsightsService', () => {
   let service: InsightsService;
   let delegate: MockInsightDelegate;
+  let forecastDelegate: { findMany: ReturnType<typeof vi.fn> };
   let llmDispatcherService: {
     chatCompletion: ReturnType<typeof vi.fn>;
   };
@@ -68,6 +70,9 @@ describe('InsightsService', () => {
         ],
       }),
     };
+    forecastDelegate = {
+      findMany: vi.fn().mockResolvedValue([]),
+    };
     logger = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -76,7 +81,10 @@ describe('InsightsService', () => {
     };
 
     service = new InsightsService(
-      { insight: delegate } as unknown as PrismaService,
+      {
+        forecast: forecastDelegate,
+        insight: delegate,
+      } as unknown as PrismaService,
       logger as unknown as LoggerService,
       {} as unknown as ModelsService,
       llmDispatcherService as unknown as LlmDispatcherService,
@@ -202,6 +210,112 @@ describe('InsightsService', () => {
       await expect(
         service.update('missing', 'org-1', { isRead: true }),
       ).rejects.toThrow('Insight not found');
+    });
+  });
+
+  describe('getForecast', () => {
+    const futureDate = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const pastDate = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    const makeForecastRow = (
+      id: string,
+      data: Record<string, unknown>,
+    ): Record<string, unknown> => ({
+      createdAt: new Date('2026-07-15T00:00:00.000Z'),
+      data,
+      id,
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+
+    it('reads the forecast table once for all requested metrics', async () => {
+      forecastDelegate.findMany.mockResolvedValue([
+        makeForecastRow('forecast-engagement', {
+          data: { value: 1 },
+          metric: 'engagement',
+          period: Timeframe.D30,
+          validUntil: futureDate,
+        }),
+        makeForecastRow('forecast-followers', {
+          data: { value: 2 },
+          metric: 'followers',
+          period: Timeframe.D30,
+          validUntil: futureDate,
+        }),
+      ]);
+
+      const result = await service.getForecast(
+        { metrics: ['engagement', 'followers'], period: Timeframe.D30 },
+        'org-1',
+      );
+
+      expect(forecastDelegate.findMany).toHaveBeenCalledTimes(1);
+      expect(forecastDelegate.findMany).toHaveBeenCalledWith({
+        where: { isDeleted: false, organizationId: 'org-1' },
+      });
+      expect(result).toHaveLength(2);
+      expect(result.map((forecast) => forecast.id)).toEqual([
+        'forecast-engagement',
+        'forecast-followers',
+      ]);
+    });
+
+    it('keeps the first stored row when a metric has duplicates', async () => {
+      forecastDelegate.findMany.mockResolvedValue([
+        makeForecastRow('forecast-first', {
+          metric: 'engagement',
+          period: Timeframe.D30,
+          validUntil: futureDate,
+        }),
+        makeForecastRow('forecast-second', {
+          metric: 'engagement',
+          period: Timeframe.D30,
+          validUntil: futureDate,
+        }),
+      ]);
+
+      const result = await service.getForecast(
+        { metrics: ['engagement'], period: Timeframe.D30 },
+        'org-1',
+      );
+
+      expect(result.map((forecast) => forecast.id)).toEqual(['forecast-first']);
+    });
+
+    it('ignores rows from another period and rows that already expired', async () => {
+      forecastDelegate.findMany.mockResolvedValue([
+        makeForecastRow('forecast-other-period', {
+          metric: 'engagement',
+          period: Timeframe.D90,
+          validUntil: futureDate,
+        }),
+        makeForecastRow('forecast-expired', {
+          metric: 'followers',
+          period: Timeframe.D30,
+          validUntil: pastDate,
+        }),
+      ]);
+
+      await expect(
+        service.getForecast(
+          { metrics: ['engagement'], period: Timeframe.D30 },
+          'org-1',
+        ),
+      ).rejects.toThrow('Insufficient data');
+      expect(forecastDelegate.findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls through to generation when no stored forecast matches', async () => {
+      forecastDelegate.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.getForecast(
+          { metrics: ['engagement'], period: Timeframe.D30 },
+          'org-1',
+        ),
+      ).rejects.toThrow(
+        'Insufficient data: real value for metric "engagement"',
+      );
     });
   });
 });
