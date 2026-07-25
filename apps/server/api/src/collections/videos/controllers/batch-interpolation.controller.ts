@@ -298,7 +298,7 @@ export class BatchInterpolationController {
             height,
             isMergeEnabled: dto.isMergeEnabled || false,
             model: dto.modelKey,
-            organization: brand.organization,
+            organization: brand.organizationId,
             prompt: promptData.id,
             promptTemplate: templateUsed,
             references: [pair.startImageId],

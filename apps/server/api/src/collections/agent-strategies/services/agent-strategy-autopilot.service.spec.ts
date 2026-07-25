@@ -8,11 +8,14 @@ describe('AgentStrategyAutopilotService', () => {
   const organizationId = 'test-object-id';
   const brandId = 'test-object-id';
 
+  // Shaped like a real Prisma row: scalar FKs only. The Mongo-era
+  // `organization`/`brand`/`user` aliases are undefined on an unpopulated row,
+  // so a fixture carrying them hides exactly the bug this suite should catch.
   const baseStrategy = {
     _id: strategyId,
     agentType: 'general',
     autonomyMode: 'auto_publish',
-    brand: brandId,
+    brandId,
     budgetPolicy: {
       maxRetriesPerOpportunity: 1,
       monthlyCreditBudget: 500,
@@ -30,7 +33,7 @@ describe('AgentStrategyAutopilotService', () => {
       evergreenCadenceEnabled: false,
       trendWatchersEnabled: false,
     },
-    organization: organizationId,
+    organizationId,
     platforms: ['twitter'],
     postsPerWeek: 3,
     publishPolicy: {
@@ -55,7 +58,7 @@ describe('AgentStrategyAutopilotService', () => {
     reserveTrendBudgetRemaining: 125,
     runHistory: [],
     topics: ['AI hooks'],
-    user: 'test-object-id',
+    userId: 'test-object-id',
     weeklyCreditBudget: 300,
   };
 

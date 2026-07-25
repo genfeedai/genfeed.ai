@@ -159,14 +159,15 @@ export class RunsService extends BaseService<
     await this.runsMeteringService.record({
       actionType: this.requireActionType(run.actionType),
       authType: this.requireAuthType(run.authType),
-      organizationId: String(run.organization),
+      organizationId: run.organizationId,
       progress: this.getProgress(run),
       runId: this.runId(run),
       stage,
       status: this.requireStatus(run.status),
       surface: this.requireSurface(run.surface),
       traceId: this.getTraceId(run),
-      userId: String(run.user),
+      // Run.userId is nullable (system-initiated runs have no actor)
+      userId: run.userId ?? '',
     });
   }
 

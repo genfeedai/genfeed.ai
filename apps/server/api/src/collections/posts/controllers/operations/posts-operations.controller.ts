@@ -241,7 +241,10 @@ export class PostsOperationsController {
       );
     }
 
-    if (originalPost.organization.toString() !== publicMetadata.organization) {
+    // Scalar FK: the legacy `organization` alias is undefined unless the query
+    // populated the relation, so coercing it threw before this ownership check
+    // could run.
+    if (originalPost.organizationId !== publicMetadata.organization) {
       throw new HttpException(
         {
           detail: 'You do not have access to this post',
@@ -287,7 +290,9 @@ export class PostsOperationsController {
       const childPost = await this.postsService.create({
         brand: publicMetadata.brand,
         category: PostCategory.TEXT,
-        credential: originalPost.credential as string,
+        // Scalar FK: the `credential` alias is undefined unless populated, and
+        // the cast hid that — every expanded child was created unlinked.
+        credential: originalPost.credentialId,
         description: 'Generating...',
         ingredients: [],
         label: '',
@@ -470,10 +475,7 @@ export class PostsOperationsController {
         );
       }
 
-      if (
-        parentPost.organization.toString() !==
-        publicMetadata.organization.toString()
-      ) {
+      if (parentPost.organizationId !== publicMetadata.organization) {
         throw new HttpException(
           {
             detail: 'You do not have access to this post',
@@ -659,10 +661,7 @@ export class PostsOperationsController {
         );
       }
 
-      if (
-        originalPost.organization.toString() !==
-        publicMetadata.organization.toString()
-      ) {
+      if (originalPost.organizationId !== publicMetadata.organization) {
         throw new HttpException(
           {
             detail: 'You do not have access to this post',
@@ -746,9 +745,7 @@ export class PostsOperationsController {
       );
     }
 
-    if (
-      post.organization.toString() !== publicMetadata.organization.toString()
-    ) {
+    if (post.organizationId !== publicMetadata.organization) {
       throw new HttpException(
         {
           detail: 'You do not have access to this post',
@@ -819,9 +816,7 @@ export class PostsOperationsController {
       );
     }
 
-    if (
-      post.organization.toString() !== publicMetadata.organization.toString()
-    ) {
+    if (post.organizationId !== publicMetadata.organization) {
       throw new HttpException(
         {
           detail: 'You do not have access to this post',

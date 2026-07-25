@@ -120,6 +120,25 @@ describe('check-relation-alias-reads', () => {
       ]);
     });
 
+    it('sees through a cast and parentheses', () => {
+      // The shape that shipped in tasks.controller.ts: the cast is what
+      // silences the type error, so it must not also silence the guard.
+      writeFixture(
+        'apps/server/api/src/posts/posts.service.ts',
+        [
+          "import type { PostDocument } from './post.schema';",
+          '',
+          'export function track(post: PostDocument) {',
+          '  return (post.brand as string | undefined)?.toString();',
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({ alias: 'brand', rule: 'id-coercion' }),
+      ]);
+    });
+
     it('flags a relation alias interpolated into a template literal', () => {
       writeFixture(
         'apps/server/api/src/posts/posts.service.ts',
@@ -160,6 +179,33 @@ describe('check-relation-alias-reads', () => {
       // this lookup silently loses its tenant scoping.
       expect(violations.map((entry) => entry.alias).sort()).toEqual([
         'brand',
+        'credential',
+        'organization',
+      ]);
+      expect(violations.every((entry) => entry.rule === 'filter-value')).toBe(
+        true,
+      );
+    });
+
+    it('sees through casts and non-null assertions on the value', () => {
+      // `as string` and `!` change the type, never the runtime value: both
+      // still hand `undefined` to `normalizeWhere`, which drops the key.
+      writeFixture(
+        'apps/server/api/src/posts/posts.controller.ts',
+        [
+          'export async function refresh(service, credentials) {',
+          '  const post = await service.findOne({ _id: id });',
+          '  return credentials.findOne({',
+          '    _id: post.credential as string,',
+          '    organization: post.organization!,',
+          '  });',
+          '}',
+        ].join('\n'),
+      );
+
+      const { violations } = runCheckRelationAliasReads();
+
+      expect(violations.map((entry) => entry.alias).sort()).toEqual([
         'credential',
         'organization',
       ]);
