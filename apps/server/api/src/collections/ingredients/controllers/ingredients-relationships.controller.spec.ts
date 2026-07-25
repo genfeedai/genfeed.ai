@@ -26,7 +26,7 @@ describe('IngredientsRelationshipsController', () => {
       _id: '507f1f77bcf86cd799439015',
       label: 'Test Image',
     },
-    organization: '507f1f77bcf86cd799439099',
+    organizationId: '507f1f77bcf86cd799439099',
   };
 
   const mockServices = {
@@ -139,7 +139,7 @@ describe('IngredientsRelationshipsController', () => {
           where: {
             ingredients: '507f1f77bcf86cd799439014',
             isDeleted: false,
-            organization: mockIngredient.organization,
+            organizationId: mockIngredient.organizationId,
           },
         },
         expect.objectContaining({
@@ -148,6 +148,24 @@ describe('IngredientsRelationshipsController', () => {
         }),
       );
       expect(result).toBeDefined();
+    });
+
+    it('should scope to an explicit null when the ingredient has no organization', async () => {
+      // `normalizeWhere` drops undefined values, so an unscoped read here would
+      // list posts across every tenant. The filter must stay present as null.
+      mockServices.ingredientsService.findOne.mockResolvedValueOnce({
+        _id: '507f1f77bcf86cd799439014',
+        category: 'image',
+      });
+
+      await controller.findPosts(mockRequest, '507f1f77bcf86cd799439014', {});
+
+      expect(postsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId: null }),
+        }),
+        expect.anything(),
+      );
     });
   });
 });
