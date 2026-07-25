@@ -3,7 +3,7 @@ import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.serv
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 
-interface SecretAlert {
+export interface SecretAlert {
   token: string;
   type: string;
   url: string;
@@ -46,11 +46,10 @@ export class GitHubWebhookService {
     }
   }
 
-  async handleSecretAlerts(alerts: unknown[]): Promise<AlertResult[]> {
+  async handleSecretAlerts(alerts: SecretAlert[]): Promise<AlertResult[]> {
     const results: AlertResult[] = [];
 
-    for (const raw of alerts) {
-      const alert = raw as SecretAlert;
+    for (const alert of alerts) {
       try {
         const result = await this.processAlert(alert);
         results.push(result);
