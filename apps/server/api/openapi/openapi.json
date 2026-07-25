@@ -3337,6 +3337,7 @@
             "items": {
               "$ref": "#/components/schemas/ManualReviewBatchItemDto"
             },
+            "maxItems": 100,
             "type": "array"
           }
         },
@@ -6915,6 +6916,7 @@
             "items": {
               "$ref": "#/components/schemas/CsvMetricEntryDto"
             },
+            "maxItems": 200,
             "type": "array"
           }
         },
@@ -7428,6 +7430,7 @@
             "items": {
               "$ref": "#/components/schemas/ManualMetricEntryDto"
             },
+            "maxItems": 50,
             "type": "array"
           }
         },
@@ -8421,6 +8424,7 @@
             "items": {
               "$ref": "#/components/schemas/PostBatchItemDto"
             },
+            "maxItems": 50,
             "type": "array"
           }
         },
