@@ -5,6 +5,7 @@ import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/d
 import { OutreachCampaignsQueryDto } from '@api/collections/outreach-campaigns/dto/outreach-campaigns-query.dto';
 import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
 import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/services/campaign-target-url.util';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -282,7 +283,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
     >();
 
     for (const url of urls) {
-      const parsed = this.parseUrl(url);
+      const parsed = parseCampaignTargetUrl(url);
 
       if (!parsed || parsedByExternalId.has(parsed.externalId)) {
         skipped++;
@@ -408,7 +409,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
     targetType?: CampaignTargetType;
     externalId?: string;
   } {
-    const parsed = this.parseUrl(body.url);
+    const parsed = parseCampaignTargetUrl(body.url);
 
     if (!parsed) {
       return { valid: false };
@@ -581,70 +582,5 @@ export class OutreachCampaignsController extends BaseCRUDController<
       replyText,
       target,
     };
-  }
-
-  /**
-   * Parse URL to extract platform, type, and external ID
-   */
-  private parseUrl(url: string): {
-    platform: CampaignPlatform;
-    targetType: CampaignTargetType;
-    externalId: string;
-  } | null {
-    try {
-      const urlObj = new URL(url);
-
-      // Twitter/X
-      if (
-        urlObj.hostname === 'twitter.com' ||
-        urlObj.hostname === 'x.com' ||
-        urlObj.hostname === 'www.twitter.com' ||
-        urlObj.hostname === 'www.x.com'
-      ) {
-        const match = urlObj.pathname.match(/\/(?:[\w]+)\/status\/(\d+)/);
-        if (match) {
-          return {
-            externalId: match[1],
-            platform: CampaignPlatform.TWITTER,
-            targetType: CampaignTargetType.TWEET,
-          };
-        }
-      }
-
-      // Reddit
-      if (
-        urlObj.hostname === 'reddit.com' ||
-        urlObj.hostname === 'www.reddit.com' ||
-        urlObj.hostname === 'old.reddit.com'
-      ) {
-        // Post URL: /r/subreddit/comments/postId/...
-        const postMatch = urlObj.pathname.match(
-          /\/r\/[\w]+\/comments\/([\w]+)/,
-        );
-        if (postMatch) {
-          // Check if it's a comment (has /comment/ in path)
-          const commentMatch = urlObj.pathname.match(
-            /\/r\/[\w]+\/comments\/[\w]+\/[\w]+\/([\w]+)/,
-          );
-          if (commentMatch) {
-            return {
-              externalId: commentMatch[1],
-              platform: CampaignPlatform.REDDIT,
-              targetType: CampaignTargetType.REDDIT_COMMENT,
-            };
-          }
-
-          return {
-            externalId: postMatch[1],
-            platform: CampaignPlatform.REDDIT,
-            targetType: CampaignTargetType.REDDIT_POST,
-          };
-        }
-      }
-
-      return null;
-    } catch {
-      return null;
-    }
   }
 }

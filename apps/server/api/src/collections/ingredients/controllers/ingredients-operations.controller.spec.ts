@@ -81,6 +81,9 @@ describe('IngredientsOperationsController', () => {
       }),
     },
     ingredientsService: {
+      bulkSoftDeleteScoped: vi
+        .fn()
+        .mockResolvedValue({ deleted: [], failed: [] }),
       findOne: vi.fn().mockResolvedValue(mockIngredient),
       getKPIMetrics: vi.fn().mockResolvedValue({
         byCategory: {},
@@ -240,26 +243,49 @@ describe('IngredientsOperationsController', () => {
   });
 
   describe('bulkDelete', () => {
-    it('should delete multiple ingredients successfully', async () => {
-      const bulkDeleteDto: BulkDeleteIngredientsDto = {
-        ids: ['507f1f77bcf86cd799439014', '507f1f77bcf86cd799439015'],
-      };
+    const bulkDeleteDto: BulkDeleteIngredientsDto = {
+      ids: ['507f1f77bcf86cd799439014', '507f1f77bcf86cd799439015'],
+    };
 
-      mockServices.ingredientsService.findOne
-        .mockResolvedValueOnce({
-          ...mockIngredient,
-          user: { id: '507f1f77bcf86cd799439011' },
-        })
-        .mockResolvedValueOnce({
-          ...mockIngredient,
-          id: '507f1f77bcf86cd799439015',
-          user: { id: '507f1f77bcf86cd799439011' },
-        });
+    it('should delete multiple ingredients in a single scoped call', async () => {
+      mockServices.ingredientsService.bulkSoftDeleteScoped.mockResolvedValueOnce(
+        { deleted: bulkDeleteDto.ids, failed: [] },
+      );
 
       const result = await controller.bulkDelete(mockUser, bulkDeleteDto);
 
-      expect(result.deleted.length).toBeGreaterThan(0);
-      expect(result.message).toBeDefined();
+      expect(
+        mockServices.ingredientsService.bulkSoftDeleteScoped,
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        mockServices.ingredientsService.bulkSoftDeleteScoped,
+      ).toHaveBeenCalledWith({
+        ids: bulkDeleteDto.ids,
+        organizationId: '507f1f77bcf86cd799439012',
+        userId: '507f1f77bcf86cd799439011',
+      });
+      expect(mockServices.ingredientsService.findOne).not.toHaveBeenCalled();
+      expect(result.deleted).toEqual(bulkDeleteDto.ids);
+      expect(result.failed).toEqual([]);
+      expect(result.message).toBe('Successfully deleted 2 ingredient(s)');
+    });
+
+    it('should report inaccessible ingredients as failed', async () => {
+      mockServices.ingredientsService.bulkSoftDeleteScoped.mockResolvedValueOnce(
+        {
+          deleted: ['507f1f77bcf86cd799439014'],
+          failed: ['507f1f77bcf86cd799439015'],
+        },
+      );
+
+      const result = await controller.bulkDelete(mockUser, bulkDeleteDto);
+
+      expect(result.deleted).toEqual(['507f1f77bcf86cd799439014']);
+      expect(result.failed).toEqual(['507f1f77bcf86cd799439015']);
+      expect(result.message).toBe(
+        'Successfully deleted 1 ingredient(s), failed to delete 1',
+      );
+      expect(mockServices.loggerService.warn).toHaveBeenCalled();
     });
   });
 });

@@ -6,6 +6,12 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import {
+  batchSchedulePosts,
+  type PostBatchScheduleItem,
+  type PostBatchScheduleResult,
+  PRISMA_POST_STATUS,
+} from '@api/collections/posts/services/post-batch-schedule.util';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -19,12 +25,11 @@ import {
   resolveRelationId,
 } from '@api/shared/utils/relation-id/relation-id.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import type {
   AgentContentMentionItem,
   PopulateOption,
 } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -33,10 +38,6 @@ import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_MENTION_LIMIT = 50;
 const MAX_CONTENT_MENTION_LIMIT = 100;
-const PRISMA_POST_STATUS = {
-  PUBLIC: 'PUBLIC',
-  SCHEDULED: 'SCHEDULED',
-} as const;
 const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<keyof UpdatePostDto>([
   'category',
   'credential',
@@ -55,19 +56,6 @@ const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<keyof UpdatePostDto>([
   'scheduledDate',
   'timezone',
 ]);
-
-export interface PostBatchScheduleItem {
-  ingredientIds?: string[];
-  postId: string;
-  scheduledDate: string;
-  text: string;
-  timezone?: string;
-}
-
-export interface PostBatchScheduleResult {
-  missingPostIds: string[];
-  posts: PostDocument[];
-}
 
 type ContentMentionPostRecord = {
   category: string;
@@ -397,155 +385,34 @@ export class PostsService extends BaseService<
   }
 
   /**
-   * Schedule a batch of posts in a fixed number of round-trips.
-   *
-   * `patch` costs 2–4 sequential queries per post (approval context, mutability
-   * assertion, current-post read, the update itself, the child cascade), so
-   * scheduling N posts through it was 2N–4N serial round-trips driven by a
-   * caller-supplied array. This collapses to one scoped existence read, one
-   * mutability assertion per approval-guarded post (concurrent, read-only), a
-   * single `$transaction` carrying every write, and one cache invalidation.
-   *
-   * Scoping, status transitions, timezone conversion, the child cascade and
-   * the approval invalidation all match `patch` exactly — only the number of
-   * round-trips changes. Statement order inside the transaction mirrors the
-   * old loop (cascade before its own item's update) so an in-batch child still
-   * wins over its parent's cascade.
+   * Schedule a batch of posts in a fixed number of round-trips instead of the
+   * 2N–4N serial queries a `patch` per item used to cost. The planning and
+   * write orchestration live in `post-batch-schedule.util`; this only hands it
+   * the service collaborators it needs.
    */
   async batchSchedule(
     items: readonly PostBatchScheduleItem[],
     organizationId: string,
   ): Promise<PostBatchScheduleResult> {
-    if (items.length === 0) {
-      return { missingPostIds: [], posts: [] };
-    }
-
-    const requestedIds = [...new Set(items.map((item) => String(item.postId)))];
-
-    const existingPosts = await this.prisma.post.findMany({
-      select: { id: true, parentId: true, publishApprovalId: true },
-      where: { id: { in: requestedIds }, isDeleted: false, organizationId },
-    });
-    const existingById = new Map(existingPosts.map((post) => [post.id, post]));
-    const missingPostIds = requestedIds.filter((id) => !existingById.has(id));
-
-    // Mutability is a read-only guard, so it runs concurrently ahead of the
-    // transaction rather than once per post inside the write loop.
-    const approvalGuardedIds = existingPosts
-      .filter((post) => Boolean(post.publishApprovalId))
-      .map((post) => post.id);
-
-    const approvalsService = this.publishApprovalsService;
-    if (approvalsService && approvalGuardedIds.length > 0) {
-      await Promise.all(
-        approvalGuardedIds.map((id) =>
-          approvalsService.assertPostMutable(organizationId, id),
-        ),
-      );
-    }
-
-    const writes: Prisma.PrismaPromise<unknown>[] = [];
-    const updateIndexes: number[] = [];
-
-    for (const item of items) {
-      const postId = String(item.postId);
-      const existing = existingById.get(postId);
-
-      if (!existing) {
-        continue;
-      }
-
-      const scheduledDate = item.timezone
-        ? TimezoneUtil.convertToUTC(new Date(item.scheduledDate), item.timezone)
-        : new Date(item.scheduledDate);
-
-      const ingredientIds =
-        EntityIdUtil.normalizeIds(item.ingredientIds ?? []) ?? [];
-
-      // Scheduling a root post cascades to its children, exactly as `patch`
-      // does — and, as there, before the post's own update is applied.
-      if (!existing.parentId) {
-        writes.push(
-          this.prisma.post.updateMany({
-            data: {
-              scheduledDate,
-              status: PRISMA_POST_STATUS.SCHEDULED,
-            } as never,
-            where: {
-              isDeleted: false,
-              parentId: postId,
-              status: { not: PRISMA_POST_STATUS.PUBLIC },
-            },
-          }),
-        );
-      }
-
-      // `category` is a real Prisma enum, so the payload still has to go
-      // through `normalizeData`; `status` is a String column and is written
-      // lowercase here exactly as `super.patch` writes it today.
-      const data = this.normalizeData({
-        ...(ingredientIds.length > 0 && { category: PostCategory.IMAGE }),
-        description: item.text,
-        scheduledDate,
-        status: PostStatus.SCHEDULED,
-        ...(item.timezone !== undefined && { timezone: item.timezone }),
-      });
-
-      updateIndexes.push(writes.length);
-      writes.push(
-        this.prisma.post.update({
-          data: {
-            ...(data as Record<string, unknown>),
-            // `ingredients` is a many-to-many relation: a bare string[] is not
-            // a valid Prisma payload, it needs the nested-write envelope.
-            ingredients: { set: ingredientIds.map((id) => ({ id })) },
-          } as never,
-          include: { credential: true, ingredients: true },
-          where: { id: postId },
-        }),
-      );
-    }
-
-    if (writes.length === 0) {
-      return { missingPostIds, posts: [] };
-    }
-
-    const results = await this.prisma.$transaction(writes);
-
-    if (this.cacheService) {
-      await this.cacheService.invalidateByTags([
-        this.collectionName,
-        `collection:${this.collectionName}`,
-        `agg:${this.collectionName}`,
-        'agg:paginated',
-      ]);
-    }
-
-    if (approvalsService && approvalGuardedIds.length > 0) {
-      await Promise.all(
-        approvalGuardedIds.map((id) =>
-          approvalsService.invalidatePost(
-            organizationId,
-            id,
-            'Canonical Post material or protected schedule intent changed.',
-          ),
-        ),
-      );
-    }
-
-    this.logger.log('Batch scheduled posts', {
-      missing: missingPostIds.length,
+    return batchSchedulePosts(
+      {
+        cacheService: this.cacheService,
+        cacheTags: [
+          this.collectionName,
+          `collection:${this.collectionName}`,
+          `agg:${this.collectionName}`,
+          'agg:paginated',
+        ],
+        logger: this.logger,
+        normalizeData: (data) =>
+          this.normalizeData(data) as Record<string, unknown>,
+        normalizeDocument: (document) => this.normalizeDocument(document),
+        prisma: this.prisma,
+        publishApprovalsService: this.publishApprovalsService,
+      },
+      items,
       organizationId,
-      requested: requestedIds.length,
-      updated: updateIndexes.length,
-    });
-
-    return {
-      missingPostIds,
-      posts: updateIndexes.map((index) =>
-        this.normalizeDocument(results[index]),
-      ),
-    };
+    );
   }
 
   private async completePublishFirstPostMission(

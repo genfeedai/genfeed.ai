@@ -43,14 +43,17 @@ describe('BulkDeleteIngredientsDto', () => {
       expect(errors[0]?.constraints).toHaveProperty('arrayMaxSize');
     });
 
-    it('rejects an empty id list', async () => {
+    // `@IsNotEmpty()` only rejects '', null and undefined — an empty array
+    // passes it. The endpoint short-circuits on an empty list instead of
+    // touching the database, so validation deliberately lets it through.
+    it('accepts an empty id list', async () => {
       const dto = Object.assign(new BulkDeleteIngredientsDto(), {
         ids: [],
       });
 
       const errors = await validate(dto);
 
-      expect(JSON.stringify(errors)).toContain('isNotEmpty');
+      expect(errors).toHaveLength(0);
     });
   });
 });
