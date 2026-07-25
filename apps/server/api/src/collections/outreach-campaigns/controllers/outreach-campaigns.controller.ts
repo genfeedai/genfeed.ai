@@ -2,9 +2,10 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
 import { AddCampaignTargetsDto } from '@api/collections/outreach-campaigns/dto/add-campaign-targets.dto';
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
-import { OutreachCampaignsQueryDto } from '@api/collections/outreach-campaigns/dto/outreach-campaigns-query.dto';
-import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
+import type { OutreachCampaignsQueryDto } from '@api/collections/outreach-campaigns/dto/outreach-campaigns-query.dto';
+import type { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
 import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/services/campaign-target-url.util';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -14,10 +15,10 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { BaseService } from '@api/shared/services/base/base.service';
+import type { BaseService } from '@api/shared/services/base/base.service';
 import {
   CampaignDiscoverySource,
-  CampaignPlatform,
+  type CampaignPlatform,
   CampaignTargetStatus,
   CampaignTargetType,
   CampaignType,
@@ -268,39 +269,55 @@ export class OutreachCampaignsController extends BaseCRUDController<
     id: string,
     urls: string[],
   ): Promise<{ added: number; skipped: number }> {
-    let added = 0;
     let skipped = 0;
 
+    // Parse and de-duplicate in memory first so the whole batch costs one
+    // existence query and one insert, whatever `urls.length` is.
+    const parsedByExternalId = new Map<
+      string,
+      {
+        platform: CampaignPlatform;
+        targetType: CampaignTargetType;
+        url: string;
+      }
+    >();
+
     for (const url of urls) {
-      const parsed = this.parseUrl(url);
+      const parsed = parseCampaignTargetUrl(url);
 
-      if (!parsed) {
+      if (!parsed || parsedByExternalId.has(parsed.externalId)) {
         skipped++;
         continue;
       }
 
-      const exists = await this.campaignTargetsService.targetExists(
-        id,
-        parsed.externalId,
-      );
+      parsedByExternalId.set(parsed.externalId, { ...parsed, url });
+    }
 
-      if (exists) {
+    const existingExternalIds =
+      await this.campaignTargetsService.findExistingExternalIds(id, [
+        ...parsedByExternalId.keys(),
+      ]);
+
+    const targets: Parameters<CampaignTargetsService['createMany']>[0] = [];
+
+    for (const [externalId, parsed] of parsedByExternalId) {
+      if (existingExternalIds.has(externalId)) {
         skipped++;
         continue;
       }
 
-      await this.campaignTargetsService.create({
+      targets.push({
         campaign: id,
-        contentUrl: url,
+        contentUrl: parsed.url,
         discoverySource: CampaignDiscoverySource.MANUAL,
-        externalId: parsed.externalId,
+        externalId,
         organization: campaign.organizationId,
         platform: parsed.platform,
         targetType: parsed.targetType,
       });
-
-      added++;
     }
+
+    const added = await this.campaignTargetsService.createMany(targets);
 
     if (added > 0) {
       await this.outreachCampaignsService.incrementTargetsCount(id, added);
@@ -325,7 +342,6 @@ export class OutreachCampaignsController extends BaseCRUDController<
     }
     const platform = campaign.platform as CampaignPlatform;
 
-    let added = 0;
     let skipped = 0;
 
     // Normalize usernames: strip @, lowercase, dedup
@@ -337,19 +353,22 @@ export class OutreachCampaignsController extends BaseCRUDController<
       ),
     ];
 
-    for (const username of normalizedUsernames) {
-      // Check if already exists
-      const exists = await this.campaignTargetsService.targetExists(
+    // One existence query for the whole batch instead of one per username.
+    const existingExternalIds =
+      await this.campaignTargetsService.findExistingExternalIds(
         id,
-        username,
+        normalizedUsernames,
       );
 
-      if (exists) {
+    const targets: Parameters<CampaignTargetsService['createMany']>[0] = [];
+
+    for (const username of normalizedUsernames) {
+      if (existingExternalIds.has(username)) {
         skipped++;
         continue;
       }
 
-      await this.campaignTargetsService.create({
+      targets.push({
         campaign: id,
         contentUrl: `https://x.com/${username}`,
         discoverySource: CampaignDiscoverySource.MANUAL,
@@ -359,10 +378,10 @@ export class OutreachCampaignsController extends BaseCRUDController<
         recipientUsername: username,
         status: CampaignTargetStatus.PENDING,
         targetType: CampaignTargetType.DM_RECIPIENT,
-      } as Parameters<CampaignTargetsService['create']>[0]);
-
-      added++;
+      });
     }
+
+    const added = await this.campaignTargetsService.createMany(targets);
 
     if (added > 0) {
       await this.outreachCampaignsService.incrementTargetsCount(id, added);
@@ -384,7 +403,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
     targetType?: CampaignTargetType;
     externalId?: string;
   } {
-    const parsed = this.parseUrl(body.url);
+    const parsed = parseCampaignTargetUrl(body.url);
 
     if (!parsed) {
       return { valid: false };
@@ -557,70 +576,5 @@ export class OutreachCampaignsController extends BaseCRUDController<
       replyText,
       target,
     };
-  }
-
-  /**
-   * Parse URL to extract platform, type, and external ID
-   */
-  private parseUrl(url: string): {
-    platform: CampaignPlatform;
-    targetType: CampaignTargetType;
-    externalId: string;
-  } | null {
-    try {
-      const urlObj = new URL(url);
-
-      // Twitter/X
-      if (
-        urlObj.hostname === 'twitter.com' ||
-        urlObj.hostname === 'x.com' ||
-        urlObj.hostname === 'www.twitter.com' ||
-        urlObj.hostname === 'www.x.com'
-      ) {
-        const match = urlObj.pathname.match(/\/(?:[\w]+)\/status\/(\d+)/);
-        if (match) {
-          return {
-            externalId: match[1],
-            platform: CampaignPlatform.TWITTER,
-            targetType: CampaignTargetType.TWEET,
-          };
-        }
-      }
-
-      // Reddit
-      if (
-        urlObj.hostname === 'reddit.com' ||
-        urlObj.hostname === 'www.reddit.com' ||
-        urlObj.hostname === 'old.reddit.com'
-      ) {
-        // Post URL: /r/subreddit/comments/postId/...
-        const postMatch = urlObj.pathname.match(
-          /\/r\/[\w]+\/comments\/([\w]+)/,
-        );
-        if (postMatch) {
-          // Check if it's a comment (has /comment/ in path)
-          const commentMatch = urlObj.pathname.match(
-            /\/r\/[\w]+\/comments\/[\w]+\/[\w]+\/([\w]+)/,
-          );
-          if (commentMatch) {
-            return {
-              externalId: commentMatch[1],
-              platform: CampaignPlatform.REDDIT,
-              targetType: CampaignTargetType.REDDIT_COMMENT,
-            };
-          }
-
-          return {
-            externalId: postMatch[1],
-            platform: CampaignPlatform.REDDIT,
-            targetType: CampaignTargetType.REDDIT_POST,
-          };
-        }
-      }
-
-      return null;
-    } catch {
-      return null;
-    }
   }
 }

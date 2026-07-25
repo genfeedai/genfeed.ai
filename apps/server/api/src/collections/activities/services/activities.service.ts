@@ -190,6 +190,86 @@ export class ActivitiesService extends BaseService<
     return activity;
   }
 
+  /**
+   * Batch-create activities in a single insert.
+   *
+   * `create` costs one insert plus a streak round-trip, so emitting one
+   * activity per item of a batched endpoint was 2N sequential queries. The
+   * streak check is idempotent per `(user, organization)`, so it collapses to
+   * one call per distinct pair rather than one per activity.
+   *
+   * Returns the number of rows inserted. Callers that need the created rows
+   * back should keep using `create` — `createMany` does not return records.
+   */
+  async createMany(
+    inputs: ReadonlyArray<
+      CreateActivityDto | ActivityEntity | ActivityMutationInput
+    >,
+  ): Promise<number> {
+    if (inputs.length === 0) {
+      return 0;
+    }
+
+    const mutations = inputs.map((input) =>
+      this.buildActivityMutation(input as ActivityMutationInput),
+    );
+
+    const result = await this.prisma.activity.createMany({
+      data: mutations as unknown as Prisma.ActivityCreateManyInput[],
+    });
+
+    const qualifyingPairs = new Map<
+      string,
+      { organizationId: string; userId: string }
+    >();
+
+    mutations.forEach((mutation, index) => {
+      const userId = mutation.userId ? String(mutation.userId) : null;
+      const organizationId = mutation.organizationId
+        ? String(mutation.organizationId)
+        : null;
+      const activityKey = String(
+        (inputs[index] as ActivityMutationInput).key ?? mutation.action ?? '',
+      );
+
+      if (!userId || !organizationId || !activityKey) {
+        return;
+      }
+
+      if (!this.streaksService.isQualifyingActivityKey(activityKey)) {
+        return;
+      }
+
+      qualifyingPairs.set(`${organizationId}:${userId}`, {
+        organizationId,
+        userId,
+      });
+    });
+
+    const createdAt = new Date();
+
+    for (const { organizationId, userId } of qualifyingPairs.values()) {
+      try {
+        await this.streaksService.checkAndUpdate(
+          userId,
+          organizationId,
+          createdAt,
+        );
+      } catch (error) {
+        this.logger.warn(
+          'Failed to update streak after activity batch create',
+          {
+            error,
+            organizationId,
+            userId,
+          },
+        );
+      }
+    }
+
+    return result.count;
+  }
+
   override async patch(
     id: string,
     updateDto: Partial<UpdateActivityDto> | Record<string, unknown>,
@@ -201,6 +281,110 @@ export class ActivitiesService extends BaseService<
     );
 
     return super.patch(id, mutation);
+  }
+
+  /**
+   * Scoped bulk update for a caller-supplied id list.
+   *
+   * Replaces the previous per-id `findOne` + `patch` loop (2N sequential
+   * round-trips). Permission partitioning now costs a single `findMany`
+   * scoped to owner-or-same-organization, and the writes collapse to either
+   * one `updateMany` (flag-only change) or one batched `$transaction` (when
+   * `isRead` has to be merged into each row's `data` JSON without clobbering
+   * the sibling keys `bulkPatch` destroys).
+   */
+  async bulkUpdateScoped(params: {
+    ids: string[];
+    isDeleted?: boolean;
+    isRead?: boolean;
+    organizationId: string;
+    userId: string;
+  }): Promise<{ failed: string[]; updated: string[] }> {
+    const { ids, isDeleted, isRead, organizationId, userId } = params;
+
+    if (!ids || ids.length === 0) {
+      return { failed: [], updated: [] };
+    }
+
+    const uniqueIds = [...new Set(ids)];
+
+    const permitted = await this.prisma.activity.findMany({
+      select: { data: true, id: true },
+      where: {
+        id: { in: uniqueIds },
+        isDeleted: false,
+        OR: [{ userId }, { organizationId }],
+      },
+    });
+
+    const permittedById = new Map(permitted.map((row) => [row.id, row]));
+
+    const updated: string[] = [];
+    const failed: string[] = [];
+    for (const id of ids) {
+      if (permittedById.has(id)) {
+        updated.push(id);
+      } else {
+        failed.push(id);
+      }
+    }
+
+    const writeIds = uniqueIds.filter((id) => permittedById.has(id));
+
+    if (writeIds.length > 0) {
+      if (isRead === undefined) {
+        if (isDeleted !== undefined) {
+          // The scope predicate is repeated on the write, not just the read:
+          // it closes the window between the two queries and keeps the tenant
+          // guard visible at the mutation site.
+          await this.prisma.activity.updateMany({
+            data: { isDeleted },
+            where: {
+              id: { in: writeIds },
+              isDeleted: false,
+              OR: [{ userId }, { organizationId }],
+            },
+          });
+        }
+      } else {
+        await this.prisma.$transaction(
+          writeIds.map((id) => {
+            const currentData = this.isRecordObject(permittedById.get(id)?.data)
+              ? { ...(permittedById.get(id)?.data as Record<string, unknown>) }
+              : {};
+
+            const nextData = withActionOriginMetadata(
+              { ...currentData, isRead },
+              {
+                ...(typeof currentData.actorUserId === 'string'
+                  ? { actorUserId: currentData.actorUserId }
+                  : {}),
+                ...(typeof currentData.apiKeyId === 'string'
+                  ? { apiKeyId: currentData.apiKeyId }
+                  : {}),
+                origin: normalizeActionOrigin(currentData.origin),
+              },
+            );
+
+            return this.prisma.activity.update({
+              data: {
+                data: nextData as Prisma.InputJsonValue,
+                ...(isDeleted === undefined ? {} : { isDeleted }),
+              },
+              where: { id },
+            });
+          }),
+        );
+      }
+    }
+
+    this.logger.debug('Scoped bulk activity update completed', {
+      failed: failed.length,
+      requested: ids.length,
+      updated: updated.length,
+    });
+
+    return { failed, updated };
   }
 
   async bulkPatch(

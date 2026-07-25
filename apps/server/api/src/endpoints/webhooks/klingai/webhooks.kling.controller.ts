@@ -1,10 +1,10 @@
+import { KlingAIWebhookPayloadDto } from '@api/endpoints/webhooks/dto/klingai-webhook-payload.dto';
 import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kling.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
-import { KlingAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
@@ -28,7 +28,7 @@ export class KlingWebhookController {
   @Post('callback')
   async handleCallback(
     @Req() request: Request,
-    @Body() payload: KlingAIWebhookPayload,
+    @Body() payload: KlingAIWebhookPayloadDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 

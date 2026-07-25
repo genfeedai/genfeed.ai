@@ -27,6 +27,10 @@ import {
 } from '@api/services/agent-campaign/orchestrator.constants';
 import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
+import {
+  requireRelationId,
+  resolveRelationId,
+} from '@api/shared/utils/relation-id/relation-id.util';
 import { AgentExecutionTrigger, type AgentType } from '@genfeedai/enums';
 import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -171,7 +175,7 @@ export class ContentEngineService {
       });
     }
 
-    const userId = String(campaign.user);
+    const userId = this.requireCampaignUserId(campaign, campaignId);
     const strategies = await this.loadCampaignStrategies(
       campaign,
       organizationId,
@@ -394,8 +398,8 @@ export class ContentEngineService {
       };
     }
 
-    const organizationId = String(campaign.organization);
-    const userId = String(campaign.user);
+    const organizationId = input.organizationId;
+    const userId = this.requireCampaignUserId(campaign, input.campaignId);
     const goalSummaries = await this.loadGoalSummaries(
       input.strategies,
       organizationId,
@@ -453,10 +457,10 @@ export class ContentEngineService {
           triggerType: input.triggerType,
         },
         objective,
-        organization: campaign.organization,
+        organization: organizationId,
         strategy: String(strategy.id),
         trigger: AgentExecutionTrigger.CRON,
-        user: campaign.user,
+        user: userId,
       });
 
       await this.agentRunQueueService.queueRun({
@@ -588,6 +592,27 @@ export class ContentEngineService {
     });
   }
 
+  /**
+   * Resolve the campaign owner from its scalar FK column.
+   *
+   * `campaign.user` is a Mongo-era alias that is `undefined` on an unpopulated
+   * Prisma read, so `String(campaign.user)` produced the literal `"undefined"`.
+   * That id then owns every agent run dispatched for the cycle, and the
+   * `NOT NULL` FK write fails at Postgres (P2003) only after the orchestration
+   * side effects have already run — so this fails closed up front instead.
+   */
+  private requireCampaignUserId(
+    campaign: AgentCampaignDocument,
+    campaignId: string,
+  ): string {
+    return requireRelationId(
+      campaign.userId,
+      campaign.user,
+      'user',
+      `Campaign ${campaignId}`,
+    );
+  }
+
   private async loadAnalyticsOverview(
     campaign: AgentCampaignDocument,
   ): Promise<AnalyticsOverview> {
@@ -597,8 +622,16 @@ export class ContentEngineService {
     const overview = await this.analyticsService.getOverview(
       sevenDaysAgo.toISOString(),
       now.toISOString(),
-      campaign.brand ? String(campaign.brand) : undefined,
-      String(campaign.organization),
+      // Scalar FKs: the relation aliases are `undefined` on an unpopulated read
+      // and stringify to "[object Object]" on a populated one — either way the
+      // overview gets scoped to a brand/organization that does not exist.
+      resolveRelationId(campaign.brandId, campaign.brand),
+      requireRelationId(
+        campaign.organizationId,
+        campaign.organization,
+        'organization',
+        `Campaign ${campaign.id}`,
+      ),
     );
 
     return (overview ?? {}) as AnalyticsOverview;
@@ -760,11 +793,18 @@ export class ContentEngineService {
     goalSummaries: string[],
     summary: string,
   ): Promise<void> {
+    // Scalar FKs: the memory row is owned by the campaign's user/organization, and
+    // the aliases would have written the literal string "undefined" into both.
     await this.agentMemoryCaptureService.capture(
-      String(campaign.user),
-      String(campaign.organization),
+      this.requireCampaignUserId(campaign, String(campaign.id)),
+      requireRelationId(
+        campaign.organizationId,
+        campaign.organization,
+        'organization',
+        `Campaign ${campaign.id}`,
+      ),
       {
-        brandId: campaign.brand ? String(campaign.brand) : undefined,
+        brandId: resolveRelationId(campaign.brandId, campaign.brand),
         campaignId: String(campaign.id),
         confidence: 0.7,
         content: summary,

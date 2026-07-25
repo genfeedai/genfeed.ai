@@ -1,3 +1,4 @@
+import { LeonardoAIWebhookPayloadDto } from '@api/endpoints/webhooks/dto/leonardoai-webhook-payload.dto';
 import { parseAllowedIps } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.constants';
 import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
@@ -5,7 +6,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
-import { LeonardoAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -36,7 +36,7 @@ export class LeonardoaiWebhookController {
   @Post('callback')
   async handleCallback(
     @Req() request: Request,
-    @Body() payload: LeonardoAIWebhookPayload,
+    @Body() payload: LeonardoAIWebhookPayloadDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 

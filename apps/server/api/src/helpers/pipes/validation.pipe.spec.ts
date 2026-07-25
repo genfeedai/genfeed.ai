@@ -1,4 +1,7 @@
-import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import {
+  ALLOW_UNKNOWN_PROPERTIES,
+  ValidationPipe,
+} from '@api/helpers/pipes/validation.pipe';
 import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import {
@@ -58,6 +61,25 @@ class DynamicDto {
   @IsOptional()
   @IsObject()
   payload?: Record<string, unknown>;
+}
+
+class OptedInDto {
+  static readonly [ALLOW_UNKNOWN_PROPERTIES] = true;
+
+  [key: string]: unknown;
+
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsString()
+  label?: string;
+}
+
+class InheritedOptInDto extends OptedInDto {
+  @IsOptional()
+  @IsString()
+  extra?: string;
 }
 
 describe('ValidationPipe', () => {
@@ -383,6 +405,66 @@ describe('ValidationPipe', () => {
       await expect(pipe.transform(value, metadata)).rejects.toThrow(
         BadRequestException,
       );
+    });
+  });
+
+  describe('ALLOW_UNKNOWN_PROPERTIES', () => {
+    const metadata: ArgumentMetadata = {
+      metatype: OptedInDto,
+      type: 'body',
+    };
+
+    it('should keep undeclared properties on an opted-in DTO', async () => {
+      const value = {
+        name: 'provider-callback',
+        vendorOnlyField: { nested: [1, 2] },
+      };
+
+      const result = (await pipe.transform(value, metadata)) as Record<
+        string,
+        unknown
+      >;
+
+      expect(result.vendorOnlyField).toEqual({ nested: [1, 2] });
+    });
+
+    it('should preserve key order and JSON bytes on an opted-in DTO', async () => {
+      // Written as a literal string, not an object literal: the assertion is
+      // about key ORDER surviving the pipe, and a sorted-keys formatter would
+      // quietly rewrite an object literal out from under it.
+      const original =
+        '{"zeta":1,"name":"provider-callback","alpha":{"deep":true}}';
+
+      const result = await pipe.transform(JSON.parse(original), metadata);
+
+      expect(JSON.stringify(result)).toBe(original);
+    });
+
+    it('should still validate the properties the DTO does declare', async () => {
+      await expect(
+        pipe.transform(
+          { label: 42, name: 'provider-callback', vendorOnlyField: true },
+          metadata,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should inherit the opt-out through subclasses', async () => {
+      const result = (await pipe.transform(
+        { name: 'provider-callback', vendorOnlyField: 'kept' },
+        { metatype: InheritedOptInDto, type: 'body' },
+      )) as Record<string, unknown>;
+
+      expect(result.vendorOnlyField).toBe('kept');
+    });
+
+    it('should leave DTOs that do not opt in stripping unknown properties', async () => {
+      const result = (await pipe.transform(
+        { injectedField: 'malicious', name: 'John Doe' },
+        { metatype: WhitelistDto, type: 'body' },
+      )) as Record<string, unknown>;
+
+      expect(result).not.toHaveProperty('injectedField');
     });
   });
 
