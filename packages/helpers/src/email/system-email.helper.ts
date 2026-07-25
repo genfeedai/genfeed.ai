@@ -16,6 +16,31 @@ export interface SystemEmailOptions {
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
 const BRAND_NAME = 'Genfeed.ai';
 
+/** The only schemes an outbound email is allowed to link to. */
+const SAFE_EMAIL_URL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:']);
+
+/**
+ * Escaping a URL only closes attribute breakout — it leaves `javascript:` and
+ * `data:text/html;…` payloads perfectly intact inside an `href`. Several link
+ * targets reaching these templates are caller-supplied (workflow review URLs,
+ * video job URLs, scraped trend links), so parse the value and keep only the
+ * schemes above. Anything else — including a relative or unparseable string —
+ * is rejected rather than rendered.
+ */
+export function sanitizeSystemEmailUrl(value: string): string | null {
+  const candidate = value.trim();
+  if (!candidate) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(candidate);
+    return SAFE_EMAIL_URL_PROTOCOLS.has(parsed.protocol) ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
 export function escapeSystemEmailHtml(value: string): string {
   return value
     .replaceAll('&', '&amp;')
@@ -30,7 +55,11 @@ export function buildSystemEmailParagraph(text: string): string {
 }
 
 export function buildSystemEmailHtml(input: SystemEmailOptions): string {
-  const appUrl = input.appUrl ?? DEFAULT_APP_URL;
+  const requestedAppUrl = input.appUrl ?? DEFAULT_APP_URL;
+  // An explicit empty string still means "render the brand without a link".
+  const appUrl = requestedAppUrl
+    ? (sanitizeSystemEmailUrl(requestedAppUrl) ?? DEFAULT_APP_URL)
+    : '';
   const brandMark = appUrl
     ? `<a href="${escapeSystemEmailHtml(appUrl)}" style="color:#f4f4f5;font-size:14px;font-weight:700;letter-spacing:0;text-decoration:none;">${BRAND_NAME}</a>`
     : `<span style="color:#f4f4f5;font-size:14px;font-weight:700;letter-spacing:0;">${BRAND_NAME}</span>`;
@@ -41,9 +70,15 @@ export function buildSystemEmailHtml(input: SystemEmailOptions): string {
     input.preheader ??
     `${input.title} - a secure notification from ${BRAND_NAME}.`;
   const eyebrow = input.eyebrow ?? BRAND_NAME;
-  const action = input.action
-    ? `<tr><td style="padding:8px 32px 24px;"><a href="${escapeSystemEmailHtml(input.action.url)}" style="background:#fafafa;border-radius:8px;color:#050607;display:inline-block;font-size:14px;font-weight:700;line-height:20px;padding:12px 18px;text-decoration:none;">${escapeSystemEmailHtml(input.action.label)}</a></td></tr>`
-    : '';
+  // Fail closed: an action pointing at a scheme we do not trust is dropped
+  // rather than rendered, so a poisoned link target cannot ship a button.
+  const actionUrl = input.action
+    ? sanitizeSystemEmailUrl(input.action.url)
+    : null;
+  const action =
+    input.action && actionUrl
+      ? `<tr><td style="padding:8px 32px 24px;"><a href="${escapeSystemEmailHtml(actionUrl)}" style="background:#fafafa;border-radius:8px;color:#050607;display:inline-block;font-size:14px;font-weight:700;line-height:20px;padding:12px 18px;text-decoration:none;">${escapeSystemEmailHtml(input.action.label)}</a></td></tr>`
+      : '';
   const footerNote = input.footerNote
     ? `<p style="margin:0 0 12px;color:#8c8c96;font-size:12px;line-height:18px;">${escapeSystemEmailHtml(input.footerNote)}</p>`
     : '';
