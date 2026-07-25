@@ -22,6 +22,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -235,12 +236,11 @@ export class TasksController extends BaseCRUDController<
     user: User,
     entity: TaskDocument,
   ): boolean {
-    const publicMetadata = getPublicMetadata(user);
-    const entityOrganizationId =
-      (entity.organization as unknown as { id?: string })?.id?.toString() ||
-      entity.organization?.toString();
-
-    return entityOrganizationId === publicMetadata.organization;
+    // Both ids must exist: `undefined === undefined` granted write access.
+    const { organization: userOrgId } = getPublicMetadata(user);
+    const { organization, organizationId } = entity;
+    const entityOrgId = resolveRelationId(organizationId, organization);
+    return Boolean(userOrgId) && entityOrgId === userOrgId;
   }
 
   @Get('by-identifier/:identifier')

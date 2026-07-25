@@ -13,6 +13,7 @@ import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { AgentStrategySerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -93,9 +94,12 @@ export class AgentStrategiesController extends BaseCRUDController<
   ): boolean {
     const publicMetadata = getPublicMetadata(user);
 
-    const entityOrganizationId =
-      (entity.organization as unknown as { id: string })?.id?.toString() ||
-      entity.organization?.toString();
+    // Scalar FK first — the relation is only present when the row was loaded
+    // with a populate, so reading the alias alone denied legitimate owners.
+    const entityOrganizationId = resolveRelationId(
+      entity.organizationId,
+      entity.organization,
+    );
 
     if (
       entityOrganizationId &&

@@ -71,7 +71,12 @@ class TestIntegrationController extends BaseIntegrationController {
   }
 
   async testGetOrCreateCredential(
-    brand: { id: string; organization: string },
+    brand: {
+      id?: unknown;
+      _id?: unknown;
+      organization?: unknown;
+      organizationId?: unknown;
+    },
     initialData?: Record<string, unknown>,
   ) {
     return this.getOrCreateCredential(brand, initialData);
@@ -207,13 +212,14 @@ describe('BaseIntegrationController', () => {
 
       const result = await controller.testGetOrCreateCredential(brand);
 
-      expect(credentialsService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brand: expect.any(String),
-          organization: expect.any(String),
-          platform: CredentialPlatform.YOUTUBE,
-        }),
-      );
+      // Scalar foreign keys — an `organization` alias filter is dropped by
+      // `normalizeWhere` when the relation was not populated, which would
+      // unscope the credential lookup.
+      expect(credentialsService.findOne).toHaveBeenCalledWith({
+        brandId,
+        organizationId: orgId,
+        platform: CredentialPlatform.YOUTUBE,
+      });
       expect(credentialsService.saveCredentials).not.toHaveBeenCalled();
       expect(result).toHaveProperty('_id');
     });
@@ -239,6 +245,15 @@ describe('BaseIntegrationController', () => {
         expect.objectContaining({ isConnected: false }),
       );
       expect(result).toHaveProperty('_id');
+    });
+
+    it('fails closed instead of querying unscoped when the organization is unresolvable', async () => {
+      await expect(
+        controller.testGetOrCreateCredential({ id: brandId }),
+      ).rejects.toThrow(/organization/);
+
+      expect(credentialsService.findOne).not.toHaveBeenCalled();
+      expect(credentialsService.saveCredentials).not.toHaveBeenCalled();
     });
   });
 

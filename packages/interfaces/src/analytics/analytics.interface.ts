@@ -65,6 +65,15 @@ export interface IPostAnalyticsSummary {
   platforms: Record<string, IPlatformStats>;
 }
 
+/** Raw per-post totals returned by a platform's analytics fetcher. */
+export interface IPlatformAnalyticsTotals {
+  totalViews: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  totalSaves: number;
+}
+
 export interface IPlatformStats {
   totalViews: number;
   totalLikes: number;

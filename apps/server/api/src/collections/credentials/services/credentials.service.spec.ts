@@ -242,6 +242,41 @@ describe('CredentialsService', () => {
       expect(data.accessToken).toMatch(CIPHERTEXT_PATTERN);
       expect(crypto.decrypt(data.accessToken)).toBe('save-raw');
     });
+
+    it('writes real foreign keys when the brand carries legacy relation aliases', async () => {
+      await service.saveCredentials(
+        { _id: brandId, organization: { id: orgId }, user: 'u1' } as never,
+        'twitter' as never,
+        { accessToken: 'save-raw' },
+      );
+
+      const data = prisma.credential.create.mock.calls[0][0].data as Record<
+        string,
+        string
+      >;
+
+      // `String(brand.organization)` used to write "[object Object]" and
+      // `String(undefined)` the literal "undefined" — both rejected by
+      // Postgres with a P2003 foreign-key violation.
+      expect(data.brandId).toBe(brandId);
+      expect(data.organizationId).toBe(orgId);
+      expect(data.userId).toBe('u1');
+
+      for (const key of ['brandId', 'organizationId', 'userId'] as const) {
+        expect(data[key]).not.toBe('undefined');
+        expect(data[key]).not.toBe('[object Object]');
+      }
+    });
+
+    it('fails closed rather than writing an unresolvable foreign key', async () => {
+      await expect(
+        service.saveCredentials({ id: brandId } as never, 'twitter' as never, {
+          accessToken: 'save-raw',
+        }),
+      ).rejects.toThrow(/organization/);
+
+      expect(prisma.credential.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('updateExternalProfile', () => {

@@ -6,6 +6,7 @@ import { CredentialCryptoService } from '@api/collections/credentials/services/c
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { CredentialPlatform, FileInputType } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -118,9 +119,23 @@ export class CredentialsService extends BaseService<
     platform: CredentialPlatform,
     fields: Partial<Record<string, unknown>>,
   ): Promise<CredentialDocument> {
-    const brandId = String(brand.id);
-    const organizationId = String(brand.organizationId ?? brand.organization);
-    const userId = String(brand.userId ?? brand.user);
+    // `String(undefined)` wrote the literal "undefined" into a foreign key,
+    // which Postgres rejects with P2003 — and `String(<populated relation>)`
+    // wrote "[object Object]". Resolve scalar-first and fail closed instead.
+    const brandRef = 'Brand';
+    const brandId = requireRelationId(brand.id, brand._id, 'brand', brandRef);
+    const organizationId = requireRelationId(
+      brand.organizationId,
+      brand.organization,
+      'organization',
+      brandRef,
+    );
+    const userId = requireRelationId(
+      brand.userId,
+      brand.user,
+      'user',
+      brandRef,
+    );
 
     const existing = await this.findOne({
       brandId,

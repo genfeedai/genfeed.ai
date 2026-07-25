@@ -194,5 +194,67 @@ describe('PostsAnalyticsController', () => {
 
       expect(result).toHaveProperty('statusCode', 404);
     });
+
+    it('keeps the credential lookup scoped to the brand and organization', async () => {
+      mockPostsService.findOne.mockResolvedValue(mockPost);
+      mockCredentialsService.findOne.mockResolvedValue(mockCredential);
+      mockPostAnalyticsService.getPostAnalyticsSummary.mockResolvedValue(
+        mockAnalyticsSummary,
+      );
+
+      await controller.refreshAnalytics(mockUser, postId);
+
+      // Exact match: an extra/missing key here is the whole defect. Filter
+      // values of `undefined` are dropped by `normalizeWhere`, so a lookup
+      // built from unpopulated relation aliases silently loses its tenant
+      // scoping and can return another organization's credential.
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        _id: '507f1f77bcf86cd799439016',
+        brandId: '507f1f77bcf86cd799439013',
+        organizationId: '507f1f77bcf86cd799439012',
+      });
+    });
+
+    it('resolves scalar foreign keys ahead of populated relation objects', async () => {
+      mockPostsService.findOne.mockResolvedValue({
+        ...mockPost,
+        // What the row actually looks like when the relations are included.
+        brand: { id: '507f1f77bcf86cd799439013', label: 'Acme' },
+        brandId: '507f1f77bcf86cd799439013',
+        credentialId: '507f1f77bcf86cd799439016',
+        organization: { id: '507f1f77bcf86cd799439012' },
+        organizationId: '507f1f77bcf86cd799439012',
+      });
+      mockCredentialsService.findOne.mockResolvedValue(mockCredential);
+      mockPostAnalyticsService.getPostAnalyticsSummary.mockResolvedValue(
+        mockAnalyticsSummary,
+      );
+
+      await controller.refreshAnalytics(mockUser, postId);
+
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        _id: '507f1f77bcf86cd799439016',
+        brandId: '507f1f77bcf86cd799439013',
+        organizationId: '507f1f77bcf86cd799439012',
+      });
+    });
+
+    it('fails closed instead of querying unscoped when the organization is unresolvable', async () => {
+      mockPostsService.findOne.mockResolvedValue({
+        _id: '507f1f77bcf86cd799439014',
+        brandId: '507f1f77bcf86cd799439013',
+        credentialId: '507f1f77bcf86cd799439016',
+        isDeleted: false,
+      });
+
+      await expect(
+        controller.refreshAnalytics(mockUser, postId),
+      ).rejects.toThrow(/organization/);
+
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(
+        mockPostAnalyticsService.trackPostAnalytics,
+      ).not.toHaveBeenCalled();
+    });
   });
 });

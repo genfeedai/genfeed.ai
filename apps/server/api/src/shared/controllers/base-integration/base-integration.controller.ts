@@ -4,14 +4,17 @@ import { CreateCredentialDto } from '@api/collections/credentials/dto/create-cre
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 type IntegrationBrand = {
-  id: string;
-  organization: string;
+  id?: unknown;
+  _id?: unknown;
+  organization?: unknown;
+  organizationId?: unknown;
 };
 
 /**
@@ -147,14 +150,30 @@ export abstract class BaseIntegrationController {
    * @returns The credential (existing or newly created)
    */
   protected async getOrCreateCredential(
-    brand: { id: string; organization: string },
+    brand: IntegrationBrand,
     initialData: Record<string, unknown> = {},
   ) {
-    const existingCredential = await this.credentialsService.findOne({
-      brand: brand.id,
-      organization: brand.organization,
+    // Scalar FK first: `brand.organization` is only present when the brand was
+    // loaded with the relation included, and an `undefined` filter value is
+    // dropped by `normalizeWhere` — which would look up (and hand back) a
+    // credential belonging to another organization.
+    const brandRef = `Brand ${String(brand.id ?? brand._id)}`;
+    const brandId = requireRelationId(brand.id, brand._id, 'brand', brandRef);
+    const organizationId = requireRelationId(
+      brand.organizationId,
+      brand.organization,
+      'organization',
+      brandRef,
+    );
+
+    const credentialFilter = {
+      brandId,
+      organizationId,
       platform: this.platform,
-    });
+    };
+
+    const existingCredential =
+      await this.credentialsService.findOne(credentialFilter);
 
     if (existingCredential) {
       return existingCredential;
@@ -165,11 +184,7 @@ export abstract class BaseIntegrationController {
       ...initialData,
     });
 
-    return this.credentialsService.findOne({
-      brand: brand.id,
-      organization: brand.organization,
-      platform: this.platform,
-    });
+    return this.credentialsService.findOne(credentialFilter);
   }
 
   /**
@@ -206,7 +221,12 @@ export abstract class BaseIntegrationController {
 
       // Generate OAuth URL
       const oauthResult = await this.generateOAuthUrl(
-        brand.id.toString(),
+        requireRelationId(
+          brand.id,
+          brand._id,
+          'brand',
+          `Brand ${createCredentialDto.brand}`,
+        ),
         publicMetadata,
       );
 

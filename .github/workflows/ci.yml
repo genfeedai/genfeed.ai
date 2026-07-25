@@ -272,7 +272,7 @@ jobs:
           bun run check:runtime-complexity -- --base "$BASE"
       - name: Architecture Guard Fixtures
         run: |
-          bunx vitest run --config scripts/architecture/vitest.config.ts check-runtime-complexity.test.ts check-deterministic-locale.test.ts
+          bunx vitest run --config scripts/architecture/vitest.config.ts check-runtime-complexity.test.ts check-deterministic-locale.test.ts check-relation-alias-reads.test.ts
           bunx vitest run --config scripts/ci/vitest.config.ts feature-test-coverage.test.ts nightly-test-workspace-inventory.test.ts nightly-unit-matrix.test.ts pr-validation-telemetry.test.ts
       - name: Require tests for feature source changes
         if: github.event_name == 'pull_request'
@@ -281,6 +281,8 @@ jobs:
         run: bun run scripts/ci/feature-test-coverage.ts --base "${{ github.event.pull_request.base.sha }}" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: DI Value Imports
         run: bun run check:di-value-imports
+      - name: Relation Alias Reads
+        run: bun run check:relation-alias-reads
       - name: Desktop Schema Drift
         run: bun run check:desktop-schema-drift
       - name: Serializer Drift Regression Tests
