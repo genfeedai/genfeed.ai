@@ -144,13 +144,17 @@ export class PublicService extends HTTPBaseService {
     return this.fetchOne(`articles/${id}`, Article);
   }
 
+  /**
+   * `previewToken` is the signed grant that unlocks an unpublished article.
+   * Without it the API only ever returns published content.
+   */
   public async getPublicArticleBySlug(
     slug: string,
-    isPreview: boolean = false,
+    previewToken?: string,
   ): Promise<Article | null> {
     return await this.instance
       .get<JsonApiResponseDocument>(`articles/slug/${slug}`, {
-        params: { isPreview: isPreview.toString() },
+        params: previewToken ? { previewToken } : {},
       })
       .then((res) => {
         const document = res.data;

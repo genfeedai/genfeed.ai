@@ -3,6 +3,7 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
+import { verifyArticlePreviewToken } from '@api/helpers/utils/article-preview/article-preview-token.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -15,6 +16,7 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -30,6 +32,7 @@ export class PublicArticlesController {
 
   constructor(
     private readonly articlesService: ArticlesService,
+    private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -109,15 +112,23 @@ export class PublicArticlesController {
   async findPublicArticleBySlug(
     @Req() request: Request,
     @Param('slug') slug: string,
-    @Query('isPreview') isPreview?: string,
+    @Query('previewToken') previewToken?: string,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    // Unpublished articles are only readable with a signed, slug-bound,
+    // expiring preview token. An unsigned request always sees published-only.
+    const isPreview = verifyArticlePreviewToken(
+      previewToken,
+      slug,
+      this.configService.get('TOKEN_ENCRYPTION_KEY') as string | undefined,
+    );
 
     this.logger.log(url, { params: { isPreview, slug } });
 
     const article = await this.articlesService.findPublicArticleBySlug(
       slug,
-      isPreview === 'true',
+      isPreview,
     );
 
     if (!article) {

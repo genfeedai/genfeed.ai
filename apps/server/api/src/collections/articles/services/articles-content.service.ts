@@ -641,17 +641,19 @@ export class ArticlesContentService {
         articleId: article.id,
       });
 
-      // Resolve the public/preview article URL for the trailing link tweet
+      // Resolve the article URL for the trailing link tweet. A tweet is a
+      // public broadcast, so an unpublished article gets no link at all —
+      // linking one would publish the draft (and any preview grant with it).
       let articleUrl: string | undefined;
       const publicUrl = (
         this.configService?.get('GENFEEDAI_PUBLIC_URL') as string | undefined
       )?.replace(/\/$/, '');
-      if (article.slug && publicUrl) {
-        const baseUrl = `${publicUrl}/articles/${article.slug}`;
-        articleUrl =
-          String(article.status) === ArticleStatus.PUBLIC
-            ? baseUrl
-            : `${baseUrl}?isPreview=true`;
+      if (
+        article.slug &&
+        publicUrl &&
+        String(article.status) === ArticleStatus.PUBLIC
+      ) {
+        articleUrl = `${publicUrl}/articles/${article.slug}`;
       }
 
       const tweets = buildTwitterThreadTweets({
