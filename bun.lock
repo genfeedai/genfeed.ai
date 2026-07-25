@@ -398,7 +398,7 @@
         "@prisma/adapter-pg": "7.8.0",
         "archiver": "8.0.0",
         "bcrypt": "6.0.0",
-        "better-auth": "^1.6.23",
+        "better-auth": "1.6.23",
         "class-transformer": "0.5.1",
         "class-validator": "0.15.1",
         "compression": "1.8.1",
@@ -438,6 +438,9 @@
         "@genfeedai/config": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
         "discord.js": "14.26.4",
+      },
+      "devDependencies": {
+        "unplugin-swc": "1.5.9",
       },
     },
     "apps/server/files": {
@@ -501,7 +504,7 @@
       "name": "@genfeedai/server",
       "version": "0.1.0",
       "dependencies": {
-        "@genfeedai/api-types": "*",
+        "@genfeedai/api-types": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
@@ -726,7 +729,7 @@
       "name": "@genfeedai/auth-client",
       "version": "0.1.0",
       "dependencies": {
-        "better-auth": "^1.6.23",
+        "better-auth": "1.6.23",
         "zod": "4.4.3",
       },
       "devDependencies": {

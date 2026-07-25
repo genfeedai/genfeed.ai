@@ -29,6 +29,10 @@ const { mockClient, mockRest } = vi.hoisted(() => ({
 
 vi.mock('discord.js', () => ({
   ActionRowBuilder: vi.fn(() => ({ addComponents: vi.fn().mockReturnThis() })),
+  // A bare factory replaces the whole module, so every export the service
+  // imports must be present or the import throws. The manager uses this one in
+  // an `instanceof` check when resolving a send-to-channel target.
+  BaseGuildTextChannel: class BaseGuildTextChannel {},
   ButtonBuilder: vi.fn(() => ({
     setCustomId: vi.fn().mockReturnThis(),
     setLabel: vi.fn().mockReturnThis(),
