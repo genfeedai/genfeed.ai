@@ -15,6 +15,7 @@ import {
   type UnipileSendMessageInput,
 } from '@api/services/integrations/unipile/interfaces/unipile.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { trimTrailingCharacter } from '@api/shared/utils/string/linear-string.util';
 import { IntegrationStatus } from '@genfeedai/enums';
 import {
   getIntegrationProviderDefinition,
@@ -446,7 +447,7 @@ export class UnipileService {
   }
 
   private normalizeApiBaseUrl(value: string): string {
-    const trimmed = value.trim().replace(/\/+$/, '');
+    const trimmed = trimTrailingCharacter(value.trim(), '/');
     if (!trimmed) {
       throw new BadRequestException('Unipile API base URL is required');
     }

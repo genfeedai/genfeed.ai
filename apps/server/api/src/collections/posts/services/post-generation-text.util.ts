@@ -1,8 +1,9 @@
+import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import { parseTweet } from 'twitter-text';
 
 function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]+>/g, '');
+  return replaceMarkup(html, '');
 }
 
 function isValidPostLength(
@@ -150,10 +151,7 @@ export function extractPostGenerationLabel(
     return '';
   }
 
-  const normalized = postText
-    .replace(/<[^>]+>/g, ' ')
-    .trim()
-    .replace(/\s+/g, ' ');
+  const normalized = replaceMarkup(postText, ' ').trim().replace(/\s+/g, ' ');
 
   if (normalized.length <= maxLength) {
     return normalized;

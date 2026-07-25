@@ -68,7 +68,7 @@ describe('UnipileService', () => {
 
     const result = await service.configure('org_1', {
       allowedAccountIds: ['acct_1', 'acct_1', 'acct_2'],
-      apiBaseUrl: 'https://api1.unipile.com:13111',
+      apiBaseUrl: 'https://api1.unipile.com:13111///',
       apiKey: 'secret-key',
       defaultAccountId: 'acct_1',
     });

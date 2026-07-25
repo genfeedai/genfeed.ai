@@ -1,5 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { assertHostNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
+import { trimTrailingCharacter } from '@api/shared/utils/string/linear-string.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -74,9 +75,12 @@ export class MastodonService {
    * redirector / token-exfiltration helper.
    */
   private assertRedirectUriAllowed(redirectUri: string): void {
-    const appUrl = (
-      this.configService.get('GENFEEDAI_APP_URL') as string | undefined
-    )?.replace(/\/+$/, '');
+    const configuredAppUrl = this.configService.get('GENFEEDAI_APP_URL') as
+      | string
+      | undefined;
+    const appUrl = configuredAppUrl
+      ? trimTrailingCharacter(configuredAppUrl, '/')
+      : undefined;
 
     if (!appUrl) {
       this.loggerService.warn(
@@ -110,7 +114,7 @@ export class MastodonService {
       normalized = `https://${normalized}`;
     }
 
-    normalized = normalized.replace(/\/+$/, '');
+    normalized = trimTrailingCharacter(normalized, '/');
 
     // Parse and validate the hostname
     let parsedUrl: URL;

@@ -4,6 +4,10 @@ import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import {
+  replaceCharacterRuns,
+  trimCharacter,
+} from '@api/shared/utils/string/linear-string.util';
 import type {
   IWarmupAccount,
   IWarmupAccountAuditEvent,
@@ -47,15 +51,20 @@ function makeTimestamp(): string {
   return new Date().toISOString();
 }
 
-function createSlugSeed(value: string): string {
-  return (
-    value
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 48) || 'warmup'
+function isSlugCharacter(character: string): boolean {
+  const code = character.charCodeAt(0);
+
+  return (code >= 48 && code <= 57) || (code >= 97 && code <= 122);
+}
+
+export function createSlugSeed(value: string): string {
+  const normalized = replaceCharacterRuns(
+    value.trim().toLowerCase(),
+    (character) => !isSlugCharacter(character),
+    '-',
   );
+
+  return trimCharacter(normalized, '-').slice(0, 48) || 'warmup';
 }
 
 function createHandle(email: string): string {

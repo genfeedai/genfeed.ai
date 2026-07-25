@@ -24,4 +24,20 @@ describe('handleQuerySort', () => {
   it('falls back to default on invalid json', () => {
     expect(handleQuerySort('this-is-not-valid')).toEqual({ createdAt: -1 });
   });
+
+  it('accepts documented whitespace around separators', () => {
+    expect(handleQuerySort('createdAt : -1, label: 1')).toEqual({
+      createdAt: -1,
+      label: 1,
+    });
+  });
+
+  it.each([
+    'createdAt: 0',
+    'created-at: 1',
+    'createdAt: 1: -1',
+    `field${'0'.repeat(50_000)}`,
+  ])('falls back for invalid or adversarial input: %s', (query) => {
+    expect(handleQuerySort(query)).toEqual({ createdAt: -1 });
+  });
 });

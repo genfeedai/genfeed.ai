@@ -758,6 +758,29 @@ describe('TrendReferenceCorpusService', () => {
     );
   });
 
+  it('normalizes malformed source URLs without backtracking', async () => {
+    const items: TrendSourceItem[] = [
+      {
+        contentType: 'video',
+        id: 'source_invalid',
+        platform: 'tiktok',
+        sourceUrl: `not a url/${'#'.repeat(50_000)}`,
+      },
+    ];
+
+    await service.annotateSourceItemsWithReferenceIds(items);
+
+    expect(prisma.trendSourceReference.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 1,
+        where: {
+          canonicalUrl: { in: ['not a url'] },
+          isDeleted: false,
+        },
+      }),
+    );
+  });
+
   it('persists source classification when syncing public reference items', async () => {
     prisma.trendSourceReference.findFirst.mockResolvedValueOnce(null);
     prisma.trendSourceReference.create.mockResolvedValueOnce({
