@@ -318,9 +318,8 @@ async function requestPinnedDestination(
   return new Promise<Response>((resolve, reject) => {
     // The URL has passed the shared policy, and the custom agent connects only
     // to the exact DNS answer checked above.
-    // codeql[js/request-forgery] reason: DNS is validated and the socket is pinned.
     const request = requestFunction(
-      destination.url,
+      destination.url, // lgtm[js/request-forgery] DNS-checked and IP-pinned.
       {
         agent,
         headers,
