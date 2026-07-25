@@ -5,7 +5,7 @@ import {
   request as httpRequest,
 } from 'node:http';
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
-import { BlockList, isIP } from 'node:net';
+import { BlockList, isIP, type LookupFunction } from 'node:net';
 import { Readable } from 'node:stream';
 
 const DEFAULT_MAX_REDIRECTS = 5;
@@ -206,23 +206,25 @@ export async function resolveSafeDestination(
 }
 
 function createPinnedAgent(destination: ResolvedDestination) {
-  const lookupPinnedAddress = (
-    hostname: string,
-    _options: unknown,
-    callback: (
-      error: NodeJS.ErrnoException | null,
-      address: string,
-      family: number,
-    ) => void,
-  ): void => {
+  const lookupPinnedAddress: LookupFunction = (hostname, options, callback) => {
     if (hostname !== destination.url.hostname) {
       callback(
         new DestinationGuardError(
           `Unexpected destination hostname during connection: ${hostname}`,
         ),
-        '',
+        options.all ? [] : '',
         destination.family,
       );
+      return;
+    }
+
+    if (options.all) {
+      callback(null, [
+        {
+          address: destination.address,
+          family: destination.family,
+        },
+      ]);
       return;
     }
 
@@ -292,7 +294,6 @@ async function requestPinnedDestination(
   return new Promise<Response>((resolve, reject) => {
     // The URL has passed the shared policy, and the custom agent connects only
     // to the exact DNS answer checked above.
-    // lgtm[js/request-forgery]
     const request = requestFunction(
       destination.url,
       {
@@ -318,7 +319,7 @@ async function requestPinnedDestination(
           }),
         );
       },
-    );
+    ); // codeql[js/request-forgery]
 
     request.once('error', reject);
     void writeRequestBody(request, init.body).catch((error: unknown) => {

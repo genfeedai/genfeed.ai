@@ -1,3 +1,4 @@
+import type { LookupAddress, LookupOptions } from 'node:dns';
 import { EventEmitter } from 'node:events';
 import { Readable } from 'node:stream';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -113,11 +114,11 @@ describe('destination guard', () => {
         options?: {
           lookup?: (
             hostname: string,
-            options: unknown,
+            options: LookupOptions,
             callback: (
               error: Error | null,
-              address: string,
-              family: number,
+              address: string | LookupAddress[],
+              family?: number,
             ) => void,
           ) => void;
         };
@@ -130,6 +131,16 @@ describe('destination guard', () => {
       expect(error).toBeNull();
       expect(address).toBe('93.184.216.34');
       expect(family).toBe(4);
+    });
+
+    pinnedLookup?.('public.example', { all: true }, (error, addresses) => {
+      expect(error).toBeNull();
+      expect(addresses).toEqual([
+        {
+          address: '93.184.216.34',
+          family: 4,
+        },
+      ]);
     });
   });
 

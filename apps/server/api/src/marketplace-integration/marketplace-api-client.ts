@@ -55,10 +55,14 @@ export class MarketplaceApiClient {
   ) {
     this.baseUrl =
       this.configService.get('MARKETPLACE_API_URL') || 'http://localhost:3200';
-    this.destinationGuard = {
-      allowedOrigins: [new URL(this.baseUrl).origin],
-      allowPrivateNetwork: true,
-    };
+    try {
+      this.destinationGuard = {
+        allowedOrigins: [new URL(this.baseUrl).origin],
+        allowPrivateNetwork: true,
+      };
+    } catch {
+      throw new Error('MARKETPLACE_API_URL must be a valid absolute URL');
+    }
   }
 
   /**
