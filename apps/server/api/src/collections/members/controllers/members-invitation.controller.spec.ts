@@ -3,7 +3,8 @@ import { MembersController } from '@api/collections/members/controllers/members.
 import type { InvitationService } from '@api/collections/members/services/invitation.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
+import { HttpException, RequestMethod } from '@nestjs/common';
+import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 
 const userId = '507f191e810c19729de860ee';
 const orgId = '507f191e810c19729de860ee';
@@ -148,6 +149,99 @@ describe('MembersController — invitation endpoints', () => {
         orgId,
       );
       expect(result).toEqual({ data: { id: 'inv_1', status: 'revoked' } });
+    });
+  });
+
+  // Nest matches routes in declaration order, so `@Get(':memberId')` declared
+  // above the invitation routes silently swallows `/members/invitations` and
+  // makes listInvitations unreachable. Calling the handlers directly cannot
+  // catch that, so resolve against the declared route table instead.
+  describe('route resolution order', () => {
+    interface DeclaredRoute {
+      handler: string;
+      method: number;
+      path: string;
+    }
+
+    function declaredRoutes(): DeclaredRoute[] {
+      const prototype = MembersController.prototype as unknown as Record<
+        string,
+        unknown
+      >;
+
+      return Object.getOwnPropertyNames(prototype)
+        .filter((name) => name !== 'constructor')
+        .flatMap((handler) => {
+          const fn = prototype[handler];
+          const path: unknown = Reflect.getMetadata(
+            PATH_METADATA,
+            fn as object,
+          );
+          const method: unknown = Reflect.getMetadata(
+            METHOD_METADATA,
+            fn as object,
+          );
+
+          return typeof path === 'string' && typeof method === 'number'
+            ? [{ handler, method, path }]
+            : [];
+        });
+    }
+
+    /** First declared route that matches, mirroring Nest's router. */
+    function resolve(method: number, url: string): string | undefined {
+      const wanted = url.split('/').filter(Boolean);
+
+      return declaredRoutes().find((route) => {
+        if (route.method !== method) return false;
+
+        const declared = route.path.split('/').filter(Boolean);
+        if (declared.length !== wanted.length) return false;
+
+        return declared.every(
+          (segment, index) =>
+            segment.startsWith(':') || segment === wanted[index],
+        );
+      })?.handler;
+    }
+
+    it('resolves GET /members/invitations to listInvitations', () => {
+      expect(resolve(RequestMethod.GET, 'invitations')).toBe('listInvitations');
+    });
+
+    it('resolves DELETE /members/invitations/:invitationId to revokeInvitation', () => {
+      expect(resolve(RequestMethod.DELETE, 'invitations/inv_123')).toBe(
+        'revokeInvitation',
+      );
+    });
+
+    it('resolves POST /members/invitations/:invitationId/resend to resendInvitation', () => {
+      expect(resolve(RequestMethod.POST, 'invitations/inv_123/resend')).toBe(
+        'resendInvitation',
+      );
+    });
+
+    it('still resolves GET /members/:memberId to findOne', () => {
+      expect(resolve(RequestMethod.GET, userId)).toBe('findOne');
+    });
+
+    it('declares every invitation route before the :memberId wildcard', () => {
+      const routes = declaredRoutes();
+      const wildcardIndex = routes.findIndex(
+        (route) => route.path === ':memberId',
+      );
+
+      expect(wildcardIndex).toBeGreaterThan(-1);
+
+      const invitationIndexes = routes
+        .map((route, index) => ({ index, path: route.path }))
+        .filter(({ path }) => path.startsWith('invitations'))
+        .map(({ index }) => index);
+
+      expect(invitationIndexes).toHaveLength(3);
+      for (const index of invitationIndexes) {
+        expect(index).toBeLessThan(wildcardIndex);
+      }
     });
   });
 

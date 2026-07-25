@@ -1,10 +1,10 @@
+import { OpusProWebhookPayloadDto } from '@api/endpoints/webhooks/dto/opuspro-webhook-payload.dto';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { Public } from '@libs/decorators/public.decorator';
-import { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
@@ -28,7 +28,7 @@ export class OpusProWebhookController {
   @Post('callback')
   async handleCallback(
     @Req() request: Request,
-    @Body() payload: OpusProWebhookPayload,
+    @Body() payload: OpusProWebhookPayloadDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
