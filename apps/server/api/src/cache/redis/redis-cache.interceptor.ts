@@ -66,8 +66,10 @@ export class RedisCacheInterceptor implements NestInterceptor {
 
     const request = context.switchToHttp().getRequest();
 
-    // Skip caching if isPreview=true in query params (preview mode should not be cached)
-    if (request.query?.isPreview === 'true') {
+    // A preview token asks for unpublished content. Cache keys are built from
+    // the public identifiers only, so serving or storing a preview response
+    // would hand that content to the next anonymous caller.
+    if (request.query?.previewToken) {
       this.logger.debug('Skipping cache for preview mode request');
       return next.handle();
     }
