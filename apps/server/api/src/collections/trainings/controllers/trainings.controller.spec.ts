@@ -1,7 +1,5 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrainingsController } from '@api/collections/trainings/controllers/trainings.controller';
 import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import type { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
@@ -14,9 +12,6 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { MODEL_KEYS } from '@genfeedai/constants';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -49,8 +44,6 @@ vi.mock('@helpers/utils/response/response.util', () => ({
 describe('TrainingsController', () => {
   let controller: TrainingsController;
   let trainingsService: vi.Mocked<TrainingsService>;
-  let ingredientsService: vi.Mocked<IngredientsService>;
-  let modelsService: vi.Mocked<ModelsService>;
 
   const mockUser = {
     id: 'user-123',
@@ -74,36 +67,13 @@ describe('TrainingsController', () => {
           provide: TrainingsService,
           useValue: {
             create: vi.fn(),
+            createTrainingWithSources: vi.fn(),
             createTrainingZip: vi.fn(),
             findAll: vi.fn(),
             findOne: vi.fn(),
             launchTraining: vi.fn(),
             patch: vi.fn(),
             remove: vi.fn(),
-          },
-        },
-        {
-          provide: IngredientsService,
-          useValue: {
-            findAll: vi.fn(),
-            patch: vi.fn(),
-          },
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: vi.fn((key: string) => {
-              if (key === 'REPLICATE_MODELS_TRAINER') {
-                return 'default-trainer-model';
-              }
-              return null;
-            }),
-          },
-        },
-        {
-          provide: ModelsService,
-          useValue: {
-            findOne: vi.fn(),
           },
         },
         {
@@ -140,8 +110,6 @@ describe('TrainingsController', () => {
 
     controller = module.get<TrainingsController>(TrainingsController);
     trainingsService = module.get(TrainingsService);
-    ingredientsService = module.get(IngredientsService);
-    modelsService = module.get(ModelsService);
   });
 
   afterEach(() => {
@@ -228,138 +196,49 @@ describe('TrainingsController', () => {
   });
 
   describe('create', () => {
-    it('should create a new training successfully', async () => {
-      const createDto: CreateTrainingDto = {
-        label: 'New Training',
-        sources: Array(10)
-          .fill(null)
-          .map(() => '507f191e810c19729de860ee'.toString()),
-        steps: 1000,
-        trigger: 'NEWTOK',
-        type: 'subject',
-      } as unknown as CreateTrainingDto;
-
-      const mockSources = Array(10)
+    const createDto: CreateTrainingDto = {
+      label: 'New Training',
+      sources: Array(10)
         .fill(null)
-        .map(() => ({
-          id: '507f191e810c19729de860ee',
-          category: IngredientCategory.IMAGE,
-          metadata: { extension: 'jpg' },
-        }));
+        .map(() => '507f191e810c19729de860ee'.toString()),
+      steps: 1000,
+      trigger: 'NEWTOK',
+      type: 'subject',
+    } as unknown as CreateTrainingDto;
 
-      ingredientsService.findAll.mockResolvedValueOnce({
-        docs: mockSources,
+    const mockSourceImages = [{ id: 'img-1', metadata: { extension: 'jpg' } }];
+    const mockTraining = {
+      id: '507f191e810c19729de860ee',
+      label: 'New Training',
+    };
+
+    it('delegates training creation to trainingsService.createTrainingWithSources', async () => {
+      trainingsService.createTrainingWithSources.mockResolvedValueOnce({
+        sourceImages: mockSourceImages,
+        training: mockTraining,
       } as never);
-
-      const mockTraining = {
-        _id: '507f191e810c19729de860ee',
-        ...createDto,
-        status: IngredientStatus.PROCESSING,
-        user: '507f191e810c19729de860ee',
-      };
-
-      trainingsService.create.mockResolvedValueOnce(mockTraining as never);
-      trainingsService.createTrainingZip.mockResolvedValueOnce(
-        'https://test.com/training.zip',
-      );
-      trainingsService.launchTraining.mockResolvedValueOnce('training-123');
 
       const result = await controller.create(mockRequest, mockUser, createDto);
 
-      expect(ingredientsService.findAll).toHaveBeenCalled();
-      expect(trainingsService.create).toHaveBeenCalledWith(
+      expect(trainingsService.createTrainingWithSources).toHaveBeenCalledWith(
+        createDto,
         expect.objectContaining({
-          brandId: mockUser.publicMetadata.brand,
-          config: expect.objectContaining({
-            model: 'default-trainer-model',
-            status: IngredientStatus.PROCESSING,
-            steps: 1000,
-            trigger: 'NEWTOK',
-          }),
-          label: 'New Training',
-          organizationId: mockUser.publicMetadata.organization,
-          sources: {
-            connect: expect.arrayContaining([
-              { id: '507f191e810c19729de860ee' },
-            ]),
-          },
-          userId: mockUser.publicMetadata.user,
+          brand: mockUser.publicMetadata.brand,
+          organization: mockUser.publicMetadata.organization,
+          user: mockUser.publicMetadata.user,
         }),
       );
       expect(result).toBeDefined();
     });
 
-    it('should throw error when less than 10 sources provided', async () => {
-      const createDto: CreateTrainingDto = {
-        label: 'New Training',
-        sources: ['source1', 'source2'],
-        trigger: 'NEWTOK',
-      } as unknown as CreateTrainingDto;
-
-      await expect(
-        controller.create(mockRequest, mockUser, createDto),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('should throw error when source images not found', async () => {
-      const createDto: CreateTrainingDto = {
-        label: 'New Training',
-        sources: Array(10)
-          .fill(null)
-          .map(() => '507f191e810c19729de860ee'.toString()),
-        trigger: 'NEWTOK',
-      } as unknown as CreateTrainingDto;
-
-      ingredientsService.findAll.mockResolvedValueOnce({ docs: [] } as never);
-
-      await expect(
-        controller.create(mockRequest, mockUser, createDto),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('should use default model when not provided', async () => {
-      const createDto: CreateTrainingDto = {
-        label: 'New Training',
-        sources: Array(10)
-          .fill(null)
-          .map(() => '507f191e810c19729de860ee'.toString()),
-        steps: 1000,
-        trigger: 'NEWTOK',
-        type: 'subject',
-      } as unknown as CreateTrainingDto;
-
-      const mockSources = Array(10)
-        .fill(null)
-        .map(() => ({
-          id: '507f191e810c19729de860ee',
-          category: IngredientCategory.IMAGE,
-          metadata: { extension: 'jpg' },
-        }));
-
-      ingredientsService.findAll.mockResolvedValueOnce({
-        docs: mockSources,
-      } as never);
-
-      modelsService.findOne.mockResolvedValueOnce({
-        key: `${MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER}:version123`,
-      } as never);
-
-      const mockTraining = {
-        _id: '507f191e810c19729de860ee',
-        ...createDto,
-        status: IngredientStatus.PROCESSING,
-        user: '507f191e810c19729de860ee',
-      };
-
-      trainingsService.create.mockResolvedValueOnce(mockTraining as never);
-      trainingsService.createTrainingZip.mockResolvedValueOnce(
-        'https://test.com/training.zip',
+    it('wraps a service error into a 500 HttpException', async () => {
+      trainingsService.createTrainingWithSources.mockRejectedValueOnce(
+        new Error('less than 10 sources'),
       );
-      trainingsService.launchTraining.mockResolvedValueOnce('training-123');
 
-      await controller.create(mockRequest, mockUser, createDto);
-
-      expect(modelsService.findOne).toHaveBeenCalled();
+      await expect(
+        controller.create(mockRequest, mockUser, createDto),
+      ).rejects.toThrow(HttpException);
     });
   });
 
