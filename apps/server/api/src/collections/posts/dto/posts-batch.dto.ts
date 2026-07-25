@@ -2,12 +2,15 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsDateString,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
+
+export const POSTS_BATCH_MAX_ITEMS = 100;
 
 export class PostBatchItemDto {
   @IsEntityId()
@@ -53,11 +56,12 @@ export class PostBatchItemDto {
 
 export class PostsBatchDto {
   @IsArray()
+  @ArrayMaxSize(POSTS_BATCH_MAX_ITEMS)
   @ValidateNested({ each: true })
   @Type(() => PostBatchItemDto)
   @ApiProperty({
-    description:
-      'Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED)',
+    description: `Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED, max ${POSTS_BATCH_MAX_ITEMS})`,
+    maxItems: POSTS_BATCH_MAX_ITEMS,
     required: true,
     type: [PostBatchItemDto],
   })

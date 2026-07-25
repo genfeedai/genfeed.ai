@@ -352,78 +352,61 @@ export class PostsOperationsController {
         );
       }
 
-      // Update existing posts to SCHEDULED status
-      const updatedPosts = [];
-
-      // Batch fetch all posts and ingredients upfront (avoids N+1 queries)
-      const postIds = dto.items.map((t) => t.postId);
+      // Ingredient ids are still validated up front — the batch write only
+      // attaches ingredients the caller's organization actually owns.
       const ingredientIds = dto.items
         .filter((t) => t.ingredientId)
         .map((t) => t.ingredientId as string);
 
-      const [posts, ingredients] = await Promise.all([
-        this.postsService.findByIds(postIds, publicMetadata.organization),
+      const ingredients =
         ingredientIds.length > 0
-          ? this.ingredientsService.findByIds(
+          ? await this.ingredientsService.findByIds(
               ingredientIds,
               publicMetadata.organization,
             )
-          : Promise.resolve([]),
-      ]);
-
-      // Create lookup maps for O(1) access
-      const postMap = new Map(posts.map((p) => [p.id.toString(), p]));
+          : [];
       const ingredientSet = new Set(ingredients.map((i) => i.id.toString()));
 
-      for (const item of dto.items) {
-        // Find the post from pre-fetched data
-        const post = postMap.get(item.postId.toString());
-
-        if (!post) {
-          this.logger.warn(`Post ${item.postId} not found, skipping`);
-          continue;
-        }
-
-        const itemIngredientIds: string[] = [];
-        if (item.ingredientId && ingredientSet.has(item.ingredientId)) {
-          itemIngredientIds.push(item.ingredientId);
-        }
-
-        // Update post to SCHEDULED with scheduledDate
-        const postIdString = String(item.postId);
-        const updatedPost = await this.postsService.patch(
-          postIdString,
-          {
-            category:
-              itemIngredientIds.length > 0 ? PostCategory.IMAGE : undefined,
-            description: item.text,
-            ingredients: itemIngredientIds,
-            scheduledDate: new Date(item.scheduledDate),
-            status: PostStatus.SCHEDULED,
+      // One scoped read + one transaction for the whole batch, replacing the
+      // per-item `patch` loop (2–4 sequential round-trips each).
+      const { missingPostIds, posts: updatedPosts } =
+        await this.postsService.batchSchedule(
+          dto.items.map((item) => ({
+            ingredientIds:
+              item.ingredientId && ingredientSet.has(item.ingredientId)
+                ? [item.ingredientId]
+                : [],
+            postId: String(item.postId),
+            scheduledDate: String(item.scheduledDate),
+            text: item.text,
             timezone: item.timezone,
-          },
-          [
-            { path: 'ingredients', select: '_id url' },
-            { path: 'credential', select: '_id label handle' },
-          ],
+          })),
+          publicMetadata.organization.toString(),
         );
 
-        updatedPosts.push(updatedPost);
-
-        // Create activity
-        await this.activitiesService.create(
-          new ActivityEntity({
-            brand: publicMetadata.brand,
-            entityId: updatedPost.id,
-            entityModel: ActivityEntityModel.POST,
-            key: ActivityKey.VIDEO_SCHEDULED,
-            organization: publicMetadata.organization,
-            source: ActivitySource.SCRIPT,
-            user: publicMetadata.user,
-            value: (updatedPost.id as string).toString(),
-          }),
-        );
+      if (missingPostIds.length > 0) {
+        this.logger.warn('Skipped posts not found in organization', {
+          count: missingPostIds.length,
+          postIds: missingPostIds,
+        });
       }
+
+      // One insert for every activity instead of one per scheduled post.
+      await this.activitiesService.createMany(
+        updatedPosts.map(
+          (updatedPost) =>
+            new ActivityEntity({
+              brand: publicMetadata.brand,
+              entityId: updatedPost.id,
+              entityModel: ActivityEntityModel.POST,
+              key: ActivityKey.VIDEO_SCHEDULED,
+              organization: publicMetadata.organization,
+              source: ActivitySource.SCRIPT,
+              user: publicMetadata.user,
+              value: (updatedPost.id as string).toString(),
+            }),
+        ),
+      );
 
       return serializeCollection(request, PostListSerializer, {
         docs: updatedPosts,

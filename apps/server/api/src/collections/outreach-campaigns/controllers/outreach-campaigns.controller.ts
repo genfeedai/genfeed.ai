@@ -268,39 +268,58 @@ export class OutreachCampaignsController extends BaseCRUDController<
     id: string,
     urls: string[],
   ): Promise<{ added: number; skipped: number }> {
-    let added = 0;
     let skipped = 0;
+
+    // Parse and de-duplicate in memory first so the whole batch costs one
+    // existence query and one insert, whatever `urls.length` is.
+    const parsedByExternalId = new Map<
+      string,
+      {
+        platform: CampaignPlatform;
+        targetType: CampaignTargetType;
+        url: string;
+      }
+    >();
 
     for (const url of urls) {
       const parsed = this.parseUrl(url);
 
-      if (!parsed) {
+      if (!parsed || parsedByExternalId.has(parsed.externalId)) {
         skipped++;
         continue;
       }
 
-      const exists = await this.campaignTargetsService.targetExists(
-        id,
-        parsed.externalId,
-      );
+      parsedByExternalId.set(parsed.externalId, { ...parsed, url });
+    }
 
-      if (exists) {
+    const existingExternalIds =
+      await this.campaignTargetsService.findExistingExternalIds(id, [
+        ...parsedByExternalId.keys(),
+      ]);
+
+    const organizationId = String(
+      campaign.organizationId ?? campaign.organization,
+    );
+    const targets: Parameters<CampaignTargetsService['createMany']>[0] = [];
+
+    for (const [externalId, parsed] of parsedByExternalId) {
+      if (existingExternalIds.has(externalId)) {
         skipped++;
         continue;
       }
 
-      await this.campaignTargetsService.create({
+      targets.push({
         campaign: id,
-        contentUrl: url,
+        contentUrl: parsed.url,
         discoverySource: CampaignDiscoverySource.MANUAL,
-        externalId: parsed.externalId,
-        organization: campaign.organization,
+        externalId,
+        organization: organizationId,
         platform: parsed.platform,
         targetType: parsed.targetType,
       });
-
-      added++;
     }
+
+    const added = await this.campaignTargetsService.createMany(targets);
 
     if (added > 0) {
       await this.outreachCampaignsService.incrementTargetsCount(id, added);
@@ -325,7 +344,6 @@ export class OutreachCampaignsController extends BaseCRUDController<
     }
     const platform = campaign.platform as CampaignPlatform;
 
-    let added = 0;
     let skipped = 0;
 
     // Normalize usernames: strip @, lowercase, dedup
@@ -337,32 +355,38 @@ export class OutreachCampaignsController extends BaseCRUDController<
       ),
     ];
 
-    for (const username of normalizedUsernames) {
-      // Check if already exists
-      const exists = await this.campaignTargetsService.targetExists(
+    // One existence query for the whole batch instead of one per username.
+    const existingExternalIds =
+      await this.campaignTargetsService.findExistingExternalIds(
         id,
-        username,
+        normalizedUsernames,
       );
 
-      if (exists) {
+    const organizationId = String(
+      campaign.organizationId ?? campaign.organization,
+    );
+    const targets: Parameters<CampaignTargetsService['createMany']>[0] = [];
+
+    for (const username of normalizedUsernames) {
+      if (existingExternalIds.has(username)) {
         skipped++;
         continue;
       }
 
-      await this.campaignTargetsService.create({
+      targets.push({
         campaign: id,
         contentUrl: `https://x.com/${username}`,
         discoverySource: CampaignDiscoverySource.MANUAL,
         externalId: username,
-        organization: campaign.organization,
+        organization: organizationId,
         platform,
         recipientUsername: username,
         status: CampaignTargetStatus.PENDING,
         targetType: CampaignTargetType.DM_RECIPIENT,
-      } as Parameters<CampaignTargetsService['create']>[0]);
-
-      added++;
+      });
     }
+
+    const added = await this.campaignTargetsService.createMany(targets);
 
     if (added > 0) {
       await this.outreachCampaignsService.incrementTargetsCount(id, added);

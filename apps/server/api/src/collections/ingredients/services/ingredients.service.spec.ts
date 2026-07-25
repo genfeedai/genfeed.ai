@@ -27,6 +27,7 @@ describe('IngredientsService', () => {
     findFirst: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    updateMany: ReturnType<typeof vi.fn>;
     groupBy: ReturnType<typeof vi.fn>;
   };
   let prisma: PrismaService;
@@ -50,6 +51,7 @@ describe('IngredientsService', () => {
       findMany: vi.fn().mockResolvedValue([mockIngredient]),
       groupBy: vi.fn().mockResolvedValue([]),
       update: vi.fn().mockResolvedValue(mockIngredient),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     };
 
     prisma = { ingredient: ingredientDelegate } as unknown as PrismaService;
@@ -200,6 +202,94 @@ describe('IngredientsService', () => {
           data: expect.objectContaining({ status: 'GENERATED' }),
         }),
       );
+    });
+  });
+
+  describe('bulkSoftDeleteScoped', () => {
+    let updateManyMock: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      updateManyMock = vi.fn().mockResolvedValue({ count: 0 });
+      ingredientDelegate.updateMany = updateManyMock;
+    });
+
+    it('skips the database entirely for an empty id list', async () => {
+      const result = await service.bulkSoftDeleteScoped({
+        ids: [],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      expect(result).toEqual({ deleted: [], failed: [] });
+      expect(ingredientDelegate.findMany).not.toHaveBeenCalled();
+      expect(updateManyMock).not.toHaveBeenCalled();
+    });
+
+    it('partitions owner-or-same-organization ids with one read and one write', async () => {
+      ingredientDelegate.findMany.mockResolvedValue([
+        { id: 'ing-1' },
+        { id: 'ing-2' },
+      ]);
+
+      const result = await service.bulkSoftDeleteScoped({
+        ids: ['ing-1', 'ing-2', 'ing-foreign'],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      expect(ingredientDelegate.findMany).toHaveBeenCalledTimes(1);
+      expect(ingredientDelegate.findMany).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          id: { in: ['ing-1', 'ing-2', 'ing-foreign'] },
+          isDeleted: false,
+          OR: [{ userId: 'user-1' }, { organizationId: 'org-1' }],
+        },
+      });
+      expect(updateManyMock).toHaveBeenCalledTimes(1);
+      expect(updateManyMock).toHaveBeenCalledWith({
+        data: { isDeleted: true },
+        where: { id: { in: ['ing-1', 'ing-2'] } },
+      });
+      expect(result).toEqual({
+        deleted: ['ing-1', 'ing-2'],
+        failed: ['ing-foreign'],
+      });
+    });
+
+    it('reports ids the caller may not touch as failed without writing them', async () => {
+      ingredientDelegate.findMany.mockResolvedValue([]);
+
+      const result = await service.bulkSoftDeleteScoped({
+        ids: ['ing-foreign'],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      expect(updateManyMock).not.toHaveBeenCalled();
+      expect(result).toEqual({ deleted: [], failed: ['ing-foreign'] });
+    });
+
+    it('deduplicates writes but still reports every requested id', async () => {
+      ingredientDelegate.findMany.mockResolvedValue([{ id: 'ing-1' }]);
+
+      const result = await service.bulkSoftDeleteScoped({
+        ids: ['ing-1', 'ing-1'],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      expect(ingredientDelegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: { in: ['ing-1'] } }),
+        }),
+      );
+      expect(updateManyMock).toHaveBeenCalledWith({
+        data: { isDeleted: true },
+        where: { id: { in: ['ing-1'] } },
+      });
+      expect(result.deleted).toEqual(['ing-1', 'ing-1']);
     });
   });
 

@@ -6,7 +6,17 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { CampaignSkipReason, CampaignTargetStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+
+/**
+ * Create payloads reach this service with relation aliases (`campaign`,
+ * `organization`) and descriptive fields (`platform`, `targetType`,
+ * `contentUrl`, `recipientUsername`, …) that have no column on
+ * `campaign_targets`. They are mapped onto real columns + the `data` JSON
+ * payload by `toCreateManyInput`.
+ */
+type CampaignTargetCreateInput = CreateCampaignTargetDto &
+  Record<string, unknown>;
 
 @Injectable()
 export class CampaignTargetsService extends BaseService<
@@ -23,75 +33,166 @@ export class CampaignTargetsService extends BaseService<
   }
 
   /**
-   * Create multiple targets at once
+   * Serialize the descriptive half of a create payload into the `data` JSON
+   * column. `Prisma.InputJsonValue` accepts neither `undefined` nor `Date`.
    */
-  async createMany(
-    targets: CreateCampaignTargetDto[],
-  ): Promise<CampaignTargetDocument[]> {
-    const created = await Promise.all(
-      targets.map((t) =>
-        this.delegate.create({
-          data: t as unknown as Record<string, unknown>,
-        }),
-      ),
+  private toDataPayload(
+    source: Record<string, unknown>,
+  ): Prisma.InputJsonValue {
+    const payload: Record<string, Prisma.InputJsonValue> = {};
+
+    for (const [key, value] of Object.entries(source)) {
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      payload[key] =
+        value instanceof Date
+          ? value.toISOString()
+          : (value as Prisma.InputJsonValue);
+    }
+
+    return payload;
+  }
+
+  /**
+   * Map an alias-shaped create payload onto the real `campaign_targets`
+   * columns. Everything the table has no column for lands in `data`, where
+   * `normalizeDocument` merges it back onto the top level on read.
+   */
+  private toCreateManyInput(
+    target: CampaignTargetCreateInput,
+  ): Prisma.CampaignTargetCreateManyInput {
+    const {
+      campaign,
+      campaignId,
+      externalId,
+      isDeleted,
+      organization,
+      organizationId,
+      scheduledAt,
+      status,
+      ...descriptive
+    } = target as CampaignTargetCreateInput & {
+      campaignId?: string;
+      isDeleted?: boolean;
+      organizationId?: string;
+      status?: string;
+    };
+
+    const resolvedCampaignId = campaignId ?? campaign;
+    const resolvedOrganizationId = organizationId ?? organization;
+
+    if (!resolvedCampaignId || !resolvedOrganizationId) {
+      throw new BadRequestException(
+        'Campaign target requires both a campaign and an organization id',
+      );
+    }
+
+    return {
+      campaignId: resolvedCampaignId,
+      data: this.toDataPayload(descriptive),
+      organizationId: resolvedOrganizationId,
+      status: status ?? CampaignTargetStatus.PENDING,
+      ...(externalId === undefined ? {} : { externalId }),
+      ...(isDeleted === undefined ? {} : { isDeleted }),
+      ...(scheduledAt === undefined ? {} : { scheduledAt }),
+    };
+  }
+
+  /**
+   * Create a single target, mapped onto real columns.
+   */
+  override async create(
+    createDto: CreateCampaignTargetDto,
+  ): Promise<CampaignTargetDocument> {
+    return super.create(
+      this.toCreateManyInput(createDto as CampaignTargetCreateInput) as never,
     );
-    return created as CampaignTargetDocument[];
+  }
+
+  /**
+   * Create multiple targets in a single insert.
+   *
+   * Returns the number of rows written — a batch insert cannot return the
+   * created rows, and no caller needs them.
+   */
+  async createMany(targets: CampaignTargetCreateInput[]): Promise<number> {
+    if (targets.length === 0) {
+      return 0;
+    }
+
+    const result = await this.prisma.campaignTarget.createMany({
+      data: targets.map((target) => this.toCreateManyInput(target)),
+    });
+
+    return result.count;
   }
 
   /**
    * Find a target by ID
    */
-  findById(id: string): Promise<CampaignTargetDocument | null> {
-    return this.delegate.findFirst({
+  async findById(id: string): Promise<CampaignTargetDocument | null> {
+    const target = await this.delegate.findFirst({
       where: { id, isDeleted: false },
-    }) as Promise<CampaignTargetDocument | null>;
+    });
+
+    return target ? this.normalizeDocument(target) : null;
   }
 
   /**
    * Find targets by campaign
    */
-  findByCampaign(campaignId: string): Promise<CampaignTargetDocument[]> {
-    return this.delegate.findMany({
+  async findByCampaign(campaignId: string): Promise<CampaignTargetDocument[]> {
+    const targets = await this.delegate.findMany({
       where: { campaignId, isDeleted: false },
-    }) as Promise<CampaignTargetDocument[]>;
+    });
+
+    return this.normalizeDocuments(targets);
   }
 
   /**
    * Find targets by campaign and status
    */
-  findByCampaignAndStatus(
+  async findByCampaignAndStatus(
     campaignId: string,
     status: CampaignTargetStatus,
   ): Promise<CampaignTargetDocument[]> {
-    return this.delegate.findMany({
+    const targets = await this.delegate.findMany({
       where: { campaignId, isDeleted: false, status },
-    }) as Promise<CampaignTargetDocument[]>;
+    });
+
+    return this.normalizeDocuments(targets);
   }
 
   /**
    * Get the next pending target for processing
    */
-  getNextPending(campaignId: string): Promise<CampaignTargetDocument | null> {
-    return this.delegate.findFirst({
+  async getNextPending(
+    campaignId: string,
+  ): Promise<CampaignTargetDocument | null> {
+    const target = await this.delegate.findFirst({
       where: {
         campaignId,
         isDeleted: false,
         status: CampaignTargetStatus.PENDING,
       },
       orderBy: [{ createdAt: 'asc' }, { scheduledAt: 'asc' }],
-    }) as Promise<CampaignTargetDocument | null>;
+    });
+
+    return target ? this.normalizeDocument(target) : null;
   }
 
   /**
    * Get pending targets that are ready to be processed
    */
-  getPendingTargets(
+  async getPendingTargets(
     campaignId: string,
     limit: number = 10,
   ): Promise<CampaignTargetDocument[]> {
     const now = new Date();
 
-    return this.delegate.findMany({
+    const targets = await this.delegate.findMany({
       where: {
         campaignId,
         isDeleted: false,
@@ -100,7 +201,9 @@ export class CampaignTargetsService extends BaseService<
       },
       orderBy: [{ createdAt: 'asc' }, { scheduledAt: 'asc' }],
       take: limit,
-    }) as Promise<CampaignTargetDocument[]>;
+    });
+
+    return this.normalizeDocuments(targets);
   }
 
   /**
@@ -210,6 +313,38 @@ export class CampaignTargetsService extends BaseService<
     });
 
     return !!target;
+  }
+
+  /**
+   * Existence check for a whole batch of external IDs in one query.
+   *
+   * Callers adding N targets used to run N `targetExists` round-trips; this
+   * collapses them into a single scoped `findMany`.
+   */
+  async findExistingExternalIds(
+    campaignId: string,
+    externalIds: string[],
+  ): Promise<Set<string>> {
+    const uniqueExternalIds = [...new Set(externalIds.filter(Boolean))];
+
+    if (uniqueExternalIds.length === 0) {
+      return new Set<string>();
+    }
+
+    const existing = (await this.delegate.findMany({
+      select: { externalId: true },
+      where: {
+        campaignId,
+        externalId: { in: uniqueExternalIds },
+        isDeleted: false,
+      },
+    })) as unknown as Array<{ externalId: string | null }>;
+
+    return new Set(
+      existing
+        .map((target) => target.externalId)
+        .filter((externalId): externalId is string => Boolean(externalId)),
+    );
   }
 
   /**
