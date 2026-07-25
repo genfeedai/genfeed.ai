@@ -18,6 +18,11 @@ export interface IOrgIntegrationConfig {
   allowedUserIds?: string[];
   appToken?: string;
   defaultWorkflow?: string;
+  /**
+   * Explicit opt-out of the allowlist. An empty `allowedUserIds` denies every
+   * platform user; only this flag opens the bot to everyone.
+   */
+  isOpenToAllUsers?: boolean;
   webhookMode?: boolean;
 }
 

@@ -6,6 +6,8 @@ import {
   extractWorkflowOutputsFromExecution,
   IMAGE_MODELS,
   IntegrationEvent,
+  isBotOpenToAllUsers,
+  isBotUserAuthorized,
   isWorkflowExecutionTerminalStatus,
   OrgIntegration,
   REDIS_EVENTS,
@@ -145,7 +147,13 @@ export class DiscordBotManager
     });
 
     const orgId = integration.orgId;
-    const allowedUserIds: string[] = integration.config.allowedUserIds || [];
+    const accessConfig = integration.config;
+
+    if (isBotOpenToAllUsers(accessConfig)) {
+      this.logger.warn(
+        `Discord integration ${integration.id} (org ${orgId}) is configured open to all users — every Discord user who can reach this bot can spend its org's credits`,
+      );
+    }
 
     client.once(Events.ClientReady, async (readyClient) => {
       this.logger.log(
@@ -159,10 +167,7 @@ export class DiscordBotManager
 
     client.on('interactionCreate', async (interaction) => {
       // Auth check
-      if (
-        allowedUserIds.length > 0 &&
-        !allowedUserIds.includes(interaction.user.id)
-      ) {
+      if (!isBotUserAuthorized(accessConfig, interaction.user.id)) {
         if (interaction.isRepliable()) {
           await interaction.reply({
             content: 'You are not authorized to use this bot.',
@@ -198,10 +203,7 @@ export class DiscordBotManager
       }
 
       // Auth check
-      if (
-        allowedUserIds.length > 0 &&
-        !allowedUserIds.includes(message.author.id)
-      ) {
+      if (!isBotUserAuthorized(accessConfig, message.author.id)) {
         return;
       }
 

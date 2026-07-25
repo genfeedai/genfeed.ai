@@ -7,6 +7,8 @@ import {
   extractWorkflowOutputsFromExecution,
   IMAGE_MODELS,
   IntegrationEvent,
+  isBotOpenToAllUsers,
+  isBotUserAuthorized,
   isWorkflowExecutionTerminalStatus,
   OrgIntegration,
   REDIS_EVENTS,
@@ -154,15 +156,18 @@ export class SlackBotManager
     });
 
     const orgId = integration.orgId;
-    const allowedUserIds: string[] = integration.config.allowedUserIds || [];
+    const accessConfig = integration.config;
+
+    if (isBotOpenToAllUsers(accessConfig)) {
+      this.logger.warn(
+        `Slack integration ${integration.id} (org ${orgId}) is configured open to all users — every Slack user who can reach this bot can spend its org's credits`,
+      );
+    }
 
     // Auth middleware
     app.use(async ({ next, context }) => {
       const userId = context.userId as string | undefined;
-      if (
-        allowedUserIds.length > 0 &&
-        (!userId || !allowedUserIds.includes(userId))
-      ) {
+      if (!isBotUserAuthorized(accessConfig, userId)) {
         return;
       }
       await next();
