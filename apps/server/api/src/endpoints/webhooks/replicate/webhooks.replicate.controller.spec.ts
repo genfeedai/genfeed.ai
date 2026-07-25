@@ -2,6 +2,7 @@ import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
 import { ReplicateWebhookController } from '@api/endpoints/webhooks/replicate/webhooks.replicate.controller';
 import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
@@ -97,6 +98,13 @@ describe('ReplicateWebhookController', () => {
           provide: ModelRegistrationService,
           useValue: {
             createFromTraining: vi.fn(),
+          },
+        },
+        {
+          provide: ReplicateGenerationWebhookHandler,
+          useValue: {
+            handleCompleted: vi.fn(),
+            handleFailed: vi.fn(),
           },
         },
       ],
