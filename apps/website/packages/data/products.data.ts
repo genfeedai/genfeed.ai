@@ -1,3 +1,6 @@
+import type { PlanTier } from '@helpers/business/pricing/pricing.helper';
+import { PLAN_COPY } from '@helpers/business/pricing/pricing.helper';
+
 export interface Product {
   slug: string;
   name: string;
@@ -23,7 +26,8 @@ export interface Product {
   targetAudience: string[];
   integrations?: string[];
   pricing: {
-    recommended: string;
+    /** Stable tier id; the display name is resolved via getPlanLabel at render. */
+    recommended: PlanTier;
     why: string;
   };
   librarySections?: {
@@ -109,7 +113,7 @@ export const products: Product[] = [
     ],
     name: 'Publisher',
     pricing: {
-      recommended: 'Teams',
+      recommended: 'scale',
       why: 'Includes unlimited scheduling, multi-platform publishing, and team collaboration for agencies and brands.',
     },
     relatedProducts: ['studio', 'workflows', 'agents'],
@@ -289,7 +293,7 @@ export const products: Product[] = [
     ],
     name: 'Agents',
     pricing: {
-      recommended: 'Teams',
+      recommended: 'scale',
       why: 'Includes the full agent library, autonomous scheduled execution, and the workflow capacity needed to run deterministic agentic systems in production.',
     },
     relatedProducts: ['workflows', 'publisher', 'studio'],
@@ -383,7 +387,7 @@ export const products: Product[] = [
     integrations: ['ChatGPT', 'OpenAI API'],
     name: 'ChatGPT Integration',
     pricing: {
-      recommended: 'Teams',
+      recommended: 'scale',
       why: 'Includes ChatGPT integration, unlimited commands, and advanced workflow automation.',
     },
     relatedProducts: ['mcp', 'studio', 'publisher'],
@@ -477,7 +481,7 @@ export const products: Product[] = [
     ],
     name: 'MCP Server',
     pricing: {
-      recommended: 'Teams',
+      recommended: 'scale',
       why: 'Includes MCP server access, unlimited API calls, and priority support for developers.',
     },
     relatedProducts: ['chatgpt', 'agents', 'studio'],
@@ -576,8 +580,8 @@ export const products: Product[] = [
     ],
     name: 'Studio',
     pricing: {
-      recommended: 'Creator',
-      why: 'Start free with pay-per-output credits; the Creator subscription ($49/month, 8,000 credits included) is the better rate for daily publishing.',
+      recommended: 'pro',
+      why: `Start free with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.pro.includedCredits} included) is the better rate for daily publishing.`,
     },
     relatedProducts: ['publisher', 'workflows', 'intelligence'],
     slug: 'studio',
@@ -679,7 +683,7 @@ export const products: Product[] = [
     ],
     name: 'Workflows',
     pricing: {
-      recommended: 'Teams',
+      recommended: 'scale',
       why: 'Includes the workflow capacity, trigger volume, and execution controls needed to run deterministic agent-driven systems in production.',
     },
     relatedProducts: ['agents', 'studio', 'publisher'],
@@ -780,7 +784,7 @@ export const products: Product[] = [
     ],
     name: 'Analytics',
     pricing: {
-      recommended: 'Teams',
+      recommended: 'scale',
       why: 'Includes trend monitoring, performance analytics, and insights across all platforms.',
     },
     relatedProducts: ['studio', 'publisher', 'agents'],
@@ -875,7 +879,7 @@ export const products: Product[] = [
     integrations: ['Cursor IDE', 'Genfeed Studio'],
     name: 'Cursor Extension',
     pricing: {
-      recommended: 'Free',
+      recommended: 'payg',
       why: 'Open-source extension available for free. Requires Genfeed account for AI generation.',
     },
     relatedProducts: ['studio', 'extension', 'docs'],
@@ -970,7 +974,7 @@ export const products: Product[] = [
     integrations: ['Genfeed API', 'Expo', 'React Native'],
     name: 'Mobile App',
     pricing: {
-      recommended: 'Free',
+      recommended: 'payg',
       why: 'Open-source mobile app. Free to use with any Genfeed account.',
     },
     relatedProducts: ['publisher', 'studio', 'extension'],
@@ -1063,7 +1067,7 @@ export const products: Product[] = [
     integrations: ['Nextra', 'Next.js'],
     name: 'Documentation',
     pricing: {
-      recommended: 'Free',
+      recommended: 'payg',
       why: 'Documentation is free and open source. Community contributions welcome.',
     },
     relatedProducts: ['mcp', 'cursor', 'extension'],
@@ -1155,7 +1159,7 @@ export const products: Product[] = [
     integrations: ['Chrome Browser', 'Genfeed API', 'Plasmo Framework'],
     name: 'Chrome Extension',
     pricing: {
-      recommended: 'Free',
+      recommended: 'payg',
       why: 'Open-source Chrome extension. Free to install and use with any Genfeed account.',
     },
     relatedProducts: ['studio', 'publisher', 'mobile'],

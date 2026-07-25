@@ -47,9 +47,12 @@ describe('RedditController', () => {
   const orgId = '507f1f77bcf86cd799439011';
   const credentialId = 'test-object-id';
 
+  // A real Prisma row: the scalar FK only. The Mongo-era `organization` alias
+  // is undefined unless the query populated the relation, so a fixture that
+  // carries it lies about the runtime shape.
   const mockBrand = {
     id: brandId,
-    organization: orgId,
+    organizationId: orgId,
   };
 
   beforeEach(async () => {

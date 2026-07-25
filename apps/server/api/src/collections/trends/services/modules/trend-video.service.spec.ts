@@ -23,14 +23,16 @@ describe('TrendVideoService', () => {
     getYouTubeVideos: vi.fn(),
   };
 
+  type MockTrendDelegate = {
+    create: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
+
   let mockPrisma: {
-    trendingHashtag: { findMany: ReturnType<typeof vi.fn> };
-    trendingSound: { findMany: ReturnType<typeof vi.fn> };
-    trendingVideo: {
-      create: ReturnType<typeof vi.fn>;
-      findMany: ReturnType<typeof vi.fn>;
-      update: ReturnType<typeof vi.fn>;
-    };
+    trendingHashtag: MockTrendDelegate;
+    trendingSound: MockTrendDelegate;
+    trendingVideo: MockTrendDelegate;
   };
   let service: TrendVideoService;
 
@@ -79,13 +81,17 @@ describe('TrendVideoService', () => {
 
     mockPrisma = {
       trendingHashtag: {
+        create: vi.fn().mockResolvedValue({ id: 'created-hashtag' }),
         findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue({}),
       },
       trendingSound: {
+        create: vi.fn().mockResolvedValue({ id: 'created-sound' }),
         findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue({}),
       },
       trendingVideo: {
-        create: vi.fn().mockResolvedValue({}),
+        create: vi.fn().mockResolvedValue({ id: 'created-video' }),
         findMany: vi.fn().mockResolvedValue([]),
         update: vi.fn().mockResolvedValue({}),
       },
@@ -197,5 +203,188 @@ describe('TrendVideoService', () => {
     });
 
     expect(result).toHaveLength(0);
+  });
+
+  describe('fetchAndCacheViralVideos', () => {
+    it('reads existing videos once for the whole batch and updates the match', async () => {
+      mockApifyService.getTikTokVideos.mockResolvedValue([
+        { externalId: 'a', title: 'A' },
+        { externalId: 'b', title: 'B' },
+        { externalId: 'c', title: 'C' },
+      ]);
+      mockPrisma.trendingVideo.findMany.mockResolvedValue([
+        {
+          ...makeVideoDoc({ externalId: 'b', platform: 'tiktok' }),
+          id: 'video-b',
+        },
+      ]);
+
+      await service.fetchAndCacheViralVideos('tiktok', 3);
+
+      expect(mockPrisma.trendingVideo.findMany).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.trendingVideo.update).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.trendingVideo.update).toHaveBeenCalledWith({
+        data: { data: expect.objectContaining({ externalId: 'b' }) },
+        where: { id: 'video-b' },
+      });
+      expect(mockPrisma.trendingVideo.create).toHaveBeenCalledTimes(2);
+      expect(mockLoggerService.error).not.toHaveBeenCalled();
+    });
+
+    it('creates a new video when no existing record matches', async () => {
+      mockApifyService.getTikTokVideos.mockResolvedValue([
+        { externalId: 'a', title: 'A' },
+      ]);
+      mockPrisma.trendingVideo.findMany.mockResolvedValue([]);
+
+      await service.fetchAndCacheViralVideos('tiktok', 1);
+
+      expect(mockPrisma.trendingVideo.update).not.toHaveBeenCalled();
+      expect(mockPrisma.trendingVideo.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not match the same externalId on another platform', async () => {
+      mockApifyService.getTikTokVideos.mockResolvedValue([
+        { externalId: 'a', title: 'A' },
+      ]);
+      mockPrisma.trendingVideo.findMany.mockResolvedValue([
+        {
+          ...makeVideoDoc({ externalId: 'a', platform: 'instagram' }),
+          id: 'video-instagram',
+        },
+      ]);
+
+      await service.fetchAndCacheViralVideos('tiktok', 1);
+
+      expect(mockPrisma.trendingVideo.update).not.toHaveBeenCalled();
+      expect(mockPrisma.trendingVideo.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the newest row per key when duplicates exist', async () => {
+      mockApifyService.getTikTokVideos.mockResolvedValue([
+        { externalId: 'a', title: 'A' },
+      ]);
+      // Rows arrive `createdAt desc`, so the first duplicate is the newest.
+      mockPrisma.trendingVideo.findMany.mockResolvedValue([
+        {
+          ...makeVideoDoc({ externalId: 'a', platform: 'tiktok' }),
+          id: 'video-newest',
+        },
+        {
+          ...makeVideoDoc({ externalId: 'a', platform: 'tiktok' }),
+          id: 'video-oldest',
+        },
+      ]);
+
+      await service.fetchAndCacheViralVideos('tiktok', 1);
+
+      expect(mockPrisma.trendingVideo.update).toHaveBeenCalledWith({
+        data: { data: expect.objectContaining({ externalId: 'a' }) },
+        where: { id: 'video-newest' },
+      });
+    });
+
+    it('updates the row it just created when a key repeats inside one batch', async () => {
+      mockApifyService.getTikTokVideos.mockResolvedValue([
+        { externalId: 'a', title: 'first' },
+        { externalId: 'a', title: 'second' },
+      ]);
+      mockPrisma.trendingVideo.findMany.mockResolvedValue([]);
+
+      await service.fetchAndCacheViralVideos('tiktok', 2);
+
+      expect(mockPrisma.trendingVideo.create).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.trendingVideo.update).toHaveBeenCalledWith({
+        data: { data: expect.objectContaining({ title: 'second' }) },
+        where: { id: 'created-video' },
+      });
+    });
+
+    it('skips the read entirely when the provider returns nothing', async () => {
+      mockApifyService.getTikTokVideos.mockResolvedValue([]);
+
+      await service.fetchAndCacheViralVideos('tiktok', 5);
+
+      expect(mockPrisma.trendingVideo.findMany).not.toHaveBeenCalled();
+      expect(mockPrisma.trendingVideo.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('fetchAndCacheHashtags', () => {
+    it('reads existing hashtags once for the whole batch and updates the match', async () => {
+      mockApifyService.getTrendingHashtags.mockResolvedValue([
+        { hashtag: '#one' },
+        { hashtag: '#two' },
+        { hashtag: '#three' },
+      ]);
+      mockPrisma.trendingHashtag.findMany.mockResolvedValue([
+        {
+          ...makeHashtagDoc({ hashtag: '#two', platform: 'tiktok' }),
+          id: 'hashtag-two',
+        },
+      ]);
+
+      await service.fetchAndCacheHashtags('tiktok', 3);
+
+      expect(mockPrisma.trendingHashtag.findMany).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.trendingHashtag.update).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.trendingHashtag.update).toHaveBeenCalledWith({
+        data: { data: expect.objectContaining({ hashtag: '#two' }) },
+        where: { id: 'hashtag-two' },
+      });
+      expect(mockPrisma.trendingHashtag.create).toHaveBeenCalledTimes(2);
+      expect(mockLoggerService.error).not.toHaveBeenCalled();
+    });
+
+    it('creates a new hashtag when no existing record matches', async () => {
+      mockApifyService.getTrendingHashtags.mockResolvedValue([
+        { hashtag: '#one' },
+      ]);
+      mockPrisma.trendingHashtag.findMany.mockResolvedValue([
+        {
+          ...makeHashtagDoc({ hashtag: '#one', platform: 'instagram' }),
+          id: 'hashtag-instagram',
+        },
+      ]);
+
+      await service.fetchAndCacheHashtags('tiktok', 1);
+
+      expect(mockPrisma.trendingHashtag.update).not.toHaveBeenCalled();
+      expect(mockPrisma.trendingHashtag.create).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('fetchAndCacheSounds', () => {
+    it('reads existing sounds once for the whole batch and updates the match', async () => {
+      mockApifyService.getTikTokSounds.mockResolvedValue([
+        { soundId: 's1' },
+        { soundId: 's2' },
+        { soundId: 's3' },
+      ]);
+      mockPrisma.trendingSound.findMany.mockResolvedValue([
+        { ...makeSoundDoc({ soundId: 's2' }), id: 'sound-two' },
+      ]);
+
+      await service.fetchAndCacheSounds(3);
+
+      expect(mockPrisma.trendingSound.findMany).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.trendingSound.update).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.trendingSound.update).toHaveBeenCalledWith({
+        data: { data: expect.objectContaining({ soundId: 's2' }) },
+        where: { id: 'sound-two' },
+      });
+      expect(mockPrisma.trendingSound.create).toHaveBeenCalledTimes(2);
+      expect(mockLoggerService.error).not.toHaveBeenCalled();
+    });
+
+    it('creates a new sound when no existing record matches', async () => {
+      mockApifyService.getTikTokSounds.mockResolvedValue([{ soundId: 's1' }]);
+      mockPrisma.trendingSound.findMany.mockResolvedValue([]);
+
+      await service.fetchAndCacheSounds(1);
+
+      expect(mockPrisma.trendingSound.update).not.toHaveBeenCalled();
+      expect(mockPrisma.trendingSound.create).toHaveBeenCalledTimes(1);
+    });
   });
 });

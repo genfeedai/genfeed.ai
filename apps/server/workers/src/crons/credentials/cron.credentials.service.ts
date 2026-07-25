@@ -100,15 +100,18 @@ export class CronCredentialsService {
       // Refresh each credential
       const results = await Promise.allSettled(
         expiringCredentials.map(async (credential: CredentialDocument) => {
-          if (!credential.organization || !credential.brand) {
+          // Scalar FKs: the legacy `organization`/`brand` aliases are undefined
+          // unless the query populated the relations, so this guard rejected
+          // every credential and no token was ever refreshed.
+          const orgId = credential.organizationId;
+          const brandId = credential.brandId;
+
+          if (!orgId || !brandId) {
             this.logger.warn(`${url} credential missing workspace scope`, {
               credentialId: credential.id,
             });
             return { credentialId: credential.id, success: false };
           }
-
-          const orgId = credential.organization.toString();
-          const brandId = credential.brand.toString();
 
           try {
             const refresher = this.platformRefreshers.get(
