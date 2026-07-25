@@ -334,9 +334,16 @@ export class ActivitiesService extends BaseService<
     if (writeIds.length > 0) {
       if (isRead === undefined) {
         if (isDeleted !== undefined) {
+          // The scope predicate is repeated on the write, not just the read:
+          // it closes the window between the two queries and keeps the tenant
+          // guard visible at the mutation site.
           await this.prisma.activity.updateMany({
             data: { isDeleted },
-            where: { id: { in: writeIds } },
+            where: {
+              id: { in: writeIds },
+              isDeleted: false,
+              OR: [{ userId }, { organizationId }],
+            },
           });
         }
       } else {

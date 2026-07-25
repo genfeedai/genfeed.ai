@@ -500,9 +500,16 @@ export class IngredientsService extends BaseService<
     }
 
     if (permittedIds.size > 0) {
+      // The scope predicate is repeated on the write, not just the read: it
+      // closes the window between the two queries and keeps the tenant guard
+      // visible at the mutation site.
       await this.prisma.ingredient.updateMany({
         data: { isDeleted: true },
-        where: { id: { in: [...permittedIds] } },
+        where: {
+          id: { in: [...permittedIds] },
+          isDeleted: false,
+          OR: [{ userId }, { organizationId }],
+        },
       });
     }
 

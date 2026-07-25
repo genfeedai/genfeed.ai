@@ -250,7 +250,11 @@ describe('IngredientsService', () => {
       expect(updateManyMock).toHaveBeenCalledTimes(1);
       expect(updateManyMock).toHaveBeenCalledWith({
         data: { isDeleted: true },
-        where: { id: { in: ['ing-1', 'ing-2'] } },
+        where: {
+          id: { in: ['ing-1', 'ing-2'] },
+          isDeleted: false,
+          OR: [{ userId: 'user-1' }, { organizationId: 'org-1' }],
+        },
       });
       expect(result).toEqual({
         deleted: ['ing-1', 'ing-2'],
@@ -287,7 +291,7 @@ describe('IngredientsService', () => {
       );
       expect(updateManyMock).toHaveBeenCalledWith({
         data: { isDeleted: true },
-        where: { id: { in: ['ing-1'] } },
+        where: expect.objectContaining({ id: { in: ['ing-1'] } }),
       });
       expect(result.deleted).toEqual(['ing-1', 'ing-1']);
     });

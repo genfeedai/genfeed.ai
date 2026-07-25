@@ -230,7 +230,11 @@ describe('ActivitiesService batched writes', () => {
       expect(activity.updateMany).toHaveBeenCalledTimes(1);
       expect(activity.updateMany).toHaveBeenCalledWith({
         data: { isDeleted: true },
-        where: { id: { in: ['activity-1', 'activity-2'] } },
+        where: {
+          id: { in: ['activity-1', 'activity-2'] },
+          isDeleted: false,
+          OR: [{ userId: 'user-1' }, { organizationId: 'org-1' }],
+        },
       });
       expect($transaction).not.toHaveBeenCalled();
     });
@@ -284,7 +288,7 @@ describe('ActivitiesService batched writes', () => {
       );
       expect(activity.updateMany).toHaveBeenCalledWith({
         data: { isDeleted: true },
-        where: { id: { in: ['activity-1'] } },
+        where: expect.objectContaining({ id: { in: ['activity-1'] } }),
       });
       expect(result.updated).toEqual(['activity-1', 'activity-1']);
     });
