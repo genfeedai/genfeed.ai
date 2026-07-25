@@ -46,12 +46,11 @@ export default function HomeHow(): React.ReactElement {
             as="h2"
             className="text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
           >
-            Create, review, schedule, and publish — in one place.
+            The whole content loop, in one place.
           </Heading>
           <Text className="max-w-2xl text-base leading-7 gen-text-muted">
-            Genfeed is one workspace for the whole content loop: generate on
-            brand, keep a human in the approval seat, publish everywhere, and
-            see what landed.
+            Generate on brand. Approve before anything ships. Publish
+            everywhere. See what landed.
           </Text>
         </VStack>
 

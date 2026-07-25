@@ -8,7 +8,6 @@ import HomeFooter from '@web-components/home/_footer';
 import HomeFormats from '@web-components/home/_formats';
 import HomeHero from '@web-components/home/_hero';
 import HomeHow from '@web-components/home/_how';
-import HomeProof from '@web-components/home/_proof';
 import ProofTestimonials from '@web-components/proof/ProofTestimonials';
 
 export default function HomeContent() {
@@ -17,7 +16,6 @@ export default function HomeContent() {
       <HomeHero />
       <HomeHow />
       <HomeFormats />
-      <HomeProof />
       <ProofTestimonials context="landing" />
       <HomeAudiences />
       <HomeCredits />

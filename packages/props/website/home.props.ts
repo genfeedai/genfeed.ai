@@ -31,10 +31,3 @@ export interface HowStep {
   step: string;
   title: string;
 }
-
-export interface ExampleCampaign {
-  caption: string;
-  handle: string;
-  likes: string;
-  status: string;
-}

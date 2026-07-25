@@ -269,7 +269,7 @@ export const websitePlans: PricingPlanProps[] = [
     interval: 'month',
     label: 'Pro',
     launchNote:
-      'Launch pricing (code EARLYGENFEED) — first 12 months, then $49/month',
+      'Launch pricing (code EARLYGENFEED) for the first 12 months, then $49/month',
     launchPrice: 39,
     outputs: null,
     price: 49,
@@ -305,7 +305,7 @@ export const websitePlans: PricingPlanProps[] = [
     target: 'Agencies and teams managing multiple brands or organizations',
     type: 'subscription',
     valueProposition:
-      'Unlimited seats and a shared credit pool for teams that have outgrown a single workspace — you pay for output, not headcount.',
+      'Unlimited seats and a shared credit pool for teams that have outgrown a single workspace. You pay for output, not headcount.',
   },
 
   // Enterprise Tier - custom deployment
@@ -454,7 +454,7 @@ export const dedicatedServerPlan: PricingPlanProps = {
 /**
  * PAYG credit top-up presets (Replicate-style). Flat rate: 1 credit = $0.01,
  * no bonus. Checkout also accepts any custom amount between the min and max
- * below — the presets are just convenient defaults.
+ * below; the presets are just convenient defaults.
  */
 export const PAYG_CREDIT_PACKS: CreditPackTier[] = [
   { bonus: null, credits: 1_000, label: '$10' },
@@ -515,7 +515,7 @@ export function creditPackPrice(pack: CreditPackTier): number {
 export const contentServiceOffering: ServiceOfferingProps = {
   ctaHref: CALENDLY_URL,
   description:
-    'We handle everything — strategy, production, publishing. You review and approve.',
+    'We handle strategy, production, and publishing. You review and approve.',
   includes: [
     'Dedicated content strategist',
     'Unlimited video production',
@@ -542,7 +542,7 @@ export const contentServiceOffering: ServiceOfferingProps = {
     },
     {
       description:
-        'Our team creates all content — videos, images, copy — using Genfeed AI.',
+        'Our team creates all content (videos, images, copy) using Genfeed AI.',
       step: 'Production',
     },
     {

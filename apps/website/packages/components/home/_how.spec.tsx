@@ -9,7 +9,7 @@ describe('HomeHow', () => {
     expect(
       screen.getByRole('heading', {
         level: 2,
-        name: /create, review, schedule, and publish — in one place\./i,
+        name: /the whole content loop, in one place\./i,
       }),
     ).toBeInTheDocument();
   });

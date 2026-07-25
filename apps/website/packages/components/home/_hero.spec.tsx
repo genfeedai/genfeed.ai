@@ -39,21 +39,28 @@ describe('HomeHero', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /one studio for every piece of content you publish\./i,
+        name: /every post, image, and video\. one studio\./i,
       }),
     ).toBeInTheDocument();
     expect(screen.getByText(/the ai content studio/i)).toBeInTheDocument();
     expect(
-      screen.getByText(
-        /generate, review, schedule, and publish — all in one workspace\./i,
-      ),
+      screen.getByText(/generate, review, schedule, publish\./i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/genfeed is the content studio where a brief becomes/i),
+      screen.getByText(/one brief in\. platform-native content out/i),
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('link').map((link) => link.textContent?.trim()),
     ).toEqual(['Start for free', 'Book a Demo']);
+  });
+
+  it('never shows fabricated studio metrics', () => {
+    render(<HomeHero />);
+
+    expect(
+      screen.queryByText(/sample studio readout/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/31% hook rate/i)).not.toBeInTheDocument();
   });
 
   it('points the primary CTA at the app sign-up flow', () => {
