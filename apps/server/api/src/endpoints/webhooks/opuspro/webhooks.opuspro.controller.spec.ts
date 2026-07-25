@@ -6,10 +6,16 @@ import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-function mockTokenRequest() {
-  return { headers: {}, query: {} } as unknown as import('express').Request;
+const WEBHOOK_SECRET = 'opuspro-webhook-secret';
+
+function mockTokenRequest(token: string | undefined = WEBHOOK_SECRET) {
+  return {
+    headers: {},
+    query: token ? { token } : {},
+  } as unknown as import('express').Request;
 }
 
 describe('OpusProWebhookController', () => {
@@ -17,14 +23,17 @@ describe('OpusProWebhookController', () => {
   let opusProWebhookService: vi.Mocked<OpusProWebhookService>;
   let webhooksService: vi.Mocked<WebhooksService>;
   let loggerService: vi.Mocked<LoggerService>;
+  let configService: { get: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    configService = { get: vi.fn().mockReturnValue(WEBHOOK_SECRET) };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OpusProWebhookController],
       providers: [
         {
           provide: ConfigService,
-          useValue: { get: vi.fn().mockReturnValue(undefined) },
+          useValue: configService,
         },
         {
           provide: OpusProWebhookService,
@@ -267,6 +276,39 @@ describe('OpusProWebhookController', () => {
         expect.stringContaining('failed'),
         error,
       );
+    });
+
+    it('should reject a callback carrying no token', async () => {
+      const payload = {
+        callback_id: 'callback_anon',
+        status: 'completed',
+      } as OpusProWebhookPayload;
+
+      await expect(
+        controller.handleCallback(mockTokenRequest(undefined), payload),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(opusProWebhookService.handleCallback).not.toHaveBeenCalled();
+    });
+
+    it('should reject every caller when no secret is configured', async () => {
+      configService.get.mockReturnValue(undefined);
+
+      const payload = {
+        callback_id: 'callback_anon',
+        status: 'completed',
+      } as OpusProWebhookPayload;
+
+      // Fail closed: an unconfigured deployment must not expose this
+      // @Public() job-completion handler to anonymous callers.
+      await expect(
+        controller.handleCallback(mockTokenRequest(), payload),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('OPUSPRO_WEBHOOK_SECRET'),
+      );
+      expect(opusProWebhookService.handleCallback).not.toHaveBeenCalled();
     });
   });
 });
