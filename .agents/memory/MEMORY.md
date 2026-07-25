@@ -2,6 +2,8 @@
 
 ## Project State
 
+- [Filesystem and S3 Path Containment Spec](spec-filesystem-s3-path-containment.md) — shared fixed-root and fixed-prefix containment contract for #2068
+- [Filesystem and S3 Path Containment Decisions](decisions-filesystem-s3-path-containment.md) — canonical helper placement, S3 semantics, and adapter-boundary decisions for #2068
 - [Scheduler Target Analytics Summary Spec](spec-scheduler-target-analytics.md) — typed latest-snapshot scheduler target read model for #1975
 - [Scheduler Target Analytics Decisions](decisions-scheduler-target-analytics.md) — batch hydration and response-shape tradeoffs for #1975
 - [Pull-request Validation Telemetry Spec](spec-pr-validation-telemetry.md) — exact-head, read-only validation evidence contract for issue #1966

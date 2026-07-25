@@ -2,6 +2,7 @@ import { mkdir, readdir, rm, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { LoggerService } from '@libs/logger/logger.service';
 import { S3Service } from '@libs/s3/s3.service';
+import { resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -26,6 +27,8 @@ const ALLOWED_AUDIO_EXTENSIONS = new Set([
   '.opus',
 ]);
 
+const createBadRequest = (message: string) => new BadRequestException(message);
+
 @Injectable()
 export class VoiceDatasetService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -37,7 +40,11 @@ export class VoiceDatasetService {
   ) {}
 
   private getDatasetPath(voiceId: string): string {
-    return join(this.configService.DATASETS_PATH, 'voices', voiceId);
+    return resolveContainedPath(
+      join(this.configService.DATASETS_PATH, 'voices'),
+      voiceId,
+      createBadRequest,
+    );
   }
 
   private isValidVoiceId(voiceId: string): boolean {
@@ -87,6 +94,11 @@ export class VoiceDatasetService {
 
     for (const key of request.s3Keys) {
       const filename = basename(key);
+      const localPath = resolveContainedPath(
+        datasetPath,
+        filename,
+        createBadRequest,
+      );
 
       if (!this.isAllowedAudioFile(filename)) {
         errors.push(`Skipped non-audio file: ${key}`);
@@ -94,10 +106,8 @@ export class VoiceDatasetService {
         continue;
       }
 
-      const localPath = join(datasetPath, filename);
-
       try {
-        await this.s3Service.downloadFile(bucket, key, localPath);
+        await this.s3Service.downloadFile(bucket, key, localPath, datasetPath);
         downloaded++;
       } catch (error: unknown) {
         const errorMessage =

@@ -1,4 +1,10 @@
 export {
+  assertObjectKeyWithinPrefix,
+  assertSafeObjectKey,
+  assertSafeObjectKeyPrefix,
+  resolveContainedObjectKey,
+} from '@genfeedai/storage';
+export {
   assertBoundedInteger,
   assertBoundedNumber,
   assertSafeArgValue,

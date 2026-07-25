@@ -1,4 +1,14 @@
 export { LocalStorageProvider } from './local-storage.provider';
+export {
+  assertObjectKeyWithinPrefix,
+  assertSafeObjectKey,
+  assertSafeObjectKeyPrefix,
+  assertSafeSegment,
+  resolveContainedObjectKey,
+  resolveContainedPath,
+  SAFE_SEGMENT_PATTERN,
+  type SecurityErrorFactory,
+} from './path-containment';
 export { S3StorageProvider } from './s3-storage.provider';
 export type {
   FileEntry,

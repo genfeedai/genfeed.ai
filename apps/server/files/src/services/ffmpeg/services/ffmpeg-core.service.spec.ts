@@ -1,6 +1,8 @@
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { BinaryValidationService } from '@files/services/ffmpeg/config/binary-validation.service';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 vi.mock('node:child_process', () => ({
@@ -148,18 +150,34 @@ describe('FFmpegCoreService', () => {
       const result = service.getTempPath('image');
       expect(typeof result).toBe('string');
     });
+
+    it.each(['../video', 'nested/video', '/absolute'])(
+      'rejects traversal-shaped type %s',
+      (type) => {
+        expect(() => service.getTempPath(type)).toThrow(BadRequestException);
+      },
+    );
+
+    it('accepts a legitimate nested temp directory under the fixed root', () => {
+      expect(service.getTempPath('audio', 'ingredient-123')).toBe(
+        path.join(FILES_TMP_ROOT, 'audio', 'ingredient-123'),
+      );
+    });
   });
 
   describe('cleanupTempFiles', () => {
     it('calls unlink for each existing file', async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
-      await service.cleanupTempFiles('/tmp/a.mp4', '/tmp/b.mp4');
+      await service.cleanupTempFiles(
+        path.join(FILES_TMP_ROOT, 'a.mp4'),
+        path.join(FILES_TMP_ROOT, 'nested', 'b.mp4'),
+      );
       expect(fsp.unlink).toHaveBeenCalledTimes(2);
     });
 
     it('skips unlink when file does not exist', async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
-      await service.cleanupTempFiles('/tmp/missing.mp4');
+      await service.cleanupTempFiles(path.join(FILES_TMP_ROOT, 'missing.mp4'));
       expect(fsp.unlink).not.toHaveBeenCalled();
     });
 
@@ -168,7 +186,22 @@ describe('FFmpegCoreService', () => {
       (fsp.unlink as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
         new Error('EPERM'),
       );
-      await service.cleanupTempFiles('/tmp/locked.mp4');
+      await service.cleanupTempFiles(path.join(FILES_TMP_ROOT, 'locked.mp4'));
+      expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('skips a traversal attempt and continues with an in-root sibling', async () => {
+      (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
+
+      await service.cleanupTempFiles(
+        path.join(FILES_TMP_ROOT, '..', 'escaped.mp4'),
+        path.join(FILES_TMP_ROOT, 'safe.mp4'),
+      );
+
+      expect(fsp.unlink).toHaveBeenCalledOnce();
+      expect(fsp.unlink).toHaveBeenCalledWith(
+        path.join(FILES_TMP_ROOT, 'safe.mp4'),
+      );
       expect(logger.error).toHaveBeenCalled();
     });
   });

@@ -1,12 +1,23 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import type { StorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  resolveContainedObjectKey,
+  resolveContainedPath,
+} from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import sharp from 'sharp';
@@ -16,6 +27,8 @@ type UploadSource =
   | { type: 'url'; url: string }
   | { type: 'base64'; data: string; contentType: string }
   | { type: 'buffer'; data: Buffer; contentType: string };
+
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 @Injectable()
 export class UploadService {
@@ -59,12 +72,15 @@ export class UploadService {
     duration: number;
     hasAudio: boolean;
   }> {
-    const tmpDir = path.resolve('public', 'tmp');
-    // Ensure tmp directory exists
+    const tmpPath = resolveContainedPath(
+      FILES_TMP_ROOT,
+      `${key}.mp4`,
+      createBadRequest,
+    );
+    const tmpDir = path.dirname(tmpPath);
     if (!fs.existsSync(tmpDir)) {
       fs.mkdirSync(tmpDir, { recursive: true });
     }
-    const tmpPath = path.resolve(tmpDir, `${key}.mp4`);
     try {
       fs.writeFileSync(tmpPath, buffer);
       return await this.getVideoDimensions(tmpPath);
@@ -120,7 +136,11 @@ export class UploadService {
       const prepareStartTime = Date.now();
       switch (source.type) {
         case 'file':
-          filePath = source.path;
+          filePath = resolveContainedPath(
+            FILES_TMP_ROOT,
+            source.path,
+            createBadRequest,
+          );
           contentType = 'application/octet-stream';
 
           if (filePath.match(/\.mp4$/i)) {
@@ -335,7 +355,11 @@ export class UploadService {
       }
 
       // Generate storage path: ingredients/${type}/${key}
-      const storagePath = `ingredients/${type}/${key}`;
+      const storagePath = resolveContainedObjectKey(
+        'ingredients',
+        `${type}/${key}`,
+        createBadRequest,
+      );
 
       // Upload using storage provider (returns a storage path/key)
       const s3UploadStartTime = Date.now();

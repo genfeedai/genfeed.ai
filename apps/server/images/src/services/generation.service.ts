@@ -141,6 +141,7 @@ export class GenerationService {
           this.configService.AWS_S3_BUCKET,
           s3Key,
           localPath,
+          this.configService.COMFYUI_OUTPUT_PATH,
           this.getContentType(filename),
         );
         resultUrl = `https://cdn.genfeed.ai/${s3Key}`;

@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-
+import { resolveContainedPath } from './path-containment';
 import type {
   FileEntry,
   ListOptions,
@@ -39,38 +39,6 @@ function resolveBaseDir(): string {
   );
 }
 
-/**
- * Resolve `candidate` against `root` and assert the result stays inside it.
- *
- * `path.join(root, candidate)` is not a containment check: enough leading
- * `../` segments walk straight out of the storage directory. Resolving and
- * then comparing against the root catches that, and also catches an absolute
- * candidate, which `path.resolve` discards the root for entirely. Every method
- * here takes its path from a caller, so every one of them resolves through
- * this.
- *
- * `@libs/security` has the same guard, but this package deliberately depends
- * on nothing but `@aws-sdk/client-s3` and `@genfeedai/config`, so it keeps its
- * own copy rather than acquire a workspace dependency for six lines.
- */
-function resolveWithin(root: string, candidate: string): string {
-  if (typeof candidate !== 'string') {
-    throw new Error('Storage path must be a string');
-  }
-
-  const resolvedRoot = path.resolve(root);
-  const resolved = path.resolve(resolvedRoot, candidate);
-
-  if (
-    resolved !== resolvedRoot &&
-    !resolved.startsWith(`${resolvedRoot}${path.sep}`)
-  ) {
-    throw new Error(`Storage path must stay within ${resolvedRoot}`);
-  }
-
-  return resolved;
-}
-
 export class LocalStorageProvider implements StorageProvider {
   private readonly baseDir: string;
 
@@ -83,7 +51,11 @@ export class LocalStorageProvider implements StorageProvider {
 
   /** Resolve a caller-supplied path against the storage root. */
   private resolvePath(filePath: string): string {
-    return resolveWithin(this.baseDir, filePath);
+    return resolveContainedPath(
+      this.baseDir,
+      filePath === '' ? '.' : filePath,
+      (message) => new Error(message),
+    );
   }
 
   async upload(

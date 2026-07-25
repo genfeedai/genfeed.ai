@@ -2,6 +2,7 @@ import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Mocked } from 'vitest';
 
@@ -87,6 +88,17 @@ describe('VideoThumbnailService', () => {
       expect(thumbnailUrl).toContain('thumbnails/test-id.jpg');
     });
 
+    it('rejects a traversal ingredient ID before requesting a temp path', async () => {
+      await expect(
+        service.generateThumbnail(
+          'https://example.com/video.mp4',
+          '../escaped',
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(ffmpegService.getTempPath).not.toHaveBeenCalled();
+    });
+
     it('should use custom timeInSeconds', async () => {
       const videoUrl = 'https://example.com/video.mp4';
       const ingredientId = 'test-id';
@@ -94,10 +106,27 @@ describe('VideoThumbnailService', () => {
 
       await service.generateThumbnail(videoUrl, ingredientId, timeInSeconds);
 
+      expect(ffmpegService.getTempPath).toHaveBeenCalledWith(
+        'thumbnail',
+        ingredientId,
+      );
       expect(ffmpegService.extractFrame).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
         timeInSeconds,
+      );
+    });
+
+    it('cleans the three contained temp files after success', async () => {
+      await service.generateThumbnail(
+        'https://example.com/video.mp4',
+        'test-id',
+      );
+
+      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
+        expect.stringContaining('input.mp4'),
+        expect.stringContaining('thumbnail.jpg'),
+        expect.stringContaining('thumbnail_resized.jpg'),
       );
     });
 

@@ -1,6 +1,7 @@
 import { ConfigService } from '@files/config/config.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 // Mock AWS SDK
@@ -29,6 +30,7 @@ describe('S3Service', () => {
         AWS_REGION: 'us-west-1',
         AWS_S3_BUCKET: 'test-bucket',
         AWS_SECRET_ACCESS_KEY: 'test-secret-key',
+        GENFEEDAI_CDN_URL: 'https://cdn.example.com',
       };
       return config[key];
     }),
@@ -73,5 +75,31 @@ describe('S3Service', () => {
     expect(configService.get).toHaveBeenCalledWith('AWS_REGION');
     expect(configService.get).toHaveBeenCalledWith('AWS_ACCESS_KEY_ID');
     expect(configService.get).toHaveBeenCalledWith('AWS_SECRET_ACCESS_KEY');
+  });
+
+  it('builds a legitimate nested key under the ingredients prefix', () => {
+    expect(
+      service.generateS3Key('images', 'organizations/org-1/nested/photo.png'),
+    ).toBe('ingredients/images/organizations/org-1/nested/photo.png');
+  });
+
+  it.each([
+    ['../images', 'photo.png'],
+    ['images', '../../escaped.png'],
+    ['images', '/absolute.png'],
+  ])('rejects key traversal in %s/%s', (type, id) => {
+    expect(() => service.generateS3Key(type, id)).toThrow(BadRequestException);
+  });
+
+  it('rejects an out-of-root local download path before contacting S3', async () => {
+    await expect(
+      service.downloadFile('images/photo.png', '/etc/escaped.png'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('accepts a legitimate nested object key for public URLs', () => {
+    expect(service.getPublicUrl('images/nested/photo.png')).toBe(
+      'https://cdn.example.com/images/nested/photo.png',
+    );
   });
 });

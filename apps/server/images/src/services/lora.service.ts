@@ -79,7 +79,12 @@ export class LoraService {
       s3Key,
     });
 
-    await this.s3Service.uploadFile(bucket, s3Key, localPath);
+    await this.s3Service.uploadFile(
+      bucket,
+      s3Key,
+      localPath,
+      this.configService.COMFYUI_LORAS_PATH,
+    );
 
     this.loggerService.log(caller, {
       loraName,

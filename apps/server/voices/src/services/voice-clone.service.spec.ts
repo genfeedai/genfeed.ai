@@ -77,6 +77,7 @@ describe('VoiceCloneService', () => {
         'test-bucket',
         'ingredients/trainings/voice-clones/my-voice/model.pth',
         '/models/voices/my-voice/model.pth',
+        '/models/voices',
       );
     });
 
@@ -153,18 +154,21 @@ describe('VoiceCloneService', () => {
       '/etc/shadow.pth',
       '../../root/.ssh/id_rsa.pth',
       '/models/voices-sibling/evil.pth',
-    ])('should reject localPath %s outside the configured model directory', async (localPath) => {
-      mockStat.mockResolvedValue({ size: 12345 });
+    ])(
+      'should reject localPath %s outside the configured model directory',
+      async (localPath) => {
+        mockStat.mockResolvedValue({ size: 12345 });
 
-      await expect(
-        service.uploadClone({ localPath, voiceId: 'my-voice' }),
-      ).rejects.toThrow(BadRequestException);
+        await expect(
+          service.uploadClone({ localPath, voiceId: 'my-voice' }),
+        ).rejects.toThrow(BadRequestException);
 
-      // The file is never read, so its bytes never reach a bucket the
-      // caller can list.
-      expect(mockStat).not.toHaveBeenCalled();
-      expect(mockS3Service.uploadFile).not.toHaveBeenCalled();
-    });
+        // The file is never read, so its bytes never reach a bucket the
+        // caller can list.
+        expect(mockStat).not.toHaveBeenCalled();
+        expect(mockS3Service.uploadFile).not.toHaveBeenCalled();
+      },
+    );
 
     it('should accept a path relative to the configured model directory', async () => {
       mockStat.mockResolvedValue({ size: 12345 });
@@ -178,6 +182,7 @@ describe('VoiceCloneService', () => {
         'test-bucket',
         'ingredients/trainings/voice-clones/my-voice/model.pth',
         '/models/voices/my-voice/model.pth',
+        '/models/voices',
       );
     });
   });
@@ -213,18 +218,16 @@ describe('VoiceCloneService', () => {
       );
     });
 
-    it.each([
-      '../evil',
-      'nested/name',
-      'a..b',
-      '$(whoami)',
-    ])('should reject voiceId %s before listing S3', async (voiceId) => {
-      await expect(service.downloadClone(voiceId)).rejects.toThrow(
-        BadRequestException,
-      );
+    it.each(['../evil', 'nested/name', 'a..b', '$(whoami)'])(
+      'should reject voiceId %s before listing S3',
+      async (voiceId) => {
+        await expect(service.downloadClone(voiceId)).rejects.toThrow(
+          BadRequestException,
+        );
 
-      expect(mockS3Service.listObjects).not.toHaveBeenCalled();
-    });
+        expect(mockS3Service.listObjects).not.toHaveBeenCalled();
+      },
+    );
 
     it('should refuse to write an S3 key that escapes the voice directory', async () => {
       // The key suffix is attacker-influenced if anything can write to the

@@ -95,6 +95,7 @@ describe('VoiceDatasetService', () => {
         'test-bucket',
         'sample.wav',
         '/datasets/voices/test/sample.wav',
+        '/datasets/voices/test',
       );
     });
 
@@ -113,6 +114,27 @@ describe('VoiceDatasetService', () => {
       await expect(
         service.syncFromS3('../evil', { s3Keys: ['sample.wav'] }),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject an S3 key whose basename escapes the voice dataset', async () => {
+      await expect(
+        service.syncFromS3('test', { s3Keys: ['uploads/..'] }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockS3Service.downloadFile).not.toHaveBeenCalled();
+    });
+
+    it('should accept a nested S3 key and contain its local filename', async () => {
+      await service.syncFromS3('test', {
+        s3Keys: ['uploads/nested/sample.wav'],
+      });
+
+      expect(mockS3Service.downloadFile).toHaveBeenCalledWith(
+        'test-bucket',
+        'uploads/nested/sample.wav',
+        '/datasets/voices/test/sample.wav',
+        '/datasets/voices/test',
+      );
     });
 
     it('should throw if s3Keys is empty', async () => {

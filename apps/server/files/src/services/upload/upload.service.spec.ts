@@ -1,11 +1,14 @@
+import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
-import { S3Service } from '@files/services/s3/s3.service';
 import { UploadService } from '@files/services/upload/upload.service';
+import type { StorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import type { Mock, Mocked } from 'vitest';
 
@@ -34,14 +37,23 @@ vi.mock('fs', () => ({
 import * as fs from 'node:fs';
 import sharp from 'sharp';
 
+type MockSharpInstance = {
+  jpeg: Mock;
+  metadata: Mock;
+  png: Mock;
+  rotate: Mock;
+  toBuffer: Mock;
+  webp: Mock;
+};
+
 describe('UploadService', () => {
   let service: UploadService;
   let mockConfigService: Mocked<ConfigService>;
   let mockFfmpegService: Mocked<FFmpegService>;
   let mockHttpService: Mocked<HttpService>;
   let mockLogger: Mocked<LoggerService>;
-  let mockS3Service: Mocked<S3Service>;
-  let mockSharpInstance: any;
+  let mockStorage: Mocked<StorageProvider>;
+  let mockSharpInstance: MockSharpInstance;
 
   beforeEach(async () => {
     mockConfigService = {
@@ -69,11 +81,10 @@ describe('UploadService', () => {
       warn: vi.fn(),
     } as unknown as Mocked<LoggerService>;
 
-    mockS3Service = {
-      generateS3Key: vi.fn().mockReturnValue('ingredients/images/test-key'),
-      getPublicUrl: vi.fn().mockReturnValue('https://s3.example.com/test-key'),
-      uploadBuffer: vi.fn().mockResolvedValue(undefined),
-    } as unknown as Mocked<S3Service>;
+    mockStorage = {
+      getUrl: vi.fn().mockReturnValue('https://s3.example.com/test-key'),
+      upload: vi.fn().mockResolvedValue('ingredients/images/test-key'),
+    } as unknown as Mocked<StorageProvider>;
 
     // Reset sharp mock
     mockSharpInstance = {
@@ -97,7 +108,7 @@ describe('UploadService', () => {
         { provide: FFmpegService, useValue: mockFfmpegService },
         { provide: HttpService, useValue: mockHttpService },
         { provide: LoggerService, useValue: mockLogger },
-        { provide: S3Service, useValue: mockS3Service },
+        { provide: 'STORAGE_PROVIDER', useValue: mockStorage },
       ],
     }).compile();
 
@@ -116,21 +127,66 @@ describe('UploadService', () => {
   });
 
   describe('uploadToS3 - file source', () => {
+    it('rejects a file source outside the files temp root before reading it', async () => {
+      await expect(
+        service.uploadToS3('test-key', 'images', {
+          path: '/etc/passwd.jpg',
+          type: 'file',
+        }),
+      ).rejects.toThrow(HttpException);
+
+      expect(fs.readFileSync).not.toHaveBeenCalled();
+      expect(mockStorage.upload).not.toHaveBeenCalled();
+    });
+
     it('should upload JPEG file with image dimensions', async () => {
       const result = await service.uploadToS3('test-key', 'images', {
-        path: '/path/to/image.jpg',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
         type: 'file',
       });
 
       expect(result.width).toBe(1920);
       expect(result.height).toBe(1080);
       expect(result.publicUrl).toBe('https://s3.example.com/test-key');
-      expect(mockS3Service.uploadBuffer).toHaveBeenCalled();
+      expect(mockStorage.upload).toHaveBeenCalled();
+    });
+
+    it('accepts a legitimate nested file source under the files temp root', async () => {
+      const nestedPath = path.join(
+        FILES_TMP_ROOT,
+        'nested',
+        'uploads',
+        'image.jpg',
+      );
+
+      await service.uploadToS3('nested/image', 'images', {
+        path: nestedPath,
+        type: 'file',
+      });
+
+      expect(fs.readFileSync).toHaveBeenCalledWith(nestedPath);
+      expect(mockStorage.upload).toHaveBeenCalledWith(
+        expect.any(Buffer),
+        'ingredients/images/nested/image',
+        'image/jpeg',
+      );
+    });
+
+    it('rejects an object key that escapes the ingredients prefix', async () => {
+      await expect(
+        service.uploadToS3('../../escaped', 'images', {
+          contentType: 'image/jpeg',
+          data: Buffer.from('image'),
+          type: 'buffer',
+        }),
+      ).rejects.toThrow(HttpException);
+
+      expect(mockStorage.upload).not.toHaveBeenCalled();
     });
 
     it('should upload PNG file', async () => {
       await service.uploadToS3('test-key', 'images', {
-        path: '/path/to/image.png',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.png'),
         type: 'file',
       });
 
@@ -142,7 +198,7 @@ describe('UploadService', () => {
 
     it('should upload WebP file', async () => {
       await service.uploadToS3('test-key', 'images', {
-        path: '/path/to/image.webp',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.webp'),
         type: 'file',
       });
 
@@ -151,7 +207,7 @@ describe('UploadService', () => {
 
     it('should upload MP4 video file with metadata', async () => {
       const result = await service.uploadToS3('test-key', 'videos', {
-        path: '/path/to/video.mp4',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'video.mp4'),
         type: 'file',
       });
 
@@ -169,7 +225,7 @@ describe('UploadService', () => {
       });
 
       const result = await service.uploadToS3('test-key', 'videos', {
-        path: '/path/to/video.mp4',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'video.mp4'),
         type: 'file',
       });
 
@@ -178,7 +234,7 @@ describe('UploadService', () => {
 
     it('should upload ZIP file without image processing', async () => {
       const result = await service.uploadToS3('test-key', 'archives', {
-        path: '/path/to/archive.zip',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'archive.zip'),
         type: 'file',
       });
 
@@ -188,11 +244,11 @@ describe('UploadService', () => {
 
     it('should handle unknown file types as octet-stream', async () => {
       await service.uploadToS3('test-key', 'files', {
-        path: '/path/to/file.unknown',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'file.unknown'),
         type: 'file',
       });
 
-      expect(mockS3Service.uploadBuffer).toHaveBeenCalled();
+      expect(mockStorage.upload).toHaveBeenCalled();
     });
   });
 
@@ -202,7 +258,7 @@ describe('UploadService', () => {
         of({
           data: Buffer.from('downloaded-content'),
           headers: { 'content-type': 'image/jpeg' },
-        } as any),
+        } as unknown as AxiosResponse<ArrayBuffer>),
       );
 
       const result = await service.uploadToS3('test-key', 'images', {
@@ -269,7 +325,7 @@ describe('UploadService', () => {
         of({
           data: Buffer.from('video-content'),
           headers: {},
-        } as any),
+        } as unknown as AxiosResponse<ArrayBuffer>),
       );
 
       // Need to setup tmp dir mock
@@ -289,7 +345,7 @@ describe('UploadService', () => {
         of({
           data: Buffer.from('zip-content'),
           headers: {},
-        } as any),
+        } as unknown as AxiosResponse<ArrayBuffer>),
       );
 
       const result = await service.uploadToS3('test-key', 'archives', {
@@ -325,7 +381,7 @@ describe('UploadService', () => {
         type: 'base64',
       });
 
-      expect(mockS3Service.uploadBuffer).toHaveBeenCalled();
+      expect(mockStorage.upload).toHaveBeenCalled();
     });
 
     it('should handle base64 video and extract metadata', async () => {
@@ -386,17 +442,17 @@ describe('UploadService', () => {
     it('should throw error for invalid source type', async () => {
       await expect(
         service.uploadToS3('test-key', 'files', {
-          type: 'invalid' as any,
+          type: 'invalid' as never,
         }),
       ).rejects.toThrow('Invalid upload source type');
     });
 
     it('should log error details on failure', async () => {
-      mockS3Service.uploadBuffer.mockRejectedValue(new Error('S3 error'));
+      mockStorage.upload.mockRejectedValue(new Error('S3 error'));
 
       await expect(
         service.uploadToS3('test-key', 'images', {
-          path: '/path/to/image.jpg',
+          path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
           type: 'file',
         }),
       ).rejects.toThrow('S3 error');
@@ -414,7 +470,7 @@ describe('UploadService', () => {
   describe('uploadToS3 - image processing', () => {
     it('should auto-rotate images based on EXIF', async () => {
       await service.uploadToS3('test-key', 'images', {
-        path: '/path/to/image.jpg',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
         type: 'file',
       });
 
@@ -425,7 +481,7 @@ describe('UploadService', () => {
       mockConfigService.get.mockReturnValue('85');
 
       await service.uploadToS3('test-key', 'images', {
-        path: '/path/to/image.jpg',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
         type: 'file',
       });
 
@@ -436,7 +492,7 @@ describe('UploadService', () => {
       mockConfigService.get.mockReturnValue(undefined);
 
       await service.uploadToS3('test-key', 'images', {
-        path: '/path/to/image.jpg',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
         type: 'file',
       });
 
@@ -447,7 +503,7 @@ describe('UploadService', () => {
   describe('uploadToS3 - logging', () => {
     it('should log upload start', async () => {
       await service.uploadToS3('test-key', 'images', {
-        path: '/path/to/image.jpg',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
         type: 'file',
       });
 
@@ -463,7 +519,7 @@ describe('UploadService', () => {
 
     it('should log upload completion with metrics', async () => {
       await service.uploadToS3('test-key', 'images', {
-        path: '/path/to/image.jpg',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
         type: 'file',
       });
 
@@ -480,7 +536,7 @@ describe('UploadService', () => {
   describe('uploadToS3 - return values', () => {
     it('should return complete metadata for images', async () => {
       const result = await service.uploadToS3('test-key', 'images', {
-        path: '/path/to/image.jpg',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
         type: 'file',
       });
 
@@ -496,7 +552,7 @@ describe('UploadService', () => {
 
     it('should return complete metadata for videos', async () => {
       const result = await service.uploadToS3('test-key', 'videos', {
-        path: '/path/to/video.mp4',
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'video.mp4'),
         type: 'file',
       });
 

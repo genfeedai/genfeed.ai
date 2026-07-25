@@ -11,7 +11,10 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-
+import {
+  assertSafeObjectKey,
+  assertSafeObjectKeyPrefix,
+} from './path-containment';
 import type {
   FileEntry,
   ListOptions,
@@ -19,6 +22,8 @@ import type {
   StorageProvider,
   StorageProviderOptions,
 } from './storage.provider';
+
+const createStorageError = (message: string) => new Error(message);
 
 const MIME_BY_EXT: Record<string, string> = {
   '.aac': 'audio/aac',
@@ -81,15 +86,16 @@ export class S3StorageProvider implements StorageProvider {
     filePath: string,
     contentType?: string,
   ): Promise<string> {
+    const safeFilePath = assertSafeObjectKey(filePath, createStorageError);
     const resolvedContentType = contentType ?? mimeFromPath(filePath);
     const command = new PutObjectCommand({
       Body: file,
       Bucket: this.bucket,
       ContentType: resolvedContentType,
-      Key: filePath,
+      Key: safeFilePath,
     });
     await this.client.send(command);
-    return filePath;
+    return safeFilePath;
   }
 
   async uploadFromFile(
@@ -97,6 +103,7 @@ export class S3StorageProvider implements StorageProvider {
     localPath: string,
     contentType?: string,
   ): Promise<string> {
+    const safeFilePath = assertSafeObjectKey(filePath, createStorageError);
     const fileBuffer = await readFile(localPath);
     const fileStats = await stat(localPath);
     const resolvedContentType = contentType ?? mimeFromPath(localPath);
@@ -106,22 +113,23 @@ export class S3StorageProvider implements StorageProvider {
       Bucket: this.bucket,
       ContentLength: fileStats.size,
       ContentType: resolvedContentType,
-      Key: filePath,
+      Key: safeFilePath,
     });
     await this.client.send(command);
-    return filePath;
+    return safeFilePath;
   }
 
   async download(filePath: string, localPath: string): Promise<void> {
+    const safeFilePath = assertSafeObjectKey(filePath, createStorageError);
     const command = new GetObjectCommand({
       Bucket: this.bucket,
-      Key: filePath,
+      Key: safeFilePath,
     });
     const response = await this.client.send(command);
 
     if (!response.Body) {
       throw new Error(
-        `Empty response body for s3://${this.bucket}/${filePath}`,
+        `Empty response body for s3://${this.bucket}/${safeFilePath}`,
       );
     }
 
@@ -130,21 +138,24 @@ export class S3StorageProvider implements StorageProvider {
   }
 
   getUrl(filePath: string): string {
-    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${filePath}`;
+    const safeFilePath = assertSafeObjectKey(filePath, createStorageError);
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${safeFilePath}`;
   }
 
   async delete(filePath: string): Promise<void> {
+    const safeFilePath = assertSafeObjectKey(filePath, createStorageError);
     const command = new DeleteObjectCommand({
       Bucket: this.bucket,
-      Key: filePath,
+      Key: safeFilePath,
     });
     await this.client.send(command);
   }
 
   async list(prefix: string, options?: ListOptions): Promise<FileEntry[]> {
+    const safePrefix = assertSafeObjectKeyPrefix(prefix, createStorageError);
     const command = new ListObjectsV2Command({
       Bucket: this.bucket,
-      Prefix: prefix,
+      Prefix: safePrefix,
       MaxKeys: (options?.offset ?? 0) + (options?.limit ?? 1000),
     });
     const response = await this.client.send(command);
@@ -173,6 +184,7 @@ export class S3StorageProvider implements StorageProvider {
   }
 
   async listObjects(prefix: string): Promise<StorageObject[]> {
+    const safePrefix = assertSafeObjectKeyPrefix(prefix, createStorageError);
     const objects: StorageObject[] = [];
     let continuationToken: string | undefined;
 
@@ -180,7 +192,7 @@ export class S3StorageProvider implements StorageProvider {
       const command = new ListObjectsV2Command({
         Bucket: this.bucket,
         ContinuationToken: continuationToken,
-        Prefix: prefix,
+        Prefix: safePrefix,
       });
       const response = await this.client.send(command);
 
@@ -201,10 +213,11 @@ export class S3StorageProvider implements StorageProvider {
   }
 
   async exists(filePath: string): Promise<boolean> {
+    const safeFilePath = assertSafeObjectKey(filePath, createStorageError);
     try {
       const command = new HeadObjectCommand({
         Bucket: this.bucket,
-        Key: filePath,
+        Key: safeFilePath,
       });
       await this.client.send(command);
       return true;
