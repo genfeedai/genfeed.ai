@@ -157,6 +157,41 @@ export class OrganizationsController extends BaseCRUDController<
   }
 
   /**
+   * Organization rows carry no `organizationId`/`brandId` pointer, so the base
+   * containment default would fail open on GET /organizations/:id. Scope the
+   * read to the active org, ownership, or an active membership instead — the
+   * same access rule verifyOrganizationAccess applies to the sub-resources.
+   */
+  public override async canUserReadEntity(
+    user: User,
+    entity: OrganizationDocument,
+  ): Promise<boolean> {
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = entity?.id?.toString();
+
+    if (!organizationId || !publicMetadata.user) {
+      return false;
+    }
+
+    if (organizationId === publicMetadata.organization) {
+      return true;
+    }
+
+    if (this.isOrganizationOwner(entity, publicMetadata.user)) {
+      return true;
+    }
+
+    const member = await this.membersService.findOne({
+      isActive: true,
+      isDeleted: false,
+      organization: organizationId,
+      user: publicMetadata.user,
+    });
+
+    return Boolean(member);
+  }
+
+  /**
    * GET /organizations/by-slug/:slug
    * Resolve an organization by its URL-friendly slug.
    */

@@ -64,6 +64,16 @@ describe('BaseCRUDController', () => {
     } as IAuthPublicMetadata,
   } as unknown as User;
 
+  const superAdminUser = {
+    id: 'user-admin',
+    publicMetadata: {
+      brand: MOCK_BRAND_ID,
+      isSuperAdmin: true,
+      organization: MOCK_ORG_ID,
+      user: MOCK_USER_ID,
+    } as IAuthPublicMetadata,
+  } as unknown as User;
+
   const mockRequest = {
     originalUrl: '/api/test',
     query: {},
@@ -234,7 +244,7 @@ describe('BaseCRUDController', () => {
       const result = await controller.findOne(mockRequest, mockUser, id);
 
       expect(service.findOne).toHaveBeenCalledWith(
-        { _id: id },
+        { _id: id, isDeleted: false },
         controller.getPopulateFields(),
       );
       expect(result).toEqual({ data: mockEntity });
@@ -257,6 +267,52 @@ describe('BaseCRUDController', () => {
       await expect(
         controller.findOne(mockRequest, mockUser, id),
       ).rejects.toThrow(HttpException);
+    });
+
+    // Regression: the inherited single-read used to run an unscoped
+    // `{ _id: id }` lookup and serialize whatever came back, so any
+    // authenticated user could read another organization's record by id.
+    it('should throw not found for an entity owned by another organization', async () => {
+      const id = '507f1f77bcf86cd799439020';
+      service.findOne.mockResolvedValue({
+        _id: id,
+        name: 'Foreign Entity',
+        organizationId: '507f1f77bcf86cd7994390aa',
+      });
+
+      await expect(
+        controller.findOne(mockRequest, mockUser, id),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('should return an entity owned by the caller organization', async () => {
+      const id = '507f1f77bcf86cd799439021';
+      const mockEntity = {
+        _id: id,
+        name: 'Own Entity',
+        organizationId: MOCK_ORG_ID,
+      };
+
+      service.findOne.mockResolvedValue(mockEntity);
+
+      const result = await controller.findOne(mockRequest, mockUser, id);
+
+      expect(result).toEqual({ data: mockEntity });
+    });
+
+    it('should let a super admin read a foreign organization entity', async () => {
+      const id = '507f1f77bcf86cd799439022';
+      const mockEntity = {
+        _id: id,
+        name: 'Foreign Entity',
+        organizationId: '507f1f77bcf86cd7994390aa',
+      };
+
+      service.findOne.mockResolvedValue(mockEntity);
+
+      const result = await controller.findOne(mockRequest, superAdminUser, id);
+
+      expect(result).toEqual({ data: mockEntity });
     });
   });
 
@@ -382,7 +438,10 @@ describe('BaseCRUDController', () => {
 
       const result = await controller.remove(mockRequest, mockUser, id);
 
-      expect(service.findOne).toHaveBeenCalledWith({ _id: id });
+      expect(service.findOne).toHaveBeenCalledWith({
+        _id: id,
+        isDeleted: false,
+      });
       expect(service.remove).toHaveBeenCalledWith(mockDeletedEntity.id);
       expect(result).toEqual({ data: mockDeletedEntity });
     });
@@ -447,6 +506,88 @@ describe('BaseCRUDController', () => {
       };
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
+    });
+  });
+
+  describe('canUserReadEntity', () => {
+    // Containment check, not ownership: a teammate-owned row inside the
+    // caller's organization must stay readable, while a row belonging to
+    // another tenant must not.
+    it('allows a row whose organizationId matches the caller', () => {
+      const entity = {
+        _id: '507f1f77bcf86cd79943901e',
+        organizationId: MOCK_ORG_ID,
+        userId: '507f1f77bcf86cd7994390ff',
+      };
+
+      expect(controller.canUserReadEntity(mockUser, entity)).toBe(true);
+    });
+
+    it('denies a row whose organizationId belongs to another tenant', () => {
+      const entity = {
+        _id: '507f1f77bcf86cd79943901f',
+        organizationId: '507f1f77bcf86cd7994390aa',
+      };
+
+      expect(controller.canUserReadEntity(mockUser, entity)).toBe(false);
+    });
+
+    it('allows a row via a populated organization relation object (compat)', () => {
+      const entity = {
+        _id: '507f1f77bcf86cd799439023',
+        organization: { id: MOCK_ORG_ID },
+      };
+
+      expect(controller.canUserReadEntity(mockUser, entity)).toBe(true);
+    });
+
+    it('denies an organization-scoped row when the caller has no organization', () => {
+      const entity = {
+        _id: '507f1f77bcf86cd799439024',
+        organizationId: MOCK_ORG_ID,
+      };
+      const orglessUser = {
+        publicMetadata: { user: MOCK_USER_ID } as IAuthPublicMetadata,
+      } as unknown as User;
+
+      expect(controller.canUserReadEntity(orglessUser, entity)).toBe(false);
+    });
+
+    // Shared/default catalog rows (e.g. `organizationId: null` presets and
+    // elements) carry no tenancy pointer and stay readable by everyone.
+    it('allows a row that carries no organization or brand pointer', () => {
+      const entity = { _id: '507f1f77bcf86cd799439025', organizationId: null };
+
+      expect(controller.canUserReadEntity(mockUser, entity)).toBe(true);
+    });
+
+    // Link is the only model with brandId and no organizationId.
+    it('falls back to brandId when the row carries no organizationId', () => {
+      const entity = {
+        _id: '507f1f77bcf86cd799439026',
+        brandId: MOCK_BRAND_ID,
+      };
+
+      expect(controller.canUserReadEntity(mockUser, entity)).toBe(true);
+    });
+
+    it('denies a row whose brandId belongs to another brand', () => {
+      const entity = {
+        _id: '507f1f77bcf86cd799439027',
+        brandId: '507f1f77bcf86cd7994390bb',
+      };
+
+      expect(controller.canUserReadEntity(mockUser, entity)).toBe(false);
+    });
+
+    it('prefers organizationId over brandId when both are present', () => {
+      const entity = {
+        _id: '507f1f77bcf86cd799439028',
+        brandId: MOCK_BRAND_ID,
+        organizationId: '507f1f77bcf86cd7994390aa',
+      };
+
+      expect(controller.canUserReadEntity(mockUser, entity)).toBe(false);
     });
   });
 });

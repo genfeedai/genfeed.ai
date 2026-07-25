@@ -458,4 +458,64 @@ describe('OrganizationsController', () => {
       );
     });
   });
+
+  // Organization rows carry no `organizationId`/`brandId` pointer, so the base
+  // containment default would treat them as shared and fail open on
+  // GET /organizations/:id. This override resolves access by active org,
+  // ownership, or an active membership instead.
+  describe('canUserReadEntity', () => {
+    type OrganizationRow = Parameters<
+      OrganizationsController['canUserReadEntity']
+    >[1];
+
+    const asOrganization = (row: Record<string, unknown>): OrganizationRow =>
+      row as OrganizationRow;
+
+    it('allows the active organization without a membership lookup', async () => {
+      const result = await controller.canUserReadEntity(
+        currentUser,
+        asOrganization({ id: 'org_active', userId: 'user_other' }),
+      );
+
+      expect(result).toBe(true);
+      expect(mockMembersService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('allows the owner of another organization', async () => {
+      const result = await controller.canUserReadEntity(
+        currentUser,
+        asOrganization({ id: 'org_other', userId: 'user_1' }),
+      );
+
+      expect(result).toBe(true);
+    });
+
+    it('allows a user with an active membership', async () => {
+      mockMembersService.findOne.mockResolvedValue({ id: 'member_1' });
+
+      const result = await controller.canUserReadEntity(
+        currentUser,
+        asOrganization({ id: 'org_other', userId: 'user_other' }),
+      );
+
+      expect(result).toBe(true);
+      expect(mockMembersService.findOne).toHaveBeenCalledWith({
+        isActive: true,
+        isDeleted: false,
+        organization: 'org_other',
+        user: 'user_1',
+      });
+    });
+
+    it('denies a non-member of another organization', async () => {
+      mockMembersService.findOne.mockResolvedValue(null);
+
+      const result = await controller.canUserReadEntity(
+        currentUser,
+        asOrganization({ id: 'org_other', userId: 'user_other' }),
+      );
+
+      expect(result).toBe(false);
+    });
+  });
 });

@@ -59,6 +59,29 @@ type AggregatePaginateResult<T> = {
 
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
+/**
+ * Resolve a tenancy pointer to its string id.
+ *
+ * Rows are Prisma-shaped, so the scalar FK (`organizationId` / `brandId`) is
+ * the value that actually exists at runtime. The Mongo-era alias
+ * (`organization` / `brand`) is only defined when a controller populates it,
+ * in which case it arrives as a relation object.
+ */
+function resolveScopeId(value: unknown): string | null {
+  if (typeof value === 'string') {
+    return value || null;
+  }
+
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const record = value as { _id?: unknown; id?: unknown };
+  const candidate = record.id ?? record._id;
+
+  return typeof candidate === 'string' && candidate ? candidate : null;
+}
+
 @AutoSwagger()
 export abstract class BaseCRUDController<
   T = EntityDocument<unknown>,
@@ -151,6 +174,15 @@ export abstract class BaseCRUDController<
     );
 
     if (!data) {
+      ErrorResponse.notFound(this.entityName, id);
+    }
+
+    // Fetch-then-check, mirroring patch/remove. Return 404 instead of 403 so a
+    // cross-tenant probe can't distinguish "exists elsewhere" from "missing".
+    if (
+      !(await this.canUserReadEntity(user, data)) &&
+      !getIsSuperAdmin(user, request)
+    ) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
@@ -293,8 +325,55 @@ export abstract class BaseCRUDController<
     };
   }
 
+  /**
+   * Build the single-record lookup used by findOne and remove.
+   *
+   * Tenancy is NOT enforced here — see canUserReadEntity. `service.findOne`
+   * runs no unknown-field audit, so an `organizationId` key would throw on
+   * models that lack the column while the `organization` alias would be
+   * silently dropped (fail-open). Soft deletes are safe to filter because
+   * processSearchParams drops `isDeleted` for models without the field.
+   */
   public buildFindOneQuery(_user: User, id: string): Record<string, unknown> {
-    return { _id: id };
+    return { _id: id, isDeleted: false };
+  }
+
+  /**
+   * Check if the user can READ the fetched entity.
+   *
+   * Runs after the fetch (like the patch/remove ownership checks) so it can
+   * inspect the row instead of widening the query. Precedence:
+   *
+   *  1. `organizationId` set -> must match the caller's organization.
+   *  2. else `brandId` set -> must match the caller's brand.
+   *  3. else the row carries no tenancy pointer (shared/default catalog rows,
+   *     e.g. `organizationId: null` presets and elements) -> readable.
+   *
+   * It deliberately does NOT delegate to canUserModifyEntity: that default is
+   * per-user ownership, which would hide every teammate-owned row.
+   *
+   * Collections whose rows carry neither pointer but are still scoped (e.g.
+   * organizations, resolved by membership) MUST override this.
+   */
+  public canUserReadEntity(user: User, entity: T): boolean | Promise<boolean> {
+    const publicMetadata = getPublicMetadata(user);
+    const entityRecord = entity as Record<string, unknown>;
+
+    const entityOrganizationId = resolveScopeId(
+      entityRecord.organizationId ?? entityRecord.organization,
+    );
+    if (entityOrganizationId) {
+      return entityOrganizationId === publicMetadata.organization;
+    }
+
+    const entityBrandId = resolveScopeId(
+      entityRecord.brandId ?? entityRecord.brand,
+    );
+    if (entityBrandId) {
+      return entityBrandId === publicMetadata.brand;
+    }
+
+    return true;
   }
 
   /**
