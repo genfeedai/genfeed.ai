@@ -27,34 +27,57 @@ const { mockClient, mockRest } = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('discord.js', () => ({
-  ActionRowBuilder: vi.fn(() => ({ addComponents: vi.fn().mockReturnThis() })),
-  // A bare factory replaces the whole module, so every export the service
-  // imports must be present or the import throws. The manager uses this one in
-  // an `instanceof` check when resolving a send-to-channel target.
-  BaseGuildTextChannel: class BaseGuildTextChannel {},
-  ButtonBuilder: vi.fn(() => ({
-    setCustomId: vi.fn().mockReturnThis(),
-    setLabel: vi.fn().mockReturnThis(),
-    setStyle: vi.fn().mockReturnThis(),
-  })),
-  ButtonStyle: { Danger: 4, Primary: 1, Secondary: 2, Success: 3 },
-  Client: vi.fn(() => mockClient),
-  Events: { ClientReady: 'clientReady' },
-  GatewayIntentBits: {
-    DirectMessages: 4,
-    GuildMessages: 2,
-    Guilds: 1,
-    MessageContent: 3,
-  },
-  REST: vi.fn(() => mockRest),
-  Routes: { applicationCommands: vi.fn().mockReturnValue('/commands') },
-  SlashCommandBuilder: vi.fn(() => ({
-    setDescription: vi.fn().mockReturnThis(),
-    setName: vi.fn().mockReturnThis(),
-    toJSON: vi.fn().mockReturnValue({}),
-  })),
-}));
+vi.mock('discord.js', () => {
+  // The service invokes each of these builders with `new`. A `vi.fn()` spy
+  // called with `new` runs its implementation through `Reflect.construct`, and
+  // arrow functions are not constructible — so every implementation has to be a
+  // real function. Declarations, not expressions: Biome's `useArrowFunction`
+  // autofix rewrites function *expressions* straight back to arrows.
+  function ActionRowBuilderImpl() {
+    return { addComponents: vi.fn().mockReturnThis() };
+  }
+  function ButtonBuilderImpl() {
+    return {
+      setCustomId: vi.fn().mockReturnThis(),
+      setLabel: vi.fn().mockReturnThis(),
+      setStyle: vi.fn().mockReturnThis(),
+    };
+  }
+  function ClientImpl() {
+    return mockClient;
+  }
+  function RestImpl() {
+    return mockRest;
+  }
+  function SlashCommandBuilderImpl() {
+    return {
+      setDescription: vi.fn().mockReturnThis(),
+      setName: vi.fn().mockReturnThis(),
+      toJSON: vi.fn().mockReturnValue({}),
+    };
+  }
+
+  return {
+    ActionRowBuilder: vi.fn(ActionRowBuilderImpl),
+    // A bare factory replaces the whole module, so every export the service
+    // imports must be present or the import throws. The manager uses this one
+    // in an `instanceof` check when resolving a send-to-channel target.
+    BaseGuildTextChannel: class BaseGuildTextChannel {},
+    ButtonBuilder: vi.fn(ButtonBuilderImpl),
+    ButtonStyle: { Danger: 4, Primary: 1, Secondary: 2, Success: 3 },
+    Client: vi.fn(ClientImpl),
+    Events: { ClientReady: 'clientReady' },
+    GatewayIntentBits: {
+      DirectMessages: 4,
+      GuildMessages: 2,
+      Guilds: 1,
+      MessageContent: 3,
+    },
+    REST: vi.fn(RestImpl),
+    Routes: { applicationCommands: vi.fn().mockReturnValue('/commands') },
+    SlashCommandBuilder: vi.fn(SlashCommandBuilderImpl),
+  };
+});
 
 describe('Discord Bot Manager Integration Flow', () => {
   let service: DiscordBotManager;
