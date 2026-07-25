@@ -59,7 +59,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
     ],
     deliverablesDescription:
-      'A full content operation run on Genfeed — strategy, production, and publishing handled end to end so your brand ships consistently.',
+      'A full content operation run on Genfeed: strategy, production, and publishing handled end to end so your brand ships consistently.',
     deliverablesTitle: 'What The Retainer Covers',
     faqDescription: 'Straight answers before the call.',
     faqs: [
@@ -98,7 +98,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
     ],
     heroAccent: 'content operation',
     heroDescription:
-      'A high-touch content retainer for founders and high-end SMBs — strategy, production, and publishing run for you on Genfeed.',
+      'A high-touch content retainer for founders and high-end SMBs. Strategy, production, and publishing run for you on Genfeed.',
     heroTitle: 'We run your',
     includes: [
       'Content strategy and monthly planning',
@@ -111,7 +111,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       'Dedicated operator',
     ],
     intro:
-      'You bring the expertise, context, and final approvals. We handle strategy, production, and publishing so your brand shows up consistently — without another internal function to manage.',
+      'You bring the expertise, context, and final approvals. We handle strategy, production, and publishing so your brand shows up consistently, without another internal function to manage.',
     metaDescription:
       'High-touch content retainer for founders and high-end SMBs. $5,000 setup, then $2,000/month. Strategy, production, and publishing run for you on Genfeed.',
     metaTitle: 'Content Retainer | Genfeed.ai',
@@ -154,7 +154,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         description:
-          'Monthly execution — production, publishing, and revisions on a clear operating rhythm.',
+          'Monthly execution: production, publishing, and revisions on a clear operating rhythm.',
         step: 'Run',
       },
       {
@@ -206,7 +206,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
     ],
     deliverablesDescription:
-      'A lighter done-for-you content service: we plan, produce, and publish a focused stream of content for you — without the full retainer commitment.',
+      'A lighter done-for-you content service: we plan, produce, and publish a focused stream of content for you, without the full retainer commitment.',
     deliverablesTitle: 'What You Get',
     faqDescription: 'Straight answers before the call.',
     faqs: [
@@ -217,7 +217,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         answer:
-          'Pricing is custom and sits below the full retainer — it scales with how many channels and how much output you need. We size it on the call.',
+          'Pricing is custom and sits below the full retainer. It scales with how many channels and how much output you need. We size it on the call.',
         question: 'How is it priced?',
       },
       {
@@ -227,12 +227,12 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         answer:
-          'No. You stay at the direction and approval level — we handle production and publishing so content is off your plate.',
+          'No. You stay at the direction and approval level. We handle production and publishing so content is off your plate.',
         question: 'Do I have to be involved every week?',
       },
       {
         answer:
-          'Yes. When output outgrows this scope, it rolls straight into the full retainer — same team, no restart.',
+          'Yes. When output outgrows this scope, it rolls straight into the full retainer: same team, no restart.',
         question: 'Can we scale up later?',
       },
     ],
@@ -245,7 +245,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
     ],
     heroAccent: 'content',
     heroDescription:
-      'A lighter done-for-you content service — we plan, produce, and publish for you, sized for smaller budgets and earlier-stage teams.',
+      'A lighter done-for-you content service. We plan, produce, and publish for you, sized for smaller budgets and earlier-stage teams.',
     heroTitle: 'We run your',
     includes: [
       'Content planning',
@@ -260,7 +260,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
     intro:
       'Not every team needs a full content operation yet. Done-For-You is the lighter version: we handle a focused stream of content end to end, so you show up consistently without the retainer-level commitment.',
     metaDescription:
-      'Lighter done-for-you content service. We plan, produce, and publish a focused content stream for you — sized for smaller budgets. Custom scope.',
+      'Lighter done-for-you content service. We plan, produce, and publish a focused content stream for you, sized for smaller budgets. Custom scope.',
     metaTitle: 'Done-For-You Content | Genfeed.ai',
     outcomes: [
       {
@@ -271,7 +271,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         description:
-          'A commitment sized to where you are now — real output without full-operation overhead.',
+          'A commitment sized to where you are now: real output without full-operation overhead.',
         icon: LuGauge,
         title: 'Right-Sized Commitment',
       },
@@ -305,7 +305,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         description:
-          'Review what lands and adjust — scale into the full retainer whenever you are ready.',
+          'Review what lands and adjust. Scale into the full retainer whenever you are ready.',
         step: 'Iterate',
       },
     ],
@@ -351,13 +351,13 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
     ],
     deliverablesDescription:
-      'A managed model fleet: custom LoRAs, AI influencers, and dedicated inference — designed, trained, and run for you on our GPU estate.',
+      'A managed model fleet: custom LoRAs, AI influencers, and dedicated inference, designed, trained, and run for you on our GPU estate.',
     deliverablesTitle: 'What The Fleet Delivers',
     faqDescription: 'For operators running owned models at scale.',
     faqs: [
       {
         answer:
-          'Creators, agencies, and brands that want owned models and AI influencers — custom LoRAs, consistent characters, and dedicated generation — without operating GPU infrastructure themselves.',
+          'Creators, agencies, and brands that want owned models and AI influencers: custom LoRAs, consistent characters, and dedicated generation, without operating GPU infrastructure themselves.',
         question: 'Who is this for?',
       },
       {
@@ -390,7 +390,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
     ],
     heroAccent: 'model fleet',
     heroDescription:
-      'Custom LoRAs, AI influencers, and dedicated inference — designed, trained, and operated for you on our GPU fleet.',
+      'Custom LoRAs, AI influencers, and dedicated inference, designed, trained, and operated for you on our GPU fleet.',
     heroTitle: 'We run your',
     includes: [
       'Custom LoRA training',
@@ -403,9 +403,9 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       'Managed operation',
     ],
     intro:
-      'Generic models drift and credits meter every frame. A fleet is different: your own trained models, consistent identities, and dedicated capacity — built and run so you can produce at scale without touching infrastructure.',
+      'Generic models drift and credits meter every frame. A fleet is different: your own trained models, consistent identities, and dedicated capacity, built and run so you can produce at scale without touching infrastructure.',
     metaDescription:
-      'Managed model fleet: custom LoRAs, AI influencers, and dedicated inference — trained and operated for you on GPU infrastructure. Custom scope.',
+      'Managed model fleet: custom LoRAs, AI influencers, and dedicated inference, trained and operated for you on GPU infrastructure. Custom scope.',
     metaTitle: 'Model Fleet | Genfeed.ai',
     outcomes: [
       {
@@ -422,7 +422,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         description:
-          'Dedicated GPU capacity and a managed delivery pipeline — output at volume without running infrastructure.',
+          'Dedicated GPU capacity and a managed delivery pipeline: output at volume without running infrastructure.',
         icon: LuServer,
         title: 'Dedicated, Managed Inference',
       },
@@ -450,7 +450,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         description:
-          'Operate and update the fleet over time — new models, refreshed styles, and scaling as you grow.',
+          'Operate and update the fleet over time: new models, refreshed styles, and scaling as you grow.',
         step: 'Operate',
       },
     ],

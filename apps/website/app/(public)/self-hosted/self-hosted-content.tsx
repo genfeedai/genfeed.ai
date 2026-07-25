@@ -28,7 +28,7 @@ const DOCS_URL = 'https://docs.genfeed.ai';
 const WHY_SELF_HOST = [
   {
     description:
-      'Deploy the full content OS on your own servers with Docker. Your models, your storage, your network — no vendor lock-in.',
+      'Deploy the full content OS on your own servers with Docker. Your models, your storage, your network. No vendor lock-in.',
     icon: LuServer,
     title: 'Own Your Infrastructure',
   },
@@ -57,7 +57,7 @@ const QUICKSTART = [
     step: 'Configure',
   },
   {
-    description: 'Bring it up with Docker Compose — API, workers, and app.',
+    description: 'Bring it up with Docker Compose: API, workers, and app.',
     step: 'Deploy',
   },
   {
@@ -69,7 +69,7 @@ const QUICKSTART = [
 const FAQ_ITEMS = [
   {
     answer:
-      'Yes. The core is open source under AGPL-3.0. Clone it, run it on your own infrastructure, and use it for free — you cover your own hosting and model costs.',
+      'Yes. The core is open source under AGPL-3.0. Clone it, run it on your own infrastructure, and use it for free. You cover your own hosting and model costs.',
     question: 'Is self-hosting really free?',
   },
   {
@@ -79,17 +79,17 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Self-host gives you full control and zero platform fees, but you run the infrastructure, updates, and models yourself. Managed cloud handles all of that, adds managed credits and support, and starts free — most teams self-host to evaluate, then move to cloud to skip the ops.',
+      'Self-host gives you full control and zero platform fees, but you run the infrastructure, updates, and models yourself. Managed cloud handles all of that, adds managed credits and support, and starts free. Most teams self-host to evaluate, then move to cloud to skip the ops.',
     question: 'Self-host or managed cloud?',
   },
   {
     answer:
-      'Community support lives on GitHub — issues, discussions, and the docs. Managed cloud plans add direct support and SLAs.',
+      'Community support lives on GitHub: issues, discussions, and the docs. Managed cloud plans add direct support and SLAs.',
     question: 'Do I get support?',
   },
   {
     answer:
-      'Anytime. Start self-hosted, then move to managed cloud whenever the operational overhead outweighs the control — your workflows and content model carry over.',
+      'Anytime. Start self-hosted, then move to managed cloud whenever the operational overhead outweighs the control. Your workflows and content model carry over.',
     question: 'Can I move to cloud later?',
   },
 ];
@@ -110,7 +110,7 @@ export default function SelfHostedContent() {
             <span className="italic font-light">your own infra</span>.
           </>
         }
-        description="The full Genfeed content OS is open source. Clone it, run it with Docker, and own your stack end to end — or skip the ops and start free on managed cloud."
+        description="The full Genfeed content OS is open source. Clone it, run it with Docker, and own your stack end to end, or skip the ops and start free on managed cloud."
       >
         <WebSection maxWidth="lg" py="md">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
@@ -142,7 +142,7 @@ export default function SelfHostedContent() {
         <WebSection maxWidth="xl" className="gsap-section">
           <SectionHeader
             title="Why self-host"
-            description="Full control over your infrastructure, data, and models — with no platform fees and no lock-in."
+            description="Full control over your infrastructure, data, and models, with no platform fees and no lock-in."
             className="[&_h2]:text-5xl"
           />
 
@@ -237,7 +237,7 @@ export default function SelfHostedContent() {
               <ul className="space-y-3">
                 {[
                   'We run the infrastructure and updates',
-                  'Managed credits — pay only for output',
+                  'Managed credits: pay only for output',
                   'No ops, no scaling to manage',
                   'Direct support and SLAs on paid plans',
                   'Start free on Pay As You Go',

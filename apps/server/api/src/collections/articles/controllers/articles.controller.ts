@@ -730,9 +730,9 @@ export class ArticlesController extends BaseCRUDController<
     }
 
     // Get brand for default model
-    const brand = article.brand
+    const brand = article.brandId
       ? await this.brandsService.findOne({
-          _id: article.brand,
+          _id: article.brandId,
           isDeleted: false,
           organization: publicMetadata.organization,
         })
@@ -788,9 +788,9 @@ export class ArticlesController extends BaseCRUDController<
     }
 
     // Get brand for default model
-    const brand = article.brand
+    const brand = article.brandId
       ? await this.brandsService.findOne({
-          _id: article.brand,
+          _id: article.brandId,
           isDeleted: false,
           organization: publicMetadata.organization,
         })

@@ -19,6 +19,15 @@ const API_CLIP_RESULTS = '**/clip-results**';
 const MOCK_PROJECT_ID = '67d3d7a5e61f9c29b72d1234';
 const MOCK_YOUTUBE_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 
+/**
+ * Mirrors the clip-results poll interval in the progress-step effect of
+ * `apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/clips/useStudioClipsPage.ts`.
+ * Waits below are derived from it with headroom so a loaded CI runner cannot
+ * turn "the app is a little slow" into a test failure.
+ */
+const CLIP_POLL_INTERVAL_MS = 3_000;
+const CLIP_POLL_WAIT_MS = CLIP_POLL_INTERVAL_MS * 5;
+
 const mockHighlights = [
   {
     clip_type: 'hook',
@@ -249,6 +258,10 @@ test.describe('Clip Factory', () => {
   test('should keep polling in progress view until clips are actually completed', async ({
     authenticatedPage,
   }) => {
+    // The backend stays "generating" until the test releases it, so the
+    // in-progress assertions below can never race the app's poll interval.
+    let hasReleasedCompletion = false;
+    let hasRequestedGeneration = false;
     let projectPollCount = 0;
     let clipPollCount = 0;
 
@@ -256,6 +269,7 @@ test.describe('Clip Factory', () => {
     await mockHighlightsPolling(authenticatedPage);
 
     await authenticatedPage.route(API_GENERATE, async (route) => {
+      hasRequestedGeneration = true;
       await route.fulfill({
         body: JSON.stringify({
           clipCount: 3,
@@ -273,14 +287,26 @@ test.describe('Clip Factory', () => {
         return;
       }
 
+      // The review step also reads the project (for reference frames), so only
+      // reads issued after generation started count as progress-step polls.
+      if (!hasRequestedGeneration) {
+        await route.fulfill({
+          body: JSON.stringify({
+            data: { _id: MOCK_PROJECT_ID, status: 'analyzed' },
+          }),
+          contentType: 'application/json',
+          status: 200,
+        });
+        return;
+      }
+
       projectPollCount += 1;
-      const status = projectPollCount >= 2 ? 'completed' : 'generating';
 
       await route.fulfill({
         body: JSON.stringify({
           data: {
             _id: MOCK_PROJECT_ID,
-            status,
+            status: hasReleasedCompletion ? 'completed' : 'generating',
           },
         }),
         contentType: 'application/json',
@@ -290,15 +316,14 @@ test.describe('Clip Factory', () => {
 
     await authenticatedPage.route(API_CLIP_RESULTS, async (route) => {
       clipPollCount += 1;
-      const data =
-        clipPollCount >= 2
-          ? [
-              {
-                attributes: mockCompletedClipResult,
-                id: 'clip-1',
-              },
-            ]
-          : [];
+      const data = hasReleasedCompletion
+        ? [
+            {
+              attributes: mockCompletedClipResult,
+              id: 'clip-1',
+            },
+          ]
+        : [];
 
       await route.fulfill({
         body: JSON.stringify({ data }),
@@ -323,15 +348,28 @@ test.describe('Clip Factory', () => {
     await expect(
       authenticatedPage.getByText(/generating 3 avatar clips/i),
     ).toBeVisible();
+
+    // Polling must continue while the backend still reports `generating`.
     await expect
-      .poll(() => projectPollCount, { timeout: 7000 })
+      .poll(() => projectPollCount, { timeout: CLIP_POLL_WAIT_MS })
       .toBeGreaterThan(1);
     await expect
-      .poll(() => clipPollCount, { timeout: 7000 })
+      .poll(() => clipPollCount, { timeout: CLIP_POLL_WAIT_MS })
       .toBeGreaterThan(1);
+
+    // ...and the view must still be in progress, never a premature done state.
+    // Completion is gated on `hasReleasedCompletion`, not on elapsed time, so
+    // this cannot flake by the app simply polling faster than expected.
+    await expect(
+      authenticatedPage.getByText(/generating 3 avatar clips/i),
+    ).toBeVisible();
+    await expect(authenticatedPage.getByText(/done —/i)).toHaveCount(0);
+
+    hasReleasedCompletion = true;
+
     await expect(
       authenticatedPage.getByText(/done — 1 clip generated/i),
-    ).toBeVisible({ timeout: 8000 });
+    ).toBeVisible({ timeout: CLIP_POLL_WAIT_MS });
     await expect(
       authenticatedPage.getByRole('button', { name: /^edit$/i }),
     ).toBeVisible();

@@ -2,8 +2,12 @@
 
 export type {
   CreditPackTier,
+  PlanCopyProps,
+  PlanTier,
+  PricingPlanProps,
   ServiceOfferingProps,
   TrainingPackageProps,
+  WebsitePlanProps,
 } from '@genfeedai/pricing';
 export {
   AVATAR_CREDIT_COSTS,
@@ -20,11 +24,14 @@ export {
   creditsToOutputEstimate,
   dedicatedServerPlan,
   formatOutputs,
+  formatPlanIncludedCredits,
+  formatPlanMonthlyPrice,
+  formatPlanPriceLabel,
   formatPrice,
-  getCloudTeamsPlan,
   getEnterprisePlan,
-  getHostedPlan,
   getPlanByLabel,
+  getPlanByTier,
+  getPlanLabel,
   getProPlan,
   getRuntimeMarginMultiplier,
   getScalePlan,
@@ -33,6 +40,8 @@ export {
   PAYG_CREDIT_PACKS,
   PAYG_MAX_PURCHASE_USD,
   PAYG_MIN_PURCHASE_USD,
+  PLAN_COPY,
+  PLAN_LABELS,
   setRuntimeMarginMultiplier,
   TIER_INCLUDED_MONTHLY_CREDITS,
   TRAINING_PACKAGES,

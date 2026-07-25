@@ -74,9 +74,14 @@ export class RedditController {
     }
 
     try {
+      // Scope on the scalar FK. `brand.organization` is the Mongo-era alias:
+      // an id string only when the row passed through `normalizeDocument`,
+      // otherwise a populated object or undefined — and an undefined filter
+      // value is dropped by `normalizeWhere`, which would widen this lookup
+      // to every organization's credentials.
       const credential = await this.credentialsService.findOne({
         brand: brand.id,
-        organization: brand.organization,
+        organization: brand.organizationId,
         platform: CredentialPlatform.REDDIT,
       });
 
@@ -89,9 +94,8 @@ export class RedditController {
       }
 
       const state = JSON.stringify({
-        brandId: brand.id.toString(),
-        organizationId:
-          brand.organization?.toString() ?? publicMetadata.organization,
+        brandId: brand.id,
+        organizationId: brand.organizationId,
         userId: publicMetadata.user,
       });
 

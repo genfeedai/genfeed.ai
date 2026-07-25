@@ -102,21 +102,27 @@ export class CronYoutubeStatusService {
   }
 
   /**
-   * Check individual post status against YouTube API
+   * Check individual post status against YouTube API.
+   *
+   * Reads scalar FKs (`credentialId`, `organizationId`, `brandId`, `userId`):
+   * the Mongo-era relation aliases are undefined unless the query populated
+   * the relations, so the credential guard below rejected every post — the
+   * status sync never ran — and the provenance record written further down was
+   * scoped to the literal string "undefined".
    */
   private async checkPostStatus(post: PostEntity) {
     const url = `${this.constructorName} checkPostStatus`;
 
     try {
-      if (!post.credential) {
+      if (!post.credentialId) {
         this.logger.warn(`${url} post ${post.id} has no credential`);
         return;
       }
 
       // Call YouTube API to get actual video status
       const videoStatus = await this.youtubeService.getVideoStatus(
-        post.organization.toString(),
-        post.brand.toString(),
+        post.organizationId,
+        post.brandId,
         post.externalId,
       );
 
@@ -298,12 +304,12 @@ export class CronYoutubeStatusService {
             },
             label: 'YouTube Status Reconciliation',
             metadata: { platform: CredentialPlatform.YOUTUBE },
-            organizationId: post.organization.toString(),
+            organizationId: post.organizationId,
             postIds: [post.id.toString()],
             schedule: '0 1 * * *',
             source: 'CronYoutubeStatusService.checkPostStatus',
             trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: post.user?.toString(),
+            userId: post.userId,
           },
           transition,
         );

@@ -74,10 +74,10 @@ export class BotsLivestreamDeliveryService {
       throw new Error(`No credential configured for ${target.platform} target`);
     }
 
-    const organizationId =
-      typeof bot.organization === 'string'
-        ? bot.organization
-        : String(bot.organization);
+    // Scalar FK: the legacy `organization` alias is undefined unless the query
+    // populated the relation, so coercing it scoped this credential lookup to
+    // the literal string "undefined" and every delivery failed to resolve.
+    const organizationId = bot.organizationId;
 
     const credential = await this.prisma.credential.findFirst({
       where: {
