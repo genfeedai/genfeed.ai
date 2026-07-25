@@ -3,14 +3,13 @@
     "@genfeedai/client": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/props": "workspace:*",
-    "@genfeedai/services": "workspace:*",
-    "sanitize-html": "2.17.6"
+    "@genfeedai/services": "workspace:*"
   },
   "description": "Shared framework-agnostic utility functions for Genfeed applications",
   "devDependencies": {
-    "@types/sanitize-html": "2.16.1",
     "vitest": "4.1.10"
   },
   "exports": {

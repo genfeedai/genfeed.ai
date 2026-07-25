@@ -1,6 +1,5 @@
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { cn, sanitizeHtml } from '@genfeedai/helpers';
 import type { HtmlContentProps } from '@genfeedai/props/ui/display/html-content.props';
-import { sanitizeHtml } from '@genfeedai/utils/sanitize-html';
 import parse from 'html-react-parser';
 
 /**
