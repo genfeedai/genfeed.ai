@@ -60,6 +60,20 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+/**
+ * `CreditsInterceptor` stashes the pending charge on the request when
+ * `@DeferCreditsUntilModelResolution()` is set, so both routes below reopen it
+ * once the real billed amount is known.
+ */
+type DeferredCreditsRequest = Request & {
+  creditsConfig?: {
+    amount?: number;
+    deferred?: boolean;
+    modelKey?: string;
+    maxOverdraftCredits?: number;
+  };
+};
+
 @AutoSwagger()
 @Controller('articles')
 @UseInterceptors(CreditsInterceptor)
@@ -162,23 +176,7 @@ export class ArticlesOperationsController {
         },
       );
 
-      const reqWithCredits = request as Request & {
-        creditsConfig?: {
-          amount?: number;
-          deferred?: boolean;
-          modelKey?: string;
-          maxOverdraftCredits?: number;
-        };
-      };
-      if (reqWithCredits.creditsConfig?.deferred) {
-        reqWithCredits.creditsConfig = {
-          ...reqWithCredits.creditsConfig,
-          amount: billedCredits,
-          deferred: false,
-          maxOverdraftCredits:
-            ArticlesOperationsController.ARTICLE_TEXT_MAX_OVERDRAFT_CREDITS,
-        };
-      }
+      this.settleDeferredCredits(request, billedCredits);
 
       // Create activities for each generated article
       for (const article of articles) {
@@ -216,27 +214,12 @@ export class ArticlesOperationsController {
         docs: articles,
       });
     } catch (error: unknown) {
-      // Update activity to failed
-      const errorMessage =
-        (error as Error)?.message || 'Article generation failed';
-
-      await this.activitiesService.patch(activity.id.toString(), {
-        key: ActivityKey.ARTICLE_FAILED,
-        value: JSON.stringify({
-          error: errorMessage,
-        }),
-      });
-
-      // Emit background-task-update WebSocket event for failure
-      await this.websocketService.publishBackgroundTaskUpdate({
-        activityId: activity.id.toString(),
-        error: errorMessage,
-        label: isXArticle ? 'X Article Generation' : 'Article Generation',
-        room: getUserRoomName(user.id),
-        status: 'failed',
-        taskId: activity.id.toString(),
-        userId: user.id,
-      });
+      await this.recordGenerationFailure(
+        activity.id.toString(),
+        error,
+        isXArticle,
+        user.id,
+      );
 
       throw error;
     }
@@ -279,25 +262,56 @@ export class ArticlesOperationsController {
       },
     );
 
-    const reqWithCredits = request as Request & {
-      creditsConfig?: {
-        amount?: number;
-        deferred?: boolean;
-        modelKey?: string;
-        maxOverdraftCredits?: number;
-      };
-    };
-    if (reqWithCredits.creditsConfig?.deferred) {
-      reqWithCredits.creditsConfig = {
-        ...reqWithCredits.creditsConfig,
-        amount: billedCredits,
-        deferred: false,
-        maxOverdraftCredits:
-          ArticlesOperationsController.ARTICLE_TEXT_MAX_OVERDRAFT_CREDITS,
-      };
-    }
+    this.settleDeferredCredits(request, billedCredits);
 
     return review;
+  }
+
+  /**
+   * Replaces the interceptor's deferred placeholder with the amount the text
+   * models actually billed. A no-op when the charge was never deferred.
+   */
+  private settleDeferredCredits(request: Request, billedCredits: number): void {
+    const reqWithCredits = request as DeferredCreditsRequest;
+
+    if (!reqWithCredits.creditsConfig?.deferred) {
+      return;
+    }
+
+    reqWithCredits.creditsConfig = {
+      ...reqWithCredits.creditsConfig,
+      amount: billedCredits,
+      deferred: false,
+      maxOverdraftCredits:
+        ArticlesOperationsController.ARTICLE_TEXT_MAX_OVERDRAFT_CREDITS,
+    };
+  }
+
+  private async recordGenerationFailure(
+    activityId: string,
+    error: unknown,
+    isXArticle: boolean,
+    userId: string,
+  ): Promise<void> {
+    const errorMessage =
+      (error as Error)?.message || 'Article generation failed';
+
+    await this.activitiesService.patch(activityId, {
+      key: ActivityKey.ARTICLE_FAILED,
+      value: JSON.stringify({
+        error: errorMessage,
+      }),
+    });
+
+    await this.websocketService.publishBackgroundTaskUpdate({
+      activityId,
+      error: errorMessage,
+      label: isXArticle ? 'X Article Generation' : 'Article Generation',
+      room: getUserRoomName(userId),
+      status: 'failed',
+      taskId: activityId,
+      userId,
+    });
   }
 
   private async assertOrganizationCreditsAvailable(
