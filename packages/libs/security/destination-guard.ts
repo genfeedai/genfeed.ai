@@ -318,35 +318,36 @@ async function requestPinnedDestination(
   return new Promise<Response>((resolve, reject) => {
     // The URL has passed the shared policy, and the custom agent connects only
     // to the exact DNS answer checked above.
-    const request = requestFunction(
-      destination.url, // lgtm[js/request-forgery] DNS-checked and IP-pinned.
-      {
-        agent,
-        headers,
-        method: init.method ?? 'GET',
-        signal: init.signal ?? undefined,
-      },
-      (incoming) => {
-        const status = incoming.statusCode ?? 500;
-        const hasBody =
-          (init.method ?? 'GET').toUpperCase() !== 'HEAD' &&
-          !RESPONSE_WITHOUT_BODY_STATUSES.has(status);
-        const body = hasBody
-          ? (Readable.toWeb(incoming) as ReadableStream<Uint8Array>)
-          : null;
+    const request =
+      /* lgtm[js/request-forgery] DNS-checked/IP-pinned. */ requestFunction(
+        destination.url,
+        {
+          agent,
+          headers,
+          method: init.method ?? 'GET',
+          signal: init.signal ?? undefined,
+        },
+        (incoming) => {
+          const status = incoming.statusCode ?? 500;
+          const hasBody =
+            (init.method ?? 'GET').toUpperCase() !== 'HEAD' &&
+            !RESPONSE_WITHOUT_BODY_STATUSES.has(status);
+          const body = hasBody
+            ? (Readable.toWeb(incoming) as ReadableStream<Uint8Array>)
+            : null;
 
-        const response = new Response(body, {
-          headers: createResponseHeaders(incoming.rawHeaders),
-          status,
-          statusText: incoming.statusMessage,
-        });
-        Object.defineProperty(response, 'url', {
-          configurable: true,
-          value: destination.url.href,
-        });
-        resolve(response);
-      },
-    );
+          const response = new Response(body, {
+            headers: createResponseHeaders(incoming.rawHeaders),
+            status,
+            statusText: incoming.statusMessage,
+          });
+          Object.defineProperty(response, 'url', {
+            configurable: true,
+            value: destination.url.href,
+          });
+          resolve(response);
+        },
+      );
 
     request.once('error', reject);
     request.end(serializedBody.value);
