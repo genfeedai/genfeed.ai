@@ -1,5 +1,6 @@
 import { getRelatedProducts, type Product } from '@data/products.data';
 import { ButtonVariant } from '@genfeedai/enums';
+import { getPlanLabel } from '@helpers/business/pricing/pricing.helper';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { VStack } from '@ui/layout/stack';
@@ -79,7 +80,9 @@ export default function ProductPage({ product }: { product: Product }) {
           footer={
             <>
               <span>{product.category}</span>
-              <span>{product.pricing.recommended} plan recommended</span>
+              <span>
+                {getPlanLabel(product.pricing.recommended)} plan recommended
+              </span>
             </>
           }
         />
