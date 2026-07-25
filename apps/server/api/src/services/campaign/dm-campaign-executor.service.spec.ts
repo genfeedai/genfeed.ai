@@ -82,6 +82,8 @@ describe('DmCampaignExecutorService', () => {
   const targetId = 'test-object-id';
   const credentialId = 'test-object-id';
   const orgId = 'test-object-id';
+  const brandId = 'brand-1';
+  const userId = 'user-1';
 
   const fakeCredential = {
     id: credentialId,
@@ -93,11 +95,15 @@ describe('DmCampaignExecutorService', () => {
     username: 'bot',
   };
 
+  // Shaped like a real outreach-campaign row: scalar FKs are the source of truth
+  // and `organization` is the only Mongo-era alias `OutreachCampaignsService`
+  // back-fills (it never sets `brand` or `user`).
   const makeCampaign = (
     overrides: Partial<OutreachCampaignDocument> = {},
   ): OutreachCampaignDocument =>
     ({
       id: campaignId,
+      brandId,
       credential: credentialId,
       dmConfig: {
         context: 'outreach',
@@ -107,9 +113,11 @@ describe('DmCampaignExecutorService', () => {
         useAiGeneration: true,
       } as CampaignDmConfig,
       organization: orgId,
+      organizationId: orgId,
       platform: CampaignPlatform.TWITTER,
       rateLimits: { delayBetweenRepliesSeconds: 0 },
       status: CampaignStatus.ACTIVE,
+      userId,
       ...overrides,
     }) as unknown as OutreachCampaignDocument;
 
@@ -207,6 +215,92 @@ describe('DmCampaignExecutorService', () => {
         targetId.toString(),
         'Credential not found',
       );
+    });
+
+    it('should scope the credential lookup with scalar brand and organization ids', async () => {
+      const campaign = makeCampaign();
+      const target = makeTarget();
+      mockCampaignTargetsService.getPendingTargets.mockResolvedValue([target]);
+      mockOutreachCampaignsService.canReply.mockResolvedValue(true);
+      mockCredentialsService.findOne.mockResolvedValue(fakeCredential);
+      mockReplyGenerationService.generateDm.mockResolvedValue('Hello!');
+      mockBotActionExecutorService.sendDm.mockResolvedValue({ success: true });
+
+      await service.processPendingDmTargets(campaign, 10);
+
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        _id: credentialId,
+        brandId,
+        isDeleted: false,
+        organizationId: orgId,
+      });
+    });
+
+    it('should attribute generation to the scalar organization and user ids', async () => {
+      const campaign = makeCampaign();
+      const target = makeTarget();
+      mockCampaignTargetsService.getPendingTargets.mockResolvedValue([target]);
+      mockOutreachCampaignsService.canReply.mockResolvedValue(true);
+      mockCredentialsService.findOne.mockResolvedValue(fakeCredential);
+      mockReplyGenerationService.generateDm.mockResolvedValue('Hello!');
+      mockBotActionExecutorService.sendDm.mockResolvedValue({ success: true });
+
+      await service.processPendingDmTargets(campaign, 10);
+
+      expect(mockReplyGenerationService.generateDm).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: orgId, userId }),
+      );
+    });
+
+    it('should omit the brand filter when the campaign has no brand', async () => {
+      const campaign = makeCampaign({ brandId: undefined });
+      const target = makeTarget();
+      mockCampaignTargetsService.getPendingTargets.mockResolvedValue([target]);
+      mockOutreachCampaignsService.canReply.mockResolvedValue(true);
+      mockCredentialsService.findOne.mockResolvedValue(fakeCredential);
+      mockReplyGenerationService.generateDm.mockResolvedValue('Hello!');
+      mockBotActionExecutorService.sendDm.mockResolvedValue({ success: true });
+
+      await service.processPendingDmTargets(campaign, 10);
+
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        _id: credentialId,
+        isDeleted: false,
+        organizationId: orgId,
+      });
+    });
+
+    it('should not query credentials at all when the campaign has no credential', async () => {
+      const campaign = makeCampaign({ credential: undefined });
+      const target = makeTarget();
+      mockCampaignTargetsService.getPendingTargets.mockResolvedValue([target]);
+      mockOutreachCampaignsService.canReply.mockResolvedValue(true);
+
+      const result = await service.processPendingDmTargets(campaign, 10);
+
+      expect(result.failed).toBe(1);
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalledWith(
+        targetId.toString(),
+        'Credential not found',
+      );
+    });
+
+    it('should fail closed without querying credentials when the organization cannot be resolved', async () => {
+      const campaign = makeCampaign({
+        organization: undefined,
+        organizationId: undefined,
+      } as Partial<OutreachCampaignDocument>);
+      const target = makeTarget();
+      mockCampaignTargetsService.getPendingTargets.mockResolvedValue([target]);
+      mockOutreachCampaignsService.canReply.mockResolvedValue(true);
+
+      const result = await service.processPendingDmTargets(campaign, 10);
+
+      expect(result.failed).toBe(1);
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockOutreachCampaignsService.canReply).not.toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalled();
     });
 
     it('should resolve username to userId when recipientUserId is missing', async () => {

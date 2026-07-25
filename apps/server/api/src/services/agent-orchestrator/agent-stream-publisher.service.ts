@@ -8,6 +8,7 @@ import {
   AgentThreadEngineService,
   type AppendAgentThreadEventParams,
 } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import type {
   AgentDashboardOperation,
   AgentUIBlock,
@@ -69,7 +70,15 @@ export class AgentStreamPublisherService {
         isDeleted: false,
       });
 
-      if (!thread?.organization) {
+      // Tenant FK for every persisted thread event. `findOne` passes no populate,
+      // so the `organization` alias only survives because `BaseService`
+      // back-fills it — read the scalar column and keep the alias as a fallback.
+      const organizationId = resolveRelationId(
+        thread?.organizationId,
+        thread?.organization,
+      );
+
+      if (!organizationId) {
         return;
       }
 
@@ -77,7 +86,7 @@ export class AgentStreamPublisherService {
         this.appendThreadEventEffect({
           commandId: params.commandId,
           metadata: { origin: 'stream-publisher' },
-          organizationId: String(thread.organization),
+          organizationId,
           payload: params.payload,
           runId: params.runId,
           threadId,

@@ -62,7 +62,10 @@ describe('CampaignDiscoveryService', () => {
     ({
       id: campaignId,
       discoveryConfig: makeConfig(),
+      // `organizationId` is the real column; `organization` is the Mongo-era
+      // alias `OutreachCampaignsService.normalizeDoc` back-fills from it.
       organization: orgId,
+      organizationId: orgId,
       platform: CampaignPlatform.TWITTER,
       ...overrides,
     }) as unknown as OutreachCampaignDocument;
@@ -381,6 +384,52 @@ describe('CampaignDiscoveryService', () => {
           expect.objectContaining({ externalId: 'ext1' }),
         ]),
       );
+    });
+
+    it('should scope every created target with the campaign organization id', async () => {
+      const targets = [
+        {
+          authorId: 'a1',
+          authorUsername: 'user1',
+          contentCreatedAt: new Date(),
+          contentText: 'text',
+          contentUrl: 'https://x.com/1',
+          discoverySource: CampaignDiscoverySource.KEYWORD_SEARCH,
+          externalId: 'ext1',
+          likes: 10,
+          matchedKeyword: 'ai',
+          platform: CampaignPlatform.TWITTER,
+          relevanceScore: 0.8,
+          replies: 2,
+          retweets: 5,
+          targetType: CampaignTargetType.TWEET,
+        },
+      ];
+      mockCampaignTargetsService.createMany.mockResolvedValue(targets);
+
+      // Only the scalar FK is present — the alias a populated read would have
+      // provided is absent, exactly as it is on a real row.
+      const campaign = makeCampaign({
+        organization: undefined,
+      } as Partial<OutreachCampaignDocument>);
+
+      await service.addDiscoveredTargetsToCampaign(campaign, targets);
+
+      expect(mockCampaignTargetsService.createMany).toHaveBeenCalledWith([
+        expect.objectContaining({ organization: orgId }),
+      ]);
+    });
+
+    it('should refuse to create unscoped targets when the organization cannot be resolved', async () => {
+      const campaign = makeCampaign({
+        organization: undefined,
+        organizationId: undefined,
+      } as Partial<OutreachCampaignDocument>);
+
+      await expect(
+        service.addDiscoveredTargetsToCampaign(campaign, []),
+      ).rejects.toThrow();
+      expect(mockCampaignTargetsService.createMany).not.toHaveBeenCalled();
     });
 
     it('should throw when createMany fails', async () => {

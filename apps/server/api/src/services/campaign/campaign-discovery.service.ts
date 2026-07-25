@@ -18,6 +18,7 @@ import {
   type SocialContentData,
   SocialMonitorService,
 } from '@api/services/reply-bot/social-monitor.service';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   CampaignDiscoverySource,
   CampaignPlatform,
@@ -429,6 +430,16 @@ export class CampaignDiscoveryService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      // Every created target row carries this as its tenant FK. The alias is
+      // `undefined` on an unpopulated campaign read, which used to produce target
+      // rows with no organization scope at all.
+      const organizationId = requireRelationId(
+        campaign.organizationId,
+        campaign.organization,
+        'organization',
+        `Campaign ${String(campaign.id)}`,
+      );
+
       const targetsToCreate = targets.map((target) => ({
         authorId: target.authorId,
         authorUsername: target.authorUsername,
@@ -440,7 +451,7 @@ export class CampaignDiscoveryService {
         externalId: target.externalId,
         likes: target.likes,
         matchedKeyword: target.matchedKeyword,
-        organization: campaign.organization,
+        organization: organizationId,
         platform: target.platform,
         relevanceScore: target.relevanceScore,
         replies: target.replies,

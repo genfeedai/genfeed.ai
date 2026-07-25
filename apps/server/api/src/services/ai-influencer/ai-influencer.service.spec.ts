@@ -420,6 +420,58 @@ describe('AiInfluencerService', () => {
         }),
       );
     });
+
+    it('should source ownership from the persona scalar FKs', async () => {
+      // A persona read without populated relations carries only the scalar
+      // columns. The create payload keys stay Mongo-style — that is the ingredient
+      // create contract — but the values must come from the scalars, otherwise the
+      // ingredient is written with no organization or owner at all.
+      const persona = createMockPersona({
+        brand: undefined,
+        brandId: 'brand-scalar-id',
+        organization: undefined,
+        organizationId: 'org-scalar-id',
+        user: undefined,
+        userId: 'user-scalar-id',
+      } as unknown as Partial<PersonaDocument>);
+      personasService.findOne.mockResolvedValue(persona);
+      openRouterService.chatCompletion.mockResolvedValue(mockCaptionResponse);
+      falService.generateImage.mockResolvedValue({
+        url: 'https://cdn.fal.ai/generated-image.jpg',
+      });
+      ingredientsService.create.mockResolvedValue(createMockIngredient());
+      instagramService.uploadImage.mockResolvedValue({ mediaId: 'ig-123' });
+
+      await service.generateDailyPost('luna-ai', ['instagram']);
+
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brand: 'brand-scalar-id',
+          organization: 'org-scalar-id',
+          user: 'user-scalar-id',
+        }),
+      );
+    });
+
+    it('should fail closed instead of creating an unscoped ingredient', async () => {
+      // `Persona.organizationId` and `Persona.userId` are non-nullable, so an
+      // unresolvable owner means the row was read wrong. Never persist the row.
+      const persona = createMockPersona({
+        organization: undefined,
+        user: undefined,
+      } as unknown as Partial<PersonaDocument>);
+      personasService.findOne.mockResolvedValue(persona);
+      openRouterService.chatCompletion.mockResolvedValue(mockCaptionResponse);
+      falService.generateImage.mockResolvedValue({
+        url: 'https://cdn.fal.ai/generated-image.jpg',
+      });
+
+      await expect(
+        service.generateDailyPost('luna-ai', ['instagram']),
+      ).rejects.toThrow();
+
+      expect(ingredientsService.create).not.toHaveBeenCalled();
+    });
   });
 
   // ─── Platform Publishing ────────────────────────────────────────

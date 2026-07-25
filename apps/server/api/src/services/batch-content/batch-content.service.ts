@@ -7,6 +7,7 @@ import type {
   BatchStatus,
 } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 import { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
@@ -128,7 +129,14 @@ export class BatchContentService {
       throw new NotFoundException('Brand', brandId);
     }
 
-    if (String(brand.organization) !== organizationId) {
+    // Defence-in-depth re-check on top of the scoped query above. It has to read
+    // the `organizationId` scalar: `brand.organization` is the Mongo-era alias, and
+    // `String(undefined)` yields the literal `"undefined"`, which never equals the
+    // caller's org — the guard would have rejected every legitimate brand.
+    if (
+      resolveRelationId(brand.organizationId, brand.organization) !==
+      organizationId
+    ) {
       throw new ForbiddenException(
         'Brand does not belong to this organization',
       );
