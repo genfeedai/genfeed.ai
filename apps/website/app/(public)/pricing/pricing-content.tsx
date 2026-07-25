@@ -60,7 +60,7 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'Yes. API access is included on every paid plan at the same credit price — generate in the studio or via code, and it draws from the same credit balance. Pro gets standard rate limits, Scale higher limits, and Enterprise custom limits with an SLA.',
+      'Yes. API access is included on every paid plan at the same credit price. Generate in the studio or via code, and it draws from the same credit balance. Pro gets standard rate limits, Scale higher limits, and Enterprise custom limits with an SLA.',
     question: 'Is there an API?',
   },
   {
@@ -295,8 +295,8 @@ export default function PricingContent() {
           </NeuralGrid>
 
           <p className="mt-6 text-center text-sm text-surface/50">
-            Every paid plan includes API access at the same credit price —
-            create in the studio or via code, and it draws from the same credit
+            Every paid plan includes API access at the same credit price. Create
+            in the studio or via code, and it draws from the same credit
             balance. Higher plans get higher rate limits.
           </p>
 
@@ -367,8 +367,8 @@ export default function PricingContent() {
           </div>
 
           <p className="mt-8 mb-2 text-sm font-medium text-surface/70">
-            Top up any amount from $10 — pay-as-you-go, no subscription. 1
-            credit = $0.01.
+            Top up any amount from $10. Pay-as-you-go, no subscription. 1 credit
+            = $0.01.
           </p>
           <div className="grid gap-px bg-edge/5 sm:grid-cols-3">
             {WEBSITE_CREDIT_PACKS.map((pack) => (
