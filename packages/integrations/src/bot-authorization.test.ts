@@ -56,6 +56,21 @@ describe('isBotUserAuthorized', () => {
     expect(isBotUserAuthorized(openConfig, '')).toBe(false);
   });
 
+  it('denies a whitespace-only user id even on an open bot', () => {
+    const openConfig = { allowedUserIds: [], isOpenToAllUsers: true };
+
+    expect(isBotUserAuthorized(openConfig, '   ')).toBe(false);
+    expect(isBotUserAuthorized(openConfig, '\t')).toBe(false);
+    expect(isBotUserAuthorized(openConfig, '\n')).toBe(false);
+  });
+
+  it('matches an allowlisted id despite surrounding whitespace', () => {
+    const config = { allowedUserIds: ['123'], isOpenToAllUsers: false };
+
+    expect(isBotUserAuthorized(config, ' 123 ')).toBe(true);
+    expect(isBotUserAuthorized(config, '  ')).toBe(false);
+  });
+
   it('does not treat a truthy non-boolean opt-out as an opt-out', () => {
     const config = {
       allowedUserIds: [],

@@ -40,14 +40,19 @@ export function isBotUserAuthorized(
   config: BotAuthorizationConfig,
   userId: string | undefined | null,
 ): boolean {
-  if (!userId) {
+  // Trim before the blank check: a whitespace-only id is truthy, so `!userId`
+  // alone would let `'   '` through and authorize it on an open bot, breaking
+  // the deny-by-default contract documented above.
+  const normalizedUserId = userId?.trim();
+
+  if (!normalizedUserId) {
     return false;
   }
 
   const allowedUserIds = config.allowedUserIds ?? [];
 
   if (allowedUserIds.length > 0) {
-    return allowedUserIds.includes(userId);
+    return allowedUserIds.includes(normalizedUserId);
   }
 
   return isBotOpenToAllUsers(config);
