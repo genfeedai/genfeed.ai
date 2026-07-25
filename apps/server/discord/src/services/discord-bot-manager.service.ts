@@ -20,6 +20,7 @@ import {
   ButtonStyle,
   Client,
   GatewayIntentBits,
+  type Message,
   REST,
   Routes,
   SlashCommandBuilder,
@@ -650,12 +651,7 @@ export class DiscordBotManager
   }
 
   private async handleTextInput(
-    message: {
-      author: { id: string };
-      channelId: string;
-      content: string;
-      channel: { send: (msg: DiscordMessagePayload) => Promise<unknown> };
-    },
+    message: Message,
     sessionKey: string,
   ): Promise<void> {
     const session = this.getSession(sessionKey);
@@ -665,6 +661,9 @@ export class DiscordBotManager
 
     const currentInput = session.requiredInputs[session.currentInputIndex];
     if (!currentInput || currentInput.inputType !== 'text') {
+      return;
+    }
+    if (!message.channel.isSendable()) {
       return;
     }
 
@@ -681,12 +680,7 @@ export class DiscordBotManager
   }
 
   private async handleAttachmentInput(
-    message: {
-      author: { id: string };
-      channelId: string;
-      attachments: Map<string, { url: string; contentType?: string | null }>;
-      channel: { send: (msg: DiscordMessagePayload) => Promise<unknown> };
-    },
+    message: Message,
     sessionKey: string,
   ): Promise<void> {
     const session = this.getSession(sessionKey);
@@ -696,6 +690,9 @@ export class DiscordBotManager
 
     const currentInput = session.requiredInputs[session.currentInputIndex];
     if (!currentInput || currentInput.inputType !== 'image') {
+      return;
+    }
+    if (!message.channel.isSendable()) {
       return;
     }
 
