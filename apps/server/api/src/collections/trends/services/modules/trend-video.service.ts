@@ -12,6 +12,13 @@ import { Timeframe } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+/** Separator that cannot appear in a platform id or external id. */
+const TREND_KEY_SEPARATOR = '\u0000';
+
+function trendKey(...parts: string[]): string {
+  return parts.join(TREND_KEY_SEPARATOR);
+}
+
 @Injectable()
 export class TrendVideoService {
   private readonly CACHE_PREFIX = 'trends';
@@ -24,6 +31,36 @@ export class TrendVideoService {
     private readonly cacheService: CacheService,
     private readonly apifyService: ApifyService,
   ) {}
+
+  /**
+   * Index trend rows by their in-JSON match key so a batch upsert needs a single
+   * read instead of one full scan per item.
+   *
+   * Callers pass rows ordered `createdAt desc`, matching the previous
+   * per-iteration `.find()`; keeping the first row per key therefore preserves
+   * the "newest match wins" semantics.
+   */
+  private indexTrendDocsByKey(
+    docs: Array<{ id: string; data: unknown }>,
+    keyOf: (data: Record<string, unknown>) => string | null,
+  ): Map<string, string> {
+    const index = new Map<string, string>();
+
+    for (const doc of docs) {
+      if (typeof doc.data !== 'object' || doc.data === null) {
+        continue;
+      }
+
+      const key = keyOf(doc.data as Record<string, unknown>);
+      if (key === null || index.has(key)) {
+        continue;
+      }
+
+      index.set(key, doc.id);
+    }
+
+    return index;
+  }
 
   /**
    * Get viral videos from all platforms or a specific platform
@@ -123,21 +160,32 @@ export class TrendVideoService {
         Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
       );
 
+      // Existing records match on externalId + platform inside the JSON `data`
+      // blob, so index the table once for the whole batch instead of re-scanning
+      // it on every iteration.
+      const existingVideoDocs =
+        videos.length > 0
+          ? await this.prisma.trendingVideo.findMany({
+              orderBy: { createdAt: 'desc' },
+              take: 1000,
+              where: { isDeleted: false },
+            })
+          : [];
+      const existingVideoIds = this.indexTrendDocsByKey(
+        existingVideoDocs,
+        (d) =>
+          typeof d.externalId === 'string' && typeof d.platform === 'string'
+            ? trendKey(d.platform, d.externalId)
+            : null,
+      );
+
       for (const video of videos) {
         const externalId = video.externalId as string | undefined;
 
         // Find existing record by externalId + platform in data (in-memory match)
         if (externalId) {
-          // Find the actual match via in-memory check
-          const allDocs = await this.prisma.trendingVideo.findMany({
-            orderBy: { createdAt: 'desc' },
-            take: 1000,
-            where: { isDeleted: false },
-          });
-          const match = allDocs.find((doc) => {
-            const d = doc.data as unknown as Record<string, unknown>;
-            return d.externalId === externalId && d.platform === platform;
-          });
+          const videoKey = trendKey(platform, externalId);
+          const matchId = existingVideoIds.get(videoKey);
 
           const dataPayload = {
             ...video,
@@ -147,15 +195,20 @@ export class TrendVideoService {
             lastSeenAt: new Date(),
           };
 
-          if (match) {
+          if (matchId) {
             await this.prisma.trendingVideo.update({
               data: { data: dataPayload as never },
-              where: { id: match.id },
+              where: { id: matchId },
             });
           } else {
-            await this.prisma.trendingVideo.create({
+            const created = await this.prisma.trendingVideo.create({
               data: { data: dataPayload as never, isDeleted: false },
             });
+            // Keep the index authoritative so a key repeated inside this batch
+            // updates the row we just created instead of duplicating it.
+            if (created.id) {
+              existingVideoIds.set(videoKey, created.id);
+            }
           }
         } else {
           await this.prisma.trendingVideo.create({
@@ -266,21 +319,26 @@ export class TrendVideoService {
         Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
       );
 
+      // One indexed read for the whole batch instead of one full scan per item.
+      const existingHashtagDocs = await this.prisma.trendingHashtag.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 1000,
+        where: { isDeleted: false },
+      });
+      const existingHashtagIds = this.indexTrendDocsByKey(
+        existingHashtagDocs,
+        (d) =>
+          typeof d.hashtag === 'string' && typeof d.platform === 'string'
+            ? trendKey(d.platform, d.hashtag)
+            : null,
+      );
+
       for (const hashtag of hashtags) {
         const hashtagKey = (hashtag as unknown as Record<string, unknown>)
           .hashtag as string | undefined;
 
-        const allDocs = await this.prisma.trendingHashtag.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: 1000,
-          where: { isDeleted: false },
-        });
-        const match = hashtagKey
-          ? allDocs.find((doc) => {
-              const d = doc.data as unknown as Record<string, unknown>;
-              return d.hashtag === hashtagKey && d.platform === platform;
-            })
-          : undefined;
+        const indexKey = hashtagKey ? trendKey(platform, hashtagKey) : null;
+        const matchId = indexKey ? existingHashtagIds.get(indexKey) : undefined;
 
         const dataPayload = {
           ...hashtag,
@@ -290,15 +348,19 @@ export class TrendVideoService {
           lastSeenAt: new Date(),
         };
 
-        if (match) {
+        if (matchId) {
           await this.prisma.trendingHashtag.update({
             data: { data: dataPayload as never },
-            where: { id: match.id },
+            where: { id: matchId },
           });
         } else {
-          await this.prisma.trendingHashtag.create({
+          const created = await this.prisma.trendingHashtag.create({
             data: { data: dataPayload as never, isDeleted: false },
           });
+          // Keep the index authoritative for keys repeated inside this batch.
+          if (indexKey && created.id) {
+            existingHashtagIds.set(indexKey, created.id);
+          }
         }
       }
 
@@ -382,22 +444,23 @@ export class TrendVideoService {
         Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
       );
 
+      // One indexed read for the whole batch instead of one full scan per item.
+      const existingSoundDocs = await this.prisma.trendingSound.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 1000,
+        where: { isDeleted: false },
+      });
+      const existingSoundIds = this.indexTrendDocsByKey(
+        existingSoundDocs,
+        (d) => (typeof d.soundId === 'string' ? d.soundId : null),
+      );
+
       for (const sound of sounds) {
         const soundId = (sound as unknown as Record<string, unknown>).soundId as
           | string
           | undefined;
 
-        const allDocs = await this.prisma.trendingSound.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: 1000,
-          where: { isDeleted: false },
-        });
-        const match = soundId
-          ? allDocs.find((doc) => {
-              const d = doc.data as unknown as Record<string, unknown>;
-              return d.soundId === soundId;
-            })
-          : undefined;
+        const matchId = soundId ? existingSoundIds.get(soundId) : undefined;
 
         const dataPayload = {
           ...sound,
@@ -407,15 +470,19 @@ export class TrendVideoService {
           lastSeenAt: new Date(),
         };
 
-        if (match) {
+        if (matchId) {
           await this.prisma.trendingSound.update({
             data: { data: dataPayload as never },
-            where: { id: match.id },
+            where: { id: matchId },
           });
         } else {
-          await this.prisma.trendingSound.create({
+          const created = await this.prisma.trendingSound.create({
             data: { data: dataPayload as never, isDeleted: false },
           });
+          // Keep the index authoritative for ids repeated inside this batch.
+          if (soundId && created.id) {
+            existingSoundIds.set(soundId, created.id);
+          }
         }
       }
 

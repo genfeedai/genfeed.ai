@@ -1,5 +1,6 @@
 import type { Product } from '@data/products.data';
 import { ButtonVariant } from '@genfeedai/enums';
+import { getPlanLabel } from '@helpers/business/pricing/pricing.helper';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
@@ -30,7 +31,9 @@ export default function ProductPricingCTA({
         <Heading size="2xl" className="mb-2">
           Recommended Plan
         </Heading>
-        <div className="text-4xl font-bold mb-4">{pricing.recommended}</div>
+        <div className="text-4xl font-bold mb-4">
+          {getPlanLabel(pricing.recommended)}
+        </div>
         <Text as="p" size="lg" className="mb-6 text-surface/70">
           {pricing.why}
         </Text>

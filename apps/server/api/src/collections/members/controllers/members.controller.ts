@@ -17,6 +17,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -83,8 +84,30 @@ export class MembersController {
 
   @Get(':memberId')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findOne(@Req() request: Request, @Param('memberId') memberId: string) {
-    const data = await this.membersService.findOne({ _id: memberId });
+  async findOne(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('memberId') memberId: string,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization;
+
+    // Tenant scoping has to live here: RolesGuard only proves the CALLER is an
+    // active member of their OWN organization — it never inspects the requested
+    // member. Without this filter any authenticated user could read another
+    // org's roster, role assignments and brand assignments by id.
+    // A missing/invalid org context is fail-closed (404), never an unscoped read.
+    if (!isEntityId(memberId) || !isEntityId(organizationId)) {
+      return returnNotFound(this.constructorName, memberId);
+    }
+
+    const data = await this.membersService.findOne({
+      _id: memberId,
+      isDeleted: false,
+      organizationId,
+    });
+    // 404 (not 403) on a cross-org miss, matching base-crud.controller.ts — the
+    // response must not confirm that the id exists in another organization.
     return data
       ? serializeSingle(request, MemberSerializer, data)
       : returnNotFound(this.constructorName, memberId);

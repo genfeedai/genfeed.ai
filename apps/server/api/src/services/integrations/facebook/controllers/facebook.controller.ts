@@ -73,7 +73,7 @@ export class FacebookController {
     const state = Buffer.from(
       JSON.stringify({
         brandId: brand.id,
-        organizationId: brand.organization,
+        organizationId: brand.organizationId,
         userId: publicMetadata.user,
       }),
     ).toString('base64');

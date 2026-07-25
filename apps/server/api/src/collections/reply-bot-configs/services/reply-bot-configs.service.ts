@@ -128,6 +128,23 @@ export class ReplyBotConfigsService extends BaseService<
   }
 
   /**
+   * Find every active config across all organizations.
+   *
+   * Platform-wide cron fan-out is driven by this scarce set instead of by the
+   * full tenant list — there are far fewer active reply bots than
+   * organizations, so one cross-org read replaces one query per tenant.
+   * Soft-deleted organizations are excluded in the same read so the result
+   * matches a scan that only ever visited live organizations.
+   */
+  findAllActive(): Promise<ReplyBotConfigDocument[]> {
+    return this.find({
+      isActive: true,
+      isDeleted: false,
+      organization: { is: { isDeleted: false } },
+    });
+  }
+
+  /**
    * Find all active configs by organization
    */
   findActiveByOrganization(

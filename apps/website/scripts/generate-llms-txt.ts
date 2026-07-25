@@ -18,7 +18,10 @@ import { useCases } from '@data/use-cases.data';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants/model-capabilities.constant';
 import { ModelCategory } from '@genfeedai/enums';
-import { websitePlans } from '@helpers/business/pricing/pricing.helper';
+import {
+  PLAN_COPY,
+  websitePlans,
+} from '@helpers/business/pricing/pricing.helper';
 
 const BASE_URL = 'https://genfeed.ai';
 const PUBLIC_DIR = resolve(process.cwd(), 'public');
@@ -161,7 +164,7 @@ function buildLlmsIndex(): string {
   lines.push('# Genfeed.ai');
   lines.push('');
   lines.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then Pro from $49/month plus PAYG output.',
+    `> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
   );
   lines.push('');
 
@@ -197,7 +200,7 @@ function buildLlmsIndex(): string {
   lines.push('## Resources');
   lines.push('');
   lines.push(
-    `- [Pricing](${BASE_URL}/pricing): Pro ($49/mo + PAYG output), Scale (from $499/mo + PAYG output), Enterprise (custom)`,
+    `- [Pricing](${BASE_URL}/pricing): ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel} + PAYG output), ${PLAN_COPY.scale.name} (from ${PLAN_COPY.scale.priceLabel} + PAYG output), ${PLAN_COPY.enterprise.name} (custom)`,
   );
   lines.push(
     `- [FAQ](${BASE_URL}/faq): Frequently asked questions about the platform`,
@@ -237,7 +240,7 @@ function buildLlmsFull(): string {
   s.push('# Genfeed.ai');
   s.push('');
   s.push(
-    '> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then Pro from $49/month plus PAYG output.',
+    `> AI-first content creation platform. Generate videos, images, voice, and articles at scale with 50+ AI models including Google Veo 3, Imagen 4, and OpenAI Sora 2. Start free, then ${PLAN_COPY.pro.name} from ${PLAN_COPY.pro.monthlyPrice} plus PAYG output.`,
   );
   s.push('');
 
@@ -304,13 +307,11 @@ function buildLlmsFull(): string {
   s.push('## Pricing');
   s.push('');
   s.push(
-    'Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate, paid API access, and unlimited team seats. Brands and connected channels are unlimited. Pay As You Go and Pro include one organization; Scale adds multi-organization workflows. Pro is $49/month with 8,000 credits included. Scale is $499/month with unlimited seats and an 80,000-credit shared pool. Enterprise is custom.',
+    `Genfeed is free to join: credits buy the output you generate (1 credit = $0.01 at the pay-as-you-go rate). Subscriptions include monthly credits at a ~40% better rate, paid API access, and unlimited team seats. Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} and ${PLAN_COPY.pro.name} include one organization; ${PLAN_COPY.scale.name} adds multi-organization workflows. ${PLAN_COPY.pro.name} is ${PLAN_COPY.pro.monthlyPrice} with ${PLAN_COPY.pro.includedCredits} included. ${PLAN_COPY.scale.name} is ${PLAN_COPY.scale.monthlyPrice} with unlimited seats and a shared pool of ${PLAN_COPY.scale.includedCredits}. ${PLAN_COPY.enterprise.name} is custom.`,
   );
   s.push('');
 
-  for (const plan of websitePlans.filter((item) =>
-    ['Pay As You Go', 'Pro', 'Scale', 'Enterprise'].includes(item.label),
-  )) {
+  for (const plan of websitePlans) {
     const priceStr =
       plan.price === 0
         ? 'Free, pay-per-output credits'

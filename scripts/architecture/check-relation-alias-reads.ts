@@ -33,6 +33,16 @@ import { RELATION_ALIAS_READ_BASELINE } from './relation-alias-reads.baseline';
  * (`ingredient.metadata.duration`), and this guard has no type checker to tell
  * the two apart.
  *
+ * Known blind spots — the count this guard reports is a floor, not an
+ * inventory. Treat a zero as "nothing of these two shapes", never as "this
+ * file is clean":
+ *   - A bare comparison (`if (post.organization !== orgId)`) matches neither
+ *     rule, and that is precisely how a tenant gate is written. An identical
+ *     hole spelled without a coercion or a filter key scores zero here.
+ *   - Files where no binding resolves to a row read are skipped outright, so
+ *     an alias reached through a helper's return value is invisible.
+ * Audit by reading the file; the ratchet only stops the shapes it knows.
+ *
  * @see .agents/memory/rules/prisma_legacy_alias_fields.md
  */
 
@@ -275,12 +285,44 @@ function collectRowBindings(sourceFile: ts.SourceFile): Set<string> {
 }
 
 /**
+ * A cast, a non-null assertion, or a pair of parentheses changes nothing about
+ * what the read evaluates to at runtime — but each one inserts a node between
+ * the read and the parent that decides how the value is consumed. Walk out
+ * through them so `{ credential: post.credential as string }` is matched on the
+ * same terms as `{ credential: post.credential }`.
+ *
+ * `as string` on an alias is in fact the more dangerous spelling: it is exactly
+ * the annotation that silences the type error the plain read would have raised.
+ */
+function unwrapValueExpression(access: ts.Expression): ts.Expression {
+  let current: ts.Expression = access;
+
+  while (current.parent) {
+    const parent = current.parent;
+    const isTransparent =
+      ts.isAsExpression(parent) ||
+      ts.isSatisfiesExpression(parent) ||
+      ts.isParenthesizedExpression(parent) ||
+      ts.isNonNullExpression(parent);
+
+    if (!isTransparent || parent.expression !== current) {
+      break;
+    }
+
+    current = parent;
+  }
+
+  return current;
+}
+
+/**
  * `String(post.brand)`, `post.brand.toString()`, `` `${post.brand}` `` — every
  * one of these produces "[object Object]" when the relation is populated and
  * the literal "undefined" when it is not. Neither is ever a valid foreign key.
  */
 function isIdCoercion(access: ts.PropertyAccessExpression): boolean {
-  const parent = access.parent;
+  const value = unwrapValueExpression(access);
+  const parent = value.parent;
   if (!parent) {
     return false;
   }
@@ -290,12 +332,12 @@ function isIdCoercion(access: ts.PropertyAccessExpression): boolean {
     ts.isIdentifier(parent.expression) &&
     parent.expression.text === 'String'
   ) {
-    return parent.arguments.includes(access);
+    return parent.arguments.includes(value);
   }
 
   if (
     ts.isPropertyAccessExpression(parent) &&
-    parent.expression === access &&
+    parent.expression === value &&
     parent.name.text === 'toString' &&
     parent.parent &&
     ts.isCallExpression(parent.parent)
@@ -315,11 +357,12 @@ function isIdShapedFilterValue(
   access: ts.PropertyAccessExpression,
   alias: string,
 ): boolean {
-  const parent = access.parent;
+  const value = unwrapValueExpression(access);
+  const parent = value.parent;
   if (
     !parent ||
     !ts.isPropertyAssignment(parent) ||
-    parent.initializer !== access
+    parent.initializer !== value
   ) {
     return false;
   }

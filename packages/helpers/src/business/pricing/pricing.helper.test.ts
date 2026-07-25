@@ -3,16 +3,18 @@ import {
   applyMargin,
   dedicatedServerPlan,
   formatOutputs,
+  formatPlanPriceLabel,
   formatPrice,
-  getCloudTeamsPlan,
   getEnterprisePlan,
-  getHostedPlan,
   getPlanByLabel,
+  getPlanByTier,
+  getPlanLabel,
   getProPlan,
   getRuntimeMarginMultiplier,
   getScalePlan,
   INTERNAL_CREDIT_COSTS,
   MAX_MARGIN_MULTIPLIER,
+  PLAN_LABELS,
   setRuntimeMarginMultiplier,
   VIDEO_CREDIT_COSTS,
   websitePlans,
@@ -193,19 +195,46 @@ describe('pricing.helper', () => {
     });
   });
 
-  describe('getHostedPlan', () => {
-    it('should return the Pro plan as a legacy alias', () => {
-      const plan = getHostedPlan();
-      expect(plan.label).toBe('Pro');
-      expect(plan.price).toBe(49);
+  describe('tier identifiers', () => {
+    it('should expose exactly one plan per tier', () => {
+      const tiers = websitePlans.map((plan) => plan.tier);
+      expect([...new Set(tiers)]).toHaveLength(tiers.length);
+      expect(tiers.sort()).toEqual(
+        Object.keys(PLAN_LABELS).sort() as typeof tiers,
+      );
+    });
+
+    it('should label every plan from PLAN_LABELS', () => {
+      for (const plan of websitePlans) {
+        expect(plan.label).toBe(PLAN_LABELS[plan.tier]);
+        expect(getPlanLabel(plan.tier)).toBe(plan.label);
+      }
+    });
+
+    it('should resolve a plan by tier', () => {
+      expect(getPlanByTier('scale').price).toBe(499);
+      expect(getPlanByTier('enterprise').price).toBeNull();
+    });
+
+    it('should throw for a tier with no plan', () => {
+      expect(() =>
+        getPlanByTier('nope' as (typeof websitePlans)[number]['tier']),
+      ).toThrow(/Missing pricing plan/);
     });
   });
 
-  describe('getCloudTeamsPlan', () => {
-    it('should return the Scale plan as a legacy alias', () => {
-      const plan = getCloudTeamsPlan();
-      expect(plan.label).toBe('Scale');
-      expect(plan.price).toBe(499);
+  describe('formatPlanPriceLabel', () => {
+    it('should render "Free" for the pay-as-you-go tier', () => {
+      expect(formatPlanPriceLabel('payg')).toBe('Free');
+    });
+
+    it('should render "Custom" for the enterprise tier', () => {
+      expect(formatPlanPriceLabel('enterprise')).toBe('Custom');
+    });
+
+    it('should render a monthly price for paid tiers', () => {
+      expect(formatPlanPriceLabel('pro')).toBe('$49/mo');
+      expect(formatPlanPriceLabel('scale')).toBe('$499/mo');
     });
   });
 

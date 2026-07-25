@@ -11,6 +11,7 @@ import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
   escapeSystemEmailHtml,
+  sanitizeSystemEmailUrl,
 } from '@helpers/email/system-email.helper';
 import { Inject, Injectable } from '@nestjs/common';
 import {
@@ -344,12 +345,19 @@ export class LifecycleEmailDeliveryService {
   }
 
   private buildHtml(template: EmailTemplate, unsubscribeToken: string): string {
-    const unsubscribeUrl = this.unsubscribeUrl(unsubscribeToken);
+    // A misconfigured API url must never turn the unsubscribe anchor into an
+    // arbitrary scheme; keep the notice either way, drop only the link.
+    const unsubscribeUrl = sanitizeSystemEmailUrl(
+      this.unsubscribeUrl(unsubscribeToken),
+    );
+    const unsubscribeHtml = unsubscribeUrl
+      ? `No longer want lifecycle emails? <a href="${escapeSystemEmailHtml(unsubscribeUrl)}" style="color:#b4b4bc;text-decoration:underline;">Unsubscribe</a>.`
+      : 'No longer want lifecycle emails? Reply to this email to unsubscribe.';
     const bodyHtml = [
       ...template.paragraphs.map((paragraph) =>
         buildSystemEmailParagraph(paragraph),
       ),
-      `<p style="margin:8px 0 20px;color:#8c8c96;font-size:12px;line-height:18px;">No longer want lifecycle emails? <a href="${escapeSystemEmailHtml(unsubscribeUrl)}" style="color:#b4b4bc;text-decoration:underline;">Unsubscribe</a>.</p>`,
+      `<p style="margin:8px 0 20px;color:#8c8c96;font-size:12px;line-height:18px;">${unsubscribeHtml}</p>`,
     ].join('');
 
     return buildSystemEmailHtml({
