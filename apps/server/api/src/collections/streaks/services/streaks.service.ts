@@ -541,8 +541,8 @@ export class StreaksService {
       await this.sendDiscordNotification(
         'streak_at_risk',
         `Your ${streak.currentStreak}-day streak is at risk. Create content today to keep it alive.`,
-        String(streak.organization),
-        String(streak.user),
+        streak.organizationId,
+        streak.userId,
       );
     }
 

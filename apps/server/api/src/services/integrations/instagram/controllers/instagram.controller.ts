@@ -121,7 +121,7 @@ export class InstagramController {
     const appId = this.configService.get('INSTAGRAM_APP_ID');
     const state = JSON.stringify({
       brandId: brand.id,
-      organizationId: brand.organization,
+      organizationId: brand.organizationId,
       userId: publicMetadata.user,
     });
 

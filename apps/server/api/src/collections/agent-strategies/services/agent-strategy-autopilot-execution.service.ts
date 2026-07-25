@@ -619,7 +619,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     const batch = await this.batchGenerationService.createManualReviewBatch(
       {
-        brandId: String(input.strategy.brand),
+        brandId: getStrategyBrandId(input.strategy) ?? '',
         items: [
           {
             caption: input.draftContent,
@@ -713,7 +713,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     try {
       await this.activitiesService.create({
-        brandId: String(getStrategyBrandId(input.strategy)),
+        brandId: getStrategyBrandId(input.strategy) ?? '',
         entityId: input.postId,
         entityModel: ActivityEntityModel.POST,
         key: ActivityKey.POST_GENERATED,
@@ -761,7 +761,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     for (const platform of platforms) {
       const credential = await this.credentialsService.findOne({
-        brandId: getStrategyBrandId(strategy) ?? String(strategy.brand),
+        brandId: getStrategyBrandId(strategy) ?? '',
         isConnected: true,
         isDeleted: false,
         organizationId: getStrategyOrganizationId(strategy),
@@ -773,7 +773,7 @@ export class AgentStrategyAutopilotExecutionService {
       }
 
       const post = await this.postsService.create({
-        brandId: String(getStrategyBrandId(strategy)),
+        brandId: getStrategyBrandId(strategy) ?? '',
         category: PostCategory.TEXT,
         credentialId: documentId(credential),
         description: content,

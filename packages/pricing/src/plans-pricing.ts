@@ -38,7 +38,25 @@ interface PricingOutputsProps {
   voiceMinutes?: number;
 }
 
-interface PricingPlanProps {
+/**
+ * Stable plan identifier. Every consumer (copy, data files, UI, structured
+ * data) references a plan by tier and resolves the display name through
+ * PLAN_LABELS. Nothing outside this file spells a plan name, so renaming a
+ * plan is a one-line change here instead of a site-wide find-and-replace.
+ */
+export type PlanTier = 'payg' | 'pro' | 'scale' | 'enterprise';
+
+/**
+ * Canonical display label per tier: the only place a plan name is written.
+ */
+export const PLAN_LABELS = {
+  enterprise: 'Enterprise',
+  payg: 'Pay As You Go',
+  pro: 'Pro',
+  scale: 'Scale',
+} as const satisfies Record<PlanTier, string>;
+
+export interface PricingPlanProps {
   /** Display label (e.g., "Pro", "Scale", "Enterprise") */
   label: string;
   /** Stripe price ID for checkout */
@@ -71,6 +89,14 @@ interface PricingPlanProps {
   launchNote?: string;
 }
 
+/**
+ * A plan on the public pricing page. Carries the stable `tier` discriminant so
+ * consumers never have to match on the display label.
+ */
+export interface WebsitePlanProps extends PricingPlanProps {
+  tier: PlanTier;
+}
+
 const CALENDLY_URL =
   process.env.NEXT_PUBLIC_CALENDLY_URL ||
   'https://calendly.com/vincent-genfeed/30min';
@@ -83,6 +109,14 @@ const STRIPE_PRICE_IDS = {
   pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY,
   scale: process.env.NEXT_PUBLIC_STRIPE_PRICE_SUBSCRIPTION_SCALE_MONTHLY,
 } as const;
+
+/** Monthly USD price per tier (null = contact sales). */
+const PLAN_PRICES = {
+  enterprise: null,
+  payg: 0,
+  pro: 49,
+  scale: 499,
+} as const satisfies Record<PlanTier, number | null>;
 
 /** Monthly included credits per paid subscription tier (source of truth for credit grants). */
 export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
@@ -220,10 +254,22 @@ export const AVATAR_CREDIT_COSTS = {
 } as const;
 
 /**
+ * Feature bullet describing a subscription's monthly credit grant, derived from
+ * TIER_INCLUDED_MONTHLY_CREDITS so the number in the copy can never drift from
+ * the number actually granted.
+ */
+function includedCreditsFeature(tier: 'pro' | 'scale'): string {
+  const credits = TIER_INCLUDED_MONTHLY_CREDITS[tier];
+  const paygValue = credits * BYOK_CREDIT_VALUE_DOLLARS;
+
+  return `${formatPricingNumber(credits)} credits included monthly (≈ $${formatPricingNumber(paygValue)} of pay-as-you-go output)`;
+}
+
+/**
  * Website pricing plans - displayed on public pricing page
  * Free-to-join PAYG credits, subscriptions with included credits, B2B cloud
  */
-export const websitePlans: PricingPlanProps[] = [
+export const websitePlans: WebsitePlanProps[] = [
   // Pay As You Go Tier - free account, credits only ($0/month)
   {
     cta: 'Start Free',
@@ -240,10 +286,11 @@ export const websitePlans: PricingPlanProps[] = [
       'Email support',
     ],
     interval: 'payg',
-    label: 'Pay As You Go',
+    label: PLAN_LABELS.payg,
     outputs: null,
-    price: 0,
+    price: PLAN_PRICES.payg,
     target: 'Creators testing Genfeed or running bursty campaigns',
+    tier: 'payg',
     type: 'payg',
     valueProposition:
       'Sign up free. Buy credits. Pay only for the output you actually generate.',
@@ -255,7 +302,7 @@ export const websitePlans: PricingPlanProps[] = [
     ctaHref: `${process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'https://app.genfeed.ai'}/sign-up?plan=pro`,
     description: 'Monthly subscription with included credits at a better rate',
     features: [
-      '8,000 credits included monthly (≈ $80 of pay-as-you-go output)',
+      includedCreditsFeature('pro'),
       'Included credits ~40% cheaper than the standard rate',
       'Best model auto-routed for every job',
       'Unlimited brands',
@@ -265,16 +312,16 @@ export const websitePlans: PricingPlanProps[] = [
       'Top up with credit packs anytime',
       'Email support',
     ],
-    includedCredits: 8_000,
+    includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.pro,
     interval: 'month',
-    label: 'Pro',
-    launchNote:
-      'Launch pricing (code EARLYGENFEED) for the first 12 months, then $49/month',
+    label: PLAN_LABELS.pro,
+    launchNote: `Launch pricing (code EARLYGENFEED) for the first 12 months, then $${PLAN_PRICES.pro}/month`,
     launchPrice: 39,
     outputs: null,
-    price: 49,
+    price: PLAN_PRICES.pro,
     stripePriceId: STRIPE_PRICE_IDS.pro,
     target: 'Creators and founders publishing every week',
+    tier: 'pro',
     type: 'subscription',
     valueProposition:
       'For steady publishing: a monthly fee that buys more output per dollar while credits stay the output meter.',
@@ -286,7 +333,7 @@ export const websitePlans: PricingPlanProps[] = [
     ctaHref: CALENDLY_URL,
     description: 'One studio for teams, organizations, and brands',
     features: [
-      '80,000 credits included monthly (≈ $800 of pay-as-you-go output)',
+      includedCreditsFeature('scale'),
       'Unlimited team seats',
       'Shared credit pool with budgets',
       'Multi-organization account model',
@@ -296,13 +343,14 @@ export const websitePlans: PricingPlanProps[] = [
       'Priority support (24hr)',
       'Advanced analytics',
     ],
-    includedCredits: 80_000,
+    includedCredits: TIER_INCLUDED_MONTHLY_CREDITS.scale,
     interval: 'month',
-    label: 'Scale',
+    label: PLAN_LABELS.scale,
     outputs: null,
-    price: 499,
+    price: PLAN_PRICES.scale,
     stripePriceId: STRIPE_PRICE_IDS.scale,
     target: 'Agencies and teams managing multiple brands or organizations',
+    tier: 'scale',
     type: 'subscription',
     valueProposition:
       'Unlimited seats and a shared credit pool for teams that have outgrown a single workspace. You pay for output, not headcount.',
@@ -325,11 +373,12 @@ export const websitePlans: PricingPlanProps[] = [
       'SLA 99.9% uptime',
     ],
     interval: 'month',
-    label: 'Enterprise',
+    label: PLAN_LABELS.enterprise,
     outputs: null,
-    price: null,
+    price: PLAN_PRICES.enterprise,
     stripePriceId: STRIPE_PRICE_IDS.enterprise,
     target: 'Studios, white-label partners, large teams',
+    tier: 'enterprise',
     type: 'enterprise',
     valueProposition: 'Your own AI content operating system, fully managed.',
   },
@@ -338,55 +387,139 @@ export const websitePlans: PricingPlanProps[] = [
 /**
  * Get plan by label
  */
-export function getPlanByLabel(label: string): PricingPlanProps | undefined {
+export function getPlanByLabel(label: string): WebsitePlanProps | undefined {
   return websitePlans.find(
     (plan) => plan.label.toLowerCase() === label.toLowerCase(),
   );
 }
 
-function getRequiredPlan(label: string): PricingPlanProps {
-  const plan = getPlanByLabel(label);
+/**
+ * Get a plan by its stable tier identifier. Throws if the tier is missing so a
+ * mistyped or removed plan fails at build time instead of rendering blank copy.
+ */
+export function getPlanByTier(tier: PlanTier): WebsitePlanProps {
+  const plan = websitePlans.find((candidate) => candidate.tier === tier);
 
   if (!plan) {
-    throw new Error(`Missing pricing plan: ${label}`);
+    throw new Error(`Missing pricing plan for tier: ${tier}`);
   }
 
   return plan;
 }
 
 /**
+ * Display name for a tier. Use this everywhere a plan is named in copy.
+ */
+export function getPlanLabel(tier: PlanTier): string {
+  return PLAN_LABELS[tier];
+}
+
+/**
+ * Marketing price label for a tier, e.g. "$49/mo", "Free", "Custom".
+ */
+export function formatPlanPriceLabel(tier: PlanTier): string {
+  const { price } = getPlanByTier(tier);
+
+  if (price === null) {
+    return 'Custom';
+  }
+  if (price === 0) {
+    return 'Free';
+  }
+
+  return `$${formatPricingNumber(price)}/mo`;
+}
+
+/**
+ * Long-form price for prose, e.g. "$49/month", "free", "custom".
+ */
+export function formatPlanMonthlyPrice(tier: PlanTier): string {
+  const { price } = getPlanByTier(tier);
+
+  if (price === null) {
+    return 'custom';
+  }
+  if (price === 0) {
+    return 'free';
+  }
+
+  return `$${formatPricingNumber(price)}/month`;
+}
+
+/**
+ * Included monthly credits for prose, e.g. "8,000 credits". Empty string for
+ * tiers that grant no monthly credits.
+ */
+export function formatPlanIncludedCredits(tier: PlanTier): string {
+  const { includedCredits } = getPlanByTier(tier);
+
+  if (includedCredits == null) {
+    return '';
+  }
+
+  return `${formatPricingNumber(includedCredits)} credits`;
+}
+
+/**
+ * Ready-to-interpolate copy tokens for one plan.
+ */
+export interface PlanCopyProps {
+  /** Included monthly credits in prose, e.g. "8,000 credits" ('' when none). */
+  includedCredits: string;
+  /** Prose price, e.g. "$49/month", "free", "custom". */
+  monthlyPrice: string;
+  /** Display name, e.g. "Pro". */
+  name: string;
+  /** Name plus prose price, e.g. "Pro ($49/month)". */
+  nameWithPrice: string;
+  /** Compact price label, e.g. "$49/mo", "Free", "Custom". */
+  priceLabel: string;
+}
+
+function buildPlanCopy(tier: PlanTier): PlanCopyProps {
+  const name = getPlanLabel(tier);
+  const monthlyPrice = formatPlanMonthlyPrice(tier);
+
+  return {
+    includedCredits: formatPlanIncludedCredits(tier),
+    monthlyPrice,
+    name,
+    nameWithPrice: `${name} (${monthlyPrice})`,
+    priceLabel: formatPlanPriceLabel(tier),
+  };
+}
+
+/**
+ * Every plan name, price, and credit grant that appears in marketing copy.
+ * Interpolate from here instead of writing a plan name or price into a string,
+ * so renaming or repricing a plan updates every surface at once.
+ */
+export const PLAN_COPY = {
+  enterprise: buildPlanCopy('enterprise'),
+  payg: buildPlanCopy('payg'),
+  pro: buildPlanCopy('pro'),
+  scale: buildPlanCopy('scale'),
+} satisfies Record<PlanTier, PlanCopyProps>;
+
+/**
  * Get Pro tier plan
  */
-export function getProPlan(): PricingPlanProps {
-  return getRequiredPlan('Pro');
+export function getProPlan(): WebsitePlanProps {
+  return getPlanByTier('pro');
 }
 
 /**
  * Get Scale tier plan
  */
-export function getScalePlan(): PricingPlanProps {
-  return getRequiredPlan('Scale');
-}
-
-/**
- * @deprecated Use getProPlan.
- */
-export function getHostedPlan(): PricingPlanProps {
-  return getProPlan();
-}
-
-/**
- * @deprecated Use getScalePlan.
- */
-export function getCloudTeamsPlan(): PricingPlanProps {
-  return getScalePlan();
+export function getScalePlan(): WebsitePlanProps {
+  return getPlanByTier('scale');
 }
 
 /**
  * Get Enterprise tier plan
  */
-export function getEnterprisePlan(): PricingPlanProps {
-  return getRequiredPlan('Enterprise');
+export function getEnterprisePlan(): WebsitePlanProps {
+  return getPlanByTier('enterprise');
 }
 
 /**

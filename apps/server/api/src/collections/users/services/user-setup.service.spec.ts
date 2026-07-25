@@ -27,7 +27,9 @@ describe('UserSetupService', () => {
   const mockOrgSettings = { id: orgSettingsId, organization: orgId };
   const mockUserSettings = { id: userSettingsId, user: userId };
   const mockBrand = { id: brandId, organization: orgId };
-  const mockMember = { id: memberId, organization: orgId, user: userId };
+  // Shaped like a Prisma row: scalar FKs only. The Mongo-era `organization`
+  // alias is absent unless a query explicitly populates the relation.
+  const mockMember = { id: memberId, organizationId: orgId, userId: userId };
   const mockRole = { id: roleId, key: 'admin' };
 
   const mockOrganizationsService = {
@@ -339,11 +341,33 @@ describe('UserSetupService', () => {
 
         expect(result.organization).toBe(mockOrg);
         expect(mockOrganizationsService.create).not.toHaveBeenCalled();
+        // The membership's scalar FK is what resolves the org — the legacy
+        // `organization` relation alias is undefined on an unpopulated row.
+        expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
+          _id: orgId,
+          isDeleted: false,
+        });
         expect(mockLogger.warn).toHaveBeenCalledWith(
           expect.stringContaining(
             'Organization already exists (via membership)',
           ),
           expect.any(String),
+        );
+      });
+
+      it('should not resolve an org from a membership that carries no scalar organizationId', async () => {
+        // Guards the inverse: reading the unpopulated `organization` alias made
+        // every membership look orgless, so setup spawned a duplicate org.
+        mockMembersService.findOne.mockResolvedValue({
+          id: memberId,
+          userId: userId,
+        });
+        mockOrganizationsService.findOne.mockResolvedValue(null);
+
+        await service.initializeUserResources(userId);
+
+        expect(mockOrganizationsService.findOne).not.toHaveBeenCalledWith(
+          expect.objectContaining({ _id: undefined }),
         );
       });
 

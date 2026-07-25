@@ -451,7 +451,7 @@ export class TrainingsController extends BaseCRUDController<
       await this.websocketService.publishTrainingStatus(
         training.id.toString(),
         IngredientStatus.FAILED,
-        training.user?.toString() || 'unknown',
+        training.userId,
         {
           error:
             error instanceof Error
@@ -475,7 +475,7 @@ export class TrainingsController extends BaseCRUDController<
       await this.websocketService.publishTrainingStatus(
         training.id.toString(),
         IngredientStatus.FAILED,
-        training.user?.toString() || 'unknown',
+        training.userId,
         {
           error:
             error instanceof Error
