@@ -175,15 +175,7 @@ export class ContentEngineService {
       });
     }
 
-    // Scalar FK, never `campaign.user`: this id becomes the owner of every agent
-    // run dispatched below, and a `NOT NULL` FK write of "undefined" fails at
-    // Postgres (P2003) only after the orchestration side effects already ran.
-    const userId = requireRelationId(
-      campaign.userId,
-      campaign.user,
-      'user',
-      `Campaign ${campaignId}`,
-    );
+    const userId = this.requireCampaignUserId(campaign, campaignId);
     const strategies = await this.loadCampaignStrategies(
       campaign,
       organizationId,
@@ -224,10 +216,7 @@ export class ContentEngineService {
       selectedStrategies,
       organizationId,
     );
-    const analyticsOverview = await this.loadAnalyticsOverview(
-      campaign,
-      organizationId,
-    );
+    const analyticsOverview = await this.loadAnalyticsOverview(campaign);
     const remainingCampaignBudget = this.getRemainingCampaignBudget(campaign);
 
     if (remainingCampaignBudget !== null && remainingCampaignBudget <= 0) {
@@ -339,7 +328,6 @@ export class ContentEngineService {
 
     await this.captureDecisionMemory(
       campaign,
-      { organizationId, userId },
       analyticsOverview,
       dispatchedRuns,
       goalSummaries,
@@ -410,25 +398,13 @@ export class ContentEngineService {
       };
     }
 
-    // The campaign was read scoped to `input.organizationId`, so the caller's id
-    // is authoritative — reading `campaign.organization` here would return a
-    // populated relation object on any populated call path.
     const organizationId = input.organizationId;
-    // Scalar FK, never `campaign.user`: this id owns each dispatched agent run.
-    const userId = requireRelationId(
-      campaign.userId,
-      campaign.user,
-      'user',
-      `Campaign ${input.campaignId}`,
-    );
+    const userId = this.requireCampaignUserId(campaign, input.campaignId);
     const goalSummaries = await this.loadGoalSummaries(
       input.strategies,
       organizationId,
     );
-    const analyticsOverview = await this.loadAnalyticsOverview(
-      campaign,
-      organizationId,
-    );
+    const analyticsOverview = await this.loadAnalyticsOverview(campaign);
     const remainingCampaignBudget = this.getRemainingCampaignBudget(campaign);
 
     if (remainingCampaignBudget !== null && remainingCampaignBudget <= 0) {
@@ -481,9 +457,6 @@ export class ContentEngineService {
           triggerType: input.triggerType,
         },
         objective,
-        // Resolved scalar ids: the aliases are `undefined` on an unpopulated read,
-        // and `AgentRunsService.create` would then persist a run with a dropped
-        // organization scope and no owner.
         organization: organizationId,
         strategy: String(strategy.id),
         trigger: AgentExecutionTrigger.CRON,
@@ -619,9 +592,29 @@ export class ContentEngineService {
     });
   }
 
+  /**
+   * Resolve the campaign owner from its scalar FK column.
+   *
+   * `campaign.user` is a Mongo-era alias that is `undefined` on an unpopulated
+   * Prisma read, so `String(campaign.user)` produced the literal `"undefined"`.
+   * That id then owns every agent run dispatched for the cycle, and the
+   * `NOT NULL` FK write fails at Postgres (P2003) only after the orchestration
+   * side effects have already run — so this fails closed up front instead.
+   */
+  private requireCampaignUserId(
+    campaign: AgentCampaignDocument,
+    campaignId: string,
+  ): string {
+    return requireRelationId(
+      campaign.userId,
+      campaign.user,
+      'user',
+      `Campaign ${campaignId}`,
+    );
+  }
+
   private async loadAnalyticsOverview(
     campaign: AgentCampaignDocument,
-    organizationId: string,
   ): Promise<AnalyticsOverview> {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
@@ -629,10 +622,16 @@ export class ContentEngineService {
     const overview = await this.analyticsService.getOverview(
       sevenDaysAgo.toISOString(),
       now.toISOString(),
-      // Scalar FK: `campaign.brand` stringifies to "[object Object]" on a populated
-      // read, which would silently scope the overview to a non-existent brand.
+      // Scalar FKs: the relation aliases are `undefined` on an unpopulated read
+      // and stringify to "[object Object]" on a populated one — either way the
+      // overview gets scoped to a brand/organization that does not exist.
       resolveRelationId(campaign.brandId, campaign.brand),
-      organizationId,
+      requireRelationId(
+        campaign.organizationId,
+        campaign.organization,
+        'organization',
+        `Campaign ${campaign.id}`,
+      ),
     );
 
     return (overview ?? {}) as AnalyticsOverview;
@@ -789,17 +788,21 @@ export class ContentEngineService {
 
   private async captureDecisionMemory(
     campaign: AgentCampaignDocument,
-    // Resolved by the caller from the scalar FKs plus its own request scope, so
-    // the memory row is never owned by a stringified relation object.
-    owner: { organizationId: string; userId: string },
     analyticsOverview: AnalyticsOverview,
     dispatchedRuns: OrchestrationDispatchPlan[],
     goalSummaries: string[],
     summary: string,
   ): Promise<void> {
+    // Scalar FKs: the memory row is owned by the campaign's user/organization, and
+    // the aliases would have written the literal string "undefined" into both.
     await this.agentMemoryCaptureService.capture(
-      owner.userId,
-      owner.organizationId,
+      this.requireCampaignUserId(campaign, String(campaign.id)),
+      requireRelationId(
+        campaign.organizationId,
+        campaign.organization,
+        'organization',
+        `Campaign ${campaign.id}`,
+      ),
       {
         brandId: resolveRelationId(campaign.brandId, campaign.brand),
         campaignId: String(campaign.id),

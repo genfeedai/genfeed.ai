@@ -498,19 +498,7 @@ export class ReplyBotOrchestratorService {
     const activityId = activity.id.toString();
 
     try {
-      // `ReplyBotConfig.userId` is a non-nullable column, so an unresolvable owner
-      // means the row was read wrong rather than legitimately ownerless. The
-      // `botConfig.user` alias is `undefined` on an unpopulated read, which used to
-      // silently attribute every generation below to `''`. Failing here only fails
-      // this one content item — the catch marks the activity failed.
-      const ownerUserId = requireRelationId(
-        botConfig.userId,
-        botConfig.user,
-        'user',
-        `Reply bot config ${botConfigId}`,
-      );
-
-      // Generate AI reply
+      const ownerUserId = this.requireBotOwnerUserId(botConfig, botConfigId);
       const replyText = await this.replyGenerationService.generateReply({
         context: this.mergeReplyContext(
           botConfig.context,
@@ -716,6 +704,29 @@ export class ReplyBotOrchestratorService {
   }
 
   /**
+   * Resolve a reply bot config's owner from its scalar FK column.
+   *
+   * `ReplyBotConfig.userId` is a non-nullable column, so an unresolvable owner
+   * means the row was read wrong rather than legitimately ownerless. The
+   * `botConfig.user` alias is `undefined` on an unpopulated read — and
+   * `findOneById` passes no populate — so `botConfig.user?.toString() || ''`
+   * silently attributed (and billed) every generation to `''`. Failing closed
+   * here costs only the one content item; the caller's catch marks the activity
+   * failed.
+   */
+  private requireBotOwnerUserId(
+    botConfig: ReplyBotConfigDocument,
+    botConfigId: string,
+  ): string {
+    return requireRelationId(
+      botConfig.userId,
+      botConfig.user,
+      'user',
+      `Reply bot config ${botConfigId}`,
+    );
+  }
+
+  /**
    * Delay helper
    */
   private delay(ms: number): Promise<void> {
@@ -749,15 +760,7 @@ export class ReplyBotOrchestratorService {
       throw new Error('Bot configuration not found');
     }
 
-    // Scalar FK, never `botConfig.user` — `findOneById` passes no populate, so the
-    // alias is always `undefined` here and the test path used to bill/attribute
-    // generation to `''`.
-    const ownerUserId = requireRelationId(
-      botConfig.userId,
-      botConfig.user,
-      'user',
-      `Reply bot config ${botConfigId}`,
-    );
+    const ownerUserId = this.requireBotOwnerUserId(botConfig, botConfigId);
 
     const replyText = await this.replyGenerationService.generateReply({
       context: botConfig.context,

@@ -20,16 +20,13 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { resolveCampaignScope } from '@api/services/campaign/campaign-scope.util';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import {
   type ReplyGenerationOptions,
   ReplyGenerationService,
 } from '@api/services/reply-bot/reply-generation.service';
-import {
-  requireRelationId,
-  resolveRelationId,
-} from '@api/shared/utils/relation-id/relation-id.util';
 import {
   CampaignPlatform,
   CampaignSkipReason,
@@ -38,7 +35,10 @@ import {
   ReplyTone,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import type {
+  ICampaignScope,
+  IReplyBotCredentialData,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -115,35 +115,10 @@ export class CampaignExecutorService {
       // Mark target as processing
       await this.campaignTargetsService.markAsProcessing(target.id.toString());
 
-      // Scalar FKs, never the Mongo-era aliases. `OutreachCampaignsService`'s
-      // `normalizeDoc` back-fills `organization` from `organizationId` but sets
-      // neither `brand` nor `user`, so both of those aliases are always
-      // `undefined` on an outreach-campaign row.
-      const organizationId = requireRelationId(
-        campaign.organizationId,
-        campaign.organization,
-        'organization',
-        `Campaign ${campaign.id}`,
-      );
-      const brandId = resolveRelationId(campaign.brandId, campaign.brand);
-      const userId = resolveRelationId(campaign.userId, campaign.user);
-
-      // `credential` is a config-backed field on OutreachCampaign, not a Prisma
-      // relation, so there is no `credentialId` scalar to read. It still has to be
-      // guarded: an undefined `_id` is dropped by normalizeWhere, which would hand
-      // back an arbitrary connected credential from the organization.
-      // relation-alias-ok: config-backed field, guarded for presence below
-      const credentialId = campaign.credential;
+      const scope = resolveCampaignScope(campaign);
 
       // Get credential
-      const credential = credentialId
-        ? await this.credentialsService.findOne({
-            _id: credentialId,
-            ...(brandId ? { brandId } : {}),
-            isDeleted: false,
-            organizationId,
-          })
-        : null;
+      const credential = await this.findCampaignCredential(scope);
 
       if (!credential) {
         const errorMessage = 'Credential not found';
@@ -162,10 +137,7 @@ export class CampaignExecutorService {
       }
 
       // Generate reply
-      const replyText = await this.generateReply(campaign, target, {
-        organizationId,
-        userId,
-      });
+      const replyText = await this.generateReply(campaign, target, scope);
 
       // Post reply
       const credentialData = toReplyBotCredentialData(
@@ -205,10 +177,10 @@ export class CampaignExecutorService {
               targetId: target.id.toString(),
             },
             label: 'Campaign Reply Automation',
-            organizationId,
+            organizationId: scope.organizationId,
             source: 'CampaignExecutorService.executeTarget',
             trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId,
+            userId: scope.userId,
           },
           () =>
             Promise.resolve(
@@ -287,6 +259,30 @@ export class CampaignExecutorService {
   }
 
   /**
+   * Load the campaign's connected credential, scoped to its brand.
+   *
+   * The presence check is what keeps the lookup scoped: `normalizeWhere` drops an
+   * undefined `_id`, so an unset campaign credential would otherwise return an
+   * arbitrary connected credential from the organization.
+   */
+  private findCampaignCredential({
+    brandId,
+    credentialId,
+    organizationId,
+  }: ICampaignScope) {
+    if (!credentialId) {
+      return null;
+    }
+
+    return this.credentialsService.findOne({
+      _id: credentialId,
+      ...(brandId ? { brandId } : {}),
+      isDeleted: false,
+      organizationId,
+    });
+  }
+
+  /**
    * Generate a reply for a target
    */
   private generateReply(
@@ -294,7 +290,7 @@ export class CampaignExecutorService {
     target: CampaignTargetDocument,
     // Resolved from the scalar FKs by the caller so this method never re-reads
     // `campaign.organization` / `campaign.user`.
-    owner: { organizationId: string; userId?: string },
+    owner: ICampaignScope,
   ): Promise<string> | string {
     const aiConfig = campaign.aiConfig || ({} as CampaignAiConfig);
 
@@ -428,7 +424,7 @@ export class CampaignExecutorService {
     campaign: OutreachCampaignDocument,
     target: CampaignTargetDocument,
   ): Promise<string> | string {
-    return this.generateReply(campaign, target);
+    return this.generateReply(campaign, target, resolveCampaignScope(campaign));
   }
 
   /**

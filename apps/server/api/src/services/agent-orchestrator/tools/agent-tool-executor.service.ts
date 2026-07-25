@@ -245,11 +245,6 @@ const TOOL_CATALOG_ROLES: ToolRequiredRole[] = ['user', 'admin', 'superadmin'];
 
 interface AgentLivestreamBotRecord {
   id: unknown;
-  /**
-   * Scalar FK — the real column. `brand` is the Mongo-era alias and is only
-   * present when the read path back-fills it, so it can never be the only
-   * source for a brand-scope check.
-   */
   brandId?: unknown;
   brand?: unknown;
   category?: string;
@@ -2877,10 +2872,7 @@ export class AgentToolExecutorService {
     }
 
     const brand = await this.resolveWorkflowBrand({}, ctx);
-    // Brand-scope gate: a brand-bound bot must not be managed from another
-    // brand's agent context. Read the scalar FK — if this resolved to
-    // `undefined` the guard collapsed entirely and the bot became manageable
-    // from any brand in the organization.
+    // Scalar FK: an undefined `bot.brand` collapsed this brand-scope gate.
     const botBrandId = resolveRelationId(bot.brandId, bot.brand);
     if (botBrandId && (!brand || botBrandId !== String(brand.id))) {
       return null;
@@ -3315,9 +3307,6 @@ export class AgentToolExecutorService {
 
     const requestedPlatforms = params.platforms ?? [];
     const credentials = await this.resolveBrandCredentials({
-      // Scalar FK — `resolveBrandCredentials` turns this into the credential
-      // query's `brand` filter, so an undefined alias would be dropped by
-      // `normalizeWhere` and return every connected credential in the org.
       brandId: resolveRelationId(ingredient.brandId, ingredient.brand),
       organizationId: ctx.organizationId,
     });
@@ -3510,14 +3499,9 @@ export class AgentToolExecutorService {
         };
       }
 
-      this.assertResourceScope(
-        ctx,
-        // Scalar FK. `assertResourceBrand` rejects an undefined resource brand
-        // outright, so reading the alias here risked blocking every scoped
-        // thread from touching its own content.
-        resolveRelationId(ingredient.brandId, ingredient.brand),
-        'selected content',
-      );
+      // Scalar FK — `assertResourceScope` rejects an undefined resource brand.
+      const brandId = resolveRelationId(ingredient.brandId, ingredient.brand);
+      this.assertResourceScope(ctx, brandId, 'selected content');
 
       const publishedPost = await this.resolveLatestPublishedPostForIngredient(
         contentId,
@@ -4328,19 +4312,8 @@ export class AgentToolExecutorService {
         };
       }
 
-      // Scalar FK, resolved once for both the brand-scope gate and the
-      // credential filter below. `ingredient.brand` is the Mongo-era alias and
-      // is only present because `BaseService` back-fills it from `brandId`.
-      const ingredientBrandId = resolveRelationId(
-        ingredient.brandId,
-        ingredient.brand,
-      );
-
-      await this.assertPublishingScope(
-        ctx,
-        ingredientBrandId,
-        'selected content',
-      );
+      const brandId = resolveRelationId(ingredient.brandId, ingredient.brand);
+      await this.assertPublishingScope(ctx, brandId, 'selected content');
 
       if (platforms.length === 0) {
         return {
@@ -4351,7 +4324,7 @@ export class AgentToolExecutorService {
       }
 
       const credentials = await this.resolveBrandCredentials({
-        brandId: ingredientBrandId,
+        brandId,
         organizationId: ctx.organizationId,
         platforms,
       });

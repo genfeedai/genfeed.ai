@@ -407,6 +407,11 @@ describe('CampaignExecutorService', () => {
 
       expect(preview).toBe('preview text');
       expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
+      // Preview resolves ownership from the scalar FKs like the execute path does,
+      // so the generation is billed to the campaign's real org/user.
+      expect(mockReplyGenerationService.generateReply).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: orgId, userId }),
+      );
     });
   });
 
