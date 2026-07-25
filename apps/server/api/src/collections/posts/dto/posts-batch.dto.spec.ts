@@ -9,11 +9,16 @@ const metadata: ArgumentMetadata = {
   type: 'body',
 };
 
+// Deliberately zero-entropy ids. `credential` is a real DTO field name, so a
+// high-entropy hex literal beside it reads as a leaked secret to scanners.
+const CREDENTIAL_ID = '000000000000000000000001';
+const POST_ID = '000000000000000000000002';
+
 function buildBody(itemCount: number) {
   return {
-    credential: '507f1f77bcf86cd799439011',
+    credential: CREDENTIAL_ID,
     items: Array.from({ length: itemCount }, (_value, index) => ({
-      postId: '507f1f77bcf86cd799439012',
+      postId: POST_ID,
       scheduledDate: '2026-07-01T14:30:00Z',
       text: `Scheduled post ${index}`,
     })),
