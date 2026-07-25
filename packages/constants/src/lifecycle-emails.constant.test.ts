@@ -57,7 +57,7 @@ describe('lifecycle-emails.constant', () => {
     });
 
     expect(
-      buildLifecycleSystemEmailAction(checkout, 'https://app.genfeed.ai/'),
+      buildLifecycleSystemEmailAction(checkout, 'https://app.genfeed.ai///'),
     ).toEqual({
       label: 'Open Genfeed',
       url: 'https://app.genfeed.ai',

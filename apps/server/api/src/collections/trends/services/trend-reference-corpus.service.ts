@@ -39,6 +39,10 @@ interface SyncTrendInput {
   sourcePreview: TrendSourceItem[];
 }
 
+function removeTrailingSlash(value: string): string {
+  return value.endsWith('/') ? value.slice(0, -1) : value;
+}
+
 interface RemixLineagePayload {
   organizationId: string;
   brandId: string;
@@ -820,13 +824,23 @@ export class TrendReferenceCorpusService {
       const parsed = new URL(url);
       parsed.hash = '';
       parsed.search = '';
-      return parsed.toString().replace(/\/$/, '');
+      return removeTrailingSlash(parsed.toString());
     } catch (error) {
       this.loggerService.warn('Failed to normalize source URL', {
         error: error instanceof Error ? error.message : String(error),
         url,
       });
-      return url.replace(/[?#].*$/, '').replace(/\/$/, '');
+      const queryIndex = url.indexOf('?');
+      const hashIndex = url.indexOf('#');
+      const delimiterIndexes = [queryIndex, hashIndex].filter(
+        (index) => index >= 0,
+      );
+      const end =
+        delimiterIndexes.length > 0
+          ? Math.min(...delimiterIndexes)
+          : url.length;
+
+      return removeTrailingSlash(url.slice(0, end));
     }
   }
 

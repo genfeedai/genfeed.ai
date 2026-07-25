@@ -12,7 +12,12 @@ function normalizeEndpoint(endpoint: string): string {
     throw new Error('The MCP endpoint must use HTTP or HTTPS.');
   }
 
-  return endpoint.replace(/\/+$/, '');
+  let end = endpoint.length;
+  while (end > 0 && endpoint[end - 1] === '/') {
+    end -= 1;
+  }
+
+  return end === endpoint.length ? endpoint : endpoint.slice(0, end);
 }
 
 export function buildConnectGenfeedInstructions(

@@ -302,9 +302,36 @@ export function redactPublishWebhookText(value: string): string {
 }
 
 function normalizeEventIdSegment(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  const input = value.trim().toLowerCase();
+  const result: string[] = [];
+  let replacing = false;
+
+  for (const character of input) {
+    const code = character.charCodeAt(0);
+    const isAllowed =
+      (code >= 48 && code <= 57) ||
+      (code >= 97 && code <= 122) ||
+      character === '.' ||
+      character === '_' ||
+      character === '-';
+
+    if (isAllowed) {
+      result.push(character);
+      replacing = false;
+    } else if (!replacing) {
+      result.push('-');
+      replacing = true;
+    }
+  }
+
+  let start = 0;
+  let end = result.length;
+  while (start < end && result[start] === '-') {
+    start += 1;
+  }
+  while (end > start && result[end - 1] === '-') {
+    end -= 1;
+  }
+
+  return result.slice(start, end).join('');
 }

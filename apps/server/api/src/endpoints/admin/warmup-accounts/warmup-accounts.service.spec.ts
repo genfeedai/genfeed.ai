@@ -1,5 +1,8 @@
 import { InvitationService } from '@api/collections/members/services/invitation.service';
-import { AdminWarmupAccountsService } from '@api/endpoints/admin/warmup-accounts/warmup-accounts.service';
+import {
+  AdminWarmupAccountsService,
+  createSlugSeed,
+} from '@api/endpoints/admin/warmup-accounts/warmup-accounts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WarmupAccountStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -7,6 +10,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-06-29T10:00:00.000Z');
 const updatedAt = new Date('2026-06-29T10:01:00.000Z');
+
+describe('createSlugSeed', () => {
+  it('collapses invalid runs and trims separators', () => {
+    expect(createSlugSeed('  --Warmup   Account--  ')).toBe('warmup-account');
+  });
+
+  it('preserves the existing fallback and length cap', () => {
+    expect(createSlugSeed('---')).toBe('warmup');
+    expect(createSlugSeed('a'.repeat(80))).toHaveLength(48);
+  });
+
+  it('handles long separator runs without ambiguous matching', () => {
+    expect(createSlugSeed(`lead${'-'.repeat(50_000)}account`)).toBe(
+      'lead-account',
+    );
+  });
+});
 
 function makeWarmupAccount(overrides: Record<string, unknown> = {}) {
   return {

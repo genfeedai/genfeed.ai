@@ -6,6 +6,7 @@ import type {
   SocialMessageDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import type { SocialInboxPage } from '@api/collections/social-inbox/services/social-inbox.types';
+import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
 import { BadRequestException } from '@nestjs/common';
 
 type JsonRecord = Record<string, unknown>;
@@ -19,12 +20,7 @@ export function normalizePlatform(platform: string): string {
 }
 
 export function sanitizeBody(body: string): string {
-  const stripped = body
-    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  const stripped = replaceMarkup(body, '', true).replace(/\s+/g, ' ').trim();
 
   if (!stripped) {
     throw new BadRequestException('Message body cannot be empty');

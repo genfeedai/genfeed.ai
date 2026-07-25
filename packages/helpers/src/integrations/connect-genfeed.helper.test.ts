@@ -58,4 +58,15 @@ describe('buildConnectGenfeedInstructions', () => {
       buildConnectGenfeedInstructions('codex', 'file:///tmp/mcp'),
     ).toThrow('The MCP endpoint must use HTTP or HTTPS.');
   });
+
+  it('removes a long run of trailing slashes from a valid endpoint', () => {
+    const instructions = buildConnectGenfeedInstructions(
+      'codex',
+      `https://mcp.genfeed.ai/mcp${'/'.repeat(50_000)}`,
+    );
+
+    expect(instructions.primaryCommand).toContain(
+      'https://mcp.genfeed.ai/mcp --bearer-token-env-var',
+    );
+  });
 });
