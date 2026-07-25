@@ -8,6 +8,7 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { WorkflowExecutionSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
@@ -46,13 +47,20 @@ export class InternalWorkflowExecutionsController {
       organization: orgId,
     });
 
-    if (!workflow?.user) {
+    // Scalar FK first: `user` is a Mongo-era relation alias that only holds an
+    // id while `BaseService.normalizeDocument` back-fills it, so `.toString()`
+    // below would throw once a query populates it or a raw row skips
+    // normalization. An unresolved id means an ownerless system template,
+    // which this route must not execute.
+    const userId = resolveRelationId(workflow?.userId, workflow?.user);
+
+    if (!userId) {
       throw new NotFoundException('Workflow');
     }
 
     const result = await this.workflowExecutorService.executeManualWorkflow(
       dto.workflow.toString(),
-      workflow.user.toString(),
+      userId,
       orgId,
       dto.inputValues ?? {},
       dto.metadata,
