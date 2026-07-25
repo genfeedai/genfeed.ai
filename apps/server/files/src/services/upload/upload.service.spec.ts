@@ -206,8 +206,9 @@ describe('UploadService', () => {
     });
 
     it('should upload MP4 video file with metadata', async () => {
+      const videoPath = path.join(FILES_TMP_ROOT, 'fixtures', 'video.mp4');
       const result = await service.uploadToS3('test-key', 'videos', {
-        path: path.join(FILES_TMP_ROOT, 'fixtures', 'video.mp4'),
+        path: videoPath,
         type: 'file',
       });
 
@@ -215,7 +216,9 @@ describe('UploadService', () => {
       expect(result.height).toBe(1080);
       expect(result.duration).toBe(60);
       expect(result.hasAudio).toBe(true);
-      expect(mockFfmpegService.getVideoMetadata).toHaveBeenCalled();
+      expect(mockFfmpegService.getVideoMetadata).toHaveBeenCalledWith(
+        videoPath,
+      );
     });
 
     it('should handle video without audio stream', async () => {
