@@ -236,7 +236,7 @@ export class ImagesOperationsController {
 
       // Create ingredient and metadata for this frame, preserving source metadata
       const { ingredientData } = await this.sharedService.saveDocuments(user, {
-        brand: sourceImage.brand,
+        brand: sourceImage.brandId,
         category: IngredientCategory.IMAGE,
         extension: metadataFields.extension || MetadataExtension.JPEG,
         label: `Frame ${i + 1}`,

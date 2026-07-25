@@ -78,6 +78,10 @@ const checks = [
     name: 'Product workflow boundary',
   },
   {
+    command: ['bun', 'run', 'scripts/architecture/check-route-shadowing.ts'],
+    name: 'Controller route shadowing',
+  },
+  {
     command: [
       'bun',
       'run',

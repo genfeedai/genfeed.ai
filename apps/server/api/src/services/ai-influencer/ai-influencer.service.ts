@@ -11,6 +11,10 @@ import {
   PersonaContentService,
 } from '@api/services/persona-content/persona-content.service';
 import {
+  requireRelationId,
+  resolveRelationId,
+} from '@api/shared/utils/relation-id/relation-id.util';
+import {
   DarkroomReviewStatus,
   IngredientStatus,
   LoraStatus,
@@ -561,18 +565,36 @@ export class AiInfluencerService {
   ): Promise<IngredientDocument> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
+    // The DTO keys stay Mongo-style (`brand`/`organization`/`user`) — that is the
+    // ingredient create contract across the codebase — but the *values* must come
+    // from the persona's scalar FKs. `persona.organization` / `persona.user` are
+    // legacy aliases that only exist because `BaseService` back-fills them, and
+    // `Persona.organizationId` / `Persona.userId` are non-nullable columns, so an
+    // unresolvable owner means the row was read wrong rather than being genuinely
+    // ownerless. Fail closed instead of persisting an unscoped ingredient.
+    const personaContext = `Persona ${persona.slug}`;
     const ingredient = await this.ingredientsService.create({
-      brand: persona.brand,
+      brand: resolveRelationId(persona.brandId, persona.brand),
       caption,
       cdnUrl: imageUrl,
       generationSource: `ai-influencer-${persona.slug}`,
       isDeleted: false,
-      organization: persona.organization,
+      organization: requireRelationId(
+        persona.organizationId,
+        persona.organization,
+        'organization',
+        personaContext,
+      ),
       persona: persona.id,
       personaSlug: persona.slug,
       reviewStatus: DarkroomReviewStatus.APPROVED,
       status: IngredientStatus.GENERATED,
-      user: persona.user,
+      user: requireRelationId(
+        persona.userId,
+        persona.user,
+        'user',
+        personaContext,
+      ),
     } as Parameters<IngredientsService['create']>[0]);
 
     this.loggerService.log(caller, {

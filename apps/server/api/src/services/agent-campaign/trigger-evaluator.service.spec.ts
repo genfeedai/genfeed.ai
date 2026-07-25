@@ -8,6 +8,9 @@ describe('TriggerEvaluatorService', () => {
   const userId = 'test-object-id';
   const brandId = 'test-object-id';
   const strategyId = 'test-object-id';
+  // Deliberately distinct from `brandId` so a scalar-FK read is distinguishable
+  // from a Mongo-era alias read in the assertions below.
+  const scalarBrandId = 'brand-scalar-id';
 
   function createService() {
     const agentCampaignsService = {
@@ -58,6 +61,100 @@ describe('TriggerEvaluatorService', () => {
     };
   }
 
+  /**
+   * Primes every analytics loader with empty/idle data so `evaluateCampaign`
+   * runs the full scope-resolution path and then short-circuits on "no trigger
+   * thresholds met". Keeps the scoping assertions free of dispatch setup.
+   */
+  function primeIdleLoaders(mocks: ReturnType<typeof createService>): void {
+    mocks.agentStrategiesService.findOneById.mockResolvedValue({
+      id: strategyId,
+      isActive: true,
+      isEnabled: true,
+      label: 'Trend Watcher',
+      opportunitySources: {
+        eventTriggersEnabled: true,
+        trendWatchersEnabled: true,
+      },
+      platforms: ['twitter'],
+      topics: ['ai marketing'],
+    });
+    mocks.analyticsService.getOverview.mockResolvedValue({
+      avgEngagementRate: 1,
+      growth: { engagement: 1, posts: 1, views: 1 },
+      totalPosts: 1,
+      totalViews: 10,
+    });
+    mocks.analyticsService.getBestPostingTimes.mockResolvedValue([]);
+    mocks.analyticsService.getTopContent.mockResolvedValue([]);
+    mocks.trendsService.getTrends.mockResolvedValue([]);
+  }
+
+  it('scopes the brand read with the campaign scalar brand id', async () => {
+    const mocks = createService();
+    const { agentCampaignsService, analyticsService, brandsService, service } =
+      mocks;
+
+    primeIdleLoaders(mocks);
+    agentCampaignsService.findOneById.mockResolvedValue({
+      id: campaignId,
+      agents: [strategyId],
+      // Only the scalar FK is present. `brand` is the Mongo-era alias and is
+      // `undefined` on an unpopulated read, which used to leave both filter
+      // values undefined — `normalizeWhere` dropped them and the lookup
+      // returned an arbitrary brand row.
+      brandId: scalarBrandId,
+      label: 'Spring Push',
+      organizationId,
+      status: 'active',
+      userId,
+    });
+    brandsService.findOne.mockResolvedValue({
+      description: 'AI marketing systems for creators',
+      label: 'Acme',
+    });
+
+    await service.evaluateCampaign(campaignId, organizationId);
+
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      _id: scalarBrandId,
+      isDeleted: false,
+      organization: organizationId,
+    });
+    expect(analyticsService.getOverview).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      scalarBrandId,
+      organizationId,
+    );
+  });
+
+  it('skips the brand read entirely when no brand id can be resolved', async () => {
+    const mocks = createService();
+    const { agentCampaignsService, analyticsService, brandsService, service } =
+      mocks;
+
+    primeIdleLoaders(mocks);
+    agentCampaignsService.findOneById.mockResolvedValue({
+      id: campaignId,
+      agents: [strategyId],
+      label: 'Spring Push',
+      organizationId,
+      status: 'active',
+      userId,
+    });
+
+    await service.evaluateCampaign(campaignId, organizationId);
+
+    expect(brandsService.findOne).not.toHaveBeenCalled();
+    expect(analyticsService.getOverview).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      undefined,
+      organizationId,
+    );
+  });
+
   it('dispatches a trend spike through the content engine', async () => {
     const {
       agentCampaignsService,
@@ -72,12 +169,16 @@ describe('TriggerEvaluatorService', () => {
     agentCampaignsService.findOneById.mockResolvedValue({
       id: campaignId,
       agents: [strategyId],
+      // Scalars are the real columns; the aliases stay to prove the fallback.
       brand: brandId,
+      brandId,
       brief: 'Build AI marketing momentum',
       label: 'Spring Push',
       organization: organizationId,
+      organizationId,
       status: 'active',
       user: userId,
+      userId,
     });
     agentStrategiesService.findOneById.mockResolvedValue({
       id: strategyId,
@@ -177,10 +278,13 @@ describe('TriggerEvaluatorService', () => {
       id: campaignId,
       agents: [strategyId],
       brand: brandId,
+      brandId,
       label: 'Spring Push',
       organization: organizationId,
+      organizationId,
       status: 'active',
       user: userId,
+      userId,
     });
     agentStrategiesService.findOneById.mockResolvedValue({
       id: strategyId,

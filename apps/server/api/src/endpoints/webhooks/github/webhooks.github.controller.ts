@@ -1,5 +1,13 @@
+import { GitHubSecretAlertDto } from '@api/endpoints/webhooks/dto/github-secret-alert.dto';
 import { Public } from '@libs/decorators/public.decorator';
-import { Body, Controller, Headers, Post, RawBody } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Headers,
+  ParseArrayPipe,
+  Post,
+  RawBody,
+} from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { GitHubWebhookService } from './webhooks.github.service';
 
@@ -12,7 +20,8 @@ export class GitHubWebhookController {
   @Public()
   async handleCallback(
     @Headers('x-hub-signature-256') signature: string,
-    @Body() body: unknown[],
+    @Body(new ParseArrayPipe({ items: GitHubSecretAlertDto }))
+    body: GitHubSecretAlertDto[],
     @RawBody() rawBody: Buffer,
   ) {
     this.githubWebhookService.validateSignature(rawBody, signature);

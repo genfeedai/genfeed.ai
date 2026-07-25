@@ -484,55 +484,23 @@ export class IngredientsOperationsController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const publicMetadata = getPublicMetadata(user);
 
-    const deleted: string[] = [];
-    const failed: string[] = [];
+    // One scoped partition query + one soft-delete write, regardless of how
+    // many ids the caller supplies. Permission semantics are unchanged: an id
+    // is deletable when it exists, is not already deleted, and the caller
+    // either owns it or shares its organization.
+    const { deleted, failed } =
+      await this.ingredientsService.bulkSoftDeleteScoped({
+        ids: bulkDeleteDto.ids,
+        organizationId: publicMetadata.organization.toString(),
+        userId: publicMetadata.user.toString(),
+      });
 
-    // Process each ID for deletion
-    for (const id of bulkDeleteDto.ids) {
-      try {
-        // Find the ingredient and check permissions
-        const ingredient = await this.ingredientsService.findOne({
-          _id: id,
-          isDeleted: false,
-        });
-
-        if (!ingredient) {
-          failed.push(id);
-          continue;
-        }
-
-        // Check if user has permission to delete
-        // User must be the owner or in the same organization
-        const isOwner =
-          publicMetadata.user.toString() === this.getRefId(ingredient.user);
-
-        const isSameOrg =
-          publicMetadata.organization.toString() ===
-          this.getRefId(ingredient.organization);
-
-        if (!isOwner && !isSameOrg) {
-          this.loggerService.warn(`${url} permission denied`, {
-            ingredientId: id,
-            orgId: publicMetadata.organization,
-            userId: publicMetadata.user,
-          });
-
-          failed.push(id);
-          continue;
-        }
-
-        // Soft delete the ingredient
-        await this.ingredientsService.patch(id, { isDeleted: true });
-        deleted.push(id);
-
-        this.loggerService.log(`${url} deleted ingredient`, { id });
-      } catch (error: unknown) {
-        this.loggerService.error(`${url} failed to delete ingredient`, {
-          error,
-          id,
-        });
-        failed.push(id);
-      }
+    if (failed.length > 0) {
+      this.loggerService.warn(`${url} skipped inaccessible ingredients`, {
+        count: failed.length,
+        orgId: publicMetadata.organization,
+        userId: publicMetadata.user,
+      });
     }
 
     const message = `Successfully deleted ${deleted.length} ingredient(s)${

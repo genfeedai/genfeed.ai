@@ -2,6 +2,7 @@ export * from './admin.interface';
 export * from './auth-provider.interface';
 export * from './bot.interface';
 export * from './bot-gateway.interface';
+export * from './campaign.interface';
 export * from './file-queue.interface';
 export * from './files-processing.interface';
 export * from './integration.interface';

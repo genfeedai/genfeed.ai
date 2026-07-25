@@ -22,17 +22,19 @@
             "description": "Discriminator for how targets are added. Defaults to URL-based target detection. Use DM_RECIPIENT to add DM recipients by username."
           },
           "urls": {
-            "description": "Content URLs to add as targets (manual URL addition)",
+            "description": "Content URLs to add as targets (manual URL addition, max 100)",
             "items": {
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           },
           "usernames": {
-            "description": "Usernames to add as DM recipients (requires targetType: dm_recipient)",
+            "description": "Usernames to add as DM recipients (requires targetType: dm_recipient, max 100)",
             "items": {
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           }
         },
@@ -886,7 +888,7 @@
       "BulkUpdateActivitiesDto": {
         "properties": {
           "ids": {
-            "description": "Array of activity IDs to update",
+            "description": "Array of activity IDs to update (max 100)",
             "example": [
               "507f1f77bcf86cd799439011",
               "507f1f77bcf86cd799439012"
@@ -894,6 +896,7 @@
             "items": {
               "type": "string"
             },
+            "maxItems": 100,
             "type": "array"
           },
           "isDeleted": {
@@ -949,6 +952,35 @@
           "txt"
         ],
         "type": "string"
+      },
+      "ChromaticWebhookPayloadDto": {
+        "properties": {
+          "branch": {
+            "description": "Branch the build ran against",
+            "type": "string"
+          },
+          "build": {
+            "description": "Build summary",
+            "type": "object"
+          },
+          "commit": {
+            "description": "Commit the build ran against",
+            "type": "object"
+          },
+          "event": {
+            "description": "Chromatic event name",
+            "type": "string"
+          },
+          "project": {
+            "description": "Project the build belongs to",
+            "type": "object"
+          },
+          "timestamp": {
+            "description": "Event timestamp",
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "ClipProjectSettingsDto": {
         "properties": {
@@ -6101,6 +6133,115 @@
         ],
         "type": "string"
       },
+      "FleetVoiceCloneWebhookPayloadDto": {
+        "properties": {
+          "assetId": {
+            "description": "Asset the clone belongs to",
+            "type": "string"
+          },
+          "duration": {
+            "description": "Sample duration",
+            "type": "number"
+          },
+          "durationSeconds": {
+            "description": "Sample duration, seconds",
+            "type": "number"
+          },
+          "duration_seconds": {
+            "description": "Sample duration, seconds, snake_case",
+            "type": "number"
+          },
+          "error": {
+            "description": "Failure detail",
+            "type": "object"
+          },
+          "handle": {
+            "description": "Voice handle",
+            "type": "string"
+          },
+          "id": {
+            "description": "Fleet record id",
+            "type": "string"
+          },
+          "ingredientId": {
+            "description": "Ingredient the clone belongs to",
+            "type": "string"
+          },
+          "jobId": {
+            "description": "Job id, camelCase",
+            "type": "string"
+          },
+          "job_id": {
+            "description": "Job id, snake_case",
+            "type": "string"
+          },
+          "metrics": {
+            "description": "Run metrics",
+            "type": "object"
+          },
+          "output": {
+            "description": "Job output",
+            "type": "object"
+          },
+          "processTime": {
+            "description": "Processing time",
+            "type": "number"
+          },
+          "processTimeMs": {
+            "description": "Processing time in milliseconds",
+            "type": "number"
+          },
+          "processTimeSeconds": {
+            "description": "Processing time in seconds",
+            "type": "number"
+          },
+          "process_time": {
+            "description": "Processing time, snake_case",
+            "type": "number"
+          },
+          "process_time_seconds": {
+            "description": "Processing time in seconds, snake_case",
+            "type": "number"
+          },
+          "processingTime": {
+            "description": "Processing time, legacy camelCase",
+            "type": "number"
+          },
+          "processing_time": {
+            "description": "Processing time, legacy snake_case",
+            "type": "number"
+          },
+          "result": {
+            "description": "Job result",
+            "type": "object"
+          },
+          "sampleAudioUrl": {
+            "description": "Sample audio URL, camelCase",
+            "type": "string"
+          },
+          "sample_audio_url": {
+            "description": "Sample audio URL, snake_case",
+            "type": "string"
+          },
+          "state": {
+            "description": "Job state alias",
+            "type": "string"
+          },
+          "status": {
+            "description": "Job status",
+            "type": "string"
+          },
+          "voiceId": {
+            "description": "Cloned voice id, camelCase",
+            "type": "string"
+          },
+          "voice_id": {
+            "description": "Cloned voice id, snake_case",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "FontFamily": {
         "description": "The font family to use for text overlays",
         "enum": [
@@ -6728,6 +6869,31 @@
         "properties": {},
         "type": "object"
       },
+      "HeygenWebhookPayloadDto": {
+        "properties": {
+          "callback_id": {
+            "description": "Correlation id sent on the job",
+            "type": "string"
+          },
+          "event_data": {
+            "description": "Event body for this event type",
+            "type": "object"
+          },
+          "event_type": {
+            "description": "Heygen event type",
+            "type": "string"
+          },
+          "status": {
+            "description": "Video lifecycle status",
+            "type": "string"
+          },
+          "video_id": {
+            "description": "Heygen video id",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ImageEditDto": {
         "properties": {
           "brand": {
@@ -7277,6 +7443,31 @@
         ],
         "type": "object"
       },
+      "KlingAIWebhookPayloadDto": {
+        "properties": {
+          "custom_id": {
+            "description": "Correlation id sent on the job",
+            "type": "string"
+          },
+          "task_error": {
+            "description": "Task failure detail",
+            "type": "object"
+          },
+          "task_id": {
+            "description": "KlingAI task id",
+            "type": "string"
+          },
+          "task_result": {
+            "description": "Task result tree",
+            "type": "object"
+          },
+          "task_status": {
+            "description": "Task lifecycle status",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "LeaderboardSort": {
         "enum": [
           "engagement",
@@ -7284,6 +7475,38 @@
           "posts"
         ],
         "type": "string"
+      },
+      "LeonardoAIWebhookPayloadDto": {
+        "properties": {
+          "customId": {
+            "description": "Correlation id sent on the generation",
+            "type": "string"
+          },
+          "data": {
+            "description": "Event envelope",
+            "type": "object"
+          },
+          "generationId": {
+            "description": "Generation id",
+            "type": "string"
+          },
+          "images": {
+            "description": "Generated images",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "Generation lifecycle status",
+            "type": "string"
+          },
+          "type": {
+            "description": "Leonardo.AI event type",
+            "type": "string"
+          }
+        },
+        "type": "object"
       },
       "LinkCategory": {
         "description": "The type/category of the link",
@@ -7979,6 +8202,31 @@
         "properties": {},
         "type": "object"
       },
+      "OpusProWebhookPayloadDto": {
+        "properties": {
+          "callback_id": {
+            "description": "Correlation id sent on the job",
+            "type": "string"
+          },
+          "error": {
+            "description": "Failure detail",
+            "type": "string"
+          },
+          "status": {
+            "description": "Clip lifecycle status",
+            "type": "string"
+          },
+          "videoUrl": {
+            "description": "Rendered clip URL, camelCase",
+            "type": "string"
+          },
+          "video_url": {
+            "description": "Rendered clip URL, snake_case",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "OutreachCampaignAiConfigDto": {
         "properties": {
           "context": {
@@ -8417,10 +8665,11 @@
             "type": "string"
           },
           "items": {
-            "description": "Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED)",
+            "description": "Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED, max 100)",
             "items": {
               "$ref": "#/components/schemas/PostBatchItemDto"
             },
+            "maxItems": 100,
             "type": "array"
           }
         },
@@ -8648,6 +8897,43 @@
           "partially-published"
         ],
         "type": "string"
+      },
+      "ReplicateWebhookPayloadDto": {
+        "properties": {
+          "error": {
+            "description": "Prediction error",
+            "type": "object"
+          },
+          "id": {
+            "description": "Replicate prediction id",
+            "type": "string"
+          },
+          "input": {
+            "description": "Prediction input",
+            "type": "object"
+          },
+          "model": {
+            "description": "Model key, `owner/name`",
+            "type": "object"
+          },
+          "output": {
+            "description": "Prediction output",
+            "type": "object"
+          },
+          "status": {
+            "description": "Prediction lifecycle status",
+            "type": "string"
+          },
+          "version": {
+            "description": "Trained model version",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "status"
+        ],
+        "type": "object"
       },
       "ReplyBotType": {
         "enum": [
@@ -52232,6 +52518,16 @@
       "post": {
         "operationId": "ChromaticWebhookController.handleChromatic",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChromaticWebhookPayloadDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -52270,6 +52566,16 @@
       "post": {
         "operationId": "FleetWebhookController.handleVoiceCloneCompletion",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetVoiceCloneWebhookPayloadDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -52285,6 +52591,16 @@
       "post": {
         "operationId": "HeygenWebhookController.handleCallback",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeygenWebhookPayloadDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -52300,6 +52616,16 @@
       "post": {
         "operationId": "KlingWebhookController.handleCallback",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KlingAIWebhookPayloadDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -52315,6 +52641,16 @@
       "post": {
         "operationId": "LeonardoaiWebhookController.handleCallback",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeonardoAIWebhookPayloadDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -52330,6 +52666,16 @@
       "post": {
         "operationId": "OpusProWebhookController.handleCallback",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpusProWebhookPayloadDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -52345,6 +52691,16 @@
       "post": {
         "operationId": "ReplicateWebhookController.handleCallback",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplicateWebhookPayloadDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""

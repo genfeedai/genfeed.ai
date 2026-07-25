@@ -65,7 +65,10 @@ export class VoiceDatasetService {
       throw new BadRequestException('s3Keys array must not be empty');
     }
 
-    const bucket = request.bucket || this.configService.AWS_S3_BUCKET;
+    // The bucket is never caller-supplied: this service holds the container's
+    // AWS credentials, so honoring a request-supplied bucket would let a caller
+    // borrow them to read any bucket those credentials can reach.
+    const bucket = this.configService.AWS_S3_BUCKET;
     const datasetPath = this.getDatasetPath(voiceId);
 
     this.loggerService.log(caller, {

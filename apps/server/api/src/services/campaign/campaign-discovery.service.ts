@@ -18,6 +18,7 @@ import {
   type SocialContentData,
   SocialMonitorService,
 } from '@api/services/reply-bot/social-monitor.service';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   CampaignDiscoverySource,
   CampaignPlatform,
@@ -402,19 +403,21 @@ export class CampaignDiscoveryService {
     campaignId: string,
     targets: DiscoveredTarget[],
   ): Promise<DiscoveredTarget[]> {
-    const newTargets: DiscoveredTarget[] = [];
-
-    for (const target of targets) {
-      const exists = await this.campaignTargetsService.targetExists(
-        campaignId,
-        target.externalId,
-      );
-      if (!exists) {
-        newTargets.push(target);
-      }
+    if (targets.length === 0) {
+      return [];
     }
 
-    return newTargets;
+    // One existence query for the whole discovery batch instead of one per
+    // target — discovery routinely produces hundreds of candidates.
+    const existingExternalIds =
+      await this.campaignTargetsService.findExistingExternalIds(
+        campaignId,
+        targets.map((target) => target.externalId),
+      );
+
+    return targets.filter(
+      (target) => !existingExternalIds.has(target.externalId),
+    );
   }
 
   /**
@@ -427,6 +430,16 @@ export class CampaignDiscoveryService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
+      // Every created target row carries this as its tenant FK. The alias is
+      // `undefined` on an unpopulated campaign read, which used to produce target
+      // rows with no organization scope at all.
+      const organizationId = requireRelationId(
+        campaign.organizationId,
+        campaign.organization,
+        'organization',
+        `Campaign ${String(campaign.id)}`,
+      );
+
       const targetsToCreate = targets.map((target) => ({
         authorId: target.authorId,
         authorUsername: target.authorUsername,
@@ -438,7 +451,7 @@ export class CampaignDiscoveryService {
         externalId: target.externalId,
         likes: target.likes,
         matchedKeyword: target.matchedKeyword,
-        organization: campaign.organization,
+        organization: organizationId,
         platform: target.platform,
         relevanceScore: target.relevanceScore,
         replies: target.replies,
@@ -446,15 +459,15 @@ export class CampaignDiscoveryService {
         targetType: target.targetType,
       }));
 
-      const created =
+      const addedCount =
         await this.campaignTargetsService.createMany(targetsToCreate);
 
       this.loggerService.log(`${url} success`, {
-        addedCount: created.length,
+        addedCount,
         campaignId: campaign.id,
       });
 
-      return created.length;
+      return addedCount;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, {
         campaignId: campaign.id,

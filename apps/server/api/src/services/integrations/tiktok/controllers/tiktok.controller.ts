@@ -104,9 +104,8 @@ export class TiktokController {
     const clientKey = this.configService.get('TIKTOK_CLIENT_KEY');
 
     const state = JSON.stringify({
-      brandId: brand.id.toString(),
-      organizationId:
-        brand.organization?.toString() ?? publicMetadata.organization,
+      brandId: brand.id,
+      organizationId: brand.organizationId,
     });
 
     const authUrl =

@@ -51,7 +51,7 @@ function createMockBrandsService(
   return {
     findOne: vi.fn().mockResolvedValue({
       _id: 'test-object-id',
-      organization: orgId,
+      organizationId: orgId,
     }),
     ...overrides,
   } as unknown as BrandsService;
@@ -76,7 +76,10 @@ describe('BatchContentService', () => {
       const brandsService = createMockBrandsService({
         findOne: vi.fn().mockResolvedValue({
           _id: defaultRequest.brandId,
-          organization: orgId,
+          // A real unpopulated brand row carries only the scalar FK. Comparing the
+          // `organization` relation alias instead stringified `undefined`, so the
+          // ownership guard rejected every legitimate brand.
+          organizationId: orgId,
         }),
       } as unknown as Partial<BrandsService>);
       const queueService = createMockQueueService();
@@ -93,6 +96,27 @@ describe('BatchContentService', () => {
         defaultRequest,
         'user-1',
       );
+      expect(result).toEqual({ batchId: 'batch-1' });
+    });
+
+    it('should still accept a brand row that only carries the legacy alias', async () => {
+      const orgId = defaultRequest.organizationId;
+      const brandsService = createMockBrandsService({
+        findOne: vi.fn().mockResolvedValue({
+          _id: defaultRequest.brandId,
+          organization: orgId,
+        }),
+      } as unknown as Partial<BrandsService>);
+      const queueService = createMockQueueService();
+      const service = new BatchContentService(
+        queueService,
+        brandsService,
+        createMockLogger(),
+      );
+
+      const result = await service.triggerBatch(defaultRequest, 'user-1');
+
+      expect(queueService.enqueueBatch).toHaveBeenCalled();
       expect(result).toEqual({ batchId: 'batch-1' });
     });
 
@@ -116,7 +140,7 @@ describe('BatchContentService', () => {
       const brandsService = createMockBrandsService({
         findOne: vi.fn().mockResolvedValue({
           _id: defaultRequest.brandId,
-          organization: differentOrgId,
+          organizationId: differentOrgId,
         }),
       } as unknown as Partial<BrandsService>);
       const service = new BatchContentService(

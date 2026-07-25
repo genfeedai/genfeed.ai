@@ -107,15 +107,78 @@ describe('VoiceCloneService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('should throw if localPath has no extension at all', async () => {
+      // `extname` returns '' here. The previous hand-rolled slice returned the
+      // whole path, which was then compared against the extension allow-list.
+      await expect(
+        service.uploadClone({
+          localPath: '/models/voices/test/model',
+          voiceId: 'test',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('should throw if local file does not exist', async () => {
       mockStat.mockRejectedValue(new Error('ENOENT'));
 
       await expect(
         service.uploadClone({
-          localPath: '/tmp/nonexistent.pth',
+          localPath: '/models/voices/test/nonexistent.pth',
           voiceId: 'test',
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it.each([
+      '../evil',
+      'nested/name',
+      'a..b',
+      '$(whoami)',
+      '.hidden',
+      'name with space',
+    ])('should reject voiceId %s before touching S3', async (voiceId) => {
+      mockStat.mockResolvedValue({ size: 12345 });
+
+      await expect(
+        service.uploadClone({
+          localPath: '/models/voices/my-voice/model.pth',
+          voiceId,
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockS3Service.uploadFile).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      '/etc/shadow.pth',
+      '../../root/.ssh/id_rsa.pth',
+      '/models/voices-sibling/evil.pth',
+    ])('should reject localPath %s outside the configured model directory', async (localPath) => {
+      mockStat.mockResolvedValue({ size: 12345 });
+
+      await expect(
+        service.uploadClone({ localPath, voiceId: 'my-voice' }),
+      ).rejects.toThrow(BadRequestException);
+
+      // The file is never read, so its bytes never reach a bucket the
+      // caller can list.
+      expect(mockStat).not.toHaveBeenCalled();
+      expect(mockS3Service.uploadFile).not.toHaveBeenCalled();
+    });
+
+    it('should accept a path relative to the configured model directory', async () => {
+      mockStat.mockResolvedValue({ size: 12345 });
+
+      await service.uploadClone({
+        localPath: 'my-voice/model.pth',
+        voiceId: 'my-voice',
+      });
+
+      expect(mockS3Service.uploadFile).toHaveBeenCalledWith(
+        'test-bucket',
+        'ingredients/trainings/voice-clones/my-voice/model.pth',
+        '/models/voices/my-voice/model.pth',
+      );
     });
   });
 
@@ -148,6 +211,37 @@ describe('VoiceCloneService', () => {
       await expect(service.downloadClone('')).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it.each([
+      '../evil',
+      'nested/name',
+      'a..b',
+      '$(whoami)',
+    ])('should reject voiceId %s before listing S3', async (voiceId) => {
+      await expect(service.downloadClone(voiceId)).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(mockS3Service.listObjects).not.toHaveBeenCalled();
+    });
+
+    it('should refuse to write an S3 key that escapes the voice directory', async () => {
+      // The key suffix is attacker-influenced if anything can write to the
+      // bucket; without containment it lands anywhere the process can write.
+      mockS3Service.listObjects.mockResolvedValue([
+        {
+          key: 'ingredients/trainings/voice-clones/my-voice/../../../../etc/cron.d/evil.pth',
+          lastModified: '2024-01-01T00:00:00.000Z',
+          size: 1024,
+        },
+      ]);
+
+      await expect(service.downloadClone('my-voice')).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(mockS3Service.downloadFile).not.toHaveBeenCalled();
     });
   });
 
