@@ -1,7 +1,7 @@
 import { ChromaticWebhookService } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.service';
+import { ChromaticWebhookPayloadDto } from '@api/endpoints/webhooks/dto/chromatic-webhook-payload.dto';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { Public } from '@libs/decorators/public.decorator';
-import { ChromaticWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -29,7 +29,7 @@ export class ChromaticWebhookController {
   @Post('callback')
   async handleChromatic(
     @Req() request: Request,
-    @Body() payload: ChromaticWebhookPayload,
+    @Body() payload: ChromaticWebhookPayloadDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 

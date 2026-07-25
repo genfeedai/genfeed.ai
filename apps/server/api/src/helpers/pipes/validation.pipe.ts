@@ -8,6 +8,31 @@ import {
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
+/**
+ * Static opt-out marker for whitelist stripping.
+ *
+ * The pipe validates with `{ whitelist: true }`, which DELETES every property
+ * the DTO does not decorate. That is the right default for first-party request
+ * bodies, but it is actively wrong for third-party webhook callbacks: their
+ * bodies are re-serialized for HMAC comparison, forwarded verbatim to other
+ * services, and read through index signatures, so silently dropping vendor keys
+ * corrupts the payload. A DTO declares
+ *
+ * ```ts
+ * static readonly [ALLOW_UNKNOWN_PROPERTIES] = true;
+ * ```
+ *
+ * to keep declared-field validation while passing unknown keys through
+ * untouched. Statics are inherited, so a base DTO can opt a whole family in.
+ */
+export const ALLOW_UNKNOWN_PROPERTIES: unique symbol = Symbol.for(
+  'genfeedai:validation:allow-unknown-properties',
+);
+
+interface UnknownPropertyAwareMetatype {
+  [ALLOW_UNKNOWN_PROPERTIES]?: boolean;
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -55,7 +80,7 @@ export class ValidationPipe implements PipeTransform<unknown> {
           enableImplicitConversion: false,
           exposeDefaultValues: true,
         });
-        await this.validateObject(object);
+        await this.validateObject(object, metatype);
         return object;
       }
 
@@ -78,16 +103,21 @@ export class ValidationPipe implements PipeTransform<unknown> {
       enableImplicitConversion: false,
       exposeDefaultValues: true,
     });
-    await this.validateObject(object);
+    await this.validateObject(object, metatype);
     return object;
   }
 
-  private async validateObject(object: unknown): Promise<void> {
+  private async validateObject(
+    object: unknown,
+    metatype: unknown,
+  ): Promise<void> {
     if (!isPlainObject(object)) {
       return;
     }
 
-    const errors = await validate(object, { whitelist: true });
+    const errors = await validate(object, {
+      whitelist: !this.allowsUnknownProperties(metatype),
+    });
     if (errors.length > 0) {
       const messages = errors.map((error) => ({
         constraints: error.constraints,
@@ -99,6 +129,14 @@ export class ValidationPipe implements PipeTransform<unknown> {
         message: 'Validation failed',
       });
     }
+  }
+
+  private allowsUnknownProperties(metatype: unknown): boolean {
+    return (
+      typeof metatype === 'function' &&
+      (metatype as UnknownPropertyAwareMetatype)[ALLOW_UNKNOWN_PROPERTIES] ===
+        true
+    );
   }
 
   private toValidate(metatype: unknown): boolean {
