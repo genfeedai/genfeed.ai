@@ -1,4 +1,12 @@
 export {
+  assertBoundedInteger,
+  assertBoundedNumber,
+  assertSafeArgValue,
+  MAX_ARG_VALUE_LENGTH,
+  type NumericBounds,
+  SAFE_ARG_VALUE_PATTERN,
+} from '@libs/security/arg-security';
+export {
   assertSafeSegment,
   createPathSecurity,
   createPathSecurityClass,

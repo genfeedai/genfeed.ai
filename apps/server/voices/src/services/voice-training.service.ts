@@ -7,6 +7,11 @@ import { TrainingStateStore } from '@libs/jobs/training-state.store';
 import { LoggerService } from '@libs/logger/logger.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { RedisService } from '@libs/redis/redis.service';
+import {
+  assertBoundedInteger,
+  assertSafeSegment,
+  resolveContainedPath,
+} from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -26,6 +31,16 @@ import type {
 const DEFAULT_SAMPLE_RATE = 22050;
 const DEFAULT_EPOCHS = 100;
 const DEFAULT_BATCH_SIZE = 8;
+
+const SAMPLE_RATE_BOUNDS = { max: 192_000, min: 8_000 };
+const EPOCHS_BOUNDS = { max: 10_000, min: 1 };
+const BATCH_SIZE_BOUNDS = { max: 1_024, min: 1 };
+
+/** Dataset subdirectory that holds every voice dataset. */
+const VOICE_DATASET_SUBDIR = 'voices';
+
+const createBadRequest = (message: string): Error =>
+  new BadRequestException(message);
 
 @Injectable()
 export class VoiceTrainingService implements OnModuleInit {
@@ -88,15 +103,34 @@ export class VoiceTrainingService implements OnModuleInit {
       throw new BadRequestException('voiceId is required');
     }
 
+    // Each of these becomes an argv element of the trainer, and `voiceId` is
+    // also interpolated into two filesystem paths. `spawn` runs without a
+    // shell, so the hazards are a value that starts with `-` (read as a flag by
+    // the child) and `../` inside the path segment.
+    const params: VoiceTrainingParams = {
+      batchSize: assertBoundedInteger(
+        request.batchSize ?? DEFAULT_BATCH_SIZE,
+        'batchSize',
+        BATCH_SIZE_BOUNDS,
+        createBadRequest,
+      ),
+      epochs: assertBoundedInteger(
+        request.epochs ?? DEFAULT_EPOCHS,
+        'epochs',
+        EPOCHS_BOUNDS,
+        createBadRequest,
+      ),
+      sampleRate: assertBoundedInteger(
+        request.sampleRate ?? DEFAULT_SAMPLE_RATE,
+        'sampleRate',
+        SAMPLE_RATE_BOUNDS,
+        createBadRequest,
+      ),
+      voiceId: assertSafeSegment(request.voiceId, 'voiceId', createBadRequest),
+    };
+
     const jobId = randomUUID();
     const now = new Date().toISOString();
-
-    const params: VoiceTrainingParams = {
-      batchSize: request.batchSize ?? DEFAULT_BATCH_SIZE,
-      epochs: request.epochs ?? DEFAULT_EPOCHS,
-      sampleRate: request.sampleRate ?? DEFAULT_SAMPLE_RATE,
-      voiceId: request.voiceId,
-    };
 
     const job: VoiceTrainingJob = {
       createdAt: now,
@@ -181,8 +215,42 @@ export class VoiceTrainingService implements OnModuleInit {
     const datasetsPath = this.configService.DATASETS_PATH;
     const modelsPath = this.configService.VOICE_MODELS_PATH;
 
-    const datasetDir = `${datasetsPath}/voices/${params.voiceId}`;
-    const outputDir = `${modelsPath}/${params.voiceId}`;
+    // Re-asserted here rather than trusted from `startTraining`: this method is
+    // public, and it is the last place before the values become argv.
+    const voiceId = assertSafeSegment(
+      params.voiceId,
+      'voiceId',
+      createBadRequest,
+    );
+    const sampleRate = assertBoundedInteger(
+      params.sampleRate,
+      'sampleRate',
+      SAMPLE_RATE_BOUNDS,
+      createBadRequest,
+    );
+    const epochs = assertBoundedInteger(
+      params.epochs,
+      'epochs',
+      EPOCHS_BOUNDS,
+      createBadRequest,
+    );
+    const batchSize = assertBoundedInteger(
+      params.batchSize,
+      'batchSize',
+      BATCH_SIZE_BOUNDS,
+      createBadRequest,
+    );
+
+    const datasetDir = resolveContainedPath(
+      `${datasetsPath}/${VOICE_DATASET_SUBDIR}`,
+      voiceId,
+      createBadRequest,
+    );
+    const outputDir = resolveContainedPath(
+      modelsPath,
+      voiceId,
+      createBadRequest,
+    );
 
     const args: string[] = [
       '--dataset_path',
@@ -190,11 +258,11 @@ export class VoiceTrainingService implements OnModuleInit {
       '--output_path',
       outputDir,
       '--sample_rate',
-      String(params.sampleRate),
+      String(sampleRate),
       '--epochs',
-      String(params.epochs),
+      String(epochs),
       '--batch_size',
-      String(params.batchSize),
+      String(batchSize),
     ];
 
     return { args, command: binaryPath };
