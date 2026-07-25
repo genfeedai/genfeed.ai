@@ -19644,7 +19644,7 @@
     },
     "/articles/generations": {
       "post": {
-        "operationId": "ArticlesController.generateArticles",
+        "operationId": "ArticlesOperationsController.generateArticles",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -19703,7 +19703,7 @@
     },
     "/articles/{articleId}/enhancements": {
       "post": {
-        "operationId": "ArticlesController.editWithAI",
+        "operationId": "ArticlesTransformationsController.editWithAI",
         "parameters": [
           {
             "in": "path",
@@ -19737,7 +19737,7 @@
     },
     "/articles/{articleId}/images": {
       "post": {
-        "operationId": "ArticlesController.generateImageFromArticle",
+        "operationId": "ArticlesTransformationsController.generateImageFromArticle",
         "parameters": [
           {
             "in": "path",
@@ -19759,9 +19759,33 @@
         ]
       }
     },
+    "/articles/{articleId}/preview-links": {
+      "get": {
+        "operationId": "ArticlesController.createPreviewLink",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "articleId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "createPreviewLink",
+        "tags": [
+          "articles"
+        ]
+      }
+    },
     "/articles/{articleId}/prompts": {
       "post": {
-        "operationId": "ArticlesController.generatePrompt",
+        "operationId": "ArticlesTransformationsController.generatePrompt",
         "parameters": [
           {
             "in": "path",
@@ -19785,7 +19809,7 @@
     },
     "/articles/{articleId}/remixes": {
       "post": {
-        "operationId": "ArticlesController.createRemix",
+        "operationId": "ArticlesTransformationsController.createRemix",
         "parameters": [
           {
             "in": "path",
@@ -19819,7 +19843,7 @@
     },
     "/articles/{articleId}/reviews": {
       "post": {
-        "operationId": "ArticlesController.reviewArticle",
+        "operationId": "ArticlesOperationsController.reviewArticle",
         "parameters": [
           {
             "in": "path",
@@ -19853,7 +19877,7 @@
     },
     "/articles/{articleId}/seo-scores": {
       "post": {
-        "operationId": "ArticlesController.scoreSeo",
+        "operationId": "ArticlesTransformationsController.scoreSeo",
         "parameters": [
           {
             "in": "path",
@@ -19887,7 +19911,7 @@
     },
     "/articles/{articleId}/thread-conversions": {
       "post": {
-        "operationId": "ArticlesController.convertToThread",
+        "operationId": "ArticlesTransformationsController.convertToThread",
         "parameters": [
           {
             "in": "path",
@@ -19935,7 +19959,7 @@
     },
     "/articles/{articleId}/videos": {
       "post": {
-        "operationId": "ArticlesController.generateVideoFromArticle",
+        "operationId": "ArticlesTransformationsController.generateVideoFromArticle",
         "parameters": [
           {
             "in": "path",
@@ -19959,7 +19983,7 @@
     },
     "/articles/{articleId}/virality-analyses": {
       "post": {
-        "operationId": "ArticlesController.analyzeVirality",
+        "operationId": "ArticlesTransformationsController.analyzeVirality",
         "parameters": [
           {
             "in": "path",
