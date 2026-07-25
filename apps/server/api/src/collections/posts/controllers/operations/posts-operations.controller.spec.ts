@@ -74,18 +74,21 @@ describe('PostsOperationsController', () => {
     },
   } as unknown as User;
 
+  // Shaped like a Prisma row: scalar FKs only. The Mongo-era `brand`/
+  // `credential`/`organization`/`user` aliases are absent unless a query
+  // explicitly populates the relation.
   const mockPost = {
     id: postId,
-    brand: brandId,
+    brandId: brandId,
     category: PostCategory.TEXT,
-    credential: credentialId,
+    credentialId: credentialId,
     description: 'Test post description',
     isDeleted: false,
-    organization: organizationId,
+    organizationId: organizationId,
     parent: undefined,
     platform: CredentialPlatform.TWITTER,
     status: PostStatus.DRAFT,
-    user: userId,
+    userId: userId,
   };
 
   const mockCredential = {
@@ -607,7 +610,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when post belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organization: '507f191e810c19729de860ee',
+        organizationId: '507f191e810c19729de860ee',
       });
 
       await expect(
@@ -622,7 +625,7 @@ Tweet 3: Tech innovation is changing the world.`,
       try {
         mockPostsService.findOne.mockResolvedValueOnce({
           ...mockPost,
-          organization: '507f191e810c19729de860ee',
+          organizationId: '507f191e810c19729de860ee',
         });
         await controller.expandToThread(
           mockRequest,
@@ -817,7 +820,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when parent belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organization: '507f191e810c19729de860ee',
+        organizationId: '507f191e810c19729de860ee',
       });
 
       await expect(
@@ -1008,7 +1011,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when post belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organization: '507f191e810c19729de860ee',
+        organizationId: '507f191e810c19729de860ee',
       });
 
       await expect(
@@ -1093,7 +1096,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should throw FORBIDDEN when post belongs to different organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organization: '507f191e810c19729de860ee',
+        organizationId: '507f191e810c19729de860ee',
       });
 
       await expect(
@@ -1222,7 +1225,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('throws FORBIDDEN when post belongs to another organization', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,
-        organization: '507f191e810c19729de860ee',
+        organizationId: '507f191e810c19729de860ee',
       });
 
       await expect(

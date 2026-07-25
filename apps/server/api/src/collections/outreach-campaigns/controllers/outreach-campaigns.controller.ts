@@ -2,8 +2,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CampaignTargetsService } from '@api/collections/campaign-targets/services/campaign-targets.service';
 import { AddCampaignTargetsDto } from '@api/collections/outreach-campaigns/dto/add-campaign-targets.dto';
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
-import { OutreachCampaignsQueryDto } from '@api/collections/outreach-campaigns/dto/outreach-campaigns-query.dto';
-import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
+import type { OutreachCampaignsQueryDto } from '@api/collections/outreach-campaigns/dto/outreach-campaigns-query.dto';
+import type { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
 import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
 import { parseCampaignTargetUrl } from '@api/collections/outreach-campaigns/services/campaign-target-url.util';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
@@ -15,10 +15,10 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discovery.service';
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { BaseService } from '@api/shared/services/base/base.service';
+import type { BaseService } from '@api/shared/services/base/base.service';
 import {
   CampaignDiscoverySource,
-  CampaignPlatform,
+  type CampaignPlatform,
   CampaignTargetStatus,
   CampaignTargetType,
   CampaignType,
@@ -152,9 +152,9 @@ export class OutreachCampaignsController extends BaseCRUDController<
   ): boolean {
     const publicMetadata = getPublicMetadata(user);
 
-    const entityOrganizationId =
-      (entity.organization as unknown as { id: string })?.id?.toString() ||
-      entity.organization?.toString();
+    // Scalar FK: the legacy `organization` alias is undefined unless the query
+    // populated the relation, which would drop this ownership check entirely.
+    const entityOrganizationId = entity.organizationId;
 
     if (
       entityOrganizationId &&
@@ -298,9 +298,6 @@ export class OutreachCampaignsController extends BaseCRUDController<
         ...parsedByExternalId.keys(),
       ]);
 
-    const organizationId = String(
-      campaign.organizationId ?? campaign.organization,
-    );
     const targets: Parameters<CampaignTargetsService['createMany']>[0] = [];
 
     for (const [externalId, parsed] of parsedByExternalId) {
@@ -314,7 +311,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
         contentUrl: parsed.url,
         discoverySource: CampaignDiscoverySource.MANUAL,
         externalId,
-        organization: organizationId,
+        organization: campaign.organizationId,
         platform: parsed.platform,
         targetType: parsed.targetType,
       });
@@ -363,9 +360,6 @@ export class OutreachCampaignsController extends BaseCRUDController<
         normalizedUsernames,
       );
 
-    const organizationId = String(
-      campaign.organizationId ?? campaign.organization,
-    );
     const targets: Parameters<CampaignTargetsService['createMany']>[0] = [];
 
     for (const username of normalizedUsernames) {
@@ -379,7 +373,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
         contentUrl: `https://x.com/${username}`,
         discoverySource: CampaignDiscoverySource.MANUAL,
         externalId: username,
-        organization: organizationId,
+        organization: campaign.organizationId,
         platform,
         recipientUsername: username,
         status: CampaignTargetStatus.PENDING,

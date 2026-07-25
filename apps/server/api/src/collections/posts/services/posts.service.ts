@@ -818,14 +818,10 @@ export class PostsService extends BaseService<
       return String(ing);
     });
 
-    const populatedCredential = originalPost.credential as unknown as {
-      id?: string;
-    };
-    const credentialId = populatedCredential?.id
-      ? populatedCredential.id
-      : originalPost.credential === '__never__'
-        ? originalPost.credential
-        : String(originalPost.credential);
+    // Scalar FK: the legacy `credential` alias is undefined unless the query
+    // populated the relation, so coercing it would write the literal string
+    // "undefined" into the remix's credentialId and fail the FK constraint.
+    const credentialId = originalPost.credentialId;
 
     const remixDto = {
       brand: dto.brand,

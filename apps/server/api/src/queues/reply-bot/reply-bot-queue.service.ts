@@ -1,5 +1,4 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import {
@@ -19,7 +18,6 @@ export class ReplyBotQueueService implements OnModuleInit {
   constructor(
     @InjectQueue(REPLY_BOT_POLLING_QUEUE)
     private readonly pollingQueue: Queue<ReplyBotPollingJobData>,
-    @Optional() private readonly organizationsService: OrganizationsService,
     @Optional()
     private readonly replyBotConfigsService: ReplyBotConfigsService,
     @Optional() private readonly credentialsService: CredentialsService,
@@ -111,42 +109,61 @@ export class ReplyBotQueueService implements OnModuleInit {
     Array<{ organizationId: string; credentialId: string }>
   > {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const results: Array<{ organizationId: string; credentialId: string }> = [];
 
     try {
-      // Get all organizations
-      const orgsResult = await this.organizationsService.findAll(
-        { where: { isDeleted: false } },
-        { pagination: false },
-        false,
-      );
-      const organizations = orgsResult.docs || [];
+      // Drive the fan-out from the scarce entity — active bot configs — rather
+      // than from every tenant. Scanning all organizations cost 2N+1 queries
+      // per tick and discarded almost every org immediately; this is 2 queries
+      // regardless of tenant count.
+      const activeConfigs = await this.replyBotConfigsService.findAllActive();
 
-      for (const org of organizations) {
-        const orgId = (org.id as string).toString();
+      const organizationIds = [
+        ...new Set(
+          activeConfigs
+            .map((config) => config.organizationId?.toString())
+            .filter(
+              (organizationId): organizationId is string => !!organizationId,
+            ),
+        ),
+      ];
 
-        // Check if org has active reply bot configs
-        const activeBots = await this.replyBotConfigsService.findActive(orgId);
+      if (organizationIds.length === 0) {
+        return [];
+      }
 
-        if (activeBots.length === 0) {
+      const credentials = await this.credentialsService.find({
+        isDeleted: false,
+        organizationId: { in: organizationIds },
+        platform: CredentialPlatform.TWITTER,
+      });
+
+      // First credential wins per organization, mirroring the `findOne` read
+      // this replaced.
+      const credentialIdByOrganizationId = new Map<string, string>();
+      for (const credential of credentials) {
+        const organizationId = credential.organizationId?.toString();
+        const credentialId = credential.id?.toString();
+
+        if (!organizationId || !credentialId) {
           continue;
         }
 
-        // Find a valid Twitter credential for this org
-        const credential = await this.credentialsService.findOne({
-          isDeleted: false,
-          organization: org.id,
-          platform: CredentialPlatform.TWITTER,
-        });
+        if (!credentialIdByOrganizationId.has(organizationId)) {
+          credentialIdByOrganizationId.set(organizationId, credentialId);
+        }
+      }
 
-        if (credential) {
-          results.push({
-            credentialId: (credential.id as string).toString(),
-            organizationId: orgId,
-          });
+      const results: Array<{ organizationId: string; credentialId: string }> =
+        [];
+
+      for (const organizationId of organizationIds) {
+        const credentialId = credentialIdByOrganizationId.get(organizationId);
+
+        if (credentialId) {
+          results.push({ credentialId, organizationId });
         } else {
           this.logger.warn(
-            `${url} no Twitter credential found for org ${orgId}`,
+            `${url} no Twitter credential found for org ${organizationId}`,
           );
         }
       }

@@ -3,6 +3,7 @@ import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
   escapeSystemEmailHtml,
+  sanitizeSystemEmailUrl,
 } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -78,11 +79,32 @@ export class BetterAuthMailerService {
     });
   }
 
+  /**
+   * Renders the "copy and paste this URL" fallback, but only for schemes we
+   * trust. Escaping alone closes attribute breakout while leaving a
+   * `javascript:` or `data:text/html` target perfectly functional inside the
+   * `href`, so the scheme check is what makes this raw interpolation safe.
+   * An untrusted target renders nothing rather than a poisoned link.
+   */
+  private buildUrlFallbackBlock(url: string): string {
+    const safeUrl = sanitizeSystemEmailUrl(url);
+
+    if (!safeUrl) {
+      return '';
+    }
+
+    const escapedUrl = escapeSystemEmailHtml(safeUrl);
+
+    return [
+      '<p style="margin:0 0 10px;color:#8c8c96;font-size:12px;line-height:18px;">If the button does not work, copy and paste this URL into your browser:</p>',
+      `<p style="background:#131518;border:1px solid #333538;border-radius:8px;color:#b4b4bc;font-size:12px;line-height:18px;margin:0 0 22px;padding:12px;word-break:break-all;"><a href="${escapedUrl}" style="color:#f4f4f5;text-decoration:underline;">${escapedUrl}</a></p>`,
+    ].join('');
+  }
+
   private buildMagicLinkHtml(
     url: string,
     purpose: 'sign-in' | 'sign-up',
   ): string {
-    const escapedUrl = escapeSystemEmailHtml(url);
     const isSignUp = purpose === 'sign-up';
 
     return buildSystemEmailHtml({
@@ -93,8 +115,7 @@ export class BetterAuthMailerService {
             ? 'Click the button below to create your account. This link expires shortly and can only be used once.'
             : 'Click the button below to sign in. This link expires shortly and can only be used once.',
         ),
-        '<p style="margin:0 0 10px;color:#8c8c96;font-size:12px;line-height:18px;">If the button does not work, copy and paste this URL into your browser:</p>',
-        `<p style="background:#131518;border:1px solid #333538;border-radius:8px;color:#b4b4bc;font-size:12px;line-height:18px;margin:0 0 22px;padding:12px;word-break:break-all;"><a href="${escapedUrl}" style="color:#f4f4f5;text-decoration:underline;">${escapedUrl}</a></p>`,
+        this.buildUrlFallbackBlock(url),
       ].join(''),
       footerNote: isSignUp
         ? 'If you did not create a Genfeed.ai account, you can safely ignore this email.'
@@ -109,16 +130,13 @@ export class BetterAuthMailerService {
   }
 
   private buildVerificationEmailHtml(url: string): string {
-    const escapedUrl = escapeSystemEmailHtml(url);
-
     return buildSystemEmailHtml({
       action: { label: 'Verify email', url },
       bodyHtml: [
         buildSystemEmailParagraph(
           'Click the button below to verify your email address and finish securing your Genfeed.ai account.',
         ),
-        '<p style="margin:0 0 10px;color:#8c8c96;font-size:12px;line-height:18px;">If the button does not work, copy and paste this URL into your browser:</p>',
-        `<p style="background:#131518;border:1px solid #333538;border-radius:8px;color:#b4b4bc;font-size:12px;line-height:18px;margin:0 0 22px;padding:12px;word-break:break-all;"><a href="${escapedUrl}" style="color:#f4f4f5;text-decoration:underline;">${escapedUrl}</a></p>`,
+        this.buildUrlFallbackBlock(url),
       ].join(''),
       footerNote:
         'If you did not create a Genfeed.ai account, you can safely ignore this email.',
@@ -128,16 +146,13 @@ export class BetterAuthMailerService {
   }
 
   private buildResetPasswordHtml(url: string): string {
-    const escapedUrl = escapeSystemEmailHtml(url);
-
     return buildSystemEmailHtml({
       action: { label: 'Reset password', url },
       bodyHtml: [
         buildSystemEmailParagraph(
           'Click the button below to choose a new Genfeed.ai password. This link expires shortly and can only be used once.',
         ),
-        '<p style="margin:0 0 10px;color:#8c8c96;font-size:12px;line-height:18px;">If the button does not work, copy and paste this URL into your browser:</p>',
-        `<p style="background:#131518;border:1px solid #333538;border-radius:8px;color:#b4b4bc;font-size:12px;line-height:18px;margin:0 0 22px;padding:12px;word-break:break-all;"><a href="${escapedUrl}" style="color:#f4f4f5;text-decoration:underline;">${escapedUrl}</a></p>`,
+        this.buildUrlFallbackBlock(url),
       ].join(''),
       footerNote:
         'If you did not request a Genfeed.ai password reset, you can safely ignore this email.',

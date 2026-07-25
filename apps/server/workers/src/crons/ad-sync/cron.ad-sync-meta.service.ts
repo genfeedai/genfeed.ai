@@ -85,7 +85,13 @@ export class CronAdSyncMetaService {
         return;
       }
 
-      if (!credential.brand || !credential.organization) {
+      // Scalar FKs: the legacy `brand`/`organization` aliases are undefined
+      // unless the query populated the relations, so this guard skipped every
+      // credential and no Meta ad sync was ever enqueued.
+      const brandId = credential.brandId;
+      const organizationId = credential.organizationId;
+
+      if (!brandId || !organizationId) {
         this.logger.warn(`${url} skipping credential without workspace scope`, {
           credentialId: credential.id,
         });
@@ -100,10 +106,10 @@ export class CronAdSyncMetaService {
       await this.enqueueAdSyncJob({
         accessToken,
         adAccountIds: adAccounts.map((account) => account.id),
-        brandId: credential.brand.toString(),
+        brandId,
         credentialId: String(credential.id),
         lastSyncDate: lastSyncDate?.toISOString(),
-        organizationId: credential.organization.toString(),
+        organizationId,
       });
     } catch (error: unknown) {
       this.logger.error(`${url} failed to enqueue credential sync`, error);

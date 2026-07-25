@@ -144,19 +144,45 @@ useEffect(() => {
 
 ## Path Aliases (apps/app)
 
+Source of truth: `apps/app/tsconfig.json` `compilerOptions.paths`. It declares its
+own full `paths` map, which replaces (does not merge with) the one in
+`packages/tsconfig/base.json` — so aliases that exist repo-wide are not
+automatically available here.
+
 ```
-@components/*    -> packages-components
-@hooks/*         -> packages/hooks/src
-@contexts/*      -> packages/contexts/src
-@services/*      -> packages/services/src
-@ui/*            -> packages/ui/src
-@ui/primitives/* -> packages/ui/src/primitives/*
-@helpers/*       -> packages/helpers/src
-@constants/*     -> packages/constants/src
-@enums/*         -> packages/enums/src
-@interfaces/*    -> packages/interfaces/src
-@props/*         -> packages/props/src
+@ui/*            -> packages/ui/src/*  |  packages/ui/src/components/*
+@ui-constants/*  -> packages/ui/src/components/constants/*
+@app-components/* -> apps/app/packages/components/*
+@protected/*     -> apps/app/app/(protected)/admin/*
+@app/*           -> apps/app/app/*
+@hooks/*         -> packages/hooks/*
+@contexts/*      -> packages/contexts/*
+@providers/*     -> packages/contexts/providers/*
+@services/*      -> packages/services/*
+@props/*         -> packages/props/*
+@helpers/*       -> packages/helpers/src/*
+@serializers/*   -> packages/serializers/src/*
+@models/*        -> packages/models/*
+@pages/*         -> packages/pages/*
+@utils/*         -> packages/utils/*
+@styles/*        -> packages/styles/*
+@config/*        -> packages/config/src/*
+@api-types/*     -> packages/api-types/src/*
 ```
+
+- `@components/` is **not** a wildcard in `apps/app` — `tsconfig.json` lists a
+  closed allowlist of individual file mappings (e.g.
+  `@components/loading/fallback/LazyLoadingFallback`,
+  `@components/modals/modal/Modal`, `@components/cards/KpiCard`). A new
+  `@components/<anything-else>` import will not resolve. Import shared UI via
+  `@ui/*` and app-local components via `@app-components/*`.
+- `@ui/primitives/*` is covered by the `@ui/*` mapping
+  (`packages/ui/src/primitives/*`); it is not a separate entry.
+- There is no `@constants/*`, `@enums/*`, or `@interfaces/*` alias here — use the
+  package specifiers `@genfeedai/constants`, `@genfeedai/enums`, and
+  `@genfeedai/interfaces`.
+- Alias targets have no `src` segment unless shown above (`packages/hooks/*`, not
+  `packages/hooks/src`).
 
 ## Hard Rules
 
