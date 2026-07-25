@@ -402,19 +402,21 @@ export class CampaignDiscoveryService {
     campaignId: string,
     targets: DiscoveredTarget[],
   ): Promise<DiscoveredTarget[]> {
-    const newTargets: DiscoveredTarget[] = [];
-
-    for (const target of targets) {
-      const exists = await this.campaignTargetsService.targetExists(
-        campaignId,
-        target.externalId,
-      );
-      if (!exists) {
-        newTargets.push(target);
-      }
+    if (targets.length === 0) {
+      return [];
     }
 
-    return newTargets;
+    // One existence query for the whole discovery batch instead of one per
+    // target — discovery routinely produces hundreds of candidates.
+    const existingExternalIds =
+      await this.campaignTargetsService.findExistingExternalIds(
+        campaignId,
+        targets.map((target) => target.externalId),
+      );
+
+    return targets.filter(
+      (target) => !existingExternalIds.has(target.externalId),
+    );
   }
 
   /**
@@ -446,15 +448,15 @@ export class CampaignDiscoveryService {
         targetType: target.targetType,
       }));
 
-      const created =
+      const addedCount =
         await this.campaignTargetsService.createMany(targetsToCreate);
 
       this.loggerService.log(`${url} success`, {
-        addedCount: created.length,
+        addedCount,
         campaignId: campaign.id,
       });
 
-      return created.length;
+      return addedCount;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, {
         campaignId: campaign.id,

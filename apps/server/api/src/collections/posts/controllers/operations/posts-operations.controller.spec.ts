@@ -161,6 +161,7 @@ describe('PostsOperationsController', () => {
   // Mock Services
   const mockActivitiesService = {
     create: vi.fn().mockResolvedValue(mockActivity),
+    createMany: vi.fn().mockResolvedValue(1),
     patch: vi.fn().mockResolvedValue(mockActivity),
   };
 
@@ -200,6 +201,9 @@ describe('PostsOperationsController', () => {
 
   const mockPostsService = {
     addThreadReply: vi.fn().mockResolvedValue(mockPost),
+    batchSchedule: vi
+      .fn()
+      .mockResolvedValue({ missingPostIds: [], posts: [mockPost] }),
     count: vi.fn().mockResolvedValue(0),
     create: vi.fn().mockResolvedValue(mockPost),
     createRemix: vi.fn().mockResolvedValue(mockPost),
@@ -260,7 +264,12 @@ Tweet 3: Tech innovation is changing the world.`,
     mockCredentialsService.findOne.mockResolvedValue(mockCredential);
     mockIngredientsService.findByIds.mockResolvedValue([]);
     mockIngredientsService.findOne.mockResolvedValue(mockIngredient);
+    mockActivitiesService.createMany.mockResolvedValue(1);
     mockPostsService.addThreadReply.mockResolvedValue(mockPost);
+    mockPostsService.batchSchedule.mockResolvedValue({
+      missingPostIds: [],
+      posts: [mockPost],
+    });
     mockPostsService.count.mockResolvedValue(0);
     mockPostsService.create.mockResolvedValue(mockPost);
     mockPostsService.createRemix.mockResolvedValue(mockPost);
@@ -684,13 +693,20 @@ Tweet 3: Tech innovation is changing the world.`,
 
     beforeEach(() => {
       mockPostsService.findOne.mockResolvedValue(mockPost);
-      mockPostsService.patch.mockResolvedValue({
-        ...mockPost,
-        status: PostStatus.SCHEDULED,
+      mockPostsService.batchSchedule.mockResolvedValue({
+        missingPostIds: [],
+        posts: [
+          { ...mockPost, status: PostStatus.SCHEDULED },
+          {
+            ...mockPost,
+            id: '507f191e810c19729de860ee',
+            status: PostStatus.SCHEDULED,
+          },
+        ],
       });
     });
 
-    it('should schedule multiple posts', async () => {
+    it('should schedule the whole batch with one service call', async () => {
       const result = await controller.batchUpdate(
         mockRequest,
         batchScheduleDto,
@@ -698,9 +714,29 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       expect(mockCredentialsService.findOne).toHaveBeenCalled();
-      expect(mockPostsService.patch).toHaveBeenCalled();
-      expect(mockActivitiesService.create).toHaveBeenCalled();
+      expect(mockPostsService.batchSchedule).toHaveBeenCalledTimes(1);
+      expect(mockPostsService.batchSchedule).toHaveBeenCalledWith(
+        [
+          expect.objectContaining({ postId, text: 'Scheduled tweet 1' }),
+          expect.objectContaining({
+            postId: '507f191e810c19729de860ee',
+            text: 'Scheduled tweet 2',
+          }),
+        ],
+        organizationId,
+      );
+      expect(mockPostsService.patch).not.toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it('should record every scheduled activity in one insert', async () => {
+      await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
+
+      expect(mockActivitiesService.createMany).toHaveBeenCalledTimes(1);
+      expect(mockActivitiesService.create).not.toHaveBeenCalled();
+      expect(mockActivitiesService.createMany.mock.calls[0]?.[0]).toHaveLength(
+        2,
+      );
     });
 
     it('should throw NOT_FOUND when credential not found', async () => {
@@ -712,8 +748,12 @@ Tweet 3: Tech innovation is changing the world.`,
     });
 
     it('should skip posts that are not found', async () => {
-      // batchUpdate uses findByIds (not findOne) — return empty array so no posts are found
-      mockPostsService.findByIds.mockResolvedValueOnce([]);
+      // The scoped read inside batchSchedule reports ids outside the
+      // organization instead of the controller probing each one.
+      mockPostsService.batchSchedule.mockResolvedValueOnce({
+        missingPostIds: [postId, '507f191e810c19729de860ee'],
+        posts: [],
+      });
 
       const result = await controller.batchUpdate(
         mockRequest,
