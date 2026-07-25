@@ -12,6 +12,7 @@ import { Text } from '@ui/typography/text';
 import FaqGrid from '@web-components/content/FaqGrid';
 import LandingFooter from '@web-components/landing/LandingFooter';
 import PageLayout from '@web-components/PageLayout';
+import Link from 'next/link';
 import { FaGithub } from 'react-icons/fa6';
 import {
   LuArrowRight,
@@ -128,10 +129,10 @@ export default function DevelopersLandingPage(): React.ReactElement {
               trackingName="developers_hero_click"
               trackingData={{ action: 'start_free' }}
             >
-              <a href={signUpHref} target="_blank" rel="noopener noreferrer">
+              <Link href={signUpHref} target="_blank" rel="noopener noreferrer">
                 Start for free
                 <LuArrowRight className="size-4" />
-              </a>
+              </Link>
             </ButtonTracked>
             <ButtonTracked
               asChild
@@ -140,10 +141,10 @@ export default function DevelopersLandingPage(): React.ReactElement {
               trackingName="developers_hero_click"
               trackingData={{ action: 'view_github' }}
             >
-              <a href={githubHref} target="_blank" rel="noopener noreferrer">
+              <Link href={githubHref} target="_blank" rel="noopener noreferrer">
                 <FaGithub className="size-4" />
                 Star on GitHub
-              </a>
+              </Link>
             </ButtonTracked>
           </>
         }
@@ -284,9 +285,13 @@ export default function DevelopersLandingPage(): React.ReactElement {
                 trackingName="developers_cta_click"
                 trackingData={{ action: 'start_free' }}
               >
-                <a href={signUpHref} target="_blank" rel="noopener noreferrer">
+                <Link
+                  href={signUpHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Start for free
-                </a>
+                </Link>
               </ButtonTracked>
               <ButtonTracked
                 asChild
@@ -295,10 +300,14 @@ export default function DevelopersLandingPage(): React.ReactElement {
                 trackingName="developers_cta_click"
                 trackingData={{ action: 'view_github' }}
               >
-                <a href={githubHref} target="_blank" rel="noopener noreferrer">
+                <Link
+                  href={githubHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <FaGithub className="size-4" />
                   View on GitHub
-                </a>
+                </Link>
               </ButtonTracked>
             </HStack>
           </div>
