@@ -12,7 +12,11 @@ const DEFAULT_MAX_REDIRECTS = 5;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 const RESPONSE_WITHOUT_BODY_STATUSES = new Set([204, 205, 304]);
 
-const BLOCKED_DESTINATIONS = new BlockList();
+// Keep IPv4 and IPv6 ranges in separate lists. Node's BlockList internally
+// represents IPv4 as mapped IPv6, so combining them with ::ffff:0:0/96 would
+// accidentally classify every ordinary IPv4 address as blocked.
+const BLOCKED_IPV4_DESTINATIONS = new BlockList();
+const BLOCKED_IPV6_DESTINATIONS = new BlockList();
 
 for (const [network, prefix] of [
   ['0.0.0.0', 8],
@@ -31,7 +35,7 @@ for (const [network, prefix] of [
   ['224.0.0.0', 4],
   ['240.0.0.0', 4],
 ] as const) {
-  BLOCKED_DESTINATIONS.addSubnet(network, prefix, 'ipv4');
+  BLOCKED_IPV4_DESTINATIONS.addSubnet(network, prefix, 'ipv4');
 }
 
 for (const [network, prefix] of [
@@ -46,7 +50,7 @@ for (const [network, prefix] of [
   ['fe80::', 10],
   ['ff00::', 8],
 ] as const) {
-  BLOCKED_DESTINATIONS.addSubnet(network, prefix, 'ipv6');
+  BLOCKED_IPV6_DESTINATIONS.addSubnet(network, prefix, 'ipv6');
 }
 
 export interface DestinationGuardOptions {
@@ -143,10 +147,10 @@ function assertPolicy(
 export function isBlockedDestinationAddress(address: string): boolean {
   const family = isIP(address);
   if (family === 4) {
-    return BLOCKED_DESTINATIONS.check(address, 'ipv4');
+    return BLOCKED_IPV4_DESTINATIONS.check(address, 'ipv4');
   }
   if (family === 6) {
-    return BLOCKED_DESTINATIONS.check(address, 'ipv6');
+    return BLOCKED_IPV6_DESTINATIONS.check(address, 'ipv6');
   }
   return true;
 }
