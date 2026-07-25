@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { InternalApiKeyGuard } from '@videos/guards/internal-api-key.guard';
 import { GenerationService } from '@videos/services/generation.service';
 import { JobService } from '@videos/services/job.service';
 
 @ApiTags('Generation')
 @Controller('generate')
+@UseGuards(InternalApiKeyGuard)
 export class GenerationController {
   constructor(
     private readonly generationService: GenerationService,

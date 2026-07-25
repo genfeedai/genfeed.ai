@@ -9,6 +9,7 @@ import type {
 } from '@images/interfaces/lora.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { S3Service } from '@libs/s3/s3.service';
+import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -18,6 +19,8 @@ import {
 
 const SAFETENSORS_EXT = '.safetensors';
 const S3_LORA_PREFIX = 'ingredients/trainings/loras/';
+
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 @Injectable()
 export class LoraService {
@@ -42,33 +45,50 @@ export class LoraService {
       );
     }
 
+    // `loraName` is caller-supplied and lands in an S3 key; a name containing
+    // separators or `..` would write outside the LoRA prefix.
+    const loraName = assertSafeSegment(
+      request.loraName,
+      'loraName',
+      createBadRequest,
+    );
+
+    // `localPath` is caller-supplied and is read off this container's disk.
+    // Without containment the endpoint reads any local file — credentials,
+    // /etc/shadow — and uploads it to a bucket the caller can list.
+    const localPath = resolveContainedPath(
+      this.configService.COMFYUI_LORAS_PATH,
+      request.localPath,
+      createBadRequest,
+    );
+
     try {
-      await stat(request.localPath);
+      await stat(localPath);
     } catch {
       throw new NotFoundException(`Local file not found: ${request.localPath}`);
     }
 
-    const s3Key = `${S3_LORA_PREFIX}${request.loraName}${SAFETENSORS_EXT}`;
+    const s3Key = `${S3_LORA_PREFIX}${loraName}${SAFETENSORS_EXT}`;
     const bucket = this.configService.AWS_S3_BUCKET;
 
     this.loggerService.log(caller, {
       bucket,
-      localPath: request.localPath,
-      loraName: request.loraName,
+      localPath,
+      loraName,
       message: 'Uploading LoRA to S3',
       s3Key,
     });
 
-    await this.s3Service.uploadFile(bucket, s3Key, request.localPath);
+    await this.s3Service.uploadFile(bucket, s3Key, localPath);
 
     this.loggerService.log(caller, {
-      loraName: request.loraName,
+      loraName,
       message: 'LoRA uploaded successfully',
       s3Key,
     });
 
     return {
-      loraName: request.loraName,
+      loraName,
       s3Key,
       uploaded: true,
     };

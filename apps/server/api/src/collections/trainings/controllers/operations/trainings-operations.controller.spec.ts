@@ -62,17 +62,21 @@ describe('TrainingsOperationsController', () => {
         total: 10,
       }),
       patch: vi.fn().mockResolvedValue({}),
+      patchAll: vi.fn().mockResolvedValue({ modifiedCount: 10 }),
     },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     metadataService: { patch: vi.fn() },
     trainingsService: {
-      create: vi.fn().mockResolvedValue(mockTraining),
       createTrainingZip: vi
         .fn()
         .mockResolvedValue('https://s3.amazonaws.com/bucket/training.zip'),
       findOne: vi.fn().mockResolvedValue(mockTraining),
       launchTraining: vi.fn().mockResolvedValue(undefined),
       patch: vi.fn().mockResolvedValue(mockTraining),
+      relaunchTrainingWithSources: vi.fn().mockResolvedValue({
+        sourceImages: mockSourceDocs,
+        training: mockTraining,
+      }),
     },
   };
 
@@ -150,27 +154,26 @@ describe('TrainingsOperationsController', () => {
           '507f1f77bcf86cd799439014',
         ),
       ).rejects.toThrow();
-      expect(mockServices.trainingsService.create).not.toHaveBeenCalled();
+      expect(
+        mockServices.trainingsService.relaunchTrainingWithSources,
+      ).not.toHaveBeenCalled();
     });
 
-    it('builds the relaunch config from the training nested config, not top-level fields', async () => {
+    it('delegates relaunch construction to trainingsService.relaunchTrainingWithSources', async () => {
       await controller.relaunchTraining(
         {} as unknown as Request,
         mockUser,
         '507f1f77bcf86cd799439014',
       );
 
-      expect(mockServices.trainingsService.create).toHaveBeenCalledWith(
+      expect(
+        mockServices.trainingsService.relaunchTrainingWithSources,
+      ).toHaveBeenCalledWith(
+        mockTraining,
         expect.objectContaining({
-          brandId: '507f1f77bcf86cd799439013',
-          config: expect.objectContaining({
-            category: 'style',
-            model: 'replicate/custom-model',
-            provider: 'replicate',
-            seed: 42,
-            steps: 1200,
-            trigger: 'MYTOK',
-          }),
+          brand: mockUser.publicMetadata.brand,
+          organization: mockUser.publicMetadata.organization,
+          user: mockUser.publicMetadata.user,
         }),
       );
     });
@@ -197,14 +200,10 @@ describe('TrainingsOperationsController', () => {
       expect(patchPayload).not.toHaveProperty('status');
     });
 
-    it('should throw when fewer than 10 source images found', async () => {
-      mockServices.ingredientsService.findAll.mockResolvedValueOnce({
-        docs: Array.from({ length: 5 }, () => ({
-          _id: '507f191e810c19729de860ee',
-          metadata: { extension: 'jpg' },
-        })),
-        total: 5,
-      });
+    it('wraps a service error into a 500 HttpException when relaunchTrainingWithSources rejects', async () => {
+      mockServices.trainingsService.relaunchTrainingWithSources.mockRejectedValueOnce(
+        new Error('fewer than 10 source images found'),
+      );
 
       await expect(
         controller.relaunchTraining(
@@ -213,18 +212,6 @@ describe('TrainingsOperationsController', () => {
           '507f1f77bcf86cd799439014',
         ),
       ).rejects.toThrow();
-    });
-
-    it('should fetch ingredients with source category filter', async () => {
-      await controller.relaunchTraining(
-        {} as unknown as Request,
-        mockUser,
-        '507f1f77bcf86cd799439014',
-      );
-
-      const pipelineArg = mockServices.ingredientsService.findAll.mock
-        .calls[0][0] as { where: Record<string, unknown> };
-      expect(pipelineArg.where.category).toBe('SOURCE');
     });
   });
 });

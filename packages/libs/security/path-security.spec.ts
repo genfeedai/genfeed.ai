@@ -3,12 +3,15 @@ import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  assertSafeSegment,
   createPathSecurity,
   createPathSecurityClass,
   DEFAULT_ALLOWED_EXTENSIONS,
   DEFAULT_BLOCKED_PATTERNS,
   DEFAULT_INJECTION_PATTERNS,
   type PathSecurity,
+  resolveContainedPath,
+  SAFE_SEGMENT_PATTERN,
 } from './path-security';
 
 // Mock node:fs so filesystem probes are deterministic.
@@ -431,5 +434,107 @@ describe('createPathSecurity', () => {
       expect(DEFAULT_BLOCKED_PATTERNS).not.toContain(';'); // api default
       expect(DEFAULT_INJECTION_PATTERNS).toContain(';');
     });
+  });
+});
+
+describe('assertSafeSegment', () => {
+  it.each([
+    'alice_lora',
+    'alice-lora',
+    'Alice_Zimage',
+    'v2.1',
+    'a',
+    '0',
+  ])('accepts single-segment identifiers: %s', (value) => {
+    expect(assertSafeSegment(value, 'loraName', createError)).toBe(value);
+  });
+
+  it.each([
+    '',
+    '..',
+    '../evil',
+    'nested/name',
+    'nested\\name',
+    '/absolute',
+    '.hidden',
+    '-leading-dash',
+    'name with space',
+    'name;rm -rf /',
+    'name\0',
+    'a..b',
+    '$(whoami)',
+  ])('rejects traversal and injection shapes: %s', (value) => {
+    expect(() => assertSafeSegment(value, 'loraName', createError)).toThrow(
+      'loraName must be a single path segment',
+    );
+  });
+
+  it('rejects non-string values', () => {
+    expect(() =>
+      assertSafeSegment(undefined as unknown as string, 'voiceId', createError),
+    ).toThrow('voiceId must be a single path segment');
+  });
+
+  it('throws the consumer-supplied error type', () => {
+    expect(() => assertSafeSegment('../evil', 'loraName', createError)).toThrow(
+      TestSecurityError,
+    );
+  });
+
+  it('exposes a linear (ReDoS-safe) segment pattern', () => {
+    expect(SAFE_SEGMENT_PATTERN.test('alice_lora')).toBe(true);
+    expect(SAFE_SEGMENT_PATTERN.test('alice/lora')).toBe(false);
+  });
+});
+
+describe('resolveContainedPath', () => {
+  const root = '/comfyui/models/loras';
+
+  it('resolves a relative candidate against the root', () => {
+    expect(resolveContainedPath(root, 'alice.safetensors', createError)).toBe(
+      path.resolve(root, 'alice.safetensors'),
+    );
+  });
+
+  it('accepts an absolute candidate that already lives under the root', () => {
+    const absolute = `${root}/alice.safetensors`;
+    expect(resolveContainedPath(root, absolute, createError)).toBe(
+      path.resolve(absolute),
+    );
+  });
+
+  it('accepts the root itself', () => {
+    expect(resolveContainedPath(root, '.', createError)).toBe(
+      path.resolve(root),
+    );
+  });
+
+  it.each([
+    '/etc/passwd',
+    '../../etc/passwd',
+    'nested/../../../etc/shadow',
+    '/comfyui/models/loras-sibling/evil.safetensors',
+  ])('rejects candidates that escape the root: %s', (candidate) => {
+    expect(() => resolveContainedPath(root, candidate, createError)).toThrow(
+      'File path must stay within',
+    );
+  });
+
+  it('rejects an empty candidate', () => {
+    expect(() => resolveContainedPath(root, '', createError)).toThrow(
+      'File path is required',
+    );
+  });
+
+  it('rejects an unconfigured root instead of falling back to cwd', () => {
+    expect(() =>
+      resolveContainedPath('', 'alice.safetensors', createError),
+    ).toThrow('Containment root is not configured');
+  });
+
+  it('throws the consumer-supplied error type', () => {
+    expect(() =>
+      resolveContainedPath(root, '/etc/passwd', createError),
+    ).toThrow(TestSecurityError);
   });
 });

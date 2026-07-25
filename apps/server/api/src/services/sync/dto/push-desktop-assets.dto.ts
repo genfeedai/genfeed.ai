@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsIn,
   IsInt,
@@ -7,6 +8,13 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
+
+/**
+ * Matches the desktop client's own push slice — it never sends more than 500
+ * assets per request (`thread-sync.service.ts` `syncableAssets.slice(0, 500)`).
+ * Each asset drives an upsert in `desktop-sync.service.ts` `pushAssetMetadata`.
+ */
+const MAX_ASSETS = 500;
 
 export class DesktopAssetDto {
   @IsString()
@@ -71,6 +79,7 @@ export class DesktopAssetDto {
 
 export class PushDesktopAssetsDto {
   @IsArray()
+  @ArrayMaxSize(MAX_ASSETS)
   @ValidateNested({ each: true })
   @Type(() => DesktopAssetDto)
   assets!: DesktopAssetDto[];

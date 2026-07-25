@@ -35,6 +35,7 @@ export class FleetWebhookController {
         | undefined,
       loggerService: this.loggerService,
       request,
+      secretEnvVar: 'FLEET_WEBHOOK_SECRET',
       url,
     });
 

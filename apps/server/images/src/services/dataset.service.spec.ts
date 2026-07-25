@@ -1,4 +1,5 @@
 import { ConfigService } from '@images/config/config.service';
+import type { DatasetSyncRequest } from '@images/interfaces/dataset.interfaces';
 import { DatasetService } from '@images/services/dataset.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { S3Service } from '@libs/s3/s3.service';
@@ -81,14 +82,17 @@ describe('DatasetService', () => {
       });
     });
 
-    it('should use custom bucket when provided', async () => {
+    it('should always read from the configured bucket, never a caller-supplied one', async () => {
+      // `bucket` is no longer part of the request contract. A caller that
+      // smuggles one must not be able to point this service's AWS credentials
+      // at a bucket of their choosing.
       await service.syncDataset('test', {
-        bucket: 'custom-bucket',
+        bucket: 'attacker-bucket',
         s3Keys: ['photo.jpg'],
-      });
+      } as DatasetSyncRequest);
 
       expect(mockS3Service.downloadFile).toHaveBeenCalledWith(
-        'custom-bucket',
+        'test-bucket',
         'photo.jpg',
         '/datasets/test/photo.jpg',
       );

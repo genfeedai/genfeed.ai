@@ -16,6 +16,7 @@ import { VoiceCloneController } from '@voices/controllers/voice-clone.controller
 import { VoiceDatasetController } from '@voices/controllers/voice-dataset.controller';
 import { VoiceTrainingController } from '@voices/controllers/voice-training.controller';
 import { VoicesController } from '@voices/controllers/voices.controller';
+import { InternalApiKeyGuard } from '@voices/guards/internal-api-key.guard';
 import { JobService } from '@voices/services/job.service';
 import { TTSService } from '@voices/services/tts.service';
 import { TTSInferenceService } from '@voices/services/tts-inference.service';
@@ -48,6 +49,7 @@ import { VoiceTrainingService } from '@voices/services/voice-training.service';
     }),
   ],
   providers: [
+    InternalApiKeyGuard,
     JobService,
     TTSInferenceService,
     TTSService,

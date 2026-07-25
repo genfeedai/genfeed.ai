@@ -3,6 +3,7 @@ import { ContentType, CredentialPlatform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsDateString,
   IsEnum,
@@ -12,6 +13,13 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+
+/**
+ * Manual entry is a hand-keyed / screenshot-transcribed flow, so it stays at
+ * interactive scale. Every entry becomes one `create` in a `Promise.all`
+ * fan-out (content-performance.service.ts `bulkManualImport`).
+ */
+const MAX_MANUAL_ENTRIES = 50;
 
 export class ManualMetricEntryDto {
   @ApiProperty({
@@ -99,9 +107,11 @@ export class ManualInputDto {
 
   @ApiProperty({
     description: 'Array of metric entries',
+    maxItems: MAX_MANUAL_ENTRIES,
     type: [ManualMetricEntryDto],
   })
   @IsArray()
+  @ArrayMaxSize(MAX_MANUAL_ENTRIES)
   @ValidateNested({ each: true })
   @Type(() => ManualMetricEntryDto)
   entries!: ManualMetricEntryDto[];

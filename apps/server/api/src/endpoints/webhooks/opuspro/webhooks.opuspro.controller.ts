@@ -38,6 +38,7 @@ export class OpusProWebhookController {
         | undefined,
       loggerService: this.loggerService,
       request,
+      secretEnvVar: 'OPUSPRO_WEBHOOK_SECRET',
       url,
     });
 

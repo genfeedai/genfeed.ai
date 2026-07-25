@@ -191,6 +191,49 @@ describe('ContentDraftsService.update', () => {
     expect(result).toEqual({ modifiedCount: 2 });
   });
 
+  it('bounds the per-draft write fan-out instead of opening one connection per id', async () => {
+    const draftCount = 10;
+    delegate.findMany.mockResolvedValue(
+      Array.from({ length: draftCount }, (_, i) => ({
+        ...existing,
+        id: `draft-${i}`,
+      })),
+    );
+
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const trackConcurrency = async <T>(result: T): Promise<T> => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      inFlight -= 1;
+
+      return result;
+    };
+
+    agentArtifactReferenceService.createOrReuseVersionPin.mockImplementation(
+      ({ reference }: { reference: { recordId: string } }) =>
+        trackConcurrency({ id: `pin-${reference.recordId}` }),
+    );
+    delegate.update.mockImplementation(({ data }: { data: unknown }) =>
+      trackConcurrency({ ...existing, ...(data as Record<string, unknown>) }),
+    );
+
+    const result = await service.bulkApprove(
+      Array.from({ length: draftCount }, (_, i) => `draft-${i}`),
+      'org-1',
+      'user-1',
+    );
+
+    // Every draft is still written — the limiter bounds concurrency, not work.
+    expect(
+      agentArtifactReferenceService.createOrReuseVersionPin,
+    ).toHaveBeenCalledTimes(draftCount);
+    expect(delegate.update).toHaveBeenCalledTimes(draftCount);
+    expect(maxInFlight).toBeLessThanOrEqual(3);
+    expect(result).toEqual({ modifiedCount: draftCount });
+  });
+
   it('returns the existing draft without writing when nothing changes', async () => {
     const result = await service.update('draft-1', 'org-1', {});
 

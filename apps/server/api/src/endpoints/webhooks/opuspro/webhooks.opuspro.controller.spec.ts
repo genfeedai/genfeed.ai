@@ -6,10 +6,20 @@ import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { UnauthorizedException } from '@nestjs/common';
+import { Test, type TestingModule } from '@nestjs/testing';
 
-function mockTokenRequest() {
-  return { headers: {}, query: {} } as unknown as import('express').Request;
+const WEBHOOK_SECRET = 'opuspro-webhook-secret';
+
+// No default value here: a JS default parameter is substituted for an
+// explicit `undefined` argument too, which would silently defeat the
+// "no token" tests below (they call this with `undefined` to build an
+// unauthenticated request).
+function mockTokenRequest(token?: string) {
+  return {
+    headers: {},
+    query: token ? { token } : {},
+  } as unknown as import('express').Request;
 }
 
 describe('OpusProWebhookController', () => {
@@ -17,14 +27,17 @@ describe('OpusProWebhookController', () => {
   let opusProWebhookService: vi.Mocked<OpusProWebhookService>;
   let webhooksService: vi.Mocked<WebhooksService>;
   let loggerService: vi.Mocked<LoggerService>;
+  let configService: { get: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    configService = { get: vi.fn().mockReturnValue(WEBHOOK_SECRET) };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OpusProWebhookController],
       providers: [
         {
           provide: ConfigService,
-          useValue: { get: vi.fn().mockReturnValue(undefined) },
+          useValue: configService,
         },
         {
           provide: OpusProWebhookService,
@@ -81,7 +94,7 @@ describe('OpusProWebhookController', () => {
       );
 
       const result = await controller.handleCallback(
-        mockTokenRequest(),
+        mockTokenRequest(WEBHOOK_SECRET),
         payload,
       );
 
@@ -120,7 +133,7 @@ describe('OpusProWebhookController', () => {
       webhooksService.handleFailedGeneration.mockResolvedValue(undefined);
 
       const result = await controller.handleCallback(
-        mockTokenRequest(),
+        mockTokenRequest(WEBHOOK_SECRET),
         payload,
       );
 
@@ -148,7 +161,10 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
       webhooksService.handleFailedGeneration.mockResolvedValue(undefined);
 
-      await controller.handleCallback(mockTokenRequest(), payload);
+      await controller.handleCallback(
+        mockTokenRequest(WEBHOOK_SECRET),
+        payload,
+      );
 
       expect(webhooksService.handleFailedGeneration).toHaveBeenCalledWith(
         'callback_789',
@@ -164,7 +180,7 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.extractVideoUrl.mockReturnValue(null);
 
       const result = await controller.handleCallback(
-        mockTokenRequest(),
+        mockTokenRequest(WEBHOOK_SECRET),
         payload,
       );
 
@@ -185,7 +201,7 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
 
       const result = await controller.handleCallback(
-        mockTokenRequest(),
+        mockTokenRequest(WEBHOOK_SECRET),
         payload,
       );
 
@@ -207,7 +223,7 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
 
       const result = await controller.handleCallback(
-        mockTokenRequest(),
+        mockTokenRequest(WEBHOOK_SECRET),
         payload,
       );
 
@@ -235,7 +251,7 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockRejectedValue(error);
 
       await expect(
-        controller.handleCallback(mockTokenRequest(), payload),
+        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), payload),
       ).rejects.toThrow('Database connection failed');
 
       expect(loggerService.error).toHaveBeenCalledWith(
@@ -260,13 +276,46 @@ describe('OpusProWebhookController', () => {
       webhooksService.processMediaFromWebhook.mockRejectedValue(error);
 
       await expect(
-        controller.handleCallback(mockTokenRequest(), payload),
+        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), payload),
       ).rejects.toThrow('Webhook service failed');
 
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed'),
         error,
       );
+    });
+
+    it('should reject a callback carrying no token', async () => {
+      const payload = {
+        callback_id: 'callback_anon',
+        status: 'completed',
+      } as OpusProWebhookPayload;
+
+      await expect(
+        controller.handleCallback(mockTokenRequest(undefined), payload),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(opusProWebhookService.handleCallback).not.toHaveBeenCalled();
+    });
+
+    it('should reject every caller when no secret is configured', async () => {
+      configService.get.mockReturnValue(undefined);
+
+      const payload = {
+        callback_id: 'callback_anon',
+        status: 'completed',
+      } as OpusProWebhookPayload;
+
+      // Fail closed: an unconfigured deployment must not expose this
+      // @Public() job-completion handler to anonymous callers.
+      await expect(
+        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), payload),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('OPUSPRO_WEBHOOK_SECRET'),
+      );
+      expect(opusProWebhookService.handleCallback).not.toHaveBeenCalled();
     });
   });
 });

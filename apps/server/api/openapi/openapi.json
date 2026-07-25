@@ -850,7 +850,19 @@
         "type": "object"
       },
       "BulkApproveContentDraftsDto": {
-        "properties": {},
+        "properties": {
+          "ids": {
+            "description": "Content draft ids to approve",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
         "type": "object"
       },
       "BulkEc2Action": {
@@ -3369,6 +3381,7 @@
             "items": {
               "$ref": "#/components/schemas/ManualReviewBatchItemDto"
             },
+            "maxItems": 100,
             "type": "array"
           }
         },
@@ -4976,6 +4989,7 @@
             "items": {
               "type": "string"
             },
+            "maxItems": 50,
             "type": "array"
           },
           "status": {
@@ -7081,6 +7095,7 @@
             "items": {
               "$ref": "#/components/schemas/CsvMetricEntryDto"
             },
+            "maxItems": 200,
             "type": "array"
           }
         },
@@ -7651,6 +7666,7 @@
             "items": {
               "$ref": "#/components/schemas/ManualMetricEntryDto"
             },
+            "maxItems": 50,
             "type": "array"
           }
         },
@@ -8665,11 +8681,11 @@
             "type": "string"
           },
           "items": {
-            "description": "Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED, max 100)",
+            "description": "Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED, max 50)",
             "items": {
               "$ref": "#/components/schemas/PostBatchItemDto"
             },
-            "maxItems": 100,
+            "maxItems": 50,
             "type": "array"
           }
         },

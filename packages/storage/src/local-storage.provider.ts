@@ -39,6 +39,38 @@ function resolveBaseDir(): string {
   );
 }
 
+/**
+ * Resolve `candidate` against `root` and assert the result stays inside it.
+ *
+ * `path.join(root, candidate)` is not a containment check: enough leading
+ * `../` segments walk straight out of the storage directory. Resolving and
+ * then comparing against the root catches that, and also catches an absolute
+ * candidate, which `path.resolve` discards the root for entirely. Every method
+ * here takes its path from a caller, so every one of them resolves through
+ * this.
+ *
+ * `@libs/security` has the same guard, but this package deliberately depends
+ * on nothing but `@aws-sdk/client-s3` and `@genfeedai/config`, so it keeps its
+ * own copy rather than acquire a workspace dependency for six lines.
+ */
+function resolveWithin(root: string, candidate: string): string {
+  if (typeof candidate !== 'string') {
+    throw new Error('Storage path must be a string');
+  }
+
+  const resolvedRoot = path.resolve(root);
+  const resolved = path.resolve(resolvedRoot, candidate);
+
+  if (
+    resolved !== resolvedRoot &&
+    !resolved.startsWith(`${resolvedRoot}${path.sep}`)
+  ) {
+    throw new Error(`Storage path must stay within ${resolvedRoot}`);
+  }
+
+  return resolved;
+}
+
 export class LocalStorageProvider implements StorageProvider {
   private readonly baseDir: string;
 
@@ -49,12 +81,17 @@ export class LocalStorageProvider implements StorageProvider {
     }
   }
 
+  /** Resolve a caller-supplied path against the storage root. */
+  private resolvePath(filePath: string): string {
+    return resolveWithin(this.baseDir, filePath);
+  }
+
   async upload(
     file: Buffer,
     filePath: string,
     _contentType?: string,
   ): Promise<string> {
-    const fullPath = path.join(this.baseDir, filePath);
+    const fullPath = this.resolvePath(filePath);
     const dir = path.dirname(fullPath);
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(fullPath, file);
@@ -66,14 +103,14 @@ export class LocalStorageProvider implements StorageProvider {
     localPath: string,
     _contentType?: string,
   ): Promise<string> {
-    const fullPath = path.join(this.baseDir, filePath);
+    const fullPath = this.resolvePath(filePath);
     await fs.mkdir(path.dirname(fullPath), { recursive: true });
     await fs.copyFile(localPath, fullPath);
     return filePath;
   }
 
   async download(filePath: string, localPath: string): Promise<void> {
-    const fullPath = path.join(this.baseDir, filePath);
+    const fullPath = this.resolvePath(filePath);
     await fs.mkdir(path.dirname(localPath), { recursive: true });
     await fs.copyFile(fullPath, localPath);
   }
@@ -83,7 +120,7 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async delete(filePath: string): Promise<void> {
-    const fullPath = path.join(this.baseDir, filePath);
+    const fullPath = this.resolvePath(filePath);
     try {
       await fs.unlink(fullPath);
     } catch (err: unknown) {
@@ -94,7 +131,7 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async list(prefix: string, options?: ListOptions): Promise<FileEntry[]> {
-    const dirPath = path.join(this.baseDir, prefix);
+    const dirPath = this.resolvePath(prefix);
     if (!existsSync(dirPath)) {
       return [];
     }
@@ -117,8 +154,7 @@ export class LocalStorageProvider implements StorageProvider {
       }
 
       const filePath = path.join(prefix, entry.name);
-      const fullPath = path.join(this.baseDir, filePath);
-      const stat = await fs.stat(fullPath);
+      const stat = await fs.stat(path.join(dirPath, entry.name));
 
       fileEntries.push({
         name: entry.name,
@@ -136,7 +172,7 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async listObjects(prefix: string): Promise<StorageObject[]> {
-    const dirPath = path.join(this.baseDir, prefix);
+    const dirPath = this.resolvePath(prefix);
     if (!existsSync(dirPath)) {
       return [];
     }
@@ -165,7 +201,7 @@ export class LocalStorageProvider implements StorageProvider {
   }
 
   async exists(filePath: string): Promise<boolean> {
-    const fullPath = path.join(this.baseDir, filePath);
+    const fullPath = this.resolvePath(filePath);
     try {
       await fs.access(fullPath);
       return true;
