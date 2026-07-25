@@ -126,23 +126,6 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     return Boolean(publicMetadata?.isSuperAdmin);
   }
 
-  @Get(':id')
-  async findOne(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-    const data = await this.replyBotConfigsService.findOne({
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-      _id: id,
-      isDeleted: false,
-      organization: publicMetadata.organization,
-    });
-
-    return serializeSingle(request, ReplyBotConfigSerializer, data);
-  }
-
   /**
    * Test reply generation without actually posting
    */
@@ -201,5 +184,28 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     failed: number;
   }> {
     return this.replyBotQueueService.getQueueStatus();
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Wildcard param routes — keep last. Nest matches in declaration order, so a
+  // `:id` route declared earlier swallows every static sibling path
+  // (`GET /reply-bot-configs/queue-status` would resolve to findOne).
+  // ────────────────────────────────────────────────────────────────────────────
+
+  @Get(':id')
+  async findOne(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+    const data = await this.replyBotConfigsService.findOne({
+      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
+      _id: id,
+      isDeleted: false,
+      organization: publicMetadata.organization,
+    });
+
+    return serializeSingle(request, ReplyBotConfigSerializer, data);
   }
 }

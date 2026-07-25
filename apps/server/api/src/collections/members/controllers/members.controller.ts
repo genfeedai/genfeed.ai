@@ -81,17 +81,13 @@ export class MembersController {
     return serializeCollection(request, MemberSerializer, data);
   }
 
-  @Get(':memberId')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findOne(@Req() request: Request, @Param('memberId') memberId: string) {
-    const data = await this.membersService.findOne({ _id: memberId });
-    return data
-      ? serializeSingle(request, MemberSerializer, data)
-      : returnNotFound(this.constructorName, memberId);
-  }
-
   // ────────────────────────────────────────────────────────────────────────────
   // Invitation endpoints
+  //
+  // These MUST stay declared above `@Get(':memberId')`. Nest matches routes in
+  // declaration order, so a wildcard param segment declared first swallows every
+  // static sibling path (`/members/invitations` would resolve to findOne with
+  // memberId='invitations').
   // ────────────────────────────────────────────────────────────────────────────
 
   /**
@@ -193,5 +189,18 @@ export class MembersController {
         status: newInvitation.status,
       },
     };
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Wildcard param routes — keep last so static sibling paths win.
+  // ────────────────────────────────────────────────────────────────────────────
+
+  @Get(':memberId')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findOne(@Req() request: Request, @Param('memberId') memberId: string) {
+    const data = await this.membersService.findOne({ _id: memberId });
+    return data
+      ? serializeSingle(request, MemberSerializer, data)
+      : returnNotFound(this.constructorName, memberId);
   }
 }
