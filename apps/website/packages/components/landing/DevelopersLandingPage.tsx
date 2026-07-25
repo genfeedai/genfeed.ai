@@ -38,13 +38,13 @@ const MCP_SNIPPET = `{
 const FEATURES = [
   {
     description:
-      'Connect Claude, Cursor, or any MCP client to a curated catalog of content actions. Your agent drafts, schedules, and publishes — every risky action gated behind human review.',
+      'Connect Claude, Cursor, or any MCP client to a curated catalog of content actions. Your agent drafts, schedules, and publishes. Every risky action is gated behind human review.',
     icon: LuTerminal,
     title: 'MCP Server Built In',
   },
   {
     description:
-      'The whole platform is AGPL open source. Run it with Docker on your own infrastructure, with your own provider keys — no black box between your agent and your channels.',
+      'The whole platform is AGPL open source. Run it with Docker on your own infrastructure, with your own provider keys. No black box between your agent and your channels.',
     icon: LuGitBranch,
     title: 'Open Source, Self-Hostable',
   },
@@ -56,7 +56,7 @@ const FEATURES = [
   },
   {
     description:
-      'Recurring publishing runs on a real workflow engine — triggers, schedules, and approval gates. Automation you can inspect, not a cron job you have to trust.',
+      'Recurring publishing runs on a real workflow engine with triggers, schedules, and approval gates. Automation you can inspect, not a cron job you have to trust.',
     icon: LuServer,
     title: 'Workflow Engine Underneath',
   },
@@ -88,7 +88,7 @@ const STEPS = [
 const FAQS = [
   {
     answer:
-      'Yes. The monorepo is AGPL-3.0 and public on GitHub — the API, the generation pipelines, the workflow engine, and the MCP server. Enterprise features live in a clearly separated commercial directory.',
+      'Yes. The monorepo is AGPL-3.0 and public on GitHub: the API, the generation pipelines, the workflow engine, and the MCP server. Enterprise features live in a clearly separated commercial directory.',
     question: 'Is it actually open source?',
   },
   {
@@ -103,7 +103,7 @@ const FAQS = [
   },
   {
     answer:
-      'Cloud pricing is usage-based — credits meter generation and publishing output, with a free tier to start. There are no hard caps on brands or connected channels. Self-hosted has no platform fee at all.',
+      'Cloud pricing is usage-based. Credits meter generation and publishing output, with a free tier to start. There are no hard caps on brands or connected channels. Self-hosted has no platform fee at all.',
     question: 'How does pricing work?',
   },
 ];
@@ -119,7 +119,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         badge="Genfeed for Developers"
         badgeIcon={LuTerminal}
         title="Content infrastructure for developers"
-        description="One open-source surface to generate, review, and publish brand-native content on every channel — driven by your agents, your workflows, or your own self-hosted stack."
+        description="One open-source surface to generate, review, and publish brand-native content on every channel, driven by your agents, your workflows, or your own self-hosted stack."
         heroActions={
           <>
             <ButtonTracked
@@ -177,7 +177,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                 Any model can generate content. The hard part is everything
                 after: making it platform-native, keeping it on-brand, getting
                 it approved, publishing it to eight channels, and reading what
-                worked. Genfeed is that layer — open source, agent-ready, and
+                worked. Genfeed is that layer: open source, agent-ready, and
                 built to run on your terms.
               </Text>
               <HStack className="flex-wrap gap-2">

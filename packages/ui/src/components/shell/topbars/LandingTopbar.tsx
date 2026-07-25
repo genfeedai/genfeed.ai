@@ -17,7 +17,7 @@ export default function LandingTopbar({
   logoHref = '/',
 }: LandingTopbarProps): React.ReactElement {
   return (
-    <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-white/10 bg-primary/[0.72] backdrop-blur-md">
+    <header className="fixed inset-x-0 top-0 z-50 w-full border-b border-edge/10 bg-background/90 backdrop-blur-2xl">
       <div className="container mx-auto flex h-20 items-center justify-between px-6">
         <TopbarLogo logoHref={logoHref} />
 

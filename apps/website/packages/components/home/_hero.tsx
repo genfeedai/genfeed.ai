@@ -10,18 +10,6 @@ import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
 import Image from 'next/image';
 import { LuArrowRight } from 'react-icons/lu';
 
-interface HeroMetric {
-  label: string;
-  value: string;
-}
-
-const HERO_METRICS: HeroMetric[] = [
-  { label: 'approved for launch', value: '42 assets' },
-  { label: 'published from one brief', value: '9 channels' },
-  { label: 'held for human review', value: '3 drafts' },
-  { label: 'measured in analytics', value: '31% hook rate' },
-];
-
 const HERO_WALL_ITEMS = [
   {
     ...HOME_OUTPUT_WALL_ASSETS[0],
@@ -86,24 +74,22 @@ export default function HomeHero(): React.ReactElement {
               as="h1"
               className="hero-headline max-w-[44rem] text-[2.5rem] font-semibold leading-[1.02] tracking-[-0.035em] text-surface sm:text-5xl md:text-[3.5rem] lg:text-[3.5rem] xl:text-[4rem] 2xl:text-[4.5rem]"
             >
-              One studio for every piece of content you publish.
+              Every post, image, and video. One studio.
             </Heading>
 
             <Text
               as="p"
               className="mt-6 text-xl font-semibold tracking-[-0.02em] text-surface md:text-2xl"
             >
-              Generate, review, schedule, and publish — all in one workspace.
+              Generate, review, schedule, publish.
             </Text>
 
             <Text
               as="p"
               className="hero-description mt-4 max-w-2xl text-base leading-7 text-surface/62 md:text-lg"
             >
-              Genfeed is the content studio where a brief becomes
-              platform-native posts, images, and video. Draft, refine, and
-              approve in one workspace, schedule to every channel, and see
-              what&apos;s working — without stitching six tools together.
+              One brief in. Platform-native content out, on every channel you
+              publish to. No stitching six tools together.
             </Text>
 
             <HStack className="mt-8 flex-wrap gap-3">
@@ -166,27 +152,6 @@ export default function HomeHero(): React.ReactElement {
                 ))}
               </div>
               <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,transparent_54%,rgba(5,6,7,0.82))]" />
-            </div>
-
-            <div className="relative z-10 mx-3 -mt-12 overflow-hidden rounded-md bg-edge/10 shadow-border-strong lg:mx-8">
-              <p className="border-b border-edge/5 bg-background/95 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-surface/45 backdrop-blur">
-                Sample studio readout
-              </p>
-              <div className="grid sm:grid-cols-4">
-                {HERO_METRICS.map((metric) => (
-                  <div
-                    key={metric.value}
-                    className="border-b border-edge/5 bg-background/95 px-4 py-3 backdrop-blur last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"
-                  >
-                    <p className="text-sm font-semibold tracking-[-0.02em] text-surface">
-                      {metric.value}
-                    </p>
-                    <p className="mt-1 text-[11px] leading-4 text-surface/55">
-                      {metric.label}
-                    </p>
-                  </div>
-                ))}
-              </div>
             </div>
           </figure>
         </div>

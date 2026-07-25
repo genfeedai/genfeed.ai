@@ -14,10 +14,6 @@ vi.mock('@web-components/home/_formats', () => ({
   default: () => <section data-testid="home-formats">Formats</section>,
 }));
 
-vi.mock('@web-components/home/_proof', () => ({
-  default: () => <section>Proof</section>,
-}));
-
 vi.mock('@web-components/proof/ProofTestimonials', () => ({
   default: () => <section>Testimonials</section>,
 }));

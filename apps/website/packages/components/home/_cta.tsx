@@ -24,9 +24,8 @@ export default function HomeCTA(): React.ReactElement {
             as="p"
             className="text-lg md:text-xl gen-text-muted max-w-xl leading-relaxed"
           >
-            Generate, review, schedule, and publish from one workspace — with a
-            human in the approval seat. Book a demo if you&apos;re rolling this
-            out across a team or client roster.
+            One workspace, a human in the approval seat. Book a demo if
+            you&apos;re rolling this out across a team or client roster.
           </Text>
 
           <HStack className="flex-wrap justify-center gap-3">

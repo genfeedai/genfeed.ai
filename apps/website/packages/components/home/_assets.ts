@@ -2,7 +2,7 @@ import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 
 // Homepage marketing imagery is served from the Genfeed CDN
 // (s3://cdn.genfeed.ai/assets/branding/website/home/**), not committed to the
-// website `public/` folder — keeps ~2 MB of binaries out of the repo and lets
+// website `public/` folder, keeping ~2 MB of binaries out of the repo and letting
 // the assets be refreshed without a code deploy. URLs are built from the shared
 // cdnAsset() helper so the CDN base is defined in exactly one place.
 const home = (file: string) =>
