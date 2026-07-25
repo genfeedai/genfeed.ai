@@ -1,6 +1,5 @@
 export interface VoiceDatasetSyncRequest {
   s3Keys: string[];
-  bucket?: string;
 }
 
 export interface VoiceDatasetInfo {

@@ -201,6 +201,7 @@ export * from './services/admin.interface';
 export * from './services/auth-provider.interface';
 export * from './services/bot.interface';
 export * from './services/bot-gateway.interface';
+export * from './services/campaign.interface';
 export * from './services/file-queue.interface';
 export * from './services/files-processing.interface';
 export * from './services/integration.interface';

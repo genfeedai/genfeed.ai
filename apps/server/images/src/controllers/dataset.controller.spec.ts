@@ -1,6 +1,8 @@
+import { ConfigService } from '@images/config/config.service';
 import { DatasetController } from '@images/controllers/dataset.controller';
 import { DatasetService } from '@images/services/dataset.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 import type { Mocked } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -32,7 +34,14 @@ describe('DatasetController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [DatasetController],
-      providers: [{ provide: DatasetService, useValue: mockDatasetService }],
+      providers: [
+        { provide: DatasetService, useValue: mockDatasetService },
+        {
+          provide: ConfigService,
+          useValue: { API_KEY: 'test-api-key', isDevelopment: false },
+        },
+        { provide: LoggerService, useValue: { warn: vi.fn() } },
+      ],
     }).compile();
 
     controller = module.get<DatasetController>(DatasetController);
@@ -59,17 +68,6 @@ describe('DatasetController', () => {
       const result = await controller.syncDataset('my-dataset', body);
 
       expect(result).toEqual(mockSyncResult);
-    });
-
-    it('should pass through bucket when provided in body', async () => {
-      const body = { bucket: 'custom-bucket', s3Keys: ['key.jpg'] };
-
-      await controller.syncDataset('my-dataset', body);
-
-      expect(datasetService.syncDataset).toHaveBeenCalledWith(
-        'my-dataset',
-        expect.objectContaining({ bucket: 'custom-bucket' }),
-      );
     });
 
     it('should propagate service errors to caller', async () => {

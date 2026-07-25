@@ -1,3 +1,4 @@
+import { ConfigService } from '@images/config/config.service';
 import { LoraController } from '@images/controllers/lora.controller';
 import type {
   LoraListResult,
@@ -5,6 +6,7 @@ import type {
   LoraUploadResult,
 } from '@images/interfaces/lora.interfaces';
 import { LoraService } from '@images/services/lora.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('LoraController', () => {
@@ -25,6 +27,11 @@ describe('LoraController', () => {
           provide: LoraService,
           useValue: mockLoraService,
         },
+        {
+          provide: ConfigService,
+          useValue: { API_KEY: 'test-api-key', isDevelopment: false },
+        },
+        { provide: LoggerService, useValue: { warn: vi.fn() } },
       ],
     }).compile();
 

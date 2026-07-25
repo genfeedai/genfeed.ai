@@ -56,6 +56,7 @@ import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { isEEEnabled } from '@genfeedai/config';
 import {
   ActionOrigin,
@@ -244,6 +245,7 @@ const TOOL_CATALOG_ROLES: ToolRequiredRole[] = ['user', 'admin', 'superadmin'];
 
 interface AgentLivestreamBotRecord {
   id: unknown;
+  brandId?: unknown;
   brand?: unknown;
   category?: string;
   label: string;
@@ -2870,7 +2872,9 @@ export class AgentToolExecutorService {
     }
 
     const brand = await this.resolveWorkflowBrand({}, ctx);
-    if (bot.brand && (!brand || String(bot.brand) !== String(brand.id))) {
+    // Scalar FK: an undefined `bot.brand` collapsed this brand-scope gate.
+    const botBrandId = resolveRelationId(bot.brandId, bot.brand);
+    if (botBrandId && (!brand || botBrandId !== String(brand.id))) {
       return null;
     }
 
@@ -3303,7 +3307,7 @@ export class AgentToolExecutorService {
 
     const requestedPlatforms = params.platforms ?? [];
     const credentials = await this.resolveBrandCredentials({
-      brandId: ingredient.brand,
+      brandId: resolveRelationId(ingredient.brandId, ingredient.brand),
       organizationId: ctx.organizationId,
     });
     const availablePlatforms = Array.from(
@@ -3495,11 +3499,9 @@ export class AgentToolExecutorService {
         };
       }
 
-      this.assertResourceScope(
-        ctx,
-        readOptionalString(ingredient.brand),
-        'selected content',
-      );
+      // Scalar FK — `assertResourceScope` rejects an undefined resource brand.
+      const brandId = resolveRelationId(ingredient.brandId, ingredient.brand);
+      this.assertResourceScope(ctx, brandId, 'selected content');
 
       const publishedPost = await this.resolveLatestPublishedPostForIngredient(
         contentId,
@@ -4310,11 +4312,8 @@ export class AgentToolExecutorService {
         };
       }
 
-      await this.assertPublishingScope(
-        ctx,
-        readOptionalString(ingredient.brand),
-        'selected content',
-      );
+      const brandId = resolveRelationId(ingredient.brandId, ingredient.brand);
+      await this.assertPublishingScope(ctx, brandId, 'selected content');
 
       if (platforms.length === 0) {
         return {
@@ -4325,7 +4324,7 @@ export class AgentToolExecutorService {
       }
 
       const credentials = await this.resolveBrandCredentials({
-        brandId: ingredient.brand,
+        brandId,
         organizationId: ctx.organizationId,
         platforms,
       });

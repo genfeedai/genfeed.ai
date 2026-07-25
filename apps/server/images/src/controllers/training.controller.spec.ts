@@ -1,6 +1,8 @@
+import { ConfigService } from '@images/config/config.service';
 import type { TrainingRequest } from '@images/interfaces/training.interfaces';
 import { TrainingService } from '@images/services/training.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { TrainingController } from './training.controller';
 
 vi.mock('@images/services/training.service');
@@ -32,6 +34,11 @@ describe('TrainingController', () => {
             startTraining: vi.fn().mockResolvedValue(mockTrainingJob),
           },
         },
+        {
+          provide: ConfigService,
+          useValue: { API_KEY: 'test-api-key', isDevelopment: false },
+        },
+        { provide: LoggerService, useValue: { warn: vi.fn() } },
       ],
     }).compile();
 

@@ -2,12 +2,21 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsDateString,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
+
+/**
+ * Heaviest per-item cost of the batch endpoints: `posts-operations.controller.ts`
+ * runs two sequential writes per item (`postsService.patch` plus an activity
+ * `create`). This is an interactive scheduling flow, so it stays at the same
+ * interactive scale as the other hand-driven batches.
+ */
+export const POSTS_BATCH_MAX_ITEMS = 50;
 
 export class PostBatchItemDto {
   @IsEntityId()
@@ -53,11 +62,12 @@ export class PostBatchItemDto {
 
 export class PostsBatchDto {
   @IsArray()
+  @ArrayMaxSize(POSTS_BATCH_MAX_ITEMS)
   @ValidateNested({ each: true })
   @Type(() => PostBatchItemDto)
   @ApiProperty({
-    description:
-      'Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED)',
+    description: `Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED, max ${POSTS_BATCH_MAX_ITEMS})`,
+    maxItems: POSTS_BATCH_MAX_ITEMS,
     required: true,
     type: [PostBatchItemDto],
   })

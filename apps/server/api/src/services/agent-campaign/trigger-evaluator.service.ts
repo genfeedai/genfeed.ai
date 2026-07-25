@@ -21,9 +21,23 @@ import {
   VIRAL_POST_MIN_ENGAGEMENT_RATE,
 } from '@api/services/agent-campaign/orchestrator.constants';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+/**
+ * Ids resolved once from the campaign's scalar FKs so that none of the five
+ * loaders below re-reads a Mongo-era relation alias. `campaign.brand` /
+ * `campaign.organization` are `undefined` on an unpopulated read and a relation
+ * object on a populated one, and every loader here feeds them straight into an
+ * analytics or Prisma scope.
+ */
+type CampaignAnalyticsScope = {
+  brandId?: string;
+  campaignId: string;
+  organizationId: string;
+};
 
 type AnalyticsOverviewSnapshot = {
   avgEngagementRate: number;
@@ -121,6 +135,13 @@ export class TriggerEvaluatorService {
       );
     }
 
+    const scope: CampaignAnalyticsScope = {
+      brandId: resolveRelationId(campaign.brandId, campaign.brand),
+      campaignId,
+      // The campaign was read scoped to this id, so it is authoritative.
+      organizationId,
+    };
+
     const [
       analyticsOverview,
       bestPostingTimes,
@@ -128,11 +149,11 @@ export class TriggerEvaluatorService {
       topContent,
       trends,
     ] = await Promise.all([
-      this.loadAnalyticsOverview(campaign),
-      this.loadBestPostingTimes(campaign),
-      this.loadBrandDescription(campaign),
-      this.loadTopContent(campaign),
-      this.loadCurrentTrends(campaign),
+      this.loadAnalyticsOverview(scope),
+      this.loadBestPostingTimes(scope),
+      this.loadBrandDescription(scope),
+      this.loadTopContent(scope),
+      this.loadCurrentTrends(scope),
     ]);
 
     await this.persistPostingRecommendations(
@@ -248,7 +269,7 @@ export class TriggerEvaluatorService {
   }
 
   private async loadAnalyticsOverview(
-    campaign: AgentCampaignDocument,
+    scope: CampaignAnalyticsScope,
   ): Promise<AnalyticsOverviewSnapshot> {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
@@ -256,13 +277,13 @@ export class TriggerEvaluatorService {
     return (await this.analyticsService.getOverview(
       sevenDaysAgo.toISOString(),
       now.toISOString(),
-      campaign.brand ? String(campaign.brand) : undefined,
-      String(campaign.organization),
+      scope.brandId,
+      scope.organizationId,
     )) as AnalyticsOverviewSnapshot;
   }
 
   private async loadBestPostingTimes(
-    campaign: AgentCampaignDocument,
+    scope: CampaignAnalyticsScope,
   ): Promise<AnalyticsBestPostingTime[]> {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000);
@@ -270,13 +291,13 @@ export class TriggerEvaluatorService {
     return await this.analyticsService.getBestPostingTimes(
       thirtyDaysAgo.toISOString(),
       now.toISOString(),
-      campaign.brand ? String(campaign.brand) : undefined,
-      String(campaign.organization),
+      scope.brandId,
+      scope.organizationId,
     );
   }
 
   private async loadTopContent(
-    campaign: AgentCampaignDocument,
+    scope: CampaignAnalyticsScope,
   ): Promise<TopContentEntry[]> {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
@@ -286,13 +307,13 @@ export class TriggerEvaluatorService {
       now.toISOString(),
       5,
       AnalyticsMetric.ENGAGEMENT,
-      campaign.brand ? String(campaign.brand) : undefined,
+      scope.brandId,
       undefined,
-      String(campaign.organization),
+      scope.organizationId,
     )) as TopContentEntry[];
   }
 
-  private async loadCurrentTrends(campaign: AgentCampaignDocument): Promise<
+  private async loadCurrentTrends(scope: CampaignAnalyticsScope): Promise<
     Array<{
       growthRate: number;
       mentions: number;
@@ -308,8 +329,8 @@ export class TriggerEvaluatorService {
   > {
     try {
       return await this.trendsService.getTrends(
-        String(campaign.organization),
-        campaign.brand ? String(campaign.brand) : undefined,
+        scope.organizationId,
+        scope.brandId,
         undefined,
         {
           allowFetchIfMissing: false,
@@ -317,7 +338,7 @@ export class TriggerEvaluatorService {
       );
     } catch (error: unknown) {
       this.logger.warn(`${this.logContext} trends unavailable`, {
-        campaignId: String(campaign.id),
+        campaignId: scope.campaignId,
         error: error instanceof Error ? error.message : String(error),
       });
       return [];
@@ -325,16 +346,20 @@ export class TriggerEvaluatorService {
   }
 
   private async loadBrandDescription(
-    campaign: AgentCampaignDocument,
+    scope: CampaignAnalyticsScope,
   ): Promise<string> {
-    if (!campaign.brand) {
+    // Fail closed on an unresolvable brand id. Both filter values used to come
+    // from the relation aliases, which are `undefined` on an unpopulated read —
+    // `normalizeWhere` then dropped `_id` *and* `organization`, turning this into
+    // an unscoped read that returned the first brand row in the table.
+    if (!scope.brandId) {
       return '';
     }
 
     const brand = await this.brandsService.findOne({
-      _id: campaign.brand,
+      _id: scope.brandId,
       isDeleted: false,
-      organization: campaign.organization,
+      organization: scope.organizationId,
     });
 
     if (!brand) {

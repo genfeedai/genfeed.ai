@@ -3,6 +3,7 @@ import { S3Service } from '@libs/s3/s3.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@voices/config/config.service';
+import type { VoiceDatasetSyncRequest } from '@voices/interfaces/voice-dataset.interfaces';
 import { VoiceDatasetService } from '@voices/services/voice-dataset.service';
 
 // Mock node:fs/promises
@@ -81,14 +82,17 @@ describe('VoiceDatasetService', () => {
       });
     });
 
-    it('should use custom bucket when provided', async () => {
+    it('should always read from the configured bucket, never a caller-supplied one', async () => {
+      // `bucket` is no longer part of the request contract. A caller that
+      // smuggles one must not be able to point this service's AWS credentials
+      // at a bucket of their choosing.
       await service.syncFromS3('test', {
-        bucket: 'custom-bucket',
+        bucket: 'attacker-bucket',
         s3Keys: ['sample.wav'],
-      });
+      } as VoiceDatasetSyncRequest);
 
       expect(mockS3Service.downloadFile).toHaveBeenCalledWith(
-        'custom-bucket',
+        'test-bucket',
         'sample.wav',
         '/datasets/voices/test/sample.wav',
       );

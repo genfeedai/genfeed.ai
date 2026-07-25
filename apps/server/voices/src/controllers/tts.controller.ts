@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { InternalApiKeyGuard } from '@voices/guards/internal-api-key.guard';
 import { JobService } from '@voices/services/job.service';
 import { TTSService } from '@voices/services/tts.service';
 
 @ApiTags('TTS')
 @Controller('tts')
+@UseGuards(InternalApiKeyGuard)
 export class TTSController {
   constructor(
     private readonly ttsService: TTSService,

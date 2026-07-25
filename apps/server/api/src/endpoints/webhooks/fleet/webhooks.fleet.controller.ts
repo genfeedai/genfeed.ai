@@ -1,4 +1,4 @@
-import type { FleetVoiceCloneWebhookPayload } from '@api/endpoints/webhooks/fleet/webhooks.fleet.service';
+import { FleetVoiceCloneWebhookPayloadDto } from '@api/endpoints/webhooks/dto/fleet-voice-clone-webhook-payload.dto';
 import { FleetWebhookService } from '@api/endpoints/webhooks/fleet/webhooks.fleet.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ConfigService } from '@libs/config/config.service';
@@ -25,7 +25,7 @@ export class FleetWebhookController {
   @Post('voice-clone')
   async handleVoiceCloneCompletion(
     @Req() request: Request,
-    @Body() payload: FleetVoiceCloneWebhookPayload,
+    @Body() payload: FleetVoiceCloneWebhookPayloadDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -35,6 +35,7 @@ export class FleetWebhookController {
         | undefined,
       loggerService: this.loggerService,
       request,
+      secretEnvVar: 'FLEET_WEBHOOK_SECRET',
       url,
     });
 
