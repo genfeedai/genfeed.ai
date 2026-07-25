@@ -6,6 +6,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsIn,
   IsNumber,
@@ -13,6 +14,13 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
+
+/**
+ * Parity with `CreateBatchDto.count` (`@Max(100)`): a manual review handoff can
+ * never legitimately exceed the size of a generated batch. Each item becomes one
+ * sequential post `create` in `batch-generation-creation.service.ts`.
+ */
+const MAX_REVIEW_ITEMS = 100;
 
 class ManualReviewBatchItemDto {
   @ApiProperty({
@@ -189,9 +197,11 @@ export class CreateManualReviewBatchDto {
 
   @ApiProperty({
     description: 'Items to add directly to the human review queue',
+    maxItems: MAX_REVIEW_ITEMS,
     type: [ManualReviewBatchItemDto],
   })
   @IsArray()
+  @ArrayMaxSize(MAX_REVIEW_ITEMS)
   @ValidateNested({ each: true })
   @Type(() => ManualReviewBatchItemDto)
   items!: ManualReviewBatchItemDto[];

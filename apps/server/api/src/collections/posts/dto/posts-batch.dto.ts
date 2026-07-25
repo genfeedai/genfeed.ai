@@ -10,7 +10,13 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export const POSTS_BATCH_MAX_ITEMS = 100;
+/**
+ * Heaviest per-item cost of the batch endpoints: `posts-operations.controller.ts`
+ * runs two sequential writes per item (`postsService.patch` plus an activity
+ * `create`). This is an interactive scheduling flow, so it stays at the same
+ * interactive scale as the other hand-driven batches.
+ */
+export const POSTS_BATCH_MAX_ITEMS = 50;
 
 export class PostBatchItemDto {
   @IsEntityId()

@@ -3369,6 +3369,7 @@
             "items": {
               "$ref": "#/components/schemas/ManualReviewBatchItemDto"
             },
+            "maxItems": 100,
             "type": "array"
           }
         },
@@ -7081,6 +7082,7 @@
             "items": {
               "$ref": "#/components/schemas/CsvMetricEntryDto"
             },
+            "maxItems": 200,
             "type": "array"
           }
         },
@@ -7651,6 +7653,7 @@
             "items": {
               "$ref": "#/components/schemas/ManualMetricEntryDto"
             },
+            "maxItems": 50,
             "type": "array"
           }
         },
@@ -8665,11 +8668,11 @@
             "type": "string"
           },
           "items": {
-            "description": "Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED, max 100)",
+            "description": "Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED, max 50)",
             "items": {
               "$ref": "#/components/schemas/PostBatchItemDto"
             },
-            "maxItems": 100,
+            "maxItems": 50,
             "type": "array"
           }
         },
