@@ -1,4 +1,5 @@
 export {
+  assertSafeSegment,
   createPathSecurity,
   createPathSecurityClass,
   DEFAULT_ALLOWED_EXTENSIONS,
@@ -7,5 +8,7 @@ export {
   type PathSecurity,
   type PathSecurityClass,
   type PathSecurityOptions,
+  resolveContainedPath,
+  SAFE_SEGMENT_PATTERN,
   type SecurityErrorFactory,
 } from '@libs/security/path-security';

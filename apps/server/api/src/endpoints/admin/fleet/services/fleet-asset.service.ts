@@ -11,7 +11,6 @@ import {
   FileInputType,
   IngredientCategory,
 } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -29,7 +28,6 @@ export class AdminFleetAssetService {
     private readonly ingredientsService: IngredientsService,
     private readonly filesClientService: FilesClientService,
     private readonly adminFleetTrainingService: AdminFleetTrainingService,
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -163,13 +161,7 @@ export class AdminFleetAssetService {
       s3Keys.push(captionKey);
     }
 
-    await this.adminFleetTrainingService.syncDataset(
-      slug,
-      s3Keys,
-      AdminFleetValueReader.readString(
-        this.configService.get('DARKROOM_S3_BUCKET'),
-      ),
-    );
+    await this.adminFleetTrainingService.syncDataset(slug, s3Keys);
 
     await this.ingredientsService.patch(ingredient.id.toString(), {
       generationCompletedAt: ingredient.generationCompletedAt ?? new Date(),

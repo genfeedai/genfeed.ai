@@ -40,7 +40,9 @@ describe('AdminFleetTrainingService', () => {
     };
 
     configService = {
-      get: vi.fn().mockReturnValue('http://gpu-images:3000'),
+      get: vi.fn((key: string) =>
+        key === 'GENFEEDAI_API_KEY' ? 'internal-key' : 'http://gpu-images:3000',
+      ),
     };
 
     loggerService = {
@@ -235,9 +237,14 @@ describe('AdminFleetTrainingService', () => {
 
       const result = await service.getDatasetInfo('alice');
 
+      // The images service guards every route with InternalApiKeyGuard, so the
+      // shared bearer token has to ride along or the call comes back 401.
       expect(axios.get).toHaveBeenCalledWith(
         'http://gpu-images:3000/datasets/alice',
-        { timeout: 15000 },
+        {
+          headers: { Authorization: 'Bearer internal-key' },
+          timeout: 15000,
+        },
       );
       expect(result).toEqual(mockResponse.data);
     });
@@ -247,12 +254,17 @@ describe('AdminFleetTrainingService', () => {
     it('should call images service POST /datasets/:slug/sync', async () => {
       vi.mocked(axios.post).mockResolvedValue({ data: {} });
 
-      await service.syncDataset('alice', ['s3://key1', 's3://key2'], 'bucket');
+      await service.syncDataset('alice', ['s3://key1', 's3://key2']);
 
+      // No bucket in the body: the images service reads from its own configured
+      // bucket so a caller cannot borrow its AWS credentials for another one.
       expect(axios.post).toHaveBeenCalledWith(
         'http://gpu-images:3000/datasets/alice/sync',
-        { bucket: 'bucket', s3Keys: ['s3://key1', 's3://key2'] },
-        { timeout: 120000 },
+        { s3Keys: ['s3://key1', 's3://key2'] },
+        {
+          headers: { Authorization: 'Bearer internal-key' },
+          timeout: 120000,
+        },
       );
     });
   });

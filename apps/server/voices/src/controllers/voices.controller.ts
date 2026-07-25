@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { InternalApiKeyGuard } from '@voices/guards/internal-api-key.guard';
 import { VoiceProfilesService } from '@voices/services/voice-profiles.service';
 
 @ApiTags('Voices')
 @Controller('voices')
+@UseGuards(InternalApiKeyGuard)
 export class VoicesController {
   constructor(private readonly voiceProfilesService: VoiceProfilesService) {}
 

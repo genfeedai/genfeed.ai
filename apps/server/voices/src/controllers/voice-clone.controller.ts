@@ -1,10 +1,12 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { InternalApiKeyGuard } from '@voices/guards/internal-api-key.guard';
 import type { VoiceCloneUploadRequest } from '@voices/interfaces/voice-clone.interfaces';
 import { VoiceCloneService } from '@voices/services/voice-clone.service';
 
 @ApiTags('Voice Clones')
 @Controller('clones')
+@UseGuards(InternalApiKeyGuard)
 export class VoiceCloneController {
   constructor(private readonly voiceCloneService: VoiceCloneService) {}
 

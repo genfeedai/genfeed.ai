@@ -61,17 +61,6 @@ describe('DatasetController', () => {
       expect(result).toEqual(mockSyncResult);
     });
 
-    it('should pass through bucket when provided in body', async () => {
-      const body = { bucket: 'custom-bucket', s3Keys: ['key.jpg'] };
-
-      await controller.syncDataset('my-dataset', body);
-
-      expect(datasetService.syncDataset).toHaveBeenCalledWith(
-        'my-dataset',
-        expect.objectContaining({ bucket: 'custom-bucket' }),
-      );
-    });
-
     it('should propagate service errors to caller', async () => {
       datasetService.syncDataset = vi
         .fn()

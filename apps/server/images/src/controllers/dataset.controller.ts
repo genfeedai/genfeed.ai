@@ -1,10 +1,20 @@
+import { InternalApiKeyGuard } from '@images/guards/internal-api-key.guard';
 import type { DatasetSyncRequest } from '@images/interfaces/dataset.interfaces';
 import { DatasetService } from '@images/services/dataset.service';
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Datasets')
 @Controller('datasets')
+@UseGuards(InternalApiKeyGuard)
 export class DatasetController {
   constructor(private readonly datasetService: DatasetService) {}
 

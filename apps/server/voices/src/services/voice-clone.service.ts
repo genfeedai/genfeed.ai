@@ -1,7 +1,8 @@
 import { readdir, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { basename, extname, join } from 'node:path';
 import { LoggerService } from '@libs/logger/logger.service';
 import { S3Service } from '@libs/s3/s3.service';
+import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -18,6 +19,8 @@ import type {
 
 const S3_VOICE_CLONE_PREFIX = 'ingredients/trainings/voice-clones/';
 const MODEL_EXTENSIONS = new Set(['.pth', '.onnx', '.bin', '.safetensors']);
+
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 @Injectable()
 export class VoiceCloneService {
@@ -38,56 +41,81 @@ export class VoiceCloneService {
       throw new BadRequestException('voiceId and localPath are required');
     }
 
-    const ext = request.localPath.slice(request.localPath.lastIndexOf('.'));
+    // `extname` returns '' for a dotless path; the hand-rolled
+    // `slice(lastIndexOf('.'))` returned the whole path instead, so a file with
+    // no extension was compared against the allow-list as its own name.
+    const ext = extname(request.localPath);
     if (!MODEL_EXTENSIONS.has(ext)) {
       throw new BadRequestException(
         `localPath must point to a model file (${Array.from(MODEL_EXTENSIONS).join(', ')})`,
       );
     }
 
+    // `voiceId` is caller-supplied and lands in an S3 key; a value containing
+    // separators or `..` would write outside the voice-clone prefix.
+    const voiceId = assertSafeSegment(
+      request.voiceId,
+      'voiceId',
+      createBadRequest,
+    );
+
+    // `localPath` is caller-supplied and is read off this container's disk.
+    // Without containment the endpoint reads any local file and uploads it to a
+    // bucket the caller can list.
+    const localPath = resolveContainedPath(
+      this.configService.VOICE_MODELS_PATH,
+      request.localPath,
+      createBadRequest,
+    );
+
     try {
-      await stat(request.localPath);
+      await stat(localPath);
     } catch {
       throw new NotFoundException(`Local file not found: ${request.localPath}`);
     }
 
-    const filename = request.localPath.slice(
-      request.localPath.lastIndexOf('/') + 1,
-    );
-    const s3Key = `${S3_VOICE_CLONE_PREFIX}${request.voiceId}/${filename}`;
+    const filename = basename(localPath);
+    const s3Key = `${S3_VOICE_CLONE_PREFIX}${voiceId}/${filename}`;
     const bucket = this.configService.AWS_S3_BUCKET;
 
     this.loggerService.log(caller, {
       bucket,
-      localPath: request.localPath,
+      localPath,
       message: 'Uploading voice clone to S3',
       s3Key,
-      voiceId: request.voiceId,
+      voiceId,
     });
 
-    await this.s3Service.uploadFile(bucket, s3Key, request.localPath);
+    await this.s3Service.uploadFile(bucket, s3Key, localPath);
 
     this.loggerService.log(caller, {
       message: 'Voice clone uploaded successfully',
       s3Key,
-      voiceId: request.voiceId,
+      voiceId,
     });
 
     return {
       s3Key,
       uploaded: true,
-      voiceId: request.voiceId,
+      voiceId,
     };
   }
 
   async downloadClone(
-    voiceId: string,
+    requestedVoiceId: string,
   ): Promise<{ voiceId: string; path: string }> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    if (!voiceId) {
+    if (!requestedVoiceId) {
       throw new BadRequestException('voiceId is required');
     }
+
+    // Sanitized before it becomes both an S3 prefix and a local directory.
+    const voiceId = assertSafeSegment(
+      requestedVoiceId,
+      'voiceId',
+      createBadRequest,
+    );
 
     const bucket = this.configService.AWS_S3_BUCKET;
     const prefix = `${S3_VOICE_CLONE_PREFIX}${voiceId}/`;
@@ -109,8 +137,14 @@ export class VoiceCloneService {
     }
 
     for (const obj of objects) {
+      // The key suffix comes from S3, not from this process — a key holding
+      // `../` would otherwise write outside the voice's directory.
       const filename = obj.key.replace(prefix, '');
-      const localPath = join(localDir, filename);
+      const localPath = resolveContainedPath(
+        localDir,
+        filename,
+        createBadRequest,
+      );
       await this.s3Service.downloadFile(bucket, obj.key, localPath);
     }
 

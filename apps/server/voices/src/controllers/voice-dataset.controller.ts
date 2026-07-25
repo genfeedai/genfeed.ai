@@ -1,10 +1,20 @@
-import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { InternalApiKeyGuard } from '@voices/guards/internal-api-key.guard';
 import type { VoiceDatasetSyncRequest } from '@voices/interfaces/voice-dataset.interfaces';
 import { VoiceDatasetService } from '@voices/services/voice-dataset.service';
 
 @ApiTags('Voice Datasets')
 @Controller('datasets')
+@UseGuards(InternalApiKeyGuard)
 export class VoiceDatasetController {
   constructor(private readonly voiceDatasetService: VoiceDatasetService) {}
 

@@ -1,6 +1,5 @@
 export interface DatasetSyncRequest {
   s3Keys: string[];
-  bucket?: string;
 }
 
 export interface DatasetInfo {

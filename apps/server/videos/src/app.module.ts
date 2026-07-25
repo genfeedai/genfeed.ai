@@ -12,6 +12,7 @@ import { ConfigModule } from '@videos/config/config.module';
 import { ConfigService } from '@videos/config/config.service';
 import { ComfyUIController } from '@videos/controllers/comfyui.controller';
 import { GenerationController } from '@videos/controllers/generation.controller';
+import { InternalApiKeyGuard } from '@videos/guards/internal-api-key.guard';
 import { ComfyUIService } from '@videos/services/comfyui.service';
 import { GenerationService } from '@videos/services/generation.service';
 import { JobService } from '@videos/services/job.service';
@@ -35,6 +36,7 @@ import { WorkflowService } from '@videos/services/workflow.service';
   providers: [
     ComfyUIService,
     GenerationService,
+    InternalApiKeyGuard,
     JobService,
     WorkflowService,
     {
