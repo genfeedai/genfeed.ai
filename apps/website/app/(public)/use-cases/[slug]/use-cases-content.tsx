@@ -1,4 +1,5 @@
 import type { UseCase } from '@data/use-cases.data';
+import { getPlanLabel } from '@helpers/business/pricing/pricing.helper';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
@@ -10,6 +11,8 @@ import { FaCheck } from 'react-icons/fa6';
 import { HiXMark } from 'react-icons/hi2';
 
 export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
+  const recommendedPlan = getPlanLabel(useCase.pricing.recommended);
+
   return (
     <PageLayout
       title={useCase.title}
@@ -28,7 +31,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           title="Target audience"
           items={[
             { label: 'Built for', value: useCase.audience },
-            { label: 'Recommended plan', value: useCase.pricing.recommended },
+            { label: 'Recommended plan', value: recommendedPlan },
             {
               label: 'Expected outcome',
               value: useCase.results[0] ?? 'Faster execution',
@@ -136,7 +139,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
       <section className="max-w-4xl mx-auto pb-20">
         <div className="gen-card-spotlight p-10 text-center">
           <Heading as="h3" className="text-3xl font-bold mb-2">
-            {useCase.pricing.recommended}
+            {recommendedPlan}
           </Heading>
           <Text className="text-surface/65 mb-6">{useCase.pricing.why}</Text>
           <ButtonRequestAccess />

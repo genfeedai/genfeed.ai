@@ -151,9 +151,9 @@ export class OutreachCampaignsController extends BaseCRUDController<
   ): boolean {
     const publicMetadata = getPublicMetadata(user);
 
-    const entityOrganizationId =
-      (entity.organization as unknown as { id: string })?.id?.toString() ||
-      entity.organization?.toString();
+    // Scalar FK: the legacy `organization` alias is undefined unless the query
+    // populated the relation, which would drop this ownership check entirely.
+    const entityOrganizationId = entity.organizationId;
 
     if (
       entityOrganizationId &&
@@ -294,7 +294,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
         contentUrl: url,
         discoverySource: CampaignDiscoverySource.MANUAL,
         externalId: parsed.externalId,
-        organization: campaign.organization,
+        organization: campaign.organizationId,
         platform: parsed.platform,
         targetType: parsed.targetType,
       });
@@ -354,7 +354,7 @@ export class OutreachCampaignsController extends BaseCRUDController<
         contentUrl: `https://x.com/${username}`,
         discoverySource: CampaignDiscoverySource.MANUAL,
         externalId: username,
-        organization: campaign.organization,
+        organization: campaign.organizationId,
         platform,
         recipientUsername: username,
         status: CampaignTargetStatus.PENDING,

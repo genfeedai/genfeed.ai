@@ -160,12 +160,15 @@ export class UserSetupService {
       user: userId,
     });
 
-    if (!membership?.organization) {
+    // Scalar FK: the legacy `organization` alias is undefined unless the query
+    // populated the relation, so reading it here would make every membership
+    // look orgless and spawn a duplicate organization on each setup run.
+    if (!membership?.organizationId) {
       return null;
     }
 
     return this.organizationsService.findOne({
-      _id: membership.organization,
+      _id: membership.organizationId,
       isDeleted: false,
     });
   }

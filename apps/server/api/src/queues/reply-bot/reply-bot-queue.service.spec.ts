@@ -1,5 +1,4 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -17,24 +16,29 @@ interface MockQueue {
   resume: ReturnType<typeof vi.fn>;
 }
 
-interface MockOrgsService {
-  findAll: ReturnType<typeof vi.fn>;
-}
-
 interface MockReplyBotConfigsService {
   findActive: ReturnType<typeof vi.fn>;
+  findAllActive: ReturnType<typeof vi.fn>;
 }
 
 interface MockCredentialsService {
+  find: ReturnType<typeof vi.fn>;
   findOne: ReturnType<typeof vi.fn>;
+}
+
+interface MockLoggerService {
+  debug: ReturnType<typeof vi.fn>;
+  error: ReturnType<typeof vi.fn>;
+  log: ReturnType<typeof vi.fn>;
+  warn: ReturnType<typeof vi.fn>;
 }
 
 describe('ReplyBotQueueService', () => {
   let service: ReplyBotQueueService;
   let mockQueue: MockQueue;
-  let orgsService: MockOrgsService;
   let replyBotConfigsService: MockReplyBotConfigsService;
   let credentialsService: MockCredentialsService;
+  let logger: MockLoggerService;
 
   beforeEach(async () => {
     mockQueue = {
@@ -47,41 +51,37 @@ describe('ReplyBotQueueService', () => {
       resume: vi.fn().mockResolvedValue(undefined),
     };
 
-    const mockOrgs: MockOrgsService = {
-      findAll: vi.fn().mockResolvedValue({ docs: [] }),
-    };
-
     const mockReplyBotConfigs: MockReplyBotConfigsService = {
       findActive: vi.fn().mockResolvedValue([]),
+      findAllActive: vi.fn().mockResolvedValue([]),
     };
 
     const mockCredentials: MockCredentialsService = {
+      find: vi.fn().mockResolvedValue([]),
       findOne: vi.fn().mockResolvedValue(null),
+    };
+
+    const mockLogger: MockLoggerService = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ReplyBotQueueService,
         { provide: getQueueToken('reply-bot-polling'), useValue: mockQueue },
-        { provide: OrganizationsService, useValue: mockOrgs },
         { provide: ReplyBotConfigsService, useValue: mockReplyBotConfigs },
         { provide: CredentialsService, useValue: mockCredentials },
-        {
-          provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
+        { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
 
     service = module.get<ReplyBotQueueService>(ReplyBotQueueService);
-    orgsService = module.get(OrganizationsService);
     replyBotConfigsService = module.get(ReplyBotConfigsService);
     credentialsService = module.get(CredentialsService);
+    logger = module.get(LoggerService);
 
     vi.clearAllMocks();
   });
@@ -129,30 +129,76 @@ describe('ReplyBotQueueService', () => {
   // ── scheduledPolling ─────────────────────────────────────────────────
 
   describe('scheduledPolling', () => {
-    it('does nothing when no organizations have active bots', async () => {
-      orgsService.findAll.mockResolvedValue({ docs: [] });
+    const ORG_WITH_CREDENTIAL = 'org-with-credential';
+    const ORG_WITHOUT_CREDENTIAL = 'org-without-credential';
+    const CREDENTIAL_ID = 'credential-1';
+
+    it('does nothing when no organization has an active bot', async () => {
+      replyBotConfigsService.findAllActive.mockResolvedValue([]);
 
       await service.scheduledPolling();
 
+      expect(credentialsService.find).not.toHaveBeenCalled();
       expect(mockQueue.add).not.toHaveBeenCalled();
     });
 
-    it('queues jobs for organizations with active bots and credentials', async () => {
-      const orgId1 = '507f191e810c19729de860ee';
-      const orgId2 = '507f191e810c19729de860ee';
-      const credId = '507f191e810c19729de860ee';
+    it('queues one job per organization that has an active bot and a Twitter credential, warns on a missing credential, and never reads credentials for organizations without an active bot', async () => {
+      replyBotConfigsService.findAllActive.mockResolvedValue([
+        { id: 'config-1', organizationId: ORG_WITH_CREDENTIAL },
+        // Second active config for the same org must not produce a second job.
+        { id: 'config-2', organizationId: ORG_WITH_CREDENTIAL },
+        { id: 'config-3', organizationId: ORG_WITHOUT_CREDENTIAL },
+      ]);
 
-      orgsService.findAll.mockResolvedValue({
-        docs: [{ id: orgId1 }, { id: orgId2 }],
+      credentialsService.find.mockResolvedValue([
+        { id: CREDENTIAL_ID, organizationId: ORG_WITH_CREDENTIAL },
+      ]);
+
+      await service.scheduledPolling();
+
+      // Two queries total for the whole tick, regardless of tenant count.
+      expect(replyBotConfigsService.findAllActive).toHaveBeenCalledTimes(1);
+      expect(credentialsService.find).toHaveBeenCalledTimes(1);
+      expect(replyBotConfigsService.findActive).not.toHaveBeenCalled();
+
+      // Only organizations with an active bot reach the credential read. The
+      // exact `in` list proves an organization without an active bot — which
+      // contributes no config here — is never queried for credentials.
+      expect(credentialsService.find).toHaveBeenCalledWith({
+        isDeleted: false,
+        organizationId: {
+          in: [ORG_WITH_CREDENTIAL, ORG_WITHOUT_CREDENTIAL],
+        },
+        platform: CredentialPlatform.TWITTER,
       });
 
-      replyBotConfigsService.findActive
-        .mockResolvedValueOnce([{ _id: 'config-1' }]) // org1 has active bots
-        .mockResolvedValueOnce([]); // org2 does not
+      // Included: active bot + credential.
+      expect(mockQueue.add).toHaveBeenCalledTimes(1);
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'poll',
+        {
+          credentialId: CREDENTIAL_ID,
+          organizationId: ORG_WITH_CREDENTIAL,
+        },
+        expect.any(Object),
+      );
 
-      credentialsService.findOne.mockResolvedValueOnce({
-        id: credId,
-      });
+      // Excluded + warned: active bot, no credential.
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          `no Twitter credential found for org ${ORG_WITHOUT_CREDENTIAL}`,
+        ),
+      );
+    });
+
+    it('keeps the first credential when an organization has several', async () => {
+      replyBotConfigsService.findAllActive.mockResolvedValue([
+        { id: 'config-1', organizationId: ORG_WITH_CREDENTIAL },
+      ]);
+      credentialsService.find.mockResolvedValue([
+        { id: CREDENTIAL_ID, organizationId: ORG_WITH_CREDENTIAL },
+        { id: 'credential-2', organizationId: ORG_WITH_CREDENTIAL },
+      ]);
 
       await service.scheduledPolling();
 
@@ -160,45 +206,22 @@ describe('ReplyBotQueueService', () => {
       expect(mockQueue.add).toHaveBeenCalledWith(
         'poll',
         {
-          credentialId: credId.toString(),
-          organizationId: orgId1.toString(),
+          credentialId: CREDENTIAL_ID,
+          organizationId: ORG_WITH_CREDENTIAL,
         },
         expect.any(Object),
       );
     });
 
-    it('skips organizations without Twitter credentials', async () => {
-      const orgId1 = '507f191e810c19729de860ee';
-      orgsService.findAll.mockResolvedValue({
-        docs: [{ _id: orgId1 }],
-      });
-      replyBotConfigsService.findActive.mockResolvedValue([
-        { _id: 'config-1' },
-      ]);
-      credentialsService.findOne.mockResolvedValue(null);
+    it('queues nothing when the active-bot lookup fails', async () => {
+      replyBotConfigsService.findAllActive.mockRejectedValue(
+        new Error('Postgres down'),
+      );
 
-      await service.scheduledPolling();
+      await expect(service.scheduledPolling()).resolves.toBeUndefined();
 
       expect(mockQueue.add).not.toHaveBeenCalled();
-    });
-
-    it('looks up Twitter credentials specifically', async () => {
-      const orgId1 = '507f191e810c19729de860ee';
-      orgsService.findAll.mockResolvedValue({
-        docs: [{ id: orgId1 }],
-      });
-      replyBotConfigsService.findActive.mockResolvedValue([{ _id: 'c-1' }]);
-      credentialsService.findOne.mockResolvedValue(null);
-
-      await service.scheduledPolling();
-
-      expect(credentialsService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          isDeleted: false,
-          organization: orgId1,
-          platform: CredentialPlatform.TWITTER,
-        }),
-      );
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 
