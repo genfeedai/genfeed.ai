@@ -7,11 +7,15 @@ import { ConfigService } from '@libs/config/config.service';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { UnauthorizedException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 
 const WEBHOOK_SECRET = 'opuspro-webhook-secret';
 
-function mockTokenRequest(token: string | undefined = WEBHOOK_SECRET) {
+// No default value here: a JS default parameter is substituted for an
+// explicit `undefined` argument too, which would silently defeat the
+// "no token" tests below (they call this with `undefined` to build an
+// unauthenticated request).
+function mockTokenRequest(token?: string) {
   return {
     headers: {},
     query: token ? { token } : {},
@@ -90,7 +94,7 @@ describe('OpusProWebhookController', () => {
       );
 
       const result = await controller.handleCallback(
-        mockTokenRequest(),
+        mockTokenRequest(WEBHOOK_SECRET),
         payload,
       );
 
@@ -129,7 +133,7 @@ describe('OpusProWebhookController', () => {
       webhooksService.handleFailedGeneration.mockResolvedValue(undefined);
 
       const result = await controller.handleCallback(
-        mockTokenRequest(),
+        mockTokenRequest(WEBHOOK_SECRET),
         payload,
       );
 
@@ -157,7 +161,10 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
       webhooksService.handleFailedGeneration.mockResolvedValue(undefined);
 
-      await controller.handleCallback(mockTokenRequest(), payload);
+      await controller.handleCallback(
+        mockTokenRequest(WEBHOOK_SECRET),
+        payload,
+      );
 
       expect(webhooksService.handleFailedGeneration).toHaveBeenCalledWith(
         'callback_789',
@@ -173,7 +180,7 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.extractVideoUrl.mockReturnValue(null);
 
       const result = await controller.handleCallback(
-        mockTokenRequest(),
+        mockTokenRequest(WEBHOOK_SECRET),
         payload,
       );
 
@@ -194,7 +201,7 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
 
       const result = await controller.handleCallback(
-        mockTokenRequest(),
+        mockTokenRequest(WEBHOOK_SECRET),
         payload,
       );
 
@@ -216,7 +223,7 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockResolvedValue(undefined);
 
       const result = await controller.handleCallback(
-        mockTokenRequest(),
+        mockTokenRequest(WEBHOOK_SECRET),
         payload,
       );
 
@@ -244,7 +251,7 @@ describe('OpusProWebhookController', () => {
       opusProWebhookService.handleCallback.mockRejectedValue(error);
 
       await expect(
-        controller.handleCallback(mockTokenRequest(), payload),
+        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), payload),
       ).rejects.toThrow('Database connection failed');
 
       expect(loggerService.error).toHaveBeenCalledWith(
@@ -269,7 +276,7 @@ describe('OpusProWebhookController', () => {
       webhooksService.processMediaFromWebhook.mockRejectedValue(error);
 
       await expect(
-        controller.handleCallback(mockTokenRequest(), payload),
+        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), payload),
       ).rejects.toThrow('Webhook service failed');
 
       expect(loggerService.error).toHaveBeenCalledWith(
@@ -302,7 +309,7 @@ describe('OpusProWebhookController', () => {
       // Fail closed: an unconfigured deployment must not expose this
       // @Public() job-completion handler to anonymous callers.
       await expect(
-        controller.handleCallback(mockTokenRequest(), payload),
+        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), payload),
       ).rejects.toThrow(UnauthorizedException);
 
       expect(loggerService.error).toHaveBeenCalledWith(
