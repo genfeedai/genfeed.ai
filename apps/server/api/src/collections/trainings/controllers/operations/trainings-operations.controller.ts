@@ -212,15 +212,21 @@ export class TrainingsOperationsController {
         );
       }
 
-      await Promise.all(
-        sourceImages.map((img) =>
-          this.ingredientsService.patch(img.id, {
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.SOURCE,
-            ),
-            training: newTraining.id as string,
-          }),
-        ),
+      // Identical payload for every source image, so this collapses to a single
+      // owner-scoped `updateMany` instead of N concurrent UPDATEs. `trainingId`
+      // is the scalar FK — the legacy `training` relation alias is not remapped
+      // by `normalizeData` and would reach Prisma unresolved.
+      await this.ingredientsService.patchAll(
+        {
+          id: { in: sourceImages.map((img) => img.id) },
+          userId: publicMetadata.user,
+        },
+        {
+          category: CategoryPrismaUtil.toIngredientCategory(
+            IngredientCategory.SOURCE,
+          ),
+          trainingId: newTraining.id as string,
+        },
       );
 
       return this.processAndLaunchTraining(

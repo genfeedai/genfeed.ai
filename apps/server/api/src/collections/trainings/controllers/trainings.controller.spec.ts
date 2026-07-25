@@ -87,6 +87,7 @@ describe('TrainingsController', () => {
           useValue: {
             findAll: vi.fn(),
             patch: vi.fn(),
+            patchAll: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
           },
         },
         {
@@ -287,6 +288,86 @@ describe('TrainingsController', () => {
         }),
       );
       expect(result).toBeDefined();
+    });
+
+    it('nests the id filter and the ownership filter under AND so neither is dropped', async () => {
+      const createDto = {
+        label: 'New Training',
+        sources: Array.from({ length: 12 }, (_, i) => `source-${i}`),
+        steps: 1000,
+        trigger: 'NEWTOK',
+      } as unknown as CreateTrainingDto;
+
+      ingredientsService.findAll.mockResolvedValueOnce({
+        docs: Array.from({ length: 12 }, (_, i) => ({
+          id: `source-${i}`,
+          category: IngredientCategory.IMAGE,
+          metadata: { extension: 'jpg' },
+        })),
+      } as never);
+      trainingsService.create.mockResolvedValueOnce({
+        id: 'training-1',
+      } as never);
+
+      await controller.create(mockRequest, mockUser, createDto);
+
+      const [aggregate] = ingredientsService.findAll.mock.calls[0] as [
+        { where: Record<string, unknown> },
+      ];
+
+      // A sibling `OR` key would overwrite the `_id` expansion in
+      // `processSearchParams` and silently match every image the caller owns.
+      expect(aggregate.where).not.toHaveProperty('OR');
+      expect(aggregate.where.AND).toEqual([
+        { _id: { in: createDto.sources } },
+        {
+          OR: [
+            { user: mockUser.publicMetadata.user },
+            { organization: mockUser.publicMetadata.organization },
+          ],
+        },
+      ]);
+    });
+
+    it('marks every source image with one bounded tenant-scoped bulk update', async () => {
+      const sourceIds = Array.from({ length: 12 }, (_, i) => `source-${i}`);
+      const createDto = {
+        label: 'New Training',
+        sources: sourceIds,
+        steps: 1000,
+        trigger: 'NEWTOK',
+      } as unknown as CreateTrainingDto;
+
+      ingredientsService.findAll.mockResolvedValueOnce({
+        docs: sourceIds.map((id) => ({
+          id,
+          category: IngredientCategory.IMAGE,
+          metadata: { extension: 'jpg' },
+        })),
+      } as never);
+      trainingsService.create.mockResolvedValueOnce({
+        id: 'training-1',
+      } as never);
+
+      await controller.create(mockRequest, mockUser, createDto);
+
+      // One query regardless of source count — never one UPDATE per row.
+      expect(ingredientsService.patchAll).toHaveBeenCalledTimes(1);
+      expect(ingredientsService.patch).not.toHaveBeenCalled();
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        {
+          id: { in: sourceIds },
+          OR: [
+            { userId: mockUser.publicMetadata.user },
+            { organizationId: mockUser.publicMetadata.organization },
+          ],
+        },
+        {
+          category: 'SOURCE',
+          // Scalar FK — the legacy `training` relation alias never resolves.
+          trainingId: 'training-1',
+        },
+      );
     });
 
     it('should throw error when less than 10 sources provided', async () => {

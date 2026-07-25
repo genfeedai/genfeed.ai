@@ -299,13 +299,18 @@ export class TrainingsController extends BaseCRUDController<
       const sourceResult = await this.ingredientsService.findAll(
         {
           where: {
-            _id: {
-              in: sourceIds,
-            },
-            OR: [
-              { user: publicMetadata.user },
+            // `_id` expands to `OR: [{ id }, { mongoId }]` in
+            // `processSearchParams`, so a sibling `OR` key on the same object
+            // overwrites it and silently drops the id filter (matching every
+            // image the caller owns). Both predicates are nested under `AND`
+            // so the id restriction and the ownership restriction coexist.
+            AND: [
+              { _id: { in: sourceIds } },
               {
-                organization: publicMetadata.organization,
+                OR: [
+                  { user: publicMetadata.user },
+                  { organization: publicMetadata.organization },
+                ],
               },
             ],
             category: CategoryPrismaUtil.toIngredientCategory(
@@ -384,15 +389,24 @@ export class TrainingsController extends BaseCRUDController<
         );
       }
 
-      await Promise.all(
-        sourceImages.map((img) =>
-          this.ingredientsService.patch(img.id, {
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.SOURCE,
-            ),
-            training: training.id as string,
-          }),
-        ),
+      // Every source image receives the identical payload, so this collapses to
+      // a single tenant-scoped `updateMany` instead of N concurrent UPDATEs.
+      // `trainingId` is the scalar FK — the legacy `training` relation alias is
+      // not remapped by `normalizeData` and would reach Prisma unresolved.
+      await this.ingredientsService.patchAll(
+        {
+          id: { in: sourceImages.map((img) => img.id) },
+          OR: [
+            { userId: publicMetadata.user },
+            { organizationId: publicMetadata.organization },
+          ],
+        },
+        {
+          category: CategoryPrismaUtil.toIngredientCategory(
+            IngredientCategory.SOURCE,
+          ),
+          trainingId: training.id as string,
+        },
       );
 
       // Return training immediately to avoid timeout

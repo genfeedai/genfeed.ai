@@ -62,6 +62,7 @@ describe('TrainingsOperationsController', () => {
         total: 10,
       }),
       patch: vi.fn().mockResolvedValue({}),
+      patchAll: vi.fn().mockResolvedValue({ modifiedCount: 10 }),
     },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     metadataService: { patch: vi.fn() },
@@ -213,6 +214,29 @@ describe('TrainingsOperationsController', () => {
           '507f1f77bcf86cd799439014',
         ),
       ).rejects.toThrow();
+    });
+
+    it('marks every source image with one bounded owner-scoped bulk update', async () => {
+      await controller.relaunchTraining(
+        {} as unknown as Request,
+        mockUser,
+        '507f1f77bcf86cd799439014',
+      );
+
+      // One query regardless of source count — never one UPDATE per row.
+      expect(mockServices.ingredientsService.patchAll).toHaveBeenCalledTimes(1);
+      expect(mockServices.ingredientsService.patch).not.toHaveBeenCalled();
+      expect(mockServices.ingredientsService.patchAll).toHaveBeenCalledWith(
+        {
+          id: { in: mockSourceDocs.map((doc) => doc.id) },
+          userId: mockUser.publicMetadata.user,
+        },
+        {
+          category: 'SOURCE',
+          // Scalar FK — the legacy `training` relation alias never resolves.
+          trainingId: mockTraining.id,
+        },
+      );
     });
 
     it('should fetch ingredients with source category filter', async () => {

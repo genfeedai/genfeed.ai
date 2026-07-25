@@ -11,6 +11,13 @@ import type { Prisma } from '@genfeedai/prisma';
 import { AgentArtifactReferenceService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import pLimit from 'p-limit';
+
+/**
+ * Max concurrent per-draft writes inside `bulkApprove`. Matches the limiter
+ * used for outbound fan-out elsewhere in the API (HiggsFieldService).
+ */
+const BULK_APPROVE_CONCURRENCY = 3;
 
 @Injectable()
 export class ContentDraftsService extends BaseService<
@@ -205,23 +212,36 @@ export class ContentDraftsService extends BaseService<
       },
     })) as Array<Record<string, unknown>>;
 
+    // Both passes are per-draft (each draft gets its own immutable version pin,
+    // so the trailing update cannot collapse into one `updateMany`). Bound the
+    // fan-out instead: a single request must not open one connection per id.
+    const limit = pLimit(BULK_APPROVE_CONCURRENCY);
+
     const pinnedDrafts = await Promise.all(
-      drafts.map(async (draft) => ({
-        draft,
-        versionPin: await this.createVersionPin(draft, organizationId, userId),
-      })),
+      drafts.map((draft) =>
+        limit(async () => ({
+          draft,
+          versionPin: await this.createVersionPin(
+            draft,
+            organizationId,
+            userId,
+          ),
+        })),
+      ),
     );
 
     await Promise.all(
       pinnedDrafts.map(({ draft, versionPin }) =>
-        this.delegate.update({
-          where: { id: draft.id as string },
-          data: {
-            approvedById: userId,
-            approvedVersionPinId: versionPin.id,
-            status: ContentDraftStatus.APPROVED,
-          },
-        }),
+        limit(() =>
+          this.delegate.update({
+            where: { id: draft.id as string },
+            data: {
+              approvedById: userId,
+              approvedVersionPinId: versionPin.id,
+              status: ContentDraftStatus.APPROVED,
+            },
+          }),
+        ),
       ),
     );
 
