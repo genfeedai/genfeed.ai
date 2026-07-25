@@ -1,19 +1,27 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
-import { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
+import type { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
+import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { FileInputType, IngredientStatus } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  FileInputType,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 import * as archiver from 'archiver';
@@ -26,6 +34,19 @@ type ZipArchiveConstructor = new (options: {
 const { ZipArchive } = archiver as typeof archiver & {
   ZipArchive: ZipArchiveConstructor;
 };
+
+export interface TrainingSourceImage {
+  id: string;
+  metadata: {
+    extension?: string;
+  };
+}
+
+interface TrainingOwnerMetadata {
+  brand?: string | null;
+  organization?: string;
+  user?: string;
+}
 
 @Injectable()
 export class TrainingsService extends BaseService<
@@ -41,11 +62,279 @@ export class TrainingsService extends BaseService<
     private readonly configService: ConfigService,
     private readonly filesClientService: FilesClientService,
     private readonly fileQueueService: FileQueueService,
+    private readonly ingredientsService: IngredientsService,
+    private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
     private readonly websocketService: NotificationsPublisherService,
     private readonly memoryMonitorService: MemoryMonitorService,
   ) {
     super(prisma, 'training', logger);
+  }
+
+  /**
+   * Resolve+validate source images, create the training record, and bind the
+   * source images to it via a single bounded bulk update.
+   *
+   * Extracted from `TrainingsController.create` (#2049 follow-up) to keep the
+   * controller thin and the file under the runtime-complexity line budget.
+   */
+  async createTrainingWithSources(
+    createDto: CreateTrainingDto,
+    publicMetadata: TrainingOwnerMetadata,
+  ): Promise<{
+    sourceImages: TrainingSourceImage[];
+    training: TrainingDocument;
+  }> {
+    const sources = createDto.sources || [];
+
+    if (sources.length < 10) {
+      throw new HttpException(
+        {
+          detail: 'At least 10 sources are required for training',
+          title: 'Validation failed',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const sourceIds = sources.map((source) => source);
+
+    const sourceResult = await this.ingredientsService.findAll(
+      {
+        where: {
+          // `_id` expands to `OR: [{ id }, { mongoId }]` in
+          // `processSearchParams`, so a sibling `OR` key on the same object
+          // overwrites it and silently drops the id filter (matching every
+          // image the caller owns). Both predicates are nested under `AND`
+          // so the id restriction and the ownership restriction coexist.
+          AND: [
+            { _id: { in: sourceIds } },
+            {
+              OR: [
+                { user: publicMetadata.user },
+                { organization: publicMetadata.organization },
+              ],
+            },
+          ],
+          category: CategoryPrismaUtil.toIngredientCategory(
+            IngredientCategory.IMAGE,
+          ),
+        },
+      },
+      {
+        pagination: false,
+      },
+    );
+
+    const sourceImages = (
+      (sourceResult.docs as TrainingSourceImage[]) ?? []
+    ).map((image) => ({
+      _id: image.id,
+      id: image.id,
+      metadata: image.metadata ?? {},
+    }));
+
+    if (sourceImages.length < 10) {
+      throw new HttpException(
+        {
+          detail: 'Could not find all specified sources',
+          title: 'Validation failed',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    let resolvedModel: string | undefined = createDto.model;
+    if (!resolvedModel) {
+      try {
+        const defaultTrainer = await this.modelsService.findOne({
+          isDefault: true,
+          key: { contains: `^${MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER}` },
+          provider: 'replicate',
+        });
+        resolvedModel = defaultTrainer?.key;
+      } catch (error: unknown) {
+        this.logger.error('Failed to find default trainer model', error);
+      }
+    }
+
+    const training = await this.create({
+      brandId: publicMetadata.brand ?? null,
+      config: {
+        category: createDto.category || 'subject',
+        model:
+          resolvedModel || this.configService.get('REPLICATE_MODELS_TRAINER'),
+        provider: createDto.provider || 'replicate',
+        seed: createDto.seed ? Number(createDto.seed) : -1,
+        status: IngredientStatus.PROCESSING,
+        steps: createDto.steps ? Number(createDto.steps) : 1000,
+        trigger: createDto.trigger || 'TOK',
+      },
+      description: createDto.description || '',
+      label: createDto.label || 'Custom Model',
+      organizationId: publicMetadata.organization,
+      sources: {
+        connect: sourceImages.map((img) => ({ id: img.id })),
+      },
+      userId: publicMetadata.user,
+    } as unknown as Parameters<TrainingsService['create']>[0]);
+
+    if (!training) {
+      throw new HttpException(
+        {
+          detail: 'Failed to create training',
+          title: 'Failed to create training',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Every source image receives the identical payload, so this collapses to
+    // a single tenant-scoped `updateMany` instead of N concurrent UPDATEs.
+    // `trainingId` is the scalar FK — the legacy `training` relation alias is
+    // not remapped by `normalizeData` and would reach Prisma unresolved.
+    await this.ingredientsService.patchAll(
+      {
+        id: { in: sourceImages.map((img) => img.id) },
+        OR: [
+          { userId: publicMetadata.user },
+          { organizationId: publicMetadata.organization },
+        ],
+      },
+      {
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.SOURCE,
+        ),
+        trainingId: training.id as string,
+      },
+    );
+
+    return { sourceImages, training };
+  }
+
+  /**
+   * Resolve+validate source images for a relaunch, create the new training
+   * record from the existing config, and bind the source images to it via a
+   * single bounded bulk update.
+   *
+   * Extracted from `TrainingsOperationsController.relaunchTraining` (#2049
+   * follow-up) to keep the controller under the runtime-complexity budget.
+   */
+  async relaunchTrainingWithSources(
+    existingTraining: TrainingDocument,
+    publicMetadata: TrainingOwnerMetadata,
+  ): Promise<{
+    sourceImages: TrainingSourceImage[];
+    training: TrainingDocument;
+  }> {
+    const sourceIds = Array.isArray(existingTraining.sources)
+      ? existingTraining.sources
+      : [];
+
+    let sourceImages: TrainingSourceImage[] = [];
+    if (sourceIds.length > 0) {
+      const sourceResult = await this.ingredientsService.findAll(
+        {
+          where: {
+            _id: {
+              in: sourceIds.map((sid: unknown) =>
+                typeof sid === 'string' ? sid : sid,
+              ),
+            },
+            category: CategoryPrismaUtil.toIngredientCategory(
+              IngredientCategory.SOURCE,
+            ),
+            user: publicMetadata.user,
+          },
+        },
+        {
+          pagination: false,
+        },
+        false,
+      );
+
+      sourceImages = ((sourceResult.docs as TrainingSourceImage[]) ?? []).map(
+        (image) => ({
+          _id: image.id,
+          id: image.id,
+          metadata: image.metadata ?? {},
+        }),
+      );
+    }
+
+    if (sourceImages.length < 10) {
+      throw new HttpException(
+        {
+          detail: 'Could not find all source images for relaunching training',
+          title: 'Validation failed',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Training config (category/model/provider/seed/steps/trigger) lives in
+    // the nested `config` JSON column on the Prisma model, not as top-level
+    // fields. Read from there so the relaunch preserves the original setup.
+    const existingConfig = (existingTraining.config ?? {}) as Record<
+      string,
+      unknown
+    >;
+
+    const newTraining = await this.create({
+      brandId: existingTraining.brandId ?? publicMetadata.brand ?? null,
+      config: {
+        category: (existingConfig.category as string | undefined) || 'subject',
+        model:
+          (existingConfig.model as string | undefined) ||
+          this.configService.get('REPLICATE_MODELS_TRAINER'),
+        provider:
+          (existingConfig.provider as string | undefined) || 'replicate',
+        seed:
+          typeof existingConfig.seed === 'number' ? existingConfig.seed : -1,
+        status: IngredientStatus.PROCESSING,
+        steps:
+          typeof existingConfig.steps === 'number'
+            ? existingConfig.steps
+            : 1000,
+        trigger: (existingConfig.trigger as string | undefined) || 'TOK',
+      },
+      description: existingTraining.description || '',
+      label: existingTraining.label || 'Custom Model',
+      organizationId: publicMetadata.organization,
+      sources: {
+        connect: sourceImages.map((img) => ({ id: img.id })),
+      },
+      userId: publicMetadata.user,
+    } as unknown as Parameters<TrainingsService['create']>[0]);
+
+    if (!newTraining) {
+      throw new HttpException(
+        {
+          detail: 'Failed to create new training',
+          title: 'Failed to create new training',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Identical payload for every source image, so this collapses to a single
+    // owner-scoped `updateMany` instead of N concurrent UPDATEs. `trainingId`
+    // is the scalar FK — the legacy `training` relation alias is not remapped
+    // by `normalizeData` and would reach Prisma unresolved.
+    await this.ingredientsService.patchAll(
+      {
+        id: { in: sourceImages.map((img) => img.id) },
+        userId: publicMetadata.user,
+      },
+      {
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.SOURCE,
+        ),
+        trainingId: newTraining.id as string,
+      },
+    );
+
+    return { sourceImages, training: newTraining };
   }
 
   /**

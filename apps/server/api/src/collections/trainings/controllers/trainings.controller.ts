@@ -1,14 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
-import { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
-import { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
-import {
-  Training,
-  type TrainingDocument,
-} from '@api/collections/trainings/schemas/training.schema';
+import type { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
+import type { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
+import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
+import type { TrainingSourceImage } from '@api/collections/trainings/services/trainings.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -19,7 +15,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -31,20 +26,15 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import {
-  ActivitySource,
-  IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/enums';
+import { ActivitySource, IngredientStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { TrainingStage } from '@genfeedai/prisma';
 import { TrainingSerializer } from '@genfeedai/serializers';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -62,13 +52,6 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-interface TrainingSourceImage {
-  id: string;
-  metadata: {
-    extension?: string;
-  };
-}
-
 @AutoSwagger()
 @ApiTags('trainings')
 @ApiBearerAuth()
@@ -82,12 +65,8 @@ export class TrainingsController extends BaseCRUDController<
   TrainingsQueryDto
 > {
   constructor(
-    private readonly configService: ConfigService,
-
     public readonly trainingsService: TrainingsService,
     public readonly loggerService: LoggerService,
-    private readonly ingredientsService: IngredientsService,
-    private readonly modelsService: ModelsService,
     private readonly websocketService: NotificationsPublisherService,
   ) {
     super(loggerService, trainingsService, TrainingSerializer, 'Training');
@@ -282,132 +261,11 @@ export class TrainingsController extends BaseCRUDController<
     try {
       const publicMetadata = getPublicMetadata(user);
 
-      const sources = createDto.sources || [];
-
-      if (sources.length < 10) {
-        throw new HttpException(
-          {
-            detail: 'At least 10 sources are required for training',
-            title: 'Validation failed',
-          },
-          HttpStatus.BAD_REQUEST,
+      const { sourceImages, training } =
+        await this.trainingsService.createTrainingWithSources(
+          createDto,
+          publicMetadata,
         );
-      }
-
-      const sourceIds = sources.map((source) => source);
-
-      const sourceResult = await this.ingredientsService.findAll(
-        {
-          where: {
-            // `_id` expands to `OR: [{ id }, { mongoId }]` in
-            // `processSearchParams`, so a sibling `OR` key on the same object
-            // overwrites it and silently drops the id filter (matching every
-            // image the caller owns). Both predicates are nested under `AND`
-            // so the id restriction and the ownership restriction coexist.
-            AND: [
-              { _id: { in: sourceIds } },
-              {
-                OR: [
-                  { user: publicMetadata.user },
-                  { organization: publicMetadata.organization },
-                ],
-              },
-            ],
-            category: CategoryPrismaUtil.toIngredientCategory(
-              IngredientCategory.IMAGE,
-            ),
-          },
-        },
-        {
-          pagination: false,
-        },
-      );
-
-      const sourceImages = (
-        (sourceResult.docs as TrainingSourceImage[]) ?? []
-      ).map((image) => ({
-        _id: image.id,
-        id: image.id,
-        metadata: image.metadata ?? {},
-      }));
-
-      if (sourceImages.length < 10) {
-        throw new HttpException(
-          {
-            detail: 'Could not find all specified sources',
-            title: 'Validation failed',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      let resolvedModel: string | undefined = createDto.model;
-      if (!resolvedModel) {
-        try {
-          const defaultTrainer = await this.modelsService.findOne({
-            isDefault: true,
-            key: { contains: `^${MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER}` },
-            provider: 'replicate',
-          });
-          resolvedModel = defaultTrainer?.key;
-        } catch (error: unknown) {
-          this.loggerService.error(
-            'Failed to find default trainer model',
-            error,
-          );
-        }
-      }
-
-      const training = await this.trainingsService.create({
-        brandId: publicMetadata.brand ?? null,
-        config: {
-          category: createDto.category || 'subject',
-          model:
-            resolvedModel || this.configService.get('REPLICATE_MODELS_TRAINER'),
-          provider: createDto.provider || 'replicate',
-          seed: createDto.seed ? Number(createDto.seed) : -1,
-          status: IngredientStatus.PROCESSING,
-          steps: createDto.steps ? Number(createDto.steps) : 1000,
-          trigger: createDto.trigger || 'TOK',
-        },
-        description: createDto.description || '',
-        label: createDto.label || 'Custom Model',
-        organizationId: publicMetadata.organization,
-        sources: {
-          connect: sourceImages.map((img) => ({ id: img.id })),
-        },
-        userId: publicMetadata.user,
-      } as unknown as Parameters<TrainingsService['create']>[0]);
-
-      if (!training) {
-        throw new HttpException(
-          {
-            detail: 'Failed to create training',
-            title: 'Failed to create training',
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Every source image receives the identical payload, so this collapses to
-      // a single tenant-scoped `updateMany` instead of N concurrent UPDATEs.
-      // `trainingId` is the scalar FK — the legacy `training` relation alias is
-      // not remapped by `normalizeData` and would reach Prisma unresolved.
-      await this.ingredientsService.patchAll(
-        {
-          id: { in: sourceImages.map((img) => img.id) },
-          OR: [
-            { userId: publicMetadata.user },
-            { organizationId: publicMetadata.organization },
-          ],
-        },
-        {
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.SOURCE,
-          ),
-          trainingId: training.id as string,
-        },
-      );
 
       // Return training immediately to avoid timeout
       const response = serializeSingle(request, TrainingSerializer, training);

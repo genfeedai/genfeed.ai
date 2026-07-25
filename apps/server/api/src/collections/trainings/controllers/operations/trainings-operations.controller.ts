@@ -10,7 +10,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ImagesQueryDto } from '@api/collections/images/dto/images-query.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
+import type { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
+import type { TrainingSourceImage } from '@api/collections/trainings/services/trainings.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -35,7 +36,6 @@ import {
   IngredientSerializer,
   TrainingSerializer,
 } from '@genfeedai/serializers';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Controller,
@@ -49,13 +49,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-interface TrainingSourceImage {
-  id: string;
-  metadata: {
-    extension?: string;
-  };
-}
 
 /**
  * Training stages that represent active/in-flight work. Relaunch is blocked
@@ -73,7 +66,6 @@ const IN_PROGRESS_TRAINING_STAGES: readonly TrainingStage[] = [
 @UseGuards(RolesGuard)
 export class TrainingsOperationsController {
   constructor(
-    private readonly configService: ConfigService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
@@ -121,113 +113,11 @@ export class TrainingsOperationsController {
         );
       }
 
-      const sourceIds = Array.isArray(existingTraining.sources)
-        ? existingTraining.sources
-        : [];
-
-      let sourceImages: TrainingSourceImage[] = [];
-      if (sourceIds.length > 0) {
-        const sourceResult = await this.ingredientsService.findAll(
-          {
-            where: {
-              _id: {
-                in: sourceIds.map((sid: unknown) =>
-                  typeof sid === 'string' ? sid : sid,
-                ),
-              },
-              category: CategoryPrismaUtil.toIngredientCategory(
-                IngredientCategory.SOURCE,
-              ),
-              user: publicMetadata.user,
-            },
-          },
-          {
-            pagination: false,
-          },
-          false,
+      const { sourceImages, training: newTraining } =
+        await this.trainingsService.relaunchTrainingWithSources(
+          existingTraining,
+          publicMetadata,
         );
-
-        sourceImages = ((sourceResult.docs as TrainingSourceImage[]) ?? []).map(
-          (image) => ({
-            _id: image.id,
-            id: image.id,
-            metadata: image.metadata ?? {},
-          }),
-        );
-      }
-
-      if (sourceImages.length < 10) {
-        throw new HttpException(
-          {
-            detail: 'Could not find all source images for relaunching training',
-            title: 'Validation failed',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Training config (category/model/provider/seed/steps/trigger) lives in
-      // the nested `config` JSON column on the Prisma model, not as top-level
-      // fields. Read from there so the relaunch preserves the original setup.
-      const existingConfig = (existingTraining.config ?? {}) as Record<
-        string,
-        unknown
-      >;
-
-      const newTraining = await this.trainingsService.create({
-        brandId: existingTraining.brandId ?? publicMetadata.brand ?? null,
-        config: {
-          category:
-            (existingConfig.category as string | undefined) || 'subject',
-          model:
-            (existingConfig.model as string | undefined) ||
-            this.configService.get('REPLICATE_MODELS_TRAINER'),
-          provider:
-            (existingConfig.provider as string | undefined) || 'replicate',
-          seed:
-            typeof existingConfig.seed === 'number' ? existingConfig.seed : -1,
-          status: IngredientStatus.PROCESSING,
-          steps:
-            typeof existingConfig.steps === 'number'
-              ? existingConfig.steps
-              : 1000,
-          trigger: (existingConfig.trigger as string | undefined) || 'TOK',
-        },
-        description: existingTraining.description || '',
-        label: existingTraining.label || 'Custom Model',
-        organizationId: publicMetadata.organization,
-        sources: {
-          connect: sourceImages.map((img) => ({ id: img.id })),
-        },
-        userId: publicMetadata.user,
-      } as unknown as Parameters<TrainingsService['create']>[0]);
-
-      if (!newTraining) {
-        throw new HttpException(
-          {
-            detail: 'Failed to create new training',
-            title: 'Failed to create new training',
-          },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
-
-      // Identical payload for every source image, so this collapses to a single
-      // owner-scoped `updateMany` instead of N concurrent UPDATEs. `trainingId`
-      // is the scalar FK — the legacy `training` relation alias is not remapped
-      // by `normalizeData` and would reach Prisma unresolved.
-      await this.ingredientsService.patchAll(
-        {
-          id: { in: sourceImages.map((img) => img.id) },
-          userId: publicMetadata.user,
-        },
-        {
-          category: CategoryPrismaUtil.toIngredientCategory(
-            IngredientCategory.SOURCE,
-          ),
-          trainingId: newTraining.id as string,
-        },
-      );
 
       return this.processAndLaunchTraining(
         request,

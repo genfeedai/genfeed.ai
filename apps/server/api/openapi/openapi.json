@@ -848,7 +848,19 @@
         "type": "object"
       },
       "BulkApproveContentDraftsDto": {
-        "properties": {},
+        "properties": {
+          "ids": {
+            "description": "Content draft ids to approve",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
         "type": "object"
       },
       "BulkEc2Action": {
@@ -4944,6 +4956,7 @@
             "items": {
               "type": "string"
             },
+            "maxItems": 50,
             "type": "array"
           },
           "status": {
