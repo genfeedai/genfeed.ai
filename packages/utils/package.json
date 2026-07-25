@@ -5,10 +5,12 @@
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/props": "workspace:*",
-    "@genfeedai/services": "workspace:*"
+    "@genfeedai/services": "workspace:*",
+    "sanitize-html": "2.17.6"
   },
   "description": "Shared framework-agnostic utility functions for Genfeed applications",
   "devDependencies": {
+    "@types/sanitize-html": "2.16.1",
     "vitest": "4.1.10"
   },
   "exports": {

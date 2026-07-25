@@ -1,153 +1,200 @@
-const BLOCKED_CONTENT_TAGS = [
-  'base',
+import sanitize from 'sanitize-html';
+
+/**
+ * Elements that survive sanitization.
+ *
+ * This is an allowlist by design. The previous implementation denied a fixed
+ * list of twelve elements with regular expressions, which meant every element
+ * nobody had thought of — `<form>`, `<input>`, `<button>`, `<marquee>` — was
+ * permitted by default, and any markup the regexes tokenized differently from
+ * a browser (`<scr<script>ipt>`, a `>` inside a quoted attribute value, an
+ * unterminated tag) escaped the filter entirely.
+ */
+const ALLOWED_TAGS = [
+  'a',
+  'abbr',
+  'address',
+  'article',
+  'aside',
+  'audio',
+  'b',
+  'blockquote',
+  'br',
+  'caption',
+  'code',
+  'col',
+  'colgroup',
+  'data',
+  'dd',
+  'del',
+  'details',
+  'dfn',
+  'div',
+  'dl',
+  'dt',
+  'em',
+  'figcaption',
+  'figure',
+  'footer',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'header',
+  'hgroup',
+  'hr',
+  'i',
+  'img',
+  'ins',
+  'kbd',
+  'li',
+  'main',
+  'mark',
+  'nav',
+  'ol',
+  'p',
+  'picture',
+  'pre',
+  'q',
+  'rp',
+  'rt',
+  'ruby',
+  's',
+  'samp',
+  'section',
+  'small',
+  'source',
+  'span',
+  'strong',
+  'sub',
+  'summary',
+  'sup',
+  'table',
+  'tbody',
+  'td',
+  'tfoot',
+  'th',
+  'thead',
+  'time',
+  'tr',
+  'track',
+  'u',
+  'ul',
+  'var',
+  'video',
+  'wbr',
+];
+
+/**
+ * Attributes that survive sanitization, per element.
+ *
+ * Anything absent is dropped, so `on*` handlers, `style`, `srcdoc`,
+ * `formaction` and every future attribute are removed without needing to be
+ * enumerated. `id` is retained because article content relies on it for
+ * in-page heading anchors.
+ */
+const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
+  '*': ['class', 'dir', 'id', 'lang', 'title'],
+  a: ['href', 'rel', 'target'],
+  audio: ['controls', 'loop', 'muted', 'preload', 'src'],
+  blockquote: ['cite'],
+  col: ['span'],
+  colgroup: ['span'],
+  del: ['cite', 'datetime'],
+  img: ['alt', 'height', 'loading', 'sizes', 'src', 'srcset', 'width'],
+  ins: ['cite', 'datetime'],
+  li: ['value'],
+  ol: ['reversed', 'start', 'type'],
+  q: ['cite'],
+  source: ['media', 'sizes', 'src', 'srcset', 'type'],
+  td: ['colspan', 'headers', 'rowspan'],
+  th: ['abbr', 'colspan', 'headers', 'rowspan', 'scope'],
+  time: ['datetime'],
+  track: ['default', 'kind', 'label', 'src', 'srclang'],
+  video: [
+    'controls',
+    'height',
+    'loop',
+    'muted',
+    'playsinline',
+    'poster',
+    'preload',
+    'src',
+    'width',
+  ],
+};
+
+/**
+ * URL schemes permitted in navigational and resource attributes. `javascript:`,
+ * `vbscript:` and `data:` are excluded, and the check runs after the parser has
+ * decoded entities, so `jav&#x09;ascript:` and `&#106;avascript:` are rejected
+ * too.
+ */
+const ALLOWED_SCHEMES = ['http', 'https', 'mailto', 'tel'];
+
+/**
+ * Attributes the scheme allowlist is enforced on. `srcset` is deliberately
+ * absent: the sanitizer parses it and checks each candidate URL individually,
+ * so listing it here would run the check against the whole comma-separated
+ * string and reject valid values.
+ */
+const SCHEME_ATTRIBUTES = ['cite', 'href', 'poster', 'src'];
+
+/**
+ * Elements whose text content is discarded along with the element, rather than
+ * being unwrapped into the output. Unwrapping `<script>alert(1)</script>` is
+ * safe but leaves `alert(1)` as visible prose; for these elements the content
+ * is never meant to be read as text.
+ */
+const NON_TEXT_TAGS = [
   'embed',
   'iframe',
-  'link',
   'math',
-  'meta',
+  'noscript',
   'object',
+  'option',
   'script',
   'style',
   'svg',
   'template',
-] as const;
+  'textarea',
+  'title',
+];
 
-const BLOCKED_CONTENT_TAG_PATTERN = new RegExp(
-  `<\\s*(${BLOCKED_CONTENT_TAGS.join('|')})\\b[^>]*>[\\s\\S]*?<\\s*\\/\\s*\\1\\s*>`,
-  'gi',
-);
-const BLOCKED_TAG_PATTERN = new RegExp(
-  `<\\/?\\s*(?:${BLOCKED_CONTENT_TAGS.join('|')})\\b[^>]*>`,
-  'gi',
-);
-const HTML_COMMENT_PATTERN = /<!--[\s\S]*?-->/g;
-const ATTRIBUTE_PATTERN =
-  /\s+([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*("[^"]*"|'[^']*'|[^\s"'=<>`]+)/g;
-
-const BLOCKED_ATTRIBUTES = new Set(['srcdoc', 'style']);
-const URL_ATTRIBUTES = new Set([
-  'action',
-  'formaction',
-  'href',
-  'poster',
-  'src',
-  'srcset',
-  'xlink:href',
-]);
-
-function decodeHtmlControlEntities(value: string): string {
-  return value
-    .replace(/&colon;?/gi, ':')
-    .replace(/&newline;?|&tab;?/gi, '')
-    .replace(/&#(x[0-9a-f]+|\d+);?/gi, (match, code: string) => {
-      const isHex = code.toLowerCase().startsWith('x');
-      const rawCodePoint = isHex ? code.slice(1) : code;
-      const codePoint = Number.parseInt(rawCodePoint, isHex ? 16 : 10);
-
-      if (!Number.isFinite(codePoint)) {
-        return match;
+const SANITIZE_OPTIONS: sanitize.IOptions = {
+  allowedAttributes: ALLOWED_ATTRIBUTES,
+  allowedSchemes: ALLOWED_SCHEMES,
+  allowedSchemesAppliedToAttributes: SCHEME_ATTRIBUTES,
+  allowedTags: ALLOWED_TAGS,
+  disallowedTagsMode: 'discard',
+  nonTextTags: NON_TEXT_TAGS,
+  transformTags: {
+    // A link that opens a new browsing context hands the opener a `window`
+    // reference back to the destination unless it is severed explicitly.
+    a: (tagName, attribs) => {
+      if (!attribs.target) {
+        return { attribs, tagName };
       }
-
-      try {
-        return String.fromCodePoint(codePoint);
-      } catch {
-        return match;
-      }
-    });
-}
-
-function unquoteAttributeValue(value: string): string {
-  const trimmed = value.trim();
-  const quote = trimmed[0];
-
-  if ((quote === '"' || quote === "'") && trimmed.at(-1) === quote) {
-    return trimmed.slice(1, -1);
-  }
-
-  return trimmed;
-}
-
-function stripUrlSpacing(value: string): string {
-  let normalized = '';
-
-  for (const char of value) {
-    const codePoint = char.codePointAt(0) ?? 0;
-
-    if (
-      codePoint <= 0x20 ||
-      (codePoint >= 0x7f && codePoint <= 0x9f) ||
-      char.trim() === ''
-    ) {
-      continue;
-    }
-
-    normalized += char;
-  }
-
-  return normalized;
-}
-
-function isUnsafeUrlValue(value: string): boolean {
-  const normalized = stripUrlSpacing(
-    decodeHtmlControlEntities(unquoteAttributeValue(value)),
-  ).toLowerCase();
-
-  return (
-    normalized.startsWith('javascript:') ||
-    normalized.startsWith('vbscript:') ||
-    normalized.startsWith('data:')
-  );
-}
-
-function isUnsafeSrcsetValue(value: string): boolean {
-  const candidates = unquoteAttributeValue(value)
-    .split(',')
-    .map((candidate) => candidate.trim())
-    .filter(Boolean);
-
-  return candidates.some((candidate) => {
-    const [url] = candidate.split(/\s+/, 1);
-    return Boolean(url) && isUnsafeUrlValue(url);
-  });
-}
-
-function stripUnsafeAttributes(html: string): string {
-  return html.replace(
-    ATTRIBUTE_PATTERN,
-    (match, rawName: string, rawValue: string) => {
-      const name = rawName.toLowerCase();
-
-      if (name.startsWith('on') || BLOCKED_ATTRIBUTES.has(name)) {
-        return '';
-      }
-
-      if (name === 'srcset' && isUnsafeSrcsetValue(rawValue)) {
-        return '';
-      }
-
-      if (URL_ATTRIBUTES.has(name) && isUnsafeUrlValue(rawValue)) {
-        return '';
-      }
-
-      return match;
+      return { attribs: { ...attribs, rel: 'noopener noreferrer' }, tagName };
     },
-  );
-}
+  },
+};
 
 /**
  * Sanitize HTML without loading browser emulation in server-rendered routes.
+ *
+ * Backed by a real HTML tokenizer (`htmlparser2`), so the input is parsed the
+ * way a browser parses it and then re-serialized from the resulting tree.
+ * Malformed, nested or entity-obfuscated markup cannot slip past by being
+ * shaped differently from what a pattern expected.
  */
 export function sanitizeHtml(html: string): string {
   if (!html) {
     return '';
   }
-
-  return stripUnsafeAttributes(
-    html
-      .replace(HTML_COMMENT_PATTERN, '')
-      .replace(BLOCKED_CONTENT_TAG_PATTERN, '')
-      .replace(BLOCKED_TAG_PATTERN, ''),
-  );
+  return sanitize(html, SANITIZE_OPTIONS);
 }
 
 /**

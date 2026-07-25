@@ -1,9 +1,15 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { HtmlContentProps } from '@genfeedai/props/ui/display/html-content.props';
+import { sanitizeHtml } from '@genfeedai/utils/sanitize-html';
 import parse from 'html-react-parser';
 
 /**
  * HtmlContent - Display HTML content safely using html-react-parser
+ *
+ * `parse()` turns markup into live React elements, so the content is sanitized
+ * here rather than at each call site. Every caller passes stored, user- or
+ * model-authored content (`post.description`, article drafts), which means an
+ * unsanitized parse renders whatever was written into the record.
  *
  * @example
  * ```tsx
@@ -19,7 +25,7 @@ export default function HtmlContent({ content, className }: HtmlContentProps) {
 
   return (
     <div className={cn('prose prose-sm max-w-none', className)}>
-      {parse(content)}
+      {parse(sanitizeHtml(content))}
     </div>
   );
 }
