@@ -37519,53 +37519,6 @@
             "schema": {
               "type": "boolean"
             }
-          },
-          {
-            "description": "Filter posts scheduled after this date (ISO 8601 format)",
-            "in": "query",
-            "name": "startDate",
-            "required": false,
-            "schema": {
-              "example": "2024-01-01T00:00:00.000Z",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts scheduled before this date (ISO 8601 format)",
-            "in": "query",
-            "name": "endDate",
-            "required": false,
-            "schema": {
-              "example": "2024-01-31T23:59:59.999Z",
-              "type": "string"
-            }
-          },
-          {
-            "description": "Filter posts by platform",
-            "in": "query",
-            "name": "platform",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/CredentialPlatform"
-            }
-          },
-          {
-            "description": "Filter posts by status",
-            "in": "query",
-            "name": "status",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/PostStatus"
-            }
-          },
-          {
-            "description": "Filter posts by credential ID",
-            "in": "query",
-            "name": "credential",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
