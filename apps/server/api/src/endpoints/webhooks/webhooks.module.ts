@@ -37,6 +37,7 @@ import { LeonardoaiWebhookController } from '@api/endpoints/webhooks/leonardoai/
 import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/webhooks.leonardoai.service';
 import { OpusProWebhookController } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.controller';
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
+import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
 import { ReplicateWebhookController } from '@api/endpoints/webhooks/replicate/webhooks.replicate.controller';
 import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
@@ -120,6 +121,7 @@ import { forwardRef, Module } from '@nestjs/common';
     MetadataLookupService,
     OpusProWebhookService,
     PostProcessingOrchestratorService,
+    ReplicateGenerationWebhookHandler,
     ReplicateWebhookService,
     VercelWebhookService,
     WebhooksService,
