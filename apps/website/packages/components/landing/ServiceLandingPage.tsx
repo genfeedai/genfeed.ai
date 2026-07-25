@@ -59,7 +59,7 @@ export default function ServiceLandingPage({
 
               <div className="flex flex-wrap items-center gap-3 text-sm text-surface/65">
                 <span className="border border-edge/10 px-3 py-2 text-surface/70">
-                  {config.priceLabel ?? 'Custom — scoped on a call'}
+                  {config.priceLabel ?? 'Custom, scoped on a call'}
                 </span>
                 {config.priceNote ? (
                   <span className="border border-edge/10 px-3 py-2">
