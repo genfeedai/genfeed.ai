@@ -18,6 +18,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   BaseService,
   type PrismaFindAllInput,
@@ -45,42 +46,8 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-type AggregatePaginateResult<T> = {
-  docs: T[];
-  totalDocs: number;
-  limit: number;
-  page?: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-  [key: string]: unknown;
-};
-
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-
-/**
- * Resolve a tenancy pointer to its string id.
- *
- * Rows are Prisma-shaped, so the scalar FK (`organizationId` / `brandId`) is
- * the value that actually exists at runtime. The Mongo-era alias
- * (`organization` / `brand`) is only defined when a controller populates it,
- * in which case it arrives as a relation object.
- */
-function resolveScopeId(value: unknown): string | null {
-  if (typeof value === 'string') {
-    return value || null;
-  }
-
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const record = value as { _id?: unknown; id?: unknown };
-  const candidate = record.id ?? record._id;
-
-  return typeof candidate === 'string' && candidate ? candidate : null;
-}
+import type { AggregatePaginateResult } from './base-crud.types';
+import { resolveScopeId } from './base-crud-scope.util';
 
 @AutoSwagger()
 export abstract class BaseCRUDController<

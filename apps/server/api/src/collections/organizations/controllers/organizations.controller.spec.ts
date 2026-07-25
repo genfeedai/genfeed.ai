@@ -8,19 +8,14 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 });
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { TagsService } from '@api/collections/tags/services/tags.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { VideosService } from '@api/collections/videos/services/videos.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -86,10 +81,6 @@ describe('OrganizationsController', () => {
     ensureDefaultBundle: vi.fn(),
   };
 
-  const mockIngredientsService = {
-    findAll: vi.fn(),
-  };
-
   const mockInvalidatingCache = {
     invalidateForUser: vi.fn().mockResolvedValue(undefined),
   };
@@ -129,13 +120,6 @@ describe('OrganizationsController', () => {
     });
     mockMembersService.create.mockResolvedValue({ id: 'member_new' });
     mockMembersService.setLastUsedBrand.mockResolvedValue(undefined);
-    mockIngredientsService.findAll.mockResolvedValue({
-      docs: [],
-      limit: 10,
-      page: 1,
-      pages: 0,
-      total: 0,
-    });
     mockRolesService.findOne.mockResolvedValue({ id: 'role_admin' });
     mockUsersService.findOne.mockResolvedValue({ id: 'user_1' });
     mockUsersService.patch.mockResolvedValue({ id: 'user_1' });
@@ -145,17 +129,12 @@ describe('OrganizationsController', () => {
       providers: [
         { provide: LoggerService, useValue: mockLoggerService },
         { provide: BrandsService, useValue: mockBrandsService },
-        { provide: ActivitiesService, useValue: {} },
         { provide: MembersService, useValue: mockMembersService },
         { provide: OrganizationsService, useValue: mockOrganizationsService },
         {
           provide: DefaultRecurringContentService,
           useValue: mockDefaultRecurringContentService,
         },
-        { provide: PostsService, useValue: {} },
-        { provide: TagsService, useValue: {} },
-        { provide: VideosService, useValue: {} },
-        { provide: IngredientsService, useValue: mockIngredientsService },
         { provide: UsersService, useValue: mockUsersService },
         { provide: RolesService, useValue: mockRolesService },
         {
@@ -178,45 +157,6 @@ describe('OrganizationsController', () => {
     }).compile();
 
     controller = module.get<OrganizationsController>(OrganizationsController);
-  });
-
-  describe('findAllIngredients', () => {
-    it('allows an organization owner without a membership row', async () => {
-      mockMembersService.findOne.mockResolvedValue(null);
-      mockOrganizationsService.findOne.mockResolvedValue({
-        id: 'org_active',
-        userId: 'user_1',
-      });
-
-      await controller.findAllIngredients(
-        {
-          originalUrl: '/v1/organizations/org_active/ingredients',
-        } as never,
-        'org_active',
-        currentUser,
-        {} as never,
-      );
-
-      expect(mockMembersService.findOne).toHaveBeenCalledWith({
-        isActive: true,
-        isDeleted: false,
-        organization: 'org_active',
-        user: 'user_1',
-      });
-      expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
-        _id: 'org_active',
-        user: 'user_1',
-      });
-      expect(mockIngredientsService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            isDeleted: false,
-            organization: 'org_active',
-          }),
-        }),
-        expect.objectContaining({ limit: 10, page: 1 }),
-      );
-    });
   });
 
   describe('findMine', () => {

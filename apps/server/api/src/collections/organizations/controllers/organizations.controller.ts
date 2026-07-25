@@ -1,28 +1,16 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
-import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
-import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { DEFAULT_FREE_SEATS } from '@api/collections/organization-settings/utils/seat-policy.util';
-import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
+import type { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
-import { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
+import type { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
-import { PostsService } from '@api/collections/posts/services/posts.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { type TagDocument } from '@api/collections/tags/schemas/tag.schema';
-import { TagsService } from '@api/collections/tags/services/tags.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
-import { VideosService } from '@api/collections/videos/services/videos.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -30,7 +18,6 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { PlanLimitExceededException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -39,8 +26,6 @@ import {
   getPublicMetadata,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
-import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -48,28 +33,16 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { isCloudDeployment } from '@genfeedai/config';
-import type {
-  JsonApiCollectionResponse,
-  SortObject,
-} from '@genfeedai/interfaces';
+import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import {
   getOrganizationLimitForTier,
   getUpgradeTierForLimit,
 } from '@genfeedai/pricing';
-import {
-  ActivitySerializer,
-  BrandSerializer,
-  IngredientSerializer,
-  OrganizationSerializer,
-  PostSerializer,
-  TagSerializer,
-  VideoSerializer,
-} from '@genfeedai/serializers';
+import { OrganizationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -99,14 +72,9 @@ export class OrganizationsController extends BaseCRUDController<
   constructor(
     public readonly loggerService: LoggerService,
     private readonly brandsService: BrandsService,
-    private readonly activitiesService: ActivitiesService,
     private readonly membersService: MembersService,
     private readonly organizationsService: OrganizationsService,
     private readonly defaultRecurringContentService: DefaultRecurringContentService,
-    private readonly postsService: PostsService,
-    private readonly tagsService: TagsService,
-    private readonly videosService: VideosService,
-    private readonly ingredientsService: IngredientsService,
     private readonly usersService: UsersService,
     private readonly rolesService: RolesService,
     private readonly organizationSettingsService: OrganizationSettingsService,
@@ -124,43 +92,11 @@ export class OrganizationsController extends BaseCRUDController<
   }
 
   /**
-   * Verify user has access to organization (owner, member, or superadmin)
-   * Throws HttpException if access is denied
-   */
-  private async verifyOrganizationAccess(
-    organizationId: string,
-    userId: string,
-    isSuperAdmin: boolean,
-  ): Promise<void> {
-    const [member, isOwner] = await Promise.all([
-      this.membersService.findOne({
-        isActive: true,
-        isDeleted: false,
-        organization: organizationId,
-        user: userId,
-      }),
-      this.organizationsService.findOne({
-        _id: organizationId,
-        user: userId,
-      }),
-    ]);
-
-    if (!isOwner && !member && !isSuperAdmin) {
-      throw new HttpException(
-        {
-          detail: 'Access denied to this organization',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-  }
-
-  /**
    * Organization rows carry no `organizationId`/`brandId` pointer, so the base
    * containment default would fail open on GET /organizations/:id. Scope the
    * read to the active org, ownership, or an active membership instead — the
-   * same access rule verifyOrganizationAccess applies to the sub-resources.
+   * same access rule applies to the sub-resources (see
+   * OrganizationsRelationshipsController.verifyOrganizationAccess).
    */
   public override async canUserReadEntity(
     user: User,
@@ -235,239 +171,11 @@ export class OrganizationsController extends BaseCRUDController<
     return serializeCollection(request, OrganizationSerializer, data);
   }
 
-  @Get(':organizationId/brands')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllBrands(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: OrganizationQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const publicMetadata = getPublicMetadata(user);
-    const data: AggregatePaginateResult<BrandDocument> =
-      await this.brandsService.findAll(
-        {
-          include: { credentials: true },
-          orderBy: handleQuerySort(query.sort),
-          where: {
-            OR: [
-              { user: publicMetadata.user },
-              { organization: organizationId },
-            ],
-            isDeleted,
-          },
-        },
-        options,
-      );
-    return serializeCollection(request, BrandSerializer, data);
-  }
-
-  @Get(':organizationId/ingredients')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllIngredients(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: IngredientsQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
-    await this.verifyOrganizationAccess(
-      organizationId,
-      publicMetadata.user,
-      getIsSuperAdmin(user, request),
-    );
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const statusFilter = CollectionFilterUtil.buildStatusFilter(query.status);
-    const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parent,
-    );
-
-    const where = {
-      ...(Object.keys(parentConditions).length > 0 ? parentConditions : {}),
-      isDeleted,
-      organization: organizationId,
-      ...statusFilter,
-      ...(query.search && {
-        OR: [
-          { label: { contains: query.search, mode: 'insensitive' } },
-          { description: { contains: query.search, mode: 'insensitive' } },
-        ],
-      }),
-      ...(query.category && { category: query.category }),
-      ...(query.brand &&
-        isEntityId(query.brand) && {
-          brand: query.brand,
-        }),
-    };
-
-    const data: AggregatePaginateResult<IngredientDocument> =
-      await this.ingredientsService.findAll(
-        {
-          include: { metadata: true },
-          orderBy: handleQuerySort(query.sort),
-          where,
-        },
-        options,
-      );
-    return serializeCollection(request, IngredientSerializer, data);
-  }
-
-  @Get(':organizationId/videos')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllVideos(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: VideosQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const data: AggregatePaginateResult<IngredientDocument> =
-      await this.videosService.findAll(
-        {
-          orderBy: handleQuerySort(query.sort),
-          where: {
-            isDeleted,
-            organization: organizationId,
-            user: publicMetadata.user,
-          },
-        },
-        options,
-      );
-    return serializeCollection(request, VideoSerializer, data);
-  }
-
-  @Get(':organizationId/tags')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllTags(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-    const publicMetadata = getPublicMetadata(user);
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-
-    const data: AggregatePaginateResult<TagDocument> =
-      await this.tagsService.findAll(
-        {
-          orderBy: handleQuerySort(query.sort),
-          where: {
-            OR: [
-              { organizationId: null, userId: null },
-              { organization: organizationId },
-              { user: publicMetadata.user },
-            ],
-            isDeleted,
-          },
-        },
-        options,
-      );
-    return serializeCollection(request, TagSerializer, data);
-  }
-
-  @Get(':organizationId/posts')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllPosts(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    await this.verifyOrganizationAccess(
-      organizationId,
-      publicMetadata.user,
-      getIsSuperAdmin(user, request),
-    );
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const data: AggregatePaginateResult<PostDocument> =
-      await this.postsService.findAll(
-        {
-          include: {
-            credential: true,
-            ingredients: true,
-            postAnalytics: true,
-          },
-          orderBy: handleQuerySort(query.sort),
-          where: {
-            isDeleted,
-            organization: organizationId,
-          },
-        },
-        options,
-      );
-    return serializeCollection(request, PostSerializer, data);
-  }
-
-  @Get(':organizationId/activities')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAllActivities(
-    @Req() request: Request,
-    @Param('organizationId') organizationId: string,
-    @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
-  ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    await this.verifyOrganizationAccess(
-      organizationId,
-      publicMetadata.user,
-      getIsSuperAdmin(user, request),
-    );
-
-    const options = {
-      customLabels,
-      ...QueryDefaultsUtil.getPaginationDefaults(query),
-    };
-
-    const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const data: AggregatePaginateResult<ActivityDocument> =
-      await this.activitiesService.findAll(
-        {
-          orderBy: query.sort
-            ? handleQuerySort(query.sort)
-            : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
-          where: {
-            isDeleted,
-            organization: organizationId,
-          },
-        },
-        options,
-      );
-    return serializeCollection(request, ActivitySerializer, data);
-  }
-
-  // Analytics route moved to organizations-relationships.controller.ts
-  // Use GET /organizations/:organizationId/analytics with query parameters (startDate, endDate, brandId)
+  // Sub-resource collection routes (brands, ingredients, videos, tags, posts,
+  // activities, analytics) moved to organizations-relationships.controller.ts
+  // to keep this controller under the runtime-complexity line cap. See
+  // OrganizationsRelationshipsController for GET
+  // /organizations/:organizationId/{brands,ingredients,videos,tags,posts,activities,analytics}.
 
   /**
    * GET /organizations/mine
