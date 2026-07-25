@@ -1,13 +1,13 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import type { SecurityErrorFactory } from '@genfeedai/storage';
+import type { SecurityErrorFactory } from '@genfeedai/storage/path-containment';
 
 export {
   assertSafeSegment,
   resolveContainedPath,
   SAFE_SEGMENT_PATTERN,
   type SecurityErrorFactory,
-} from '@genfeedai/storage';
+} from '@genfeedai/storage/path-containment';
 
 /**
  * Shared, framework-agnostic path-traversal and command-injection sanitization.

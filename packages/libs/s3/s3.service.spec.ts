@@ -16,14 +16,10 @@ const mockProvider = {
 
 const mockCreateStorageProvider = vi.fn().mockReturnValue(mockProvider);
 
-vi.mock('@genfeedai/storage', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/storage')>();
-  return {
-    ...actual,
-    createStorageProvider: (options?: Record<string, unknown>) =>
-      mockCreateStorageProvider(options),
-  };
-});
+vi.mock('@genfeedai/storage', () => ({
+  createStorageProvider: (options?: Record<string, unknown>) =>
+    mockCreateStorageProvider(options),
+}));
 
 vi.mock('node:fs/promises', () => ({
   stat: vi.fn().mockResolvedValue({ size: 9 }),

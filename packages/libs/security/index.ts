@@ -3,7 +3,7 @@ export {
   assertSafeObjectKey,
   assertSafeObjectKeyPrefix,
   resolveContainedObjectKey,
-} from '@genfeedai/storage';
+} from '@genfeedai/storage/path-containment';
 export {
   assertBoundedInteger,
   assertBoundedNumber,
