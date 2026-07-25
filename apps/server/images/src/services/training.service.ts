@@ -15,6 +15,13 @@ import { LoggerService } from '@libs/logger/logger.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { RedisService } from '@libs/redis/redis.service';
 import { S3Service } from '@libs/s3/s3.service';
+import {
+  assertBoundedInteger,
+  assertBoundedNumber,
+  assertSafeArgValue,
+  assertSafeSegment,
+  resolveContainedPath,
+} from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -27,6 +34,15 @@ import {
 const DEFAULT_LORA_RANK = 16;
 const DEFAULT_STEPS = 1500;
 const DEFAULT_LEARNING_RATE = 1e-4;
+
+const LORA_RANK_BOUNDS = { max: 256, min: 1 };
+const STEPS_BOUNDS = { max: 100_000, min: 1 };
+const LEARNING_RATE_BOUNDS = { max: 1, min: 1e-8 };
+
+const SAFETENSORS_EXT = '.safetensors';
+
+const createBadRequest = (message: string): Error =>
+  new BadRequestException(message);
 
 @Injectable()
 export class TrainingService implements OnModuleInit {
@@ -90,17 +106,48 @@ export class TrainingService implements OnModuleInit {
       );
     }
 
+    // Every field below becomes an argv element of the trainer process, or is
+    // interpolated into a filesystem path. `spawn` runs without a shell, so the
+    // risk is not `;` but a value that starts with `-` (the child reads it as a
+    // flag, not as the previous flag's value) and `../` in the path segments.
+    const params: TrainingParams = {
+      learningRate: assertBoundedNumber(
+        request.learningRate ?? DEFAULT_LEARNING_RATE,
+        'learningRate',
+        LEARNING_RATE_BOUNDS,
+        createBadRequest,
+      ),
+      loraName: assertSafeSegment(
+        request.loraName,
+        'loraName',
+        createBadRequest,
+      ),
+      loraRank: assertBoundedInteger(
+        request.loraRank ?? DEFAULT_LORA_RANK,
+        'loraRank',
+        LORA_RANK_BOUNDS,
+        createBadRequest,
+      ),
+      personaSlug: assertSafeSegment(
+        request.personaSlug,
+        'personaSlug',
+        createBadRequest,
+      ),
+      steps: assertBoundedInteger(
+        request.steps ?? DEFAULT_STEPS,
+        'steps',
+        STEPS_BOUNDS,
+        createBadRequest,
+      ),
+      triggerWord: assertSafeArgValue(
+        request.triggerWord,
+        'triggerWord',
+        createBadRequest,
+      ),
+    };
+
     const jobId = randomUUID();
     const now = new Date().toISOString();
-
-    const params: TrainingParams = {
-      learningRate: request.learningRate ?? DEFAULT_LEARNING_RATE,
-      loraName: request.loraName,
-      loraRank: request.loraRank ?? DEFAULT_LORA_RANK,
-      personaSlug: request.personaSlug,
-      steps: request.steps ?? DEFAULT_STEPS,
-      triggerWord: request.triggerWord,
-    };
 
     const job: TrainingJob = {
       createdAt: now,
@@ -188,7 +235,37 @@ export class TrainingService implements OnModuleInit {
     const datasetsPath = this.configService.DATASETS_PATH;
     const lorasPath = this.configService.COMFYUI_LORAS_PATH;
 
-    const datasetDir = `${datasetsPath}/${params.personaSlug}`;
+    // Re-asserted here rather than trusted from `startTraining`: this method is
+    // public, and it is the last place before the values become argv.
+    const loraName = assertSafeSegment(
+      params.loraName,
+      'loraName',
+      createBadRequest,
+    );
+    const steps = assertBoundedInteger(
+      params.steps,
+      'steps',
+      STEPS_BOUNDS,
+      createBadRequest,
+    );
+    const loraRank = assertBoundedInteger(
+      params.loraRank,
+      'loraRank',
+      LORA_RANK_BOUNDS,
+      createBadRequest,
+    );
+    const learningRate = assertBoundedNumber(
+      params.learningRate,
+      'learningRate',
+      LEARNING_RATE_BOUNDS,
+      createBadRequest,
+    );
+
+    const datasetDir = resolveContainedPath(
+      datasetsPath,
+      assertSafeSegment(params.personaSlug, 'personaSlug', createBadRequest),
+      createBadRequest,
+    );
 
     const args: string[] = [
       '--pretrained_model_name_or_path',
@@ -198,21 +275,21 @@ export class TrainingService implements OnModuleInit {
       '--output_dir',
       lorasPath,
       '--output_name',
-      params.loraName,
+      loraName,
       '--resolution',
       '1024',
       '--train_batch_size',
       '1',
       '--max_train_steps',
-      String(params.steps),
+      String(steps),
       '--learning_rate',
-      String(params.learningRate),
+      String(learningRate),
       '--network_module',
       'networks.lora',
       '--network_dim',
-      String(params.loraRank),
+      String(loraRank),
       '--network_alpha',
-      String(Math.floor(params.loraRank / 2)),
+      String(Math.floor(loraRank / 2)),
       '--caption_extension',
       '.txt',
       '--mixed_precision',
@@ -365,14 +442,23 @@ export class TrainingService implements OnModuleInit {
   ): Promise<void> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const lorasPath = this.configService.COMFYUI_LORAS_PATH;
-    const localPath = `${lorasPath}/${params.loraName}.safetensors`;
+    const loraName = assertSafeSegment(
+      params.loraName,
+      'loraName',
+      createBadRequest,
+    );
+    const localPath = resolveContainedPath(
+      lorasPath,
+      `${loraName}${SAFETENSORS_EXT}`,
+      createBadRequest,
+    );
 
     await this.updateJob(jobId, { progress: 96, stage: 'uploading' });
 
     this.loggerService.log(caller, {
       jobId,
       localPath,
-      loraName: params.loraName,
+      loraName,
       message: 'Uploading trained LoRA to S3',
     });
 
@@ -381,13 +467,13 @@ export class TrainingService implements OnModuleInit {
     if (bucket) {
       const { s3Key, sizeBytes } = await this.s3Service.uploadSafetensors(
         bucket,
-        params.loraName,
+        loraName,
         localPath,
       );
 
       this.loggerService.log(caller, {
         jobId,
-        loraName: params.loraName,
+        loraName,
         message: 'LoRA uploaded to S3',
         s3Key,
         sizeBytes,
