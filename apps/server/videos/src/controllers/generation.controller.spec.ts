@@ -1,4 +1,6 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@videos/config/config.service';
 import { GenerationController } from '@videos/controllers/generation.controller';
 import { GenerationService } from '@videos/services/generation.service';
 import { JobService } from '@videos/services/job.service';
@@ -32,6 +34,11 @@ describe('GenerationController', () => {
       providers: [
         { provide: GenerationService, useValue: mockGenerationService },
         { provide: JobService, useValue: mockJobService },
+        {
+          provide: ConfigService,
+          useValue: { API_KEY: 'test-api-key', isDevelopment: false },
+        },
+        { provide: LoggerService, useValue: { warn: vi.fn() } },
       ],
     }).compile();
 

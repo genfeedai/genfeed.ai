@@ -1,4 +1,6 @@
+import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@voices/config/config.service';
 import { TTSController } from '@voices/controllers/tts.controller';
 import type { TTSJob } from '@voices/interfaces/voices.interfaces';
 import { JobService } from '@voices/services/job.service';
@@ -37,6 +39,11 @@ describe('TTSController', () => {
           provide: JobService,
           useValue: mockJobService,
         },
+        {
+          provide: ConfigService,
+          useValue: { API_KEY: 'test-api-key', isDevelopment: false },
+        },
+        { provide: LoggerService, useValue: { warn: vi.fn() } },
       ],
     }).compile();
 

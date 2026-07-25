@@ -1,4 +1,6 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@voices/config/config.service';
 import { VoicesController } from '@voices/controllers/voices.controller';
 import { VoiceProfilesService } from '@voices/services/voice-profiles.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,6 +32,11 @@ describe('VoicesController', () => {
       controllers: [VoicesController],
       providers: [
         { provide: VoiceProfilesService, useValue: mockVoiceProfilesService },
+        {
+          provide: ConfigService,
+          useValue: { API_KEY: 'test-api-key', isDevelopment: false },
+        },
+        { provide: LoggerService, useValue: { warn: vi.fn() } },
       ],
     }).compile();
 
