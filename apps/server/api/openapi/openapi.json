@@ -40735,7 +40735,7 @@
           },
           {
             "in": "query",
-            "name": "isPreview",
+            "name": "previewToken",
             "required": true,
             "schema": {
               "type": "string"
