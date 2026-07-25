@@ -14,6 +14,7 @@ import { YoutubeService } from '@api/services/integrations/youtube/services/yout
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
+import type { IPlatformAnalyticsTotals } from '@genfeedai/interfaces';
 import type { CredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -344,13 +345,6 @@ export class PostAnalyticsService extends BaseService<
       }
 
       const platform = credential.platform;
-      let analytics: {
-        totalViews: number;
-        totalLikes: number;
-        totalComments: number;
-        totalShares: number;
-        totalSaves: number;
-      } | null = null;
 
       if (!post.externalId) {
         this.logger.warn(`${url} No external ID for post ${postId}`);
@@ -372,62 +366,13 @@ export class PostAnalyticsService extends BaseService<
 
       const { brandId, organizationId, userId } = owner;
 
-      switch (platform) {
-        case CREDENTIAL_PLATFORM.YOUTUBE:
-          analytics = await this.getYoutubeAnalytics(
-            organizationId,
-            brandId,
-            externalId,
-          );
-          break;
-
-        case CREDENTIAL_PLATFORM.TIKTOK:
-          analytics = await this.getTiktokAnalytics(
-            organizationId,
-            brandId,
-            externalId,
-          );
-          break;
-
-        case CREDENTIAL_PLATFORM.INSTAGRAM:
-          analytics = await this.getInstagramAnalytics(
-            organizationId,
-            brandId,
-            externalId,
-          );
-          break;
-
-        case CREDENTIAL_PLATFORM.TWITTER:
-          analytics = await this.getTwitterAnalytics(externalId);
-          break;
-
-        case CREDENTIAL_PLATFORM.PINTEREST:
-          analytics = await this.getPinterestAnalytics(
-            organizationId,
-            brandId,
-            externalId,
-          );
-          break;
-
-        case CREDENTIAL_PLATFORM.LINKEDIN:
-          analytics = await this.getLinkedInAnalytics(
-            organizationId,
-            brandId,
-            externalId,
-          );
-          break;
-
-        case CREDENTIAL_PLATFORM.MASTODON:
-          analytics = await this.getMastodonAnalytics(
-            organizationId,
-            brandId,
-            externalId,
-          );
-          break;
-        default:
-          this.logger.warn(`${url} unsupported platform: ${platform}`);
-          return;
-      }
+      const analytics = await this.fetchPlatformAnalytics(
+        platform,
+        organizationId,
+        brandId,
+        externalId,
+        url,
+      );
 
       if (analytics) {
         const postIngredients = Array.isArray(post.ingredients)
@@ -518,17 +463,40 @@ export class PostAnalyticsService extends BaseService<
     return { brandId, organizationId, userId };
   }
 
+  /** Routes a post to its platform fetcher; null when unsupported. */
+  private fetchPlatformAnalytics(
+    platform: CredentialPlatform,
+    organizationId: string,
+    brandId: string,
+    externalId: string,
+    url: string,
+  ): Promise<IPlatformAnalyticsTotals | null> {
+    switch (platform) {
+      case CREDENTIAL_PLATFORM.YOUTUBE:
+        return this.getYoutubeAnalytics(organizationId, brandId, externalId);
+      case CREDENTIAL_PLATFORM.TIKTOK:
+        return this.getTiktokAnalytics(organizationId, brandId, externalId);
+      case CREDENTIAL_PLATFORM.INSTAGRAM:
+        return this.getInstagramAnalytics(organizationId, brandId, externalId);
+      case CREDENTIAL_PLATFORM.TWITTER:
+        return this.getTwitterAnalytics(externalId);
+      case CREDENTIAL_PLATFORM.PINTEREST:
+        return this.getPinterestAnalytics(organizationId, brandId, externalId);
+      case CREDENTIAL_PLATFORM.LINKEDIN:
+        return this.getLinkedInAnalytics(organizationId, brandId, externalId);
+      case CREDENTIAL_PLATFORM.MASTODON:
+        return this.getMastodonAnalytics(organizationId, brandId, externalId);
+      default:
+        this.logger.warn(`${url} unsupported platform: ${platform}`);
+        return Promise.resolve(null);
+    }
+  }
+
   private async getYoutubeAnalytics(
     organizationId: string,
     brandId: string,
     videoId: string,
-  ): Promise<{
-    totalViews: number;
-    totalLikes: number;
-    totalComments: number;
-    totalShares: number;
-    totalSaves: number;
-  } | null> {
+  ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       // @ts-expect-error TS2532
       const stats = await this.youtubeService.getMediaAnalytics(
@@ -553,13 +521,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     videoId: string,
-  ): Promise<{
-    totalViews: number;
-    totalLikes: number;
-    totalComments: number;
-    totalShares: number;
-    totalSaves: number;
-  } | null> {
+  ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       // @ts-expect-error TS2532
       const stats = await this.tiktokService.getMediaAnalytics(
@@ -584,13 +546,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     mediaId: string,
-  ): Promise<{
-    totalViews: number;
-    totalLikes: number;
-    totalComments: number;
-    totalShares: number;
-    totalSaves: number;
-  } | null> {
+  ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       // @ts-expect-error TS2532
       const stats = await this.instagramService.getMediaAnalytics(
@@ -612,13 +568,9 @@ export class PostAnalyticsService extends BaseService<
     }
   }
 
-  private async getTwitterAnalytics(tweetId: string): Promise<{
-    totalViews: number;
-    totalLikes: number;
-    totalComments: number;
-    totalShares: number;
-    totalSaves: number;
-  } | null> {
+  private async getTwitterAnalytics(
+    tweetId: string,
+  ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       // @ts-expect-error TS2532
       const stats = await this.twitterService.getMediaAnalytics(tweetId);
@@ -640,13 +592,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     pinId: string,
-  ): Promise<{
-    totalViews: number;
-    totalLikes: number;
-    totalComments: number;
-    totalShares: number;
-    totalSaves: number;
-  } | null> {
+  ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       // @ts-expect-error TS2532
       const stats = await this.pinterestService.getMediaAnalytics(
@@ -982,13 +928,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     shareId: string,
-  ): Promise<{
-    totalViews: number;
-    totalLikes: number;
-    totalComments: number;
-    totalShares: number;
-    totalSaves: number;
-  } | null> {
+  ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       if (!this.linkedInService) {
         this.logger.warn('LinkedInService not available');
@@ -1016,13 +956,7 @@ export class PostAnalyticsService extends BaseService<
     organizationId: string,
     brandId: string,
     statusId: string,
-  ): Promise<{
-    totalViews: number;
-    totalLikes: number;
-    totalComments: number;
-    totalShares: number;
-    totalSaves: number;
-  } | null> {
+  ): Promise<IPlatformAnalyticsTotals | null> {
     try {
       if (!this.mastodonService) {
         this.logger.warn('MastodonService not available');

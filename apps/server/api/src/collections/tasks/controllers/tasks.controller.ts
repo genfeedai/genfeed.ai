@@ -236,19 +236,11 @@ export class TasksController extends BaseCRUDController<
     user: User,
     entity: TaskDocument,
   ): boolean {
-    const publicMetadata = getPublicMetadata(user);
-    // Scalar FK first, and both sides must be present: comparing two absent
-    // ids (`undefined === undefined`) previously granted write access.
-    const entityOrganizationId = resolveRelationId(
-      entity.organizationId,
-      entity.organization,
-    );
-
-    if (!entityOrganizationId || !publicMetadata.organization) {
-      return false;
-    }
-
-    return entityOrganizationId === publicMetadata.organization;
+    // Both ids must exist: `undefined === undefined` granted write access.
+    const { organization: userOrgId } = getPublicMetadata(user);
+    const { organization, organizationId } = entity;
+    const entityOrgId = resolveRelationId(organizationId, organization);
+    return Boolean(userOrgId) && entityOrgId === userOrgId;
   }
 
   @Get('by-identifier/:identifier')
