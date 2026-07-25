@@ -7,8 +7,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('DiscordController', () => {
   let controller: DiscordController;
-  let discordService: DiscordService;
-  let credentialsService: CredentialsService;
 
   const mockDiscordService = {
     exchangeCodeForToken: vi.fn(),
@@ -43,8 +41,6 @@ describe('DiscordController', () => {
       .compile();
 
     controller = module.get<DiscordController>(DiscordController);
-    discordService = module.get<DiscordService>(DiscordService);
-    credentialsService = module.get<CredentialsService>(CredentialsService);
   });
 
   it('should be defined', () => {
@@ -71,8 +67,15 @@ describe('DiscordController', () => {
 
       expect(result).toHaveProperty('url');
       expect(result).toHaveProperty('state');
-      expect(mockCredentialsService.create).toHaveBeenCalled();
-      expect(mockDiscordService.generateAuthUrl).toHaveBeenCalled();
+      expect(result.state).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(mockCredentialsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          oauthState: result.state,
+        }),
+      );
+      expect(mockDiscordService.generateAuthUrl).toHaveBeenCalledWith(
+        result.state,
+      );
     });
 
     it('should update existing credential when one exists', async () => {

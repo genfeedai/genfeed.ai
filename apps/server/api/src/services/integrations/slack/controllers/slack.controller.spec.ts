@@ -1,4 +1,8 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SlackController } from '@api/services/integrations/slack/controllers/slack.controller';
+import type { SlackService } from '@api/services/integrations/slack/services/slack.service';
 import { HttpException } from '@nestjs/common';
 
 describe('SlackController', () => {
@@ -11,7 +15,7 @@ describe('SlackController', () => {
       organization: mockOrganization,
       user: mockUserId,
     },
-  };
+  } as unknown as User;
 
   const mockBrandsService = {
     findOne: vi.fn(),
@@ -34,9 +38,9 @@ describe('SlackController', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     controller = new SlackController(
-      mockSlackService as any,
-      mockCredentialsService as any,
-      mockBrandsService as any,
+      mockSlackService as unknown as SlackService,
+      mockCredentialsService as unknown as CredentialsService,
+      mockBrandsService as unknown as BrandsService,
     );
   });
 
@@ -45,7 +49,7 @@ describe('SlackController', () => {
       mockBrandsService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.connect(mockUser as any, mockBrandId),
+        controller.connect(mockUser, mockBrandId),
       ).rejects.toBeInstanceOf(HttpException);
 
       expect(mockBrandsService.findOne).toHaveBeenCalledWith(
@@ -62,12 +66,17 @@ describe('SlackController', () => {
       mockCredentialsService.findOne.mockResolvedValue(null);
       mockCredentialsService.create.mockResolvedValue({});
 
-      await controller.connect(mockUser as any, mockBrandId);
+      const result = await controller.connect(mockUser, mockBrandId);
 
       expect(mockCredentialsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          oauthState: result.state,
           user: mockUserId,
         }),
+      );
+      expect(result.state).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(mockSlackService.generateAuthUrl).toHaveBeenCalledWith(
+        result.state,
       );
     });
   });
@@ -77,7 +86,7 @@ describe('SlackController', () => {
       mockBrandsService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.verify(mockUser as any, mockBrandId, 'code', 'state'),
+        controller.verify(mockUser, mockBrandId, 'code', 'state'),
       ).rejects.toBeInstanceOf(HttpException);
 
       expect(mockSlackService.exchangeCodeForToken).not.toHaveBeenCalled();
