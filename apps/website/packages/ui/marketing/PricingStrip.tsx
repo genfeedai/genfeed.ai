@@ -1,40 +1,43 @@
 'use client';
 
+import type { PlanTier } from '@helpers/business/pricing/pricing.helper';
+import {
+  formatPlanPriceLabel,
+  getPlanLabel,
+} from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PricingStripProps } from '@props/website/pricing-strip.props';
 import Link from 'next/link';
 
-const PILLAR_COLUMNS = [
-  {
-    href: '/pricing',
-    label: 'Creator',
-    price: '$49/mo + PAYG',
-    subtitle: 'Default',
-  },
-  {
-    href: '/pricing',
-    label: 'Teams',
-    price: 'From $499/mo',
-    subtitle: 'Agencies',
-  },
-  {
-    href: '/pricing',
-    label: 'Enterprise',
-    price: 'Custom',
-    subtitle: 'Studios',
-  },
-] as const;
+/**
+ * Plan names and prices come from @genfeedai/pricing. Only the marketing
+ * framing (audience label, price suffix, which column is featured) lives here.
+ */
+const FEATURED_TIER: PlanTier = 'pro';
+
+const PILLAR_COLUMNS: {
+  priceSuffix?: string;
+  pricePrefix?: string;
+  subtitle: string;
+  tier: PlanTier;
+}[] = [
+  { priceSuffix: ' + PAYG', subtitle: 'Default', tier: 'pro' },
+  { pricePrefix: 'From ', subtitle: 'Agencies', tier: 'scale' },
+  { subtitle: 'Studios', tier: 'enterprise' },
+];
 
 export default function PricingStrip({ className }: PricingStripProps) {
   return (
     <div className={cn('mb-12 border border-edge/5', className)}>
       <div className="grid grid-cols-1 gap-px md:grid-cols-3">
         {PILLAR_COLUMNS.map((column) => {
-          const isFeatured = column.label === 'Creator';
+          const isFeatured = column.tier === FEATURED_TIER;
+          const label = getPlanLabel(column.tier);
+          const price = `${column.pricePrefix ?? ''}${formatPlanPriceLabel(column.tier)}${column.priceSuffix ?? ''}`;
 
           return (
             <div
-              key={column.label}
+              key={column.tier}
               className={cn(
                 'px-6 py-5 text-center',
                 isFeatured && 'bg-white/[0.04]',
@@ -49,11 +52,9 @@ export default function PricingStrip({ className }: PricingStripProps) {
                 ) : null}
               </div>
 
-              <div className="text-2xl font-semibold text-surface">
-                {column.price}
-              </div>
+              <div className="text-2xl font-semibold text-surface">{price}</div>
 
-              <div className="mt-1 text-xs text-surface/60">{column.label}</div>
+              <div className="mt-1 text-xs text-surface/60">{label}</div>
             </div>
           );
         })}

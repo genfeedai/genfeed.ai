@@ -59,8 +59,10 @@ describe('BotsLivestreamDeliveryService', () => {
     get: ReturnType<typeof vi.fn>;
   };
 
+  // Scalar FK only — the `organization` alias is undefined on an unpopulated
+  // row, which is exactly the shape the delivery path receives.
   const bot = {
-    organization: 'org-123',
+    organizationId: 'org-123',
   } as BotDocument;
 
   const credential = {
