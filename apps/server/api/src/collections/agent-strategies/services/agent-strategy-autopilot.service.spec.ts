@@ -4,15 +4,25 @@ import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent
 import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
 
 describe('AgentStrategyAutopilotService', () => {
-  const strategyId = 'test-object-id';
-  const organizationId = 'test-object-id';
-  const brandId = 'test-object-id';
+  // Distinct ids per entity: the autopilot helpers read the Prisma scalar `id`,
+  // so every assertion below can pin the exact value it expects instead of
+  // matching any string.
+  const strategyId = 'strategy-id';
+  const organizationId = 'organization-id';
+  const brandId = 'brand-id';
+  const userId = 'user-id';
+  const opportunityId = 'opportunity-id';
+  const draftId = 'draft-id';
+  const credentialId = 'credential-id';
+  const postId = 'post-id';
+  const reviewItemId = 'review-item-id';
+  const reviewPostId = 'review-post-id';
 
   // Shaped like a real Prisma row: scalar FKs only. The Mongo-era
   // `organization`/`brand`/`user` aliases are undefined on an unpopulated row,
   // so a fixture carrying them hides exactly the bug this suite should catch.
   const baseStrategy = {
-    _id: strategyId,
+    id: strategyId,
     agentType: 'general',
     autonomyMode: 'auto_publish',
     brandId,
@@ -75,11 +85,11 @@ describe('AgentStrategyAutopilotService', () => {
       updateStatus: vi.fn().mockResolvedValue(undefined),
     };
     const reportsService = {
-      createReport: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
+      createReport: vi.fn().mockResolvedValue({ id: 'report-id' }),
       listByStrategy: vi.fn().mockResolvedValue([]),
     };
     const activitiesService = {
-      create: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
+      create: vi.fn().mockResolvedValue({ id: 'activity-id' }),
     };
     const trendsService = {
       getTrends: vi.fn().mockResolvedValue([]),
@@ -102,20 +112,20 @@ describe('AgentStrategyAutopilotService', () => {
     };
     const credentialsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: 'test-object-id',
+        id: credentialId,
         platform: 'twitter',
       }),
     };
     const postsService = {
-      create: vi.fn().mockResolvedValue({ _id: 'test-object-id' }),
+      create: vi.fn().mockResolvedValue({ id: postId }),
     };
     const batchGenerationService = {
       createManualReviewBatch: vi.fn().mockResolvedValue({
         id: 'batch-1',
         items: [
           {
-            id: 'test-object-id',
-            postId: 'test-object-id',
+            id: reviewItemId,
+            postId: reviewPostId,
           },
         ],
       }),
@@ -195,7 +205,7 @@ describe('AgentStrategyAutopilotService', () => {
     });
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: 'test-object-id',
+        id: opportunityId,
         estimatedCreditCost: 10,
         formatCandidates: ['text'],
         platformCandidates: ['twitter'],
@@ -207,10 +217,10 @@ describe('AgentStrategyAutopilotService', () => {
     ]);
 
     const result = await deps.service.executeQueuedRun({
-      organizationId: organizationId.toString(),
+      organizationId,
       runId: 'run-1',
-      strategyId: strategyId.toString(),
-      userId: 'test-object-id',
+      strategyId,
+      userId,
     });
 
     expect(result.creditsUsed).toBe(0);
@@ -221,11 +231,10 @@ describe('AgentStrategyAutopilotService', () => {
 
   it('revises a weak post once and discards it when the revised version still fails', async () => {
     const deps = createService();
-    const opportunityId = 'test-object-id';
 
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: opportunityId,
+        id: opportunityId,
         estimatedCreditCost: 10,
         formatCandidates: ['text'],
         platformCandidates: ['twitter'],
@@ -239,7 +248,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.contentGatewayService.processManualRequest.mockResolvedValue({
       drafts: [
         {
-          _id: 'test-object-id',
+          id: draftId,
           content: 'Weak draft',
           mediaUrls: [],
           metadata: {},
@@ -278,15 +287,38 @@ describe('AgentStrategyAutopilotService', () => {
     });
 
     const result = await deps.service.executeQueuedRun({
-      organizationId: organizationId.toString(),
+      organizationId,
       runId: 'run-1',
-      strategyId: strategyId.toString(),
-      userId: 'test-object-id',
+      strategyId,
+      userId,
     });
 
     expect(result.contentGenerated).toBe(1);
     expect(deps.optimizersService.optimizeContent).toHaveBeenCalledTimes(1);
+    expect(deps.contentDraftsService.patch).toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          autopilotOpportunityId: opportunityId,
+          autopilotStrategyId: strategyId,
+        }),
+      }),
+    );
     expect(deps.contentDraftsService.reject).toHaveBeenCalledTimes(1);
+    expect(deps.contentDraftsService.reject).toHaveBeenCalledWith(
+      draftId,
+      organizationId,
+      expect.any(String),
+    );
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'discarded',
+      expect.objectContaining({ decisionReason: expect.any(String) }),
+    );
+    expect(deps.reportsService.createReport).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId, strategyId }),
+    );
     expect(deps.postsService.create).not.toHaveBeenCalled();
   });
 
@@ -295,7 +327,7 @@ describe('AgentStrategyAutopilotService', () => {
 
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: 'test-object-id',
+        id: opportunityId,
         estimatedCreditCost: 24,
         formatCandidates: ['image'],
         platformCandidates: ['instagram'],
@@ -309,7 +341,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.contentGatewayService.processManualRequest.mockResolvedValue({
       drafts: [
         {
-          _id: 'test-object-id',
+          id: draftId,
           content: 'Generated image',
           mediaUrls: ['https://cdn.example.com/image.png'],
           metadata: {},
@@ -329,13 +361,24 @@ describe('AgentStrategyAutopilotService', () => {
     });
 
     await deps.service.executeQueuedRun({
-      organizationId: organizationId.toString(),
+      organizationId,
       runId: 'run-1',
-      strategyId: strategyId.toString(),
-      userId: 'test-object-id',
+      strategyId,
+      userId,
     });
 
     expect(deps.contentDraftsService.reject).toHaveBeenCalledTimes(1);
+    expect(deps.contentDraftsService.reject).toHaveBeenCalledWith(
+      draftId,
+      organizationId,
+      expect.any(String),
+    );
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'held',
+      expect.objectContaining({ decisionReason: expect.any(String) }),
+    );
     expect(deps.postsService.create).not.toHaveBeenCalled();
   });
 
@@ -344,7 +387,7 @@ describe('AgentStrategyAutopilotService', () => {
 
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: 'test-object-id',
+        id: opportunityId,
         estimatedCreditCost: 24,
         formatCandidates: ['image'],
         platformCandidates: ['instagram'],
@@ -358,7 +401,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.contentGatewayService.processManualRequest.mockResolvedValue({
       drafts: [
         {
-          _id: 'test-object-id',
+          id: draftId,
           content: 'Generated image',
           mediaUrls: ['https://cdn.example.com/image.png'],
           metadata: {},
@@ -378,35 +421,56 @@ describe('AgentStrategyAutopilotService', () => {
     });
 
     await deps.service.executeQueuedRun({
-      organizationId: organizationId.toString(),
+      organizationId,
       runId: 'run-1',
-      strategyId: strategyId.toString(),
-      userId: 'test-object-id',
+      strategyId,
+      userId,
     });
 
     expect(deps.contentDraftsService.approve).toHaveBeenCalledTimes(1);
+    expect(deps.contentDraftsService.approve).toHaveBeenCalledWith(
+      draftId,
+      organizationId,
+      userId,
+    );
     expect(
       deps.batchGenerationService.createManualReviewBatch,
     ).toHaveBeenCalledTimes(1);
     expect(
       deps.batchGenerationService.createManualReviewBatch,
     ).toHaveBeenCalledWith(
-      expect.objectContaining({
+      {
+        brandId,
         items: [
           expect.objectContaining({
             gateOverallScore: 91,
             gateReasons: ['Image cleared the autopilot quality gate.'],
             opportunitySourceType: 'trend',
             opportunityTopic: 'Product hero',
-            sourceActionId: expect.any(String),
-            sourceWorkflowId: expect.any(String),
+            sourceActionId: opportunityId,
+            sourceWorkflowId: strategyId,
           }),
         ],
-      }),
-      expect.any(String),
-      expect.any(String),
+      },
+      userId,
+      organizationId,
     );
+    expect(deps.contentDraftsService.patch).toHaveBeenCalledWith(draftId, {
+      metadata: {
+        reviewBatchId: 'batch-1',
+        reviewItemId,
+        reviewPostId,
+      },
+    });
     expect(deps.activitiesService.create).toHaveBeenCalledTimes(1);
+    expect(deps.activitiesService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId,
+        entityId: reviewPostId,
+        organizationId,
+        userId,
+      }),
+    );
     expect(deps.postsService.create).not.toHaveBeenCalled();
   });
 
@@ -423,7 +487,7 @@ describe('AgentStrategyAutopilotService', () => {
     });
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: 'test-object-id',
+        id: opportunityId,
         estimatedCreditCost: 10,
         formatCandidates: ['text'],
         platformCandidates: ['twitter'],
@@ -437,7 +501,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.contentGatewayService.processManualRequest.mockResolvedValue({
       drafts: [
         {
-          _id: 'test-object-id',
+          id: draftId,
           content: 'Strong post draft',
           mediaUrls: [],
           metadata: {},
@@ -459,20 +523,26 @@ describe('AgentStrategyAutopilotService', () => {
     });
 
     await deps.service.executeQueuedRun({
-      organizationId: organizationId.toString(),
+      organizationId,
       runId: 'run-1',
-      strategyId: strategyId.toString(),
-      userId: 'test-object-id',
+      strategyId,
+      userId,
     });
 
     expect(deps.contentDraftsService.approve).toHaveBeenCalledTimes(1);
+    expect(deps.contentDraftsService.approve).toHaveBeenCalledWith(
+      draftId,
+      organizationId,
+      userId,
+    );
     expect(
       deps.batchGenerationService.createManualReviewBatch,
     ).toHaveBeenCalledTimes(1);
     expect(
       deps.batchGenerationService.createManualReviewBatch,
     ).toHaveBeenCalledWith(
-      expect.objectContaining({
+      {
+        brandId,
         items: [
           expect.objectContaining({
             gateOverallScore: 88,
@@ -482,15 +552,30 @@ describe('AgentStrategyAutopilotService', () => {
             ],
             opportunitySourceType: 'evergreen',
             opportunityTopic: 'AI hooks',
-            sourceActionId: expect.any(String),
-            sourceWorkflowId: expect.any(String),
+            sourceActionId: opportunityId,
+            sourceWorkflowId: strategyId,
           }),
         ],
-      }),
-      expect.any(String),
-      expect.any(String),
+      },
+      userId,
+      organizationId,
     );
+    expect(deps.contentDraftsService.patch).toHaveBeenCalledWith(draftId, {
+      metadata: {
+        reviewBatchId: 'batch-1',
+        reviewItemId,
+        reviewPostId,
+      },
+    });
     expect(deps.activitiesService.create).toHaveBeenCalledTimes(1);
+    expect(deps.activitiesService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId,
+        entityId: reviewPostId,
+        organizationId,
+        userId,
+      }),
+    );
     expect(deps.postsService.create).not.toHaveBeenCalled();
   });
 
@@ -500,7 +585,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.credentialsService.findOne.mockResolvedValue(null);
     deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
       {
-        _id: 'test-object-id',
+        id: opportunityId,
         estimatedCreditCost: 10,
         formatCandidates: ['text'],
         platformCandidates: ['twitter'],
@@ -514,7 +599,7 @@ describe('AgentStrategyAutopilotService', () => {
     deps.contentGatewayService.processManualRequest.mockResolvedValue({
       drafts: [
         {
-          _id: 'test-object-id',
+          id: draftId,
           content: 'Strong post draft',
           mediaUrls: [],
           metadata: {},
@@ -536,20 +621,26 @@ describe('AgentStrategyAutopilotService', () => {
     });
 
     await deps.service.executeQueuedRun({
-      organizationId: organizationId.toString(),
+      organizationId,
       runId: 'run-1',
-      strategyId: strategyId.toString(),
-      userId: 'test-object-id',
+      strategyId,
+      userId,
     });
 
     expect(deps.contentDraftsService.approve).toHaveBeenCalledTimes(1);
+    expect(deps.contentDraftsService.approve).toHaveBeenCalledWith(
+      draftId,
+      organizationId,
+      userId,
+    );
     expect(
       deps.batchGenerationService.createManualReviewBatch,
     ).toHaveBeenCalledTimes(1);
     expect(
       deps.batchGenerationService.createManualReviewBatch,
     ).toHaveBeenCalledWith(
-      expect.objectContaining({
+      {
+        brandId,
         items: [
           expect.objectContaining({
             gateOverallScore: 88,
@@ -559,15 +650,116 @@ describe('AgentStrategyAutopilotService', () => {
             ],
             opportunitySourceType: 'evergreen',
             opportunityTopic: 'AI hooks',
-            sourceActionId: expect.any(String),
-            sourceWorkflowId: expect.any(String),
+            sourceActionId: opportunityId,
+            sourceWorkflowId: strategyId,
           }),
         ],
-      }),
-      expect.any(String),
-      expect.any(String),
+      },
+      userId,
+      organizationId,
     );
+    expect(deps.contentDraftsService.patch).toHaveBeenCalledWith(draftId, {
+      metadata: {
+        reviewBatchId: 'batch-1',
+        reviewItemId,
+        reviewPostId,
+      },
+    });
     expect(deps.activitiesService.create).toHaveBeenCalledTimes(1);
+    expect(deps.activitiesService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId,
+        entityId: reviewPostId,
+        organizationId,
+        userId,
+      }),
+    );
     expect(deps.postsService.create).not.toHaveBeenCalled();
+  });
+
+  it('auto-publishes a strong text draft when a connected credential exists', async () => {
+    const deps = createService();
+
+    deps.opportunitiesService.listOpenByStrategy.mockResolvedValue([
+      {
+        id: opportunityId,
+        estimatedCreditCost: 10,
+        formatCandidates: ['text'],
+        platformCandidates: ['twitter'],
+        priorityScore: 90,
+        sourceType: 'evergreen',
+        status: 'queued',
+        topic: 'AI hooks',
+      },
+    ]);
+
+    deps.contentGatewayService.processManualRequest.mockResolvedValue({
+      drafts: [
+        {
+          id: draftId,
+          content: 'Strong post draft',
+          mediaUrls: [],
+          metadata: {},
+          status: 'pending',
+        },
+      ],
+      runs: ['run-1'],
+    });
+
+    deps.optimizersService.analyzeContent.mockResolvedValue({
+      breakdown: {
+        clarity: 85,
+        engagement: 84,
+        platformOptimization: 82,
+        readability: 86,
+      },
+      metadata: { hasCallToAction: true },
+      overallScore: 88,
+    });
+
+    const result = await deps.service.executeQueuedRun({
+      organizationId,
+      runId: 'run-1',
+      strategyId,
+      userId,
+    });
+
+    expect(result.contentGenerated).toBe(1);
+    expect(deps.credentialsService.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId,
+        isConnected: true,
+        isDeleted: false,
+        organizationId,
+        platform: 'twitter',
+      }),
+    );
+    expect(deps.postsService.create).toHaveBeenCalledTimes(1);
+    expect(deps.postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId,
+        credentialId,
+        description: 'Strong post draft',
+        organizationId,
+        platform: 'twitter',
+        userId,
+      }),
+    );
+    expect(deps.contentDraftsService.patch).toHaveBeenCalledWith(
+      draftId,
+      expect.objectContaining({
+        metadata: { publishedPostIds: [postId] },
+      }),
+    );
+    expect(deps.opportunitiesService.updateStatus).toHaveBeenCalledWith(
+      opportunityId,
+      organizationId,
+      'published',
+      expect.objectContaining({ decisionReason: expect.any(String) }),
+    );
+    expect(deps.contentDraftsService.approve).not.toHaveBeenCalled();
+    expect(
+      deps.batchGenerationService.createManualReviewBatch,
+    ).not.toHaveBeenCalled();
   });
 });
