@@ -45,7 +45,8 @@ describe('TiktokController', () => {
   const orgId = '507f1f77bcf86cd799439011';
   const credentialId = 'test-object-id';
 
-  const mockBrand = { id: brandId, organization: orgId };
+  // A real Prisma row carries the scalar FK, never the populated-only alias.
+  const mockBrand = { id: brandId, organizationId: orgId };
 
   beforeEach(async () => {
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };
