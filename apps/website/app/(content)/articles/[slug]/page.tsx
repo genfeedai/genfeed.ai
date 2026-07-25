@@ -36,7 +36,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = await getPublicArticleBySlugCached(slug, false);
+  const article = await getPublicArticleBySlugCached(slug);
 
   if (!article || article?.id === 'undefined') {
     return {
@@ -86,11 +86,16 @@ export default async function ArticleDetail({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ isPreview?: string }>;
+  searchParams: Promise<{ previewToken?: string }>;
 }) {
   const { slug } = await params;
-  const isPreview = (await searchParams).isPreview === 'true';
-  const article = await getPublicArticleBySlugCached(slug, isPreview);
+  const { previewToken } = await searchParams;
+  const article = await getPublicArticleBySlugCached(slug, previewToken);
+
+  // The API only hands back an unpublished article when it accepted the token,
+  // so the article itself — not the query string — decides whether to warn the
+  // reader that this is not live yet.
+  const isPreview = Boolean(article && !article.publishedAt);
 
   const articleJsonLd =
     article && article.id !== 'undefined'

@@ -15,23 +15,15 @@ export class TaskCountersService {
    * Creates the counter document if it doesn't exist.
    */
   async getNextNumber(organizationId: string): Promise<number> {
-    // Prisma upsert: find by organizationId, increment counter if exists, create with counter=1 if not
-    const existing = await this.prisma.taskCounter.findFirst({
+    // Single atomic upsert against the unique `organizationId` column. A
+    // read-then-create would race: concurrent first-ever calls for the same
+    // organization (e.g. Promise.all over follow-up plan steps) all miss the
+    // read and then collide on the unique constraint with P2002.
+    const result = (await this.prisma.taskCounter.upsert({
+      create: { counter: 1, organizationId },
+      update: { counter: { increment: 1 } },
       where: { organizationId },
-    });
-
-    let result: TaskCounterDocument;
-
-    if (existing) {
-      result = (await this.prisma.taskCounter.update({
-        data: { counter: { increment: 1 } },
-        where: { id: existing.id },
-      })) as unknown as TaskCounterDocument;
-    } else {
-      result = (await this.prisma.taskCounter.create({
-        data: { counter: 1, organizationId },
-      })) as unknown as TaskCounterDocument;
-    }
+    })) as unknown as TaskCounterDocument;
 
     if (!result) {
       this.logger.error('Failed to get next task number', { organizationId });

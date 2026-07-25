@@ -75,6 +75,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'collections/articles/controllers/articles.controller.ts',
     prefix: 'articles',
   },
+  articleOperations: {
+    file: 'collections/articles/controllers/operations/articles-operations.controller.ts',
+    prefix: 'articles',
+  },
   credits: {
     file: 'collections/credits/controllers/credits.controller.ts',
     prefix: 'credits',
@@ -236,7 +240,7 @@ const ROUTE_CONTRACT: ContractRoute[] = [
   {
     method: 'Post',
     sub: 'generations',
-    controller: 'articles',
+    controller: 'articleOperations',
     tools: ['create_article'],
   },
   {

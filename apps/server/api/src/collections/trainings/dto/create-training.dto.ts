@@ -1,7 +1,22 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { TrainingProvider } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+
+/**
+ * Upper bound on `sources`. The create/relaunch handlers fan the resolved
+ * source images out into a bulk ingredient update and an `id IN (...)` lookup,
+ * so an unbounded array is both a Postgres bind-parameter hazard and a
+ * write-amplification vector. The floor stays at 10 (enforced in the handler).
+ */
+export const MAX_TRAINING_SOURCES = 50;
 
 export class CreateTrainingDto {
   // @IsEntityId()
@@ -19,9 +34,14 @@ export class CreateTrainingDto {
   // @IsNotEmpty()
   // readonly user!: string;
 
-  @ApiProperty({ description: 'Array of source ObjectIds', required: false })
+  @ApiProperty({
+    description: 'Array of source ObjectIds',
+    maxItems: MAX_TRAINING_SOURCES,
+    required: false,
+  })
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(MAX_TRAINING_SOURCES)
   @IsEntityId({ each: true })
   readonly sources?: string[];
 

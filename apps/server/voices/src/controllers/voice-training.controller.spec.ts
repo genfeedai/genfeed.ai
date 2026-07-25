@@ -1,4 +1,6 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@voices/config/config.service';
 import { VoiceTrainingController } from '@voices/controllers/voice-training.controller';
 import { VoiceTrainingService } from '@voices/services/voice-training.service';
 
@@ -31,6 +33,11 @@ describe('VoiceTrainingController', () => {
             }),
           },
         },
+        {
+          provide: ConfigService,
+          useValue: { API_KEY: 'test-api-key', isDevelopment: false },
+        },
+        { provide: LoggerService, useValue: { warn: vi.fn() } },
       ],
     }).compile();
 

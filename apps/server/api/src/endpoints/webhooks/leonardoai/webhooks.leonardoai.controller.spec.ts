@@ -36,8 +36,8 @@ describe('LeonardoaiWebhookController', () => {
     } as unknown as Request;
   }
 
-  // Authenticated request from an address that is NOT on the shipped vendor
-  // list — the rotation case the previous hardcoded allowlist rejected.
+  // Leonardo presents the shared secret as `Authorization: Bearer`; the source
+  // IP is only a gate when a deployment opts into the allowlist.
   const authenticatedRequest = requestFrom({
     authorization: `Bearer ${WEBHOOK_SECRET}`,
   });
@@ -249,7 +249,7 @@ describe('LeonardoaiWebhookController', () => {
       });
     });
 
-    it('should fall back to the vendor IP list when no secret is configured', async () => {
+    it('should reject every caller when no secret is configured', async () => {
       configValues.LEONARDO_WEBHOOK_SECRET = undefined;
 
       const body = {
@@ -257,20 +257,21 @@ describe('LeonardoaiWebhookController', () => {
         type: 'image-generation.complete',
       };
 
-      await expect(
-        controller.handleCallback(requestFrom({ ip: '1.2.3.4' }), body),
-      ).rejects.toThrow('Unauthorized webhook request');
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        'Unauthorized webhook request from IP: 1.2.3.4',
-      );
-
+      // No IP is trusted in place of the secret: an unconfigured deployment
+      // rejects the callback outright rather than falling back to a vendor
+      // egress list that Leonardo rotates without notice.
       await expect(
         controller.handleCallback(requestFrom({ ip: '35.173.108.170' }), body),
-      ).resolves.toEqual({
-        message: 'Webhook processed successfully',
-        success: true,
-      });
+      ).rejects.toThrow(UnauthorizedException);
+
+      await expect(
+        controller.handleCallback(authenticatedRequest, body),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('LEONARDO_WEBHOOK_SECRET'),
+      );
+      expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
     });
 
     it('should rethrow error when callback handling fails', async () => {

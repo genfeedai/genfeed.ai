@@ -1,11 +1,20 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsIn,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
+
+/**
+ * Matches the desktop client's own push slice — it never sends more than 500
+ * ops per request (`thread-sync.service.ts` `pendingOps.slice(0, 500)`), and it
+ * drains the remainder on the next tick. Each op drives at least one write in
+ * `desktop-sync.service.ts` `applySyncOps`.
+ */
+const MAX_SYNC_OPS = 500;
 
 export class DesktopSyncOpDto {
   @IsString()
@@ -43,6 +52,7 @@ export class DesktopSyncOpDto {
 
 export class PushDesktopSyncOpsDto {
   @IsArray()
+  @ArrayMaxSize(MAX_SYNC_OPS)
   @ValidateNested({ each: true })
   @Type(() => DesktopSyncOpDto)
   ops!: DesktopSyncOpDto[];

@@ -3,6 +3,7 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { PublicArticlesController } from '@api/endpoints/public/controllers/articles/public.articles.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ArticleCategory, ArticleStatus, AssetScope } from '@genfeedai/enums';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -66,6 +67,12 @@ describe('PublicArticlesController', () => {
     warn: vi.fn(),
   };
 
+  // No signing key configured: preview tokens always fail closed, so every
+  // request in this suite resolves to published-only reads.
+  const mockConfigService = {
+    get: vi.fn().mockReturnValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicArticlesController],
@@ -73,6 +80,10 @@ describe('PublicArticlesController', () => {
         {
           provide: ArticlesService,
           useValue: mockArticlesService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
         {
           provide: LoggerService,
@@ -214,6 +225,21 @@ describe('PublicArticlesController', () => {
       const result = await controller.findPublicArticleBySlug(request, slug);
 
       expect(result).toBeDefined();
+    });
+
+    it('should not grant preview access for an unsigned token', async () => {
+      const request = {} as Request;
+      const slug = 'public-article';
+      mockArticlesService.findPublicArticleBySlug.mockResolvedValue(
+        mockArticle,
+      );
+
+      await controller.findPublicArticleBySlug(request, slug, 'not-a-token');
+
+      expect(articlesService.findPublicArticleBySlug).toHaveBeenCalledWith(
+        slug,
+        false,
+      );
     });
   });
 

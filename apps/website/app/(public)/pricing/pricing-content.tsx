@@ -1,16 +1,20 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { PlanTier } from '@helpers/business/pricing/pricing.helper';
 import {
   AVATAR_CREDIT_COSTS,
   BYOK_CREDIT_VALUE_DOLLARS,
   creditPackPrice,
   creditPackTotalCredits,
   formatPrice,
+  getPlanByTier,
+  getPlanLabel,
   INTERNAL_CREDIT_COSTS,
+  PLAN_COPY,
   VIDEO_CREDIT_COSTS,
   WEBSITE_CREDIT_PACKS,
-  websitePlans,
+  type websitePlans,
 } from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
@@ -29,8 +33,9 @@ import PageLayout from '@web-components/PageLayout';
 import ProofTestimonials from '@web-components/proof/ProofTestimonials';
 import { HiCheckCircle } from 'react-icons/hi2';
 
-const PLAN_ORDER = ['Pay As You Go', 'Pro', 'Scale'];
-const FEATURED_TIER = 'Pro';
+/** Column order on the pricing table. Names resolve from @genfeedai/pricing. */
+const PLAN_ORDER: PlanTier[] = ['payg', 'pro', 'scale'];
+const FEATURED_TIER: PlanTier = 'pro';
 
 const FAQ_ITEMS = [
   {
@@ -49,23 +54,19 @@ const FAQ_ITEMS = [
     question: 'Do I need to choose AI models?',
   },
   {
-    answer:
-      'Pro ($49/month) includes 8,000 credits (about $80 of pay-as-you-go output), unlimited brand kits, unlimited connected channels, and API access. Scale ($499/month) includes unlimited seats, 80,000 credits in a shared pool, multi-organization control, and approvals.',
+    answer: `${PLAN_COPY.pro.nameWithPrice} includes ${PLAN_COPY.pro.includedCredits} (about $80 of pay-as-you-go output), unlimited brand kits, unlimited connected channels, and API access. ${PLAN_COPY.scale.nameWithPrice} includes unlimited seats, ${PLAN_COPY.scale.includedCredits} in a shared pool, multi-organization control, and approvals.`,
     question: 'What do subscriptions add?',
   },
   {
-    answer:
-      'Brands and connected channels are unlimited. Pay As You Go and Pro include one organization; Scale and Enterprise add multi-organization workflows.',
+    answer: `Brands and connected channels are unlimited. ${PLAN_COPY.payg.name} and ${PLAN_COPY.pro.name} include one organization; ${PLAN_COPY.scale.name} and ${PLAN_COPY.enterprise.name} add multi-organization workflows.`,
     question: 'How many brands and channels can I connect?',
   },
   {
-    answer:
-      'Yes. API access is included on every paid plan at the same credit price. Generate in the studio or via code, and it draws from the same credit balance. Pro gets standard rate limits, Scale higher limits, and Enterprise custom limits with an SLA.',
+    answer: `Yes. API access is included on every paid plan at the same credit price. Generate in the studio or via code, and it draws from the same credit balance. ${PLAN_COPY.pro.name} gets standard rate limits, ${PLAN_COPY.scale.name} higher limits, and ${PLAN_COPY.enterprise.name} custom limits with an SLA.`,
     question: 'Is there an API?',
   },
   {
-    answer:
-      'Yes. Start on Pay As You Go with no monthly fee, then move to Pro when included credits make your monthly output cheaper. Scale is for shared seats, budgets, and higher-volume team workflows.',
+    answer: `Yes. Start on ${PLAN_COPY.payg.name} with no monthly fee, then move to ${PLAN_COPY.pro.name} when included credits make your monthly output cheaper. ${PLAN_COPY.scale.name} is for shared seats, budgets, and higher-volume team workflows.`,
     question: 'Can I start free and upgrade later?',
   },
   {
@@ -113,22 +114,7 @@ function formatCreditsDollars(credits: number): string {
 }
 
 function getOrderedPlans() {
-  const plansByLabel = new Map(websitePlans.map((plan) => [plan.label, plan]));
-  const orderedPlans: (typeof websitePlans)[number][] = [];
-
-  for (const label of PLAN_ORDER) {
-    const plan = plansByLabel.get(label);
-
-    if (plan) {
-      orderedPlans.push(plan);
-    }
-  }
-
-  return orderedPlans;
-}
-
-function getDisplayName(label: string): string {
-  return label;
+  return PLAN_ORDER.map((tier) => getPlanByTier(tier));
 }
 
 export function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
@@ -137,15 +123,15 @@ export function getPriceQualifier(plan: (typeof websitePlans)[number]): string {
   }
 
   if (plan.type === 'subscription') {
+    const hasUnlimitedSeats = plan.tier === 'scale';
+
     if (plan.includedCredits == null) {
-      return plan.label === 'Scale'
-        ? 'Unlimited seats'
-        : 'Monthly subscription';
+      return hasUnlimitedSeats ? 'Unlimited seats' : 'Monthly subscription';
     }
 
     const credits = formatNumberWithCommas(plan.includedCredits);
 
-    return plan.label === 'Scale'
+    return hasUnlimitedSeats
       ? `Unlimited seats + ${credits} credits`
       : `${credits} credits included`;
   }
@@ -161,7 +147,7 @@ export default function PricingContent() {
   const containerRef = useMarketingEntrance({ hero: false, sections: false });
   const paygSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=payg`;
   const proSignUpHref = `${EnvironmentService.apps.app}/sign-up?plan=pro`;
-  const enterprisePlan = websitePlans.find((p) => p.type === 'enterprise');
+  const enterprisePlan = getPlanByTier('enterprise');
 
   return (
     <div ref={containerRef}>
@@ -185,13 +171,12 @@ export default function PricingContent() {
         <WebSection maxWidth="full" py="md">
           <SectionHeader
             title="Start free. Subscribe when volume makes it cheaper."
-            description="Pay As You Go covers bursty campaigns with zero commitment. Pro and Scale include monthly credits at a ~40% better rate; Scale adds multi-organization workflows."
+            description={`${PLAN_COPY.payg.name} covers bursty campaigns with zero commitment. ${PLAN_COPY.pro.name} and ${PLAN_COPY.scale.name} include monthly credits at a ~40% better rate; ${PLAN_COPY.scale.name} adds multi-organization workflows.`}
             className="[&_h2]:text-5xl mb-4"
           />
-
           <NeuralGrid columns={3} className="gsap-grid">
             {getOrderedPlans().map((plan, index) => {
-              const isFeatured = plan.label === FEATURED_TIER;
+              const isFeatured = plan.tier === FEATURED_TIER;
               const isPayg = plan.type === 'payg';
               const ctaHref = isPayg
                 ? paygSignUpHref
@@ -202,13 +187,13 @@ export default function PricingContent() {
 
               return (
                 <NeuralGridItem
-                  key={plan.label}
+                  key={plan.tier}
                   padding="lg"
                   className={cn(
                     'relative gsap-card',
                     isFeatured && 'bg-card hover:bg-card',
                   )}
-                  tierLabel={`${String(index + 1).padStart(2, '0')} / ${getDisplayName(plan.label)}`}
+                  tierLabel={`${String(index + 1).padStart(2, '0')} / ${getPlanLabel(plan.tier)}`}
                 >
                   {isFeatured ? (
                     <div className="absolute right-6 top-6">
@@ -293,50 +278,45 @@ export default function PricingContent() {
               );
             })}
           </NeuralGrid>
-
           <p className="mt-6 text-center text-sm text-surface/50">
             Every paid plan includes API access at the same credit price. Create
             in the studio or via code, and it draws from the same credit
             balance. Higher plans get higher rate limits.
           </p>
-
-          {enterprisePlan ? (
-            <NeuralGrid columns={1} className="mt-4">
-              <NeuralGridItem
-                padding="sm"
-                className="flex flex-col gap-6 p-8 md:flex-row md:items-center md:justify-between"
-              >
-                <div className="max-w-2xl">
-                  <div className="mb-3 text-[10px] font-black uppercase tracking-widest text-surface/45">
-                    Enterprise
-                  </div>
-                  <h3 className="mb-2 text-2xl font-semibold tracking-[-0.02em]">
-                    Your own studio, fully managed.
-                  </h3>
-                  <p className="text-sm leading-6 text-surface/65">
-                    Custom output terms, unlimited seats and organizations, full
-                    API access, white-label, SSO, and a dedicated account
-                    manager.
-                  </p>
+          <NeuralGrid columns={1} className="mt-4">
+            <NeuralGridItem
+              padding="sm"
+              className="flex flex-col gap-6 p-8 md:flex-row md:items-center md:justify-between"
+            >
+              <div className="max-w-2xl">
+                <div className="mb-3 text-[10px] font-black uppercase tracking-widest text-surface/45">
+                  {enterprisePlan.label}
                 </div>
+                <h3 className="mb-2 text-2xl font-semibold tracking-[-0.02em]">
+                  Your own studio, fully managed.
+                </h3>
+                <p className="text-sm leading-6 text-surface/65">
+                  Custom output terms, unlimited seats and organizations, full
+                  API access, white-label, SSO, and a dedicated account manager.
+                </p>
+              </div>
 
-                <Button
-                  asChild
-                  className="shrink-0"
-                  size={ButtonSize.PUBLIC}
-                  variant={ButtonVariant.OUTLINE}
+              <Button
+                asChild
+                className="shrink-0"
+                size={ButtonSize.PUBLIC}
+                variant={ButtonVariant.OUTLINE}
+              >
+                <a
+                  href={enterprisePlan.ctaHref || EnvironmentService.calendly}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  <a
-                    href={enterprisePlan.ctaHref || EnvironmentService.calendly}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Book a Demo
-                  </a>
-                </Button>
-              </NeuralGridItem>
-            </NeuralGrid>
-          ) : null}
+                  Book a Demo
+                </a>
+              </Button>
+            </NeuralGridItem>
+          </NeuralGrid>
         </WebSection>
 
         <ProofTestimonials context="pricing" />

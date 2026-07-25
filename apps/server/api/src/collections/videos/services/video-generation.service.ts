@@ -317,7 +317,7 @@ export class VideoGenerationService {
         extension: MetadataExtension.MP4,
         height,
         model,
-        organization: brand.organization,
+        organization: brand.organizationId,
         prompt: promptData.id,
 
         // Template tracking
@@ -400,7 +400,7 @@ export class VideoGenerationService {
                 extension: MetadataExtension.MP4,
                 height,
                 model,
-                organization: brand.organization,
+                organization: brand.organizationId,
                 prompt: promptData.id,
                 references:
                   referenceIds.length > 0
@@ -487,7 +487,7 @@ export class VideoGenerationService {
               extension: MetadataExtension.MP4,
               height,
               model,
-              organization: brand.organization,
+              organization: brand.organizationId,
               prompt: promptData.id,
               references:
                 referenceIds.length > 0

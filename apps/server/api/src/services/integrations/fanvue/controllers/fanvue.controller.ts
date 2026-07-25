@@ -86,7 +86,7 @@ export class FanvueController {
 
     const state = JSON.stringify({
       brandId: brand.id,
-      organizationId: brand.organization,
+      organizationId: brand.organizationId,
       userId: publicMetadata.user,
     });
 

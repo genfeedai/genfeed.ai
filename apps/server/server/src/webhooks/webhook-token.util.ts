@@ -31,8 +31,13 @@ function resolveBearerToken(
  * as a `token` query parameter (or `x-webhook-token` header) and is compared
  * in constant time.
  *
- * When no secret is configured the callback is accepted with a warning so
- * existing deployments keep working until the secret is provisioned.
+ * These routes are `@Public()`, so this check is the *only* thing standing
+ * between the public internet and a job-completion handler that writes media
+ * records. It therefore fails closed: an unconfigured secret rejects the
+ * callback rather than accepting it. The rejection reuses the generic
+ * client-facing message so an anonymous caller cannot probe which deployments
+ * have provisioned a secret; the actionable detail (which environment variable
+ * to set) is logged server-side instead.
  */
 export function assertWebhookToken(options: {
   /**
@@ -46,16 +51,29 @@ export function assertWebhookToken(options: {
   configuredSecret: string | undefined;
   loggerService: LoggerService;
   request: Request;
+  /**
+   * Name of the environment variable holding this vendor's secret. Only ever
+   * used in the server-side log line, so a misconfigured deployment gets a
+   * message it can act on instead of a bare 401.
+   */
+  secretEnvVar: string;
   url: string;
 }): void {
-  const { acceptBearerHeader, configuredSecret, loggerService, request, url } =
-    options;
+  const {
+    acceptBearerHeader,
+    configuredSecret,
+    loggerService,
+    request,
+    secretEnvVar,
+    url,
+  } = options;
 
-  if (!configuredSecret) {
-    loggerService.warn(
-      `${url} webhook token not configured — accepting unauthenticated callback`,
+  // The config schema allows an empty string, so treat blank as unset.
+  if (!configuredSecret?.trim()) {
+    loggerService.error(
+      `${url} webhook rejected — ${secretEnvVar} is not configured. Set it and re-register the vendor callback URL, otherwise this provider's callbacks cannot be authenticated.`,
     );
-    return;
+    throw new UnauthorizedException('Invalid webhook token');
   }
 
   const provided =
@@ -83,6 +101,12 @@ export function assertWebhookToken(options: {
 /**
  * Append the shared-secret token to a vendor callback URL. No-op when the
  * secret is not configured.
+ *
+ * Deliberately does not throw: most callers build their callback URL in a
+ * constructor, so failing here would take down DI at boot for deployments that
+ * never touch this vendor. The un-tokenised URL is instead rejected inbound by
+ * `assertWebhookToken`, which confines the blast radius to the one provider
+ * whose secret is actually missing and logs the variable to set.
  */
 export function appendWebhookToken(
   callbackUrl: string,

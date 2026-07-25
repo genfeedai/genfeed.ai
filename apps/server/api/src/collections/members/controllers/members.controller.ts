@@ -1,11 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { InvitationsQueryDto } from '@api/collections/members/dto/invitations-query.dto';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { InvitationService } from '@api/collections/members/services/invitation.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { MembersService } from '@api/collections/members/services/members.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
@@ -17,8 +21,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Controller,
@@ -81,17 +87,13 @@ export class MembersController {
     return serializeCollection(request, MemberSerializer, data);
   }
 
-  @Get(':memberId')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findOne(@Req() request: Request, @Param('memberId') memberId: string) {
-    const data = await this.membersService.findOne({ _id: memberId });
-    return data
-      ? serializeSingle(request, MemberSerializer, data)
-      : returnNotFound(this.constructorName, memberId);
-  }
-
   // ────────────────────────────────────────────────────────────────────────────
   // Invitation endpoints
+  //
+  // These MUST stay declared above `@Get(':memberId')`. Nest matches routes in
+  // declaration order, so a wildcard param segment declared first swallows every
+  // static sibling path (`/members/invitations` would resolve to findOne with
+  // memberId='invitations').
   // ────────────────────────────────────────────────────────────────────────────
 
   /**
@@ -193,5 +195,40 @@ export class MembersController {
         status: newInvitation.status,
       },
     };
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Wildcard param routes — keep last so static sibling paths win.
+  // ────────────────────────────────────────────────────────────────────────────
+
+  @Get(':memberId')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findOne(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('memberId') memberId: string,
+  ) {
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization;
+
+    // Tenant scoping has to live here: RolesGuard only proves the CALLER is an
+    // active member of their OWN organization — it never inspects the requested
+    // member. Without this filter any authenticated user could read another
+    // org's roster, role assignments and brand assignments by id.
+    // A missing/invalid org context is fail-closed (404), never an unscoped read.
+    if (!isEntityId(memberId) || !isEntityId(organizationId)) {
+      return returnNotFound(this.constructorName, memberId);
+    }
+
+    const data = await this.membersService.findOne({
+      _id: memberId,
+      isDeleted: false,
+      organizationId,
+    });
+    // 404 (not 403) on a cross-org miss, matching base-crud.controller.ts — the
+    // response must not confirm that the id exists in another organization.
+    return data
+      ? serializeSingle(request, MemberSerializer, data)
+      : returnNotFound(this.constructorName, memberId);
   }
 }

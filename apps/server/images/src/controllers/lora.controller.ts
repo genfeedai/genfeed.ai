@@ -1,10 +1,12 @@
+import { InternalApiKeyGuard } from '@images/guards/internal-api-key.guard';
 import type { LoraUploadRequest } from '@images/interfaces/lora.interfaces';
 import { LoraService } from '@images/services/lora.service';
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('LoRAs')
 @Controller('loras')
+@UseGuards(InternalApiKeyGuard)
 export class LoraController {
   constructor(private readonly loraService: LoraService) {}
 

@@ -2,6 +2,10 @@ import { AgentCampaignsService } from '@api/collections/agent-campaigns/services
 import { AgentMemoryCaptureService } from '@api/collections/agent-memories/services/agent-memory-capture.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import {
+  requireRelationId,
+  resolveRelationId,
+} from '@api/shared/utils/relation-id/relation-id.util';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -59,6 +63,11 @@ export class CampaignWinnerExtractionService {
       };
     }
 
+    // Scalar FKs, never the Mongo-era aliases: `campaign.brand` is a populated
+    // object on any call path that passes a populate, and `String()` of that is
+    // "[object Object]" — which here would scope analytics to a brand that does
+    // not exist rather than failing.
+    const brandId = resolveRelationId(campaign.brandId, campaign.brand);
     const now = new Date();
     const startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const topContent = (await this.analyticsService.getTopContent(
@@ -66,9 +75,11 @@ export class CampaignWinnerExtractionService {
       now.toISOString(),
       5,
       AnalyticsMetric.ENGAGEMENT,
-      campaign.brand ? String(campaign.brand) : undefined,
+      brandId,
       undefined,
-      String(campaign.organization),
+      // The campaign was read scoped to this organization, so the caller's id is
+      // authoritative for the analytics scope.
+      organizationId,
     )) as TopContentEntry[];
 
     if (topContent.length === 0) {
@@ -105,10 +116,17 @@ export class CampaignWinnerExtractionService {
       .join(' ');
 
     const capture = await this.agentMemoryCaptureService.capture(
-      String(campaign.user),
-      String(campaign.organization),
+      // The captured memory row stores this as a non-nullable owner FK, so an
+      // unresolvable id must fail closed instead of writing "undefined".
+      requireRelationId(
+        campaign.userId,
+        campaign.user,
+        'user',
+        `Campaign ${campaignId}`,
+      ),
+      organizationId,
       {
-        brandId: campaign.brand ? String(campaign.brand) : undefined,
+        brandId,
         campaignId,
         confidence: 0.75,
         content,
