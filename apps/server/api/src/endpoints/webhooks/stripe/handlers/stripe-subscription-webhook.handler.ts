@@ -4,6 +4,7 @@ import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhoo
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { type SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import {
   type ISubscriptionOssReadModel,
@@ -47,6 +48,10 @@ export class StripeSubscriptionWebhookHandler {
         return;
       }
 
+      const organizationId = this.resolveSubscriptionOrganizationId(
+        existingSubscription,
+        url,
+      );
       const stripePriceId = subscription.items.data[0].price.id;
       const subscriptionData = this.buildSubscriptionCreatePatch(subscription);
 
@@ -66,11 +71,13 @@ export class StripeSubscriptionWebhookHandler {
       // Update organization tier and enabled models
       const tier = this.supportService.resolveTierFromPriceId(stripePriceId);
       if (tier) {
-        await this.supportService.updateOrganizationTierAndModels(
-          String(existingSubscription.organization),
-          tier,
-          url,
-        );
+        if (organizationId) {
+          await this.supportService.updateOrganizationTierAndModels(
+            organizationId,
+            tier,
+            url,
+          );
+        }
 
         // Sync tier to DB
         await this.subscriptionsService.syncSubscriptionState(
@@ -110,7 +117,7 @@ export class StripeSubscriptionWebhookHandler {
       });
 
       this.loggerService.log(`${url} subscription created successfully`, {
-        organizationId: existingSubscription.organization,
+        organizationId,
         status: subscription.status,
         stripeSubscriptionId: subscription.id,
       });
@@ -185,6 +192,10 @@ export class StripeSubscriptionWebhookHandler {
         return;
       }
 
+      const organizationId = this.resolveSubscriptionOrganizationId(
+        existingSubscription,
+        url,
+      );
       const currentPeriodEnd = subscription.items.data[0]?.current_period_end;
       const updateData = {
         cancelAtPeriodEnd: subscription.cancel_at_period_end,
@@ -213,11 +224,13 @@ export class StripeSubscriptionWebhookHandler {
       );
 
       // Update tier if price changed
-      await this.updateTierFromPrice(
-        subscription.items.data[0]?.price?.id,
-        String(existingSubscription.organization),
-        url,
-      );
+      if (organizationId) {
+        await this.updateTierFromPrice(
+          subscription.items.data[0]?.price?.id,
+          organizationId,
+          url,
+        );
+      }
 
       // Invalidate request context cache only after all dependent writes complete.
       const userId = user.id?.toString();
@@ -226,7 +239,7 @@ export class StripeSubscriptionWebhookHandler {
       }
 
       this.loggerService.log(`${url} subscription updated successfully`, {
-        organizationId: existingSubscription.organization,
+        organizationId,
         status: subscription.status,
         stripeSubscriptionId: subscription.id,
       });
@@ -256,6 +269,11 @@ export class StripeSubscriptionWebhookHandler {
         );
       }
 
+      const organizationId = this.resolveSubscriptionOrganizationId(
+        existingSubscription,
+        url,
+      );
+
       // Soft delete subscription and update cancellation details
       const updatedSubscription = await this.subscriptionsService.patch(
         String(existingSubscription.id),
@@ -266,10 +284,12 @@ export class StripeSubscriptionWebhookHandler {
         },
       );
 
-      // If subscription was canceled immediately (not at period end), remove all credits
-      if (!subscription.cancel_at_period_end) {
+      // If subscription was canceled immediately (not at period end), remove all credits.
+      // Skipped without a resolvable organization id: wiping credits is destructive
+      // and must never run against a bogus tenant id.
+      if (!subscription.cancel_at_period_end && organizationId) {
         await this.removeCreditsOnImmediateCancellation(
-          String(existingSubscription.organization),
+          organizationId,
           subscription.id,
           url,
         );
@@ -289,11 +309,13 @@ export class StripeSubscriptionWebhookHandler {
       );
 
       // Clear organization tier (BYOK = free tier after subscription canceled)
-      await this.supportService.updateOrganizationTierAndModels(
-        String(existingSubscription.organization),
-        SubscriptionTier.BYOK,
-        url,
-      );
+      if (organizationId) {
+        await this.supportService.updateOrganizationTierAndModels(
+          organizationId,
+          SubscriptionTier.BYOK,
+          url,
+        );
+      }
 
       // Invalidate request context cache only after all dependent writes complete.
       const userId = user.id?.toString();
@@ -301,24 +323,28 @@ export class StripeSubscriptionWebhookHandler {
         await this.supportService.invalidateUserCaches(userId);
       }
 
-      try {
-        await this.lifecycleEmailService.recordSubscriptionLapsed({
-          organizationId: String(existingSubscription.organization),
-          subscriptionId: subscription.id,
-          userId: String(existingSubscription.user),
-        });
-      } catch (error: unknown) {
-        this.loggerService.warn(
-          `${url} lifecycle email subscription-lapsed recording skipped`,
-          {
-            error: error instanceof Error ? error.message : error,
+      if (organizationId && userId) {
+        try {
+          await this.lifecycleEmailService.recordSubscriptionLapsed({
+            organizationId,
             subscriptionId: subscription.id,
-          },
-        );
+            // Sourced from the loaded user row rather than the subscription's
+            // relation alias, so the recipient is always a real user id.
+            userId,
+          });
+        } catch (error: unknown) {
+          this.loggerService.warn(
+            `${url} lifecycle email subscription-lapsed recording skipped`,
+            {
+              error: error instanceof Error ? error.message : error,
+              subscriptionId: subscription.id,
+            },
+          );
+        }
       }
 
       this.loggerService.log(`${url} subscription deleted successfully`, {
-        organizationId: existingSubscription.organization,
+        organizationId,
         stripeSubscriptionId: subscription.id,
       });
     } catch (error: unknown) {
@@ -329,13 +355,67 @@ export class StripeSubscriptionWebhookHandler {
     }
   }
 
+  /**
+   * Resolve the subscription's organization from the scalar foreign key.
+   *
+   * `organization` is a Mongo-era relation alias: it only holds an id string
+   * while `BaseService.normalizeDocument` back-fills it, and becomes a
+   * populated object (or `undefined`) the moment a query adds an include or a
+   * raw row skips normalization. `String()`-ing it would then write
+   * `"[object Object]"`/`"undefined"` into tenant-scoped tier and credit
+   * writes, so every caller reads `organizationId` first and skips the
+   * org-scoped work when nothing resolves.
+   */
+  private resolveSubscriptionOrganizationId(
+    existingSubscription: Pick<
+      ISubscriptionOssReadModel,
+      'id' | 'organizationId' | 'organization'
+    >,
+    url: string,
+  ): string | null {
+    const organizationId = resolveRelationId(
+      existingSubscription.organizationId,
+      existingSubscription.organization,
+    );
+
+    if (!organizationId) {
+      this.loggerService.error(
+        `${url} subscription is missing an organization id`,
+        {
+          subscriptionId: existingSubscription.id,
+        },
+      );
+      return null;
+    }
+
+    return organizationId;
+  }
+
   /** Look up the subscription's user; warns and returns null when missing. */
   private async findSubscriptionUser(
-    existingSubscription: Pick<ISubscriptionOssReadModel, 'id' | 'user'>,
+    existingSubscription: Pick<
+      ISubscriptionOssReadModel,
+      'id' | 'userId' | 'user'
+    >,
     url: string,
   ) {
+    // Scalar FK first: an undefined `user` alias reaches `findOne` as an absent
+    // id, which the `BaseService` id-guard answers with `null` — silently
+    // aborting the subscription sync as if the user had been deleted.
+    const userId = resolveRelationId(
+      existingSubscription.userId,
+      existingSubscription.user,
+    );
+
+    if (!userId) {
+      this.loggerService.error(`${url} subscription is missing a user id`, {
+        subscriptionId: existingSubscription.id,
+      });
+      return null;
+    }
+
     const user = await this.usersService.findOne({
-      id: existingSubscription.user,
+      id: userId,
       isDeleted: false,
     });
 

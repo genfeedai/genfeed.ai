@@ -7,6 +7,7 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { supportsMultipleOutputs } from '@genfeedai/constants';
 import {
   IngredientCategory,
@@ -389,8 +390,13 @@ export class ReplicateWebhookController {
             isDeleted: true,
           });
 
-          // Notify user via websocket
-          const userId = String(asset.user);
+          // Notify user via websocket. Scalar FK first: `user` is a Mongo-era
+          // relation alias that this un-populated query only carries because
+          // `BaseService.normalizeDocument` back-fills it from `userId`. If it
+          // were ever absent, `String(undefined)` would yield the truthy string
+          // `"undefined"` and publish the failure event to a bogus recipient
+          // instead of skipping it.
+          const userId = resolveRelationId(asset.userId, asset.user);
           if (userId) {
             await this.websocketService.publishAssetStatus(
               String(asset.id),
