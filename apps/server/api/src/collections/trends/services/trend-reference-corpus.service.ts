@@ -23,6 +23,7 @@ import {
   TrendCorpusFreshnessService,
 } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
 import { normalizeTrendSourceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
+import { normalizeTrendSourceUrl } from '@api/collections/trends/utils/trend-source-url.util';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
@@ -37,10 +38,6 @@ interface SyncTrendInput {
   viralityScore: number;
   sourcePreviewState: 'live' | 'fallback' | 'empty';
   sourcePreview: TrendSourceItem[];
-}
-
-function removeTrailingSlash(value: string): string {
-  return value.endsWith('/') ? value.slice(0, -1) : value;
 }
 
 interface RemixLineagePayload {
@@ -820,28 +817,17 @@ export class TrendReferenceCorpusService {
   }
 
   private normalizeSourceUrl(url: string): string {
-    try {
-      const parsed = new URL(url);
-      parsed.hash = '';
-      parsed.search = '';
-      return removeTrailingSlash(parsed.toString());
-    } catch (error) {
+    const result = normalizeTrendSourceUrl(url);
+    if (!result.ok) {
       this.loggerService.warn('Failed to normalize source URL', {
-        error: error instanceof Error ? error.message : String(error),
+        error:
+          result.error instanceof Error
+            ? result.error.message
+            : String(result.error),
         url,
       });
-      const queryIndex = url.indexOf('?');
-      const hashIndex = url.indexOf('#');
-      const delimiterIndexes = [queryIndex, hashIndex].filter(
-        (index) => index >= 0,
-      );
-      const end =
-        delimiterIndexes.length > 0
-          ? Math.min(...delimiterIndexes)
-          : url.length;
-
-      return removeTrailingSlash(url.slice(0, end));
     }
+    return result.normalizedUrl;
   }
 
   private normalizeLimit(
