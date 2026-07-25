@@ -182,14 +182,13 @@ export class PromptsOperationsController {
       return returnNotFound(this.constructorName, promptId);
     }
 
-    let selectedBrand: BrandDocument | undefined;
-    if (isEntityId(prompt.brandId)) {
-      const brand = await this.brandsService.findOne({
-        _id: prompt.brandId,
-        isDeleted: false,
-      });
-      selectedBrand = brand ?? undefined;
-    }
+    const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
+    const selectedBrand = promptBrandId
+      ? ((await this.brandsService.findOne({
+          _id: promptBrandId,
+          isDeleted: false,
+        })) ?? undefined)
+      : undefined;
 
     const { promptString, normalizedType } = PromptParser.parsePrompt(
       this.configService,
@@ -259,9 +258,7 @@ export class PromptsOperationsController {
     // Create activity for prompt remix start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isEntityId(prompt.brandId)
-          ? prompt.brandId
-          : publicMetadata.brand,
+        brand: promptBrandId ?? publicMetadata.brand,
         key: ActivityKey.PROMPT_REMIX_PROCESSING,
         organization: publicMetadata.organization,
         source: ActivitySource.PROMPT_REMIX,
@@ -406,14 +403,13 @@ export class PromptsOperationsController {
       return returnNotFound(this.constructorName, promptId);
     }
 
-    let selectedBrand: BrandDocument | undefined;
-    if (isEntityId(prompt.brandId)) {
-      const brand = await this.brandsService.findOne({
-        _id: prompt.brandId,
-        isDeleted: false,
-      });
-      selectedBrand = brand ?? undefined;
-    }
+    const promptBrandId = isEntityId(prompt.brandId) ? prompt.brandId : null;
+    const selectedBrand = promptBrandId
+      ? ((await this.brandsService.findOne({
+          _id: promptBrandId,
+          isDeleted: false,
+        })) ?? undefined)
+      : undefined;
 
     const { promptString, normalizedType } = PromptParser.parsePrompt(
       this.configService,
@@ -427,9 +423,7 @@ export class PromptsOperationsController {
     // Create activity for prompt enhance start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isEntityId(prompt.brandId)
-          ? prompt.brandId
-          : publicMetadata.brand,
+        brand: promptBrandId ?? publicMetadata.brand,
         key: ActivityKey.PROMPT_ENHANCE_PROCESSING,
         organization: publicMetadata.organization,
         source: ActivitySource.PROMPT_ENHANCEMENT,
