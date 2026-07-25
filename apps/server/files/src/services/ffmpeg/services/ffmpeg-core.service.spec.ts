@@ -151,12 +151,13 @@ describe('FFmpegCoreService', () => {
       expect(typeof result).toBe('string');
     });
 
-    it.each(['../video', 'nested/video', '/absolute'])(
-      'rejects traversal-shaped type %s',
-      (type) => {
-        expect(() => service.getTempPath(type)).toThrow(BadRequestException);
-      },
-    );
+    it.each([
+      '../video',
+      'nested/video',
+      '/absolute',
+    ])('rejects traversal-shaped type %s', (type) => {
+      expect(() => service.getTempPath(type)).toThrow(BadRequestException);
+    });
 
     it('accepts a legitimate nested temp directory under the fixed root', () => {
       expect(service.getTempPath('audio', 'ingredient-123')).toBe(
