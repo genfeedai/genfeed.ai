@@ -5,6 +5,8 @@ Twitter thread conversion, virality analysis, and public link sharing.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { ArticlesController } from '@api/collections/articles/controllers/articles.controller';
+import { ArticlesOperationsController } from '@api/collections/articles/controllers/operations/articles-operations.controller';
+import { ArticlesTransformationsController } from '@api/collections/articles/controllers/transformations/articles-transformations.controller';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
 import { ArticleContentPersistenceService } from '@api/collections/articles/services/article-content-persistence.service';
 import { ArticleInsightsService } from '@api/collections/articles/services/article-insights.service';
@@ -39,7 +41,14 @@ import { ConfigModule } from '@libs/config/config.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [ArticlesController],
+  // `ArticlesOperationsController` and `ArticlesTransformationsController` must
+  // register before `ArticlesController`: their static path segments would
+  // otherwise be shadowed by the inherited BaseCRUD `:id` routes.
+  controllers: [
+    ArticlesOperationsController,
+    ArticlesTransformationsController,
+    ArticlesController,
+  ],
   exports: [ArticleAnalyticsService, ArticlesContentService, ArticlesService],
   imports: [
     forwardRef(() => ActivitiesModule),
