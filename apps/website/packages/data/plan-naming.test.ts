@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { PlanTier } from '@helpers/business/pricing/pricing.helper';
 import {
   getPlanByTier,
@@ -15,7 +14,12 @@ import { useCases } from './use-cases.data';
 
 const TIERS = Object.keys(PLAN_LABELS) as PlanTier[];
 
-const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
+/**
+ * The vitest config sets `root` to the app directory, so cwd is the website
+ * app. `import.meta.url` is not usable here: the jsdom environment hands back a
+ * non-file scheme, which fileURLToPath rejects.
+ */
+const APP_ROOT = process.cwd();
 
 /**
  * Every marketing surface that names or prices a plan in prose. The site once
@@ -24,13 +28,13 @@ const DATA_DIR = fileURLToPath(new URL('.', import.meta.url));
  * rename or a price change in @genfeedai/pricing propagates on its own.
  */
 const COPY_SOURCES = [
-  'faq.data.ts',
-  'products.data.ts',
-  'use-cases.data.ts',
-  '../ui/marketing/PricingStrip.tsx',
-  '../../app/(public)/pricing/page.tsx',
-  '../../app/(public)/pricing/pricing-content.tsx',
-  '../../scripts/generate-llms-txt.ts',
+  'packages/data/faq.data.ts',
+  'packages/data/products.data.ts',
+  'packages/data/use-cases.data.ts',
+  'packages/ui/marketing/PricingStrip.tsx',
+  'app/(public)/pricing/page.tsx',
+  'app/(public)/pricing/pricing-content.tsx',
+  'scripts/generate-llms-txt.ts',
 ];
 
 /** Digits only, so the assertion survives any change to number formatting. */
@@ -111,7 +115,7 @@ describe('plan naming', () => {
     const offenders: string[] = [];
 
     for (const relativePath of COPY_SOURCES) {
-      const source = readFileSync(join(DATA_DIR, relativePath), 'utf8');
+      const source = readFileSync(join(APP_ROOT, relativePath), 'utf8');
 
       for (const literal of banned) {
         if (source.includes(literal)) {
