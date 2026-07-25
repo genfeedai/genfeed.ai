@@ -34,7 +34,7 @@ import {
 import type { IFileMetadata } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 // Mock setImmediate for testing async callbacks
@@ -799,8 +799,8 @@ describe('WebhooksService', () => {
     const mockAsset = {
       _id: assetId,
       category: AssetCategory.LOGO,
-      parent: '507f191e810c19729de860ee',
-      parentModel: 'Brand',
+      parentBrandId: '507f191e810c19729de860ee',
+      parentType: 'BRAND',
       user: mockUser,
     };
 
@@ -909,8 +909,8 @@ describe('WebhooksService', () => {
         'completed',
         expect.any(String),
         expect.objectContaining({
-          parent: mockAsset.parent.toString(),
-          parentModel: 'Brand',
+          parent: mockAsset.parentBrandId,
+          parentModel: mockAsset.parentType,
         }),
       );
     });
