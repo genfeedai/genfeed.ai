@@ -35,6 +35,10 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import {
+  ARTICLE_PREVIEW_TOKEN_TTL_SECONDS,
+  createArticlePreviewToken,
+} from '@api/helpers/utils/article-preview/article-preview-token.util';
+import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
@@ -59,9 +63,11 @@ import {
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
@@ -97,6 +103,7 @@ export class ArticlesController extends BaseCRUDController<
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly modelsService: ModelsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
+    private readonly configService: ConfigService,
     public readonly loggerService: LoggerService,
     public readonly routerService: RouterService,
     private readonly seoScorerService: SeoScorerService,
@@ -179,6 +186,66 @@ export class ArticlesController extends BaseCRUDController<
     }
 
     return serializeSingle(request, this.serializer, article);
+  }
+
+  /**
+   * Mint a shareable preview link for an unpublished article.
+   *
+   * The link carries a signed, slug-bound, expiring token — the only thing the
+   * public articles endpoint accepts as authorisation to serve unpublished
+   * content. Minting is organization-scoped; reading the resulting link is not,
+   * so treat the returned URL as a bearer credential.
+   */
+  @Get(':articleId/preview-links')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async createPreviewLink(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('articleId') articleId: string,
+  ): Promise<{ expiresInSeconds: number; url: string }> {
+    const publicMetadata = getPublicMetadata(user);
+
+    const article = await this.articlesService.findOne({
+      _id: articleId,
+      isDeleted: false,
+    });
+
+    if (!article) {
+      ErrorResponse.notFound(this.entityName, articleId);
+    }
+
+    if (
+      String(article.organization ?? article.organizationId) !==
+        publicMetadata.organization.toString() &&
+      !getIsSuperAdmin(user, request)
+    ) {
+      ErrorResponse.notFound(this.entityName, articleId);
+    }
+
+    const publicUrl = (
+      this.configService.get('GENFEEDAI_PUBLIC_URL') as string | undefined
+    )?.replace(/\/$/, '');
+
+    const signingKey = this.configService.get('TOKEN_ENCRYPTION_KEY') as
+      | string
+      | undefined;
+
+    const slug = article.slug ? String(article.slug) : undefined;
+
+    const token = slug
+      ? createArticlePreviewToken(slug, signingKey)
+      : undefined;
+
+    if (!slug || !publicUrl || !token) {
+      throw new BadRequestException(
+        'This article cannot be previewed: it needs a slug, a configured public URL, and a configured signing key.',
+      );
+    }
+
+    return {
+      expiresInSeconds: ARTICLE_PREVIEW_TOKEN_TTL_SECONDS,
+      url: `${publicUrl}/articles/${slug}?previewToken=${token}`,
+    };
   }
 
   /**
