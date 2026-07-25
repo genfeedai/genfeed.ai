@@ -9,6 +9,13 @@ import { vi } from 'vitest';
 // Set test environment
 process.env.NODE_ENV = 'test';
 
+// `baseSchema.PORT` is `Joi.number().required()` and this service deliberately
+// declares no default (its deployments always supply one), so anything that
+// constructs `ConfigService` — including importing `config.module.ts`, which
+// builds it eagerly via `useValue` — needs PORT present. Matches the deployed
+// notifications port.
+process.env.PORT = '3011';
+
 // Mock Redis URL (tests should mock Redis operations)
 process.env.REDIS_URL = 'redis://localhost:6379';
 

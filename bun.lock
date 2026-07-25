@@ -439,6 +439,9 @@
         "@genfeedai/integrations": "workspace:*",
         "discord.js": "14.26.4",
       },
+      "devDependencies": {
+        "unplugin-swc": "1.5.9",
+      },
     },
     "apps/server/files": {
       "name": "@genfeedai/files",

@@ -8,9 +8,15 @@ import {
   setupServiceShell,
 } from './env-loader';
 
-/** Minimal ConfigService shape the runner needs — just the `PORT` lookup. */
+/**
+ * Minimal ConfigService shape the runner needs — just the `PORT` lookup.
+ *
+ * The return type is widened to `number | string` so the Joi-validated services
+ * (whose `get('PORT')` resolves to `number` via `baseSchema`) satisfy it as well
+ * as any service that surfaces the raw string. `app.listen()` accepts both.
+ */
 interface PortConfigService {
-  get(key: string): string;
+  get(key: 'PORT'): number | string;
 }
 
 export interface RunServiceOptions {

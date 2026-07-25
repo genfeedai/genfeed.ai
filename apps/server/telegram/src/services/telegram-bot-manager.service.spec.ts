@@ -28,7 +28,14 @@ vi.mock('rxjs', () => ({
   firstValueFrom: vi.fn(),
 }));
 
-vi.mock('@genfeedai/enums', () => ({
+// Overlay, not replace. A bare factory swaps out the *whole* module, so any
+// export this spec's import graph reaches transitively disappears. Telegram's
+// `ConfigService` now composes schemas from `@genfeedai/config`, whose barrel
+// re-exports `schemas/stripe.schema.ts` → `@genfeedai/pricing` →
+// `tier-entitlements`, which reads `SubscriptionTier` from here. Spreading the
+// real module keeps every other export intact while still pinning `ParseMode`.
+vi.mock('@genfeedai/enums', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/enums')>()),
   ParseMode: { MARKDOWN: 'Markdown' },
 }));
 

@@ -105,8 +105,6 @@ export default defineConfig({
     },
     environment: 'node',
     exclude: [
-      'src/config/config.module.spec.ts',
-      'src/config/config.service.spec.ts',
       'src/controllers/dev.controller.spec.ts',
       'src/services/notification-handler.service.spec.ts',
       'src/services/discord/discord.module.spec.ts',

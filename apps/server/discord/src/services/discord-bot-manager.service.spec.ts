@@ -8,18 +8,47 @@ vi.mock('discord.js', () => {
     on: vi.fn(),
     once: vi.fn(),
   };
-  return {
-    ActionRowBuilder: vi.fn().mockImplementation(() => ({
-      addComponents: vi.fn().mockReturnThis(),
-    })),
-    BaseGuildTextChannel: class BaseGuildTextChannel {},
-    ButtonBuilder: vi.fn().mockImplementation(() => ({
+  // The service invokes each of these builders with `new`. A `vi.fn()` spy
+  // called with `new` runs its implementation through `Reflect.construct`, and
+  // arrow functions are not constructible — so every implementation has to be a
+  // real function. Declarations, not expressions: Biome's `useArrowFunction`
+  // autofix rewrites function *expressions* straight back to arrows.
+  function ActionRowBuilderImpl() {
+    return { addComponents: vi.fn().mockReturnThis() };
+  }
+  function ButtonBuilderImpl() {
+    return {
       setCustomId: vi.fn().mockReturnThis(),
       setLabel: vi.fn().mockReturnThis(),
       setStyle: vi.fn().mockReturnThis(),
-    })),
+    };
+  }
+  function ClientImpl() {
+    return mockClient;
+  }
+  function RestImpl() {
+    return {
+      put: vi.fn().mockResolvedValue(undefined),
+      setToken: vi.fn().mockReturnThis(),
+    };
+  }
+  function SlashCommandBuilderImpl() {
+    return {
+      setDescription: vi.fn().mockReturnThis(),
+      setName: vi.fn().mockReturnThis(),
+      toJSON: vi.fn().mockReturnValue({}),
+    };
+  }
+
+  return {
+    ActionRowBuilder: vi.fn(ActionRowBuilderImpl),
+    // A bare factory replaces the whole module, so every export the service
+    // imports must be present or the import throws. The manager uses this one
+    // in an `instanceof` check when resolving a send-to-channel target.
+    BaseGuildTextChannel: class BaseGuildTextChannel {},
+    ButtonBuilder: vi.fn(ButtonBuilderImpl),
     ButtonStyle: { Danger: 4, Primary: 1, Secondary: 2, Success: 3 },
-    Client: vi.fn().mockImplementation(() => mockClient),
+    Client: vi.fn(ClientImpl),
     Events: { ClientReady: 'ready' },
     GatewayIntentBits: {
       DirectMessages: 8,
@@ -27,16 +56,9 @@ vi.mock('discord.js', () => {
       Guilds: 1,
       MessageContent: 4,
     },
-    REST: vi.fn().mockImplementation(() => ({
-      put: vi.fn().mockResolvedValue(undefined),
-      setToken: vi.fn().mockReturnThis(),
-    })),
+    REST: vi.fn(RestImpl),
     Routes: { applicationCommands: vi.fn().mockReturnValue('/commands') },
-    SlashCommandBuilder: vi.fn().mockImplementation(() => ({
-      setDescription: vi.fn().mockReturnThis(),
-      setName: vi.fn().mockReturnThis(),
-      toJSON: vi.fn().mockReturnValue({}),
-    })),
+    SlashCommandBuilder: vi.fn(SlashCommandBuilderImpl),
   };
 });
 

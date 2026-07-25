@@ -49,14 +49,14 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
     // with an unconventional value is not rejected at boot.
     // - SLACK_NOTIFICATION_BOT_TOKEN: slack.service
     // - GENFEED_CLOUD / NEXT_PUBLIC_GENFEED_CLOUD: terminal.service cloud gate
-    // - VALIDATION_*: validation.config file-upload limits
+    //
+    // The `VALIDATION_*` entries that used to sit here were dropped alongside
+    // the service-local `ValidationConfigService` copy: nothing in notifications
+    // reads them. The canonical validation service lives in
+    // `@libs/config/services/validation.config` and is registered by the API.
     GENFEED_CLOUD: Joi.string().optional().allow(''),
     NEXT_PUBLIC_GENFEED_CLOUD: Joi.string().optional().allow(''),
     SLACK_NOTIFICATION_BOT_TOKEN: Joi.string().optional().allow(''),
-    VALIDATION_AUDIO_FORMATS: Joi.string().optional().allow(''),
-    VALIDATION_IMAGE_FORMATS: Joi.string().optional().allow(''),
-    VALIDATION_MAX_FILE_SIZE: Joi.string().optional().allow(''),
-    VALIDATION_VIDEO_FORMATS: Joi.string().optional().allow(''),
   },
 }) {
   private readonly logger = new Logger(ConfigService.name);
