@@ -16,10 +16,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function successResponse(body: unknown, status = 200): Response {
   return {
-    json: async () => body,
     ok: true,
     status,
     statusText: 'OK',
+    text: async () => (body === undefined ? '' : JSON.stringify(body)),
   } as unknown as Response;
 }
 
@@ -265,8 +265,8 @@ describe('AdminFleetTrainingService', () => {
   });
 
   describe('syncDataset', () => {
-    it('should call images service POST /datasets/:slug/sync', async () => {
-      safeFetchMock.mockResolvedValue(successResponse(undefined, 204));
+    it('should accept an empty success response from the images service', async () => {
+      safeFetchMock.mockResolvedValue(successResponse(undefined));
 
       await service.syncDataset('alice', ['s3://key1', 's3://key2']);
 

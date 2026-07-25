@@ -106,6 +106,7 @@ export class MarketplaceApiClient {
           `MarketplaceApiClient searchListings failed: ${response.status}`,
           'MarketplaceApiClient',
         );
+        await response.body?.cancel();
         return emptyResult;
       }
 
@@ -127,7 +128,7 @@ export class MarketplaceApiClient {
     listingId: string,
   ): Promise<MarketplaceListingResponse | null> {
     try {
-      const url = `${this.baseUrl}/marketplace/listings/${listingId}`;
+      const url = `${this.baseUrl}/marketplace/listings/${encodeURIComponent(listingId)}`;
       const response = await safeFetch(
         url,
         {
@@ -143,6 +144,7 @@ export class MarketplaceApiClient {
           `MarketplaceApiClient getListing failed: ${response.status}`,
           'MarketplaceApiClient',
         );
+        await response.body?.cancel();
         return null;
       }
 
@@ -210,6 +212,7 @@ export class MarketplaceApiClient {
           `MarketplaceApiClient createListing failed: ${response.status}`,
           'MarketplaceApiClient',
         );
+        await response.body?.cancel();
         return null;
       }
 
@@ -228,7 +231,7 @@ export class MarketplaceApiClient {
    */
   async submitForReview(listingId: string, sellerId: string): Promise<boolean> {
     try {
-      const url = `${this.baseUrl}/seller/listings/${listingId}/submit`;
+      const url = `${this.baseUrl}/seller/listings/${encodeURIComponent(listingId)}/submit`;
       const response = await safeFetch(
         url,
         {
@@ -240,7 +243,9 @@ export class MarketplaceApiClient {
         this.destinationGuard,
       );
 
-      return response.ok;
+      const succeeded = response.ok;
+      await response.body?.cancel();
+      return succeeded;
     } catch (error: unknown) {
       this.logger.warn(
         `MarketplaceApiClient submitForReview error: ${(error as Error).message}`,
@@ -258,7 +263,7 @@ export class MarketplaceApiClient {
     userId: string,
   ): Promise<MarketplaceSellerResponse | null> {
     try {
-      const url = `${this.baseUrl}/sellers/by-user/${userId}`;
+      const url = `${this.baseUrl}/sellers/by-user/${encodeURIComponent(userId)}`;
       const response = await safeFetch(
         url,
         {
@@ -269,7 +274,10 @@ export class MarketplaceApiClient {
         this.destinationGuard,
       );
 
-      if (!response.ok) return null;
+      if (!response.ok) {
+        await response.body?.cancel();
+        return null;
+      }
 
       return (await response.json()) as MarketplaceSellerResponse;
     } catch (error: unknown) {
@@ -306,7 +314,10 @@ export class MarketplaceApiClient {
         this.destinationGuard,
       );
 
-      if (!response.ok) return { owned: false };
+      if (!response.ok) {
+        await response.body?.cancel();
+        return { owned: false };
+      }
 
       return (await response.json()) as {
         owned: boolean;
@@ -339,7 +350,10 @@ export class MarketplaceApiClient {
         this.destinationGuard,
       );
 
-      if (!response.ok) return null;
+      if (!response.ok) {
+        await response.body?.cancel();
+        return null;
+      }
 
       return (await response.json()) as { _id: string };
     } catch {

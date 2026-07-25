@@ -1,9 +1,5 @@
 import { lookup } from 'node:dns/promises';
-import {
-  type ClientRequest,
-  Agent as HttpAgent,
-  request as httpRequest,
-} from 'node:http';
+import { Agent as HttpAgent, request as httpRequest } from 'node:http';
 import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
 import { BlockList, isIP, type LookupFunction } from 'node:net';
 import { Readable } from 'node:stream';
@@ -39,13 +35,15 @@ for (const [network, prefix] of [
 }
 
 for (const [network, prefix] of [
-  ['::', 128],
+  ['::', 96],
   ['::1', 128],
   ['::ffff:0:0', 96],
   ['64:ff9b::', 96],
   ['64:ff9b:1::', 48],
   ['100::', 64],
+  ['2001::', 32],
   ['2001:db8::', 32],
+  ['2002::', 16],
   ['fc00::', 7],
   ['fe80::', 10],
   ['ff00::', 8],
@@ -248,33 +246,44 @@ function createResponseHeaders(rawHeaders: readonly string[]): Headers {
   return headers;
 }
 
-async function writeRequestBody(
-  request: ClientRequest,
+interface SerializedRequestBody {
+  contentType?: string;
+  value?: string | Buffer;
+}
+
+async function serializeRequestBody(
   body: BodyInit | null | undefined,
-): Promise<void> {
+): Promise<SerializedRequestBody> {
   if (body === undefined || body === null) {
-    request.end();
-    return;
+    return {};
   }
 
-  if (typeof body === 'string' || body instanceof URLSearchParams) {
-    request.end(String(body));
-    return;
+  if (typeof body === 'string') {
+    return { value: body };
+  }
+
+  if (body instanceof URLSearchParams) {
+    return {
+      contentType: 'application/x-www-form-urlencoded;charset=UTF-8',
+      value: String(body),
+    };
   }
 
   if (body instanceof ArrayBuffer) {
-    request.end(Buffer.from(body));
-    return;
+    return { value: Buffer.from(body) };
   }
 
   if (ArrayBuffer.isView(body)) {
-    request.end(Buffer.from(body.buffer, body.byteOffset, body.byteLength));
-    return;
+    return {
+      value: Buffer.from(body.buffer, body.byteOffset, body.byteLength),
+    };
   }
 
   if (body instanceof Blob) {
-    request.end(Buffer.from(await body.arrayBuffer()));
-    return;
+    return {
+      contentType: body.type || undefined,
+      value: Buffer.from(await body.arrayBuffer()),
+    };
   }
 
   throw new DestinationGuardError(
@@ -287,7 +296,22 @@ async function requestPinnedDestination(
   init: RequestInit,
 ): Promise<Response> {
   const agent = createPinnedAgent(destination);
-  const headers = Object.fromEntries(new Headers(init.headers).entries());
+  const serializedBody = await serializeRequestBody(init.body);
+  const requestHeaders = new Headers(init.headers);
+  requestHeaders.set('accept-encoding', 'identity');
+  if (serializedBody.contentType && !requestHeaders.has('content-type')) {
+    requestHeaders.set('content-type', serializedBody.contentType);
+  }
+  if (
+    serializedBody.value !== undefined &&
+    !requestHeaders.has('content-length')
+  ) {
+    requestHeaders.set(
+      'content-length',
+      String(Buffer.byteLength(serializedBody.value)),
+    );
+  }
+  const headers = Object.fromEntries(requestHeaders.entries());
   const requestFunction =
     destination.url.protocol === 'https:' ? httpsRequest : httpRequest;
 
@@ -295,6 +319,7 @@ async function requestPinnedDestination(
     // The URL has passed the shared policy, and the custom agent connects only
     // to the exact DNS answer checked above.
     const request = requestFunction(
+      // codeql[js/request-forgery]
       destination.url,
       {
         agent,
@@ -311,22 +336,21 @@ async function requestPinnedDestination(
           ? (Readable.toWeb(incoming) as ReadableStream<Uint8Array>)
           : null;
 
-        resolve(
-          new Response(body, {
-            headers: createResponseHeaders(incoming.rawHeaders),
-            status,
-            statusText: incoming.statusMessage,
-          }),
-        );
+        const response = new Response(body, {
+          headers: createResponseHeaders(incoming.rawHeaders),
+          status,
+          statusText: incoming.statusMessage,
+        });
+        Object.defineProperty(response, 'url', {
+          configurable: true,
+          value: destination.url.href,
+        });
+        resolve(response);
       },
-    ); // codeql[js/request-forgery]
+    );
 
     request.once('error', reject);
-    void writeRequestBody(request, init.body).catch((error: unknown) => {
-      request.destroy(
-        error instanceof Error ? error : new Error(String(error)),
-      );
-    });
+    request.end(serializedBody.value);
   });
 }
 
@@ -384,6 +408,9 @@ export async function safeFetch(
     const isRedirect = REDIRECT_STATUSES.has(response.status) && location;
 
     if (!isRedirect || currentInit.redirect === 'manual') {
+      if (redirectCount > 0) {
+        Object.defineProperty(response, 'redirected', { value: true });
+      }
       return response;
     }
 

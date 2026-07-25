@@ -126,11 +126,16 @@ export class AdminFleetTrainingService {
       );
     }
 
-    if (response.status === 204) {
+    if (response.status === 204 || response.status === 205) {
       return undefined as T;
     }
 
-    return (await response.json()) as T;
+    const responseBody = await response.text();
+    if (responseBody.trim() === '') {
+      return undefined as T;
+    }
+
+    return JSON.parse(responseBody) as T;
   }
 
   /**

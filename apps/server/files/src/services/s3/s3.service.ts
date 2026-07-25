@@ -180,6 +180,8 @@ export class S3Service {
 
   async downloadFromUrl(url: string, localPath: string): Promise<void> {
     try {
+      // This helper accepts caller-supplied media URLs, not a configured
+      // storage service origin. Keep the public-network policy fail-closed.
       const response = await safeFetch(url);
       if (!response.ok) {
         const errorText = await response

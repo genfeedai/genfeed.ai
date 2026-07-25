@@ -100,6 +100,8 @@ export class HookRemixService {
   }
 
   private async downloadFile(url: string, outputPath: string): Promise<void> {
+    // CTA URLs arrive in job data and are not a configured internal service.
+    // Keep the public-network policy fail-closed.
     const response = await safeFetch(url);
     if (!response.ok) {
       throw new Error(

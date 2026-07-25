@@ -59,6 +59,9 @@ describe('destination guard', () => {
     '192.168.0.1',
     '169.254.169.254',
     '::1',
+    '::7f00:1',
+    '2001:0:1::1',
+    '2002:a9fe:a9fe::',
     'fc00::1',
     'fd12:3456::1',
     'fe80::1',
@@ -102,6 +105,7 @@ describe('destination guard', () => {
   });
 
   it('connects through an agent pinned to the checked DNS answer', async () => {
+    expect.assertions(7);
     dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
     mockHttpResponse(200);
 
@@ -141,6 +145,24 @@ describe('destination guard', () => {
           family: 4,
         },
       ]);
+    });
+  });
+
+  it('preserves fetch-compatible request metadata', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(200);
+
+    const response = await safeFetch('http://public.example/asset', {
+      body: 'hello',
+      method: 'POST',
+    });
+
+    expect(response.url).toBe('http://public.example/asset');
+    expect(httpRequestMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: {
+        'accept-encoding': 'identity',
+        'content-length': '5',
+      },
     });
   });
 
