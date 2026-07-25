@@ -7,6 +7,14 @@ export {
   SAFE_ARG_VALUE_PATTERN,
 } from '@libs/security/arg-security';
 export {
+  DestinationGuardError,
+  type DestinationGuardOptions,
+  isBlockedDestinationAddress,
+  type ResolvedDestination,
+  resolveSafeDestination,
+  safeFetch,
+} from '@libs/security/destination-guard';
+export {
   assertSafeSegment,
   createPathSecurity,
   createPathSecurityClass,

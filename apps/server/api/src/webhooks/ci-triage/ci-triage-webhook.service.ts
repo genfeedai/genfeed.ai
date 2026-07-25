@@ -1,5 +1,6 @@
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { Injectable } from '@nestjs/common';
 
 export interface CiTriagePayload {
@@ -11,6 +12,8 @@ export interface CiTriagePayload {
 }
 
 const MAX_DIAGNOSES_PER_PR = 5;
+const ANTHROPIC_API_ORIGIN = 'https://api.anthropic.com';
+const GITHUB_API_ORIGIN = 'https://api.github.com';
 
 @Injectable()
 export class CiTriageWebhookService {
@@ -68,19 +71,23 @@ Provide a concise diagnosis:
 Be direct and actionable. No preamble.`;
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        body: JSON.stringify({
-          max_tokens: 1024,
-          messages: [{ content: prompt, role: 'user' }],
-          model: 'claude-opus-4-6',
-        }),
-        headers: {
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-          'x-api-key': String(apiKey),
+      const response = await safeFetch(
+        `${ANTHROPIC_API_ORIGIN}/v1/messages`,
+        {
+          body: JSON.stringify({
+            max_tokens: 1024,
+            messages: [{ content: prompt, role: 'user' }],
+            model: 'claude-opus-4-6',
+          }),
+          headers: {
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+            'x-api-key': String(apiKey),
+          },
+          method: 'POST',
         },
-        method: 'POST',
-      });
+        { allowedOrigins: [ANTHROPIC_API_ORIGIN] },
+      );
 
       const result = (await response.json()) as {
         content?: Array<{ text?: string }>;
@@ -99,8 +106,19 @@ Be direct and actionable. No preamble.`;
       ].join('\n');
 
       // Post comment via GitHub REST API (replaces execSync shell-out to gh CLI)
-      const ghResponse = await fetch(
-        `https://api.github.com/repos/${payload.repo}/issues/${payload.prNumber}/comments`,
+      const repositorySegments = payload.repo.split('/');
+      if (
+        repositorySegments.length !== 2 ||
+        repositorySegments.some((segment) => !segment)
+      ) {
+        throw new Error('CI triage repository must use the owner/name format');
+      }
+      const repositoryPath = repositorySegments
+        .map((segment) => encodeURIComponent(segment))
+        .join('/');
+
+      const ghResponse = await safeFetch(
+        `${GITHUB_API_ORIGIN}/repos/${repositoryPath}/issues/${payload.prNumber}/comments`,
         {
           body: JSON.stringify({ body: comment }),
           headers: {
@@ -111,6 +129,7 @@ Be direct and actionable. No preamble.`;
           },
           method: 'POST',
         },
+        { allowedOrigins: [GITHUB_API_ORIGIN] },
       );
 
       if (!ghResponse.ok) {

@@ -11,6 +11,7 @@ import {
 import { Upload } from '@aws-sdk/lib-storage';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@files/config/config.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -179,7 +180,7 @@ export class S3Service {
 
   async downloadFromUrl(url: string, localPath: string): Promise<void> {
     try {
-      const response = await fetch(url);
+      const response = await safeFetch(url);
       if (!response.ok) {
         const errorText = await response
           .text()

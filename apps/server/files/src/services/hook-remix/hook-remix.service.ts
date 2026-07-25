@@ -8,6 +8,7 @@ import type {
 import { UploadService } from '@files/services/upload/upload.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -99,7 +100,7 @@ export class HookRemixService {
   }
 
   private async downloadFile(url: string, outputPath: string): Promise<void> {
-    const response = await fetch(url);
+    const response = await safeFetch(url);
     if (!response.ok) {
       throw new Error(
         `Failed to download CTA clip: ${response.status} ${response.statusText}`,

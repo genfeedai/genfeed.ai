@@ -5,6 +5,11 @@ import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
+vi.mock('@libs/security/destination-guard', () => ({
+  safeFetch: (input: string | URL, init?: RequestInit) =>
+    globalThis.fetch(input, init),
+}));
+
 vi.mock('node:fs', () => ({
   default: {
     existsSync: vi.fn().mockReturnValue(false),

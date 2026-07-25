@@ -4,6 +4,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@libs/security/destination-guard', () => ({
+  safeFetch: (input: string | URL, init?: RequestInit) =>
+    globalThis.fetch(input, init),
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------

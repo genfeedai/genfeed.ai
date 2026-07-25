@@ -3,6 +3,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@libs/security/destination-guard', () => ({
+  safeFetch: (input: string | URL, init?: RequestInit) =>
+    globalThis.fetch(input, init),
+}));
+
 import {
   type CiTriagePayload,
   CiTriageWebhookService,
@@ -89,18 +94,6 @@ describe('CiTriageWebhookService', () => {
         if (key === 'ANTHROPIC_API_KEY') return 'sk-test-key';
         if (key === 'GITHUB_TOKEN') return 'ghp-test-token';
         return undefined;
-      });
-
-      const fetchMock = vi.fn().mockResolvedValue({
-        json: vi.fn().mockResolvedValue({
-          content: [{ text: 'diagnosis' }],
-        }),
-        ok: true,
-      });
-      global.fetch = fetchMock;
-
-      const ghFetchMock = vi.fn().mockResolvedValue({
-        ok: true,
       });
 
       // Override fetch to handle both Anthropic and GitHub calls
