@@ -22,6 +22,17 @@ import Handlebars from 'handlebars';
 
 type Template = TemplateDocument;
 
+/**
+ * The template placeholder grammar: `{{variable_name}}`.
+ *
+ * Returned fresh per call so each caller owns its own `lastIndex` — a shared
+ * global regex leaks match position between `extractVariables` and
+ * `fillVariables`.
+ */
+function templateVariablePattern(): RegExp {
+  return /\{\{(\w+)\}\}/g;
+}
+
 @Injectable()
 export class TemplatesService {
   constructor(
@@ -490,7 +501,7 @@ export class TemplatesService {
     type: 'text';
     required: boolean;
   }> {
-    const regex = /\{\{(\w+)\}\}/g;
+    const regex = templateVariablePattern();
     const variables: Set<string> = new Set();
     let match: RegExpExecArray | null = regex.exec(content);
 
@@ -522,14 +533,23 @@ export class TemplatesService {
     content: string,
     variables: Record<string, string>,
   ): string {
-    let result = content;
+    // Walk the placeholders that are actually in the template instead of
+    // building one pattern per supplied key. Variable names come from the
+    // request body, so interpolating them into a RegExp would let a caller
+    // choose the pattern the server then runs over the template.
+    //
+    // The function form of `replace` also stops `$&`/`$1`/`$'` inside a
+    // variable *value* from being re-read as replacement directives.
+    //
+    // A Map keeps the lookup off the prototype chain, so `{{constructor}}` and
+    // `{{__proto__}}` resolve to nothing instead of to an inherited member.
+    const supplied = new Map(Object.entries(variables));
 
-    for (const [key, value] of Object.entries(variables)) {
-      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
-      result = result.replace(regex, value);
-    }
-
-    return result;
+    return content.replace(
+      templateVariablePattern(),
+      (placeholder: string, name: string) =>
+        supplied.has(name) ? String(supplied.get(name) ?? '') : placeholder,
+    );
   }
 
   /**

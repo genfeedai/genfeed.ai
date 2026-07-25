@@ -454,6 +454,75 @@ export class IngredientsService extends BaseService<
   }
 
   /**
+   * Soft-delete a caller-supplied id list in two queries.
+   *
+   * Replaces a per-id `findOne` + `patch` loop. Permission semantics are
+   * unchanged: an id is deletable when it exists, is not already deleted, and
+   * the caller either owns it or shares its organization. Everything else —
+   * missing, already deleted, or foreign on both axes — comes back in
+   * `failed`. `findByIds` cannot be reused here: it is organization-scoped
+   * only and would drop ingredients the caller owns in another org.
+   */
+  async bulkSoftDeleteScoped(params: {
+    ids: string[];
+    organizationId: string;
+    userId: string;
+  }): Promise<{ deleted: string[]; failed: string[] }> {
+    const { ids, organizationId, userId } = params;
+
+    if (!ids || ids.length === 0) {
+      return { deleted: [], failed: [] };
+    }
+
+    const uniqueIds = [...new Set(ids)];
+
+    const permitted = await this.prisma.ingredient.findMany({
+      select: { id: true },
+      where: {
+        id: { in: uniqueIds },
+        isDeleted: false,
+        OR: [{ userId }, { organizationId }],
+      },
+    });
+
+    const permittedIds = new Set(
+      permitted.map((row: { id: string }) => row.id),
+    );
+
+    const deleted: string[] = [];
+    const failed: string[] = [];
+    for (const id of ids) {
+      if (permittedIds.has(id)) {
+        deleted.push(id);
+      } else {
+        failed.push(id);
+      }
+    }
+
+    if (permittedIds.size > 0) {
+      // The scope predicate is repeated on the write, not just the read: it
+      // closes the window between the two queries and keeps the tenant guard
+      // visible at the mutation site.
+      await this.prisma.ingredient.updateMany({
+        data: { isDeleted: true },
+        where: {
+          id: { in: [...permittedIds] },
+          isDeleted: false,
+          OR: [{ userId }, { organizationId }],
+        },
+      });
+    }
+
+    this.logger.debug(`${this.constructorName} bulkSoftDeleteScoped success`, {
+      deleted: deleted.length,
+      failed: failed.length,
+      requested: ids.length,
+    });
+
+    return { deleted, failed };
+  }
+
+  /**
    * Find top ingredients sorted by total votes (most voted first).
    */
   @HandleErrors('findTopByVotes', 'ingredients')

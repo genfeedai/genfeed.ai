@@ -17,18 +17,4 @@
 
 export const RELATION_ALIAS_READ_BASELINE: Readonly<Record<string, number>> = {
   'apps/server/api/src/endpoints/webhooks/replicate/webhooks.replicate.controller.ts': 2,
-  'apps/server/api/src/services/agent-campaign/campaign-winner-extraction.service.ts': 5,
-  'apps/server/api/src/services/agent-campaign/content-engine.service.ts': 10,
-  'apps/server/api/src/services/agent-campaign/trigger-evaluator.service.ts': 10,
-  'apps/server/api/src/services/agent-orchestrator/agent-stream-publisher.service.ts': 1,
-  'apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts': 3,
-  'apps/server/api/src/services/agent-threading/services/agent-thread-projector.service.ts': 4,
-  'apps/server/api/src/services/ai-influencer/ai-influencer.service.ts': 3,
-  'apps/server/api/src/services/batch-content/batch-content.service.ts': 1,
-  'apps/server/api/src/services/campaign/campaign-discovery.service.ts': 1,
-  'apps/server/api/src/services/campaign/campaign-executor.service.ts': 7,
-  'apps/server/api/src/services/campaign/dm-campaign-executor.service.ts': 7,
-  'apps/server/api/src/services/distribution/telegram/telegram-distribution.service.ts': 1,
-  'apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts': 5,
-  'apps/server/api/src/services/workflow-executor/processors/trend-inspiration.processor.ts': 1,
 };

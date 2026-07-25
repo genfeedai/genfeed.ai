@@ -17,6 +17,7 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { resolveCampaignScope } from '@api/services/campaign/campaign-scope.util';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
@@ -26,6 +27,7 @@ import {
   CampaignTargetStatus,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
+import type { ICampaignScope } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -134,10 +136,12 @@ export class DmCampaignExecutorService {
         };
       }
 
+      const scope = resolveCampaignScope(campaign);
+
       // Check rate limits
       const canReply = await this.campaignsService.canReply(
         campaignId,
-        campaign.organization,
+        scope.organizationId,
       );
       if (!canReply) {
         await this.campaignTargetsService.markAsSkipped(
@@ -152,12 +156,7 @@ export class DmCampaignExecutorService {
       await this.campaignTargetsService.markAsProcessing(targetId);
 
       // Get credential
-      const credential = await this.credentialsService.findOne({
-        _id: campaign.credential,
-        ...(campaign.brand ? { brandId: campaign.brand } : {}),
-        isDeleted: false,
-        organizationId: campaign.organization,
-      });
+      const credential = await this.findCampaignCredential(scope);
 
       if (!credential) {
         const errorMessage = 'Credential not found';
@@ -217,6 +216,7 @@ export class DmCampaignExecutorService {
       const dmText = await this.generateDmText(
         campaign,
         target.recipientUsername || '',
+        scope,
       );
 
       // Send DM
@@ -235,10 +235,10 @@ export class DmCampaignExecutorService {
               targetId,
             },
             label: 'Campaign DM Automation',
-            organizationId: campaign.organization.toString(),
+            organizationId: scope.organizationId,
             source: 'DmCampaignExecutorService.executeDmTarget',
             trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: campaign.user?.toString(),
+            userId: scope.userId,
           },
           () =>
             this.botActionExecutorService.sendDm(
@@ -314,11 +314,38 @@ export class DmCampaignExecutorService {
   }
 
   /**
+   * Load the campaign's connected credential, scoped to its brand.
+   *
+   * The presence check is what keeps the lookup scoped: `normalizeWhere` drops an
+   * undefined `_id`, so an unset campaign credential would otherwise return an
+   * arbitrary connected credential from the organization.
+   */
+  private findCampaignCredential({
+    brandId,
+    credentialId,
+    organizationId,
+  }: ICampaignScope) {
+    if (!credentialId) {
+      return null;
+    }
+
+    return this.credentialsService.findOne({
+      _id: credentialId,
+      ...(brandId ? { brandId } : {}),
+      isDeleted: false,
+      organizationId,
+    });
+  }
+
+  /**
    * Generate DM text using AI or template
    */
   private generateDmText(
     campaign: OutreachCampaignDocument,
     recipientUsername: string,
+    // Resolved from the scalar FKs by the caller so this method never re-reads
+    // `campaign.organization` / `campaign.user`.
+    owner: ICampaignScope,
   ): Promise<string> | string {
     const dmConfig = campaign.dmConfig || ({} as CampaignDmConfig);
 
@@ -342,11 +369,11 @@ export class DmCampaignExecutorService {
     return this.replyGenerationService.generateDm({
       context: dmConfig.context,
       customInstructions: instructions || undefined,
-      organizationId: campaign.organization.toString(),
+      organizationId: owner.organizationId,
       replyText: '',
       tweetAuthor: recipientUsername,
       tweetContent: '',
-      userId: campaign.user?.toString() || '',
+      userId: owner.userId || '',
     });
   }
 
