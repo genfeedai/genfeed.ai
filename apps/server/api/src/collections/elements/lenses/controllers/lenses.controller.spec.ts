@@ -203,7 +203,10 @@ describe('ElementsLensesController', () => {
         id,
       );
 
-      expect(lensesService.findOne).toHaveBeenCalledWith({ _id: id });
+      expect(lensesService.findOne).toHaveBeenCalledWith({
+        _id: id,
+        isDeleted: false,
+      });
       expect(lensesService.remove).toHaveBeenCalledWith(id);
       expect(result).toBeDefined();
     });

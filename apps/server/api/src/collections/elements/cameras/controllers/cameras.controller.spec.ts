@@ -202,7 +202,10 @@ describe('ElementsCamerasController', () => {
         id,
       );
 
-      expect(camerasService.findOne).toHaveBeenCalledWith({ _id: id });
+      expect(camerasService.findOne).toHaveBeenCalledWith({
+        _id: id,
+        isDeleted: false,
+      });
       expect(camerasService.remove).toHaveBeenCalledWith(id);
       expect(result).toBeDefined();
     });

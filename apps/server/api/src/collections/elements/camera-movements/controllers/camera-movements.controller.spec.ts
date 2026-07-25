@@ -211,7 +211,10 @@ describe('ElementsCameraMovementsController', () => {
         id,
       );
 
-      expect(cameraMovementsService.findOne).toHaveBeenCalledWith({ _id: id });
+      expect(cameraMovementsService.findOne).toHaveBeenCalledWith({
+        _id: id,
+        isDeleted: false,
+      });
       expect(cameraMovementsService.remove).toHaveBeenCalledWith(id);
       expect(result).toBeDefined();
     });
