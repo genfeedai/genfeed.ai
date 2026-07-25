@@ -1,16 +1,11 @@
 import { ConfigService } from '@discord/config/config.service';
 import {
   BaseBotManager,
-  DiscordSendToChannelEvent,
-  extractWorkflowExecutionSnapshot,
-  extractWorkflowOutputsFromExecution,
+  type BotHttpAdapter,
+  BotInternalApiClient,
   IMAGE_MODELS,
-  IntegrationEvent,
   isBotOpenToAllUsers,
-  isBotUserAuthorized,
-  isWorkflowExecutionTerminalStatus,
   OrgIntegration,
-  REDIS_EVENTS,
   UserSettings,
   VIDEO_MODELS,
   WorkflowInput,
@@ -21,17 +16,21 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import {
   ActionRowBuilder,
-  BaseGuildTextChannel,
   ButtonBuilder,
   ButtonStyle,
   Client,
-  Events,
   GatewayIntentBits,
   REST,
   Routes,
   SlashCommandBuilder,
 } from 'discord.js';
 import { firstValueFrom } from 'rxjs';
+import { registerDiscordBotHandlers } from './discord-bot-handlers';
+import { DiscordBotSubscriptions } from './discord-bot-subscriptions';
+import { sendDiscordChannelMessage } from './discord-channel-sender';
+import { buildDiscordConfirmationMessage } from './discord-confirmation';
+import { DiscordWorkflowExecutionClient } from './discord-workflow-execution.client';
+import { monitorDiscordWorkflowExecution } from './discord-workflow-monitor';
 
 interface DiscordBotInstance {
   id: string;
@@ -65,6 +64,27 @@ type DiscordMessagePayload =
       ephemeral?: boolean;
     };
 
+function makeBotHttpAdapter(httpService: HttpService): BotHttpAdapter {
+  return {
+    async get<T>(url: string, headers?: Record<string, string>): Promise<T> {
+      const response = await firstValueFrom(
+        httpService.get<T>(url, headers ? { headers } : undefined),
+      );
+      return response.data;
+    },
+    async post<T>(
+      url: string,
+      body: unknown,
+      headers?: Record<string, string>,
+    ): Promise<T> {
+      const response = await firstValueFrom(
+        httpService.post<T>(url, body, headers ? { headers } : undefined),
+      );
+      return response.data;
+    },
+  };
+}
+
 @Injectable()
 export class DiscordBotManager
   extends BaseBotManager<DiscordBotInstance>
@@ -73,15 +93,11 @@ export class DiscordBotManager
   private readonly platform = 'discord' as const;
   private readonly workflowExecutionPollIntervalMs = 2000;
   private readonly workflowExecutionPollTimeoutMs = 300000;
-  private readonly integrationEvents = [
-    REDIS_EVENTS.INTEGRATION_CREATED,
-    REDIS_EVENTS.INTEGRATION_UPDATED,
-    REDIS_EVENTS.INTEGRATION_DELETED,
-  ] as const;
-  private redisSubscribed = false;
-  private channelEventSubscribed = false;
   private readonly sessions = new Map<string, WorkflowSession>();
   private readonly userSettings = new Map<string, UserSettings>();
+  private readonly internalApiClient: BotInternalApiClient;
+  private readonly subscriptions: DiscordBotSubscriptions;
+  private readonly workflowExecutionClient: DiscordWorkflowExecutionClient;
 
   constructor(
     private readonly configService: ConfigService,
@@ -89,6 +105,29 @@ export class DiscordBotManager
     private readonly redisService: RedisService,
   ) {
     super();
+    this.internalApiClient = new BotInternalApiClient({
+      apiKey: this.configService.API_KEY,
+      apiUrl: this.configService.API_URL,
+      http: makeBotHttpAdapter(this.httpService),
+      platform: this.platform,
+    });
+    this.subscriptions = new DiscordBotSubscriptions(
+      this.redisService,
+      this.logger,
+      {
+        handleIntegrationEvent: (event, data) =>
+          this.handleRedisEvent(event, data),
+        sendToChannel: (orgId, channelId, message) =>
+          this.sendToChannel(orgId, channelId, message),
+      },
+    );
+    this.workflowExecutionClient = new DiscordWorkflowExecutionClient({
+      apiKey: this.configService.API_KEY,
+      apiUrl: this.configService.API_URL,
+      httpService: this.httpService,
+      pollIntervalMs: this.workflowExecutionPollIntervalMs,
+      pollTimeoutMs: this.workflowExecutionPollTimeoutMs,
+    });
   }
 
   async onModuleInit() {
@@ -103,8 +142,7 @@ export class DiscordBotManager
     this.logger.log('Initializing Discord Bot Manager');
 
     try {
-      await this.subscribeToIntegrationEvents();
-      await this.subscribeToChannelEvents();
+      await this.subscriptions.subscribe();
       const integrations = await this.fetchActiveIntegrations();
 
       for (const integration of integrations) {
@@ -123,7 +161,7 @@ export class DiscordBotManager
   async shutdown(): Promise<void> {
     this.logger.log('Shutting down Discord Bot Manager');
 
-    await this.unsubscribeFromIntegrationEvents();
+    await this.subscriptions.unsubscribe();
 
     for (const [, botInstance] of this.bots.entries()) {
       await this.destroyBotInstance(botInstance);
@@ -155,69 +193,26 @@ export class DiscordBotManager
       );
     }
 
-    client.once(Events.ClientReady, async (readyClient) => {
-      this.logger.log(
-        `Discord bot ${integration.id} ready as ${readyClient.user.tag}`,
-      );
-      await this.registerSlashCommands(
-        readyClient.user.id,
-        integration.botToken,
-      );
-    });
-
-    client.on('interactionCreate', async (interaction) => {
-      // Auth check
-      if (!isBotUserAuthorized(accessConfig, interaction.user.id)) {
-        if (interaction.isRepliable()) {
-          await interaction.reply({
-            content: 'You are not authorized to use this bot.',
-            ephemeral: true,
-          });
-        }
-        return;
-      }
-
-      if (interaction.isChatInputCommand()) {
-        switch (interaction.commandName) {
-          case 'workflows':
-            await this.handleWorkflowsCommand(interaction, orgId);
-            break;
-          case 'status':
-            await this.handleStatusCommand(interaction);
-            break;
-          case 'cancel':
-            await this.handleCancelCommand(interaction);
-            break;
-          case 'settings':
-            await this.handleSettingsCommand(interaction);
-            break;
-        }
-      } else if (interaction.isButton()) {
-        await this.handleButtonInteraction(interaction, orgId);
-      }
-    });
-
-    client.on('messageCreate', async (message) => {
-      if (message.author.bot) {
-        return;
-      }
-
-      // Auth check
-      if (!isBotUserAuthorized(accessConfig, message.author.id)) {
-        return;
-      }
-
-      const sessionKey = `${message.channelId}:${message.author.id}`;
-      const session = this.getSession(sessionKey);
-      if (!session || session.state !== 'collecting') {
-        return;
-      }
-
-      if (message.attachments.size > 0) {
-        await this.handleAttachmentInput(message, sessionKey);
-      } else if (message.content) {
-        await this.handleTextInput(message, sessionKey);
-      }
+    registerDiscordBotHandlers(client, integration, {
+      getSession: (sessionKey) => this.getSession(sessionKey),
+      handleAttachmentInput: (message, sessionKey) =>
+        this.handleAttachmentInput(message, sessionKey),
+      handleButtonInteraction: (interaction, targetOrgId) =>
+        this.handleButtonInteraction(interaction, targetOrgId),
+      handleCancelCommand: (interaction) =>
+        this.handleCancelCommand(interaction),
+      handleSettingsCommand: (interaction) =>
+        this.handleSettingsCommand(interaction),
+      handleStatusCommand: (interaction) =>
+        this.handleStatusCommand(interaction),
+      handleTextInput: (message, sessionKey) =>
+        this.handleTextInput(message, sessionKey),
+      handleWorkflowsCommand: (interaction, targetOrgId) =>
+        this.handleWorkflowsCommand(interaction, targetOrgId),
+      logReady: (tag) =>
+        this.logger.log(`Discord bot ${integration.id} ready as ${tag}`),
+      registerSlashCommands: (clientId, botToken) =>
+        this.registerSlashCommands(clientId, botToken),
     });
 
     await client.login(integration.botToken);
@@ -396,7 +391,7 @@ export class DiscordBotManager
           line = `Running **${session.workflowName}**`;
           if (session.executionId && session.orgId) {
             try {
-              const execution = await this.getWorkflowExecution(
+              const execution = await this.workflowExecutionClient.get(
                 session.orgId,
                 session.executionId,
               );
@@ -431,7 +426,10 @@ export class DiscordBotManager
 
     if (session.executionId && session.orgId) {
       try {
-        await this.cancelWorkflowExecution(session.orgId, session.executionId);
+        await this.workflowExecutionClient.cancel(
+          session.orgId,
+          session.executionId,
+        );
       } catch (error) {
         this.logger.warn('Failed to cancel workflow execution', {
           error,
@@ -759,7 +757,7 @@ export class DiscordBotManager
     session.state = 'confirming';
     this.setSession(sessionKey, session);
 
-    const { content, row } = this.buildConfirmationMessage(session);
+    const { content, row } = buildDiscordConfirmationMessage(session);
 
     if (channel.editReply) {
       await channel.editReply({ components: [row], content });
@@ -778,41 +776,8 @@ export class DiscordBotManager
     session.state = 'confirming';
     this.setSession(sessionKey, session);
 
-    const { content, row } = this.buildConfirmationMessage(session);
+    const { content, row } = buildDiscordConfirmationMessage(session);
     await channel.send({ components: [row], content });
-  }
-
-  private buildConfirmationMessage(session: WorkflowSession): {
-    content: string;
-    row: ActionRowBuilder<ButtonBuilder>;
-  } {
-    const lines = [`**Workflow:** ${session.workflowName}\n`];
-    for (const input of session.requiredInputs) {
-      const value = session.collectedInputs.get(input.nodeId) || '(empty)';
-      const displayValue =
-        input.inputType === 'image' ? '[Image uploaded]' : value;
-      lines.push(`**${input.label}:** ${displayValue}`);
-    }
-
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder()
-        .setCustomId('confirm:run')
-        .setLabel('Run')
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId('confirm:edit')
-        .setLabel('Edit')
-        .setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder()
-        .setCustomId('confirm:cancel')
-        .setLabel('Cancel')
-        .setStyle(ButtonStyle.Danger),
-    );
-
-    return {
-      content: `**Review your inputs:**\n\n${lines.join('\n')}`,
-      row,
-    };
   }
 
   // --- Workflow execution ---
@@ -861,7 +826,7 @@ export class DiscordBotManager
             videoModel: settings.videoModel,
           }
         : undefined;
-      const executionId = await this.createWorkflowExecution(
+      const executionId = await this.workflowExecutionClient.create(
         orgId,
         session.workflowId,
         inputPayload,
@@ -886,85 +851,6 @@ export class DiscordBotManager
     }
   }
 
-  private getInternalApiHeaders(): { Authorization: string } | undefined {
-    const apiKey = this.configService.API_KEY;
-    return apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined;
-  }
-
-  private async createWorkflowExecution(
-    orgId: string,
-    workflowId: string,
-    inputValues: Record<string, unknown>,
-    metadata?: Record<string, unknown>,
-  ): Promise<string> {
-    const response = await firstValueFrom(
-      this.httpService.post(
-        `${this.configService.API_URL}/v1/internal/orgs/${orgId}/workflow-executions`,
-        {
-          inputValues,
-          metadata,
-          workflow: workflowId,
-        },
-        {
-          headers: this.getInternalApiHeaders(),
-        },
-      ),
-    );
-    const execution = extractWorkflowExecutionSnapshot(response.data);
-
-    if (!execution.executionId) {
-      throw new Error('Workflow execution did not return an execution id');
-    }
-
-    return execution.executionId;
-  }
-
-  private async getWorkflowExecution(orgId: string, executionId: string) {
-    const response = await firstValueFrom(
-      this.httpService.get(
-        `${this.configService.API_URL}/v1/internal/orgs/${orgId}/workflow-executions/${executionId}`,
-        {
-          headers: this.getInternalApiHeaders(),
-        },
-      ),
-    );
-
-    return extractWorkflowExecutionSnapshot(response.data);
-  }
-
-  private async cancelWorkflowExecution(
-    orgId: string,
-    executionId: string,
-  ): Promise<void> {
-    await firstValueFrom(
-      this.httpService.post(
-        `${this.configService.API_URL}/v1/internal/orgs/${orgId}/workflow-executions/${executionId}/cancel`,
-        {},
-        {
-          headers: this.getInternalApiHeaders(),
-        },
-      ),
-    );
-  }
-
-  private async waitForWorkflowExecution(orgId: string, executionId: string) {
-    const startedAt = Date.now();
-
-    while (Date.now() - startedAt < this.workflowExecutionPollTimeoutMs) {
-      const execution = await this.getWorkflowExecution(orgId, executionId);
-
-      if (isWorkflowExecutionTerminalStatus(execution.status)) {
-        return execution;
-      }
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, this.workflowExecutionPollIntervalMs),
-      );
-    }
-
-    throw new Error('Workflow execution polling timed out');
-  }
-
   private async monitorWorkflowExecution(
     orgId: string,
     sessionKey: string,
@@ -975,58 +861,14 @@ export class DiscordBotManager
       return;
     }
 
-    try {
-      const execution = await this.waitForWorkflowExecution(
-        orgId,
-        session.executionId,
-      );
-
-      if (execution.status === 'cancelled') {
-        this.deleteSession(sessionKey);
-        return;
-      }
-
-      if (execution.status === 'failed') {
-        await send(
-          execution.error ||
-            'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
-        );
-        this.deleteSession(sessionKey);
-        return;
-      }
-
-      const outputs = extractWorkflowOutputsFromExecution(execution);
-
-      if (outputs.length > 0) {
-        for (const output of outputs) {
-          if (output.url) {
-            await send(
-              `${output.caption || `Generated ${output.type}`}\n${output.url}`,
-            );
-          } else if (output.text) {
-            await send(output.text);
-          }
-        }
-      } else {
-        await send('Workflow completed successfully.');
-      }
-
-      this.deleteSession(sessionKey);
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === 'Workflow execution polling timed out'
-      ) {
-        await send('Workflow is still running. Use /status to check progress.');
-        return;
-      }
-
-      this.logger.error('Failed while monitoring workflow execution:', error);
-      await send(
-        'Workflow execution failed. Please try again.\nUse /workflows to start a new run.',
-      );
-      this.deleteSession(sessionKey);
-    }
+    await monitorDiscordWorkflowExecution({
+      deleteSession: () => this.deleteSession(sessionKey),
+      executionClient: this.workflowExecutionClient,
+      executionId: session.executionId,
+      logger: this.logger,
+      orgId,
+      send,
+    });
   }
 
   private async handleEdit(interaction: {
@@ -1066,193 +908,20 @@ export class DiscordBotManager
     channelId: string,
     message: string,
   ): Promise<string | null> {
-    const botInstance = this.bots.get(orgId);
-
-    if (!botInstance) {
-      this.logger.warn(
-        `[DiscordBotManager] No active bot found for orgId: ${orgId}`,
-      );
-      return null;
-    }
-
-    try {
-      const channel = await botInstance.client.channels.fetch(channelId);
-
-      if (!channel || !(channel instanceof BaseGuildTextChannel)) {
-        this.logger.warn(
-          `[DiscordBotManager] Channel ${channelId} not found or not a text channel for orgId: ${orgId}`,
-        );
-        return null;
-      }
-
-      const sent = await channel.send({ content: message });
-
-      // Build a canonical message URL: https://discord.com/channels/{guildId}/{channelId}/{messageId}
-      const guildId = channel.guildId;
-      const messageUrl = `https://discord.com/channels/${guildId}/${channelId}/${sent.id}`;
-
-      this.logger.log(
-        `[DiscordBotManager] Message sent to channel ${channelId} for orgId: ${orgId}`,
-      );
-
-      return messageUrl;
-    } catch (error) {
-      this.logger.error(
-        `[DiscordBotManager] Failed to send message to channel ${channelId} for orgId: ${orgId}`,
-        error,
-      );
-      return null;
-    }
-  }
-
-  private isDiscordSendToChannelEvent(
-    data: unknown,
-  ): data is DiscordSendToChannelEvent {
-    return (
-      typeof data === 'object' &&
-      data !== null &&
-      'orgId' in data &&
-      'channelId' in data &&
-      'message' in data &&
-      typeof (data as DiscordSendToChannelEvent).orgId === 'string' &&
-      typeof (data as DiscordSendToChannelEvent).channelId === 'string' &&
-      typeof (data as DiscordSendToChannelEvent).message === 'string'
+    return sendDiscordChannelMessage(
+      this.bots.get(orgId)?.client,
+      orgId,
+      channelId,
+      message,
+      this.logger,
     );
-  }
-
-  private async subscribeToChannelEvents(): Promise<void> {
-    if (this.channelEventSubscribed) {
-      return;
-    }
-
-    await this.redisService.subscribe(
-      REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL,
-      (data: unknown) => {
-        if (!this.isDiscordSendToChannelEvent(data)) {
-          return;
-        }
-        this.sendToChannel(data.orgId, data.channelId, data.message).catch(
-          (err) =>
-            this.logger.error(
-              'Failed to handle discord:send-to-channel event',
-              err,
-            ),
-        );
-      },
-    );
-
-    this.channelEventSubscribed = true;
-    this.logger.log('Subscribed to Discord send-to-channel Redis event');
-  }
-
-  // --- Integration event handling ---
-
-  private isIntegrationEvent(data: unknown): data is IntegrationEvent {
-    return (
-      typeof data === 'object' &&
-      data !== null &&
-      'integrationId' in data &&
-      'platform' in data &&
-      typeof (data as IntegrationEvent).integrationId === 'string' &&
-      typeof (data as IntegrationEvent).platform === 'string'
-    );
-  }
-
-  private async subscribeToIntegrationEvents(): Promise<void> {
-    if (this.redisSubscribed) {
-      return;
-    }
-
-    for (const event of this.integrationEvents) {
-      await this.redisService.subscribe(event, (data: unknown) => {
-        if (!this.isIntegrationEvent(data) || data.platform !== this.platform) {
-          return;
-        }
-        this.handleRedisEvent(event, data).catch((err) =>
-          this.logger.error('Failed to handle Redis integration event', err),
-        );
-      });
-    }
-
-    this.redisSubscribed = true;
-    this.logger.log('Subscribed to Discord integration Redis events');
-  }
-
-  private async unsubscribeFromIntegrationEvents(): Promise<void> {
-    if (!this.redisSubscribed) {
-      return;
-    }
-
-    const results = await Promise.allSettled(
-      this.integrationEvents.map((event) =>
-        this.redisService.unsubscribe(event),
-      ),
-    );
-
-    for (const result of results) {
-      if (result.status === 'rejected') {
-        this.logger.warn(
-          'Failed to unsubscribe from one or more Redis channels',
-          result.reason,
-        );
-      }
-    }
-
-    this.redisSubscribed = false;
   }
 
   // --- API fetch methods ---
 
-  private normalizeIntegration(payload: unknown): OrgIntegration | null {
-    if (!payload || typeof payload !== 'object') {
-      return null;
-    }
-
-    const raw = payload as Record<string, unknown>;
-    const rawId = raw.id ?? raw._id;
-    const rawOrgId = raw.orgId ?? raw.organization;
-    const rawToken = raw.botToken;
-
-    if (!rawId || !rawOrgId || !rawToken) {
-      return null;
-    }
-
-    return {
-      botToken: String(rawToken),
-      config: (raw.config as OrgIntegration['config']) || {},
-      createdAt: raw.createdAt ? new Date(raw.createdAt as string) : new Date(),
-      id: String(rawId),
-      orgId: String(rawOrgId),
-      platform: this.platform,
-      status: (raw.status as OrgIntegration['status'] | undefined) || 'active',
-      updatedAt: raw.updatedAt ? new Date(raw.updatedAt as string) : new Date(),
-    };
-  }
-
-  private normalizeIntegrations(payload: unknown): OrgIntegration[] {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload
-      .map((integration) => this.normalizeIntegration(integration))
-      .filter(
-        (integration): integration is OrgIntegration => integration !== null,
-      );
-  }
-
   private async fetchActiveIntegrations(): Promise<OrgIntegration[]> {
     try {
-      const apiKey = this.configService.API_KEY;
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.configService.API_URL}/v1/internal/integrations/discord`,
-          {
-            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
-          },
-        ),
-      );
-      return this.normalizeIntegrations(response.data);
+      return await this.internalApiClient.fetchActiveIntegrations();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const status = (error as { response?: { status?: number } })?.response
@@ -1275,16 +944,8 @@ export class DiscordBotManager
 
   protected async fetchAndAddIntegration(integrationId: string): Promise<void> {
     try {
-      const apiKey = this.configService.API_KEY;
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.configService.API_URL}/v1/internal/integrations/discord/${integrationId}`,
-          {
-            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
-          },
-        ),
-      );
-      const integration = this.normalizeIntegration(response.data);
+      const integration =
+        await this.internalApiClient.fetchIntegration(integrationId);
       if (!integration) {
         this.logger.warn(
           `Unable to normalize Discord integration payload: ${integrationId}`,
@@ -1304,16 +965,8 @@ export class DiscordBotManager
     integrationId: string,
   ): Promise<void> {
     try {
-      const apiKey = this.configService.API_KEY;
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.configService.API_URL}/v1/internal/integrations/discord/${integrationId}`,
-          {
-            headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
-          },
-        ),
-      );
-      const integration = this.normalizeIntegration(response.data);
+      const integration =
+        await this.internalApiClient.fetchIntegration(integrationId);
       if (!integration) {
         this.logger.warn(
           `Unable to normalize Discord integration payload: ${integrationId}`,
@@ -1333,12 +986,7 @@ export class DiscordBotManager
     orgId: string,
   ): Promise<WorkflowDefinition[]> {
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.configService.API_URL}/v1/orgs/${orgId}/workflows`,
-        ),
-      );
-      return response.data;
+      return await this.internalApiClient.fetchOrgWorkflows(orgId);
     } catch (error) {
       this.logger.error('Failed to fetch workflows:', error);
       return [];

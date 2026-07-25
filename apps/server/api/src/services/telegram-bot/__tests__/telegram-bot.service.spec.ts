@@ -97,7 +97,7 @@ describe('TelegramBotService', () => {
       const status = service.getStatus();
       expect(status).toEqual({
         activeConversations: 0,
-        allowedUsers: 'all',
+        allowedUsers: 0,
         connectedChats: 0,
         engineReady: false,
         hasDefaultContext: false,

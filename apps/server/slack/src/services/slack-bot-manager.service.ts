@@ -8,7 +8,6 @@ import {
   IMAGE_MODELS,
   IntegrationEvent,
   isBotOpenToAllUsers,
-  isBotUserAuthorized,
   isWorkflowExecutionTerminalStatus,
   OrgIntegration,
   REDIS_EVENTS,
@@ -20,8 +19,13 @@ import {
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { App, type RespondArguments, type types } from '@slack/bolt';
+import { App } from '@slack/bolt';
 import { ConfigService } from '@slack/config/config.service';
+import {
+  registerSlackBotHandlers,
+  type SlackReply,
+  type SlackRespond,
+} from '@slack/services/slack-bot-handlers';
 import { firstValueFrom } from 'rxjs';
 
 interface SlackBotInstance {
@@ -30,13 +34,6 @@ interface SlackBotInstance {
   app: App;
   integration: OrgIntegration;
 }
-
-interface SlackReplyArguments {
-  blocks?: Array<types.Block | types.KnownBlock>;
-  text: string;
-}
-type SlackReply = (message: string | SlackReplyArguments) => Promise<unknown>;
-type SlackRespond = (message: string | RespondArguments) => Promise<unknown>;
 
 /**
  * Build the BotHttpAdapter that wraps NestJS HttpService + RxJS firstValueFrom
@@ -164,157 +161,33 @@ export class SlackBotManager
       );
     }
 
-    // Auth middleware
-    app.use(async ({ next, context }) => {
-      const userId = context.userId as string | undefined;
-      if (!isBotUserAuthorized(accessConfig, userId)) {
-        return;
-      }
-      await next();
-    });
-
-    // Slash commands
-    app.command('/workflows', async ({ command, ack, respond }) => {
-      await ack();
-      await this.handleWorkflowsCommand(command.user_id, orgId, respond);
-    });
-
-    app.command('/status', async ({ command, ack, respond }) => {
-      await ack();
-      await this.handleStatusCommand(command.user_id, respond);
-    });
-
-    app.command('/cancel', async ({ command, ack, respond }) => {
-      await ack();
-      await this.handleCancelCommand(command.user_id, respond);
-    });
-
-    app.command('/settings', async ({ command, ack, respond }) => {
-      await ack();
-      await this.handleSettingsCommand(command.user_id, respond);
-    });
-
-    // Action handlers for Block Kit buttons
-    app.action(/^wf:/, async ({ action, ack, respond, body }) => {
-      await ack();
-      const actionValue = (action as { value?: string }).value || '';
-      const workflowId = actionValue.slice(3);
-      const userId = body.user.id;
-      await this.selectWorkflow(userId, orgId, workflowId, respond);
-    });
-
-    app.action('confirm:run', async ({ ack, respond, body }) => {
-      await ack();
-      await this.handleRun(body.user.id, orgId, respond);
-    });
-
-    app.action('confirm:edit', async ({ ack, respond, body }) => {
-      await ack();
-      await this.handleEdit(body.user.id, respond);
-    });
-
-    app.action('confirm:cancel', async ({ ack, respond, body }) => {
-      await ack();
-      this.deleteSession(body.user.id);
-      await respond({
-        replace_original: true,
-        text: 'Cancelled. Use /workflows to start again.',
-      });
-    });
-
-    app.action(/^cfg:img:/, async ({ action, ack, respond, body }) => {
-      await ack();
-      const model = ((action as { value?: string }).value || '').slice(8);
-      const settings = this.userSettings.get(body.user.id) || {
-        imageModel: IMAGE_MODELS[0],
-        videoModel: VIDEO_MODELS[0],
-      };
-      settings.imageModel = model;
-      this.userSettings.set(body.user.id, settings);
-      await respond({ text: `Image model set to: *${model}*` });
-    });
-
-    app.action(/^cfg:vid:/, async ({ action, ack, respond, body }) => {
-      await ack();
-      const model = ((action as { value?: string }).value || '').slice(8);
-      const settings = this.userSettings.get(body.user.id) || {
-        imageModel: IMAGE_MODELS[0],
-        videoModel: VIDEO_MODELS[0],
-      };
-      settings.videoModel = model;
-      this.userSettings.set(body.user.id, settings);
-      await respond({ text: `Video model set to: *${model}*` });
-    });
-
-    // Message handler for text input collection
-    app.message(async ({ message, say }) => {
-      const msg = message as { user?: string; text?: string };
-      if (!msg.user || !msg.text) {
-        return;
-      }
-
-      const session = this.getSession(msg.user);
-      if (!session || session.state !== 'collecting') {
-        return;
-      }
-
-      const currentInput = session.requiredInputs[session.currentInputIndex];
-      if (!currentInput || currentInput.inputType !== 'text') {
-        return;
-      }
-
-      let value = msg.text;
-      if (value.toLowerCase() === 'default' && currentInput.defaultValue) {
-        value = currentInput.defaultValue;
-      }
-
-      session.collectedInputs.set(currentInput.nodeId, value);
-      session.currentInputIndex++;
-      this.setSession(msg.user, session);
-
-      await this.promptNextInput(msg.user, say);
-    });
-
-    // File handler for image uploads
-    app.event('file_shared', async ({ event, client }) => {
-      try {
-        const fileInfo = await client.files.info({ file: event.file_id });
-        const file = fileInfo.file;
-        if (!file || !file.user) {
-          return;
-        }
-
-        const session = this.getSession(file.user);
-        if (!session || session.state !== 'collecting') {
-          return;
-        }
-
-        const currentInput = session.requiredInputs[session.currentInputIndex];
-        if (!currentInput || currentInput.inputType !== 'image') {
-          return;
-        }
-
-        const imageUrl = file.url_private || '';
-        session.collectedInputs.set(currentInput.nodeId, imageUrl);
-        session.currentInputIndex++;
-        this.setSession(file.user, session);
-
-        const channel =
-          file.channels && file.channels.length > 0
-            ? file.channels[0]
-            : undefined;
-        if (channel) {
-          await client.chat.postMessage({
-            channel,
-            text: 'Image received.',
-          });
-        }
-      } catch (error) {
+    registerSlackBotHandlers(app, integration, {
+      deleteSession: (userId) => this.deleteSession(userId),
+      getSession: (userId) => this.getSession(userId),
+      getUserSettings: (userId) => this.userSettings.get(userId),
+      handleCancelCommand: (userId, respond) =>
+        this.handleCancelCommand(userId, respond),
+      handleEdit: (userId, respond) => this.handleEdit(userId, respond),
+      handleRun: (userId, targetOrgId, respond) =>
+        this.handleRun(userId, targetOrgId, respond),
+      handleSettingsCommand: (userId, respond) =>
+        this.handleSettingsCommand(userId, respond),
+      handleStatusCommand: (userId, respond) =>
+        this.handleStatusCommand(userId, respond),
+      handleWorkflowsCommand: (userId, targetOrgId, respond) =>
+        this.handleWorkflowsCommand(userId, targetOrgId, respond),
+      logFileError: (error) =>
         this.logger.error(
           'Failed to handle file upload',
           this.sanitizeErrorForLog(error),
-        );
-      }
+        ),
+      promptNextInput: (userId, respond) =>
+        this.promptNextInput(userId, respond),
+      selectWorkflow: (userId, targetOrgId, workflowId, respond) =>
+        this.selectWorkflow(userId, targetOrgId, workflowId, respond),
+      setSession: (userId, session) => this.setSession(userId, session),
+      setUserSettings: (userId, settings) =>
+        this.userSettings.set(userId, settings),
     });
 
     await app.start();

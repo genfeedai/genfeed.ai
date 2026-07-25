@@ -41,6 +41,27 @@ vi.mock('@genfeedai/integrations', () => ({
   extractWorkflowExecutionSnapshot: vi.fn(),
   extractWorkflowInputs: vi.fn().mockReturnValue([]),
   extractWorkflowOutputsFromExecution: vi.fn().mockReturnValue([]),
+  isBotOpenToAllUsers: vi.fn(
+    (config: { allowedUserIds?: string[]; isOpenToAllUsers?: boolean }) =>
+      (config.allowedUserIds?.length ?? 0) === 0 &&
+      config.isOpenToAllUsers === true,
+  ),
+  isBotUserAuthorized: vi.fn(
+    (
+      config: {
+        allowedUserIds?: string[];
+        isOpenToAllUsers?: boolean;
+      },
+      userId?: string | null,
+    ) => {
+      const normalizedUserId = userId?.trim();
+      if (!normalizedUserId) return false;
+      const allowedUserIds = config.allowedUserIds ?? [];
+      return allowedUserIds.length > 0
+        ? allowedUserIds.includes(normalizedUserId)
+        : config.isOpenToAllUsers === true;
+    },
+  ),
   isWorkflowExecutionTerminalStatus: vi.fn().mockReturnValue(false),
 }));
 
