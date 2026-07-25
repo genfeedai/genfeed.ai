@@ -18,11 +18,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 export interface CreateContentPlanItemInput {
-  organization: string;
-  plan: string;
-  brand: string;
+  organizationId: string;
+  planId: string;
+  brandId: string;
   type: string;
   topic: string;
+  /** Generated prompt text stored in the item payload — not a Prompt row id. */
   prompt?: string;
   platforms: string[];
   scheduledAt?: Date;
@@ -54,11 +55,12 @@ export class ContentPlanItemsService {
       items.map((item) =>
         this.prisma.contentPlanItem.create({
           data: {
-            brandId: item.brand,
+            brandId: item.brandId,
             data: this.buildDataPayload({
               confidence: item.confidence,
               pipelineSteps: item.pipelineSteps,
               platforms: item.platforms,
+              // relation-alias-ok: prompt text payload, not a Prompt row id
               prompt: item.prompt,
               scheduledAt: item.scheduledAt,
               skillSlug: item.skillSlug,
@@ -67,8 +69,8 @@ export class ContentPlanItemsService {
               type: item.type,
             }) as never,
             isDeleted: false,
-            organizationId: item.organization,
-            planId: item.plan,
+            organizationId: item.organizationId,
+            planId: item.planId,
           },
         }),
       ),

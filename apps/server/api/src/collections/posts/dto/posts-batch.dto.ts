@@ -16,7 +16,7 @@ import {
  * `create`). This is an interactive scheduling flow, so it stays at the same
  * interactive scale as the other hand-driven batches.
  */
-const MAX_BATCH_ITEMS = 50;
+export const POSTS_BATCH_MAX_ITEMS = 50;
 
 export class PostBatchItemDto {
   @IsEntityId()
@@ -62,13 +62,12 @@ export class PostBatchItemDto {
 
 export class PostsBatchDto {
   @IsArray()
-  @ArrayMaxSize(MAX_BATCH_ITEMS)
+  @ArrayMaxSize(POSTS_BATCH_MAX_ITEMS)
   @ValidateNested({ each: true })
   @Type(() => PostBatchItemDto)
   @ApiProperty({
-    description:
-      'Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED)',
-    maxItems: MAX_BATCH_ITEMS,
+    description: `Per-item batch of posts to update (updates existing DRAFT posts to SCHEDULED, max ${POSTS_BATCH_MAX_ITEMS})`,
+    maxItems: POSTS_BATCH_MAX_ITEMS,
     required: true,
     type: [PostBatchItemDto],
   })

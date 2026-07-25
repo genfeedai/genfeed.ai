@@ -6,6 +6,12 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import {
+  batchSchedulePosts,
+  type PostBatchScheduleItem,
+  type PostBatchScheduleResult,
+  PRISMA_POST_STATUS,
+} from '@api/collections/posts/services/post-batch-schedule.util';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -32,10 +38,6 @@ import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_MENTION_LIMIT = 50;
 const MAX_CONTENT_MENTION_LIMIT = 100;
-const PRISMA_POST_STATUS = {
-  PUBLIC: 'PUBLIC',
-  SCHEDULED: 'SCHEDULED',
-} as const;
 const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<keyof UpdatePostDto>([
   'category',
   'credential',
@@ -380,6 +382,37 @@ export class PostsService extends BaseService<
     }
 
     return updatedPost;
+  }
+
+  /**
+   * Schedule a batch of posts in a fixed number of round-trips instead of the
+   * 2N–4N serial queries a `patch` per item used to cost. The planning and
+   * write orchestration live in `post-batch-schedule.util`; this only hands it
+   * the service collaborators it needs.
+   */
+  async batchSchedule(
+    items: readonly PostBatchScheduleItem[],
+    organizationId: string,
+  ): Promise<PostBatchScheduleResult> {
+    return batchSchedulePosts(
+      {
+        cacheService: this.cacheService,
+        cacheTags: [
+          this.collectionName,
+          `collection:${this.collectionName}`,
+          `agg:${this.collectionName}`,
+          'agg:paginated',
+        ],
+        logger: this.logger,
+        normalizeData: (data) =>
+          this.normalizeData(data) as Record<string, unknown>,
+        normalizeDocument: (document) => this.normalizeDocument(document),
+        prisma: this.prisma,
+        publishApprovalsService: this.publishApprovalsService,
+      },
+      items,
+      organizationId,
+    );
   }
 
   private async completePublishFirstPostMission(
@@ -785,14 +818,10 @@ export class PostsService extends BaseService<
       return String(ing);
     });
 
-    const populatedCredential = originalPost.credential as unknown as {
-      id?: string;
-    };
-    const credentialId = populatedCredential?.id
-      ? populatedCredential.id
-      : originalPost.credential === '__never__'
-        ? originalPost.credential
-        : String(originalPost.credential);
+    // Scalar FK: the legacy `credential` alias is undefined unless the query
+    // populated the relation, so coercing it would write the literal string
+    // "undefined" into the remix's credentialId and fail the FK constraint.
+    const credentialId = originalPost.credentialId;
 
     const remixDto = {
       brand: dto.brand,

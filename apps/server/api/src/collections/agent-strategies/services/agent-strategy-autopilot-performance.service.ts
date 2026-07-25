@@ -40,16 +40,16 @@ export class AgentStrategyAutopilotPerformanceService {
 
     const [drafts, opportunities, performance, summary] = await Promise.all([
       this.contentDraftsService.find({
-        brandId: strategyBrandId ?? String(strategy.brand),
+        brandId: strategyBrandId ?? '',
         createdAt: { gte: periodStart, lte: periodEnd },
         isDeleted: false,
         organizationId: strategyOrganizationId,
       }),
       this.opportunitiesService.listByStrategy(strategyId, organizationId),
-      strategy.brand
+      strategyBrandId
         ? this.contentPerformanceService.queryPerformance(
             {
-              brand: String(strategyBrandId),
+              brand: strategyBrandId,
               endDate: periodEnd.toISOString(),
               limit: 250,
               startDate: periodStart.toISOString(),
@@ -57,9 +57,9 @@ export class AgentStrategyAutopilotPerformanceService {
             organizationId,
           )
         : [],
-      strategy.brand
+      strategyBrandId
         ? this.performanceSummaryService
-            .getWeeklySummary(organizationId, String(strategyBrandId), {
+            .getWeeklySummary(organizationId, strategyBrandId, {
               endDate: periodEnd,
               startDate: periodStart,
             })
@@ -172,7 +172,7 @@ export class AgentStrategyAutopilotPerformanceService {
       allocationChanges,
       bestPlatformFormatPairs: snapshot.bestPlatformFormatPairs,
       bestPostingWindows: snapshot.bestPostingWindows,
-      brandId: getStrategyBrandId(strategy) ?? String(strategy.brand),
+      brandId: getStrategyBrandId(strategy) ?? '',
       clicks: snapshot.clicks,
       costPerVisit: snapshot.costPerVisit,
       creditsSpent: snapshot.creditsSpent,

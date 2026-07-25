@@ -86,9 +86,8 @@ export class MediumController {
 
       // Generate state for OAuth
       const state = JSON.stringify({
-        brandId: brand.id.toString(),
-        organizationId:
-          brand.organization?.toString() ?? publicMetadata.organization,
+        brandId: brand.id,
+        organizationId: brand.organizationId,
         userId: publicMetadata.user,
       });
 

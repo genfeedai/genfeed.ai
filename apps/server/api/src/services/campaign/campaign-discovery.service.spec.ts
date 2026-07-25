@@ -35,7 +35,7 @@ describe('CampaignDiscoveryService', () => {
 
   const mockCampaignTargetsService = {
     createMany: vi.fn(),
-    targetExists: vi.fn(),
+    findExistingExternalIds: vi.fn(),
   };
 
   const orgId = 'test-object-id';
@@ -62,7 +62,10 @@ describe('CampaignDiscoveryService', () => {
     ({
       id: campaignId,
       discoveryConfig: makeConfig(),
+      // `organizationId` is the real column; `organization` is the Mongo-era
+      // alias `OutreachCampaignsService.normalizeDoc` back-fills from it.
       organization: orgId,
+      organizationId: orgId,
       platform: CampaignPlatform.TWITTER,
       ...overrides,
     }) as unknown as OutreachCampaignDocument;
@@ -117,7 +120,9 @@ describe('CampaignDiscoveryService', () => {
     it('should discover targets by keywords', async () => {
       const content = [makeContent({ id: 'tw1' })];
       mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.targetExists.mockResolvedValue(false);
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set<string>(),
+      );
 
       const campaign = makeCampaign({
         discoveryConfig: makeConfig({ keywords: ['ai'] }),
@@ -138,7 +143,9 @@ describe('CampaignDiscoveryService', () => {
     it('should discover targets by hashtags', async () => {
       const content = [makeContent({ id: 'tw2' })];
       mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.targetExists.mockResolvedValue(false);
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set<string>(),
+      );
 
       const campaign = makeCampaign({
         discoveryConfig: makeConfig({
@@ -162,7 +169,9 @@ describe('CampaignDiscoveryService', () => {
     it('should search by subreddits for Reddit campaigns', async () => {
       const content = [makeContent({ id: 'rd1' })];
       mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.targetExists.mockResolvedValue(false);
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set<string>(),
+      );
 
       const campaign = makeCampaign({
         discoveryConfig: makeConfig({
@@ -188,7 +197,9 @@ describe('CampaignDiscoveryService', () => {
       oldDate.setHours(oldDate.getHours() - 48);
       const content = [makeContent({ createdAt: oldDate, id: 'old1' })];
       mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.targetExists.mockResolvedValue(false);
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set<string>(),
+      );
 
       const campaign = makeCampaign({
         discoveryConfig: makeConfig({ maxAgeHours: 24 }),
@@ -207,7 +218,9 @@ describe('CampaignDiscoveryService', () => {
         }),
       ];
       mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.targetExists.mockResolvedValue(false);
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set<string>(),
+      );
 
       const campaign = makeCampaign({
         discoveryConfig: makeConfig({ minEngagement: 50 }),
@@ -226,7 +239,9 @@ describe('CampaignDiscoveryService', () => {
         }),
       ];
       mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.targetExists.mockResolvedValue(false);
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set<string>(),
+      );
 
       const campaign = makeCampaign({
         discoveryConfig: makeConfig({ maxEngagement: 1000 }),
@@ -240,7 +255,9 @@ describe('CampaignDiscoveryService', () => {
     it('should filter out excluded authors', async () => {
       const content = [makeContent({ authorUsername: 'SpamBot', id: 'sp1' })];
       mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.targetExists.mockResolvedValue(false);
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set<string>(),
+      );
 
       const campaign = makeCampaign({
         discoveryConfig: makeConfig({ excludeAuthors: ['spambot'] }),
@@ -258,7 +275,9 @@ describe('CampaignDiscoveryService', () => {
         makeContent({ id: 'unique' }),
       ];
       mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.targetExists.mockResolvedValue(false);
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set<string>(),
+      );
 
       const campaign = makeCampaign();
 
@@ -273,9 +292,9 @@ describe('CampaignDiscoveryService', () => {
         makeContent({ id: 'new1' }),
       ];
       mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.targetExists
-        .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(false);
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set(['existing1']),
+      );
 
       const campaign = makeCampaign();
 
@@ -303,7 +322,9 @@ describe('CampaignDiscoveryService', () => {
         }),
       ];
       mockSocialMonitorService.searchContent.mockResolvedValue(content);
-      mockCampaignTargetsService.targetExists.mockResolvedValue(false);
+      mockCampaignTargetsService.findExistingExternalIds.mockResolvedValue(
+        new Set<string>(),
+      );
 
       const campaign = makeCampaign();
 
@@ -349,7 +370,7 @@ describe('CampaignDiscoveryService', () => {
           targetType: CampaignTargetType.TWEET,
         },
       ];
-      mockCampaignTargetsService.createMany.mockResolvedValue(targets);
+      mockCampaignTargetsService.createMany.mockResolvedValue(targets.length);
 
       const campaign = makeCampaign();
       const count = await service.addDiscoveredTargetsToCampaign(
@@ -363,6 +384,52 @@ describe('CampaignDiscoveryService', () => {
           expect.objectContaining({ externalId: 'ext1' }),
         ]),
       );
+    });
+
+    it('should scope every created target with the campaign organization id', async () => {
+      const targets = [
+        {
+          authorId: 'a1',
+          authorUsername: 'user1',
+          contentCreatedAt: new Date(),
+          contentText: 'text',
+          contentUrl: 'https://x.com/1',
+          discoverySource: CampaignDiscoverySource.KEYWORD_SEARCH,
+          externalId: 'ext1',
+          likes: 10,
+          matchedKeyword: 'ai',
+          platform: CampaignPlatform.TWITTER,
+          relevanceScore: 0.8,
+          replies: 2,
+          retweets: 5,
+          targetType: CampaignTargetType.TWEET,
+        },
+      ];
+      mockCampaignTargetsService.createMany.mockResolvedValue(targets);
+
+      // Only the scalar FK is present — the alias a populated read would have
+      // provided is absent, exactly as it is on a real row.
+      const campaign = makeCampaign({
+        organization: undefined,
+      } as Partial<OutreachCampaignDocument>);
+
+      await service.addDiscoveredTargetsToCampaign(campaign, targets);
+
+      expect(mockCampaignTargetsService.createMany).toHaveBeenCalledWith([
+        expect.objectContaining({ organization: orgId }),
+      ]);
+    });
+
+    it('should refuse to create unscoped targets when the organization cannot be resolved', async () => {
+      const campaign = makeCampaign({
+        organization: undefined,
+        organizationId: undefined,
+      } as Partial<OutreachCampaignDocument>);
+
+      await expect(
+        service.addDiscoveredTargetsToCampaign(campaign, []),
+      ).rejects.toThrow();
+      expect(mockCampaignTargetsService.createMany).not.toHaveBeenCalled();
     });
 
     it('should throw when createMany fails', async () => {

@@ -116,76 +116,29 @@ export class ActivitiesController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const publicMetadata = getPublicMetadata(user);
 
-    const updated: string[] = [];
-    const failed: string[] = [];
-
     const { ids, isRead, isDeleted } = bulkUpdateDto;
 
-    // Process each ID for update
-    for (const id of ids) {
-      try {
-        // Find the activity and check permissions
-        const activity = await this.activitiesService.findOne({
-          _id: id,
-          isDeleted: false,
-        });
+    // Single scoped partition query + a single batched write, regardless of
+    // how many ids the caller supplies. Ids the caller may not touch (missing,
+    // already soft-deleted, or owned by another user AND another organization)
+    // come back in `failed`, matching the previous per-id permission check.
+    const { failed, updated } = await this.activitiesService.bulkUpdateScoped({
+      ids,
+      ...(typeof isDeleted === 'boolean' ? { isDeleted } : {}),
+      ...(typeof isRead === 'boolean' ? { isRead } : {}),
+      organizationId: publicMetadata.organization.toString(),
+      userId: publicMetadata.user.toString(),
+    });
 
-        if (!activity) {
-          failed.push(id);
-          continue;
-        }
-
-        // Check if user has permission to update
-        // User must be the owner or in the same organization
-        const activityUser = activity.user ?? activity.userId;
-        const activityOrganization =
-          activity.organization ?? activity.organizationId;
-
-        const isOwner =
-          activityUser !== null &&
-          activityUser !== undefined &&
-          publicMetadata.user.toString() === String(activityUser);
-
-        const isSameOrg =
-          activityOrganization !== null &&
-          activityOrganization !== undefined &&
-          publicMetadata.organization.toString() ===
-            String(activityOrganization);
-
-        if (!isOwner && !isSameOrg) {
-          this.loggerService.warn(`${url} permission denied`, {
-            activityId: id,
-            orgId: publicMetadata.organization,
-            userId: publicMetadata.user,
-          });
-
-          failed.push(id);
-          continue;
-        }
-
-        // Update the activity
-        const updateData: Record<string, boolean> = {};
-        if (typeof isRead === 'boolean') {
-          updateData.isRead = isRead;
-        }
-        if (typeof isDeleted === 'boolean') {
-          updateData.isDeleted = isDeleted;
-        }
-
-        await this.activitiesService.patch(id, updateData);
-        updated.push(id);
-
-        this.loggerService.log(`${url} updated activity`, { id });
-      } catch (error: unknown) {
-        this.loggerService.error(`${url} failed to update activity`, {
-          error,
-          id,
-        });
-        failed.push(id);
-      }
+    if (failed.length > 0) {
+      this.loggerService.warn(`${url} skipped inaccessible activities`, {
+        count: failed.length,
+        orgId: publicMetadata.organization,
+        userId: publicMetadata.user,
+      });
     }
 
-    const totalRequested = bulkUpdateDto.ids.length;
+    const totalRequested = ids.length;
     const totalUpdated = updated.length;
     const totalFailed = failed.length;
 
