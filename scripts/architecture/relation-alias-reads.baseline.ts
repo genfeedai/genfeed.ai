@@ -25,7 +25,7 @@ export const RELATION_ALIAS_READ_BASELINE: Readonly<Record<string, number>> = {
   'apps/server/api/src/collections/content-plan-items/services/content-plan-items.service.ts': 3,
   'apps/server/api/src/collections/images/controllers/operations/images-operations.controller.ts': 1,
   'apps/server/api/src/collections/ingredients/controllers/ingredients-relationships.controller.ts': 1,
-  'apps/server/api/src/collections/outreach-campaigns/controllers/outreach-campaigns.controller.ts': 3,
+  'apps/server/api/src/collections/outreach-campaigns/controllers/outreach-campaigns.controller.ts': 1,
   'apps/server/api/src/collections/posts/controllers/operations/posts-operations.controller.ts': 5,
   'apps/server/api/src/collections/posts/services/posts.service.ts': 1,
   'apps/server/api/src/collections/prompts/controllers/prompts-operations.controller.ts': 7,
