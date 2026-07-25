@@ -493,6 +493,11 @@ jobs:
   # Nightly-only failure reporter. The scheduled E2E run is the flake alarm; when
   # it goes red, open (or update) ONE tracking issue so a broken nightly can't rot
   # unseen — the whole reason the authed job could sit red for 5+ June nightlies.
+  # Dedup order: comment on the open labelled issue; else REOPEN the most recently
+  # updated labelled issue closed within REOPEN_WINDOW_DAYS and comment on that;
+  # else create. Reopening matters because closing the tracker while the suite is
+  # still red used to spawn a fresh duplicate on the next red nightly (#1448,
+  # #1626, #1891). Only a genuinely absent/stale tracker creates a new issue.
   # Runs ONLY on the standalone cron: a workflow_call from the deploy path inherits
   # the caller's event, so github.event_name is 'schedule' solely for the nightly.
   # Deploy gating is untouched. Keys off the aggregated gate AND the authed job
@@ -510,7 +515,7 @@ jobs:
     permissions:
       issues: write
     steps:
-      - name: Open or update the nightly-failure issue
+      - name: Open, reopen, or update the nightly-failure issue
         uses: actions/github-script@v8
         env:
           GATE_RESULT: ${{ needs.e2e-gate.result }}
@@ -563,6 +568,42 @@ jobs:
                 issue_number: existing.data[0].number,
                 body,
               });
-            } else {
-              await github.rest.issues.create({ owner, repo, title, body, labels: [label] });
+              return;
             }
+            // No open tracker. Closing the issue while the suite is still red must
+            // not spawn a duplicate — reopen the most recent recently-closed one
+            // instead, and only create when there is genuinely nothing to revive.
+            const reopenWindowDays = 30;
+            const cutoff = Date.now() - reopenWindowDays * 24 * 60 * 60 * 1000;
+            const closed = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: 'closed',
+              labels: label,
+              sort: 'updated',
+              direction: 'desc',
+              per_page: 20,
+            });
+            const revivable = closed.data.find((issue) => {
+              if (issue.pull_request) {
+                return false;
+              }
+              const closedAt = issue.closed_at || issue.updated_at;
+              return Boolean(closedAt) && Date.parse(closedAt) >= cutoff;
+            });
+            if (revivable) {
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: revivable.number,
+                state: 'open',
+              });
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: revivable.number,
+                body: `${body}\n\nReopened automatically: this issue was closed, but the nightly is red again.`,
+              });
+              return;
+            }
+            await github.rest.issues.create({ owner, repo, title, body, labels: [label] });
