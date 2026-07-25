@@ -13,6 +13,8 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   },
 }));
 
+const WEBHOOK_SECRET = 'hooksecret';
+
 describe('HeygenWebhookController', () => {
   let controller: HeygenWebhookController;
   let heygenWebhookService: vi.Mocked<HeygenWebhookService>;
@@ -26,8 +28,10 @@ describe('HeygenWebhookController', () => {
     } as unknown as Request;
   }
 
+  const authenticatedRequest = requestWith(WEBHOOK_SECRET);
+
   beforeEach(async () => {
-    configService = { get: vi.fn().mockReturnValue(undefined) };
+    configService = { get: vi.fn().mockReturnValue(WEBHOOK_SECRET) };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HeygenWebhookController],
@@ -70,7 +74,10 @@ describe('HeygenWebhookController', () => {
       const body = { status: 'completed', video_id: 'vid_123' };
       heygenWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      const result = await controller.handleCallback(requestWith(), body);
+      const result = await controller.handleCallback(
+        authenticatedRequest,
+        body,
+      );
 
       expect(loggerService.log).toHaveBeenCalledWith(
         'HeygenWebhookController heygen callback received',
@@ -88,7 +95,7 @@ describe('HeygenWebhookController', () => {
       };
       heygenWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      await controller.handleCallback(requestWith(), body);
+      await controller.handleCallback(authenticatedRequest, body);
 
       expect(heygenWebhookService.handleCallback).toHaveBeenCalledWith(body);
     });
@@ -103,7 +110,7 @@ describe('HeygenWebhookController', () => {
       heygenWebhookService.handleCallback.mockRejectedValue(error);
 
       await expect(
-        controller.handleCallback(requestWith(), body),
+        controller.handleCallback(authenticatedRequest, body),
       ).rejects.toThrow('Video processing failed');
 
       expect(loggerService.error).toHaveBeenCalledWith(
@@ -113,8 +120,6 @@ describe('HeygenWebhookController', () => {
     });
 
     it('rejects callbacks without the shared token when a secret is configured', async () => {
-      configService.get.mockReturnValue('hooksecret');
-
       await expect(
         controller.handleCallback(requestWith(), { video_id: 'vid_1' }),
       ).rejects.toThrow(UnauthorizedException);
@@ -123,27 +128,28 @@ describe('HeygenWebhookController', () => {
     });
 
     it('processes callbacks carrying the correct token', async () => {
-      configService.get.mockReturnValue('hooksecret');
       heygenWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      const result = await controller.handleCallback(
-        requestWith('hooksecret'),
-        { video_id: 'vid_1' },
-      );
+      const result = await controller.handleCallback(authenticatedRequest, {
+        video_id: 'vid_1',
+      });
 
       expect(result).toEqual({ detail: 'Webhook received' });
     });
 
-    it('accepts with a warning when no secret is configured', async () => {
+    it('rejects every caller when no secret is configured', async () => {
       configService.get.mockReturnValue(undefined);
-      heygenWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      await controller.handleCallback(requestWith(), { video_id: 'vid_1' });
+      // Fail closed: an unconfigured deployment must not hand an anonymous
+      // caller a job-completion handler that writes media records.
+      await expect(
+        controller.handleCallback(authenticatedRequest, { video_id: 'vid_1' }),
+      ).rejects.toThrow(UnauthorizedException);
 
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('not configured'),
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('HEYGEN_WEBHOOK_SECRET'),
       );
-      expect(heygenWebhookService.handleCallback).toHaveBeenCalled();
+      expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
     });
   });
 });

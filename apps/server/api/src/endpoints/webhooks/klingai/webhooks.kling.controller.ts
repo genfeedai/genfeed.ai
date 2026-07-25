@@ -38,6 +38,7 @@ export class KlingWebhookController {
         | undefined,
       loggerService: this.loggerService,
       request,
+      secretEnvVar: 'KLINGAI_WEBHOOK_SECRET',
       url,
     });
 

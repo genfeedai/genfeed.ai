@@ -35,6 +35,7 @@ export class HeygenWebhookController {
         | undefined,
       loggerService: this.loggerService,
       request,
+      secretEnvVar: 'HEYGEN_WEBHOOK_SECRET',
       url,
     });
 

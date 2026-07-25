@@ -7,7 +7,10 @@ import {
 import type { Request } from 'express';
 
 describe('webhook-token.util', () => {
-  const loggerService = { warn: vi.fn() } as unknown as LoggerService;
+  const loggerService = {
+    error: vi.fn(),
+    warn: vi.fn(),
+  } as unknown as LoggerService;
 
   function requestWith(options: {
     authorization?: string;
@@ -38,6 +41,7 @@ describe('webhook-token.util', () => {
           configuredSecret: 's3cret',
           loggerService,
           request: requestWith({ token: 's3cret' }),
+          secretEnvVar: 'TEST_WEBHOOK_SECRET',
           url: 'test',
         }),
       ).not.toThrow();
@@ -49,6 +53,7 @@ describe('webhook-token.util', () => {
           configuredSecret: 's3cret',
           loggerService,
           request: requestWith({ headerToken: 's3cret' }),
+          secretEnvVar: 'TEST_WEBHOOK_SECRET',
           url: 'test',
         }),
       ).not.toThrow();
@@ -60,6 +65,7 @@ describe('webhook-token.util', () => {
           configuredSecret: 's3cret',
           loggerService,
           request: requestWith({}),
+          secretEnvVar: 'TEST_WEBHOOK_SECRET',
           url: 'test',
         }),
       ).toThrow(UnauthorizedException);
@@ -71,6 +77,7 @@ describe('webhook-token.util', () => {
           configuredSecret: 's3cret',
           loggerService,
           request: requestWith({ token: 'wrong-token' }),
+          secretEnvVar: 'TEST_WEBHOOK_SECRET',
           url: 'test',
         }),
       ).toThrow(UnauthorizedException);
@@ -83,6 +90,7 @@ describe('webhook-token.util', () => {
           configuredSecret: 's3cret',
           loggerService,
           request: requestWith({ authorization: 'Bearer s3cret' }),
+          secretEnvVar: 'TEST_WEBHOOK_SECRET',
           url: 'test',
         }),
       ).not.toThrow();
@@ -94,6 +102,7 @@ describe('webhook-token.util', () => {
           configuredSecret: 's3cret',
           loggerService,
           request: requestWith({ authorization: 'Bearer s3cret' }),
+          secretEnvVar: 'TEST_WEBHOOK_SECRET',
           url: 'test',
         }),
       ).toThrow(UnauthorizedException);
@@ -106,6 +115,7 @@ describe('webhook-token.util', () => {
           configuredSecret: 's3cret',
           loggerService,
           request: requestWith({ authorization: 'Basic s3cret' }),
+          secretEnvVar: 'TEST_WEBHOOK_SECRET',
           url: 'test',
         }),
       ).toThrow(UnauthorizedException);
@@ -118,24 +128,79 @@ describe('webhook-token.util', () => {
           configuredSecret: 's3cret',
           loggerService,
           request: requestWith({ authorization: 'Bearer wrong-token' }),
+          secretEnvVar: 'TEST_WEBHOOK_SECRET',
           url: 'test',
         }),
       ).toThrow(UnauthorizedException);
     });
 
-    it('warns and accepts when no secret is configured', () => {
+    it('rejects with 401 when no secret is configured', () => {
       expect(() =>
         assertWebhookToken({
           configuredSecret: undefined,
           loggerService,
           request: requestWith({}),
+          secretEnvVar: 'TEST_WEBHOOK_SECRET',
           url: 'test',
         }),
-      ).not.toThrow();
+      ).toThrow(UnauthorizedException);
 
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('not configured'),
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('TEST_WEBHOOK_SECRET'),
       );
+    });
+
+    it('rejects an otherwise-valid token when the secret is blank', () => {
+      // The config schema allows an empty string, so a deployment can leave the
+      // variable declared but unset. Blank must be treated as unconfigured,
+      // otherwise a caller sending `?token=` would authenticate.
+      expect(() =>
+        assertWebhookToken({
+          configuredSecret: '   ',
+          loggerService,
+          request: requestWith({ token: '   ' }),
+          secretEnvVar: 'TEST_WEBHOOK_SECRET',
+          url: 'test',
+        }),
+      ).toThrow(UnauthorizedException);
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('TEST_WEBHOOK_SECRET'),
+      );
+    });
+
+    it('does not leak configuration state to the caller', () => {
+      // An anonymous caller must not be able to tell "no secret provisioned"
+      // apart from "wrong secret" — both paths return the same message.
+      const unconfigured = (() => {
+        try {
+          assertWebhookToken({
+            configuredSecret: undefined,
+            loggerService,
+            request: requestWith({ token: 'guess' }),
+            secretEnvVar: 'TEST_WEBHOOK_SECRET',
+            url: 'test',
+          });
+        } catch (error: unknown) {
+          return (error as Error).message;
+        }
+      })();
+
+      const wrongSecret = (() => {
+        try {
+          assertWebhookToken({
+            configuredSecret: 's3cret',
+            loggerService,
+            request: requestWith({ token: 'guess' }),
+            secretEnvVar: 'TEST_WEBHOOK_SECRET',
+            url: 'test',
+          });
+        } catch (error: unknown) {
+          return (error as Error).message;
+        }
+      })();
+
+      expect(unconfigured).toBe(wrongSecret);
     });
   });
 

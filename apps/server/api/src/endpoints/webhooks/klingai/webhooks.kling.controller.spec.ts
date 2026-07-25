@@ -4,7 +4,8 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { UnauthorizedException } from '@nestjs/common';
+import { Test, type TestingModule } from '@nestjs/testing';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
   CallerUtil: {
@@ -12,22 +13,34 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
   },
 }));
 
-function mockTokenRequest() {
-  return { headers: {}, query: {} } as unknown as import('express').Request;
+const WEBHOOK_SECRET = 'kling-webhook-secret';
+
+// No default value here: a JS default parameter is substituted for an
+// explicit `undefined` argument too, which would silently defeat the
+// "no token" tests below (they call this with `undefined` to build an
+// unauthenticated request).
+function mockTokenRequest(token?: string) {
+  return {
+    headers: {},
+    query: token ? { token } : {},
+  } as unknown as import('express').Request;
 }
 
 describe('KlingWebhookController', () => {
   let controller: KlingWebhookController;
   let klingWebhookService: vi.Mocked<KlingWebhookService>;
   let loggerService: vi.Mocked<LoggerService>;
+  let configService: { get: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    configService = { get: vi.fn().mockReturnValue(WEBHOOK_SECRET) };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [KlingWebhookController],
       providers: [
         {
           provide: ConfigService,
-          useValue: { get: vi.fn().mockReturnValue(undefined) },
+          useValue: configService,
         },
         {
           provide: KlingWebhookService,
@@ -73,7 +86,10 @@ describe('KlingWebhookController', () => {
       const body = { task_id: '123', task_status: 'failed' };
       klingWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      const result = await controller.handleCallback(mockTokenRequest(), body);
+      const result = await controller.handleCallback(
+        mockTokenRequest(WEBHOOK_SECRET),
+        body,
+      );
 
       expect(loggerService.log).toHaveBeenCalledWith(
         'KlingWebhookController kling callback received',
@@ -93,7 +109,7 @@ describe('KlingWebhookController', () => {
       };
       klingWebhookService.handleCallback.mockResolvedValue(undefined);
 
-      await controller.handleCallback(mockTokenRequest(), body);
+      await controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), body);
 
       expect(klingWebhookService.handleCallback).toHaveBeenCalledWith(body);
     });
@@ -117,7 +133,7 @@ describe('KlingWebhookController', () => {
         task_status: 'succeed',
       };
 
-      await controller.handleCallback(mockTokenRequest(), body);
+      await controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), body);
 
       expect(webhooksService.processMediaFromWebhook).toHaveBeenCalledWith(
         'klingai',
@@ -137,13 +153,42 @@ describe('KlingWebhookController', () => {
       klingWebhookService.handleCallback.mockRejectedValue(error);
 
       await expect(
-        controller.handleCallback(mockTokenRequest(), body),
+        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), body),
       ).rejects.toThrow('Processing failed');
 
       expect(loggerService.error).toHaveBeenCalledWith(
         'KlingWebhookController kling callback failed',
         error,
       );
+    });
+
+    it('should reject a callback carrying no token', async () => {
+      await expect(
+        controller.handleCallback(mockTokenRequest(undefined), {
+          task_id: '123',
+          task_status: 'succeed',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(klingWebhookService.handleCallback).not.toHaveBeenCalled();
+    });
+
+    it('should reject every caller when no secret is configured', async () => {
+      configService.get.mockReturnValue(undefined);
+
+      // Fail closed: an unconfigured deployment must not expose this
+      // @Public() job-completion handler to anonymous callers.
+      await expect(
+        controller.handleCallback(mockTokenRequest(WEBHOOK_SECRET), {
+          task_id: '123',
+          task_status: 'succeed',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('KLINGAI_WEBHOOK_SECRET'),
+      );
+      expect(klingWebhookService.handleCallback).not.toHaveBeenCalled();
     });
   });
 });
