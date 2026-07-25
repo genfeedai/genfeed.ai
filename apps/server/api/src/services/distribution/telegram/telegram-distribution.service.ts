@@ -1,6 +1,7 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { QueueService } from '@api/queues/core/queue.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   CredentialPlatform,
   DistributionContentType,
@@ -194,10 +195,19 @@ export class TelegramDistributionService {
     }
 
     try {
-      const organizationId =
-        distribution.organization ?? distribution.organizationId;
-      const brandId =
-        distribution.brand?.toString() ?? distribution.brandId ?? undefined;
+      // Scalar FKs first, Mongo-era aliases only as a fallback. The old order was
+      // inverted: `distribution.brand?.toString()` yields `"[object Object]"` when
+      // the relation happens to be populated, and both aliases are `undefined` on
+      // a plain row — which meant the `!organizationId` guard below rejected every
+      // scheduled Telegram distribution unless `BaseService` back-filled them.
+      const organizationId = resolveRelationId(
+        distribution.organizationId,
+        distribution.organization,
+      );
+      const brandId = resolveRelationId(
+        distribution.brandId,
+        distribution.brand,
+      );
       const chatId = distribution.chatId;
       const contentType = distribution.contentType;
 

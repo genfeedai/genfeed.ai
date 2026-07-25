@@ -33,6 +33,7 @@ import {
   type SocialContentData,
   SocialMonitorService,
 } from '@api/services/reply-bot/social-monitor.service';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   BotActivitySkipReason,
   BotActivityStatus,
@@ -497,6 +498,18 @@ export class ReplyBotOrchestratorService {
     const activityId = activity.id.toString();
 
     try {
+      // `ReplyBotConfig.userId` is a non-nullable column, so an unresolvable owner
+      // means the row was read wrong rather than legitimately ownerless. The
+      // `botConfig.user` alias is `undefined` on an unpopulated read, which used to
+      // silently attribute every generation below to `''`. Failing here only fails
+      // this one content item — the catch marks the activity failed.
+      const ownerUserId = requireRelationId(
+        botConfig.userId,
+        botConfig.user,
+        'user',
+        `Reply bot config ${botConfigId}`,
+      );
+
       // Generate AI reply
       const replyText = await this.replyGenerationService.generateReply({
         context: this.mergeReplyContext(
@@ -509,7 +522,7 @@ export class ReplyBotOrchestratorService {
         tone: (botConfig.replyTone as ReplyTone) || ReplyTone.FRIENDLY,
         tweetAuthor: content.authorUsername,
         tweetContent: content.text,
-        userId: botConfig.user?.toString() || '',
+        userId: ownerUserId,
       });
 
       // Generate DM if configured
@@ -537,7 +550,7 @@ export class ReplyBotOrchestratorService {
           replyText,
           tweetAuthor: content.authorUsername,
           tweetContent: content.text,
-          userId: botConfig.user?.toString() || '',
+          userId: ownerUserId,
         });
       }
 
@@ -570,7 +583,7 @@ export class ReplyBotOrchestratorService {
             organizationId,
             source: 'ReplyBotOrchestratorService.processContent',
             trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: botConfig.user?.toString(),
+            userId: ownerUserId,
           },
           async () => {
             // Post reply (unless DM only)
@@ -736,6 +749,16 @@ export class ReplyBotOrchestratorService {
       throw new Error('Bot configuration not found');
     }
 
+    // Scalar FK, never `botConfig.user` — `findOneById` passes no populate, so the
+    // alias is always `undefined` here and the test path used to bill/attribute
+    // generation to `''`.
+    const ownerUserId = requireRelationId(
+      botConfig.userId,
+      botConfig.user,
+      'user',
+      `Reply bot config ${botConfigId}`,
+    );
+
     const replyText = await this.replyGenerationService.generateReply({
       context: botConfig.context,
       customInstructions: botConfig.customInstructions,
@@ -744,7 +767,7 @@ export class ReplyBotOrchestratorService {
       tone: (botConfig.replyTone as ReplyTone) || ReplyTone.FRIENDLY,
       tweetAuthor: testContent.author,
       tweetContent: testContent.content,
-      userId: botConfig.user?.toString() || '',
+      userId: ownerUserId,
     });
 
     let dmText: string | undefined;
@@ -771,7 +794,7 @@ export class ReplyBotOrchestratorService {
         replyText,
         tweetAuthor: testContent.author,
         tweetContent: testContent.content,
-        userId: botConfig.user?.toString() || '',
+        userId: ownerUserId,
       });
     }
 

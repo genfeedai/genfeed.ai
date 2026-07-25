@@ -21,6 +21,10 @@ import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-crede
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import {
+  requireRelationId,
+  resolveRelationId,
+} from '@api/shared/utils/relation-id/relation-id.util';
+import {
   CampaignSkipReason,
   CampaignStatus,
   CampaignTargetStatus,
@@ -134,10 +138,23 @@ export class DmCampaignExecutorService {
         };
       }
 
+      // Scalar FKs, never the Mongo-era aliases. `OutreachCampaignsService`'s
+      // `normalizeDoc` back-fills `organization` from `organizationId` but sets
+      // neither `brand` nor `user`, so both of those aliases are always
+      // `undefined` on an outreach-campaign row.
+      const organizationId = requireRelationId(
+        campaign.organizationId,
+        campaign.organization,
+        'organization',
+        `Campaign ${campaignId}`,
+      );
+      const brandId = resolveRelationId(campaign.brandId, campaign.brand);
+      const userId = resolveRelationId(campaign.userId, campaign.user);
+
       // Check rate limits
       const canReply = await this.campaignsService.canReply(
         campaignId,
-        campaign.organization,
+        organizationId,
       );
       if (!canReply) {
         await this.campaignTargetsService.markAsSkipped(
@@ -151,13 +168,22 @@ export class DmCampaignExecutorService {
       // Mark as processing
       await this.campaignTargetsService.markAsProcessing(targetId);
 
+      // `credential` is a config-backed field on OutreachCampaign, not a Prisma
+      // relation, so there is no `credentialId` scalar to read. It still has to be
+      // guarded: an undefined `_id` is dropped by normalizeWhere, which would hand
+      // back an arbitrary connected credential from the organization.
+      // relation-alias-ok: config-backed field, guarded for presence below
+      const credentialId = campaign.credential;
+
       // Get credential
-      const credential = await this.credentialsService.findOne({
-        _id: campaign.credential,
-        ...(campaign.brand ? { brandId: campaign.brand } : {}),
-        isDeleted: false,
-        organizationId: campaign.organization,
-      });
+      const credential = credentialId
+        ? await this.credentialsService.findOne({
+            _id: credentialId,
+            ...(brandId ? { brandId } : {}),
+            isDeleted: false,
+            organizationId,
+          })
+        : null;
 
       if (!credential) {
         const errorMessage = 'Credential not found';
@@ -217,6 +243,7 @@ export class DmCampaignExecutorService {
       const dmText = await this.generateDmText(
         campaign,
         target.recipientUsername || '',
+        { organizationId, userId },
       );
 
       // Send DM
@@ -235,10 +262,10 @@ export class DmCampaignExecutorService {
               targetId,
             },
             label: 'Campaign DM Automation',
-            organizationId: campaign.organization.toString(),
+            organizationId,
             source: 'DmCampaignExecutorService.executeDmTarget',
             trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: campaign.user?.toString(),
+            userId,
           },
           () =>
             this.botActionExecutorService.sendDm(
@@ -319,6 +346,9 @@ export class DmCampaignExecutorService {
   private generateDmText(
     campaign: OutreachCampaignDocument,
     recipientUsername: string,
+    // Resolved from the scalar FKs by the caller so this method never re-reads
+    // `campaign.organization` / `campaign.user`.
+    owner: { organizationId: string; userId?: string },
   ): Promise<string> | string {
     const dmConfig = campaign.dmConfig || ({} as CampaignDmConfig);
 
@@ -342,11 +372,11 @@ export class DmCampaignExecutorService {
     return this.replyGenerationService.generateDm({
       context: dmConfig.context,
       customInstructions: instructions || undefined,
-      organizationId: campaign.organization.toString(),
+      organizationId: owner.organizationId,
       replyText: '',
       tweetAuthor: recipientUsername,
       tweetContent: '',
-      userId: campaign.user?.toString() || '',
+      userId: owner.userId || '',
     });
   }
 

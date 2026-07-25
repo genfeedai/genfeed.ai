@@ -14,6 +14,7 @@ import {
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { ActivitySource } from '@genfeedai/enums';
 import {
   buildSystemEmailHtml,
@@ -681,7 +682,12 @@ Return ONLY the prompt text, no explanations.`;
       _id: organizationId,
     });
 
-    const userId = organization?.user?.toString();
+    // Scalar FK. `organization.user` is the Mongo-era alias — undefined unless the
+    // read populated the relation — so `?.toString()` silently yielded undefined and
+    // every auto-triggered trend inspiration failed to resolve a billing user.
+    // `Organization.userId` is non-nullable, so the throw below only fires on a
+    // genuinely missing organization.
+    const userId = resolveRelationId(organization?.userId, organization?.user);
     if (!userId) {
       throw new Error(
         `Cannot resolve billing user for organization ${organizationId}`,

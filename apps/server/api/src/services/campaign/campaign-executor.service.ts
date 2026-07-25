@@ -27,6 +27,10 @@ import {
   ReplyGenerationService,
 } from '@api/services/reply-bot/reply-generation.service';
 import {
+  requireRelationId,
+  resolveRelationId,
+} from '@api/shared/utils/relation-id/relation-id.util';
+import {
   CampaignPlatform,
   CampaignSkipReason,
   CampaignStatus,
@@ -111,13 +115,35 @@ export class CampaignExecutorService {
       // Mark target as processing
       await this.campaignTargetsService.markAsProcessing(target.id.toString());
 
+      // Scalar FKs, never the Mongo-era aliases. `OutreachCampaignsService`'s
+      // `normalizeDoc` back-fills `organization` from `organizationId` but sets
+      // neither `brand` nor `user`, so both of those aliases are always
+      // `undefined` on an outreach-campaign row.
+      const organizationId = requireRelationId(
+        campaign.organizationId,
+        campaign.organization,
+        'organization',
+        `Campaign ${campaign.id}`,
+      );
+      const brandId = resolveRelationId(campaign.brandId, campaign.brand);
+      const userId = resolveRelationId(campaign.userId, campaign.user);
+
+      // `credential` is a config-backed field on OutreachCampaign, not a Prisma
+      // relation, so there is no `credentialId` scalar to read. It still has to be
+      // guarded: an undefined `_id` is dropped by normalizeWhere, which would hand
+      // back an arbitrary connected credential from the organization.
+      // relation-alias-ok: config-backed field, guarded for presence below
+      const credentialId = campaign.credential;
+
       // Get credential
-      const credential = await this.credentialsService.findOne({
-        _id: campaign.credential,
-        ...(campaign.brand ? { brandId: campaign.brand } : {}),
-        isDeleted: false,
-        organizationId: campaign.organization,
-      });
+      const credential = credentialId
+        ? await this.credentialsService.findOne({
+            _id: credentialId,
+            ...(brandId ? { brandId } : {}),
+            isDeleted: false,
+            organizationId,
+          })
+        : null;
 
       if (!credential) {
         const errorMessage = 'Credential not found';
@@ -136,7 +162,10 @@ export class CampaignExecutorService {
       }
 
       // Generate reply
-      const replyText = await this.generateReply(campaign, target);
+      const replyText = await this.generateReply(campaign, target, {
+        organizationId,
+        userId,
+      });
 
       // Post reply
       const credentialData = toReplyBotCredentialData(
@@ -176,10 +205,10 @@ export class CampaignExecutorService {
               targetId: target.id.toString(),
             },
             label: 'Campaign Reply Automation',
-            organizationId: campaign.organization.toString(),
+            organizationId,
             source: 'CampaignExecutorService.executeTarget',
             trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: campaign.user?.toString(),
+            userId,
           },
           () =>
             Promise.resolve(
@@ -263,6 +292,9 @@ export class CampaignExecutorService {
   private generateReply(
     campaign: OutreachCampaignDocument,
     target: CampaignTargetDocument,
+    // Resolved from the scalar FKs by the caller so this method never re-reads
+    // `campaign.organization` / `campaign.user`.
+    owner: { organizationId: string; userId?: string },
   ): Promise<string> | string {
     const aiConfig = campaign.aiConfig || ({} as CampaignAiConfig);
 
@@ -276,11 +308,11 @@ export class CampaignExecutorService {
       context: aiConfig.context,
       customInstructions: this.buildCustomInstructions(aiConfig, target),
       length: this.normalizeReplyLength(aiConfig.length),
-      organizationId: campaign.organization.toString(),
+      organizationId: owner.organizationId,
       tone: this.normalizeReplyTone(aiConfig.tone),
       tweetAuthor: this.asString(target.authorUsername) ?? 'unknown',
       tweetContent: this.asString(target.contentText) ?? '',
-      userId: campaign.user?.toString() || '',
+      userId: owner.userId || '',
     };
 
     return this.replyGenerationService.generateReply(options);

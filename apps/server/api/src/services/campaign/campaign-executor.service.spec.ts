@@ -86,7 +86,12 @@ describe('CampaignExecutorService', () => {
   const targetId = 'test-object-id';
   const credentialId = 'test-object-id';
   const orgId = 'test-object-id';
+  const brandId = 'brand-1';
+  const userId = 'user-1';
 
+  // Shaped like a real outreach-campaign row: scalar FKs are the source of truth
+  // and `organization` is the only Mongo-era alias `OutreachCampaignsService`
+  // back-fills (it never sets `brand` or `user`).
   const makeCampaign = (
     overrides: Partial<OutreachCampaignDocument> = {},
   ): OutreachCampaignDocument =>
@@ -99,11 +104,14 @@ describe('CampaignExecutorService', () => {
         tone: ReplyTone.FRIENDLY,
         useAiGeneration: true,
       } as CampaignAiConfig,
+      brandId,
       credential: credentialId,
       organization: orgId,
+      organizationId: orgId,
       platform: CampaignPlatform.TWITTER,
       rateLimits: { delayBetweenRepliesSeconds: 0 },
       status: CampaignStatus.ACTIVE,
+      userId,
       ...overrides,
     }) as unknown as OutreachCampaignDocument;
 
@@ -301,6 +309,76 @@ describe('CampaignExecutorService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBe('DB down');
       expect(mockLogger.error).toHaveBeenCalled();
+    });
+
+    it('should scope the credential lookup with scalar brand and organization ids', async () => {
+      const campaign = makeCampaign();
+      const target = makeTarget();
+      mockOutreachCampaignsService.canReply.mockResolvedValue(true);
+      mockCredentialsService.findOne.mockResolvedValue(fakeCredential);
+      mockReplyGenerationService.generateReply.mockResolvedValue('reply');
+      mockBotActionExecutorService.postReply.mockResolvedValue({
+        success: true,
+        tweetId: 't1',
+        tweetUrl: 'url',
+      });
+
+      await service.executeTarget(campaign, target);
+
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        _id: credentialId,
+        brandId,
+        isDeleted: false,
+        organizationId: orgId,
+      });
+    });
+
+    it('should omit the brand filter when the campaign has no brand', async () => {
+      const campaign = makeCampaign({ brandId: undefined });
+      const target = makeTarget();
+      mockOutreachCampaignsService.canReply.mockResolvedValue(true);
+      mockCredentialsService.findOne.mockResolvedValue(fakeCredential);
+      mockReplyGenerationService.generateReply.mockResolvedValue('reply');
+      mockBotActionExecutorService.postReply.mockResolvedValue({
+        success: true,
+        tweetId: 't1',
+        tweetUrl: 'url',
+      });
+
+      await service.executeTarget(campaign, target);
+
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        _id: credentialId,
+        isDeleted: false,
+        organizationId: orgId,
+      });
+    });
+
+    it('should not query credentials at all when the campaign has no credential', async () => {
+      const campaign = makeCampaign({ credential: undefined });
+      const target = makeTarget();
+      mockOutreachCampaignsService.canReply.mockResolvedValue(true);
+
+      const result = await service.executeTarget(campaign, target);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Credential not found');
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should fail closed without querying credentials when the organization cannot be resolved', async () => {
+      const campaign = makeCampaign({
+        organization: undefined,
+        organizationId: undefined,
+      } as Partial<OutreachCampaignDocument>);
+      const target = makeTarget();
+      mockOutreachCampaignsService.canReply.mockResolvedValue(true);
+
+      const result = await service.executeTarget(campaign, target);
+
+      expect(result.success).toBe(false);
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockCampaignTargetsService.markAsFailed).toHaveBeenCalled();
     });
 
     it('should return error for unsupported platform (reddit)', async () => {

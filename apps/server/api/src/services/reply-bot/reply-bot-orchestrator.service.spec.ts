@@ -9,13 +9,18 @@ import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-o
 import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
-import { ReplyBotPlatform } from '@genfeedai/enums';
+import { BotActivityStatus, ReplyBotPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ReplyBotOrchestratorService', () => {
   let service: ReplyBotOrchestratorService;
+
+  // `ReplyBotConfig.userId` is a non-nullable column, so every realistic bot
+  // config row carries it. The `user` alias is the Mongo-era relation field and
+  // is `undefined` unless the read explicitly populated it.
+  const botOwnerUserId = '507f1f77bcf86cd799439033';
 
   const mockConfigService = {
     get: vi.fn(() => 'test-value'),
@@ -212,6 +217,7 @@ describe('ReplyBotOrchestratorService', () => {
       replyLength: 'medium',
       replyTone: 'friendly',
       type: 'reply_guy',
+      userId: botOwnerUserId,
       ...overrides,
     });
 
@@ -464,7 +470,55 @@ describe('ReplyBotOrchestratorService', () => {
       expect(mockReplyGenerationService.generateReply).toHaveBeenCalledWith(
         expect.objectContaining({
           context: 'test context\n\nParent content ID: parent-1',
+          // Owner comes from the scalar FK, not the `user` relation alias.
+          userId: botOwnerUserId,
         }),
+      );
+    });
+
+    it('should fail the activity instead of posting when the owner cannot be resolved', async () => {
+      // A bot config read without its owner id must not post an unattributed
+      // reply. The failure is isolated to this content item — the surrounding
+      // loop keeps going and the activity is marked FAILED.
+      const botConfig = makeBotConfig({
+        actionType: 'reply_only',
+        userId: undefined,
+      });
+      const contentItem = {
+        authorId: 'author-1',
+        authorUsername: 'author',
+        contentType: 'tweet',
+        createdAt: new Date(),
+        id: 'tweet-1',
+        platform: 'twitter',
+        text: 'Hello',
+      };
+
+      mockRateLimitService.isWithinSchedule.mockReturnValue(true);
+      mockSocialMonitorService.getUserMentions.mockResolvedValue([contentItem]);
+      mockSocialMonitorService.filterUnprocessedContent.mockResolvedValue([
+        contentItem,
+      ]);
+      mockRateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
+      mockBotActivitiesService.create.mockResolvedValue({
+        id: 'test-object-id',
+      });
+      mockBotActivitiesService.updateStatus.mockResolvedValue(undefined);
+
+      const result = await service.processSingleBot(
+        botConfig as never,
+        orgId,
+        credential,
+      );
+
+      expect(result.errors).toBe(1);
+      expect(result.repliesSent).toBe(0);
+      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
+      expect(mockBotActionExecutorService.postReply).not.toHaveBeenCalled();
+      expect(mockBotActivitiesService.updateStatus).toHaveBeenCalledWith(
+        'test-object-id',
+        orgId,
+        expect.objectContaining({ status: BotActivityStatus.FAILED }),
       );
     });
 
@@ -554,6 +608,7 @@ describe('ReplyBotOrchestratorService', () => {
         customInstructions: 'instructions',
         replyLength: 'medium',
         replyTone: 'friendly',
+        userId: botOwnerUserId,
       });
       mockReplyGenerationService.generateReply.mockResolvedValue(
         'Generated reply!',
@@ -583,6 +638,7 @@ describe('ReplyBotOrchestratorService', () => {
         },
         replyLength: 'medium',
         replyTone: 'friendly',
+        userId: botOwnerUserId,
       });
       mockReplyGenerationService.generateReply.mockResolvedValue(
         'Generated reply!',
@@ -606,6 +662,46 @@ describe('ReplyBotOrchestratorService', () => {
           tweetContent: 'Test tweet',
         }),
       );
+    });
+
+    it('should attribute generation to the scalar owner id', async () => {
+      // `findOneById` passes no populate, so `user` is absent on a real row —
+      // reading it used to attribute the generation to `''`.
+      mockReplyBotConfigsService.findOneById.mockResolvedValue({
+        id: botConfigId,
+        actionType: 'reply_only',
+        context: 'context',
+        replyLength: 'medium',
+        replyTone: 'friendly',
+        userId: botOwnerUserId,
+      });
+      mockReplyGenerationService.generateReply.mockResolvedValue(
+        'Generated reply!',
+      );
+
+      await service.testReplyGeneration(botConfigId, orgId, testContent);
+
+      expect(mockReplyGenerationService.generateReply).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: orgId,
+          userId: botOwnerUserId,
+        }),
+      );
+    });
+
+    it('should fail closed without generating when the owner cannot be resolved', async () => {
+      mockReplyBotConfigsService.findOneById.mockResolvedValue({
+        id: botConfigId,
+        actionType: 'reply_only',
+        context: 'context',
+        replyLength: 'medium',
+        replyTone: 'friendly',
+      });
+
+      await expect(
+        service.testReplyGeneration(botConfigId, orgId, testContent),
+      ).rejects.toThrow();
+      expect(mockReplyGenerationService.generateReply).not.toHaveBeenCalled();
     });
   });
 });

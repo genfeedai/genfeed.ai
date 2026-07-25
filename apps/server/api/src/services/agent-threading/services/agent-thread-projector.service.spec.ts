@@ -128,6 +128,51 @@ describe('AgentThreadProjectorService', () => {
     expect(afterRunCompleted.timeline).toHaveLength(3);
   });
 
+  it('derives synthesized ids from the scalar thread id', () => {
+    // A real event row carries `threadId`; `thread` is the Mongo-era relation alias
+    // and is absent unless the read populated it. `event.thread.toString()` threw
+    // `Cannot read properties of undefined` and aborted the whole projection.
+    const projected = service.applyEvent(null, {
+      commandId: 'cmd-scalar',
+      occurredAt: '2026-03-11T09:00:00.000Z',
+      payload: { content: 'Streamed answer' },
+      runId: 'run-scalar',
+      sequence: 4,
+      threadId: 'thread-scalar-id',
+      type: 'assistant.finalized',
+    } as never);
+
+    expect(projected.lastAssistantMessage).toEqual({
+      content: 'Streamed answer',
+      createdAt: '2026-03-11T09:00:00.000Z',
+      messageId: 'thread-scalar-id:4',
+      metadata: undefined,
+    });
+    expect(projected.timeline).toEqual([
+      expect.objectContaining({ id: 'thread-scalar-id:4' }),
+    ]);
+  });
+
+  it('mirrors the scalar thread id into the persisted snapshot payload', () => {
+    // The snapshot's legacy `thread` mirror is sourced from the `threadId` column,
+    // so a snapshot loaded without the relation no longer persists `undefined`.
+    const projected = service.applyEvent(
+      { threadId: 'thread-scalar-id' } as never,
+      {
+        commandId: 'cmd-mirror',
+        eventId: 'event-mirror',
+        occurredAt: '2026-03-11T09:05:00.000Z',
+        payload: { content: 'Another answer' },
+        runId: 'run-mirror',
+        sequence: 5,
+        threadId: 'thread-scalar-id',
+        type: 'assistant.finalized',
+      } as never,
+    );
+
+    expect(projected.thread).toBe('thread-scalar-id');
+  });
+
   it('stores proposed plan review metadata from plan events', () => {
     const threadId = 'test-object-id';
 
