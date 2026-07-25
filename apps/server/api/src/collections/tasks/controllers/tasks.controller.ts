@@ -535,7 +535,7 @@ export class TasksController extends BaseCRUDController<
             request?: string;
           };
           return this.workspaceTaskQueueService!.enqueue({
-            brandId: (task.brand as string | undefined)?.toString(),
+            brandId: task.brandId ?? undefined,
             organizationId: organization,
             outputType: taskExt.outputType,
             platforms: taskExt.platforms,

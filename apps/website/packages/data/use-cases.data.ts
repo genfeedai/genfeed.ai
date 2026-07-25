@@ -1,3 +1,6 @@
+import type { PlanTier } from '@helpers/business/pricing/pricing.helper';
+import { PLAN_COPY } from '@helpers/business/pricing/pricing.helper';
+
 export interface UseCase {
   slug: string;
   title: string;
@@ -15,7 +18,8 @@ export interface UseCase {
   }[];
   results: string[];
   pricing: {
-    recommended: string;
+    /** Stable tier id; the display name is resolved via getPlanLabel at render. */
+    recommended: PlanTier;
     why: string;
   };
   cta: string;
@@ -36,11 +40,11 @@ export const useCases: UseCase[] = [
       'No control over messaging or personality',
     ],
     pricing: {
-      recommended: 'Creator',
-      why: 'Free to start with pay-per-output credits; the Creator subscription ($49/month) makes avatar, voice, and publishing output ~40% cheaper.',
+      recommended: 'pro',
+      why: `Free to start with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}) makes avatar, voice, and publishing output ~40% cheaper.`,
     },
     results: [
-      'Cost per influencer drops from $10K/mo to $99/mo',
+      `Cost per influencer drops from $10K/mo to ${PLAN_COPY.pro.priceLabel}`,
       '24/7 always-on content availability',
       'Full brand safety and creative control',
       'Scale to unlimited virtual personas',
@@ -99,8 +103,8 @@ export const useCases: UseCase[] = [
       "Expensive tools that don't talk to each other",
     ],
     pricing: {
-      recommended: 'Creator',
-      why: 'Start free with pay-per-output credits; the Creator subscription ($49/month, 8,000 credits included) is the better rate for daily publishing.',
+      recommended: 'pro',
+      why: `Start free with pay-per-output credits; the ${PLAN_COPY.pro.name} subscription (${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.pro.includedCredits} included) is the better rate for daily publishing.`,
     },
     results: [
       '10x content output (3 posts/week → 30 posts/week)',
@@ -167,8 +171,8 @@ export const useCases: UseCase[] = [
       'High tool costs eating into margins',
     ],
     pricing: {
-      recommended: 'Teams',
-      why: 'Teams adds collaboration, team roles, and multi-brand workspaces for agencies managing 5-15 clients.',
+      recommended: 'scale',
+      why: `${PLAN_COPY.scale.name} adds collaboration, team roles, and multi-brand workspaces for agencies managing 5-15 clients.`,
     },
     results: [
       'Manage 3x more clients with same team',
@@ -235,8 +239,8 @@ export const useCases: UseCase[] = [
       'Seasonal content takes weeks to produce',
     ],
     pricing: {
-      recommended: 'Teams',
-      why: 'Teams adds managed billing, brand workspaces, bulk generation workflows, and purchase attribution tracking.',
+      recommended: 'scale',
+      why: `${PLAN_COPY.scale.name} adds managed billing, brand workspaces, bulk generation workflows, and purchase attribution tracking.`,
     },
     results: [
       'Cut product content costs by 80%',
@@ -301,8 +305,8 @@ export const useCases: UseCase[] = [
       'Marketing attribution is a black box',
     ],
     pricing: {
-      recommended: 'Teams',
-      why: 'Teams adds shared workspaces, advanced analytics, and production support for marketing teams running multi-channel campaigns.',
+      recommended: 'scale',
+      why: `${PLAN_COPY.scale.name} adds shared workspaces, advanced analytics, and production support for marketing teams running multi-channel campaigns.`,
     },
     results: [
       'Cut content production costs by 70%',
@@ -367,8 +371,8 @@ export const useCases: UseCase[] = [
       'Overwhelmed by too many tools',
     ],
     pricing: {
-      recommended: 'Creator',
-      why: 'Start free with pay-per-output credits; upgrade to Creator ($49/month, 8,000 credits included) once you publish weekly.',
+      recommended: 'pro',
+      why: `Start free with pay-per-output credits; upgrade to ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.monthlyPrice}, ${PLAN_COPY.pro.includedCredits} included) once you publish weekly.`,
     },
     results: [
       'Post 5x more without extra time',

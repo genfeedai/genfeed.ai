@@ -820,7 +820,7 @@ export class ArticlesContentService {
     onBilling?: (charge: TextGenerationCharge) => void,
   ): Promise<ArticleReviewRubric> {
     const harnessContext = await this.buildArticleHarnessContext({
-      brandId: article.brand?.toString?.(),
+      brandId: article.brandId ?? undefined,
       contentType: 'article',
       objective: 'authority',
       organizationId,

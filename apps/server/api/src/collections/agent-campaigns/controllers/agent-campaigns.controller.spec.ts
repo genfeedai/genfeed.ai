@@ -218,10 +218,8 @@ describe('AgentCampaignsController', () => {
   });
 
   describe('canUserModifyEntity', () => {
-    it('should return true when entity organization matches user organization', () => {
-      const entity = {
-        organization: { id: '507f1f77bcf86cd799439012' },
-      };
+    it('should return true when entity organizationId matches user organization', () => {
+      const entity = { organizationId: '507f1f77bcf86cd799439012' };
       expect(
         controller.canUserModifyEntity(mockUser as any, entity as any),
       ).toBe(true);
@@ -232,14 +230,24 @@ describe('AgentCampaignsController', () => {
         ...mockUser,
         publicMetadata: { ...mockUser.publicMetadata, isSuperAdmin: true },
       };
-      const entity = { organization: { _id: 'different_org_id' } };
+      const entity = { organizationId: 'different_org_id' };
       expect(
         controller.canUserModifyEntity(superAdmin as any, entity as any),
       ).toBe(true);
     });
 
-    it('should return false when organization does not match', () => {
-      const entity = { organization: { _id: 'different_org_id' } };
+    it('should return false when organizationId does not match', () => {
+      const entity = { organizationId: 'different_org_id' };
+      expect(
+        controller.canUserModifyEntity(mockUser as any, entity as any),
+      ).toBe(false);
+    });
+
+    it('should deny access when only the unpopulated relation alias is present', () => {
+      // A Prisma row without an explicit include carries no `organization`
+      // relation; reading the alias used to yield undefined on both sides and
+      // wave the request through.
+      const entity = { organization: { id: '507f1f77bcf86cd799439012' } };
       expect(
         controller.canUserModifyEntity(mockUser as any, entity as any),
       ).toBe(false);

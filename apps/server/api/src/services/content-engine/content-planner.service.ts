@@ -117,10 +117,10 @@ export class ContentPlannerService {
 
     const itemInputs: CreateContentPlanItemInput[] = parsed.items.map(
       (item) => ({
-        brand: brandId,
-        organization: organizationId,
+        brandId,
+        organizationId,
         pipelineSteps: item.pipelineSteps,
-        plan: planId,
+        planId,
         platforms: item.platforms,
         prompt: item.prompt,
         scheduledAt: item.scheduledAt ? new Date(item.scheduledAt) : undefined,

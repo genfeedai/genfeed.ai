@@ -182,21 +182,38 @@ export class InsightsService {
 
     const forecasts: Forecast[] = [];
 
-    for (const metric of dto.metrics) {
-      // Check for recent forecast in data JSON
-      const allForecasts = await this.prisma.forecast.findMany({
-        where: { isDeleted: false, organizationId },
-      });
+    // `dto.metrics` is user-controlled, so reading inside the loop was an O(N)
+    // sequence of org-wide scans. Read once and index the still-valid rows by
+    // metric; the period filter is loop-invariant.
+    const now = new Date();
+    const allForecasts = await this.prisma.forecast.findMany({
+      where: { isDeleted: false, organizationId },
+    });
 
-      const existingForecast = allForecasts.find((f) => {
-        const data = f.data as ForecastData;
-        return (
-          data?.metric === metric &&
-          data?.period === dto.period &&
-          data?.validUntil &&
-          new Date(data.validUntil) > new Date()
-        );
-      });
+    const validForecastsByMetric = new Map<
+      string,
+      (typeof allForecasts)[number]
+    >();
+    for (const candidate of allForecasts) {
+      const data = candidate.data as ForecastData;
+
+      if (
+        typeof data?.metric !== 'string' ||
+        data.period !== dto.period ||
+        !data.validUntil ||
+        new Date(data.validUntil) <= now
+      ) {
+        continue;
+      }
+
+      // `.find()` returned the first match, so keep the first row per metric.
+      if (!validForecastsByMetric.has(data.metric)) {
+        validForecastsByMetric.set(data.metric, candidate);
+      }
+    }
+
+    for (const metric of dto.metrics) {
+      const existingForecast = validForecastsByMetric.get(metric);
 
       if (existingForecast) {
         forecasts.push(existingForecast as unknown as Forecast);

@@ -1,9 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
-import { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
-import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
+import type { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
+import type { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
+import type { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
-import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import type { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -23,8 +23,8 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { ConfigService } from '@libs/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Body,
