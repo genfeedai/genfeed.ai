@@ -112,10 +112,75 @@ describe('LoraService', () => {
 
       await expect(
         service.uploadLora({
-          localPath: '/tmp/nonexistent.safetensors',
+          localPath: '/comfyui/models/loras/nonexistent.safetensors',
           loraName: 'test',
         }),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it.each([
+      '../evil',
+      'nested/name',
+      'a..b',
+      '$(whoami)',
+      '.hidden',
+      'name with space',
+    ])('should reject loraName %s before touching S3', async (loraName) => {
+      mockStat.mockResolvedValue({ size: 12345 });
+
+      await expect(
+        service.uploadLora({
+          localPath: '/comfyui/models/loras/my-lora.safetensors',
+          loraName,
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockS3Service.uploadFile).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      '/etc/shadow.safetensors',
+      '../../root/.ssh/id_rsa.safetensors',
+      '/comfyui/models/loras-sibling/evil.safetensors',
+    ])('should reject localPath %s outside the configured LoRA directory', async (localPath) => {
+      mockStat.mockResolvedValue({ size: 12345 });
+
+      await expect(
+        service.uploadLora({ localPath, loraName: 'my-lora' }),
+      ).rejects.toThrow(BadRequestException);
+
+      // The file is never read, so its bytes never reach a bucket the
+      // caller can list.
+      expect(mockStat).not.toHaveBeenCalled();
+      expect(mockS3Service.uploadFile).not.toHaveBeenCalled();
+    });
+
+    it('should accept a path relative to the configured LoRA directory', async () => {
+      mockStat.mockResolvedValue({ size: 12345 });
+
+      await service.uploadLora({
+        localPath: 'my-lora.safetensors',
+        loraName: 'my-lora',
+      });
+
+      expect(mockS3Service.uploadFile).toHaveBeenCalledWith(
+        'test-bucket',
+        'ingredients/trainings/loras/my-lora.safetensors',
+        '/comfyui/models/loras/my-lora.safetensors',
+      );
+    });
+
+    it('should derive the S3 key from loraName, not from localPath', async () => {
+      mockStat.mockResolvedValue({ size: 12345 });
+
+      const result = await service.uploadLora({
+        localPath: '/comfyui/models/loras/checkpoint-final.safetensors',
+        loraName: 'alice_lora',
+      });
+
+      expect(result.s3Key).toBe(
+        'ingredients/trainings/loras/alice_lora.safetensors',
+      );
     });
   });
 

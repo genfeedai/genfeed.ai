@@ -151,6 +151,71 @@ describe('VoiceTrainingService', () => {
     });
   });
 
+  describe('argument and path guards', () => {
+    // `voiceId` lands in argv and in two filesystem paths. `spawn` runs without
+    // a shell, so the hazards are traversal (`../`) and a value the trainer
+    // re-reads as a flag because it starts with `-`.
+    it.each([
+      '../evil',
+      '../../etc/passwd',
+      'nested/name',
+      '/absolute/voice',
+      '-o',
+      '--config_file=/etc/shadow',
+      '.hidden',
+      'name with space',
+      '$(whoami)',
+      'a;b',
+    ])('rejects the voiceId %s without spawning', async (voiceId) => {
+      await expect(service.startTraining({ voiceId })).rejects.toThrow(
+        BadRequestException,
+      );
+
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    // Fields typed `number` in TypeScript are still arbitrary JSON at runtime.
+    it.each([
+      ['epochs', { epochs: 0 }],
+      ['epochs', { epochs: 1.5 }],
+      ['epochs', { epochs: 1_000_000 }],
+      ['epochs', { epochs: '1e999' as unknown as number }],
+      ['sampleRate', { sampleRate: 1 }],
+      ['sampleRate', { sampleRate: Number.NaN }],
+      ['sampleRate', { sampleRate: '44100' as unknown as number }],
+      ['batchSize', { batchSize: 0 }],
+      ['batchSize', { batchSize: 99_999 }],
+      ['batchSize', { batchSize: Number.POSITIVE_INFINITY }],
+    ])('rejects an out-of-contract %s without spawning', async (_field, overrides) => {
+      await expect(
+        service.startTraining({ voiceId: 'test-voice', ...overrides }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    it('does not record a job when a request is rejected', async () => {
+      await expect(
+        service.startTraining({ voiceId: '../evil' }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(await service.listJobs()).toEqual([]);
+    });
+
+    // `buildTrainingCommand` is public, so it re-asserts rather than trusting
+    // that `startTraining` already validated the params it was handed.
+    it('re-validates params handed straight to buildTrainingCommand', () => {
+      expect(() =>
+        service.buildTrainingCommand({
+          batchSize: 8,
+          epochs: 100,
+          sampleRate: 22050,
+          voiceId: '../../etc',
+        }),
+      ).toThrow(BadRequestException);
+    });
+  });
+
   describe('getJob', () => {
     it('should return a training job by jobId', async () => {
       const mockChild = createMockChildProcess();

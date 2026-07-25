@@ -61,6 +61,7 @@ interface ImagesLoraUploadResponse {
 export class AdminFleetTrainingService {
   private readonly constructorName: string = String(this.constructor.name);
   private readonly imagesApiUrl: string;
+  private readonly internalApiKey: string;
 
   constructor(
     private readonly trainingsService: TrainingsService,
@@ -70,6 +71,19 @@ export class AdminFleetTrainingService {
     private readonly modelRegistrationService: ModelRegistrationService,
   ) {
     this.imagesApiUrl = this.configService.get('GPU_IMAGES_URL') ?? '';
+    this.internalApiKey =
+      (this.configService.get('GENFEEDAI_API_KEY') as string) ?? '';
+  }
+
+  /**
+   * The images service authenticates every route with `InternalApiKeyGuard`,
+   * which compares the bearer token against its own `GENFEEDAI_API_KEY`. Both
+   * sides read the same shared secret, so every outbound call must carry it.
+   */
+  private get requestConfig(): { headers: Record<string, string> } {
+    return {
+      headers: { Authorization: `Bearer ${this.internalApiKey}` },
+    };
   }
 
   /**
@@ -171,7 +185,7 @@ export class AdminFleetTrainingService {
 
       const { data: dataset } = await axios.get<ImagesDatasetResponse>(
         `${this.imagesApiUrl}/datasets/${params.personaSlug}`,
-        { timeout: 15000 },
+        { ...this.requestConfig, timeout: 15000 },
       );
 
       if (dataset.imageCount === 0) {
@@ -204,7 +218,7 @@ export class AdminFleetTrainingService {
           steps: params.steps,
           triggerWord: params.triggerWord,
         },
-        { timeout: 30000 },
+        { ...this.requestConfig, timeout: 30000 },
       );
 
       this.loggerService.log(caller, {
@@ -256,7 +270,7 @@ export class AdminFleetTrainingService {
 
       const { data: job } = await axios.get<ImagesJobStatus>(
         `${this.imagesApiUrl}/train/${gpuJobId}`,
-        { timeout: 15000 },
+        { ...this.requestConfig, timeout: 15000 },
       );
 
       // Map GPU job stage to TrainingStage enum
@@ -342,13 +356,16 @@ export class AdminFleetTrainingService {
       trainingId,
     });
 
+    // `POST /loras` — the images LoRA controller is `@Controller('loras')` with
+    // a bare `@Post()`. The previous `/loras/upload` spelling 404'd, failing
+    // every training run at the upload stage.
     const { data: uploadResult } = await axios.post<ImagesLoraUploadResponse>(
-      `${this.imagesApiUrl}/loras/upload`,
+      `${this.imagesApiUrl}/loras`,
       {
         localPath: `/comfyui/models/loras/${loraName}.safetensors`,
         loraName,
       },
-      { timeout: 120000 },
+      { ...this.requestConfig, timeout: 120000 },
     );
 
     this.loggerService.log(caller, {
@@ -363,20 +380,21 @@ export class AdminFleetTrainingService {
   async getDatasetInfo(slug: string): Promise<ImagesDatasetResponse> {
     const { data } = await axios.get<ImagesDatasetResponse>(
       `${this.imagesApiUrl}/datasets/${slug}`,
-      { timeout: 15000 },
+      { ...this.requestConfig, timeout: 15000 },
     );
     return data;
   }
 
-  async syncDataset(
-    slug: string,
-    s3Keys: string[],
-    bucket?: string,
-  ): Promise<void> {
+  /**
+   * The bucket is no longer part of the request body: the images service reads
+   * datasets from its own configured bucket so a caller cannot point its AWS
+   * credentials at an arbitrary one.
+   */
+  async syncDataset(slug: string, s3Keys: string[]): Promise<void> {
     await axios.post(
       `${this.imagesApiUrl}/datasets/${slug}/sync`,
-      { bucket, s3Keys },
-      { timeout: 120000 },
+      { s3Keys },
+      { ...this.requestConfig, timeout: 120000 },
     );
   }
 

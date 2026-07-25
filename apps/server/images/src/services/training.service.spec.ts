@@ -164,6 +164,133 @@ describe('TrainingService', () => {
     });
   });
 
+  describe('argument and path guards', () => {
+    const VALID_REQUEST = {
+      loraName: 'test-lora',
+      personaSlug: 'test-persona',
+      triggerWord: 'ohwx',
+    };
+
+    // `personaSlug` and `loraName` are interpolated into filesystem paths and
+    // then handed to `spawn`. No shell is involved, so the hazards are `../`
+    // traversal and a value the trainer re-reads as a flag because it starts
+    // with `-`.
+    it.each([
+      '../evil',
+      '../../etc/passwd',
+      'nested/name',
+      '/absolute/persona',
+      '-o',
+      '--config_file=/etc/shadow',
+      '.hidden',
+      'name with space',
+      '$(whoami)',
+      'a;b',
+    ])('rejects the personaSlug %s without spawning', async (personaSlug) => {
+      await expect(
+        service.startTraining({ ...VALID_REQUEST, personaSlug }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      '../evil',
+      'nested/name',
+      '/absolute/lora',
+      '--output_dir',
+      '.hidden',
+      'a;b',
+    ])('rejects the loraName %s without spawning', async (loraName) => {
+      await expect(
+        service.startTraining({ ...VALID_REQUEST, loraName }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    // `triggerWord` is free text rather than a path segment, so spaces are
+    // fine — a leading `-` is not.
+    it.each([
+      '--config_file=/etc/shadow',
+      '-o',
+      '-',
+      '../evil',
+      '$(whoami)',
+      'a\nb',
+    ])('rejects the triggerWord %s without spawning', async (triggerWord) => {
+      await expect(
+        service.startTraining({ ...VALID_REQUEST, triggerWord }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    it('accepts a trigger word containing spaces', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      await expect(
+        service.startTraining({ ...VALID_REQUEST, triggerWord: 'ohwx person' }),
+      ).resolves.toMatchObject({ jobId: expect.any(String) });
+    });
+
+    // Fields typed `number` in TypeScript are still arbitrary JSON at runtime.
+    it.each([
+      ['steps', { steps: 0 }],
+      ['steps', { steps: 1.5 }],
+      ['steps', { steps: 10_000_000 }],
+      ['steps', { steps: '1e999' as unknown as number }],
+      ['loraRank', { loraRank: 0 }],
+      ['loraRank', { loraRank: 512 }],
+      ['loraRank', { loraRank: Number.NaN }],
+      ['learningRate', { learningRate: 0 }],
+      ['learningRate', { learningRate: 5 }],
+      ['learningRate', { learningRate: '1e-4' as unknown as number }],
+      ['learningRate', { learningRate: Number.POSITIVE_INFINITY }],
+    ])('rejects an out-of-contract %s without spawning', async (_field, overrides) => {
+      await expect(
+        service.startTraining({ ...VALID_REQUEST, ...overrides }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockSpawn).not.toHaveBeenCalled();
+    });
+
+    it('does not record a job when a request is rejected', async () => {
+      await expect(
+        service.startTraining({ ...VALID_REQUEST, personaSlug: '../evil' }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(await service.listTrainingJobs()).toEqual([]);
+    });
+
+    // `buildTrainingCommand` is public, so it re-asserts rather than trusting
+    // that `startTraining` already validated the params it was handed.
+    it('re-validates params handed straight to buildTrainingCommand', () => {
+      expect(() =>
+        service.buildTrainingCommand({
+          learningRate: 1e-4,
+          loraName: '../../etc/passwd',
+          loraRank: 16,
+          personaSlug: 'test-persona',
+          steps: 1500,
+          triggerWord: 'ohwx',
+        }),
+      ).toThrow(BadRequestException);
+
+      expect(() =>
+        service.buildTrainingCommand({
+          learningRate: 1e-4,
+          loraName: 'my-lora',
+          loraRank: 16,
+          personaSlug: '../../etc',
+          steps: 1500,
+          triggerWord: 'ohwx',
+        }),
+      ).toThrow(BadRequestException);
+    });
+  });
+
   describe('getTrainingJob', () => {
     it('should return a training job by jobId', async () => {
       const mockChild = createMockChildProcess();

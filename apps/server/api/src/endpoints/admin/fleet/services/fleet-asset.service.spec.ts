@@ -3,7 +3,6 @@ import { AdminFleetAssetService } from '@api/endpoints/admin/fleet/services/flee
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { DarkroomReviewStatus, IngredientCategory } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -44,7 +43,6 @@ describe('AdminFleetAssetService.reviewAsset', () => {
           provide: AdminFleetTrainingService,
           useValue: adminFleetTrainingService,
         },
-        { provide: ConfigService, useValue: { get: () => 'fleet-bucket' } },
         { provide: LoggerService, useValue: { log: vi.fn() } },
       ],
     }).compile();
@@ -75,10 +73,11 @@ describe('AdminFleetAssetService.reviewAsset', () => {
     });
     // image + caption uploads, then the dataset sync.
     expect(filesClientService.uploadToS3).toHaveBeenCalled();
+    // No bucket argument: the images service resolves the dataset bucket from
+    // its own config so a caller cannot redirect its AWS credentials.
     expect(adminFleetTrainingService.syncDataset).toHaveBeenCalledWith(
       'alice',
       expect.any(Array),
-      'fleet-bucket',
     );
   });
 

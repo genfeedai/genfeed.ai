@@ -1,10 +1,12 @@
+import { InternalApiKeyGuard } from '@images/guards/internal-api-key.guard';
 import type { TrainingRequest } from '@images/interfaces/training.interfaces';
 import { TrainingService } from '@images/services/training.service';
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiTags('Training')
 @Controller('train')
+@UseGuards(InternalApiKeyGuard)
 export class TrainingController {
   constructor(private readonly trainingService: TrainingService) {}
 

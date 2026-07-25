@@ -1,6 +1,8 @@
+import { ConfigService } from '@images/config/config.service';
 import { ComfyUIController } from '@images/controllers/comfyui.controller';
 import { ComfyUIService } from '@images/services/comfyui.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('ComfyUIController (images)', () => {
   let controller: ComfyUIController;
@@ -23,6 +25,11 @@ describe('ComfyUIController (images)', () => {
             restart: vi.fn().mockResolvedValue({ restarted: true }),
           },
         },
+        {
+          provide: ConfigService,
+          useValue: { API_KEY: 'test-api-key', isDevelopment: false },
+        },
+        { provide: LoggerService, useValue: { warn: vi.fn() } },
       ],
     }).compile();
 

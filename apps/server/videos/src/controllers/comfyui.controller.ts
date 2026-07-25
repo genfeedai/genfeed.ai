@@ -1,9 +1,11 @@
-import { Controller, Get, Post } from '@nestjs/common';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { InternalApiKeyGuard } from '@videos/guards/internal-api-key.guard';
 import { ComfyUIService } from '@videos/services/comfyui.service';
 
 @ApiTags('ComfyUI')
 @Controller('comfyui')
+@UseGuards(InternalApiKeyGuard)
 export class ComfyUIController {
   constructor(private readonly comfyuiService: ComfyUIService) {}
 
