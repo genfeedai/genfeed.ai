@@ -535,7 +535,9 @@ export class TasksController extends BaseCRUDController<
             request?: string;
           };
           return this.workspaceTaskQueueService!.enqueue({
-            brandId: (task.brand as string | undefined)?.toString(),
+            // Scalar FK: `task.brand` is undefined unless the query populated
+            // the relation, so every follow-up task was enqueued brandless.
+            brandId: task.brandId ?? undefined,
             organizationId: organization,
             outputType: taskExt.outputType,
             platforms: taskExt.platforms,
