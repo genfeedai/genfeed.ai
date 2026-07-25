@@ -88,36 +88,6 @@ export class PublicPostsController {
     return serializeCollection(request, PostSerializer, data);
   }
 
-  @Get(':postId')
-  @Cache({
-    keyGenerator: (req) => `public:post:${req.params?.postId ?? 'unknown'}`,
-    tags: ['posts'],
-    ttl: 1800, // 30 minutes
-  })
-  async getPostMetadata(
-    @Req() request: Request,
-    @Param('postId') postId: string,
-  ): Promise<JsonApiSingleResponse> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    if (!isEntityId(postId)) {
-      return returnNotFound(this.constructorName, postId);
-    }
-
-    this.logger.log(url, { params: { postId } });
-    const post = await this.postsService.findOne({
-      _id: postId,
-      isDeleted: false,
-      // scope: AssetScope.PUBLIC,
-    });
-
-    if (!post) {
-      return returnNotFound(this.constructorName, postId);
-    }
-
-    return serializeSingle(request, PostSerializer, post);
-  }
-
   @Get('ingredients')
   @Cache({
     keyGenerator: (req) =>
@@ -171,5 +141,41 @@ export class PublicPostsController {
 
     const data = await this.ingredientsService.findAll(aggregate, options);
     return serializeCollection(request, IngredientSerializer, data);
+  }
+
+  // ────────────────────────────────────────────────────────────────────────────
+  // Wildcard param routes — keep last. Nest matches in declaration order, so a
+  // `:postId` route declared earlier swallows every static sibling path
+  // (`GET /public/posts/ingredients` would resolve to getPostMetadata).
+  // ────────────────────────────────────────────────────────────────────────────
+
+  @Get(':postId')
+  @Cache({
+    keyGenerator: (req) => `public:post:${req.params?.postId ?? 'unknown'}`,
+    tags: ['posts'],
+    ttl: 1800, // 30 minutes
+  })
+  async getPostMetadata(
+    @Req() request: Request,
+    @Param('postId') postId: string,
+  ): Promise<JsonApiSingleResponse> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    if (!isEntityId(postId)) {
+      return returnNotFound(this.constructorName, postId);
+    }
+
+    this.logger.log(url, { params: { postId } });
+    const post = await this.postsService.findOne({
+      _id: postId,
+      isDeleted: false,
+      // scope: AssetScope.PUBLIC,
+    });
+
+    if (!post) {
+      return returnNotFound(this.constructorName, postId);
+    }
+
+    return serializeSingle(request, PostSerializer, post);
   }
 }
