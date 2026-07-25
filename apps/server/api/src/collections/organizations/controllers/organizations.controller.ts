@@ -130,19 +130,36 @@ export class OrganizationsController extends BaseCRUDController<
   /**
    * GET /organizations/by-slug/:slug
    * Resolve an organization by its URL-friendly slug.
+   *
+   * Bespoke route: the base findOne gate never runs for it, so it applies
+   * canUserReadEntity itself rather than defining a second access rule. A
+   * denied read and an unknown slug throw the identical 404 so a slug probe
+   * can't distinguish "exists, but not yours" from "does not exist".
    */
   @Get('by-slug/:slug')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findBySlug(
     @Req() request: Request,
     @Param('slug') slug: string,
+    @CurrentUser() user: User,
   ): Promise<unknown> {
     const org = await this.organizationsService.findBySlug(slug);
-    if (!org) {
-      throw new NotFoundException({
+    const notFound = (): NotFoundException =>
+      new NotFoundException({
         message: `Organization with slug "${slug}" not found`,
       });
+
+    if (!org) {
+      throw notFound();
     }
+
+    if (
+      !(await this.canUserReadEntity(user, org)) &&
+      !getIsSuperAdmin(user, request)
+    ) {
+      throw notFound();
+    }
+
     return serializeSingle(request, OrganizationSerializer, org);
   }
 

@@ -7,6 +7,19 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
+// findBySlug is the only route in this suite that serializes. Keep the rest of
+// the response helpers real so nothing else changes shape.
+vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@api/helpers/utils/response/response.util')
+    >();
+  return {
+    ...actual,
+    serializeSingle: vi.fn((_request, _serializer, data) => data),
+  };
+});
+
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
@@ -19,9 +32,11 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { SubscriptionTier } from '@genfeedai/enums';
 import { SINGLE_ORGANIZATION_LIMIT } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 interface FindMineEntry {
@@ -53,6 +68,7 @@ describe('OrganizationsController', () => {
   const mockOrganizationsService = {
     count: vi.fn(),
     create: vi.fn(),
+    findBySlug: vi.fn(),
     findOne: vi.fn(),
     generateUniqueSlug: vi.fn(),
   };
@@ -456,6 +472,93 @@ describe('OrganizationsController', () => {
       );
 
       expect(result).toBe(false);
+    });
+  });
+
+  // GET /organizations/by-slug/:slug is bespoke, so the base findOne gate never
+  // runs for it. Without its own check any authenticated user could read any
+  // organization by guessing a slug.
+  describe('findBySlug', () => {
+    const mockRequest = {
+      originalUrl: '/api/organizations/by-slug/other-org',
+      query: {},
+    } as unknown as Parameters<OrganizationsController['findBySlug']>[0];
+
+    const NOT_FOUND_DETAIL = 'Organization with slug "other-org" not found';
+
+    const readSlug = (user: User = currentUser): Promise<unknown> =>
+      controller.findBySlug(mockRequest, 'other-org', user);
+
+    const expectNotFound = async (): Promise<void> => {
+      const error = await readSlug().catch((thrown: unknown) => thrown);
+
+      expect(error).toBeInstanceOf(NotFoundException);
+      expect((error as NotFoundException).getStatus()).toBe(
+        HttpStatus.NOT_FOUND,
+      );
+      expect((error as NotFoundException).getResponse()).toEqual({
+        detail: NOT_FOUND_DETAIL,
+        title: 'Resource Not Found',
+      });
+    };
+
+    it('returns the organization for a member reading their own org', async () => {
+      const org = { id: 'org_other', label: 'Other Org', userId: 'user_other' };
+      mockOrganizationsService.findBySlug.mockResolvedValue(org);
+      mockMembersService.findOne.mockResolvedValue({ id: 'member_1' });
+
+      const result = await readSlug();
+
+      expect(result).toBe(org);
+      expect(mockOrganizationsService.findBySlug).toHaveBeenCalledWith(
+        'other-org',
+      );
+    });
+
+    it('returns the active organization without a membership lookup', async () => {
+      const org = { id: 'org_active', label: 'Active Org', userId: 'user_x' };
+      mockOrganizationsService.findBySlug.mockResolvedValue(org);
+
+      const result = await readSlug();
+
+      expect(result).toBe(org);
+      expect(mockMembersService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('404s when a non-member reads a foreign organization', async () => {
+      mockOrganizationsService.findBySlug.mockResolvedValue({
+        id: 'org_other',
+        label: 'Other Org',
+        userId: 'user_other',
+      });
+      mockMembersService.findOne.mockResolvedValue(null);
+
+      await expectNotFound();
+    });
+
+    // Same assertion as the denied read above: the two responses must be
+    // indistinguishable, or the slug becomes an existence oracle.
+    it('404s identically for an unknown slug', async () => {
+      mockOrganizationsService.findBySlug.mockResolvedValue(null);
+
+      await expectNotFound();
+    });
+
+    it('lets a super admin read a foreign organization', async () => {
+      const org = { id: 'org_other', label: 'Other Org', userId: 'user_other' };
+      mockOrganizationsService.findBySlug.mockResolvedValue(org);
+      mockMembersService.findOne.mockResolvedValue(null);
+
+      const superAdminUser = {
+        publicMetadata: {
+          ...(currentUser.publicMetadata as Record<string, unknown>),
+          isSuperAdmin: true,
+        },
+      } as unknown as User;
+
+      const result = await readSlug(superAdminUser);
+
+      expect(result).toBe(org);
     });
   });
 });
