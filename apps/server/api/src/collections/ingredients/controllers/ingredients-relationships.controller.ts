@@ -132,7 +132,10 @@ export class IngredientsRelationshipsController {
       where: {
         ingredients: ingredientId,
         isDeleted,
-        organization: ingredient.organization,
+        // Scalar FK, coerced to an explicit null: the legacy `organization`
+        // alias is undefined unless populated, and `normalizeWhere` drops
+        // undefined values — which would silently list posts across every org.
+        organizationId: ingredient.organizationId ?? null,
       },
       orderBy: handleQuerySort(query.sort),
     };

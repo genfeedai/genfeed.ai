@@ -108,15 +108,18 @@ export class CronYoutubeStatusService {
     const url = `${this.constructorName} checkPostStatus`;
 
     try {
-      if (!post.credential) {
+      // Scalar FKs: the legacy `credential`/`organization`/`brand` aliases are
+      // undefined unless the query populated the relations, so this guard
+      // rejected every post and the status sync never ran.
+      if (!post.credentialId) {
         this.logger.warn(`${url} post ${post.id} has no credential`);
         return;
       }
 
       // Call YouTube API to get actual video status
       const videoStatus = await this.youtubeService.getVideoStatus(
-        post.organization.toString(),
-        post.brand.toString(),
+        post.organizationId,
+        post.brandId,
         post.externalId,
       );
 
@@ -298,12 +301,14 @@ export class CronYoutubeStatusService {
             },
             label: 'YouTube Status Reconciliation',
             metadata: { platform: CredentialPlatform.YOUTUBE },
-            organizationId: post.organization.toString(),
+            // Scalar FKs: the `organization`/`user` aliases are undefined here,
+            // which scoped this provenance record to the literal "undefined".
+            organizationId: post.organizationId,
             postIds: [post.id.toString()],
             schedule: '0 1 * * *',
             source: 'CronYoutubeStatusService.checkPostStatus',
             trigger: WorkflowExecutionTrigger.SCHEDULED,
-            userId: post.user?.toString(),
+            userId: post.userId,
           },
           transition,
         );

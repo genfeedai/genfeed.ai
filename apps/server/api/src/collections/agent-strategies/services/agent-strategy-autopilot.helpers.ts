@@ -25,27 +25,18 @@ export function strategyId(strategy: AgentStrategyDocument): string {
   return documentId(strategy);
 }
 
-export function asOptionalString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.length > 0 ? value : undefined;
-}
-
+// Scalar FKs only: the legacy `organization`/`brand` aliases are undefined
+// unless the query populated the relations, so they never carried a usable id.
 export function strategyOrganizationId(
   strategy: AgentStrategyDocument,
 ): string {
-  return (
-    asOptionalString((strategy as Record<string, unknown>).organizationId) ??
-    strategy.organization
-  );
+  return strategy.organizationId;
 }
 
 export function strategyBrandId(
   strategy: AgentStrategyDocument,
 ): string | undefined {
-  return (
-    asOptionalString((strategy as Record<string, unknown>).brandId) ??
-    strategy.brand ??
-    undefined
-  );
+  return strategy.brandId ?? undefined;
 }
 
 export function strategyPlatforms(strategy: AgentStrategyDocument): string[] {

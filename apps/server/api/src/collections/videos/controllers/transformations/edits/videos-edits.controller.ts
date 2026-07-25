@@ -100,10 +100,10 @@ export class VideosEditsController {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
-          brand: video.brand || video.brand,
+          brand: video.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
-          organization: video.organization,
+          organization: video.organizationId,
           parent: videoId,
           status: IngredientStatus.PROCESSING,
         });
@@ -237,11 +237,11 @@ export class VideosEditsController {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
-          brand: video.brand || video.brand,
+          brand: video.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           height: originalMetadata.height,
-          organization: video.organization,
+          organization: video.organizationId,
           parent: videoId,
           status: IngredientStatus.PROCESSING,
           width: originalMetadata.width,
