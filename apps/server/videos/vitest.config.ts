@@ -27,6 +27,10 @@ export default defineConfig({
         serviceDir,
         '../../../packages/pricing/src/index.ts',
       ),
+      '@genfeedai/storage/path-containment': path.resolve(
+        serviceDir,
+        '../../../packages/storage/src/path-containment.ts',
+      ),
       '@genfeedai/storage': path.resolve(
         serviceDir,
         '../../../packages/storage/src/index.ts',
