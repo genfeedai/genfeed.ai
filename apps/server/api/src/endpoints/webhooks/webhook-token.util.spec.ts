@@ -10,13 +10,19 @@ describe('webhook-token.util', () => {
   const loggerService = { warn: vi.fn() } as unknown as LoggerService;
 
   function requestWith(options: {
+    authorization?: string;
     token?: string;
     headerToken?: string;
   }): Request {
     return {
-      headers: options.headerToken
-        ? { 'x-webhook-token': options.headerToken }
-        : {},
+      headers: {
+        ...(options.authorization
+          ? { authorization: options.authorization }
+          : {}),
+        ...(options.headerToken
+          ? { 'x-webhook-token': options.headerToken }
+          : {}),
+      },
       query: options.token ? { token: options.token } : {},
     } as unknown as Request;
   }
@@ -65,6 +71,53 @@ describe('webhook-token.util', () => {
           configuredSecret: 's3cret',
           loggerService,
           request: requestWith({ token: 'wrong-token' }),
+          url: 'test',
+        }),
+      ).toThrow(UnauthorizedException);
+    });
+
+    it('accepts a matching bearer token when opted in', () => {
+      expect(() =>
+        assertWebhookToken({
+          acceptBearerHeader: true,
+          configuredSecret: 's3cret',
+          loggerService,
+          request: requestWith({ authorization: 'Bearer s3cret' }),
+          url: 'test',
+        }),
+      ).not.toThrow();
+    });
+
+    it('ignores a bearer token when not opted in', () => {
+      expect(() =>
+        assertWebhookToken({
+          configuredSecret: 's3cret',
+          loggerService,
+          request: requestWith({ authorization: 'Bearer s3cret' }),
+          url: 'test',
+        }),
+      ).toThrow(UnauthorizedException);
+    });
+
+    it('ignores a non-bearer authorization scheme', () => {
+      expect(() =>
+        assertWebhookToken({
+          acceptBearerHeader: true,
+          configuredSecret: 's3cret',
+          loggerService,
+          request: requestWith({ authorization: 'Basic s3cret' }),
+          url: 'test',
+        }),
+      ).toThrow(UnauthorizedException);
+    });
+
+    it('rejects a wrong bearer token with 401', () => {
+      expect(() =>
+        assertWebhookToken({
+          acceptBearerHeader: true,
+          configuredSecret: 's3cret',
+          loggerService,
+          request: requestWith({ authorization: 'Bearer wrong-token' }),
           url: 'test',
         }),
       ).toThrow(UnauthorizedException);

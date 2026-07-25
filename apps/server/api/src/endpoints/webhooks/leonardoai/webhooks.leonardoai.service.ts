@@ -45,11 +45,9 @@ export class LeonardoaiWebhookService {
     // Update metadata with callback response
     const updateData: Partial<Record<string, unknown>> = {};
 
-    // @ts-expect-error TS2339
     if (status === 'COMPLETE' && images && images.length > 0) {
       // Store the first image URL as result
-      // @ts-expect-error TS7053
-      updateData.result = images[0].url || JSON.stringify(images);
+      updateData.result = images[0]?.url || JSON.stringify(images);
     }
 
     if (status === 'FAILED') {

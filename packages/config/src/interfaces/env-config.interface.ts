@@ -123,6 +123,8 @@ export interface IEnvConfig {
 
   // === Leonardo ===
   LEONARDO_KEY?: string;
+  LEONARDO_WEBHOOK_ALLOWED_IPS?: string;
+  LEONARDO_WEBHOOK_SECRET?: string;
 
   // === HeyGen ===
   HEYGEN_KEY?: string;

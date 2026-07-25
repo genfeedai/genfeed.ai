@@ -81,12 +81,46 @@ export interface OpusProWebhookPayload extends WebhookPayload {
 }
 
 /**
+ * A single generated asset inside a Leonardo.AI webhook payload
+ */
+export interface LeonardoAIWebhookImage {
+  id?: string;
+  generationId?: string;
+  url?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * The generation record Leonardo.AI nests under `data.object`
+ */
+export interface LeonardoAIWebhookGeneration {
+  id?: string;
+  status?: string;
+  images?: LeonardoAIWebhookImage[];
+  [key: string]: unknown;
+}
+
+/**
+ * The `data` envelope of a Leonardo.AI webhook event. Every member is optional
+ * because the vendor is free to change the envelope; consumers must guard the
+ * shape at runtime rather than assume `data.object` exists.
+ */
+export interface LeonardoAIWebhookData {
+  object?: LeonardoAIWebhookGeneration;
+  [key: string]: unknown;
+}
+
+/**
  * Leonardo.AI webhook event payload
+ * @see https://docs.leonardo.ai/docs/webhooks
  */
 export interface LeonardoAIWebhookPayload extends WebhookPayload {
+  type?: string;
+  customId?: string;
   generationId?: string;
   status?: string;
-  data: unknown;
+  images?: LeonardoAIWebhookImage[];
+  data?: LeonardoAIWebhookData | null;
 }
 
 /**

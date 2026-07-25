@@ -68,6 +68,18 @@ export const elevenlabsSchema = {
  */
 export const leonardoSchema = {
   LEONARDO_KEY: conditionalRequired(),
+  LEONARDO_WEBHOOK_ALLOWED_IPS: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'Comma-separated egress IPs allowed to call the Leonardo callback. Overrides the shipped vendor list so rotations do not need a deploy',
+    ),
+  LEONARDO_WEBHOOK_SECRET: Joi.string()
+    .optional()
+    .allow('')
+    .description(
+      'Webhook callback API key registered with Leonardo.Ai, presented as an Authorization: Bearer header and verified on inbound webhooks',
+    ),
 };
 
 /**
