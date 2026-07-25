@@ -60,7 +60,7 @@ describe('PricingContent launch pricing', () => {
 
     expect(
       screen.getByText(
-        /launch pricing \(code earlygenfeed\) — first 12 months, then \$49\/month/i,
+        /launch pricing \(code earlygenfeed\) for the first 12 months, then \$49\/month/i,
       ),
     ).toBeInTheDocument();
   });
