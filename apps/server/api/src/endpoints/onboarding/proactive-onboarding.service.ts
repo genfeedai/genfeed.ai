@@ -13,6 +13,13 @@ import type {
   PrepareBrandDto,
   SendInvitationDto,
 } from '@api/endpoints/onboarding/dto/proactive-onboarding.dto';
+import {
+  buildProactiveBrandSystemPrompt,
+  buildProactiveWorkspaceSummary,
+  getProactivePrepPercent,
+  getProactivePrepStage,
+  isProactiveInviteEligible,
+} from '@api/endpoints/onboarding/services/proactive-onboarding-value.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
@@ -254,7 +261,7 @@ export class ProactiveOnboardingService {
           primaryColor: scrapedData.primaryColor ?? '#000000',
           secondaryColor: scrapedData.secondaryColor ?? '#FFFFFF',
           slug: brandSlug,
-          text: this.buildBrandSystemPrompt(scrapedData, dto),
+          text: buildProactiveBrandSystemPrompt(scrapedData, dto),
           user: shadowOrgUserId,
         }) as unknown as Parameters<BrandsService['create']>[0],
       );
@@ -559,8 +566,8 @@ export class ProactiveOnboardingService {
     const result: IProactivePreparationStatus = {
       generatedAssetCount: 0,
       inviteEligible: false,
-      prepPercent: this.getPrepPercent(lead.data.proactiveStatus),
-      prepStage: this.getPrepStage(lead.data.proactiveStatus),
+      prepPercent: getProactivePrepPercent(lead.data.proactiveStatus),
+      prepStage: getProactivePrepStage(lead.data.proactiveStatus),
       proactiveStatus:
         lead.data.proactiveStatus ?? ProactiveOnboardingStatus.NONE,
     };
@@ -636,7 +643,9 @@ export class ProactiveOnboardingService {
       }
     }
 
-    result.inviteEligible = this.isInviteEligible(lead.data.proactiveStatus);
+    result.inviteEligible = isProactiveInviteEligible(
+      lead.data.proactiveStatus,
+    );
 
     if (
       result.proactiveStatus === ProactiveOnboardingStatus.READY &&
@@ -675,7 +684,7 @@ export class ProactiveOnboardingService {
       proactiveStatus:
         lead.data.proactiveStatus ?? ProactiveOnboardingStatus.NONE,
       success: true,
-      summary: this.buildWorkspaceSummary(status, outputs.length),
+      summary: buildProactiveWorkspaceSummary(status, outputs.length),
     };
   }
 
@@ -741,7 +750,7 @@ export class ProactiveOnboardingService {
     const outputs = workspace?.outputs ?? (await this.getLeadOutputs(lead));
     const summary =
       workspace?.summary ??
-      this.buildWorkspaceSummary(fallbackStatus, outputs.length);
+      buildProactiveWorkspaceSummary(fallbackStatus, outputs.length);
 
     return {
       brand: fallbackStatus.brand,
@@ -968,54 +977,6 @@ export class ProactiveOnboardingService {
     return role.id.toString();
   }
 
-  private getPrepStage(status?: ProactiveOnboardingStatus): string {
-    switch (status) {
-      case ProactiveOnboardingStatus.BRAND_PREPARING:
-        return 'researching_brand';
-      case ProactiveOnboardingStatus.BRAND_READY:
-        return 'brand_ready';
-      case ProactiveOnboardingStatus.CONTENT_GENERATING:
-        return 'generating_outputs';
-      case ProactiveOnboardingStatus.READY:
-      case ProactiveOnboardingStatus.INVITED:
-      case ProactiveOnboardingStatus.STARTED:
-      case ProactiveOnboardingStatus.PAYMENT_MADE:
-      case ProactiveOnboardingStatus.CONVERTED:
-        return 'ready';
-      default:
-        return 'not_started';
-    }
-  }
-
-  private getPrepPercent(status?: ProactiveOnboardingStatus): number {
-    switch (status) {
-      case ProactiveOnboardingStatus.BRAND_PREPARING:
-        return 25;
-      case ProactiveOnboardingStatus.BRAND_READY:
-        return 55;
-      case ProactiveOnboardingStatus.CONTENT_GENERATING:
-        return 80;
-      case ProactiveOnboardingStatus.READY:
-      case ProactiveOnboardingStatus.INVITED:
-      case ProactiveOnboardingStatus.STARTED:
-      case ProactiveOnboardingStatus.PAYMENT_MADE:
-      case ProactiveOnboardingStatus.CONVERTED:
-        return 100;
-      default:
-        return 0;
-    }
-  }
-
-  private isInviteEligible(status?: ProactiveOnboardingStatus): boolean {
-    return [
-      ProactiveOnboardingStatus.READY,
-      ProactiveOnboardingStatus.INVITED,
-      ProactiveOnboardingStatus.STARTED,
-      ProactiveOnboardingStatus.PAYMENT_MADE,
-      ProactiveOnboardingStatus.CONVERTED,
-    ].includes(status as ProactiveOnboardingStatus);
-  }
-
   private async getLeadOutputs(lead: LeadWithData): Promise<unknown[]> {
     if (!lead.proactiveOrganizationId) {
       return [];
@@ -1027,49 +988,5 @@ export class ProactiveOnboardingService {
     });
 
     return posts.slice(0, 3);
-  }
-
-  private buildWorkspaceSummary(
-    status: Pick<IProactivePreparationStatus, 'brand' | 'organization'>,
-    outputCount: number,
-  ): string {
-    const parts = [
-      status.organization?.label
-        ? `${status.organization.label} is prebuilt`
-        : 'Your workspace is prebuilt',
-      status.brand?.name ? `with ${status.brand.name} context` : undefined,
-      outputCount > 0 ? `and ${outputCount} starter outputs ready` : undefined,
-    ].filter(Boolean);
-
-    return `${parts.join(' ')}.`;
-  }
-
-  private buildBrandSystemPrompt(
-    scrapedData: IScrapedBrandData,
-    dto: PrepareBrandDto,
-  ): string {
-    const parts: string[] = [];
-
-    if (scrapedData.companyName) {
-      parts.push(`You are creating content for ${scrapedData.companyName}.`);
-    }
-
-    if (scrapedData.tagline) {
-      parts.push(`Brand tagline: "${scrapedData.tagline}"`);
-    }
-
-    if (scrapedData.aboutText) {
-      parts.push(`About the brand: ${scrapedData.aboutText}`);
-    }
-
-    if (dto.industry) {
-      parts.push(`Industry: ${dto.industry}`);
-    }
-
-    if (dto.targetAudience) {
-      parts.push(`Target audience: ${dto.targetAudience}`);
-    }
-
-    return parts.join('\n\n');
   }
 }
