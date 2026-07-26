@@ -13,17 +13,18 @@ import { WORKFLOWS_LOGO_HREF } from '@app-config/workflows-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/constants';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
+import type {
+  MenuSharedProps,
+  SidebarNavPanel,
+} from '@genfeedai/props/navigation/menu.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
-import type { ReactNode } from 'react';
 import { HiPlus } from 'react-icons/hi2';
 import { withTaskContextHref } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
-import AgentSidebarContent from './AppProtectedLayoutAgentSidebar';
 
 type ShellChromeVariant = 'default';
 
@@ -57,7 +58,6 @@ type Props = {
   isSettingsRoute: boolean;
   isStudioRoute: boolean;
   isWorkflowsRoute: boolean;
-  isUniversalWorkspaceShell?: boolean;
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   composeMenuItems: MenuItemConfig[];
@@ -69,8 +69,12 @@ type Props = {
   settingsMenuItems: MenuItemConfig[];
   studioMenuItems: MenuItemConfig[];
   workflowsMenuItems: MenuItemConfig[];
-  conversationActions: ReactNode;
-  renderConversations: () => ReactNode;
+  /**
+   * Supplied by the module that owns the active surface. When present its body
+   * replaces that surface's menu items — today the conversation's thread list,
+   * later Library → collections and Workflows → runs.
+   */
+  navPanel?: SidebarNavPanel | null;
   onOpenCommandPalette: () => void;
 };
 
@@ -92,7 +96,6 @@ export default function AppProtectedLayoutSidebar({
   isSettingsRoute,
   isStudioRoute,
   isWorkflowsRoute,
-  isUniversalWorkspaceShell = false,
   adminMenuItems,
   analyticsMenuItems,
   composeMenuItems,
@@ -104,8 +107,7 @@ export default function AppProtectedLayoutSidebar({
   settingsMenuItems,
   studioMenuItems,
   workflowsMenuItems,
-  conversationActions,
-  renderConversations,
+  navPanel,
   onOpenCommandPalette,
 }: Props) {
   const { href: buildHref, orgHref } = useOrgUrl();
@@ -130,37 +132,29 @@ export default function AppProtectedLayoutSidebar({
     return null;
   }
 
-  const conversationSidebar = (
-    <AppSidebar
-      {...collapseProps}
-      currentApp={currentApp}
-      items={[]}
-      logoHref={withTaskContextHref(
-        buildHref(APP_LOGO_HREF),
-        taskContextSearchParams,
-      )}
-      sectionLabel="Workspace"
-      collapsedSidebarWidth={0}
-      orgSwitcherSlot={orgSwitcherSlot}
-      renderBody={() => (
-        <AgentSidebarContent
-          conversationActions={conversationActions}
-          renderConversations={renderConversations}
-        />
-      )}
-      shellMode="default"
-      showPrimaryItems={false}
-      showUserProfile
-      shellChromeVariant={shellChromeVariant}
-    />
-  );
-
-  if (isUniversalWorkspaceShell) {
-    return conversationSidebar;
-  }
+  // A module owns the nav column by handing the shell a panel: the surface
+  // keeps its logo, label and switchers, and the panel takes the place of its
+  // menu items. Nothing here knows what the panel renders.
+  const navPanelProps = navPanel
+    ? {
+        collapsedSidebarWidth: 0,
+        items: [] satisfies MenuItemConfig[],
+        renderBody: navPanel.render,
+        shellMode: 'default' as const,
+        showPrimaryItems: false,
+      }
+    : null;
 
   const surface = (
     [
+      {
+        active: isConversationRoute,
+        currentApp,
+        items: [],
+        logoHref: buildHref(APP_LOGO_HREF),
+        sectionLabel: 'Workspace',
+        showOrgSwitcher: true,
+      },
       {
         active: isLibraryRoute,
         currentApp,
@@ -252,16 +246,13 @@ export default function AppProtectedLayoutSidebar({
           surface.logoHref,
           taskContextSearchParams,
         )}
-        sectionLabel={surface.sectionLabel}
+        sectionLabel={navPanel?.sectionLabel ?? surface.sectionLabel}
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={surface.showOrgSwitcher ? orgSwitcherSlot : undefined}
         showUserProfile={surface.showUserProfile ?? true}
+        {...navPanelProps}
       />
     );
-  }
-
-  if (isConversationRoute) {
-    return conversationSidebar;
   }
 
   return (

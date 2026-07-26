@@ -4,6 +4,7 @@ import StreakNotificationsBridge from '@app-components/streaks/StreakNotificatio
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
 import type { AgentApiService } from '@genfeedai/agent';
 import { isEEEnabled } from '@genfeedai/config/license';
+import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
@@ -34,6 +35,7 @@ import {
   captureWorkspaceShellError,
   captureWorkspaceShellPerformance,
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
+import AgentSidebarContent from './AppProtectedLayoutAgentSidebar';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AssetGateGuard from './asset-gate-guard';
 import {
@@ -198,6 +200,24 @@ function AppLayoutWithDynamicMenu({
     [agentApiService, handleNavigate, setConversationActions],
   );
 
+  // The conversation module's nav column. It is handed to the sidebar as a
+  // panel rather than special-cased there, so the next module to own its
+  // column (Library → collections, Workflows → runs) uses the same seam.
+  const conversationNavPanel = useMemo<SidebarNavPanel | null>(
+    () =>
+      isConversationRoute
+        ? {
+            render: () => (
+              <AgentSidebarContent
+                conversationActions={conversationActions}
+                renderConversations={renderConversations}
+              />
+            ),
+          }
+        : null,
+    [conversationActions, isConversationRoute, renderConversations],
+  );
+
   const menuComponent = useMemo(() => {
     if (
       !isWorkspaceShellReady &&
@@ -223,7 +243,6 @@ function AppLayoutWithDynamicMenu({
         isSettingsRoute={isSettingsRoute}
         isStudioRoute={isStudioRoute}
         isWorkflowsRoute={isWorkflowsRoute}
-        isUniversalWorkspaceShell={isWorkspaceShellReady}
         adminMenuItems={adminMenuItems}
         analyticsMenuItems={analyticsMenuItems}
         composeMenuItems={composeMenuItems}
@@ -235,8 +254,7 @@ function AppLayoutWithDynamicMenu({
         settingsMenuItems={settingsMenuItems}
         studioMenuItems={studioMenuItems}
         workflowsMenuItems={workflowsMenuItems}
-        conversationActions={conversationActions}
-        renderConversations={renderConversations}
+        navPanel={conversationNavPanel}
         onOpenCommandPalette={handleOpenCommandPalette}
       />
     );
@@ -245,7 +263,7 @@ function AppLayoutWithDynamicMenu({
     analyticsMenuItems,
     composeMenuItems,
     currentApp,
-    conversationActions,
+    conversationNavPanel,
     handleOpenCommandPalette,
     isAdminRoute,
     isAnalyticsRoute,
@@ -266,7 +284,6 @@ function AppLayoutWithDynamicMenu({
     menuItems,
     orgMenuItems,
     researchMenuItems,
-    renderConversations,
     secondaryMenuItems,
     settingsMenuItems,
     shellChromeVariant,
