@@ -1,5 +1,6 @@
 import type { TrendSourceItem } from '@api/collections/trends/interfaces/trend.interfaces';
 import { TrendCorpusFreshnessService } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
+import { TrendReferenceSyncService } from '@api/collections/trends/services/modules/trend-reference-sync.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -465,6 +466,10 @@ describe('TrendReferenceCorpusService', () => {
       prisma as unknown as PrismaService,
       loggerService as unknown as LoggerService,
       trendCorpusFreshnessService as unknown as TrendCorpusFreshnessService,
+      new TrendReferenceSyncService(
+        prisma as unknown as PrismaService,
+        loggerService as unknown as LoggerService,
+      ),
     );
   });
 
