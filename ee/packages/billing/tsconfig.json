@@ -34,6 +34,8 @@
       "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
       "@genfeedai/server": ["../../../apps/server/server/src/index.ts"],
       "@genfeedai/server/*": ["../../../apps/server/server/src/*"],
+      "@genfeedai/storage": ["../../../packages/storage/src/index.ts"],
+      "@genfeedai/storage/*": ["../../../packages/storage/src/*"],
       "@genfeedai/types": ["../../../packages/types/src/index.ts"],
       "@genfeedai/types/*": ["../../../packages/types/src/*"],
       "@genfeedai/utils": ["../../../packages/utils/index.ts"],
