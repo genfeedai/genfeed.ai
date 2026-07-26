@@ -71,6 +71,34 @@ describe('BetterAuthStrategy', () => {
     );
   });
 
+  it('rejects a legacy Mongo-shaped subject before identity resolution', async () => {
+    betterAuthService.verifyToken.mockResolvedValue({
+      sub: '507f1f77bcf86cd799439011',
+    });
+
+    await expect(strategy.validate(requestWith('Bearer tok'))).rejects.toThrow(
+      'Legacy user subject is not accepted',
+    );
+    expect(identityResolver.resolve).not.toHaveBeenCalled();
+  });
+
+  it('passes a canonical cuid subject to identity resolution', async () => {
+    const canonicalUserId = 'cm1234567890abcdefghijkl';
+    betterAuthService.verifyToken.mockResolvedValue({
+      sub: canonicalUserId,
+    });
+    identityResolver.resolve.mockResolvedValue({
+      brandId: null,
+      isSuperAdmin: false,
+      organizationId: 'org_1',
+      userId: canonicalUserId,
+    });
+
+    await strategy.validate(requestWith('Bearer tok'));
+
+    expect(identityResolver.resolve).toHaveBeenCalledWith(canonicalUserId);
+  });
+
   it('propagates verification failures as Unauthorized', async () => {
     betterAuthService.verifyToken.mockRejectedValue(
       new UnauthorizedException('Invalid token'),

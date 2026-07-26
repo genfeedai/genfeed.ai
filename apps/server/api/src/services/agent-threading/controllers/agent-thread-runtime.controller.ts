@@ -357,14 +357,17 @@ export class AgentThreadRuntimeController {
       return metadataUserId;
     }
 
-    const authProviderId = user.id;
-    if (!authProviderId) {
+    const userId = user.id;
+    if (!userId) {
       throw new UnauthorizedException(
         'Missing user identity. Please sign in again.',
       );
     }
 
-    const dbUser = await this.usersService.findOne({ authProviderId }, []);
+    const dbUser = await this.usersService.findOne(
+      { _id: userId, isDeleted: false },
+      [],
+    );
     if (!dbUser?.id) {
       throw new UnauthorizedException('User account not found');
     }

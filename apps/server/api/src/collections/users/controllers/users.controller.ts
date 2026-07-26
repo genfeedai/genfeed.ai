@@ -12,10 +12,6 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import {
-  type IOnboardingFunnelCompletedEvent,
-  ONBOARDING_FUNNEL_COMPLETED_EVENT,
-} from '@api/endpoints/onboarding/onboarding.events';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -60,9 +56,9 @@ import {
   Query,
   Req,
   SetMetadata,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
@@ -86,7 +82,6 @@ export class UsersController {
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
-    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private readObjectRecord(value: unknown): Record<string, unknown> {
@@ -545,12 +540,9 @@ export class UsersController {
     );
     const { selectedBrandId, ...userPatchDto } = updateUserDto;
 
-    // Completing onboarding is a cascade, not a plain field write: it marks any
-    // proactive lead paid and invalidates the access caches so OnboardingGuard
-    // sees the new state on the next request. Handled inline here (REST audit
-    // #1354 — dissolves POST /onboarding/complete-funnel) so UsersController no
-    // longer imports OnboardingService; the proactive-lead cascade runs behind
-    // OnboardingModule via an event.
+    // Completing onboarding is a cascade, not a plain field write: it records
+    // the completion state and invalidates access caches so OnboardingGuard
+    // sees the new state on the next request.
     if (userPatchDto.isOnboardingCompleted === true) {
       const completed = await this.completeOnboardingFunnel(request, user);
       return completed;
@@ -614,18 +606,22 @@ export class UsersController {
   /**
    * Idempotent onboarding-funnel completion. Patches the User row only when not
    * already completed, invalidates the access caches so `OnboardingGuard` sees
-   * the new state on the next request, and emits
-   * {@link ONBOARDING_FUNNEL_COMPLETED_EVENT} so OnboardingModule can mark a
-   * proactive lead paid without UsersController importing OnboardingService.
+   * the new state on the next request.
    */
   private async completeOnboardingFunnel(request: Request, user: User) {
     const publicMetadata = getPublicMetadata(user);
+    const canonicalUserId = publicMetadata.user || user.id;
 
     const dbUser = await this.usersService.findOne({
-      authProviderId: user.id,
+      _id: canonicalUserId,
+      isDeleted: false,
     });
 
-    if (dbUser && !dbUser.isOnboardingCompleted) {
+    if (!dbUser?.id) {
+      throw new UnauthorizedException('User account not found');
+    }
+
+    if (!dbUser.isOnboardingCompleted) {
       await this.usersService.patch(dbUser.id, {
         isOnboardingCompleted: true,
         onboardingCompletedAt: new Date(),
@@ -633,29 +629,11 @@ export class UsersController {
       } as Partial<UpdateUserDto>);
     }
 
-    const dbUserId = dbUser?.id?.toString();
-    if (dbUserId) {
-      await this.invalidateUserAccessCaches(dbUserId);
-    }
-
-    // Best-effort proactive-lead cascade, decoupled behind OnboardingModule.
-    const organizationId =
-      publicMetadata.organization?.toString() ||
-      (
-        dbUser as { lastUsedOrganizationId?: string | null } | null
-      )?.lastUsedOrganizationId?.toString() ||
-      '';
-    const proactiveLeadId = publicMetadata.proactiveLeadId?.toString();
-
-    if (proactiveLeadId && organizationId) {
-      this.eventEmitter.emit(ONBOARDING_FUNNEL_COMPLETED_EVENT, {
-        organizationId,
-        proactiveLeadId,
-      } satisfies IOnboardingFunnelCompletedEvent);
-    }
+    const dbUserId = dbUser.id.toString();
+    await this.invalidateUserAccessCaches(dbUserId);
 
     const completed = await this.usersService.findOne({
-      _id: dbUserId ?? publicMetadata.user,
+      _id: dbUserId,
       isDeleted: false,
     });
 

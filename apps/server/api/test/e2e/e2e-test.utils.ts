@@ -257,7 +257,6 @@ export const createTestBrand = (overrides: Record<string, unknown> = {}) => ({
  */
 export const createTestUser = (overrides: Record<string, unknown> = {}) => ({
   id: generateIdString(),
-  authProviderId: `authProvider_${generateIdString()}`,
   createdAt: new Date(),
   email: `test-${Date.now()}@example.com`,
   firstName: 'Test',

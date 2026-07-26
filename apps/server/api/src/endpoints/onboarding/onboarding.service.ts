@@ -7,7 +7,6 @@ import type {
   InstallReadinessResponse,
   OnboardingWorkspaceContext,
 } from '@api/endpoints/onboarding/onboarding.interfaces';
-import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
 import { withOnboardingErrorHandling } from '@api/endpoints/onboarding/services/onboarding-error.util';
 import { OnboardingPreviewService } from '@api/endpoints/onboarding/services/onboarding-preview.service';
 import { OnboardingReadinessService } from '@api/endpoints/onboarding/services/onboarding-readiness.service';
@@ -21,14 +20,13 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
  * OnboardingService
  *
  * Genuine onboarding actions only: workspace resolution/provisioning, status +
- * install readiness, proactive workspace claim, preview generation, and the
- * organization prefix.
+ * install readiness, preview generation, and the organization prefix.
  *
  * The resource-shaped brand/user writes that briefly lived here (brand setup +
  * scrape, brand rename→org cascade, reference images, funnel completion) were
  * dissolved into their canonical resource modules per REST audit #1354 — brand
- * writes to `BrandsModule` (`BrandSetupService`), funnel completion to
- * `UsersController` (with a proactive-lead event). That removed the
+ * writes to `BrandsModule` (`BrandSetupService`) and funnel completion to
+ * `UsersController`. That removed the
  * OnboardingModule ↔ Brands/Users import cycles: OnboardingModule is now only
  * imported by the root module and can no longer be part of a dependency cycle.
  */
@@ -40,7 +38,6 @@ export class OnboardingService {
     private readonly loggerService: LoggerService,
     private readonly organizationsService: OrganizationsService,
     private readonly usersService: UsersService,
-    private readonly proactiveOnboardingService: ProactiveOnboardingService,
     private readonly userSetupService: UserSetupService,
     private readonly onboardingPreviewService: OnboardingPreviewService,
     private readonly onboardingReadinessService: OnboardingReadinessService,
@@ -70,7 +67,7 @@ export class OnboardingService {
 
     if (!dbUser && user.id) {
       dbUser = await this.usersService.findOne(
-        { authProviderId: user.id, isDeleted: false },
+        { _id: user.id, isDeleted: false },
         [],
       );
     }
@@ -79,8 +76,7 @@ export class OnboardingService {
     if (!userId) {
       throw new HttpException(
         {
-          detail:
-            'Missing local user account for legacy auth provider authorization',
+          detail: 'Missing local user account for the authenticated subject',
           title: 'Bad Request',
         },
         HttpStatus.BAD_REQUEST,
@@ -160,7 +156,7 @@ export class OnboardingService {
     return this.onboardingReadinessService.getInstallReadiness(user, workspace);
   }
 
-  async getProactiveWorkspace(user: User): Promise<{
+  async getProactiveWorkspace(_user: User): Promise<{
     success: boolean;
     proactiveStatus: string;
     prepPercent: number;
@@ -170,27 +166,19 @@ export class OnboardingService {
     outputs: unknown[];
     summary: string;
   }> {
-    const publicMetadata = getPublicMetadata(user);
-    const leadId = publicMetadata.proactiveLeadId?.toString();
-    const organizationId = publicMetadata.organization?.toString();
-
-    if (!leadId || !organizationId) {
-      throw new HttpException(
-        {
-          detail: 'Missing proactive onboarding context',
-          title: 'Bad Request',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    return this.proactiveOnboardingService.getWorkspaceSummary(
-      leadId,
-      organizationId,
+    // This metadata had no writers, so this endpoint always returned this
+    // exact error. Preserve that behavior in this strictly subtractive cleanup;
+    // a live proactive-workspace replacement is separate product work.
+    throw new HttpException(
+      {
+        detail: 'Missing proactive onboarding context',
+        title: 'Bad Request',
+      },
+      HttpStatus.BAD_REQUEST,
     );
   }
 
-  async claimProactiveWorkspace(user: User): Promise<{
+  async claimProactiveWorkspace(_user: User): Promise<{
     success: boolean;
     proactiveStatus: string;
     prepPercent: number;
@@ -201,25 +189,13 @@ export class OnboardingService {
     summary: string;
     claimedAt?: Date;
   }> {
-    const publicMetadata = getPublicMetadata(user);
-    const leadId = publicMetadata.proactiveLeadId?.toString();
-    const organizationId = publicMetadata.organization?.toString();
-    const userId = publicMetadata.user?.toString();
-
-    if (!leadId || !organizationId || !userId) {
-      throw new HttpException(
-        {
-          detail: 'Missing proactive onboarding context',
-          title: 'Bad Request',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    return this.proactiveOnboardingService.claimWorkspace(
-      leadId,
-      organizationId,
-      userId,
+    // Preserve the pre-cleanup response contract; see getProactiveWorkspace.
+    throw new HttpException(
+      {
+        detail: 'Missing proactive onboarding context',
+        title: 'Bad Request',
+      },
+      HttpStatus.BAD_REQUEST,
     );
   }
 

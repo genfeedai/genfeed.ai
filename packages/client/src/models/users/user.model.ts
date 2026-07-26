@@ -20,7 +20,6 @@ export class User extends BaseEntity implements IUser {
   public declare timezone?: string;
   public declare language?: string;
   public declare theme?: string;
-  public declare authProviderId?: string;
   public declare handle: string;
   public declare settings: ISetting;
   public declare isOnboardingCompleted?: boolean;

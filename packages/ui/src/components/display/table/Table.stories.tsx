@@ -30,7 +30,6 @@ type Story = StoryObj<typeof meta>;
 const sampleUsers: IUser[] = [
   {
     avatar: '',
-    authProviderId: 'authProvider-1',
     createdAt: new Date().toISOString(),
     email: 'john@example.com',
     firstName: 'John',
@@ -55,7 +54,6 @@ const sampleUsers: IUser[] = [
   } as IUser & { role: string; status: string },
   {
     avatar: '',
-    authProviderId: 'authProvider-2',
     createdAt: new Date().toISOString(),
     email: 'jane@example.com',
     firstName: 'Jane',
@@ -80,7 +78,6 @@ const sampleUsers: IUser[] = [
   } as IUser & { role: string; status: string },
   {
     avatar: '',
-    authProviderId: 'authProvider-3',
     createdAt: new Date().toISOString(),
     email: 'bob@example.com',
     firstName: 'Bob',
@@ -105,7 +102,6 @@ const sampleUsers: IUser[] = [
   } as IUser & { role: string; status: string },
   {
     avatar: '',
-    authProviderId: 'authProvider-4',
     createdAt: new Date().toISOString(),
     email: 'alice@example.com',
     firstName: 'Alice',
@@ -128,7 +124,6 @@ const sampleUsers: IUser[] = [
   } as IUser,
   {
     avatar: '',
-    authProviderId: 'authProvider-5',
     createdAt: new Date().toISOString(),
     email: 'charlie@example.com',
     firstName: 'Charlie',

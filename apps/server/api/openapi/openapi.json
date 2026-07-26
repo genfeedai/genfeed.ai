@@ -13956,10 +13956,6 @@
       },
       "UpdateUserDto": {
         "properties": {
-          "authProviderId": {
-            "description": "The legacy auth provider authentication ID for the user",
-            "type": "string"
-          },
           "avatar": {
             "description": "The avatar/profile picture URL of the user",
             "type": "string"

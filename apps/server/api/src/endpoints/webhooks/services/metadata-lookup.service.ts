@@ -93,19 +93,9 @@ export class MetadataLookupService {
         return;
       }
 
-      const { dbUserId, authProviderUserId, userId, userRoom } =
-        UserExtractionUtil.extractUserIds(ingredient.user);
-
-      if (!authProviderUserId && dbUserId) {
-        this.loggerService.warn(
-          `${this.logContext} user missing authProviderId - WebSocket room may not match client room`,
-          {
-            dbUserId,
-            ingredientId: ingredient.id,
-            note: 'Client joins room using legacy auth provider ID from JWT, but backend has no authProviderId in DB',
-          },
-        );
-      }
+      const { userId, userRoom } = UserExtractionUtil.extractUserIds(
+        ingredient.user,
+      );
 
       if (userId) {
         const websocketUrl = `/${categoryToPlural(category)}/${ingredient.id}`;

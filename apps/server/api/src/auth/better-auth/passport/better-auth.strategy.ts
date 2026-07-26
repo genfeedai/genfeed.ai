@@ -7,6 +7,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
 import { Strategy } from 'passport-custom';
 
+const LEGACY_OBJECT_ID_PATTERN = /^[0-9a-f]{24}$/i;
+
 /**
  * Passport strategy validating first-party Better Auth JWTs (epic #735).
  *
@@ -38,6 +40,9 @@ export class BetterAuthStrategy extends PassportStrategy(
     }
 
     const claims = await this.betterAuthService.verifyToken(token);
+    if (LEGACY_OBJECT_ID_PATTERN.test(claims.sub)) {
+      throw new UnauthorizedException('Legacy user subject is not accepted');
+    }
     const identity = await this.identityResolver.resolve(claims.sub);
 
     return {

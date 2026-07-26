@@ -14,7 +14,6 @@ import { Injectable } from '@nestjs/common';
 
 const USER_FIND_ALL_SELECT = {
   id: true,
-  authProviderId: true,
   handle: true,
   firstName: true,
   lastName: true,
@@ -85,16 +84,6 @@ export class UsersService extends BaseService<
     updateUserDto: Partial<UpdateUserDto>,
   ): Promise<UserDocument> {
     return await super.patch(id, updateUserDto, [{ path: 'settings' }]);
-  }
-
-  async findMongoIdByAuthProviderId(
-    authProviderId: string,
-  ): Promise<string | null> {
-    const user = await this.findOne({ authProviderId }, []);
-    if (!user?.id) {
-      return null;
-    }
-    return String(user.id);
   }
 
   /**

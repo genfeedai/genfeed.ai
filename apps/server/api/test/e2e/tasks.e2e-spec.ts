@@ -120,7 +120,6 @@ describe('Tasks E2E Tests', () => {
 
     testUser = createTestUser({
       id: generateIdString(),
-      authProviderId: 'authProvider_task_test_user',
       email: 'tasks-test@example.com',
     });
 
@@ -181,7 +180,7 @@ describe('Tasks E2E Tests', () => {
     return request(app.getHttpServer())
       [method](url)
       .set('Authorization', 'Bearer mock-jwt-token')
-      .set('x-authProvider-user-id', testUser.authProviderId)
+      .set('x-authProvider-user-id', testUser.id.toString())
       .set('x-user-id', testUser.id.toString())
       .set('x-organization-id', testOrganization.id.toString());
   }

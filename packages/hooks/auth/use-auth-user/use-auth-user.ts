@@ -5,9 +5,7 @@ import type { IAuthPublicData } from '@genfeedai/interfaces';
 import { getPlaywrightAuthState } from '@helpers/auth/auth.helper';
 import { useMemo } from 'react';
 
-export type AuthPublicMetadata = Partial<IAuthPublicData> & {
-  proactiveLeadId?: string;
-};
+export type AuthPublicMetadata = Partial<IAuthPublicData>;
 
 export interface AuthPrimaryEmailAddress {
   emailAddress: string | null;

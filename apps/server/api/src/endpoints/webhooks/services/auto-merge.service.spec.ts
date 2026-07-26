@@ -15,7 +15,6 @@ describe('AutoMergeService', () => {
     findOne: ReturnType<typeof vi.fn>;
   };
   let metadataService: { create: ReturnType<typeof vi.fn> };
-  let usersService: Record<string, ReturnType<typeof vi.fn>>;
   let filesClientService: Record<string, ReturnType<typeof vi.fn>>;
   let fileQueueService: {
     add: ReturnType<typeof vi.fn>;
@@ -46,9 +45,6 @@ describe('AutoMergeService', () => {
       create: vi.fn().mockResolvedValue({ id: 'meta-1' }),
       patch: vi.fn(),
     };
-    usersService = {
-      findOne: vi.fn(),
-    };
     filesClientService = {
       uploadToS3: vi.fn(),
     };
@@ -72,7 +68,6 @@ describe('AutoMergeService', () => {
       activitiesService,
       ingredientsService,
       metadataService,
-      usersService,
       filesClientService,
       fileQueueService,
       websocketService,
@@ -123,7 +118,7 @@ describe('AutoMergeService', () => {
         category: IngredientCategory.VIDEO,
         groupId,
         isMergeEnabled: true,
-        user: { id: 'test-object-id', authProviderId: 'authProvider_abc' },
+        user: { id: 'test-object-id' },
       } as unknown as IngredientEntity;
 
       // Use private method access for testing
@@ -150,7 +145,7 @@ describe('AutoMergeService', () => {
         category: IngredientCategory.VIDEO,
         groupId,
         isMergeEnabled: true,
-        user: { id: 'test-object-id', authProviderId: 'authProvider_abc' },
+        user: { id: 'test-object-id' },
       } as unknown as IngredientEntity;
 
       await (service as any).triggerAutoMergeAsync(ingredient);

@@ -2,14 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class CreateUserDto {
-  @IsOptional()
-  @IsString()
-  @ApiProperty({
-    description: 'The legacy auth provider authentication ID for the user',
-    required: false,
-  })
-  readonly authProviderId?: string;
-
   @IsString()
   @ApiProperty({
     description: 'The unique handle/username for the user',

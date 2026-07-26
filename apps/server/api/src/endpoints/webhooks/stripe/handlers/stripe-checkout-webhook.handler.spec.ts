@@ -632,7 +632,7 @@ describe('StripeCheckoutWebhookHandler', () => {
       eventEmitter.emitAsync.mockResolvedValue([]);
     });
 
-    it('creates a authProviderId-free user, mints a managed key, and emits better-auth.user.created for a net-new buyer', async () => {
+    it('creates a canonical user, mints a managed key, and emits better-auth.user.created for a net-new buyer', async () => {
       usersService.findOne.mockResolvedValue(null);
       usersService.create.mockResolvedValue({
         id: 'user_new_1',
@@ -660,8 +660,12 @@ describe('StripeCheckoutWebhookHandler', () => {
         string,
         unknown
       >;
-      expect(createArg.email).toBe(email);
-      expect(createArg.authProviderId).toBeUndefined();
+      expect(createArg).toEqual({
+        email,
+        firstName: 'Ada',
+        handle: expect.any(String),
+        lastName: 'Lovelace',
+      });
       expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         BETTER_AUTH_USER_CREATED_EVENT,
         { email, userId: 'user_new_1' },

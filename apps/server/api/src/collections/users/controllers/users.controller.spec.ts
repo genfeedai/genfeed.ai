@@ -9,7 +9,6 @@ import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 describe('UsersController', () => {
@@ -24,14 +23,13 @@ describe('UsersController', () => {
   let requestContextCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let accessBootstrapCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let betterAuthIdentityCacheService: Record<string, ReturnType<typeof vi.fn>>;
-  let eventEmitter: Record<string, ReturnType<typeof vi.fn>>;
 
   const userId = '507f191e810c19729de860ee'.toString();
   const orgId = '507f191e810c19729de860ee'.toString();
   const settingsId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
-    id: 'authProvider_user_123',
+    id: 'user_subject_123',
     publicMetadata: { organization: orgId, user: userId },
   } as never;
 
@@ -89,10 +87,6 @@ describe('UsersController', () => {
     betterAuthIdentityCacheService = {
       invalidateForUser: vi.fn().mockResolvedValue(undefined),
     };
-    eventEmitter = {
-      emit: vi.fn(),
-    };
-
     controller = new UsersController(
       brandsService as unknown as BrandsService,
       usersService as unknown as UsersService,
@@ -105,7 +99,6 @@ describe('UsersController', () => {
       requestContextCacheService as unknown as RequestContextCacheService,
       accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
       betterAuthIdentityCacheService as unknown as BetterAuthIdentityCacheService,
-      eventEmitter as unknown as EventEmitter2,
     );
   });
 
@@ -385,6 +378,55 @@ describe('UsersController', () => {
           firstName: 'X',
         } as never),
       ).rejects.toThrow();
+    });
+
+    it('completes onboarding using the canonical database user id', async () => {
+      usersService.findOne
+        .mockResolvedValueOnce({
+          id: 'user_canonical_1',
+          isOnboardingCompleted: false,
+        })
+        .mockResolvedValueOnce({
+          id: 'user_canonical_1',
+          isOnboardingCompleted: true,
+        });
+      usersService.patch.mockResolvedValue({
+        id: 'user_canonical_1',
+        isOnboardingCompleted: true,
+      });
+
+      const result = await controller.updateMe(mockRequest, mockUser, {
+        isOnboardingCompleted: true,
+      } as never);
+
+      expect(usersService.findOne).toHaveBeenNthCalledWith(1, {
+        _id: userId,
+        isDeleted: false,
+      });
+      expect(usersService.patch).toHaveBeenCalledWith(
+        'user_canonical_1',
+        expect.objectContaining({ isOnboardingCompleted: true }),
+      );
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        'user_canonical_1',
+      );
+      expect(usersService.findOne).toHaveBeenNthCalledWith(2, {
+        _id: 'user_canonical_1',
+        isDeleted: false,
+      });
+      expect(result).toBeDefined();
+    });
+
+    it('rejects onboarding completion when the canonical user is missing', async () => {
+      usersService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.updateMe(mockRequest, mockUser, {
+          isOnboardingCompleted: true,
+        } as never),
+      ).rejects.toThrow('User account not found');
+
+      expect(usersService.patch).not.toHaveBeenCalled();
     });
   });
 

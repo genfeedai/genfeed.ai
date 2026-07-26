@@ -1730,7 +1730,7 @@ export class AgentToolExecutorService {
 
       if (this.usersService) {
         const dbUser = await this.usersService.findOne({
-          authProviderId: ctx.userId,
+          _id: ctx.userId,
           isDeleted: false,
         });
 
@@ -1770,7 +1770,7 @@ export class AgentToolExecutorService {
     let dbUserId: string | null = null;
     if (this.usersService) {
       const dbUser = await this.usersService.findOne({
-        authProviderId: ctx.userId,
+        _id: ctx.userId,
         isDeleted: false,
       });
 

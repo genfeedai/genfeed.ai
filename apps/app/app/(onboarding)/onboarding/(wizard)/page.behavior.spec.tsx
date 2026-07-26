@@ -65,18 +65,4 @@ describe('OnboardingRootPage routing', () => {
       expect(mocks.replace).toHaveBeenCalledWith('/onboarding/providers');
     });
   });
-
-  it('prioritizes the proactive-lead path over the wizard replay', async () => {
-    mocks.authUser = {
-      isLoaded: true,
-      user: { publicMetadata: { proactiveLeadId: 'lead_123' } },
-    };
-
-    render(<OnboardingRootPage />);
-
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/proactive');
-    });
-    expect(mocks.replace).not.toHaveBeenCalledWith('/onboarding/brand');
-  });
 });

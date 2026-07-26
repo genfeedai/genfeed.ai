@@ -10,7 +10,6 @@ import { RolesModule } from '@api/collections/roles/roles.module';
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
-import { OnboardingCompletedListener } from '@api/endpoints/onboarding/listeners/onboarding-completed.listener';
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
@@ -55,7 +54,6 @@ import { forwardRef, Module } from '@nestjs/common';
     // BrandsModule per REST audit #1354 to break the module import cycle.
     OnboardingPreviewService,
     OnboardingReadinessService,
-    OnboardingCompletedListener,
   ],
 })
 export class OnboardingModule {}

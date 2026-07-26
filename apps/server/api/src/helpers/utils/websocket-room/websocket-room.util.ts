@@ -4,7 +4,7 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
 
 /**
  * Calculates the WebSocket user room identifier.
- * Falls back to dbUserId-based room if authProviderUserId is not available.
+ * Falls back to dbUserId-based room if the compatibility ID is not available.
  */
 export function getUserRoom(
   authProviderUserId?: string,
@@ -39,7 +39,7 @@ export function getCacheTag(category: IngredientCategory | string): string {
 }
 
 /**
- * Validates that a room can be determined and warns about potential mismatches.
+ * Validates that a room can be determined from either canonical ID.
  */
 export function validateRoomMatch(
   authProviderUserId?: string,
@@ -50,11 +50,7 @@ export function validateRoomMatch(
   }
 
   if (dbUserId) {
-    return {
-      isValid: false,
-      warning:
-        'Client joins room using legacy auth provider ID from JWT, but backend has no authProviderId in DB',
-    };
+    return { isValid: true };
   }
 
   return {

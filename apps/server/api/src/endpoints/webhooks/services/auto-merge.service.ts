@@ -7,7 +7,6 @@ import {
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { UsersService } from '@api/collections/users/services/users.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -40,7 +39,6 @@ export class AutoMergeService {
     private readonly activitiesService: ActivitiesService,
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
-    private readonly usersService: UsersService,
     private readonly filesClientService: FilesClientService,
     private readonly fileQueueService: FileQueueService,
     private readonly websocketService: NotificationsPublisherService,
@@ -86,12 +84,12 @@ export class AutoMergeService {
       return ref;
     }
 
-    return ref?.id?.toString() ?? ref?.id?.toString();
+    return ref?.id?.toString() ?? ref?._id?.toString();
   }
 
   private toUserReference(
     ref: string | IngredientRefDocument | null | undefined,
-  ): string | { _id?: string; authProviderId?: string } | undefined {
+  ): string | { id: string } | undefined {
     if (typeof ref === 'string') {
       return ref;
     }
@@ -101,17 +99,11 @@ export class AutoMergeService {
     }
 
     const userId = this.getRefId(ref);
-    const authProviderId =
-      typeof ref.authProviderId === 'string' ? ref.authProviderId : undefined;
-
-    if (!userId && !authProviderId) {
+    if (!userId) {
       return undefined;
     }
 
-    return {
-      ...(userId ? { _id: userId } : {}),
-      ...(authProviderId ? { authProviderId } : {}),
-    };
+    return { id: userId };
   }
 
   /**
@@ -262,25 +254,9 @@ export class AutoMergeService {
     userId?: string;
     userRoom?: string;
   }> {
-    let { dbUserId, authProviderUserId, userId, userRoom } =
-      UserExtractionUtil.extractUserIds(this.toUserReference(ingredient.user));
-
-    if (!authProviderUserId && dbUserId) {
-      try {
-        const fullUser = await this.usersService.findOne({
-          _id: dbUserId,
-        });
-        if (fullUser?.authProviderId) {
-          authProviderUserId = fullUser.authProviderId;
-          userId = authProviderUserId;
-          userRoom = getUserRoomName(authProviderUserId);
-        }
-      } catch {
-        // Continue without authProviderId
-      }
-    }
-
-    return { authProviderUserId, dbUserId, userId, userRoom };
+    return UserExtractionUtil.extractUserIds(
+      this.toUserReference(ingredient.user),
+    );
   }
 
   private async createAndQueueMerge(

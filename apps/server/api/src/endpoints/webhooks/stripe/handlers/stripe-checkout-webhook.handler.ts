@@ -535,8 +535,8 @@ export class StripeCheckoutWebhookHandler {
 
   /**
    * Find or create the DB user by email. Better Auth keys identity off the
-   * email, so there is no legacy auth provider round-trip and managed-checkout
-   * users carry no authProviderId (epic #735, Phase 4 — D2).
+   * email, so there is no legacy auth provider round-trip (epic #735, Phase 4
+   * — D2).
    */
   private async resolveManagedCheckoutUser(
     session: StripeCheckoutSession,
@@ -800,7 +800,7 @@ export class StripeCheckoutWebhookHandler {
 
   private async addCreditsToOrgFromUserCheckout(
     organizationId: string,
-    dbUser: { id: string; authProviderId?: string | null },
+    dbUser: { id: string },
     session: StripeCheckoutSession,
     url: string,
   ): Promise<void> {
