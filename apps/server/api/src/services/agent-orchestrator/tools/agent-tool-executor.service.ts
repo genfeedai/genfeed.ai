@@ -111,6 +111,7 @@ import {
   AgentScopeContextService,
   resolveNestedActionOrigin,
   runWithActionOrigin,
+  scopedWhere,
 } from '@genfeedai/server';
 import {
   type CanonicalToolDefinition,
@@ -8028,11 +8029,7 @@ export class AgentToolExecutorService {
     const clonedVoices = this.voicesService
       ? await this.voicesService.findAll(
           {
-            where: {
-              isCloned: true,
-              isDeleted: false,
-              organizationId: ctx.organizationId,
-            },
+            where: scopedWhere(ctx.organizationId, { isCloned: true }),
             orderBy: { createdAt: -1 },
           },
           {},

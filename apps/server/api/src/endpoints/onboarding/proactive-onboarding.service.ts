@@ -26,6 +26,7 @@ import type {
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
 import type { Lead } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -815,7 +816,7 @@ export class ProactiveOnboardingService {
   ): Promise<LeadWithData> {
     const lead = await findOrThrow(
       this.prisma.lead,
-      { where: { id: leadId, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id: leadId }) },
       'Lead',
       leadId,
     );
@@ -870,7 +871,7 @@ export class ProactiveOnboardingService {
     extraFields?: Record<string, unknown>,
   ): Promise<void> {
     const existing = await this.prisma.lead.findFirst({
-      where: { id: leadId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: leadId }),
     });
 
     if (!existing) {
