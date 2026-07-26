@@ -682,11 +682,13 @@ describe('UniversalWorkspaceShell', () => {
 
     render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Conversation</div>
+        <div data-testid="routed-conversation">Conversation</div>
       </UniversalWorkspaceShell>,
     );
 
-    expect(screen.getByText('Conversation')).toBeInTheDocument();
+    expect(screen.getByTestId('routed-conversation')).toHaveTextContent(
+      'Conversation',
+    );
     expect(
       screen.queryByRole('button', { name: 'Open workspace canvas' }),
     ).not.toBeInTheDocument();
@@ -698,11 +700,13 @@ describe('UniversalWorkspaceShell', () => {
 
     render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Conversation</div>
+        <div data-testid="routed-conversation">Conversation</div>
       </UniversalWorkspaceShell>,
     );
 
-    expect(screen.getByText('Conversation')).toBeInTheDocument();
+    expect(screen.getByTestId('routed-conversation')).toHaveTextContent(
+      'Conversation',
+    );
     expect(
       screen.queryByRole('button', { name: 'Open workspace canvas' }),
     ).not.toBeInTheDocument();
