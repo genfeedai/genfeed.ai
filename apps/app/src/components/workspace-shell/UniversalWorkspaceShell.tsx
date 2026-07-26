@@ -1030,17 +1030,20 @@ function UniversalWorkspaceShellContent({
           className="h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0"
           data-testid="workspace-shell-regions"
         >
-          <div className="relative h-full min-h-0 min-w-0">
+          {/* Flex column, not a positioned stack: the composer is docked as the
+              last row so it reserves its own space instead of floating over the
+              conversation and canvas. */}
+          <div className="relative flex h-full min-h-0 min-w-0 flex-col">
             <div
               aria-hidden={baseState !== 'conversation'}
               className={cn(
-                'h-full min-h-0 overflow-hidden bg-background',
+                'flex min-h-0 flex-1 flex-col overflow-hidden bg-background',
                 baseState !== 'conversation' && 'hidden',
               )}
               data-testid="workspace-conversation-region"
               inert={baseState !== 'conversation'}
             >
-              <div className="flex h-11 items-center justify-between border-b border-border px-3">
+              <div className="flex h-11 shrink-0 items-center justify-between border-b border-border px-3">
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
                   Conversation
                 </p>
@@ -1068,7 +1071,7 @@ function UniversalWorkspaceShellContent({
               </div>
               <section
                 aria-label="Primary conversation workspace"
-                className="flex h-[calc(100%-2.75rem)] min-h-0"
+                className="flex min-h-0 flex-1"
                 ref={
                   baseState === 'conversation' ? primaryRegionRef : undefined
                 }
@@ -1084,10 +1087,10 @@ function UniversalWorkspaceShellContent({
               aria-hidden={baseState !== 'canvas'}
               aria-label="Primary workspace canvas"
               className={cn(
-                'h-full min-w-0 bg-background',
+                'min-h-0 min-w-0 flex-1 bg-background',
                 workflowSurfaceRoute.isGraphCanvas
                   ? 'overflow-hidden'
-                  : 'overflow-auto pb-48 md:pb-56',
+                  : 'overflow-auto',
                 baseState !== 'canvas' && 'hidden',
               )}
               data-testid="workspace-canvas-layout"
@@ -1130,13 +1133,10 @@ function UniversalWorkspaceShellContent({
 
             {state !== 'overlay' ? (
               <div
-                className="pointer-events-none absolute inset-x-3 bottom-3 z-40 md:inset-x-5 md:bottom-5"
+                className="shrink-0 px-3 pb-3 md:px-5 md:pb-5"
                 data-testid="workspace-composer-slot"
               >
-                <div
-                  className="pointer-events-auto"
-                  ref={setComposerPortalTarget}
-                />
+                <div ref={setComposerPortalTarget} />
               </div>
             ) : null}
           </div>
