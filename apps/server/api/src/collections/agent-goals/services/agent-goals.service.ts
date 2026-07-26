@@ -7,6 +7,7 @@ import {
   findOrThrow,
   findUniqueOrThrow,
 } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { brandScope, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -56,11 +57,7 @@ export class AgentGoalsService {
   ): Promise<Record<string, unknown>[]> {
     return this.prisma.agentGoal.findMany({
       orderBy: { createdAt: 'desc' },
-      where: {
-        isDeleted: false,
-        organizationId,
-        ...(brandId ? { brandId } : {}),
-      },
+      where: scopedWhere(organizationId, brandScope(brandId)),
     });
   }
 
@@ -71,7 +68,7 @@ export class AgentGoalsService {
   ): Promise<Record<string, unknown>> {
     const goal = await findOrThrow(
       this.prisma.agentGoal,
-      { where: { id: goalId, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id: goalId }) },
       'Agent goal',
       goalId,
     );
@@ -120,7 +117,7 @@ export class AgentGoalsService {
   ): Promise<Record<string, unknown>> {
     const goal = await findOrThrow(
       this.prisma.agentGoal,
-      { where: { id: goalId, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id: goalId }) },
       'Agent goal',
       goalId,
     );
