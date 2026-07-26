@@ -461,6 +461,7 @@ describe('AgentChatContainer', () => {
     storeState.upsertThread.mockReset();
     storeState.updateThread.mockReset();
     storeState.draftPlanModeEnabled = false;
+    storeState.error = null;
     storeState.latestProposedPlan = null;
     storeState.pendingInputRequest = {
       allowFreeText: true,
@@ -563,7 +564,7 @@ describe('AgentChatContainer', () => {
   it('does not render a conversation composer when the product surface owns the primary input', () => {
     const apiService = createApiService();
 
-    storeState.pendingInputRequest = null;
+    storeState.error = 'Inspector run failed';
     storeState.messages = [buildAssistantMessage()];
 
     const { container } = render(
@@ -580,6 +581,8 @@ describe('AgentChatContainer', () => {
 
     expect(container.querySelector('[data-layout-mode]')).toBeNull();
     expect(screen.queryByText('chat-input')).not.toBeInTheDocument();
+    expect(screen.getByText('Inspector run failed')).toBeInTheDocument();
+    expect(screen.getByText('Submit requested input')).toBeInTheDocument();
     expect(container.querySelector('.pb-6')).not.toBeNull();
     expect(container.querySelector('.pb-56')).toBeNull();
   });

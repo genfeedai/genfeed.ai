@@ -6,8 +6,8 @@
  * The shell's floating composer stands down on those canvas surfaces. Stacking
  * it under Studio's own bar produced two prompt bars on one screen carrying the
  * same suggestion chips — the surface's input duplicated, not a second
- * affordance. Conversation state is unaffected: there the floating composer IS
- * the primary input.
+ * affordance. The routed agent-conversation surface is not in this set because
+ * its shell composer is the primary input.
  */
 export const WORKSPACE_SURFACES_WITH_OWN_PRIMARY_INPUT: ReadonlySet<string> =
   new Set([

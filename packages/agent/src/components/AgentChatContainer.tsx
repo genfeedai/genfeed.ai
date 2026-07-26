@@ -174,10 +174,12 @@ export function AgentChatContainer({
       onSend={handleSuggestionSend}
     />
   ) : null;
+  const shouldRenderInlineComposerFeedback =
+    !composerShell || composerShell.isComposerVisible === false;
 
   return (
     <div className="relative flex h-full flex-col">
-      {error && !composerShell ? (
+      {error && shouldRenderInlineComposerFeedback ? (
         <Alert
           className={cn(
             'mx-auto mt-3 w-[calc(100%-2rem)]',
@@ -241,7 +243,8 @@ export function AgentChatContainer({
             isReadOnly && 'opacity-60',
           )}
         >
-          {pendingInputRequest && (onboardingMode || !composerShell) ? (
+          {pendingInputRequest &&
+          (onboardingMode || shouldRenderInlineComposerFeedback) ? (
             <AgentInputRequestOverlay
               isSubmitting={isSubmittingInputRequest}
               onSubmit={handleSubmitInputRequest}

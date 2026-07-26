@@ -740,14 +740,14 @@ describe('UniversalWorkspaceShell', () => {
   });
 
   it('restores an allowlisted temporary overlay above the canvas', () => {
-    navigation.pathname = '/acme/moonrise/library/images';
+    navigation.pathname = '/acme/moonrise/studio/image';
     navigation.searchParams = new URLSearchParams({
       overlay: 'shell-preview',
     });
 
     render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Library</div>
+        <div>Studio</div>
       </UniversalWorkspaceShell>,
     );
 
@@ -756,7 +756,7 @@ describe('UniversalWorkspaceShell', () => {
       'overlay',
     );
     expect(screen.getByTestId('workspace-dialog')).toBeInTheDocument();
-    expect(screen.getByText('Library')).toBeInTheDocument();
+    expect(screen.getByText('Studio')).toBeInTheDocument();
     expect(screen.getByLabelText('Context inspector')).toBeInTheDocument();
     expect(screen.getByTestId('inspector-conversation')).toBeInTheDocument();
     expect(
@@ -776,9 +776,7 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(router.back).not.toHaveBeenCalled();
-    expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/library/images',
-    );
+    expect(router.replace).toHaveBeenCalledWith('/acme/moonrise/studio/image');
   });
 
   it('dispatches publish only as a trusted brand-scoped review route', () => {
