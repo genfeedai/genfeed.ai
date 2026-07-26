@@ -13,7 +13,10 @@ import {
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { validateChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
+import type {
+  ChannelTargetInput,
+  UpdateChannelTargetInput,
+} from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
   PostStatus,
@@ -36,6 +39,17 @@ const GROUP_ACTION_STATES = new Set<string>([
   TargetExecutionState.PAUSED,
   TargetExecutionState.FAILED,
 ]);
+
+function changesPublishedTargetState(input: UpdateChannelTargetInput): boolean {
+  return (
+    input.executionState === TargetExecutionState.PUBLISHED ||
+    input.executionState === TargetExecutionState.PUBLISHING ||
+    input.externalProviderId !== undefined ||
+    input.externalShortcode !== undefined ||
+    input.publishedAt !== undefined ||
+    input.url !== undefined
+  );
+}
 
 @Injectable()
 export class PostGroupsService {
@@ -432,16 +446,9 @@ export class PostGroupsService {
     apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<IReleaseGroup> {
     const input = this.contractService.parseTargetInput(body);
-    const changesPublishState =
-      input.executionState === TargetExecutionState.PUBLISHED ||
-      input.executionState === TargetExecutionState.PUBLISHING ||
-      input.externalProviderId !== undefined ||
-      input.externalShortcode !== undefined ||
-      input.publishedAt !== undefined ||
-      input.url !== undefined;
     assertApiKeyPublishingScope(
       apiKeyContext ?? {},
-      changesPublishState ? 'publish' : 'schedule',
+      changesPublishedTargetState(input) ? 'publish' : 'schedule',
     );
 
     const result = await this.prisma.$transaction(async (tx) => {

@@ -7,22 +7,15 @@
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type {
-  IngredientDocument,
-  IngredientRefDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
-import {
-  type PostDocument,
-  Post as PostModel,
-} from '@api/collections/posts/schemas/post.schema';
+import { createLegacyPost } from '@api/collections/posts/handlers/legacy-post-create.handler';
+import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -44,16 +37,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import {
-  ActivityEntityModel,
-  ActivityKey,
-  ActivitySource,
-  ApiKeyScope,
-  CredentialPlatform,
-  IngredientCategory,
-  PostCategory,
-  PostStatus,
-} from '@genfeedai/enums';
+import { ApiKeyScope, PostStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -99,59 +83,6 @@ export class PostsController extends BaseCRUDController<
     ]);
   }
 
-  /**
-   * Extract a label from text (first ~50 characters, truncated at word boundary)
-   */
-  private extractLabelFromText(text: string, maxLength: number = 50): string {
-    if (!text || text.trim().length === 0) {
-      return '';
-    }
-
-    const trimmed = text.trim();
-
-    if (trimmed.length <= maxLength) {
-      return trimmed;
-    }
-
-    // Truncate at word boundary
-    const truncated = trimmed.substring(0, maxLength);
-    const lastSpace = truncated.lastIndexOf(' ');
-
-    if (lastSpace > maxLength * 0.7) {
-      // If we found a space reasonably close to maxLength, use it
-      return `${truncated.substring(0, lastSpace)}...`;
-    }
-
-    // Otherwise truncate at maxLength
-    return `${truncated}...`;
-  }
-
-  private getIngredientRefId(
-    value: string | IngredientRefDocument | null | undefined,
-  ): string | undefined {
-    if (typeof value === 'string') {
-      return value;
-    }
-
-    return value?.id ?? value?.id;
-  }
-
-  private getPostCategoryFromIngredient(
-    ingredient: Pick<IngredientDocument, 'category'> | null,
-  ): PostCategory {
-    const category = String(ingredient?.category ?? '').toLowerCase();
-
-    if (category === IngredientCategory.IMAGE.toLowerCase()) {
-      return PostCategory.IMAGE;
-    }
-
-    if (category === IngredientCategory.VIDEO.toLowerCase()) {
-      return PostCategory.VIDEO;
-    }
-
-    return PostCategory.TEXT;
-  }
-
   @Post()
   @RequiredScopes(
     ApiKeyScope.POSTS_DRAFT,
@@ -176,210 +107,19 @@ export class PostsController extends BaseCRUDController<
     );
 
     try {
-      const credential = await this.credentialsService.findOne({
-        _id: createPostDto.credential,
-        isConnected: true,
-        isDeleted: false,
-        organization: publicMetadata.organization,
+      const data = await createLegacyPost({
+        createPostDto,
+        dependencies: {
+          accountHealthService: this.accountHealthService,
+          activitiesService: this.activitiesService,
+          credentialsService: this.credentialsService,
+          ingredientsService: this.ingredientsService,
+          loggerService: this.loggerService,
+          postsService: this.postsService,
+          quotaService: this.quotaService,
+        },
+        publicMetadata,
       });
-
-      if (!credential) {
-        throw new HttpException(
-          {
-            detail: 'Credential not found',
-            title: `Credential ${createPostDto.credential.toString()} not found`,
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      // Platforms that support text-only scheduled posts
-      const textOnlyPlatforms = new Set([
-        CredentialPlatform.THREADS,
-        CredentialPlatform.TWITTER,
-        CredentialPlatform.LINKEDIN,
-      ]);
-      const isTextOnlyPlatform = textOnlyPlatforms.has(
-        credential.platform as CredentialPlatform,
-      );
-
-      // Validate TEXT category only allowed for text-capable platforms when scheduling
-      if (
-        createPostDto.status === PostStatus.SCHEDULED &&
-        createPostDto.category === PostCategory.TEXT &&
-        !isTextOnlyPlatform
-      ) {
-        throw new HttpException(
-          {
-            detail: `${credential.platform} requires media when scheduling. Please add at least one image or video.`,
-            title: 'Text-only posts not supported',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Validate ingredients required when scheduling for platforms that require media
-      if (
-        createPostDto.status === PostStatus.SCHEDULED &&
-        !isTextOnlyPlatform
-      ) {
-        if (
-          !createPostDto.ingredients ||
-          createPostDto.ingredients.length === 0
-        ) {
-          throw new HttpException(
-            {
-              detail: `${credential.platform} requires at least one image or video when scheduling.`,
-              title: 'Media required when scheduling',
-            },
-            HttpStatus.BAD_REQUEST,
-          );
-        }
-      }
-
-      let firstIngredient: IngredientDocument | null = null;
-      let ingredientIds: string[] = [];
-
-      if (createPostDto.ingredients && createPostDto.ingredients.length > 0) {
-        // Batch fetch all ingredients in one query (avoids N+1 problem)
-        const ingredients = await this.ingredientsService.findByIds(
-          createPostDto.ingredients,
-          publicMetadata.organization,
-        );
-
-        // Verify all requested ingredients were found
-        if (ingredients.length !== createPostDto.ingredients.length) {
-          // Find which ingredient IDs are missing
-          const foundIds = new Set(ingredients.map((i) => i.id.toString()));
-          const missingId = createPostDto.ingredients.find(
-            (id) => !foundIds.has(id.toString()),
-          );
-
-          throw new HttpException(
-            {
-              detail:
-                'Ingredient not found or does not belong to your organization',
-              title: `Ingredient ${missingId?.toString()} not found`,
-            },
-            HttpStatus.NOT_FOUND,
-          );
-        }
-
-        // Preserve the original order of ingredients
-        const ingredientMap = new Map(
-          ingredients.map((i) => [i.id.toString(), i]),
-        );
-        ingredientIds = createPostDto.ingredients.map((id) => id);
-        firstIngredient =
-          ingredientMap.get(createPostDto.ingredients[0].toString()) ?? null;
-      } else if (createPostDto.campaign) {
-        const campaignIngredients =
-          await this.ingredientsService.findApprovedImagesByCampaign(
-            createPostDto.campaign,
-            publicMetadata.organization,
-            publicMetadata.brand,
-          );
-
-        if (campaignIngredients.length === 0) {
-          throw new HttpException(
-            {
-              detail:
-                'No approved campaign images were found for the selected brand',
-              title: `Campaign ${createPostDto.campaign} not found`,
-            },
-            HttpStatus.NOT_FOUND,
-          );
-        }
-
-        ingredientIds = campaignIngredients.map((ingredient) => ingredient.id);
-        [firstIngredient = null] = campaignIngredients;
-      }
-
-      await this.quotaService.verifyQuota(
-        credential,
-        publicMetadata.organization,
-      );
-
-      let effectiveStatus = createPostDto.status;
-      let warmupHoldReason: string | undefined;
-      if (createPostDto.status === PostStatus.SCHEDULED) {
-        const publishGate =
-          await this.accountHealthService.evaluateScheduledPublishGate({
-            brandId: publicMetadata.brand,
-            credentialId: createPostDto.credential,
-            organizationId: publicMetadata.organization,
-          });
-
-        if (publishGate.holdPublishing) {
-          effectiveStatus = PostStatus.PENDING;
-          warmupHoldReason = publishGate.reason;
-        }
-      }
-
-      const data = await this.postsService.create({
-        ...createPostDto,
-        brand: firstIngredient
-          ? (this.getIngredientRefId(firstIngredient.brand) ??
-            publicMetadata.brand)
-          : publicMetadata.brand,
-        category:
-          createPostDto.category ||
-          this.getPostCategoryFromIngredient(firstIngredient),
-        credential: createPostDto.credential,
-        description: createPostDto.description || credential.description || '',
-        ingredients: ingredientIds,
-        label:
-          createPostDto.label?.trim() ||
-          credential.label ||
-          (createPostDto.description?.trim()
-            ? this.extractLabelFromText(createPostDto.description.trim())
-            : ''),
-        organization: firstIngredient
-          ? (this.getIngredientRefId(firstIngredient.organization) ??
-            publicMetadata.organization)
-          : publicMetadata.organization,
-        platform: credential.platform as never, // Save platform from credential
-        publishIntent: warmupHoldReason ? 'warmup_hold' : undefined,
-        publicationDate: createPostDto.publicationDate,
-        reviewFeedback: warmupHoldReason,
-        scheduledDate: createPostDto.scheduledDate,
-        status: effectiveStatus,
-        tags: createPostDto.tags || [],
-        user: publicMetadata.user,
-      });
-
-      await this.activitiesService.create(
-        new ActivityEntity({
-          brand: firstIngredient
-            ? (this.getIngredientRefId(firstIngredient.brand) ??
-              publicMetadata.brand)
-            : publicMetadata.brand,
-          entityId: data.id,
-          entityModel: ActivityEntityModel.POST,
-          key: warmupHoldReason
-            ? ActivityKey.POST_CREATED
-            : ActivityKey.VIDEO_SCHEDULED,
-          organization: firstIngredient
-            ? (this.getIngredientRefId(firstIngredient.organization) ??
-              publicMetadata.organization)
-            : publicMetadata.organization,
-          source: ActivitySource.SCRIPT,
-          user: publicMetadata.user,
-          value: (data.id as string).toString(),
-        }),
-      );
-
-      if (
-        !warmupHoldReason &&
-        String(credential.platform) === CredentialPlatform.YOUTUBE
-      ) {
-        this.postsService.handleYoutubePost(data).catch((error) => {
-          this.loggerService.error(
-            `Failed to trigger YouTube upload for post ${data.id}: ${error.message}`,
-            error.stack,
-          );
-        });
-      }
 
       return serializeSingle(request, this.serializer, data);
     } catch (error: unknown) {
