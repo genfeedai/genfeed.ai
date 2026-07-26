@@ -26,7 +26,9 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
 import { HiBars3, HiXMark } from 'react-icons/hi2';
+import { LuPanelRightClose, LuPanelRightOpen } from 'react-icons/lu';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
+import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   appendSearchParamsToHref,
   getBrandSwitchHref,
@@ -120,6 +122,7 @@ function AppProtectedTopbarContent({
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
+  const workspaceInspector = useWorkspaceInspector();
   // Route props are authoritative; only fall back to useOrgUrl when the shell is
   // rendered without route context. On org-level `/:org/~/...` pages
   // effectiveBrandSlug stays undefined so the app switcher links into org-scoped
@@ -321,26 +324,51 @@ function AppProtectedTopbarContent({
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 
-          {/* Grouped account controls: section switcher sits directly beside
-              the settings/user menu so they read as one cluster. */}
-          <div className="flex items-center gap-2">
-            {effectiveOrgSlug ? (
-              <AppSwitcher
-                variant="icon"
-                currentApp={effectiveCurrentApp}
-                currentPath={pathname}
-                orgSlug={effectiveOrgSlug}
-                brandAwareSlug={brandAwareAppSlug}
-                brandSlug={effectiveBrandSlug}
-                isAssetGateLocked={isAssetGateLocked}
-                preservedSearch={preservedTaskSearch || undefined}
-                resolveNavigation={resolveAppSwitcherNavigation}
-                showAdmin={isAdminChrome || isSuperAdmin}
-              />
-            ) : null}
+          {effectiveOrgSlug ? (
+            <AppSwitcher
+              variant="icon"
+              currentApp={effectiveCurrentApp}
+              currentPath={pathname}
+              orgSlug={effectiveOrgSlug}
+              brandAwareSlug={brandAwareAppSlug}
+              brandSlug={effectiveBrandSlug}
+              isAssetGateLocked={isAssetGateLocked}
+              preservedSearch={preservedTaskSearch || undefined}
+              resolveNavigation={resolveAppSwitcherNavigation}
+              showAdmin={isAdminChrome || isSuperAdmin}
+            />
+          ) : null}
 
-            {!isAdminChrome ? <TopbarEnd /> : null}
-          </div>
+          {/* Last control in the bar, always: the inspector rail collapses to
+              zero width, so its only toggle lives here — and pinning it to the
+              extreme right means it never shifts between the two states. The
+              icon itself carries the state (panel closing vs opening). */}
+          {workspaceInspector?.isRegistered ? (
+            <Button
+              aria-controls="workspace-context-inspector"
+              aria-expanded={workspaceInspector.isOpen}
+              type="button"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="hidden size-7 xl:inline-flex"
+              data-active={workspaceInspector.isOpen ? 'true' : 'false'}
+              data-testid="topbar-inspector-toggle"
+              ariaLabel={
+                workspaceInspector.isOpen
+                  ? 'Collapse context inspector'
+                  : 'Expand context inspector'
+              }
+              onClick={workspaceInspector.toggle}
+            >
+              {workspaceInspector.isOpen ? (
+                <LuPanelRightClose className="size-5" />
+              ) : (
+                <LuPanelRightOpen className="size-5" />
+              )}
+            </Button>
+          ) : null}
+
+          {!isAdminChrome && isSidebarCollapsed ? <TopbarEnd /> : null}
         </div>
       </div>
     </header>

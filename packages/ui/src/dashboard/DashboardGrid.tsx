@@ -3,13 +3,14 @@ import type { ReactNode } from 'react';
 import { cn } from '../lib/utils';
 
 interface DashboardGridProps {
-  cols?: 2 | 4;
+  cols?: 2 | 3 | 4;
   className?: string;
   children: ReactNode;
 }
 
 const COLS_CLASSES = {
   2: 'grid-cols-1 xl:grid-cols-2',
+  3: 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3',
   4: 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4',
 } as const;
 

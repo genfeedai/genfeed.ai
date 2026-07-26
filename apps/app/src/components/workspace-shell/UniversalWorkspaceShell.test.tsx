@@ -1,5 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { type ReactNode, useEffect, useMemo } from 'react';
+import {
+  type ButtonHTMLAttributes,
+  type ReactNode,
+  useEffect,
+  useMemo,
+} from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { useRegisterWorkspaceSurfaceAdapter } from './WorkspaceSurfaceAdapterContext';
@@ -137,6 +142,20 @@ vi.mock('@genfeedai/agent', () => ({
       />
     </div>
   ),
+  ConversationInspectorShellProvider: ({
+    children,
+    isActive,
+  }: {
+    children: ReactNode;
+    isActive: boolean;
+  }) => (
+    <div
+      data-active={String(isActive)}
+      data-testid="conversation-inspector-provider"
+    >
+      {children}
+    </div>
+  ),
   getConversationComposerAction: (name: string) => {
     if (name === 'publish' || name === 'remix') {
       return {
@@ -243,12 +262,13 @@ vi.mock('@ui/primitives/button', () => ({
     ariaLabel,
     children,
     onClick,
+    ...props
   }: {
     ariaLabel?: string;
     children?: ReactNode;
     onClick?: () => void;
-  }) => (
-    <button type="button" aria-label={ariaLabel} onClick={onClick}>
+  } & ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" aria-label={ariaLabel} onClick={onClick} {...props}>
       {children}
     </button>
   ),
@@ -445,6 +465,10 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
     expect(screen.getAllByText('Studio inspector')).not.toHaveLength(0);
+    expect(screen.queryByTestId('workspace-composer-slot')).toBeNull();
+    expect(
+      screen.getByTestId('conversation-inspector-provider'),
+    ).toHaveAttribute('data-active', 'false');
     expect(
       screen.getByText('Studio canvas').closest('[data-composer-brand]'),
     ).toHaveAttribute('data-composer-brand', 'brand-studio');
@@ -497,6 +521,9 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByTestId('universal-workspace-shell').parentElement,
     ).toHaveAttribute('data-draft-scope', 'acme:thread-1:3');
     expect(screen.getByLabelText('Context inspector')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('conversation-inspector-provider'),
+    ).toHaveAttribute('data-active', 'true');
     expect(screen.queryByTestId('canonical-canvas')).not.toBeInTheDocument();
 
     navigation.pathname = '/acme/moonrise/workspace/overview';
@@ -511,6 +538,17 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByLabelText('Primary workspace canvas'),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Context inspector')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('conversation-inspector-provider'),
+    ).toHaveAttribute('data-active', 'false');
+    expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
+      'pb-48',
+      'md:pb-56',
+    );
+    expect(
+      screen.getByRole('separator', { name: 'Resize context inspector' }),
+    ).toHaveAttribute('aria-valuenow', '320');
     expect(screen.getByTestId('canonical-canvas')).toBeInTheDocument();
     expect(
       screen.getByTestId('persistent-agent-conversation'),
