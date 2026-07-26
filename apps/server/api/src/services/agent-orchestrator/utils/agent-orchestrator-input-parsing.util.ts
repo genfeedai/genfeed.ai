@@ -48,18 +48,22 @@ function isLineTerminator(character: string): boolean {
   );
 }
 
+function buildLineTerminatorPrefix(value: string): Uint32Array {
+  const prefix = new Uint32Array(value.length + 1);
+
+  for (let index = 0; index < value.length; index += 1) {
+    prefix[index + 1] = prefix[index] + Number(isLineTerminator(value[index]));
+  }
+
+  return prefix;
+}
+
 function containsLineTerminator(
-  value: string,
+  prefix: Uint32Array,
   start: number,
   end: number,
 ): boolean {
-  for (let index = start; index < end; index += 1) {
-    if (isLineTerminator(value[index])) {
-      return true;
-    }
-  }
-
-  return false;
+  return prefix[end] > prefix[start];
 }
 
 function containsOnlyWhitespace(
@@ -103,6 +107,40 @@ function collectWordSpans(value: string): WordSpan[] {
   }
 
   return words;
+}
+
+function buildStyleWordIndexes(
+  content: string,
+  words: WordSpan[],
+): {
+  nextStyleIndex: Int32Array;
+  notesEndByStyleIndex: Int32Array;
+} {
+  const nextStyleIndex = new Int32Array(words.length + 1);
+  const notesEndByStyleIndex = new Int32Array(words.length);
+  nextStyleIndex.fill(-1);
+  notesEndByStyleIndex.fill(-1);
+  let nextIndex = -1;
+
+  for (let index = words.length - 1; index >= 0; index -= 1) {
+    const word = words[index];
+    if (
+      word.value === 'style' &&
+      word.start > 0 &&
+      isWhitespace(content[word.start - 1])
+    ) {
+      let notesEnd = word.start;
+      while (notesEnd > 0 && isWhitespace(content[notesEnd - 1])) {
+        notesEnd -= 1;
+      }
+      notesEndByStyleIndex[index] = notesEnd;
+      nextIndex = index;
+    }
+
+    nextStyleIndex[index] = nextIndex;
+  }
+
+  return { nextStyleIndex, notesEndByStyleIndex };
 }
 
 function isOneOrTwoDigits(value: string): boolean {
@@ -162,6 +200,11 @@ export function extractRecurringContentCount(
 
 export function extractStyleNotes(content: string): string | undefined {
   const words = collectWordSpans(content);
+  const lineTerminatorPrefix = buildLineTerminatorPrefix(content);
+  const { nextStyleIndex, notesEndByStyleIndex } = buildStyleWordIndexes(
+    content,
+    words,
+  );
 
   for (let index = 0; index < words.length - 2; index += 1) {
     const preposition = words[index];
@@ -176,36 +219,26 @@ export function extractStyleNotes(content: string): string | undefined {
     }
 
     const contentStart = article.end;
-    for (
-      let styleIndex = index + 2;
-      styleIndex < words.length;
-      styleIndex += 1
+    const notesStart = words[index + 2].start;
+    let styleIndex = nextStyleIndex[index + 2];
+    if (styleIndex < 0) {
+      return undefined;
+    }
+
+    let notesEnd = notesEndByStyleIndex[styleIndex];
+    if (notesEnd <= notesStart) {
+      styleIndex = nextStyleIndex[styleIndex + 1];
+      if (styleIndex < 0) {
+        continue;
+      }
+      notesEnd = notesEndByStyleIndex[styleIndex];
+    }
+
+    if (
+      notesEnd > notesStart &&
+      !containsLineTerminator(lineTerminatorPrefix, notesStart, notesEnd)
     ) {
-      const styleWord = words[styleIndex];
-      if (styleWord.value !== 'style') {
-        continue;
-      }
-
-      let notesEnd = styleWord.start;
-      while (notesEnd > contentStart && isWhitespace(content[notesEnd - 1])) {
-        notesEnd -= 1;
-      }
-      if (notesEnd === styleWord.start) {
-        continue;
-      }
-
-      let notesStart = contentStart;
-      while (notesStart < notesEnd && isWhitespace(content[notesStart])) {
-        notesStart += 1;
-      }
-      if (containsLineTerminator(content, notesStart, notesEnd)) {
-        continue;
-      }
-
-      const notes = content.slice(contentStart, notesEnd).trim();
-      if (notes) {
-        return notes;
-      }
+      return content.slice(contentStart, notesEnd).trim();
     }
   }
 
@@ -228,8 +261,10 @@ export function extractBatchTopic(
   normalizedContent: string,
 ): string | undefined {
   const words = collectWordSpans(normalizedContent);
+  const lineTerminatorPrefix = buildLineTerminatorPrefix(normalizedContent);
 
-  for (const word of words) {
+  for (let wordIndex = 0; wordIndex < words.length; wordIndex += 1) {
+    const word = words[wordIndex];
     if (word.value !== 'about' || word.end >= normalizedContent.length) {
       continue;
     }
@@ -268,10 +303,15 @@ export function extractBatchTopic(
         }
 
         if (
-          nextWordStart < normalizedContent.length &&
-          containsLineTerminator(normalizedContent, cursor, nextWordStart)
+          containsLineTerminator(lineTerminatorPrefix, cursor, nextWordStart)
         ) {
           crossedUnsupportedLineBreak = true;
+          while (
+            wordIndex + 1 < words.length &&
+            words[wordIndex + 1].start < nextWordStart
+          ) {
+            wordIndex += 1;
+          }
           break;
         }
 
