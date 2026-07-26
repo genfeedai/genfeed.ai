@@ -427,6 +427,22 @@ describe('ClipProjectsService', () => {
     expect(prisma.clipProject.update).not.toHaveBeenCalled();
   });
 
+  it('rejects a missing project for an unscoped patch without writing', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.patch('project-1', { status: 'completed' }),
+    ).rejects.toThrow('ClipProject');
+
+    expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
+      where: {
+        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        isDeleted: false,
+      },
+    });
+    expect(prisma.clipProject.update).not.toHaveBeenCalled();
+  });
+
   it('does not treat an empty organization scope as an unscoped patch', async () => {
     prisma.clipProject.findFirst.mockResolvedValue(null);
 
