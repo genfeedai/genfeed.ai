@@ -10,6 +10,7 @@ import type {
   TwitterAnalyticsJobData,
   YouTubeAnalyticsJobData,
 } from '@genfeedai/queue-contracts';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -413,16 +414,14 @@ export class AnalyticsSyncWorkflowService {
     organizationId: string,
     options: QueuePostsOptions,
   ): Promise<AnalyticsPost[]> {
-    const where: Record<string, unknown> = {
+    const where: Record<string, unknown> = scopedWhere(organizationId, {
       externalId: { not: null },
-      isDeleted: false,
-      organizationId,
       platform:
         options.platforms.length === 1
           ? options.platforms[0]
           : { in: options.platforms },
       status: PostStatus.PUBLIC,
-    };
+    });
 
     if (options.analyticsEnabledOnly) {
       where.isAnalyticsEnabled = { not: false };

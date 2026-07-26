@@ -12,6 +12,7 @@ import {
   AgentRunFrequency,
 } from '@genfeedai/enums';
 import type { AgentStrategy } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -129,11 +130,7 @@ export class AgentAutopilotWorkflowService {
       const now = new Date();
       const strategies = (await this.prisma.agentStrategy.findMany({
         take: MAX_STRATEGIES_PER_CYCLE * 5,
-        where: {
-          isActive: true,
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, { isActive: true }),
       })) as AgentStrategyWithConfig[];
 
       const dueStrategies = strategies
@@ -464,11 +461,7 @@ export class AgentAutopilotWorkflowService {
   private async resetCreditCounters(organizationId: string): Promise<void> {
     const now = new Date();
     const strategies = (await this.prisma.agentStrategy.findMany({
-      where: {
-        isActive: true,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { isActive: true }),
     })) as AgentStrategyWithConfig[];
 
     for (const strategy of strategies) {
@@ -550,11 +543,7 @@ export class AgentAutopilotWorkflowService {
     brandId: string,
   ): Promise<number> {
     const strategies = (await this.prisma.agentStrategy.findMany({
-      where: {
-        brandId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { brandId }),
     })) as AgentStrategyWithConfig[];
 
     return strategies.reduce((sum, strategy) => {

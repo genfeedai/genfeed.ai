@@ -9,6 +9,7 @@ import {
 import { getSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
@@ -225,11 +226,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
       if (missingRequiredInputs.length > 0) {
         await this.prisma.workflow.update({
           data: { isScheduleEnabled: false },
-          where: {
-            id: workflowId,
-            isDeleted: false,
-            organizationId: wOrgId,
-          },
+          where: scopedWhere(wOrgId, { id: workflowId }),
         });
         await this.unscheduleWorkflow(workflowId);
 

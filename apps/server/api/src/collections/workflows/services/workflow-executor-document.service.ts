@@ -13,6 +13,7 @@ import {
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 
 export class WorkflowExecutorDocumentService {
   constructor(private readonly prisma: PrismaService) {}
@@ -23,12 +24,10 @@ export class WorkflowExecutorDocumentService {
     const executorNodeType = EVENT_TYPE_TO_NODE_TYPE[event.type] ?? event.type;
     const workflows = await this.prisma.workflow.findMany({
       select: EXECUTABLE_WORKFLOW_SELECT,
-      where: {
-        isDeleted: false,
+      where: scopedWhere(event.organizationId, {
         lifecycle: WorkflowLifecycle.PUBLISHED,
-        organizationId: event.organizationId,
         status: WorkflowStatus.ACTIVE,
-      },
+      }),
     });
     const normalizedWorkflows = workflows.map((workflow) =>
       this.normalizeWorkflowDocument(workflow),

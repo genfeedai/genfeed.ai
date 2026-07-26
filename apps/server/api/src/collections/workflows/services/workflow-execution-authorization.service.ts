@@ -1,7 +1,7 @@
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ValidatedAgentScope } from '@genfeedai/interfaces';
-import { AgentScopeContextService } from '@genfeedai/server';
+import { AgentScopeContextService, scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface AuthorizeWorkflowExecutionInput {
@@ -61,11 +61,7 @@ export class WorkflowExecutionAuthorizationService {
 
     const workflow = await this.prisma.workflow.findFirst({
       select: { brandId: true, id: true },
-      where: {
-        id: input.workflowId,
-        isDeleted: false,
-        organizationId: input.organizationId,
-      },
+      where: scopedWhere(input.organizationId, { id: input.workflowId }),
     });
     if (!workflow) {
       throw new NotFoundException('Workflow');

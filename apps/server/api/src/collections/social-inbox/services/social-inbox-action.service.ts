@@ -27,6 +27,7 @@ import { YoutubeService } from '@api/services/integrations/youtube/services/yout
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
   ConflictException,
@@ -470,13 +471,11 @@ export class SocialInboxActionService {
         sourceUrl: external.url,
         status: 'sent',
       },
-      where: {
+      where: scopedWhere(scope.organizationId, {
         conversationId: conversation.id,
         id: reservation.message.id,
-        isDeleted: false,
-        organizationId: scope.organizationId,
         status: 'pending',
-      },
+      }),
     });
 
     if (finalized.count !== 1) {
@@ -502,12 +501,10 @@ export class SocialInboxActionService {
     });
 
     const message = await this.prisma.socialMessage.findFirst({
-      where: {
+      where: scopedWhere(scope.organizationId, {
         conversationId: conversation.id,
         id: reservation.message.id,
-        isDeleted: false,
-        organizationId: scope.organizationId,
-      },
+      }),
     });
     if (!message) {
       throw new ConflictException('Finalized social action was not found');
@@ -527,11 +524,9 @@ export class SocialInboxActionService {
     }
 
     const existing = await this.prisma.socialMessage.findFirst({
-      where: {
+      where: scopedWhere(scope.organizationId, {
         idempotencyKey: input.idempotencyKey,
-        isDeleted: false,
-        organizationId: scope.organizationId,
-      },
+      }),
     });
     if (!existing) {
       return null;
@@ -563,11 +558,9 @@ export class SocialInboxActionService {
   ): Promise<OutboundReservation> {
     if (input.idempotencyKey) {
       const existing = await this.prisma.socialMessage.findFirst({
-        where: {
+        where: scopedWhere(scope.organizationId, {
           idempotencyKey: input.idempotencyKey,
-          isDeleted: false,
-          organizationId: scope.organizationId,
-        },
+        }),
       });
       if (existing) {
         return await this.claimExistingOutboundAction(
@@ -621,11 +614,9 @@ export class SocialInboxActionService {
       }
 
       const winner = await this.prisma.socialMessage.findFirst({
-        where: {
+        where: scopedWhere(scope.organizationId, {
           idempotencyKey: input.idempotencyKey,
-          isDeleted: false,
-          organizationId: scope.organizationId,
-        },
+        }),
       });
       if (!winner) {
         throw error;
@@ -691,23 +682,19 @@ export class SocialInboxActionService {
         failureReason: null,
         status: 'pending',
       },
-      where: {
+      where: scopedWhere(scope.organizationId, {
         conversationId: conversation.id,
         id: existing.id,
-        isDeleted: false,
-        organizationId: scope.organizationId,
         status: 'failed',
-      },
+      }),
     });
 
     if (claimed.count !== 1) {
       const current = await this.prisma.socialMessage.findFirst({
-        where: {
+        where: scopedWhere(scope.organizationId, {
           conversationId: conversation.id,
           id: existing.id,
-          isDeleted: false,
-          organizationId: scope.organizationId,
-        },
+        }),
       });
       if (current?.status === 'sent') {
         return {
@@ -719,13 +706,11 @@ export class SocialInboxActionService {
     }
 
     const reservation = await this.prisma.socialMessage.findFirst({
-      where: {
+      where: scopedWhere(scope.organizationId, {
         conversationId: conversation.id,
         id: existing.id,
-        isDeleted: false,
-        organizationId: scope.organizationId,
         status: 'pending',
-      },
+      }),
     });
     if (!reservation) {
       throw new ConflictException('Social action reservation was not found');
@@ -762,13 +747,11 @@ export class SocialInboxActionService {
         failureReason: reason ?? 'Provider publish failed',
         status: 'failed',
       },
-      where: {
+      where: scopedWhere(scope.organizationId, {
         conversationId: conversation.id,
         id: messageId,
-        isDeleted: false,
-        organizationId: scope.organizationId,
         status: 'pending',
-      },
+      }),
     });
   }
 
@@ -782,13 +765,11 @@ export class SocialInboxActionService {
     const draft = await findOrThrow(
       this.prisma.socialMessage,
       {
-        where: {
+        where: scopedWhere(scope.organizationId, {
           conversationId,
           id: messageId,
-          isDeleted: false,
-          organizationId: scope.organizationId,
           status: 'draft',
-        },
+        }),
       },
       'Draft message',
     );

@@ -33,6 +33,7 @@ import { TrendVideoService } from '@api/collections/trends/services/modules/tren
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { Timeframe } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -223,11 +224,7 @@ export class TrendsService {
     try {
       const credentials = await this.credentialsService.findAll(
         {
-          where: {
-            isConnected: true,
-            isDeleted: false,
-            organizationId: organizationId,
-          },
+          where: scopedWhere(organizationId, { isConnected: true }),
         },
         { limit: 100 },
       );

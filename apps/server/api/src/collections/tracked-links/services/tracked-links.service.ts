@@ -7,6 +7,7 @@ import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
   HttpException,
@@ -47,11 +48,9 @@ export class TrackedLinksService {
     const brand = await findOrThrow(
       this.prisma.brand,
       {
-        where: {
+        where: scopedWhere(organizationId, {
           OR: [{ id: brandId }, { mongoId: brandId }],
-          isDeleted: false,
-          organizationId,
-        },
+        }),
       },
       'Brand',
       brandId,
@@ -70,12 +69,10 @@ export class TrackedLinksService {
     const content = await findOrThrow(
       this.prisma.ingredient,
       {
-        where: {
+        where: scopedWhere(organizationId, {
           OR: [{ id: contentId }, { mongoId: contentId }],
-          isDeleted: false,
-          organizationId,
           ...(brandId ? { brandId } : {}),
-        },
+        }),
       },
       'Content',
       contentId,
@@ -340,7 +337,7 @@ export class TrackedLinksService {
   async getById(linkId: string, organizationId: string): Promise<TrackedLink> {
     const link = await findOrThrow(
       this.prisma.trackedLink,
-      { where: { id: linkId, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id: linkId }) },
       'Tracked link',
       linkId,
     );
@@ -370,7 +367,7 @@ export class TrackedLinksService {
   ): Promise<TrackedLink[]> {
     const results = await this.prisma.trackedLink.findMany({
       orderBy: { createdAt: 'desc' },
-      where: { contentId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { contentId }),
     });
     return results as unknown as TrackedLink[];
   }
@@ -386,10 +383,7 @@ export class TrackedLinksService {
       isActive?: boolean;
     },
   ): Promise<TrackedLink[]> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
+    const where: Record<string, unknown> = scopedWhere(organizationId, {});
 
     if (filters?.platform) {
       where.platform = filters.platform;
@@ -746,7 +740,7 @@ export class TrackedLinksService {
       // cross-tenant writes if the read/write ever drift apart).
       const { count } = await tx.trackedLink.updateMany({
         data: safeData,
-        where: { id: linkId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: linkId }),
       });
 
       if (count !== 1) {
@@ -754,7 +748,7 @@ export class TrackedLinksService {
       }
 
       return tx.trackedLink.findFirst({
-        where: { id: linkId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: linkId }),
       });
     });
 
@@ -771,7 +765,7 @@ export class TrackedLinksService {
     // that could be bypassed by a future caller or a cross-tenant id leak).
     const { count } = await this.prisma.trackedLink.updateMany({
       data: { isDeleted: true } as never,
-      where: { id: linkId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: linkId }),
     });
 
     if (count !== 1) {

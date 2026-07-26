@@ -24,6 +24,7 @@ import {
   validateChannelTargetSettings as resolveChannelTargetValidation,
 } from '@api-types/contracts/channel-capabilities.contract';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -227,14 +228,12 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
   ): Promise<Schedule[]> {
     const results = await this.prisma.schedule.findMany({
       orderBy: { createdAt: 'asc' },
-      where: {
+      where: scopedWhere(organizationId, {
         createdAt: {
           gte: new Date(startDate),
           lte: new Date(endDate),
         },
-        isDeleted: false,
-        organizationId,
-      } as never,
+      }) as never,
     });
 
     return results as unknown as Schedule[];
@@ -291,7 +290,7 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
   ): Promise<RepurposingJob> {
     const job = await findOrThrow(
       this.prisma.repurposingJob,
-      { where: { id: jobId, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id: jobId }) },
       'Repurposing job',
     );
 
