@@ -7,6 +7,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
+import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -22,8 +23,14 @@ import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
-import { BrandSerializer } from '@genfeedai/serializers';
+import {
+  BrandKitApplySerializer,
+  BrandKitAssetImportSerializer,
+  BrandKitSerializer,
+  BrandSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { REQUEST } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -35,7 +42,7 @@ vi.mock('@genfeedai/helpers', async () => ({
   getDeserializer: vi.fn((dto) => Promise.resolve(dto)),
 }));
 
-vi.mock('@helpers/utils/response/response.util', () => ({
+vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
     errors: [
       { detail: `${type} ${id} not found`, status: '404', title: 'Not Found' },
@@ -49,6 +56,7 @@ vi.mock('@helpers/utils/response/response.util', () => ({
 }));
 
 describe('BrandsController', () => {
+  let agentConfigController: BrandsAgentConfigController;
   let controller: BrandsController;
   let brandSetupService: vi.Mocked<BrandSetupService>;
   let brandsService: vi.Mocked<BrandsService>;
@@ -80,7 +88,7 @@ describe('BrandsController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [BrandsController],
+      controllers: [BrandsAgentConfigController, BrandsController],
       providers: [
         {
           provide: REQUEST,
@@ -106,6 +114,7 @@ describe('BrandsController', () => {
             findOne: vi.fn(),
             findOneBySlug: vi.fn(),
             generateBrandVoice: vi.fn(),
+            importBrandKitAssets: vi.fn(),
             patch: vi.fn(),
             remove: vi.fn(),
           },
@@ -175,6 +184,9 @@ describe('BrandsController', () => {
       })
       .compile();
 
+    agentConfigController = module.get<BrandsAgentConfigController>(
+      BrandsAgentConfigController,
+    );
     controller = module.get<BrandsController>(BrandsController);
     brandSetupService = module.get(BrandSetupService);
     brandsService = module.get(BrandsService);
@@ -195,7 +207,10 @@ describe('BrandsController', () => {
 
   it('charges one credit for direct AI brand profile generation', () => {
     expect(
-      Reflect.getMetadata(CREDITS_KEY, controller.generateBrandVoice),
+      Reflect.getMetadata(
+        CREDITS_KEY,
+        agentConfigController.generateBrandVoice,
+      ),
     ).toMatchObject({
       amount: 1,
       description: 'AI brand profile generation',
@@ -319,6 +334,7 @@ describe('BrandsController', () => {
         diagnostics: [],
         evidence: [],
         fields: {},
+        id: brandId,
         readiness: {
           diagnostics: [],
           missingFields: [],
@@ -338,9 +354,14 @@ describe('BrandsController', () => {
         >,
       );
 
-      const result = await controller.crawlBrandKitWebsite(mockUser, brandId, {
-        url: 'https://acme.com',
-      });
+      const result = await agentConfigController.crawlBrandKitWebsite(
+        mockRequest,
+        mockUser,
+        brandId,
+        {
+          url: 'https://acme.com',
+        },
+      );
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         OR: [
@@ -354,6 +375,11 @@ describe('BrandsController', () => {
         brandId,
         '507f191e810c19729de860ee',
         { url: 'https://acme.com' },
+      );
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        BrandKitSerializer,
+        draft,
       );
       expect(result).toEqual({ data: draft });
     });
@@ -372,9 +398,14 @@ describe('BrandsController', () => {
       );
 
       await expect(
-        controller.crawlBrandKitWebsite(userWithoutOrganization, brandId, {
-          url: 'https://acme.com',
-        }),
+        agentConfigController.crawlBrandKitWebsite(
+          mockRequest,
+          userWithoutOrganization,
+          brandId,
+          {
+            url: 'https://acme.com',
+          },
+        ),
       ).rejects.toMatchObject({
         response: expect.objectContaining({
           detail: 'Organization context is required',
@@ -391,6 +422,7 @@ describe('BrandsController', () => {
         appliedFields: ['description'],
         brandId,
         diagnostics: [],
+        id: brandId,
         preservedFields: [],
         status: 'accepted',
       };
@@ -401,14 +433,19 @@ describe('BrandsController', () => {
         applyResult as Awaited<ReturnType<BrandsService['applyBrandKitDraft']>>,
       );
 
-      const result = await controller.applyBrandKitDraft(mockUser, brandId, {
-        fields: {
-          description: {
-            action: 'accept',
-            value: 'Updated brand description',
+      const result = await agentConfigController.applyBrandKitDraft(
+        mockRequest,
+        mockUser,
+        brandId,
+        {
+          fields: {
+            description: {
+              action: 'accept',
+              value: 'Updated brand description',
+            },
           },
         },
-      });
+      );
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         OR: [
@@ -430,6 +467,11 @@ describe('BrandsController', () => {
           },
         },
       );
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        BrandKitApplySerializer,
+        applyResult,
+      );
       expect(result).toEqual({ data: applyResult });
     });
 
@@ -447,14 +489,19 @@ describe('BrandsController', () => {
       );
 
       await expect(
-        controller.applyBrandKitDraft(userWithoutOrganization, brandId, {
-          fields: {
-            description: {
-              action: 'accept',
-              value: 'Updated brand description',
+        agentConfigController.applyBrandKitDraft(
+          mockRequest,
+          userWithoutOrganization,
+          brandId,
+          {
+            fields: {
+              description: {
+                action: 'accept',
+                value: 'Updated brand description',
+              },
             },
           },
-        }),
+        ),
       ).rejects.toMatchObject({
         response: expect.objectContaining({
           detail: 'Organization context is required',
@@ -477,6 +524,7 @@ describe('BrandsController', () => {
         diagnostics: [],
         evidence: [],
         fields: {},
+        id: brandId,
         readiness: {
           diagnostics: [],
           missingFields: [],
@@ -494,7 +542,8 @@ describe('BrandsController', () => {
         draft as Awaited<ReturnType<BrandsService['buildManualBrandKitDraft']>>,
       );
 
-      const result = await controller.createManualBrandKitDraft(
+      const result = await agentConfigController.createManualBrandKitDraft(
+        mockRequest,
         mockUser,
         brandId,
         dto,
@@ -513,6 +562,11 @@ describe('BrandsController', () => {
         '507f191e810c19729de860ee',
         dto,
       );
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        BrandKitSerializer,
+        draft,
+      );
       expect(result).toEqual({ data: draft });
     });
 
@@ -530,15 +584,73 @@ describe('BrandsController', () => {
       );
 
       await expect(
-        controller.createManualBrandKitDraft(userWithoutOrganization, brandId, {
-          description: 'Manual description',
-        }),
+        agentConfigController.createManualBrandKitDraft(
+          mockRequest,
+          userWithoutOrganization,
+          brandId,
+          {
+            description: 'Manual description',
+          },
+        ),
       ).rejects.toMatchObject({
         response: expect.objectContaining({
           detail: 'Organization context is required',
         }),
       });
       expect(brandsService.buildManualBrandKitDraft).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('importBrandKitAssets', () => {
+    it('serializes the guarded asset import outcome', async () => {
+      const brandId = '507f191e810c19729de860ee';
+      const dto = {
+        assets: [
+          {
+            candidateId: 'logo-candidate',
+            role: 'logo' as const,
+            sourceUrl: 'https://acme.com/logo.png',
+          },
+        ],
+      };
+      const importResult = {
+        brandId,
+        diagnostics: [],
+        failedCandidateIds: [],
+        id: brandId,
+        importedAssetIds: ['asset-1'],
+        results: [],
+        skippedCandidateIds: [],
+        status: 'accepted',
+      };
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      brandsService.importBrandKitAssets.mockResolvedValue(
+        importResult as Awaited<
+          ReturnType<BrandsService['importBrandKitAssets']>
+        >,
+      );
+
+      const result = await agentConfigController.importBrandKitAssets(
+        mockRequest,
+        mockUser,
+        brandId,
+        dto,
+      );
+
+      expect(brandsService.importBrandKitAssets).toHaveBeenCalledWith(
+        brandId,
+        '507f191e810c19729de860ee',
+        '507f191e810c19729de860ee',
+        dto,
+      );
+      expect(serializeSingle).toHaveBeenCalledWith(
+        mockRequest,
+        BrandKitAssetImportSerializer,
+        importResult,
+      );
+      expect(result).toEqual({ data: importResult });
     });
   });
 });

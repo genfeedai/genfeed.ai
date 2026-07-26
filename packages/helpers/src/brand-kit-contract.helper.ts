@@ -459,7 +459,7 @@ export function buildBrandKitDraftFromBrand(
     diagnostics,
     evidence,
     fields,
-    id: options.draftId,
+    id: options.draftId ?? brand.id,
     organizationId: getOrganizationId(brand.organization),
     readiness,
     sourceType,

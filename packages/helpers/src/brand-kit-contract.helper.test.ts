@@ -173,6 +173,7 @@ describe('brand kit contract helpers', () => {
   it('marks an empty brand kit as missing', () => {
     const draft = buildBrandKitDraftFromBrand({ id: 'brand-3' });
 
+    expect(draft.id).toBe('brand-3');
     expect(draft.status).toBe('missing');
     expect(draft.readiness.status).toBe('missing');
     expect(draft.readiness.score).toBe(0);

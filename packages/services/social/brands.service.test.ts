@@ -1,3 +1,4 @@
+import { deserializeResource } from '@services/core/json-api';
 import { BrandsService } from '@services/social/brands.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -269,6 +270,7 @@ describe('BrandsService', () => {
         diagnostics: [],
         evidence: [],
         fields: {},
+        id: mockBrandId,
         readiness: {
           diagnostics: [],
           missingFields: [],
@@ -290,6 +292,7 @@ describe('BrandsService', () => {
         socialUrls: ['https://linkedin.com/company/acme'],
         url: 'https://acme.test',
       });
+      expect(deserializeResource).toHaveBeenCalledWith({ data: draft });
       expect(result).toEqual(draft);
     });
 
@@ -298,6 +301,7 @@ describe('BrandsService', () => {
         appliedFields: ['description'],
         brandId: mockBrandId,
         diagnostics: [],
+        id: mockBrandId,
         preservedFields: [],
         status: 'accepted',
       };
@@ -320,6 +324,7 @@ describe('BrandsService', () => {
           },
         },
       });
+      expect(deserializeResource).toHaveBeenCalledWith({ data: applyResult });
       expect(result).toEqual(applyResult);
     });
 
@@ -328,6 +333,7 @@ describe('BrandsService', () => {
         brandId: mockBrandId,
         diagnostics: [],
         failedCandidateIds: [],
+        id: mockBrandId,
         importedAssetIds: ['asset-1'],
         results: [],
         skippedCandidateIds: [],
@@ -352,6 +358,7 @@ describe('BrandsService', () => {
         `/${mockBrandId}/brand-kit/assets/import`,
         payload,
       );
+      expect(deserializeResource).toHaveBeenCalledWith({ data: importResult });
       expect(result).toEqual(importResult);
     });
   });
@@ -399,6 +406,7 @@ describe('BrandsService', () => {
         diagnostics: [],
         evidence: [],
         fields: {},
+        id: mockBrandId,
         readiness: {
           diagnostics: [],
           missingFields: [],
@@ -424,6 +432,7 @@ describe('BrandsService', () => {
         `/${mockBrandId}/brand-kit/manual`,
         payload,
       );
+      expect(deserializeResource).toHaveBeenCalledWith({ data: draft });
       expect(result).toEqual(draft);
     });
   });

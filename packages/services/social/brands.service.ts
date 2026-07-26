@@ -282,8 +282,8 @@ export class BrandsService extends BaseService<Brand> {
     },
   ): Promise<IBrandKitDraft> {
     return await this.instance
-      .post<{ data: IBrandKitDraft }>(`/${id}/brand-kit/crawl`, data)
-      .then((res) => res.data.data);
+      .post<JsonApiResponseDocument>(`/${id}/brand-kit/crawl`, data)
+      .then((res) => deserializeResource<IBrandKitDraft>(res.data));
   }
 
   public async applyBrandKitDraft(
@@ -291,8 +291,8 @@ export class BrandsService extends BaseService<Brand> {
     data: Omit<IBrandKitApplyRequest, 'brandId'>,
   ): Promise<IBrandKitApplyResult> {
     return await this.instance
-      .post<{ data: IBrandKitApplyResult }>(`/${id}/brand-kit/apply`, data)
-      .then((res) => res.data.data);
+      .post<JsonApiResponseDocument>(`/${id}/brand-kit/apply`, data)
+      .then((res) => deserializeResource<IBrandKitApplyResult>(res.data));
   }
 
   public async importBrandKitAssets(
@@ -300,11 +300,10 @@ export class BrandsService extends BaseService<Brand> {
     data: IBrandKitAssetImportRequest,
   ): Promise<IBrandKitAssetImportResponse> {
     return await this.instance
-      .post<{ data: IBrandKitAssetImportResponse }>(
-        `/${id}/brand-kit/assets/import`,
-        data,
-      )
-      .then((res) => res.data.data);
+      .post<JsonApiResponseDocument>(`/${id}/brand-kit/assets/import`, data)
+      .then((res) =>
+        deserializeResource<IBrandKitAssetImportResponse>(res.data),
+      );
   }
 
   public async findBrandAnalytics(

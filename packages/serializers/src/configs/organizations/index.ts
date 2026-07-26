@@ -1,4 +1,5 @@
 export * from '@serializers/configs/organizations/brand.config';
+export * from '@serializers/configs/organizations/brand-kit.config';
 export * from '@serializers/configs/organizations/credential.config';
 export * from '@serializers/configs/organizations/darkroom-capabilities.config';
 export * from '@serializers/configs/organizations/harness-profile.config';
