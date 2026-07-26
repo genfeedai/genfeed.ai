@@ -17,7 +17,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: selfhosted-install-contract-${{ github.head_ref || github.ref_name }}
+  # Isolate same-named branches from different forks by PR number. Manual runs
+  # use the complete ref so distinct branches and tags remain independent.
+  group: selfhosted-install-contract-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

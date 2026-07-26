@@ -9,6 +9,7 @@ export const API_KEY_SCOPE_PRESETS = {
     'articles:read',
     'articles:create',
     'posts:create',
+    'posts:draft',
   ],
   full: [
     'videos:read',
@@ -28,6 +29,10 @@ export const API_KEY_SCOPE_PRESETS = {
     'brands:read',
     'credits:read',
     'posts:create',
+    'posts:draft',
+    'posts:schedule',
+    'posts:approve',
+    'posts:publish',
     'analytics:read',
   ],
   mcp: [
@@ -42,6 +47,9 @@ export const API_KEY_SCOPE_PRESETS = {
     'brands:read',
     'credits:read',
     'posts:create',
+    'posts:draft',
+    'posts:schedule',
+    'posts:approve',
     'analytics:read',
   ],
   read: [

@@ -778,11 +778,12 @@ export async function proxy(req: NextRequest) {
 
     if (pathname === '/') {
       const resolved = await resolveDesktopWorkspace();
-      const response = redirectPreservingSearch(
-        req,
-        resolved?.path ?? '/login',
-      );
-      if (resolved?.cookieValue) {
+      if (!resolved) {
+        return redirectPreservingSearch(req, '/login');
+      }
+
+      const response = NextResponse.next();
+      if (resolved.cookieValue) {
         setSlugCookie(response, resolved.cookieValue);
       }
       return response;
@@ -832,6 +833,10 @@ export async function proxy(req: NextRequest) {
 
   if (!isBetterAuthEnabled()) {
     const { pathname } = req.nextUrl;
+
+    if (pathname === '/') {
+      return NextResponse.next();
+    }
 
     if (isSeededWorkspaceEntrypoint(pathname)) {
       return redirectPreservingSearch(req, SEEDED_WORKSPACE_PATH);
@@ -914,15 +919,11 @@ export async function proxy(req: NextRequest) {
         req,
       );
 
-      if (resolved) {
-        const response = redirectPreservingSearch(req, resolved.path);
-        if (resolved.cookieValue) {
-          setSlugCookie(response, resolved.cookieValue);
-        }
-        return response;
+      const response = NextResponse.next();
+      if (resolved?.cookieValue) {
+        setSlugCookie(response, resolved.cookieValue);
       }
-
-      return NextResponse.next();
+      return response;
     }
 
     if (isBareProtectedPath(pathname)) {

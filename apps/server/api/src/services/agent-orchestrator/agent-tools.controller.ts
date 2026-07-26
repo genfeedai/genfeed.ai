@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -56,6 +57,12 @@ export class AgentToolsController {
     @Req() request: Request,
     @Headers('authorization') authorization?: string,
   ) {
+    assertApiKeyAgentPublishingScope(
+      getPublicMetadata(user),
+      name,
+      body.parameters ?? {},
+    );
+
     try {
       const tool = getToolByName(name);
       if (!tool) {
@@ -88,6 +95,7 @@ export class AgentToolsController {
 
       const context: ToolExecutionContext = {
         ...(body.context ?? {}),
+        apiKeyContext: getPublicMetadata(user),
         authToken,
         organizationId,
         userId,

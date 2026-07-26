@@ -186,6 +186,7 @@ export const APP_ROUTES = {
     MODEL_TRAININGS: '/settings/models/trainings',
     PERSONAL: '/settings/personal',
     POLICY: '/settings/policy',
+    PUBLISHING: '/settings/publishing',
     ROOT: '/settings',
     WEBHOOKS: '/settings/webhooks',
   },

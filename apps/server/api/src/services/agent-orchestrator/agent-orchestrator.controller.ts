@@ -108,6 +108,7 @@ export class AgentOrchestratorController {
       const authToken = authorization?.replace('Bearer ', '');
 
       const result = await this.orchestratorService.chat(authorizedRequest, {
+        apiKeyContext: getPublicMetadata(user),
         authToken,
         organizationId: organization,
         userId: dbUserId,
@@ -140,6 +141,7 @@ export class AgentOrchestratorController {
       const result = await this.orchestratorService.chatStream(
         authorizedRequest,
         {
+          apiKeyContext: getPublicMetadata(user),
           authToken,
           organizationId: organization,
           userId: dbUserId,

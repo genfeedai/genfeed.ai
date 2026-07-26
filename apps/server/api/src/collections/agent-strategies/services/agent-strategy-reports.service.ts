@@ -4,6 +4,7 @@ import type {
   AgentStrategyReportDocument,
 } from '@api/collections/agent-strategies/schemas/agent-strategy-report.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -102,11 +103,9 @@ export class AgentStrategyReportsService {
     reportType?: AgentStrategyReportType,
   ): Promise<AgentStrategyReportDocument[]> {
     const records = await this.prisma.agentStrategyReport.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
+      where: scopedWhere(organizationId, {
         strategyId,
-      },
+      }),
       orderBy: { createdAt: 'desc' },
     });
 

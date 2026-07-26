@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
@@ -9,6 +10,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ApiKeyScope } from '@genfeedai/enums';
 import { ReleaseGroupSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -43,6 +45,11 @@ export class PostGroupsController {
   }
 
   @Post()
+  @RequiredScopes(
+    ApiKeyScope.POSTS_DRAFT,
+    ApiKeyScope.POSTS_CREATE,
+    ApiKeyScope.POSTS_SCHEDULE,
+  )
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() req: Request,
@@ -50,12 +57,14 @@ export class PostGroupsController {
     @Body() body: unknown,
     @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const metadata = getPublicMetadata(user);
     const data = await this.postGroupsService.create(
-      organization,
+      metadata.organization,
       user.id,
       body,
       idempotencyKey,
+      undefined,
+      metadata,
     );
     return serializeSingle(req, ReleaseGroupSerializer, data);
   }
@@ -73,6 +82,12 @@ export class PostGroupsController {
   }
 
   @Patch(':id')
+  @RequiredScopes(
+    ApiKeyScope.POSTS_DRAFT,
+    ApiKeyScope.POSTS_CREATE,
+    ApiKeyScope.POSTS_SCHEDULE,
+    ApiKeyScope.POSTS_PUBLISH,
+  )
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() req: Request,
@@ -80,17 +95,19 @@ export class PostGroupsController {
     @Param('id') id: string,
     @Body() body: unknown,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const metadata = getPublicMetadata(user);
     const data = await this.postGroupsService.update(
-      organization,
+      metadata.organization,
       user.id,
       id,
       body,
+      metadata,
     );
     return serializeSingle(req, ReleaseGroupSerializer, data);
   }
 
   @Patch(':id/targets/:targetId')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE, ApiKeyScope.POSTS_PUBLISH)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateTarget(
     @Req() req: Request,
@@ -99,18 +116,20 @@ export class PostGroupsController {
     @Param('targetId') targetId: string,
     @Body() body: unknown,
   ) {
-    const { organization } = getPublicMetadata(user);
+    const metadata = getPublicMetadata(user);
     const data = await this.postGroupsService.updateTarget(
-      organization,
+      metadata.organization,
       user.id,
       id,
       targetId,
       body,
+      metadata,
     );
     return serializeSingle(req, ReleaseGroupSerializer, data);
   }
 
   @Post(':id/cancel')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async cancel(
     @Req() req: Request,
@@ -123,6 +142,7 @@ export class PostGroupsController {
   }
 
   @Post(':id/pause')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async pause(
     @Req() req: Request,
@@ -135,6 +155,7 @@ export class PostGroupsController {
   }
 
   @Post(':id/resume')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async resume(
     @Req() req: Request,
@@ -147,6 +168,7 @@ export class PostGroupsController {
   }
 
   @Post(':id/publish-now')
+  @RequiredScopes(ApiKeyScope.POSTS_PUBLISH)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async publishNow(
     @Req() req: Request,

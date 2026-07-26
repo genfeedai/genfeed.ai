@@ -15,7 +15,11 @@ import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import type { AgentRunJobData } from '@genfeedai/queue-contracts';
-import { AgentArtifactReferenceService } from '@genfeedai/server';
+import {
+  AgentArtifactReferenceService,
+  brandScope,
+  scopedWhere,
+} from '@genfeedai/server';
 import type {
   AgentRunStats,
   AgentRunStatsQueryParams,
@@ -98,10 +102,6 @@ function requireId(
 ): string | undefined {
   const value = readOptionalId(record, ...keys);
   return typeof value === 'string' ? value : undefined;
-}
-
-function brandScope(brandId: string | null | undefined) {
-  return brandId ? { brandId } : {};
 }
 
 function readJsonRecord(value: unknown): Record<string, unknown> {
@@ -261,7 +261,7 @@ export class AgentRunsService extends BaseService<
     organizationId: string,
   ): Promise<AgentRunDocument | null> {
     return (await this.delegate.update({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
       data: {
         startedAt: new Date(),
         status: AgentExecutionStatus.RUNNING,
@@ -276,7 +276,7 @@ export class AgentRunsService extends BaseService<
     brandId?: string | null,
   ): Promise<AgentRunDocument | null> {
     return (await this.delegate.findFirst({
-      where: { id, ...brandScope(brandId), isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id, ...brandScope(brandId) }),
     })) as AgentRunDocument | null;
   }
 
@@ -299,7 +299,7 @@ export class AgentRunsService extends BaseService<
     },
   ): Promise<void> {
     const current = (await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
     })) as AgentRunDocument | null;
     if (!current) return;
 
@@ -324,8 +324,9 @@ export class AgentRunsService extends BaseService<
     organizationId: string,
     progress: number,
   ): Promise<void> {
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false after caller input, while id bounds the write to one run.
     await this.delegate.updateMany({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
       data: { progress: Math.min(100, Math.max(0, progress)) },
     });
   }
@@ -337,7 +338,7 @@ export class AgentRunsService extends BaseService<
     metadata: Record<string, unknown>,
   ): Promise<void> {
     const current = (await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
     })) as AgentRunDocument | null;
     if (!current) return;
 
@@ -383,12 +384,10 @@ export class AgentRunsService extends BaseService<
     const docs = await this.delegate.findMany({
       orderBy: { createdAt: 'desc' },
       take: safeTake,
-      where: {
+      where: scopedWhere(organizationId, {
         createdAt: { gte: since },
         ...brandScope(brandId),
-        isDeleted: false,
-        organizationId,
-      },
+      }),
     });
 
     return this.normalizeDocuments(docs) as AgentRunDocument[];
@@ -402,7 +401,7 @@ export class AgentRunsService extends BaseService<
   ): Promise<AgentRunDocument | null> {
     const completedAt = new Date();
     const run = (await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
     })) as AgentRunDocument | null;
 
     if (!run) return null;
@@ -431,7 +430,7 @@ export class AgentRunsService extends BaseService<
   ): Promise<AgentRunDocument | null> {
     const completedAt = new Date();
     const run = (await this.delegate.findFirst({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
     })) as AgentRunDocument | null;
 
     if (!run) return null;
@@ -460,7 +459,7 @@ export class AgentRunsService extends BaseService<
   ): Promise<AgentRunDocument | null> {
     const completedAt = new Date();
     const run = (await this.delegate.findFirst({
-      where: { id, ...brandScope(brandId), isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id, ...brandScope(brandId) }),
     })) as AgentRunDocument | null;
 
     if (!run) return null;
@@ -492,12 +491,10 @@ export class AgentRunsService extends BaseService<
   ): Promise<AgentRunRetryPreparation | null> {
     const run = (await this.delegate.findFirst({
       include: { strategy: true },
-      where: {
+      where: scopedWhere(organizationId, {
         id,
         ...brandScope(options.brandId),
-        isDeleted: false,
-        organizationId,
-      },
+      }),
     })) as
       | (AgentRunDocument & {
           strategy?: { agentType?: string | null; config?: unknown } | null;
@@ -551,14 +548,13 @@ export class AgentRunsService extends BaseService<
       summary: null,
       updatedAt: claimedAt,
     };
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false after caller input, while id and prior status form a single-run retry claim.
     const claim = await this.delegate.updateMany({
-      where: {
+      where: scopedWhere(organizationId, {
         id,
         ...brandScope(options.brandId),
-        isDeleted: false,
-        organizationId,
         status: previousStatus,
-      },
+      }),
       data: retryState,
     });
 
@@ -597,16 +593,15 @@ export class AgentRunsService extends BaseService<
     rollback: AgentRunRetryRollback,
     brandId?: string | null,
   ): Promise<boolean> {
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false after caller input, while id and claimed state bound rollback to one run.
     const result = await this.delegate.updateMany({
       data: rollback.state,
-      where: {
+      where: scopedWhere(organizationId, {
         id,
         ...brandScope(brandId),
-        isDeleted: false,
-        organizationId,
         status: AgentExecutionStatus.PENDING,
         updatedAt: rollback.claimedAt,
-      },
+      }),
     });
 
     return result.count === 1;
@@ -627,15 +622,13 @@ export class AgentRunsService extends BaseService<
     return (await this.delegate.findMany({
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit,
-      where: {
+      where: scopedWhere(organizationId, {
         ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
         ...brandScope(options.brandId),
-        isDeleted: false,
-        organizationId,
         status: {
           in: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
         },
-      },
+      }),
     })) as AgentRunDocument[];
   }
 
@@ -647,11 +640,9 @@ export class AgentRunsService extends BaseService<
   ): Promise<AgentRunDocument[]> {
     const safeLimit = this.normalizeLimit(limit, 20, MAX_AGENT_RUN_LIMIT);
     return (await this.delegate.findMany({
-      where: {
+      where: scopedWhere(organizationId, {
         ...brandScope(brandId),
-        isDeleted: false,
-        organizationId,
-      },
+      }),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: safeLimit,
     })) as AgentRunDocument[];
@@ -671,13 +662,11 @@ export class AgentRunsService extends BaseService<
     const cursorDate = this.parseCursorDate(options.cursor);
 
     return (await this.delegate.findMany({
-      where: {
+      where: scopedWhere(organizationId, {
         ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
         ...brandScope(options.brandId),
-        isDeleted: false,
-        organizationId,
         threadId,
-      },
+      }),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit,
     })) as AgentRunDocument[];
@@ -698,18 +687,16 @@ export class AgentRunsService extends BaseService<
 
     // Four parallel Prisma count queries replace the legacy MongoDB $facet aggregation.
     // Each count is scoped to organizationId + isDeleted: false with the relevant status filter.
-    const scopedWhere = {
+    const runScope = scopedWhere(organizationId, {
       ...brandScope(brandId),
-      isDeleted: false,
-      organizationId,
-    };
+    });
 
     const [totalRuns, activeRuns, completedToday, failedToday] =
       await Promise.all([
-        this.delegate.count({ where: scopedWhere }),
+        this.delegate.count({ where: runScope }),
         this.delegate.count({
           where: {
-            ...scopedWhere,
+            ...runScope,
             status: {
               in: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
             },
@@ -717,14 +704,14 @@ export class AgentRunsService extends BaseService<
         }),
         this.delegate.count({
           where: {
-            ...scopedWhere,
+            ...runScope,
             status: AgentExecutionStatus.COMPLETED,
             completedAt: { gte: todayStart },
           },
         }),
         this.delegate.count({
           where: {
-            ...scopedWhere,
+            ...runScope,
             status: AgentExecutionStatus.FAILED,
             completedAt: { gte: todayStart },
           },
@@ -769,35 +756,29 @@ export class AgentRunsService extends BaseService<
       this.prisma.agentRun.findMany({
         select: { id: true, threadId: true },
         take: boundedIds.length,
-        where: {
+        where: scopedWhere(organizationId, {
           id: { in: boundedIds },
           ...brandScope(brandId),
-          isDeleted: false,
-          organizationId,
-        },
+        }),
       }),
       this.prisma.post.groupBy({
         by: ['agentRunId'],
         orderBy: { agentRunId: 'asc' },
         take: boundedIds.length,
-        where: {
+        where: scopedWhere(organizationId, {
           agentRunId: { in: boundedIds },
           ...brandScope(brandId),
-          isDeleted: false,
-          organizationId,
-        },
+        }),
         _count: true,
       }),
       this.prisma.ingredient.groupBy({
         by: ['agentRunId'],
         orderBy: { agentRunId: 'asc' },
         take: boundedIds.length,
-        where: {
+        where: scopedWhere(organizationId, {
           agentRunId: { in: boundedIds },
           ...brandScope(brandId),
-          isDeleted: false,
-          organizationId,
-        },
+        }),
         _count: true,
       }),
     ]);
@@ -827,21 +808,17 @@ export class AgentRunsService extends BaseService<
     const [posts, ingredients] = await Promise.all([
       this.prisma.post.findMany({
         take: MAX_AGENT_RUN_CONTENT_ITEMS,
-        where: {
+        where: scopedWhere(organizationId, {
           agentRunId: runId,
           ...brandScope(brandId),
-          isDeleted: false,
-          organizationId,
-        },
+        }),
       }),
       this.prisma.ingredient.findMany({
         take: MAX_AGENT_RUN_CONTENT_ITEMS,
-        where: {
+        where: scopedWhere(organizationId, {
           agentRunId: runId,
           ...brandScope(brandId),
-          isDeleted: false,
-          organizationId,
-        },
+        }),
       }),
     ]);
 

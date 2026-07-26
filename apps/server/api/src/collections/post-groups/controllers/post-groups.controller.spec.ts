@@ -14,7 +14,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { PostGroupsController } from '@api/collections/post-groups/controllers/post-groups.controller';
 import type { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { ReleaseStatus } from '@genfeedai/enums';
+import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import { ApiKeyScope, ReleaseStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -80,6 +81,8 @@ describe('PostGroupsController', () => {
       'user-1',
       body,
       'same-request',
+      undefined,
+      expect.objectContaining({ organization: 'org-1', user: 'user-1' }),
     );
   });
 
@@ -106,6 +109,7 @@ describe('PostGroupsController', () => {
       'group-1',
       'target-1',
       { timezone: 'UTC' },
+      expect.objectContaining({ organization: 'org-1', user: 'user-1' }),
     );
   });
 
@@ -117,5 +121,50 @@ describe('PostGroupsController', () => {
       'user-1',
       'group-1',
     );
+  });
+
+  it('declares fail-closed publishing scopes on consequential routes', () => {
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        PostGroupsController.prototype.create,
+      ),
+    ).toEqual([
+      ApiKeyScope.POSTS_DRAFT,
+      ApiKeyScope.POSTS_CREATE,
+      ApiKeyScope.POSTS_SCHEDULE,
+    ]);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        PostGroupsController.prototype.update,
+      ),
+    ).toEqual([
+      ApiKeyScope.POSTS_DRAFT,
+      ApiKeyScope.POSTS_CREATE,
+      ApiKeyScope.POSTS_SCHEDULE,
+      ApiKeyScope.POSTS_PUBLISH,
+    ]);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        PostGroupsController.prototype.updateTarget,
+      ),
+    ).toEqual([ApiKeyScope.POSTS_SCHEDULE, ApiKeyScope.POSTS_PUBLISH]);
+    for (const handler of [
+      PostGroupsController.prototype.cancel,
+      PostGroupsController.prototype.pause,
+      PostGroupsController.prototype.resume,
+    ]) {
+      expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toEqual([
+        ApiKeyScope.POSTS_SCHEDULE,
+      ]);
+    }
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        PostGroupsController.prototype.publishNow,
+      ),
+    ).toEqual([ApiKeyScope.POSTS_PUBLISH]);
   });
 });

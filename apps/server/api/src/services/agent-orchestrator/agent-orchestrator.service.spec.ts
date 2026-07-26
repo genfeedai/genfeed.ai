@@ -19,7 +19,7 @@ import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { AgentAutonomyMode, AgentType } from '@genfeedai/enums';
+import { AgentAutonomyMode, AgentType, ApiKeyScope } from '@genfeedai/enums';
 import {
   type AgentArtifactReference,
   AgentToolName,
@@ -3064,6 +3064,10 @@ describe('AgentOrchestratorService', () => {
         threadId: CONVERSATION_ID,
       },
       {
+        apiKeyContext: {
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_PUBLISH],
+        },
         organizationId: ORG_ID,
         userId: USER_ID,
       },
@@ -3078,6 +3082,10 @@ describe('AgentOrchestratorService', () => {
         platforms: ['linkedin'],
       }),
       expect.objectContaining({
+        apiKeyContext: {
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_PUBLISH],
+        },
         organizationId: ORG_ID,
         threadId: CONVERSATION_ID,
         userId: USER_ID,

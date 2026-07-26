@@ -222,4 +222,23 @@ describe('useActivities', () => {
     expect(result.current.activities).toEqual([]);
     expect(result.current.isLoading).toBe(false);
   });
+
+  it('surfaces activity query errors for isolated retry states', async () => {
+    mockGetBrandsService.mockResolvedValue({
+      findBrandActivities: vi
+        .fn()
+        .mockRejectedValue(new Error('activity unavailable')),
+    });
+
+    const { result } = renderHook(() => useActivities(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(result.current.error).toEqual(new Error('activity unavailable'));
+    expect(result.current.activities).toEqual([]);
+  });
 });
