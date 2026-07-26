@@ -15,6 +15,15 @@ export type ImageGenerationProvider =
   | 'replicate'
   | 'sdxl';
 
+export type ImageGenerationCompletionKind =
+  | 'inline'
+  | 'poll-single'
+  | 'poll-multiple'
+  | 'background-only'
+  | 'none';
+
+export type ImageGenerationOutputStrategy = 'single' | 'sequential' | 'batch';
+
 export type ImageGenerationResolvedBrand = NonNullable<
   Awaited<ReturnType<BrandsService['findOne']>>
 >;
@@ -65,4 +74,50 @@ export interface ImageGenerationCompletionPlan {
   generationPromise: Promise<unknown>;
   kind: 'inline' | 'poll-single' | 'poll-multiple' | 'background-only';
   pollIds?: string[];
+}
+
+export interface ImageGenerationProviderRequest {
+  brandPromptBranding: ImageGenerationContext['brandPromptBranding'];
+  createImageDto: CreateImageDto;
+  height: number;
+  model: string;
+  organizationId: string;
+  outputs: number;
+  prompt: string;
+  promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
+  promptId: string;
+  referenceImageUrl: string | null;
+  referenceImageUrls: string[];
+  style?: string;
+  width: number;
+}
+
+export type ImageGenerationProviderResult =
+  | {
+      imageBuffer: Buffer;
+      kind: 'inline-buffer';
+    }
+  | {
+      externalId: string;
+      kind: 'external-id';
+      promptId?: string;
+    };
+
+export interface PreparedImageGenerationProvider {
+  additionalActivityFailure: 'fail' | 'ignore';
+  additionalFailureLabel: string;
+  additionalPlaceholderFailureLabel: string;
+  completionKind: ImageGenerationCompletionKind;
+  failureLabel: string;
+  generate(): Promise<ImageGenerationProviderResult>;
+  outputStrategy: ImageGenerationOutputStrategy;
+  trackAdditionalOutputsInResponse: boolean;
+}
+
+export interface ImageGenerationProviderAdapter {
+  readonly provider: ImageGenerationProvider;
+  prepare(
+    request: ImageGenerationProviderRequest,
+  ): Promise<PreparedImageGenerationProvider>;
+  supports(model: string): boolean;
 }

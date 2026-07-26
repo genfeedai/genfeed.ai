@@ -2,29 +2,21 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type {
   ImageGenerationCompletionPlan,
   ImageGenerationContext,
-  ImageGenerationProvider,
   ImageGenerationPublicMetadata,
   ImageGenerationResolvedBrand,
   ImageGenerationResolvedPrompt,
   ImageGenerationSavedIngredient,
   ImageGenerationSavedMetadata,
 } from '@api/collections/images/services/image-generation.types';
+import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import {
-  baseModelKey,
-  isFalDestination,
-  isGenfeedAiDestination,
-  isReplicateDestination,
-} from '@api/collections/models/utils/model-key.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
@@ -40,12 +32,11 @@ import { RouterService } from '@api/services/router/router.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientCategory,
   MetadataExtension,
   ModelCategory,
-  PricingType,
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/enums';
@@ -70,7 +61,7 @@ const IMAGE_POPULATE = [
  * The controller keeps the HTTP surface (decorators, guards, interceptors) and
  * delegates the request body to {@link generateImage}. This service resolves the
  * model, runs the deferred credit check, builds prompts, persists placeholder
- * documents, dispatches to the correct provider through a single dispatch map,
+ * documents, dispatches through the typed provider registry,
  * and finishes the request via one shared completion tail — collapsing the
  * previously copy-pasted failure-handler, poll-and-serialize, and timeout
  * recovery blocks to a single call site each.
@@ -83,7 +74,7 @@ export class ImageGenerationService {
     private readonly configService: ConfigService,
     private readonly assetsService: AssetsService,
     private readonly brandsService: BrandsService,
-    private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly creditsService: ImageGenerationCreditsService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly imageGenerationProviderDispatchService: ImageGenerationProviderDispatchService,
     private readonly imagesService: ImagesService,
@@ -91,7 +82,6 @@ export class ImageGenerationService {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly loggerService: LoggerService,
     private readonly modelRegistrationService: ModelRegistrationService,
-    private readonly modelsService: ModelsService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly promptsService: PromptsService,
     private readonly routerService: RouterService,
@@ -103,7 +93,7 @@ export class ImageGenerationService {
     createImageDto: CreateImageDto,
     request: Request,
   ): Promise<JsonApiSingleResponse> {
-    const { brand, model, promptOriginalText, provider, publicMetadata } =
+    const { brand, model, promptOriginalText, publicMetadata } =
       await this.resolveAndValidate(user, createImageDto, request);
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
@@ -187,10 +177,8 @@ export class ImageGenerationService {
       ingredientData.id,
     );
 
-    const plan = await this.imageGenerationProviderDispatchService.dispatch(
-      context,
-      provider,
-    );
+    const plan =
+      await this.imageGenerationProviderDispatchService.dispatch(context);
 
     return this.finishGeneration(context, plan);
   }
@@ -208,7 +196,6 @@ export class ImageGenerationService {
     brand: ImageGenerationResolvedBrand;
     model: string;
     promptOriginalText: string;
-    provider: ImageGenerationProvider;
     publicMetadata: ImageGenerationPublicMetadata;
   }> {
     this.loggerService.log(`${this.constructorName} create`, {
@@ -276,15 +263,14 @@ export class ImageGenerationService {
       );
     }
 
-    await this.ensureDeferredCredits(
+    await this.creditsService.ensureDeferredCredits(
       createImageDto,
       model,
       publicMetadata.organization,
       request,
     );
 
-    const provider = this.classifyProvider(model);
-    if (!provider) {
+    if (!this.imageGenerationProviderDispatchService.supports(model)) {
       throw new HttpException(
         {
           detail: 'Invalid model for image generation',
@@ -294,7 +280,7 @@ export class ImageGenerationService {
       );
     }
 
-    return { brand, model, promptOriginalText, provider, publicMetadata };
+    return { brand, model, promptOriginalText, publicMetadata };
   }
 
   /**
@@ -471,135 +457,6 @@ export class ImageGenerationService {
   }
 
   /**
-   * Run the deferred credit check (CreditsGuard defers it until the model is
-   * resolved) and rewrite the request's credits config with the resolved amount.
-   */
-  private async ensureDeferredCredits(
-    createImageDto: CreateImageDto,
-    model: string,
-    organization: string,
-    request: Request,
-  ): Promise<void> {
-    const reqWithCredits = request as unknown as {
-      creditsConfig?: {
-        deferred?: boolean;
-        amount?: number;
-        modelKey?: string;
-      };
-    };
-    if (!reqWithCredits.creditsConfig?.deferred) {
-      return;
-    }
-
-    const resolvedModelDoc = await this.modelsService.findOne({
-      isDeleted: false,
-      key: baseModelKey(model),
-    });
-
-    const imgWidth = createImageDto.width || 1920;
-    const imgHeight = createImageDto.height || 1080;
-    let requiredCredits: number;
-
-    if (resolvedModelDoc) {
-      requiredCredits = this.calculateDynamicImageCost(
-        resolvedModelDoc,
-        imgWidth,
-        imgHeight,
-      );
-    } else {
-      requiredCredits = 5; // Fallback default cost
-    }
-
-    // This route always defers (CreditsGuard defers until the model resolves),
-    // so this is the sole authorizer and must charge for the real number of
-    // billable provider calls — the single figure CreditsInterceptor deducts on
-    // success. `calculateDynamicImageCost` returns the per-output base. Only the
-    // providers that fan out into one provider call per output multiply: Fal
-    // always loops per output, and non-batch Replicate makes a separate call per
-    // output. Batch-capable Replicate yields N images in one call, and the
-    // single-output providers (genfeedai/klingai/leonardo/sdxl) ignore `outputs`
-    // entirely, so neither multiplies. Mirrors the videos hardening in #853 and
-    // matches the dispatch logic below.
-    const requestedOutputs = Number(createImageDto.outputs) || 1;
-    if (requestedOutputs > 1) {
-      const provider = this.classifyProvider(model);
-      const isBatchSupported =
-        MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
-      const fansOutPerOutput =
-        provider === 'fal' || (provider === 'replicate' && !isBatchSupported);
-      if (fansOutPerOutput) {
-        requiredCredits *= requestedOutputs;
-      }
-    }
-
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        organization,
-        requiredCredits,
-      );
-    if (!hasCredits) {
-      const balance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(
-          organization,
-        );
-      throw new HttpException(
-        {
-          detail: `Insufficient credits: ${requiredCredits} required, ${balance} available`,
-          title: 'Insufficient credits',
-        },
-        HttpStatus.PAYMENT_REQUIRED,
-      );
-    }
-    reqWithCredits.creditsConfig = {
-      ...reqWithCredits.creditsConfig,
-      amount: requiredCredits,
-      deferred: false,
-      modelKey: model,
-    };
-  }
-
-  /**
-   * Resolve which provider a model routes to. Returns `null` for models that
-   * match no known provider (the caller throws BAD_REQUEST), mirroring the
-   * original flat guard.
-   */
-  private classifyProvider(model: string): ImageGenerationProvider | null {
-    const replicateModels: string[] = [
-      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
-      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
-      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
-      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
-    ];
-
-    const isGenfeedAi = isGenfeedAiDestination(model);
-    const isFal = isFalDestination(model);
-    const isReplicate =
-      !isFal &&
-      !isGenfeedAi &&
-      (replicateModels.includes(model) || isReplicateDestination(model));
-
-    if (isGenfeedAi) {
-      return 'genfeedai';
-    }
-    if (model === MODEL_KEYS.KLINGAI_V2) {
-      return 'klingai';
-    }
-    if (isFal) {
-      return 'fal';
-    }
-    if (model === MODEL_KEYS.LEONARDOAI) {
-      return 'leonardo';
-    }
-    if (isReplicate) {
-      return 'replicate';
-    }
-    if (model === MODEL_KEYS.SDXL) {
-      return 'sdxl';
-    }
-    return null;
-  }
-
-  /**
    * Finish a generation request: when waiting, await the provider promise and
    * serialize the completed ingredient (single source of truth for the
    * poll/serialize/timeout-recovery tail); otherwise return the placeholder and
@@ -633,7 +490,7 @@ export class ImageGenerationService {
       // unhandled rejection (the failure is already handled in the provider's
       // own catch).
       plan.generationPromise.catch(() => {
-        // Error already handled in the provider catch block.
+        // Error already handled by the provider execution boundary.
       });
     } else if (context.waitForCompletion) {
       // SDXL has no external generation to await.
@@ -711,40 +568,5 @@ export class ImageGenerationService {
         HttpStatus.GATEWAY_TIMEOUT,
       );
     }
-  }
-
-  /**
-   * Calculate dynamic image cost based on model pricing type.
-   * Mirrors the CreditsGuard.calculateDynamicCost logic for image models.
-   */
-  private calculateDynamicImageCost(
-    model: {
-      cost?: number;
-      pricingType?: PricingType;
-      costPerUnit?: number;
-      minCost?: number;
-    },
-    width: number,
-    height: number,
-  ): number {
-    const pricingType = model.pricingType || PricingType.FLAT;
-    let baseCost = model.cost || 0;
-
-    if (
-      pricingType === PricingType.PER_MEGAPIXEL &&
-      width &&
-      height &&
-      model.costPerUnit
-    ) {
-      const megapixels = (width * height) / 1_000_000;
-      baseCost = Math.ceil(megapixels * model.costPerUnit);
-    }
-
-    const minCost = model.minCost || 0;
-    if (minCost > 0 && baseCost < minCost) {
-      baseCost = minCost;
-    }
-
-    return baseCost;
   }
 }

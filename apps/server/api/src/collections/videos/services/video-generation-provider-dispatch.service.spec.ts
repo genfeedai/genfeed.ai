@@ -1,3 +1,6 @@
+import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
+import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -15,9 +18,9 @@ describe('VideoGenerationProviderDispatchService', () => {
   };
 
   const service = new VideoGenerationProviderDispatchService(
-    falService as never,
-    klingAIService as never,
-    replicateService as never,
+    new KlingAiVideoGenerationProviderAdapter(klingAIService as never),
+    new FalVideoGenerationProviderAdapter(falService as never),
+    new ReplicateVideoGenerationProviderAdapter(replicateService as never),
   );
 
   const buildParams = (
@@ -43,7 +46,11 @@ describe('VideoGenerationProviderDispatchService', () => {
   it('routes KlingAI models with the existing queue payload', async () => {
     klingAIService.queueGenerateTextToVideo.mockResolvedValue('kling-job');
 
-    await expect(service.dispatch(buildParams())).resolves.toBe('kling-job');
+    await expect(service.dispatch(buildParams())).resolves.toEqual({
+      completion: 'polling',
+      externalId: 'kling-job',
+      provider: 'klingai',
+    });
 
     expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalledWith(
       'A cinematic sunrise',
@@ -63,9 +70,11 @@ describe('VideoGenerationProviderDispatchService', () => {
     });
     const params = buildParams({ model: MODEL_KEYS.FAL_VEO_3_1 });
 
-    await expect(service.dispatch(params)).resolves.toBe(
-      'https://fal.example.com/video.mp4',
-    );
+    await expect(service.dispatch(params)).resolves.toEqual({
+      completion: 'remote-output',
+      externalId: 'https://fal.example.com/video.mp4',
+      provider: 'fal',
+    });
 
     expect(falService.generateVideo).toHaveBeenCalledWith(
       MODEL_KEYS.FAL_VEO_3_1,
@@ -102,7 +111,11 @@ describe('VideoGenerationProviderDispatchService', () => {
     replicateService.generateTextToVideo.mockResolvedValue('replicate-job');
     const params = buildParams({ model: 'replicate/video-model' });
 
-    await expect(service.dispatch(params)).resolves.toBe('replicate-job');
+    await expect(service.dispatch(params)).resolves.toEqual({
+      completion: 'polling',
+      externalId: 'replicate-job',
+      provider: 'replicate',
+    });
 
     expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
       'replicate/video-model',

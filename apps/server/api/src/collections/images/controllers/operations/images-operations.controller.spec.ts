@@ -44,8 +44,16 @@ import { ImagesOperationsController } from '@api/collections/images/controllers/
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
+import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
+import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
+import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
+import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
+import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
+import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
@@ -222,8 +230,16 @@ describe('ImagesOperationsController', () => {
       providers: [
         // Real service resolved from the mocks below; the controller delegates
         // create() to it, so the DI graph must be able to construct it.
+        FalImageGenerationProviderAdapter,
+        GenfeedAiImageGenerationProviderAdapter,
+        ImageGenerationCreditsService,
         ImageGenerationProviderDispatchService,
+        ImageGenerationProviderRegistryService,
         ImageGenerationService,
+        KlingAiImageGenerationProviderAdapter,
+        LeonardoImageGenerationProviderAdapter,
+        ReplicateImageGenerationProviderAdapter,
+        SdxlImageGenerationProviderAdapter,
         {
           provide: ConfigService,
           useValue: {

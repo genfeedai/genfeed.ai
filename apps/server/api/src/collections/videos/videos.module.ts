@@ -22,7 +22,14 @@ import { VideosProvenanceController } from '@api/collections/videos/controllers/
 import { VideosRelationshipsController } from '@api/collections/videos/controllers/relationships/videos-relationships.controller';
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
+import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
+import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
+import { VideoGenerationCompletionService } from '@api/collections/videos/services/video-generation-completion.service';
+import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
+import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
+import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
@@ -96,8 +103,15 @@ import { forwardRef, Module } from '@nestjs/common';
   providers: [
     CreditsGuard,
     CreditsInterceptor,
+    FalVideoGenerationProviderAdapter,
+    KlingAiVideoGenerationProviderAdapter,
     ModelRegistrationService,
     ModelsGuard,
+    ReplicateVideoGenerationProviderAdapter,
+    VideoGenerationCompletionService,
+    VideoGenerationCreditsService,
+    VideoGenerationExecutionService,
+    VideoGenerationPreparationService,
     VideoGenerationProviderDispatchService,
     VideoGenerationService,
     VideoMusicOrchestrationService,

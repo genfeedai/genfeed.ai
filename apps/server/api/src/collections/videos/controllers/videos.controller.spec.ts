@@ -27,7 +27,14 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
+import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
+import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
+import { VideoGenerationCompletionService } from '@api/collections/videos/services/video-generation-completion.service';
+import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
+import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
+import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -389,6 +396,13 @@ describe('VideosController', () => {
         // resolves its constructor dependencies from the mocked providers
         // above. This catches constructor-dependency regressions that the
         // previous `new VideoGenerationService(...)` pattern silently missed.
+        FalVideoGenerationProviderAdapter,
+        KlingAiVideoGenerationProviderAdapter,
+        ReplicateVideoGenerationProviderAdapter,
+        VideoGenerationCompletionService,
+        VideoGenerationCreditsService,
+        VideoGenerationExecutionService,
+        VideoGenerationPreparationService,
         VideoGenerationProviderDispatchService,
         VideoGenerationService,
       ],
@@ -1159,7 +1173,7 @@ describe('VideosController', () => {
       MODEL_KEYS.FAL_VEO_3_1,
       MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
       MODEL_KEYS.FAL_PIXVERSE_V6,
-    ])('routes every output of a multi-output %s request to falService, never replicateService', async (model) => {
+    ])('routes every multi-output %s request to FAL', async (model) => {
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         model,
