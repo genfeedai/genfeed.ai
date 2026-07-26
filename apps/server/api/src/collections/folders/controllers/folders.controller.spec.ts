@@ -555,7 +555,10 @@ describe('FoldersController', () => {
 
       const result = await controller.remove(mockRequest, mockUser, folderId);
 
-      expect(foldersService.findOne).toHaveBeenCalledWith({ _id: folderId });
+      expect(foldersService.findOne).toHaveBeenCalledWith({
+        _id: folderId,
+        isDeleted: false,
+      });
       expect(foldersService.remove).toHaveBeenCalledWith(folderId);
       expect(result).toEqual({
         data: expect.objectContaining({ isDeleted: true }),

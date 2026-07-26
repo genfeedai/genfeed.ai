@@ -61,7 +61,7 @@ Every PRD must have these sections, in this order:
 
 ## User Stories
 - As a <role>, I want <capability> so that <outcome>.
-  **Acceptance:** <1-3 concrete checks>
+  **Acceptance:** <1-3 concrete checks, each in EARS form — see Functional Requirements>
 
 ## System Specification
 <Observable system contract: states, data contracts, permissions/trust boundaries,
@@ -69,7 +69,16 @@ failure behavior, and integration points. Do not name files, functions,
 libraries, or implementation details.>
 
 ## Functional Requirements
-1. <Verifiable system behavior.>
+<Every bullet MUST be written in EARS syntax, or `prd-quality-gate` fails the PRD
+and quotes the offending bullet. The five permitted patterns:
+- `WHEN <trigger> THE SYSTEM SHALL <response>`
+- `WHILE <state> THE SYSTEM SHALL <response>`
+- `WHERE <feature is included> THE SYSTEM SHALL <response>`
+- `IF <condition> THEN THE SYSTEM SHALL <response>`
+- `THE SYSTEM SHALL <invariant>`
+Validation regex: `^\s*(\d+\.\s*)?(WHEN|WHILE|WHERE|IF|THE SYSTEM)\b.*\bSHALL\b`>
+
+1. WHEN <trigger> THE SYSTEM SHALL <observable, verifiable response>.
 
 ## Non-Functional Requirements
 <Performance, accessibility, error handling, offline behavior, observability.
@@ -108,6 +117,8 @@ Before marking a PRD ready for implementation, all of these must pass:
 - `Success Criteria` has at least one verifiable pass/fail bullet.
 - `Out of Scope` has at least one bullet.
 - `User Stories` has at least one story with explicit acceptance checks.
+- Every `Functional Requirements` bullet and every `**Acceptance:**` check matches
+  `^\s*(\d+\.\s*)?(WHEN|WHILE|WHERE|IF|THE SYSTEM)\b.*\bSHALL\b` (EARS).
 - `System Specification` names observable states, data contracts, permissions/trust boundaries, and failure behavior.
 - `Feature Phase Breakdown` contains exactly three ordered phases.
 - `Dependencies` names concrete packages, PRD paths, URLs, or says `None`.

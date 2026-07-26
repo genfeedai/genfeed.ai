@@ -125,6 +125,13 @@ export interface ExtendedControllerConfig<
   canUserModifyEntity?: (user: User, entity: T) => boolean;
 
   /**
+   * Override the single-read tenancy check. Required when the entity carries
+   * neither `organizationId` nor `brandId` but is still tenant-scoped —
+   * the base default treats pointer-less rows as shared/global.
+   */
+  canUserReadEntity?: (user: User, entity: T) => boolean | Promise<boolean>;
+
+  /**
    * Override DTO enrichment
    */
   enrichCreateDto?: (dto: CreateDto, user: User) => CreateDto;
@@ -178,6 +185,16 @@ export function createExtendedController<
         return config.canUserModifyEntity(user, entity);
       }
       return super.canUserModifyEntity(user, entity);
+    }
+
+    public canUserReadEntity(
+      user: User,
+      entity: T,
+    ): boolean | Promise<boolean> {
+      if (config.canUserReadEntity) {
+        return config.canUserReadEntity(user, entity);
+      }
+      return super.canUserReadEntity(user, entity);
     }
 
     public enrichCreateDto(createDto: CreateDto, user: User): CreateDto {
