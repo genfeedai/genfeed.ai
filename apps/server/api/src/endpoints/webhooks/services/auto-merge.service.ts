@@ -84,12 +84,12 @@ export class AutoMergeService {
       return ref;
     }
 
-    return ref?._id?.toString() ?? ref?.id?.toString();
+    return ref?.id?.toString() ?? ref?._id?.toString();
   }
 
   private toUserReference(
     ref: string | IngredientRefDocument | null | undefined,
-  ): string | { _id: string } | undefined {
+  ): string | { id: string } | undefined {
     if (typeof ref === 'string') {
       return ref;
     }
@@ -103,7 +103,7 @@ export class AutoMergeService {
       return undefined;
     }
 
-    return { _id: userId };
+    return { id: userId };
   }
 
   /**

@@ -140,6 +140,6 @@ export class AssetAccessGuard implements CanActivate {
       return ref;
     }
 
-    return ref?._id?.toString() ?? ref?.id?.toString();
+    return ref?.id?.toString() ?? ref?._id?.toString();
   }
 }

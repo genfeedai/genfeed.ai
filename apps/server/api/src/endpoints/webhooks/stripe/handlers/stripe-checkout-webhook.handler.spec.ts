@@ -661,7 +661,11 @@ describe('StripeCheckoutWebhookHandler', () => {
         unknown
       >;
       expect(createArg.email).toBe(email);
-      expect(createArg).not.toHaveProperty(['auth', 'Provider', 'Id'].join(''));
+      expect(
+        Object.keys(createArg).some(
+          (key) => key.startsWith('auth') && key.endsWith('Id'),
+        ),
+      ).toBe(false);
       expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         BETTER_AUTH_USER_CREATED_EVENT,
         { email, userId: 'user_new_1' },

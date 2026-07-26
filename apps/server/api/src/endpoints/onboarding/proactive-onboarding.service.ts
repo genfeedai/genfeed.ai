@@ -678,30 +678,6 @@ export class ProactiveOnboardingService {
     };
   }
 
-  async getWorkspaceSummaryByShadowOrganization(
-    shadowOrganizationId: string,
-  ): Promise<{
-    success: boolean;
-    proactiveStatus: ProactiveOnboardingStatus;
-    prepPercent: number;
-    prepStage: string;
-    brand?: IProactivePreparationStatus['brand'];
-    organization?: IProactivePreparationStatus['organization'];
-    outputs: unknown[];
-    summary: string;
-  }> {
-    const lead = await this.getLeadByShadowOrganization(shadowOrganizationId);
-    const organizationId = lead.organizationId ?? '';
-
-    if (!organizationId) {
-      throw new BadRequestException(
-        'Proactive lead has no owning organization',
-      );
-    }
-
-    return this.getWorkspaceSummary(lead.id, organizationId);
-  }
-
   async claimWorkspace(
     leadIdOrShadowOrgId: string,
     organizationIdOrUserId: string,

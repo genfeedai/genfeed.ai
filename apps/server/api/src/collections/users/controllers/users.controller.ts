@@ -12,10 +12,6 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import {
-  type IOnboardingFunnelCompletedEvent,
-  ONBOARDING_FUNNEL_COMPLETED_EVENT,
-} from '@api/endpoints/onboarding/onboarding.events';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -62,7 +58,6 @@ import {
   SetMetadata,
   UseGuards,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 import type { Request } from 'express';
@@ -86,7 +81,6 @@ export class UsersController {
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly betterAuthIdentityCacheService: BetterAuthIdentityCacheService,
-    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   private readObjectRecord(value: unknown): Record<string, unknown> {
@@ -614,9 +608,7 @@ export class UsersController {
   /**
    * Idempotent onboarding-funnel completion. Patches the User row only when not
    * already completed, invalidates the access caches so `OnboardingGuard` sees
-   * the new state on the next request, and emits
-   * {@link ONBOARDING_FUNNEL_COMPLETED_EVENT} so OnboardingModule can mark a
-   * proactive lead paid without UsersController importing OnboardingService.
+   * the new state on the next request.
    */
   private async completeOnboardingFunnel(request: Request, user: User) {
     const publicMetadata = getPublicMetadata(user);
@@ -638,19 +630,6 @@ export class UsersController {
     const dbUserId = dbUser?.id?.toString();
     if (dbUserId) {
       await this.invalidateUserAccessCaches(dbUserId);
-    }
-
-    // Best-effort proactive-lead cascade, decoupled behind OnboardingModule.
-    const organizationId =
-      publicMetadata.organization?.toString() ||
-      (
-        dbUser as { lastUsedOrganizationId?: string | null } | null
-      )?.lastUsedOrganizationId?.toString() ||
-      '';
-    if (organizationId) {
-      this.eventEmitter.emit(ONBOARDING_FUNNEL_COMPLETED_EVENT, {
-        organizationId,
-      } satisfies IOnboardingFunnelCompletedEvent);
     }
 
     const completed = await this.usersService.findOne({
