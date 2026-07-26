@@ -13,6 +13,7 @@ import type {
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
@@ -444,14 +445,6 @@ export class BrandScraperService {
     let currentUrl = url;
 
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-      // Re-validate EVERY hop, not just the initial URL. A validated public URL
-      // can 3xx to a private/loopback/cloud-metadata target, so following
-      // redirects blindly (redirect: 'follow') reopens the SSRF hole the
-      // initial validateUrl check closed. We follow manually and re-check each
-      // Location against the shared blocklist. (Connection-level IP pinning to
-      // defeat DNS rebinding of a public hostname is a separate follow-up.)
-      this.assertFetchTargetAllowed(currentUrl);
-
       const response = await this.fetchOnce(currentUrl, options);
 
       if (
@@ -476,24 +469,9 @@ export class BrandScraperService {
   }
 
   /**
-   * Throw if the URL's host is an SSRF target (loopback, RFC-1918, link-local /
-   * cloud metadata, internal TLDs). Applied to the initial URL and every
-   * redirect hop.
-   */
-  private assertFetchTargetAllowed(url: string): void {
-    let hostname: string;
-    try {
-      hostname = new URL(url).hostname;
-    } catch {
-      throw new Error(`Invalid fetch URL: ${url}`);
-    }
-    // Throws BadRequestException on a blocked host.
-    assertHostNotPrivate(hostname);
-  }
-
-  /**
    * Fetch a single URL with 429 backoff. Redirects are NOT auto-followed
-   * (redirect: 'manual') so the caller can re-validate each hop.
+   * (redirect: 'manual') so the retry loop owns hop accounting. `safeFetch`
+   * resolves, validates, and pins every current URL before connecting.
    */
   private async fetchOnce(
     url: string,
@@ -506,7 +484,7 @@ export class BrandScraperService {
       const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
       try {
-        const response = await fetch(url, {
+        const response = await safeFetch(url, {
           ...options,
           redirect: 'manual',
           signal: controller.signal,

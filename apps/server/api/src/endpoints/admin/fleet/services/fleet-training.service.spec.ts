@@ -1,8 +1,7 @@
-vi.mock('axios', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-  },
+const safeFetchMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@libs/security/destination-guard', () => ({
+  safeFetch: safeFetchMock,
 }));
 
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
@@ -13,8 +12,16 @@ import { LoraStatus, TrainingStage, TrainingStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+function successResponse(body: unknown, status = 200): Response {
+  return {
+    ok: true,
+    status,
+    statusText: 'OK',
+    text: async () => (body === undefined ? '' : JSON.stringify(body)),
+  } as unknown as Response;
+}
 
 describe('AdminFleetTrainingService', () => {
   let service: AdminFleetTrainingService;
@@ -25,6 +32,8 @@ describe('AdminFleetTrainingService', () => {
   let modelRegistrationService: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
+    safeFetchMock.mockReset();
+
     trainingsService = {
       findOne: vi.fn(),
       patch: vi.fn().mockResolvedValue({}),
@@ -225,47 +234,51 @@ describe('AdminFleetTrainingService', () => {
 
   describe('getDatasetInfo', () => {
     it('should call images service GET /datasets/:slug', async () => {
-      const mockResponse = {
-        data: {
-          imageCount: 20,
-          images: ['img1.jpg', 'img2.jpg'],
-          path: '/datasets/alice',
-          slug: 'alice',
-        },
+      const dataset = {
+        imageCount: 20,
+        images: ['img1.jpg', 'img2.jpg'],
+        path: '/datasets/alice',
+        slug: 'alice',
       };
-      vi.mocked(axios.get).mockResolvedValue(mockResponse);
+      safeFetchMock.mockResolvedValue(successResponse(dataset));
 
       const result = await service.getDatasetInfo('alice');
 
       // The images service guards every route with InternalApiKeyGuard, so the
       // shared bearer token has to ride along or the call comes back 401.
-      expect(axios.get).toHaveBeenCalledWith(
+      expect(String(safeFetchMock.mock.calls[0]?.[0])).toBe(
         'http://gpu-images:3000/datasets/alice',
-        {
-          headers: { Authorization: 'Bearer internal-key' },
-          timeout: 15000,
-        },
       );
-      expect(result).toEqual(mockResponse.data);
+      expect(safeFetchMock.mock.calls[0]?.[1]).toMatchObject({
+        headers: {
+          Authorization: 'Bearer internal-key',
+          'Content-Type': 'application/json',
+        },
+        method: 'GET',
+      });
+      expect(safeFetchMock.mock.calls[0]?.[2]).toEqual({
+        allowedOrigins: ['http://gpu-images:3000'],
+        allowPrivateNetwork: true,
+      });
+      expect(result).toEqual(dataset);
     });
   });
 
   describe('syncDataset', () => {
-    it('should call images service POST /datasets/:slug/sync', async () => {
-      vi.mocked(axios.post).mockResolvedValue({ data: {} });
+    it('should accept an empty success response from the images service', async () => {
+      safeFetchMock.mockResolvedValue(successResponse(undefined));
 
       await service.syncDataset('alice', ['s3://key1', 's3://key2']);
 
       // No bucket in the body: the images service reads from its own configured
       // bucket so a caller cannot borrow its AWS credentials for another one.
-      expect(axios.post).toHaveBeenCalledWith(
+      expect(String(safeFetchMock.mock.calls[0]?.[0])).toBe(
         'http://gpu-images:3000/datasets/alice/sync',
-        { s3Keys: ['s3://key1', 's3://key2'] },
-        {
-          headers: { Authorization: 'Bearer internal-key' },
-          timeout: 120000,
-        },
       );
+      expect(safeFetchMock.mock.calls[0]?.[1]).toMatchObject({
+        body: JSON.stringify({ s3Keys: ['s3://key1', 's3://key2'] }),
+        method: 'POST',
+      });
     });
   });
 
@@ -329,7 +342,7 @@ describe('AdminFleetTrainingService', () => {
 
   describe('executeTrainingPipeline', () => {
     it('should update persona to FAILED state on pipeline error', async () => {
-      vi.mocked(axios.get).mockRejectedValue(new Error('Network error'));
+      safeFetchMock.mockRejectedValue(new Error('Network error'));
 
       await service.executeTrainingPipeline({
         baseModel: 'flux',
@@ -354,14 +367,14 @@ describe('AdminFleetTrainingService', () => {
     });
 
     it('should throw when dataset has 0 images', async () => {
-      vi.mocked(axios.get).mockResolvedValue({
-        data: {
+      safeFetchMock.mockResolvedValue(
+        successResponse({
           imageCount: 0,
           images: [],
           path: '/datasets/alice',
           slug: 'alice',
-        },
-      });
+        }),
+      );
 
       await service.executeTrainingPipeline({
         baseModel: 'flux',

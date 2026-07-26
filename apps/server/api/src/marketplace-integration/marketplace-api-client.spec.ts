@@ -3,6 +3,11 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@libs/security/destination-guard', () => ({
+  safeFetch: (input: string | URL, init?: RequestInit) =>
+    globalThis.fetch(input, init),
+}));
+
 type FetchMock = ReturnType<typeof vi.fn>;
 
 function okResponse(body: unknown): Response {

@@ -1,5 +1,9 @@
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  type DestinationGuardOptions,
+  safeFetch,
+} from '@libs/security/destination-guard';
 import { Injectable } from '@nestjs/common';
 
 interface MarketplaceListingResponse {
@@ -43,6 +47,7 @@ interface MarketplaceListingQuery {
 @Injectable()
 export class MarketplaceApiClient {
   private readonly baseUrl: string;
+  private readonly destinationGuard: DestinationGuardOptions;
 
   constructor(
     private readonly configService: ConfigService,
@@ -50,6 +55,14 @@ export class MarketplaceApiClient {
   ) {
     this.baseUrl =
       this.configService.get('MARKETPLACE_API_URL') || 'http://localhost:3200';
+    try {
+      this.destinationGuard = {
+        allowedOrigins: [new URL(this.baseUrl).origin],
+        allowPrivateNetwork: true,
+      };
+    } catch {
+      throw new Error('MARKETPLACE_API_URL must be a valid absolute URL');
+    }
   }
 
   /**
@@ -78,17 +91,22 @@ export class MarketplaceApiClient {
       if (query.sort) params.set('sort', query.sort);
 
       const url = `${this.baseUrl}/marketplace/listings?${params.toString()}`;
-      const response = await fetch(url, {
-        headers: { 'Content-Type': 'application/json' },
-        method: 'GET',
-        signal: AbortSignal.timeout(5_000),
-      });
+      const response = await safeFetch(
+        url,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          method: 'GET',
+          signal: AbortSignal.timeout(5_000),
+        },
+        this.destinationGuard,
+      );
 
       if (!response.ok) {
         this.logger.warn(
           `MarketplaceApiClient searchListings failed: ${response.status}`,
           'MarketplaceApiClient',
         );
+        await response.body?.cancel();
         return emptyResult;
       }
 
@@ -110,18 +128,23 @@ export class MarketplaceApiClient {
     listingId: string,
   ): Promise<MarketplaceListingResponse | null> {
     try {
-      const url = `${this.baseUrl}/marketplace/listings/${listingId}`;
-      const response = await fetch(url, {
-        headers: { 'Content-Type': 'application/json' },
-        method: 'GET',
-        signal: AbortSignal.timeout(5_000),
-      });
+      const url = `${this.baseUrl}/marketplace/listings/${encodeURIComponent(listingId)}`;
+      const response = await safeFetch(
+        url,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          method: 'GET',
+          signal: AbortSignal.timeout(5_000),
+        },
+        this.destinationGuard,
+      );
 
       if (!response.ok) {
         this.logger.warn(
           `MarketplaceApiClient getListing failed: ${response.status}`,
           'MarketplaceApiClient',
         );
+        await response.body?.cancel();
         return null;
       }
 
@@ -173,18 +196,23 @@ export class MarketplaceApiClient {
   ): Promise<MarketplaceListingResponse | null> {
     try {
       const url = `${this.baseUrl}/seller/listings`;
-      const response = await fetch(url, {
-        body: JSON.stringify({ ...dto, organizationId, sellerId }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-        signal: AbortSignal.timeout(10_000),
-      });
+      const response = await safeFetch(
+        url,
+        {
+          body: JSON.stringify({ ...dto, organizationId, sellerId }),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          signal: AbortSignal.timeout(10_000),
+        },
+        this.destinationGuard,
+      );
 
       if (!response.ok) {
         this.logger.warn(
           `MarketplaceApiClient createListing failed: ${response.status}`,
           'MarketplaceApiClient',
         );
+        await response.body?.cancel();
         return null;
       }
 
@@ -203,15 +231,21 @@ export class MarketplaceApiClient {
    */
   async submitForReview(listingId: string, sellerId: string): Promise<boolean> {
     try {
-      const url = `${this.baseUrl}/seller/listings/${listingId}/submit`;
-      const response = await fetch(url, {
-        body: JSON.stringify({ sellerId }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-        signal: AbortSignal.timeout(5_000),
-      });
+      const url = `${this.baseUrl}/seller/listings/${encodeURIComponent(listingId)}/submit`;
+      const response = await safeFetch(
+        url,
+        {
+          body: JSON.stringify({ sellerId }),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          signal: AbortSignal.timeout(5_000),
+        },
+        this.destinationGuard,
+      );
 
-      return response.ok;
+      const succeeded = response.ok;
+      await response.body?.cancel();
+      return succeeded;
     } catch (error: unknown) {
       this.logger.warn(
         `MarketplaceApiClient submitForReview error: ${(error as Error).message}`,
@@ -229,14 +263,21 @@ export class MarketplaceApiClient {
     userId: string,
   ): Promise<MarketplaceSellerResponse | null> {
     try {
-      const url = `${this.baseUrl}/sellers/by-user/${userId}`;
-      const response = await fetch(url, {
-        headers: { 'Content-Type': 'application/json' },
-        method: 'GET',
-        signal: AbortSignal.timeout(5_000),
-      });
+      const url = `${this.baseUrl}/sellers/by-user/${encodeURIComponent(userId)}`;
+      const response = await safeFetch(
+        url,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          method: 'GET',
+          signal: AbortSignal.timeout(5_000),
+        },
+        this.destinationGuard,
+      );
 
-      if (!response.ok) return null;
+      if (!response.ok) {
+        await response.body?.cancel();
+        return null;
+      }
 
       return (await response.json()) as MarketplaceSellerResponse;
     } catch (error: unknown) {
@@ -262,14 +303,21 @@ export class MarketplaceApiClient {
   }> {
     try {
       const url = `${this.baseUrl}/purchases/ownership-check`;
-      const response = await fetch(url, {
-        body: JSON.stringify({ listingId, organizationId, userId }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-        signal: AbortSignal.timeout(5_000),
-      });
+      const response = await safeFetch(
+        url,
+        {
+          body: JSON.stringify({ listingId, organizationId, userId }),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          signal: AbortSignal.timeout(5_000),
+        },
+        this.destinationGuard,
+      );
 
-      if (!response.ok) return { owned: false };
+      if (!response.ok) {
+        await response.body?.cancel();
+        return { owned: false };
+      }
 
       return (await response.json()) as {
         owned: boolean;
@@ -291,14 +339,21 @@ export class MarketplaceApiClient {
   ): Promise<{ _id: string } | null> {
     try {
       const url = `${this.baseUrl}/purchases/claim-free`;
-      const response = await fetch(url, {
-        body: JSON.stringify({ listingId, organizationId, userId }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-        signal: AbortSignal.timeout(5_000),
-      });
+      const response = await safeFetch(
+        url,
+        {
+          body: JSON.stringify({ listingId, organizationId, userId }),
+          headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          signal: AbortSignal.timeout(5_000),
+        },
+        this.destinationGuard,
+      );
 
-      if (!response.ok) return null;
+      if (!response.ok) {
+        await response.body?.cancel();
+        return null;
+      }
 
       return (await response.json()) as { _id: string };
     } catch {
