@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveWorkspaceSurfaceLaunch } from './workspace-surface-launcher';
 
 describe('workspace surface launcher', () => {
-  it('preserves the active thread and destination search params for canvas launches', () => {
+  it('preserves destination search params without leaking thread identity into canvas launches', () => {
     expect(
       resolveWorkspaceSurfaceLaunch({
         currentHref: '/acme/~/agent/thread-1',
@@ -12,7 +12,7 @@ describe('workspace surface launcher', () => {
     ).toMatchObject({
       announcement: 'Opening analytics in canvas mode.',
       history: 'push',
-      href: '/acme/~/analytics/overview?taskId=task-1&taskSource=workspace&thread=thread-1',
+      href: '/acme/~/analytics/overview?taskId=task-1&taskSource=workspace',
       mode: 'canvas',
     });
   });
@@ -39,7 +39,7 @@ describe('workspace surface launcher', () => {
     ).toBe('/other/~/overview');
   });
 
-  it('uses canvas navigation for settings and strips overlay authority', () => {
+  it('uses canvas navigation for settings and strips overlay and thread authority', () => {
     expect(
       resolveWorkspaceSurfaceLaunch({
         currentHref: '/acme/~/agent/thread-1',
@@ -48,7 +48,7 @@ describe('workspace surface launcher', () => {
       }),
     ).toMatchObject({
       announcement: 'Opening organization settings in canvas mode.',
-      href: '/acme/~/settings/billing?thread=thread-1',
+      href: '/acme/~/settings/billing',
       mode: 'canvas',
     });
   });
@@ -89,8 +89,6 @@ describe('workspace surface launcher', () => {
         currentHref: '/acme/moonrise/agent/thread-1',
         destinationHref: '/acme/moonrise/library/images?folder=launch#asset-1',
       }).href,
-    ).toBe(
-      '/acme/moonrise/library/images?folder=launch&thread=thread-1#asset-1',
-    );
+    ).toBe('/acme/moonrise/library/images?folder=launch#asset-1');
   });
 });
