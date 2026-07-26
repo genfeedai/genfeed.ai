@@ -18,10 +18,50 @@ function getBlockElementName(
   return BLOCK_ELEMENT_NAMES.find((name) => normalized.startsWith(name));
 }
 
+function matchesAsciiCaseInsensitive(
+  value: string,
+  start: number,
+  expected: string,
+): boolean {
+  if (start + expected.length > value.length) {
+    return false;
+  }
+
+  for (let offset = 0; offset < expected.length; offset += 1) {
+    if (value[start + offset].toLowerCase() !== expected[offset]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function findBlockedElementEnd(
+  value: string,
+  blockName: (typeof BLOCK_ELEMENT_NAMES)[number],
+  start: number,
+): number {
+  const closingTag = `</${blockName}>`;
+  let cursor = start;
+
+  while (cursor < value.length) {
+    const tagStart = value.indexOf('<', cursor);
+    if (tagStart < 0) {
+      return -1;
+    }
+
+    if (matchesAsciiCaseInsensitive(value, tagStart, closingTag)) {
+      return tagStart + closingTag.length;
+    }
+
+    cursor = tagStart + 1;
+  }
+
+  return -1;
+}
+
 function stripBlockedElements(value: string): string {
   const output: string[] = [];
-  let blockName: (typeof BLOCK_ELEMENT_NAMES)[number] | undefined;
-  let blockStart = -1;
   let copyStart = 0;
   let cursor = 0;
 
@@ -37,29 +77,23 @@ function stripBlockedElements(value: string): string {
     }
 
     const tagContent = value.slice(tagStart + 1, tagEnd);
-
+    const blockName = getBlockElementName(tagContent);
     if (!blockName) {
-      const nextBlockName = getBlockElementName(tagContent);
-      if (nextBlockName) {
-        output.push(value.slice(copyStart, tagStart));
-        blockName = nextBlockName;
-        blockStart = tagStart;
-      }
-    } else if (tagContent.toLowerCase() === `/${blockName}`) {
-      blockName = undefined;
-      blockStart = -1;
-      copyStart = tagEnd + 1;
+      cursor = tagEnd + 1;
+      continue;
     }
 
-    cursor = tagEnd + 1;
+    const blockEnd = findBlockedElementEnd(value, blockName, tagEnd + 1);
+    if (blockEnd < 0) {
+      break;
+    }
+
+    output.push(value.slice(copyStart, tagStart));
+    copyStart = blockEnd;
+    cursor = blockEnd;
   }
 
-  if (blockName && blockStart >= 0) {
-    output.push(value.slice(blockStart));
-  } else {
-    output.push(value.slice(copyStart));
-  }
-
+  output.push(value.slice(copyStart));
   return output.join('');
 }
 

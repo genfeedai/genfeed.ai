@@ -31,6 +31,15 @@ describe('agent orchestrator input parsing', () => {
     );
   });
 
+  it('preserves the previous single-line style capture semantics', () => {
+    expect(
+      extractStyleNotes('Create images in a bold\neditorial style'),
+    ).toBeUndefined();
+    expect(
+      extractStyleNotes('in a broken\neditorial style, with a valid style'),
+    ).toBe('valid');
+  });
+
   it('extracts a topic before platform, date, or punctuation delimiters', () => {
     expect(
       extractBatchTopic(
@@ -44,6 +53,21 @@ describe('agent orchestrator input parsing', () => {
         'create 5 posts about creator tools.',
       ),
     ).toBe('creator tools');
+  });
+
+  it('preserves the previous single-line topic capture semantics', () => {
+    expect(
+      extractBatchTopic(
+        'Create posts about AI\nSafety today',
+        'create posts about ai\nsafety today',
+      ),
+    ).toBeUndefined();
+    expect(
+      extractBatchTopic(
+        'Create posts about AI Safety\nfor LinkedIn',
+        'create posts about ai safety\nfor linkedin',
+      ),
+    ).toBe('AI Safety');
   });
 
   it('handles long repeated spaces and words without ambiguous matching', () => {

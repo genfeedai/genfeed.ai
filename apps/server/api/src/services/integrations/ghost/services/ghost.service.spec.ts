@@ -257,6 +257,25 @@ describe('GhostService', () => {
         expect.any(Object),
       );
     });
+
+    it('should handle a long trailing-slash run without backtracking', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
+      );
+
+      await service.createPost(
+        `https://myblog.ghost.io${'/'.repeat(50_000)}`,
+        apiKey,
+        'Title',
+        '<p>Body</p>',
+      );
+
+      expect(httpService.post).toHaveBeenCalledWith(
+        'https://myblog.ghost.io/ghost/api/admin/posts/',
+        expect.any(Object),
+        expect.any(Object),
+      );
+    });
   });
 
   describe('getSiteInfo', () => {
