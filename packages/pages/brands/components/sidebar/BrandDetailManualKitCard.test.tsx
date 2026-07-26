@@ -46,6 +46,7 @@ function createDraft(overrides: Partial<IBrandKitDraft> = {}): IBrandKitDraft {
     diagnostics: [],
     evidence: [],
     fields: {},
+    id: 'brand-1',
     readiness: {
       diagnostics: [],
       missingFields: [],

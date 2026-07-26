@@ -187,9 +187,18 @@ export interface IBrandKitReadiness {
   diagnostics: IBrandKitDiagnostic[];
 }
 
-export interface IBrandKitDraft {
-  id?: string;
+/**
+ * Brand Kit API resources always expose a JSON:API identity. Drafts use their
+ * caller-supplied draft id when present and otherwise fall back to the owning
+ * Brand id; operation outcomes use the Brand id. These are transport identities
+ * for a read/review projection, not a separate persistence model.
+ */
+export interface IBrandKitResource {
+  id: string;
   brandId: string;
+}
+
+export interface IBrandKitDraft extends IBrandKitResource {
   organizationId?: string;
   status: BrandKitDraftStatus;
   sourceType: BrandKitSourceType;
@@ -228,8 +237,7 @@ export interface IBrandKitApplyRequest {
   fields: Partial<Record<BrandKitFieldKey, IBrandKitApplyFieldDecision>>;
 }
 
-export interface IBrandKitApplyResult {
-  brandId: string;
+export interface IBrandKitApplyResult extends IBrandKitResource {
   status: Extract<BrandKitDraftStatus, 'accepted' | 'partial' | 'blocked'>;
   appliedFields: BrandKitFieldKey[];
   preservedFields: BrandKitFieldKey[];
@@ -264,8 +272,7 @@ export interface IBrandKitAssetImportResult {
   diagnostics: IBrandKitDiagnostic[];
 }
 
-export interface IBrandKitAssetImportResponse {
-  brandId: string;
+export interface IBrandKitAssetImportResponse extends IBrandKitResource {
   status: Extract<BrandKitDraftStatus, 'accepted' | 'partial' | 'blocked'>;
   importedAssetIds: string[];
   skippedCandidateIds: string[];

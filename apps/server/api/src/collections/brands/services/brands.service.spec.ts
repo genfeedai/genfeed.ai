@@ -660,6 +660,7 @@ describe('BrandsService', () => {
         appliedFields: ['description', 'strategyPlatforms', 'voiceTone'],
         brandId,
         diagnostics: [],
+        id: brandId,
         preservedFields: [],
         status: 'accepted',
       });

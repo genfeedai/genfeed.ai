@@ -49,11 +49,15 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import { BaseService } from '@api/shared/services/base/base.service';
 import { ActivityKey, ActivitySource } from '@genfeedai/enums';
 import type {
-  IBrandKitAssetImportResponse,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { BrandSerializer } from '@genfeedai/serializers';
+import {
+  BrandKitApplySerializer,
+  BrandKitAssetImportSerializer,
+  BrandKitSerializer,
+  BrandSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -509,10 +513,11 @@ export class BrandsController extends BaseCRUDController<
   @HttpCode(200)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async crawlBrandKitWebsite(
+    @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: CrawlBrandKitDto,
-  ) {
+  ): Promise<JsonApiSingleResponse> {
     await this.verifyBrandAccess(id, user);
 
     const publicMetadata = getPublicMetadata(user);
@@ -534,17 +539,18 @@ export class BrandsController extends BaseCRUDController<
       dto,
     );
 
-    return { data: draft };
+    return serializeSingle(request, BrandKitSerializer, draft);
   }
 
   @Post(':id/brand-kit/apply')
   @HttpCode(200)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async applyBrandKitDraft(
+    @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: ApplyBrandKitDto,
-  ) {
+  ): Promise<JsonApiSingleResponse> {
     await this.verifyBrandAccess(id, user);
 
     const publicMetadata = getPublicMetadata(user);
@@ -566,17 +572,18 @@ export class BrandsController extends BaseCRUDController<
       dto,
     );
 
-    return { data: result };
+    return serializeSingle(request, BrandKitApplySerializer, result);
   }
 
   @Post(':id/brand-kit/manual')
   @HttpCode(200)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createManualBrandKitDraft(
+    @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: ManualBrandKitDto,
-  ) {
+  ): Promise<JsonApiSingleResponse> {
     await this.verifyBrandAccess(id, user);
 
     const publicMetadata = getPublicMetadata(user);
@@ -598,17 +605,18 @@ export class BrandsController extends BaseCRUDController<
       dto,
     );
 
-    return { data: draft };
+    return serializeSingle(request, BrandKitSerializer, draft);
   }
 
   @Post(':id/brand-kit/assets/import')
   @HttpCode(200)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async importBrandKitAssets(
+    @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
     @Body() dto: ImportBrandKitAssetsDto,
-  ): Promise<{ data: IBrandKitAssetImportResponse }> {
+  ): Promise<JsonApiSingleResponse> {
     await this.verifyBrandAccess(id, user);
 
     const publicMetadata = getPublicMetadata(user);
@@ -632,7 +640,7 @@ export class BrandsController extends BaseCRUDController<
       dto,
     );
 
-    return { data: result };
+    return serializeSingle(request, BrandKitAssetImportSerializer, result);
   }
 
   @Post(':id/agent-config/generate-voice')

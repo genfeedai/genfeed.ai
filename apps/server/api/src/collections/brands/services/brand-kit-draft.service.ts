@@ -277,6 +277,7 @@ export class BrandKitDraftService {
       appliedFields,
       brandId,
       diagnostics,
+      id: brandId,
       preservedFields,
       status:
         hasBlockingDiagnostic && appliedFields.length === 0

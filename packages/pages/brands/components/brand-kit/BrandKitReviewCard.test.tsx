@@ -191,6 +191,7 @@ function createDraft(): IBrandKitDraft {
         proposedValue: 'sharp',
       },
     },
+    id: 'brand-1',
     readiness: {
       diagnostics: [],
       missingFields: ['banner'],
@@ -270,7 +271,7 @@ describe('BrandKitReviewCard', () => {
 
     await waitFor(() => {
       expect(mocks.applyBrandKitDraft).toHaveBeenCalledWith('brand-1', {
-        draftId: undefined,
+        draftId: 'brand-1',
         fields: {
           description: {
             action: 'accept',
