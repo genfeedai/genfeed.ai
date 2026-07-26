@@ -1,10 +1,20 @@
-export type WorkspaceShellBaseState = 'canvas' | 'conversation';
-
-export type WorkspaceShellRouteMode = WorkspaceShellBaseState | 'dedicated';
+/**
+ * Route classification owned by the registry.
+ *
+ * `conversation` no longer selects a renderer. It marks the agent routes, whose
+ * thread lives in the path (`/agent/:id`) and where `?thread=` is therefore
+ * never canonical. Every non-dedicated route frames the same canvas.
+ */
+export type WorkspaceShellRouteMode = 'canvas' | 'conversation' | 'dedicated';
 
 export type WorkspaceShellSurfaceMode = WorkspaceShellRouteMode | 'overlay';
 
-export type WorkspaceShellState = WorkspaceShellBaseState | 'overlay';
+/**
+ * The shell's runtime state. The conversation is not a state: it is a surface,
+ * rendered by its own route under `/agent` and by the context inspector on
+ * every other surface. The shell frames a canvas and may raise an overlay.
+ */
+export type WorkspaceShellState = 'canvas' | 'overlay';
 
 export type WorkspaceShellScopeRequirement =
   | 'brand'
@@ -203,7 +213,6 @@ export type WorkspaceShellRestorationFailure =
   | 'invalid_thread';
 
 export interface WorkspaceShellLocation {
-  readonly baseState: WorkspaceShellBaseState;
   readonly canonicalSearchParams: URLSearchParams;
   readonly isCanonical: boolean;
   readonly overlay: WorkspaceShellOverlayRequest | null;
@@ -216,7 +225,10 @@ export interface WorkspaceShellLocation {
 }
 
 export interface RestoreWorkspaceShellLocationParams {
-  readonly normalizedPathname: string;
+  /**
+   * The raw protected pathname. Route identity — including thread identity —
+   * is resolved from the registry, so no pre-normalized variant is needed.
+   */
   readonly pathname: string;
   readonly resolveOverlayReferenceAccess?: WorkspaceShellOverlayReferenceAccessResolver;
   readonly searchParams: URLSearchParams;

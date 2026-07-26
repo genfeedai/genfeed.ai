@@ -103,13 +103,13 @@ function resolveRetainedThreadId(
   return getCurrentThreadId(currentUrl, explicitThreadId);
 }
 
-function applyCanvasLaunch(url: URL, retainedThreadId: string | null): void {
-  stripOverlayParams(url);
-  if (retainedThreadId) {
-    url.searchParams.set('thread', retainedThreadId);
-  } else {
-    url.searchParams.delete('thread');
-  }
+/**
+ * Canvas surfaces never carry thread identity in the URL. The conversation is a
+ * surface (`/agent/:id`) and an inspector drawer backed by client state, so a
+ * `?thread=` parameter on a SaaS route would be duplicate, stale, and leaky.
+ */
+function applyCanvasLaunch(url: URL): void {
+  stripAllShellParams(url);
 }
 
 function applyConversationLaunch(
@@ -130,7 +130,7 @@ function applyDestinationPolicy(
 ): void {
   switch (route.mode) {
     case 'canvas':
-      applyCanvasLaunch(url, retainedThreadId);
+      applyCanvasLaunch(url);
       return;
     case 'conversation':
       applyConversationLaunch(url, route, retainedThreadId);

@@ -29,10 +29,11 @@ export interface ConversationComposerShellContextValue {
     | Promise<ConversationComposerDispatchResult>;
   draftScopeKey: string | null;
   isConsequentiallyBlocked?: boolean;
+  isComposerVisible?: boolean;
   portalTarget: HTMLElement | null;
   references?: readonly ConversationComposerContextReference[];
   scopeControls?: ReactNode;
-  shellState: 'canvas' | 'conversation' | 'overlay';
+  shellState: 'canvas' | 'overlay';
 }
 
 interface ConversationComposerShellProviderProps
@@ -51,6 +52,7 @@ export function ConversationComposerShellProvider({
   dispatchAction,
   draftScopeKey,
   isConsequentiallyBlocked,
+  isComposerVisible,
   portalTarget,
   references,
   scopeControls,
@@ -64,6 +66,7 @@ export function ConversationComposerShellProvider({
       dispatchAction,
       draftScopeKey,
       isConsequentiallyBlocked,
+      isComposerVisible,
       portalTarget,
       references,
       scopeControls,
@@ -76,6 +79,7 @@ export function ConversationComposerShellProvider({
       dispatchAction,
       draftScopeKey,
       isConsequentiallyBlocked,
+      isComposerVisible,
       portalTarget,
       references,
       scopeControls,

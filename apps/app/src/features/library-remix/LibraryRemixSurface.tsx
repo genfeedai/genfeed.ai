@@ -15,7 +15,6 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { HiOutlineArrowRight, HiOutlineSparkles } from 'react-icons/hi2';
 import { useWorkspaceShellActions } from '@/components/workspace-shell/WorkspaceShellActionsContext';
-import { buildWorkspaceShellHref } from '@/lib/workspace-shell/workspace-shell-location';
 import LibrarySourcePreview, {
   getLibrarySourceLabel,
 } from './LibrarySourcePreview';
@@ -24,7 +23,6 @@ import { useLibraryRemixSource } from './use-library-remix-source';
 type LibraryRemixSurfaceProps = {
   readonly sourceArtifact?: string | null;
   readonly sourceVersion?: string | null;
-  readonly threadId?: string | null;
 };
 
 function isIngredient(record: IAsset | IIngredient): record is IIngredient {
@@ -49,7 +47,6 @@ function getManagementRoute(record: IAsset | IIngredient): string {
 export default function LibraryRemixSurface({
   sourceArtifact,
   sourceVersion,
-  threadId,
 }: LibraryRemixSurfaceProps) {
   const { selectedBrand } = useBrand();
   const { href } = useOrgUrl();
@@ -63,10 +60,7 @@ export default function LibraryRemixSurface({
       key: 'library-picker',
       parameters: {},
     });
-  const fullLibraryHref = buildWorkspaceShellHref(
-    href(APP_ROUTES.LIBRARY.ROOT),
-    { threadId },
-  );
+  const fullLibraryHref = href(APP_ROUTES.LIBRARY.ROOT);
 
   if (!sourceArtifact) {
     return (
@@ -166,10 +160,7 @@ export default function LibraryRemixSurface({
   }
 
   const label = getLibrarySourceLabel(record);
-  const managementHref = buildWorkspaceShellHref(
-    href(getManagementRoute(record)),
-    { threadId },
-  );
+  const managementHref = href(getManagementRoute(record));
 
   return (
     <section

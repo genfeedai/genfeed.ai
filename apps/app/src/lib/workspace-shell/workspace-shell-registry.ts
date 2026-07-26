@@ -18,7 +18,6 @@ export type {
   WorkspaceShellAdapterSeam,
   WorkspaceShellAuxiliaryRegistration,
   WorkspaceShellAvailability,
-  WorkspaceShellBaseState,
   WorkspaceShellBreadcrumbMetadata,
   WorkspaceShellChromeRegistration,
   WorkspaceShellDeployment,

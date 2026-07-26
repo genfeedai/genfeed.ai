@@ -8,7 +8,6 @@ import { getWorkspaceShellOverlayRegistration } from '@/lib/workspace-shell/work
 vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
   default: ({
     onSelect,
-    threadId,
   }: {
     onSelect: (reference: {
       brandId: string;
@@ -17,7 +16,6 @@ vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
       recordId: string;
       serializer: 'ingredient';
     }) => void;
-    threadId?: string | null;
   }) => (
     <button
       type="button"
@@ -31,7 +29,7 @@ vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
         })
       }
     >
-      Select Library source for {threadId}
+      Select Library source
     </button>
   ),
 }));
@@ -217,13 +215,12 @@ describe('WorkspaceOverlayHost', () => {
         overlay={{ key: 'library-picker', parameters: {} }}
         registration={getWorkspaceShellOverlayRegistration('library-picker')}
         returnFocusRef={createRef<HTMLElement>()}
-        threadId="thread-1"
       />,
     );
 
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Select Library source for thread-1',
+        name: 'Select Library source',
       }),
     );
 

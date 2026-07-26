@@ -29,7 +29,6 @@ export default function WorkspaceOverlayHost({
   overlay,
   registration,
   returnFocusRef,
-  threadId,
 }: WorkspaceOverlayHostProps) {
   const isResolved = Boolean(
     overlay && registration && overlay.key === registration.key,
@@ -69,10 +68,7 @@ export default function WorkspaceOverlayHost({
         >
           {content ??
             (overlay?.key === 'library-picker' && onSelectLibraryReference ? (
-              <LibraryPickerOverlay
-                onSelect={onSelectLibraryReference}
-                threadId={threadId}
-              />
+              <LibraryPickerOverlay onSelect={onSelectLibraryReference} />
             ) : (
               <div className="p-5 pb-2 text-sm text-muted-foreground">
                 {formatOverlayParameters(overlay)}

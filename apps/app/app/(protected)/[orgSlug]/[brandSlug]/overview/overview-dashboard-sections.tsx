@@ -9,7 +9,10 @@ import type {
 } from '@props/analytics/charts.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
-import Card from '@ui/card/Card';
+import {
+  type SurfaceSummaryItem,
+  SurfaceSummaryStrip,
+} from '@ui/dashboard/SurfaceSummaryStrip';
 import AppTable from '@ui/display/table/Table';
 import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
@@ -31,13 +34,6 @@ const PlatformTimeSeriesChart = dynamic(
     ssr: false,
   },
 );
-
-interface OverviewTopStatItem {
-  accent?: string;
-  label: string;
-  tone?: string;
-  value: string;
-}
 
 type ReviewInboxItem =
   OverviewBootstrapPayload['reviewInbox']['recentItems'][number];
@@ -122,35 +118,14 @@ export function OverviewStatusBadge({
 export function OverviewTopStatStrip({
   items,
 }: {
-  items: OverviewTopStatItem[];
+  items: SurfaceSummaryItem[];
 }) {
   return (
-    <div
-      data-testid="overview-top-stats"
-      className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"
-    >
-      {items.map((item) => (
-        <Card
-          key={item.label}
-          className={cn('min-h-[136px]', item.tone)}
-          bodyClassName="flex h-full flex-col justify-between gap-6 p-5"
-        >
-          <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/35">
-              {item.label}
-            </p>
-            <div className="text-3xl font-semibold tracking-[-0.04em] text-foreground">
-              {item.value}
-            </div>
-          </div>
-          {item.accent ? (
-            <p className="text-sm leading-6 text-foreground/55">
-              {item.accent}
-            </p>
-          ) : null}
-        </Card>
-      ))}
-    </div>
+    <SurfaceSummaryStrip
+      density="comfortable"
+      items={items}
+      testId="overview-top-stats"
+    />
   );
 }
 

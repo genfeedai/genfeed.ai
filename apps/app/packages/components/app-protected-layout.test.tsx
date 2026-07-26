@@ -21,7 +21,7 @@ const {
   appSidebarSpy: vi.fn(),
   commandPaletteOpenSpy: vi.fn(),
   dispatchOpenTaskComposerSpy: vi.fn(),
-  shellState: { isShellThrowing: false },
+  shellState: { isAuthLoaded: true, isShellThrowing: false },
   lowCreditsBannerSpy: vi.fn(),
   onboardingGuardSpy: vi.fn(),
   protectedProvidersSpy: vi.fn(),
@@ -350,8 +350,11 @@ vi.mock('@genfeedai/agent', () => ({
 vi.mock('@/hooks/useOptionalAuth', () => ({
   useOptionalAuth: () => ({
     getToken: vi.fn().mockResolvedValue('token'),
-    isLoaded: true,
-    isSignedIn: true,
+    // Held open by a test that needs the pre-boot window: no auth means no
+    // agent API service, which is the only thing that keeps the shell body from
+    // mounting.
+    isLoaded: shellState.isAuthLoaded,
+    isSignedIn: shellState.isAuthLoaded,
   }),
 }));
 
@@ -492,6 +495,7 @@ vi.mock('@services/core/agent-overlay-coordination.service', async () => {
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockPathname.value = '/workspace';
+    shellState.isAuthLoaded = true;
     shellState.isShellThrowing = false;
     sessionStorage.clear();
     mockBrandState.brandId = 'brand-123';
@@ -554,7 +558,7 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
   });
 
-  it('wires the agent-first shell through the protected app shell', async () => {
+  it('wires the permanent workspace shell through the protected app shell', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
@@ -578,17 +582,18 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         collapsedSidebarWidth: 0,
         currentApp: 'workspace',
-        items: [],
         orgSwitcherSlot: expect.anything(),
-        renderBody: expect.any(Function),
+        renderTopSlot: expect.any(Function),
         sectionLabel: 'Workspace',
         shellChromeVariant: 'default',
-        shellMode: 'default',
-        showPrimaryItems: false,
+        shellMode: 'workspace',
+        showPrimaryItems: true,
       }),
     );
     expect(onboardingGuardSpy).toHaveBeenCalled();
-    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    // The conversation is a surface at /agent and an inspector drawer
+    // everywhere else — it no longer takes over the workspace nav column.
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
@@ -608,7 +613,25 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('replaces legacy workspace quick actions with conversation controls', () => {
+  it('keeps the workspace quick actions on non-conversation routes', () => {
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'New Task' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /New Thread/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hands the nav column to the conversation module on agent routes', () => {
+    mockPathname.value = '/agent/new';
+
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
@@ -663,7 +686,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('mounts the universal shell without the legacy terminal dock', async () => {
+  it('mounts the universal shell without the legacy terminal dock', () => {
     mockPathname.value = '/org-123/brand-123/studio/image';
 
     render(
@@ -675,20 +698,19 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('universal-workspace-shell')).toBeInTheDocument();
     expect(screen.getByText('Canonical studio content')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
-    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({ isWorkspaceShell: true }),
     );
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        renderBody: expect.any(Function),
-        shellMode: 'default',
-        showPrimaryItems: false,
+        currentApp: 'studio',
+        sectionLabel: 'Studio',
       }),
     );
   });
 
-  it('keeps render failures inside the agent-first error boundary', () => {
+  it('keeps render failures inside the protected shell error boundary', () => {
     shellState.isShellThrowing = true;
     mockPathname.value = '/org-123/brand-123/studio/image';
     const consoleError = vi
@@ -878,7 +900,9 @@ describe('AppProtectedLayout', () => {
   });
 
   it('hides sidebar and topbar chrome for focused onboarding agent routes', () => {
-    mockPathname.value = '/agent/onboarding';
+    // Org-scoped on purpose: onboarding is a registered shell route, so this is
+    // the one flow whose chrome the route itself has to suppress.
+    mockPathname.value = '/org-123/brand-123/agent/onboarding';
 
     render(
       <AppProtectedLayout>
@@ -898,7 +922,32 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('does not mount the legacy embedded agent rail', async () => {
+  it('keeps the frame on a canvas route while the shell body is still booting', () => {
+    // No auth yet means no agent API service, so the shell body cannot mount.
+    // The application around it is not the shell's to withhold: chrome used to
+    // disappear on canvas routes for exactly this window.
+    shellState.isAuthLoaded = false;
+    mockPathname.value = '/org-123/brand-123/editor/new';
+
+    render(
+      <AppProtectedLayout>
+        <div>Editor canvas</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(
+      screen.queryByTestId('universal-workspace-shell'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isWorkspaceShell: false,
+        topbarComponent: expect.any(Function),
+      }),
+    );
+  });
+
+  it('does not mount the legacy embedded agent rail', () => {
     mockPathname.value = '/workspace';
 
     render(
@@ -909,7 +958,6 @@ describe('AppProtectedLayout', () => {
 
     expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
-    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
   });
 
   it('hides the terminal dock on hosted cloud', () => {
@@ -965,7 +1013,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('uses the conversation-first Workspace sidebar', () => {
+  it('uses the workspace navigation on the Workspace surface', () => {
     mockPathname.value = '/workspace';
 
     render(
@@ -977,16 +1025,18 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'workspace',
-        items: [],
-        renderBody: expect.any(Function),
+        items: expect.arrayContaining([
+          expect.objectContaining({ href: '/workspace', label: 'Workspace' }),
+        ]),
         sectionLabel: 'Workspace',
-        shellMode: 'default',
-        showPrimaryItems: false,
+        shellMode: 'workspace',
+        showPrimaryItems: true,
       }),
     );
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
-  it('keeps the conversation sidebar on workflow routes', async () => {
+  it('gives workflow routes their own nav column', () => {
     mockPathname.value = '/org-123/brand-123/workflows';
 
     render(
@@ -998,16 +1048,14 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'workflows',
-        renderBody: expect.any(Function),
-        sectionLabel: 'Workspace',
+        sectionLabel: 'Workflows',
         shellChromeVariant: 'default',
-        showPrimaryItems: false,
       }),
     );
-    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
-  it('keeps the conversation sidebar on Studio routes', async () => {
+  it('gives Studio routes their own nav column', () => {
     mockPathname.value = '/org-123/brand-123/studio/image';
 
     render(
@@ -1019,27 +1067,24 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         currentApp: 'studio',
-        items: [],
-        renderBody: expect.any(Function),
-        sectionLabel: 'Workspace',
+        sectionLabel: 'Studio',
         shellChromeVariant: 'default',
-        showPrimaryItems: false,
       }),
     );
     expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty('backHref');
     expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty(
       'backLabel',
     );
-    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
   it.each([
-    ['/org-123/brand-123/studio/image', 'studio'],
-    ['/org-123/brand-123/library/ingredients', 'library'],
-    ['/org-123/brand-123/analytics/overview', 'analytics'],
-    ['/org-123/brand-123/workflows', 'workflows'],
-    ['/org-123/brand-123/posts/remix', 'posts'],
-  ])('keeps the %s app-switcher surface in the conversation sidebar', (pathname, currentApp) => {
+    ['/org-123/brand-123/studio/image', 'studio', 'Studio'],
+    ['/org-123/brand-123/library/ingredients', 'library', 'Library'],
+    ['/org-123/brand-123/analytics/overview', 'analytics', 'Analytics'],
+    ['/org-123/brand-123/workflows', 'workflows', 'Workflows'],
+    ['/org-123/brand-123/posts/remix', 'posts', 'Workspace'],
+  ])('keeps the %s app-switcher surface on its own module nav', (pathname, currentApp, sectionLabel) => {
     mockPathname.value = pathname;
 
     render(
@@ -1053,11 +1098,8 @@ describe('AppProtectedLayout', () => {
     expect(sidebarProps).toEqual(
       expect.objectContaining({
         currentApp,
-        items: [],
-        renderBody: expect.any(Function),
-        sectionLabel: 'Workspace',
+        sectionLabel,
         shellChromeVariant: 'default',
-        showPrimaryItems: false,
       }),
     );
     expect(sidebarProps).not.toHaveProperty('backHref');
@@ -1067,7 +1109,7 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders admin routes through the conversation sidebar', () => {
+  it('renders admin routes through the admin sidebar', () => {
     mockPathname.value = '/admin';
 
     render(
@@ -1078,12 +1120,13 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        items: [],
-        renderBody: expect.any(Function),
-        sectionLabel: 'Workspace',
-        showPrimaryItems: false,
+        items: expect.arrayContaining([
+          expect.objectContaining({ label: 'Dashboard' }),
+        ]),
+        showUserProfile: true,
       }),
     );
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
   it('forwards collapse controls into the dedicated Library sidebar', () => {
@@ -1119,8 +1162,6 @@ describe('AppProtectedLayout', () => {
         settingsMenuItems={[]}
         studioMenuItems={[]}
         workflowsMenuItems={[]}
-        conversationActions={null}
-        renderConversations={() => null}
         onOpenCommandPalette={vi.fn()}
       />,
     );
@@ -1131,6 +1172,56 @@ describe('AppProtectedLayout', () => {
         isCollapsed: false,
         onToggleCollapse,
         sectionLabel: 'Library',
+      }),
+    );
+  });
+
+  it('lets a module swap its own nav panel in for the surface menu items', () => {
+    render(
+      <AppProtectedLayoutSidebar
+        shellChromeVariant="default"
+        taskContextSearchParams={new URLSearchParams()}
+        currentApp="library"
+        isAdminRoute={false}
+        isAnalyticsRoute={false}
+        isComposeRoute={false}
+        isConversationRoute={false}
+        isEditorRoute={false}
+        isFocusedOnboardingRoute={false}
+        isLibraryRoute
+        isOrgRoute={false}
+        isResearchRoute={false}
+        isSettingsRoute={false}
+        isStudioRoute={false}
+        isWorkflowsRoute={false}
+        adminMenuItems={[]}
+        analyticsMenuItems={[]}
+        composeMenuItems={[]}
+        libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
+        menuItems={[]}
+        orgMenuItems={[]}
+        researchMenuItems={[]}
+        secondaryMenuItems={[]}
+        settingsMenuItems={[]}
+        studioMenuItems={[]}
+        workflowsMenuItems={[]}
+        navPanel={{
+          render: () => <div data-testid="module-nav-panel" />,
+          sectionLabel: 'Collections',
+        }}
+        onOpenCommandPalette={vi.fn()}
+      />,
+    );
+
+    // The surface keeps its identity — only the column body changes hands.
+    expect(screen.getByTestId('module-nav-panel')).toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'library',
+        items: [],
+        renderBody: expect.any(Function),
+        sectionLabel: 'Collections',
+        showPrimaryItems: false,
       }),
     );
   });
@@ -1209,7 +1300,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps editor routes inside the agent-first shell while skipping editor-only providers', async () => {
+  it('keeps editor routes inside the workspace shell while skipping editor-only providers', () => {
     mockPathname.value = '/org-123/brand-123/editor/new';
 
     render(
@@ -1229,14 +1320,13 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({ isWorkspaceShell: true }),
     );
     expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
-    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('streak-notifications-bridge'),
     ).not.toBeInTheDocument();
   });
 
-  it('keeps workflow editor detail routes inside the agent-first shell', async () => {
+  it('keeps workflow editor detail routes inside the workspace shell', () => {
     mockPathname.value = '/org-123/brand-123/workflows/workflow-123';
 
     render(
@@ -1250,7 +1340,6 @@ describe('AppProtectedLayout', () => {
     );
     expect(screen.getByText('Workflow editor')).toBeInTheDocument();
     expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
-    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 });

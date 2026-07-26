@@ -1,13 +1,13 @@
 'use client';
 
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
-import { AgentWorkspacePageShell } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspacePageShell';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type AgentApiService,
   type ConversationComposerActionInvocation,
   type ConversationComposerDispatchResult,
   ConversationComposerShellProvider,
+  ConversationInspectorPanel,
   ConversationInspectorShellProvider,
   getConversationComposerAction,
   runAgentApiEffect,
@@ -30,6 +30,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@ui/primitives/drawer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -70,7 +71,6 @@ import {
 import { surfaceOwnsPrimaryInput } from '@/lib/workspace-shell/workspace-composer-surfaces';
 import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
 import {
-  buildWorkspaceShellHref,
   removeWorkspaceShellOverlayParams,
   restoreWorkspaceShellLocation,
   type WorkspaceShellLocation,
@@ -112,6 +112,8 @@ const INSPECTOR_COLLAPSED_WIDTH = 0;
 const INSPECTOR_TRANSITION_DURATION_MS = 300;
 const INSPECTOR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}, min-width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}`;
+
+type WorkspaceInspectorTab = 'context' | 'conversation';
 
 type UniversalWorkspaceShellProps = {
   readonly agentApiService: AgentApiService;
@@ -179,6 +181,11 @@ function UniversalWorkspaceShellContent({
   const [agentInspectorPortalTarget, setAgentInspectorPortalTarget] =
     useState<HTMLElement | null>(null);
   const [hasAgentInspectorPanel, setHasAgentInspectorPanel] = useState(false);
+  // The rail carries two things now: the conversation, reachable from every
+  // surface, and the surface's own context. Conversation leads — that is the
+  // whole point of it no longer being a shell state you navigate away to.
+  const [inspectorTab, setInspectorTab] =
+    useState<WorkspaceInspectorTab>('conversation');
   const [failedSurfaceScopeKey, setFailedSurfaceScopeKey] = useState<
     string | null
   >(null);
@@ -188,7 +195,6 @@ function UniversalWorkspaceShellContent({
   } | null>(null);
   const primaryRegionRef = useRef<HTMLElement>(null);
   const inspectorRef = useRef<HTMLElement>(null);
-  const previousActiveThreadIdRef = useRef(activeThreadId);
   const previousPathnameRef = useRef<string | null>(null);
   const previousStateRef = useRef<WorkspaceShellState | null>(null);
   const pendingTransitionRef = useRef<
@@ -218,16 +224,14 @@ function UniversalWorkspaceShellContent({
     () =>
       requireWorkspaceShellLocation(
         restoreWorkspaceShellLocation({
-          normalizedPathname,
           pathname: rawPathname,
           searchParams: new URLSearchParams(searchParamsString),
         }),
       ),
-    [normalizedPathname, rawPathname, searchParamsString],
+    [rawPathname, searchParamsString],
   );
 
   const {
-    baseState,
     canonicalSearchParams,
     isCanonical,
     overlay,
@@ -257,18 +261,22 @@ function UniversalWorkspaceShellContent({
       ? activeSurfacePresentationAdapter
       : null;
   const canonicalSearchParamsString = canonicalSearchParams.toString();
+  // The conversation is a surface, not a shell state. `/agent/*` renders it as
+  // its own canvas; every other surface reaches it through the inspector.
+  const isAgentRoute =
+    normalizedPathname === APP_ROUTES.AGENT.ROOT ||
+    normalizedPathname.startsWith(`${APP_ROUTES.AGENT.ROOT}/`);
   const isUnthreadedConversation =
-    baseState === 'conversation' &&
-    (normalizedPathname === APP_ROUTES.AGENT.ROOT ||
-      normalizedPathname === APP_ROUTES.AGENT.NEW);
+    normalizedPathname === APP_ROUTES.AGENT.ROOT ||
+    normalizedPathname === APP_ROUTES.AGENT.NEW;
   const routeScope = rawPathname.split('/').filter(Boolean)[0] ?? '';
   const retainedThreadIdRef = useRef<string | null>(threadId);
   const previousRouteScopeRef = useRef(routeScope);
   const isSameRouteScope = previousRouteScopeRef.current === routeScope;
   const effectiveThreadId =
     threadId ??
-    (baseState === 'canvas' && isSameRouteScope
-      ? retainedThreadIdRef.current
+    (!isAgentRoute && isSameRouteScope
+      ? (retainedThreadIdRef.current ?? activeThreadId)
       : null);
   const currentHref = appendSearchParamsToHref(
     rawPathname,
@@ -315,8 +323,12 @@ function UniversalWorkspaceShellContent({
   // as a second prompt bar carrying the same suggestion chips, so it stands
   // down there and the surface owns its input.
   const isShellComposerVisible =
-    state !== 'overlay' &&
-    !(baseState === 'canvas' && surfaceOwnsPrimaryInput(surfaceKey));
+    state !== 'overlay' && !surfaceOwnsPrimaryInput(surfaceKey);
+  // Registered overlays provide their own composer portal even though the
+  // canvas slot stands down. Outside an overlay, a product-owned primary input
+  // is the only composer for that surface.
+  const isConversationComposerVisible =
+    state === 'overlay' || isShellComposerVisible;
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
   // Human-readable breadcrumb leaf resolved from the route registry
   // (param-interpolated), never the raw `route:/…` pattern from `routeKey`.
@@ -324,10 +336,10 @@ function UniversalWorkspaceShellContent({
     routeRegistration?.breadcrumb.leafLabel ?? 'Workspace';
   const shellContextLabel =
     resolvedSurfacePresentationAdapter?.contextLabel ??
-    (state === 'conversation'
-      ? 'Conversation'
-      : state === 'overlay'
-        ? 'Overlay · conversation connected'
+    (state === 'overlay'
+      ? 'Overlay · conversation connected'
+      : isAgentRoute
+        ? 'Conversation'
         : `Canvas · ${inspectorBreadcrumbLabel}`);
   const activeResearchSurfaceAdapter =
     researchSurfaceAdapter?.registration.surfaceKey === surfaceKey
@@ -468,47 +480,14 @@ function UniversalWorkspaceShellContent({
       retainedThreadIdRef.current = threadId;
       return;
     }
-    if (baseState === 'conversation') {
+    if (isUnthreadedConversation) {
       retainedThreadIdRef.current = null;
-      return;
     }
-    if (!hasScopeChanged && effectiveThreadId && isCanonical) {
-      replace(
-        buildWorkspaceShellHref(currentHref, {
-          threadId: effectiveThreadId,
-        }),
-      );
-    }
-  }, [
-    baseState,
-    currentHref,
-    effectiveThreadId,
-    isCanonical,
-    replace,
-    routeScope,
-    threadId,
-  ]);
+  }, [isUnthreadedConversation, routeScope, threadId]);
 
-  useEffect(() => {
-    const previousActiveThreadId = previousActiveThreadIdRef.current;
-    previousActiveThreadIdRef.current = activeThreadId;
-
-    if (
-      baseState !== 'canvas' ||
-      !isCanonical ||
-      threadId ||
-      !activeThreadId ||
-      activeThreadId === previousActiveThreadId
-    ) {
-      return;
-    }
-
-    replace(
-      buildWorkspaceShellHref(currentHref, {
-        threadId: activeThreadId,
-      }),
-    );
-  }, [activeThreadId, baseState, currentHref, isCanonical, replace, threadId]);
+  // Thread identity is never written to the URL. `/agent/:id` owns it in the
+  // path; every other surface follows the agent store, so the conversation
+  // survives navigation without leaking `?thread=` onto SaaS routes.
 
   useEffect(() => {
     const previousState = previousStateRef.current;
@@ -561,30 +540,6 @@ function UniversalWorkspaceShellContent({
       hasOverlayReturnFocusRef.current = false;
     }
   }, [normalizedPathname, overlayRegistration, state]);
-
-  const handleOpenCanvas = useCallback(() => {
-    const launch = resolveWorkspaceSurfaceLaunch({
-      currentHref,
-      destinationHref: brandSlug
-        ? href(APP_ROUTES.WORKSPACE.OVERVIEW)
-        : orgHref('/overview'),
-      threadId: effectiveThreadId ?? activeThreadId,
-    });
-    if (launch.history !== 'push' || launch.mode !== 'canvas') {
-      return;
-    }
-
-    pendingTransitionRef.current = 'canvas_launch';
-    push(launch.href);
-  }, [
-    activeThreadId,
-    brandSlug,
-    currentHref,
-    effectiveThreadId,
-    href,
-    orgHref,
-    push,
-  ]);
 
   const handleReturnToConversation = useCallback(() => {
     pendingTransitionRef.current = 'conversation_return';
@@ -920,35 +875,84 @@ function UniversalWorkspaceShellContent({
     [resolveInspectorWidth],
   );
 
+  // Exactly one conversation may be mounted at a time: each one portals its
+  // prompt bar into the single shell composer slot, so a second copy would put
+  // two prompt bars in one slot.
+  //
+  // `/agent/*` is the first owner — it renders the conversation as its own
+  // canvas. Off that route the inspector owns it, and between the inspector's
+  // two hosts the mobile drawer wins while it is open: its trigger lives in an
+  // `xl:hidden` bar, so it can only be open at widths where the desktop rail is
+  // display:none anyway.
+  const conversationInspectorSlot = isAgentRoute ? null : (
+    <ConversationInspectorPanel
+      apiService={agentApiService}
+      onOpenConversation={handleReturnToConversation}
+    />
+  );
+
   // Rendered at two sites (desktop rail + mobile drawer), so this stays a
   // function: only the desktop rail may own the agent portal target, otherwise
   // the ref callback would race between two mounted copies.
-  const renderInspectorContent = (agentPanelSlot: ReactNode = null) => {
+  const renderInspectorContent = (
+    agentPanelSlot: ReactNode = null,
+    conversationSlot: ReactNode = null,
+  ) => {
     const isAgentOwned = agentPanelSlot !== null && hasAgentInspectorPanel;
+    const activeInspectorTab = conversationSlot ? inspectorTab : 'context';
 
     return (
-      <div className="flex h-full min-h-0 flex-col bg-background">
+      <Tabs
+        className="flex h-full min-h-0 flex-col bg-background"
+        onValueChange={(value) =>
+          setInspectorTab(value === 'conversation' ? 'conversation' : 'context')
+        }
+        value={activeInspectorTab}
+      >
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
-          <div>
-            <p className="text-sm font-medium text-foreground">Context</p>
-            <p className="text-xs text-muted-foreground">
-              {surfaceScopeStatus === 'syncing'
-                ? 'Synchronizing surface brand…'
-                : surfaceScopeStatus === 'error'
-                  ? 'Surface brand synchronization failed'
-                  : effectiveThreadId
-                    ? 'Conversation connected'
-                    : 'No conversation selected'}
-            </p>
-          </div>
+          {conversationSlot ? (
+            <TabsList className="h-8">
+              <TabsTrigger value="conversation">Conversation</TabsTrigger>
+              <TabsTrigger value="context">Context</TabsTrigger>
+            </TabsList>
+          ) : (
+            <div>
+              <p className="text-sm font-medium text-foreground">Context</p>
+              <p className="text-xs text-muted-foreground">
+                {surfaceScopeStatus === 'syncing'
+                  ? 'Synchronizing surface brand…'
+                  : surfaceScopeStatus === 'error'
+                    ? 'Surface brand synchronization failed'
+                    : effectiveThreadId
+                      ? 'Conversation connected'
+                      : 'No conversation selected'}
+              </p>
+            </div>
+          )}
           {/* No collapse control here: the rail collapses to nothing, so the one
             toggle is pinned in the topbar instead of disappearing with it. */}
         </div>
-        <div
+
+        {/* `forceMount` on both panes: switching tabs must not unmount the
+          conversation, or its prompt bar would vanish from the shell composer
+          and an in-flight run would lose its transcript. */}
+        {conversationSlot ? (
+          <TabsContent
+            className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+            forceMount
+            value="conversation"
+          >
+            {conversationSlot}
+          </TabsContent>
+        ) : null}
+
+        <TabsContent
           className={cn(
-            'flex min-h-0 flex-1 flex-col overflow-y-auto',
+            'mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto data-[state=inactive]:hidden',
             !isAgentOwned && 'gap-4 p-4',
           )}
+          forceMount
+          value="context"
         >
           {agentPanelSlot}
           {isAgentOwned ? null : (
@@ -1022,14 +1026,18 @@ function UniversalWorkspaceShellContent({
               </Button>
             </>
           )}
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     );
   };
 
   return (
     <ConversationInspectorShellProvider
-      isActive={baseState === 'conversation'}
+      // Only the conversation-as-surface may project its context panels into
+      // the rail. Off `/agent/*` the conversation is rendered *inside* that
+      // rail, so letting it portal there too would have it replace the canvas
+      // context tab with its own — and, at the tab level, itself.
+      isActive={isAgentRoute}
       onPanelPresenceChange={setHasAgentInspectorPanel}
       portalTarget={agentInspectorPortalTarget}
     >
@@ -1047,6 +1055,7 @@ function UniversalWorkspaceShellContent({
         dispatchAction={handleComposerAction}
         draftScopeKey={draftScopeKey}
         isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
+        isComposerVisible={isConversationComposerVisible}
         portalTarget={composerPortalTarget}
         references={activeResearchSurfaceAdapter?.references}
         scopeControls={
@@ -1081,57 +1090,11 @@ function UniversalWorkspaceShellContent({
               its bottom edge — hence `relative` here. The composer floats over
               the active region rather than reserving a row of its own. */}
             <div className="relative flex h-full min-h-0 min-w-0 flex-col">
-              <div
-                aria-hidden={baseState !== 'conversation'}
-                className={cn(
-                  'flex min-h-0 flex-1 flex-col overflow-hidden bg-background',
-                  baseState !== 'conversation' && 'hidden',
-                )}
-                data-testid="workspace-conversation-region"
-                inert={baseState !== 'conversation'}
-              >
-                <div className="flex h-11 shrink-0 items-center justify-between border-b border-border px-3">
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                    Conversation
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      className="xl:hidden"
-                      icon={<HiOutlineViewColumns className="size-4" />}
-                      onClick={() => setIsMobileInspectorOpen(true)}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.GHOST}
-                      withWrapper={false}
-                    >
-                      Context
-                    </Button>
-                    <Button
-                      icon={<HiOutlineSquares2X2 className="size-4" />}
-                      onClick={handleOpenCanvas}
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.GHOST}
-                      withWrapper={false}
-                    >
-                      Open workspace canvas
-                    </Button>
-                  </div>
-                </div>
-                <section
-                  aria-label="Primary conversation workspace"
-                  className="flex min-h-0 flex-1"
-                  ref={
-                    baseState === 'conversation' ? primaryRegionRef : undefined
-                  }
-                  tabIndex={-1}
-                >
-                  <AgentWorkspacePageShell
-                    threadId={effectiveThreadId ?? undefined}
-                  />
-                </section>
-              </div>
-
+              {/* One region, always. The route owns what it renders here —
+                `/agent/*` renders the conversation as its page, every other
+                route renders its own SaaS surface. The shell no longer swaps
+                between a hard-wired conversation and the route's children. */}
               <section
-                aria-hidden={baseState !== 'canvas'}
                 aria-label="Primary workspace canvas"
                 className={cn(
                   'min-h-0 min-w-0 flex-1 bg-background',
@@ -1146,11 +1109,9 @@ function UniversalWorkspaceShellContent({
                   !workflowSurfaceRoute.isGraphCanvas &&
                     isShellComposerVisible &&
                     'pb-48 md:pb-56',
-                  baseState !== 'canvas' && 'hidden',
                 )}
                 data-testid="workspace-canvas-layout"
-                inert={baseState !== 'canvas'}
-                ref={baseState === 'canvas' ? primaryRegionRef : undefined}
+                ref={primaryRegionRef}
                 tabIndex={-1}
               >
                 <div className="flex h-11 items-center justify-between border-b border-border px-3 xl:hidden">
@@ -1176,13 +1137,11 @@ function UniversalWorkspaceShellContent({
                 <ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider
                   value={registerSurfaceAdapter}
                 >
-                  {baseState === 'canvas' ? (
-                    <WorkspaceShellActionsProvider
-                      openOverlay={launchWorkspaceOverlay}
-                    >
-                      {children}
-                    </WorkspaceShellActionsProvider>
-                  ) : null}
+                  <WorkspaceShellActionsProvider
+                    openOverlay={launchWorkspaceOverlay}
+                  >
+                    {children}
+                  </WorkspaceShellActionsProvider>
                 </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
               </section>
 
@@ -1217,6 +1176,7 @@ function UniversalWorkspaceShellContent({
                 isInspectorOpen && 'border-l border-border',
               )}
               id="workspace-context-inspector"
+              inert={!isInspectorOpen}
               ref={inspectorRef}
               style={{
                 minWidth: inspectorRailWidth,
@@ -1226,28 +1186,35 @@ function UniversalWorkspaceShellContent({
               }}
             >
               {isInspectorOpen ? (
-                <>
-                  <Button
-                    aria-orientation="vertical"
-                    aria-valuemax={INSPECTOR_MAX_WIDTH}
-                    aria-valuemin={INSPECTOR_MIN_WIDTH}
-                    aria-valuenow={inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH}
-                    ariaLabel="Resize context inspector"
-                    className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
-                    onKeyDown={handleInspectorResizeKeyDown}
-                    onMouseDown={handleInspectorResizeStart}
-                    role="separator"
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                  />
-                  {renderInspectorContent(
-                    <div
-                      className="flex min-h-0 flex-1 flex-col empty:hidden"
-                      ref={setAgentInspectorPortalTarget}
-                    />,
-                  )}
-                </>
+                <Button
+                  aria-orientation="vertical"
+                  aria-valuemax={INSPECTOR_MAX_WIDTH}
+                  aria-valuemin={INSPECTOR_MIN_WIDTH}
+                  aria-valuenow={inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH}
+                  ariaLabel="Resize context inspector"
+                  className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
+                  onKeyDown={handleInspectorResizeKeyDown}
+                  onMouseDown={handleInspectorResizeStart}
+                  role="separator"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                />
               ) : null}
+              {/* Rendered through the collapse, not gated on it: the
+                conversation's prompt bar lives in the shell composer, so
+                unmounting the rail would take the composer's input with it and
+                drop an in-flight run. Collapsed means zero width, `inert`, and
+                invisible — not gone. The agent portal target stays gated, since
+                a panel portaled into a hidden rail has nowhere to be seen. */}
+              {renderInspectorContent(
+                isInspectorOpen ? (
+                  <div
+                    className="flex min-h-0 flex-1 flex-col empty:hidden"
+                    ref={setAgentInspectorPortalTarget}
+                  />
+                ) : null,
+                isMobileInspectorOpen ? null : conversationInspectorSlot,
+              )}
             </aside>
           </div>
 
@@ -1262,8 +1229,8 @@ function UniversalWorkspaceShellContent({
                   Context for the active canonical product route.
                 </DrawerDescription>
               </DrawerHeader>
-              <div className="min-h-0 overflow-y-auto">
-                {renderInspectorContent()}
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                {renderInspectorContent(null, conversationInspectorSlot)}
               </div>
             </DrawerContent>
           </Drawer>
@@ -1287,7 +1254,6 @@ function UniversalWorkspaceShellContent({
             overlay={overlay}
             registration={overlayRegistration}
             returnFocusRef={overlayReturnFocusRef}
-            threadId={effectiveThreadId ?? activeThreadId}
           />
         </div>
       </ConversationComposerShellProvider>

@@ -138,15 +138,23 @@ export function resolveWorkspaceShellOverlayRequest(
   };
 }
 
-function extractConversationThreadId(pathname: string): string | null {
-  const match = /^\/agent\/([^/]+)$/.exec(pathname);
-  const candidate = match?.[1] ?? null;
+/**
+ * The conversation surface is the only route that carries thread identity, and
+ * it carries it in the path. The registry — not a pathname pattern — decides
+ * which route that is, so sibling agent routes (`/agent/journey`,
+ * `/agent/onboarding`) are never mistaken for a thread id.
+ */
+function getRouteThreadCandidate(
+  route: ReturnType<typeof resolveWorkspaceShellRoute>,
+): string | null {
+  if (route?.surfaceKey !== 'agent-conversation') {
+    return null;
+  }
 
-  return isSafeOpaqueId(candidate) && candidate !== 'new' ? candidate : null;
+  return route.params.id ?? route.params.threadId ?? null;
 }
 
 export function restoreWorkspaceShellLocation({
-  normalizedPathname,
   pathname,
   resolveOverlayReferenceAccess,
   searchParams,
@@ -158,47 +166,28 @@ export function restoreWorkspaceShellLocation({
 
   const canonicalSearchParams = new URLSearchParams(searchParams);
   const safeFallbackHref = resolveWorkspaceShellSafeFallback(route);
-  const requestedThreadId = searchParams.get('thread');
-  const threadId =
-    route.mode === 'conversation'
-      ? extractConversationThreadId(normalizedPathname)
-      : isSafeOpaqueId(requestedThreadId)
-        ? requestedThreadId
-        : null;
 
-  if (
-    route.mode === 'conversation' &&
-    /^\/agent\/[^/]+$/.test(normalizedPathname) &&
-    normalizedPathname !== '/agent/new' &&
-    !threadId
-  ) {
-    canonicalSearchParams.delete('thread');
+  // The agent thread lives in the path (`/agent/:id`). It is never a query
+  // param: on every other surface the conversation is the inspector drawer,
+  // which follows the agent store rather than the URL. `?thread=` is therefore
+  // non-canonical everywhere and is always stripped.
+  const threadCandidate = getRouteThreadCandidate(route);
+  const threadId = isSafeOpaqueId(threadCandidate) ? threadCandidate : null;
+  const isCanonical = !searchParams.has('thread');
+  canonicalSearchParams.delete('thread');
 
+  if (threadCandidate && !threadId) {
     return {
-      baseState: route.mode,
       canonicalSearchParams,
       isCanonical: false,
       overlay: null,
       restorationFailure: 'invalid_thread',
       routeKey: route.key,
       safeFallbackHref,
-      state: route.mode,
+      state: 'canvas',
       surfaceKey: route.surfaceKey,
       threadId: null,
     };
-  }
-
-  let isCanonical = true;
-  if (route.mode === 'conversation' && searchParams.has('thread')) {
-    canonicalSearchParams.delete('thread');
-    isCanonical = false;
-  } else if (
-    route.mode === 'canvas' &&
-    searchParams.has('thread') &&
-    !threadId
-  ) {
-    canonicalSearchParams.delete('thread');
-    isCanonical = false;
   }
 
   const overlayKey = searchParams.get('overlay');
@@ -213,28 +202,26 @@ export function restoreWorkspaceShellLocation({
       canonicalSearchParams.delete('overlayRef');
 
       return {
-        baseState: route.mode,
         canonicalSearchParams,
         isCanonical: false,
         overlay: null,
         restorationFailure: 'invalid_overlay',
         routeKey: route.key,
         safeFallbackHref,
-        state: route.mode,
+        state: 'canvas',
         surfaceKey: route.surfaceKey,
         threadId,
       };
     }
 
     return {
-      baseState: route.mode,
       canonicalSearchParams,
       isCanonical,
       overlay: null,
       restorationFailure: null,
       routeKey: route.key,
       safeFallbackHref,
-      state: route.mode,
+      state: 'canvas',
       surfaceKey: route.surfaceKey,
       threadId,
     };
@@ -250,7 +237,6 @@ export function restoreWorkspaceShellLocation({
     canonicalSearchParams.delete('overlayRef');
 
     return {
-      baseState: route.mode,
       canonicalSearchParams,
       isCanonical: false,
       overlay: null,
@@ -258,14 +244,13 @@ export function restoreWorkspaceShellLocation({
         overlayResolution.failure ?? 'invalid_overlay_reference',
       routeKey: route.key,
       safeFallbackHref,
-      state: route.mode,
+      state: 'canvas',
       surfaceKey: route.surfaceKey,
       threadId,
     };
   }
 
   return {
-    baseState: route.mode,
     canonicalSearchParams,
     isCanonical,
     overlay: overlayResolution.overlay,
@@ -282,14 +267,10 @@ export function buildWorkspaceShellHref(
   href: string,
   params: {
     readonly overlay?: WorkspaceShellOverlayRequest;
-    readonly threadId?: string | null;
   },
 ): string {
   const shellSearchParams = new URLSearchParams();
 
-  if (params.threadId) {
-    shellSearchParams.set('thread', params.threadId);
-  }
   if (params.overlay) {
     shellSearchParams.set('overlay', params.overlay.key);
   }
@@ -311,6 +292,9 @@ export function removeWorkspaceShellOverlayParams(
   const nextSearchParams = new URLSearchParams(searchParams);
   nextSearchParams.delete('overlay');
   nextSearchParams.delete('overlayRef');
+  // Dismissing an overlay returns to the canonical underlying URL, which never
+  // carries thread identity.
+  nextSearchParams.delete('thread');
 
   return appendSearchParamsToHref(pathname, nextSearchParams);
 }
