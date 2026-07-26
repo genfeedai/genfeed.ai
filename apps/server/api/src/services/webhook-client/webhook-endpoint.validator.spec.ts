@@ -1,3 +1,4 @@
+import type { LookupFunction } from 'node:net';
 import { afterEach, vi } from 'vitest';
 
 const dnsLookupMock = vi.hoisted(() => vi.fn());
@@ -11,6 +12,19 @@ import {
   createPinnedWebhookAgent,
   WebhookEndpointValidationError,
 } from '@api/services/webhook-client/webhook-endpoint.validator';
+
+interface InspectablePinnedAgent {
+  options: {
+    lookup?: LookupFunction;
+    servername?: string;
+  };
+}
+
+function inspectPinnedAgent(
+  agent: ReturnType<typeof createPinnedWebhookAgent>,
+): InspectablePinnedAgent {
+  return agent as unknown as InspectablePinnedAgent;
+}
 
 describe('assertSafeWebhookEndpoint', () => {
   afterEach(() => {
@@ -92,6 +106,16 @@ describe('assertSafeWebhookEndpoint', () => {
     ).rejects.toThrow('private or reserved');
   });
 
+  it('fails closed when DNS reports an inconsistent address family', async () => {
+    dnsLookupMock.mockResolvedValueOnce([
+      { address: '93.184.216.34', family: 6 },
+    ]);
+
+    await expect(
+      assertSafeWebhookEndpoint('https://hooks.example.com/webhook'),
+    ).rejects.toThrow('unsupported address family');
+  });
+
   it('pins HTTPS lookup and SNI to the validated hostname and address set', async () => {
     dnsLookupMock.mockResolvedValueOnce([
       { address: '93.184.216.34', family: 4 },
@@ -100,7 +124,7 @@ describe('assertSafeWebhookEndpoint', () => {
     const endpoint = await assertSafeWebhookEndpoint(
       'https://hooks.example.com/webhook',
     );
-    const agent = createPinnedWebhookAgent(endpoint);
+    const agent = inspectPinnedAgent(createPinnedWebhookAgent(endpoint));
     const pinnedLookup = agent.options.lookup;
 
     expect(agent.options.servername).toBe('hooks.example.com');
@@ -146,7 +170,7 @@ describe('assertSafeWebhookEndpoint', () => {
     const endpoint = await assertSafeWebhookEndpoint(
       'http://hooks.example.com/webhook',
     );
-    const agent = createPinnedWebhookAgent(endpoint);
+    const agent = inspectPinnedAgent(createPinnedWebhookAgent(endpoint));
 
     await new Promise<void>((resolve) => {
       agent.options.lookup?.(

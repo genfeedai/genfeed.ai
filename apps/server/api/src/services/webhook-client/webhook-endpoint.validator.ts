@@ -31,6 +31,26 @@ function normalizeHostname(hostname: string): string {
     : normalized;
 }
 
+function createValidatedWebhookAddress(
+  address: string,
+  reportedFamily: number,
+): ValidatedWebhookAddress {
+  const parsedFamily = isIP(address);
+  if (
+    (parsedFamily !== 4 && parsedFamily !== 6) ||
+    parsedFamily !== reportedFamily
+  ) {
+    throw new WebhookEndpointValidationError(
+      'Webhook endpoint returned an unsupported address family',
+    );
+  }
+
+  return {
+    address,
+    family: parsedFamily,
+  };
+}
+
 export async function assertSafeWebhookEndpoint(
   endpoint: string,
 ): Promise<ValidatedWebhookEndpoint> {
@@ -56,7 +76,7 @@ export async function assertSafeWebhookEndpoint(
     );
   }
 
-  const literalVersion = isIP(hostname);
+  const literalVersion = isIP(hostname) as 0 | 4 | 6;
   if (literalVersion !== 0) {
     if (isBlockedDestinationAddress(hostname)) {
       throw new WebhookEndpointValidationError(
@@ -64,7 +84,7 @@ export async function assertSafeWebhookEndpoint(
       );
     }
     return {
-      addresses: [{ address: hostname, family: literalVersion }],
+      addresses: [createValidatedWebhookAddress(hostname, literalVersion)],
       hostname,
       url,
     };
@@ -81,10 +101,9 @@ export async function assertSafeWebhookEndpoint(
   }
 
   return {
-    addresses: addresses.map((address) => ({
-      address: address.address,
-      family: isIP(address.address) as 4 | 6,
-    })),
+    addresses: addresses.map((address) =>
+      createValidatedWebhookAddress(address.address, address.family),
+    ),
     hostname,
     url,
   };
