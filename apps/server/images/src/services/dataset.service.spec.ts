@@ -95,6 +95,7 @@ describe('DatasetService', () => {
         'test-bucket',
         'photo.jpg',
         '/datasets/test/photo.jpg',
+        '/datasets/test',
       );
     });
 
@@ -113,6 +114,27 @@ describe('DatasetService', () => {
       await expect(
         service.syncDataset('../evil', { s3Keys: ['photo.jpg'] }),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should reject an S3 key whose basename escapes the dataset directory', async () => {
+      await expect(
+        service.syncDataset('test', { s3Keys: ['uploads/..'] }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockS3Service.downloadFile).not.toHaveBeenCalled();
+    });
+
+    it('should accept a nested S3 key and contain its local filename', async () => {
+      await service.syncDataset('test', {
+        s3Keys: ['uploads/nested/photo.jpg'],
+      });
+
+      expect(mockS3Service.downloadFile).toHaveBeenCalledWith(
+        'test-bucket',
+        'uploads/nested/photo.jpg',
+        '/datasets/test/photo.jpg',
+        '/datasets/test',
+      );
     });
 
     it('should throw if s3Keys is empty', async () => {

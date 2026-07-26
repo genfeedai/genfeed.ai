@@ -77,6 +77,7 @@ describe('VoiceCloneService', () => {
         'test-bucket',
         'ingredients/trainings/voice-clones/my-voice/model.pth',
         '/models/voices/my-voice/model.pth',
+        '/models/voices',
       );
     });
 
@@ -178,6 +179,7 @@ describe('VoiceCloneService', () => {
         'test-bucket',
         'ingredients/trainings/voice-clones/my-voice/model.pth',
         '/models/voices/my-voice/model.pth',
+        '/models/voices',
       );
     });
   });

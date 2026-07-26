@@ -1,5 +1,13 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import type { SecurityErrorFactory } from '@genfeedai/storage/path-containment';
+
+export {
+  assertSafeSegment,
+  resolveContainedPath,
+  SAFE_SEGMENT_PATTERN,
+  type SecurityErrorFactory,
+} from '@genfeedai/storage/path-containment';
 
 /**
  * Shared, framework-agnostic path-traversal and command-injection sanitization.
@@ -15,9 +23,6 @@ import path from 'node:path';
  * NOTE: LLM prompt-injection sanitization (`sanitizePromptInput*`) intentionally
  * does NOT live here — it is API-local, since only the API builds LLM prompts.
  */
-
-/** Factory that turns a message into the consumer's validation error type. */
-export type SecurityErrorFactory = (message: string) => Error;
 
 /** Allowed media file extensions (lowercased, dot-prefixed). */
 export const DEFAULT_ALLOWED_EXTENSIONS: readonly string[] = [
@@ -85,72 +90,6 @@ export const DEFAULT_INJECTION_PATTERNS: readonly string[] = [
   '&lt;',
   '&amp;',
 ];
-
-/**
- * A single traversal-free path/object-key segment: starts alphanumeric, then
- * alphanumerics, dot, dash, underscore. Contains no separator, so it can never
- * escape the directory or S3 prefix it is interpolated into.
- */
-export const SAFE_SEGMENT_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-
-/**
- * Assert a caller-supplied identifier is safe to interpolate into a filesystem
- * path or an S3 key. Use this wherever a request field becomes part of a path —
- * a name that reaches `join()` or a template literal is an injection point even
- * when the surrounding directory is fixed.
- */
-export function assertSafeSegment(
-  value: string,
-  name: string,
-  createError: SecurityErrorFactory,
-): string {
-  if (
-    typeof value !== 'string' ||
-    !SAFE_SEGMENT_PATTERN.test(value) ||
-    value.includes('..')
-  ) {
-    throw createError(
-      `${name} must be a single path segment of letters, digits, '.', '-' or '_'`,
-    );
-  }
-
-  return value;
-}
-
-/**
- * Resolve `candidatePath` and assert the result stays inside `rootDir`.
- *
- * {@link PathSecurity.validateFilePath} rejects known-bad spellings from a
- * blocklist; this expresses the stronger invariant an upload/download endpoint
- * actually needs — "this file must live under that directory" — which no
- * substring blocklist can encode. A relative candidate resolves against the
- * root; an absolute candidate is still held to the containment check.
- */
-export function resolveContainedPath(
-  rootDir: string,
-  candidatePath: string,
-  createError: SecurityErrorFactory,
-): string {
-  if (!rootDir || typeof rootDir !== 'string') {
-    throw createError('Containment root is not configured');
-  }
-
-  if (!candidatePath || typeof candidatePath !== 'string') {
-    throw createError('File path is required and must be a string');
-  }
-
-  const resolvedRoot = path.resolve(rootDir);
-  const resolved = path.resolve(resolvedRoot, candidatePath);
-
-  if (
-    resolved !== resolvedRoot &&
-    !resolved.startsWith(`${resolvedRoot}${path.sep}`)
-  ) {
-    throw createError(`File path must stay within ${resolvedRoot}`);
-  }
-
-  return resolved;
-}
 
 export interface PathSecurityOptions {
   /** Required: builds the error thrown by every guard. */

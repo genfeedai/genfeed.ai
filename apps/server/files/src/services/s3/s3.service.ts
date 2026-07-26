@@ -11,9 +11,15 @@ import {
 import { Upload } from '@aws-sdk/lib-storage';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ConfigService } from '@files/config/config.service';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
+import {
+  assertSafeObjectKey,
+  resolveContainedObjectKey,
+  resolveContainedPath,
+} from '@libs/security';
 import { safeFetch } from '@libs/security/destination-guard';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
 /** Minimal shape covering AWS SDK S3 errors */
 interface S3Error extends Error {
@@ -21,6 +27,8 @@ interface S3Error extends Error {
   $metadata?: { httpStatusCode?: number };
   statusCode?: number;
 }
+
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 @Injectable()
 export class S3Service {
@@ -47,7 +55,13 @@ export class S3Service {
     filePath: string,
     contentType?: string,
   ): Promise<{ Location: string; ETag: string; Key: string }> {
-    const fileStream = fs.createReadStream(filePath);
+    const safeKey = assertSafeObjectKey(key, createBadRequest);
+    const containedFilePath = resolveContainedPath(
+      FILES_TMP_ROOT,
+      filePath,
+      createBadRequest,
+    );
+    const fileStream = fs.createReadStream(containedFilePath);
 
     try {
       const upload = new Upload({
@@ -56,20 +70,20 @@ export class S3Service {
           Body: fileStream,
           Bucket: this.bucket,
           ContentType: contentType || 'video/mp4',
-          Key: key,
+          Key: safeKey,
         },
       });
 
       const result = await upload.done();
-      const location = this.getPublicUrl(key);
+      const location = this.getPublicUrl(safeKey);
       this.logger.log(`File uploaded successfully to ${location}`, {
         bucket: this.bucket,
         contentType: contentType || 'video/mp4',
-        key,
+        key: safeKey,
       });
       return {
         ETag: result.ETag || '',
-        Key: key,
+        Key: safeKey,
         Location: location,
       };
     } catch (error: unknown) {
@@ -85,6 +99,7 @@ export class S3Service {
     buffer: Buffer,
     contentType?: string,
   ): Promise<{ Location: string; ETag: string; Key: string }> {
+    const safeKey = assertSafeObjectKey(key, createBadRequest);
     const startTime = Date.now();
     const bufferSizeMB = (buffer.length / (1024 * 1024)).toFixed(2);
 
@@ -93,7 +108,7 @@ export class S3Service {
       bufferSize: `${bufferSizeMB} MB`,
       bufferSizeBytes: buffer.length,
       contentType: contentType || 'application/octet-stream',
-      key,
+      key: safeKey,
     });
 
     try {
@@ -102,14 +117,14 @@ export class S3Service {
         Bucket: this.bucket,
         ContentLength: buffer.length,
         ContentType: contentType || 'application/octet-stream',
-        Key: key,
+        Key: safeKey,
       });
 
       const s3StartTime = Date.now();
       const result = await this.s3Client.send(command);
       const s3Duration = Date.now() - s3StartTime;
 
-      const location = this.getPublicUrl(key);
+      const location = this.getPublicUrl(safeKey);
       const totalDuration = Date.now() - startTime;
 
       this.logger.log(`Buffer uploaded successfully to S3`, {
@@ -117,7 +132,7 @@ export class S3Service {
         bufferSizeBytes: buffer.length,
         contentType: contentType || 'application/octet-stream',
         etag: result.ETag,
-        key,
+        key: safeKey,
         location,
         s3UploadDuration: `${s3Duration}ms`,
         totalDuration: `${totalDuration}ms`,
@@ -126,7 +141,7 @@ export class S3Service {
 
       return {
         ETag: result.ETag || '',
-        Key: key,
+        Key: safeKey,
         Location: location,
       };
     } catch (error: unknown) {
@@ -147,15 +162,21 @@ export class S3Service {
   }
 
   async downloadFile(key: string, localPath: string): Promise<void> {
+    const safeKey = assertSafeObjectKey(key, createBadRequest);
+    const containedLocalPath = resolveContainedPath(
+      FILES_TMP_ROOT,
+      localPath,
+      createBadRequest,
+    );
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucket,
-        Key: key,
+        Key: safeKey,
       });
       const response = await this.s3Client.send(command);
 
       // Ensure directory exists
-      const dir = path.dirname(localPath);
+      const dir = path.dirname(containedLocalPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
@@ -168,8 +189,8 @@ export class S3Service {
       }
       const buffer = Buffer.concat(chunks);
 
-      fs.writeFileSync(localPath, buffer);
-      this.logger.log(`File downloaded successfully to ${localPath}`);
+      fs.writeFileSync(containedLocalPath, buffer);
+      this.logger.log(`File downloaded successfully to ${containedLocalPath}`);
     } catch (error: unknown) {
       this.logger.error(
         `Failed to download file from S3: ${getErrorMessage(error)}`,
@@ -179,6 +200,11 @@ export class S3Service {
   }
 
   async downloadFromUrl(url: string, localPath: string): Promise<void> {
+    const containedLocalPath = resolveContainedPath(
+      FILES_TMP_ROOT,
+      localPath,
+      createBadRequest,
+    );
     try {
       // This helper accepts caller-supplied media URLs, not a configured
       // storage service origin. Keep the public-network policy fail-closed.
@@ -209,13 +235,13 @@ export class S3Service {
       const buffer = Buffer.from(await response.arrayBuffer());
 
       // Ensure directory exists
-      const dir = path.dirname(localPath);
+      const dir = path.dirname(containedLocalPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
 
-      fs.writeFileSync(localPath, buffer);
-      this.logger.log(`File downloaded from URL to ${localPath}`);
+      fs.writeFileSync(containedLocalPath, buffer);
+      this.logger.log(`File downloaded from URL to ${containedLocalPath}`);
     } catch (error: unknown) {
       this.logger.error('Failed to download file from URL', {
         error: getErrorMessage(error) || 'Unknown error',
@@ -227,13 +253,14 @@ export class S3Service {
   }
 
   async deleteFile(key: string): Promise<void> {
+    const safeKey = assertSafeObjectKey(key, createBadRequest);
     try {
       const command = new DeleteObjectCommand({
         Bucket: this.bucket,
-        Key: key,
+        Key: safeKey,
       });
       await this.s3Client.send(command);
-      this.logger.log(`File deleted successfully: ${key}`);
+      this.logger.log(`File deleted successfully: ${safeKey}`);
     } catch (error: unknown) {
       this.logger.error(
         `Failed to delete file from S3: ${getErrorMessage(error)}`,
@@ -247,20 +274,21 @@ export class S3Service {
     contentType: string = 'application/octet-stream',
     expiresIn: number = 3600,
   ): Promise<{ uploadUrl: string; publicUrl: string }> {
+    const safeKey = assertSafeObjectKey(key, createBadRequest);
     try {
       const command = new PutObjectCommand({
         Bucket: this.bucket,
         ContentType: contentType,
-        Key: key,
+        Key: safeKey,
       });
 
       const uploadUrl = await getSignedUrl(this.s3Client, command, {
         expiresIn,
       });
 
-      const publicUrl = this.getPublicUrl(key);
+      const publicUrl = this.getPublicUrl(safeKey);
 
-      this.logger.log(`Generated presigned upload URL for ${key}`);
+      this.logger.log(`Generated presigned upload URL for ${safeKey}`);
       return { publicUrl, uploadUrl };
     } catch (error: unknown) {
       this.logger.error(
@@ -274,17 +302,18 @@ export class S3Service {
     key: string,
     expiresIn: number = 3600,
   ): Promise<string> {
+    const safeKey = assertSafeObjectKey(key, createBadRequest);
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucket,
-        Key: key,
+        Key: safeKey,
       });
 
       const downloadUrl = await getSignedUrl(this.s3Client, command, {
         expiresIn,
       });
 
-      this.logger.log(`Generated presigned download URL for ${key}`);
+      this.logger.log(`Generated presigned download URL for ${safeKey}`);
       return downloadUrl;
     } catch (error: unknown) {
       this.logger.error(
@@ -295,20 +324,29 @@ export class S3Service {
   }
 
   generateS3Key(type: string, id: string): string {
-    return `ingredients/${type}/${id}`;
+    return resolveContainedObjectKey(
+      'ingredients',
+      `${type}/${id}`,
+      createBadRequest,
+    );
   }
 
   async copyFile(sourceKey: string, destinationKey: string): Promise<void> {
+    const safeSourceKey = assertSafeObjectKey(sourceKey, createBadRequest);
+    const safeDestinationKey = assertSafeObjectKey(
+      destinationKey,
+      createBadRequest,
+    );
     try {
       const command = new CopyObjectCommand({
         Bucket: this.bucket,
-        CopySource: `${this.bucket}/${sourceKey}`,
-        Key: destinationKey,
+        CopySource: `${this.bucket}/${safeSourceKey}`,
+        Key: safeDestinationKey,
       });
 
       await this.s3Client.send(command);
       this.logger.log(
-        `File copied successfully from ${sourceKey} to ${destinationKey}`,
+        `File copied successfully from ${safeSourceKey} to ${safeDestinationKey}`,
       );
     } catch (error: unknown) {
       const s3Err = error as S3Error;
@@ -330,10 +368,11 @@ export class S3Service {
   }
 
   async getFileStream(key: string): Promise<Readable> {
+    const safeKey = assertSafeObjectKey(key, createBadRequest);
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucket,
-        Key: key,
+        Key: safeKey,
       });
 
       const response = await this.s3Client.send(command);
@@ -347,6 +386,7 @@ export class S3Service {
   }
 
   getPublicUrl(key: string): string {
-    return `${this.configService.get('GENFEEDAI_CDN_URL')}/${key}`;
+    const safeKey = assertSafeObjectKey(key, createBadRequest);
+    return `${this.configService.get('GENFEEDAI_CDN_URL')}/${safeKey}`;
   }
 }

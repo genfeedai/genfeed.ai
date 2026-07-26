@@ -1,5 +1,5 @@
 import { mkdir, readdir, rm, stat } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { basename } from 'node:path';
 import { ConfigService } from '@images/config/config.service';
 import type {
   DatasetInfo,
@@ -8,6 +8,7 @@ import type {
 } from '@images/interfaces/dataset.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { S3Service } from '@libs/s3/s3.service';
+import { resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -26,6 +27,8 @@ const ALLOWED_EXTENSIONS = new Set([
   '.txt',
 ]);
 
+const createBadRequest = (message: string) => new BadRequestException(message);
+
 @Injectable()
 export class DatasetService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -37,7 +40,11 @@ export class DatasetService {
   ) {}
 
   private getDatasetPath(slug: string): string {
-    return join(this.configService.DATASETS_PATH, slug);
+    return resolveContainedPath(
+      this.configService.DATASETS_PATH,
+      slug,
+      createBadRequest,
+    );
   }
 
   private isValidSlug(slug: string): boolean {
@@ -87,6 +94,11 @@ export class DatasetService {
 
     for (const key of request.s3Keys) {
       const filename = basename(key);
+      const localPath = resolveContainedPath(
+        datasetPath,
+        filename,
+        createBadRequest,
+      );
 
       if (!this.isAllowedDatasetFile(filename)) {
         errors.push(`Skipped non-image file: ${key}`);
@@ -94,10 +106,8 @@ export class DatasetService {
         continue;
       }
 
-      const localPath = join(datasetPath, filename);
-
       try {
-        await this.s3Service.downloadFile(bucket, key, localPath);
+        await this.s3Service.downloadFile(bucket, key, localPath, datasetPath);
         downloaded++;
       } catch (error: unknown) {
         const errorMessage =

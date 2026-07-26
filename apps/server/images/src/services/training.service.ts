@@ -469,6 +469,7 @@ export class TrainingService implements OnModuleInit {
         bucket,
         loraName,
         localPath,
+        lorasPath,
       );
 
       this.loggerService.log(caller, {

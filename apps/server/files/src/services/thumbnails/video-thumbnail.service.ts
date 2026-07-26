@@ -1,11 +1,13 @@
 import * as fs from 'node:fs';
-import path from 'node:path';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { S3Service } from '@files/services/s3/s3.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import sharp from 'sharp';
+
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 @Injectable()
 export class VideoThumbnailService {
@@ -31,6 +33,11 @@ export class VideoThumbnailService {
     timeInSeconds: number = 1,
     width: number = 720,
   ): Promise<string> {
+    const safeIngredientId = assertSafeSegment(
+      ingredientId,
+      'ingredientId',
+      createBadRequest,
+    );
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const thumbnailStartTime = Date.now();
 
@@ -44,11 +51,19 @@ export class VideoThumbnailService {
     try {
       const tempPath = this.ffmpegService.getTempPath(
         'thumbnail',
-        ingredientId,
+        safeIngredientId,
       );
 
-      const videoPath = path.join(tempPath, 'input.mp4');
-      const thumbnailPath = path.join(tempPath, 'thumbnail.jpg');
+      const videoPath = resolveContainedPath(
+        tempPath,
+        'input.mp4',
+        createBadRequest,
+      );
+      const thumbnailPath = resolveContainedPath(
+        tempPath,
+        'thumbnail.jpg',
+        createBadRequest,
+      );
 
       // Ensure temp directory exists
       if (!fs.existsSync(tempPath)) {
@@ -101,7 +116,11 @@ export class VideoThumbnailService {
 
       const thumbnailSizeKB = (resizedThumbnailBuffer.length / 1024).toFixed(2);
 
-      const resizedThumbnailPath = path.join(tempPath, 'thumbnail_resized.jpg');
+      const resizedThumbnailPath = resolveContainedPath(
+        tempPath,
+        'thumbnail_resized.jpg',
+        createBadRequest,
+      );
       fs.writeFileSync(resizedThumbnailPath, resizedThumbnailBuffer);
 
       this.loggerService.log(`${url} thumbnail resized`, {
@@ -112,7 +131,10 @@ export class VideoThumbnailService {
       });
 
       // Upload thumbnail to S3
-      const s3Key = this.s3Service.generateS3Key('thumbnails', ingredientId);
+      const s3Key = this.s3Service.generateS3Key(
+        'thumbnails',
+        safeIngredientId,
+      );
       const uploadStartTime = Date.now();
 
       await this.s3Service.uploadFile(
@@ -126,7 +148,11 @@ export class VideoThumbnailService {
       const totalDuration = Date.now() - thumbnailStartTime;
 
       // Cleanup temp files
-      this.ffmpegService.cleanupTempFiles(ingredientId, 'thumbnail');
+      this.ffmpegService.cleanupTempFiles(
+        videoPath,
+        thumbnailPath,
+        resizedThumbnailPath,
+      );
 
       this.loggerService.log(`${url} succeeded`, {
         downloadDuration: `${downloadDuration}ms`,

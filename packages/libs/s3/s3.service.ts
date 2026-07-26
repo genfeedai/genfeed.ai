@@ -3,10 +3,15 @@ import {
   createStorageProvider,
   type StorageProvider,
 } from '@genfeedai/storage';
-// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  assertSafeObjectKey,
+  assertSafeObjectKeyPrefix,
+  resolveContainedObjectKey,
+  resolveContainedPath,
+} from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 
 export interface S3Object {
   key: string;
@@ -20,6 +25,8 @@ export interface S3ConfigService {
   AWS_SECRET_ACCESS_KEY: string;
   AWS_REGION: string;
 }
+
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 /**
  * Thin NestJS wrapper over `@genfeedai/storage` — the single S3/local-FS
@@ -56,22 +63,29 @@ export class S3Service {
     bucket: string,
     key: string,
     localPath: string,
+    localRoot: string,
   ): Promise<void> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const containedLocalPath = resolveContainedPath(
+      localRoot,
+      localPath,
+      createBadRequest,
+    );
+    const safeKey = assertSafeObjectKey(key, createBadRequest);
 
     this.loggerService.log(caller, {
       bucket,
-      key,
-      localPath,
+      key: safeKey,
+      localPath: containedLocalPath,
       message: 'Downloading file from storage',
     });
 
-    await this.providerFor(bucket).download(key, localPath);
+    await this.providerFor(bucket).download(safeKey, containedLocalPath);
 
     this.loggerService.log(caller, {
       bucket,
-      key,
-      localPath,
+      key: safeKey,
+      localPath: containedLocalPath,
       message: 'File downloaded successfully',
     });
   }
@@ -87,19 +101,30 @@ export class S3Service {
     bucket: string,
     key: string,
     localPath: string,
+    localRoot: string,
     contentType?: string,
   ): Promise<void> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const containedLocalPath = resolveContainedPath(
+      localRoot,
+      localPath,
+      createBadRequest,
+    );
+    const safeKey = assertSafeObjectKey(key, createBadRequest);
 
     this.loggerService.log(caller, {
       bucket,
-      key,
-      localPath,
+      key: safeKey,
+      localPath: containedLocalPath,
       message: 'Uploading file to storage',
     });
 
-    await this.providerFor(bucket).uploadFromFile(key, localPath, contentType);
-    const fileStats = await stat(localPath);
+    await this.providerFor(bucket).uploadFromFile(
+      safeKey,
+      containedLocalPath,
+      contentType,
+    );
+    const fileStats = await stat(containedLocalPath);
 
     this.loggerService.log(caller, {
       bucket,
@@ -117,13 +142,23 @@ export class S3Service {
     bucket: string,
     loraName: string,
     localPath: string,
+    localRoot: string,
   ): Promise<{ s3Key: string; sizeBytes: number }> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const s3Key = `ingredients/trainings/loras/${loraName}.safetensors`;
+    const containedLocalPath = resolveContainedPath(
+      localRoot,
+      localPath,
+      createBadRequest,
+    );
+    const s3Key = resolveContainedObjectKey(
+      'ingredients/trainings/loras',
+      `${loraName}.safetensors`,
+      createBadRequest,
+    );
 
     this.loggerService.log(caller, {
       bucket,
-      localPath,
+      localPath: containedLocalPath,
       loraName,
       message: 'Uploading safetensors to storage',
       s3Key,
@@ -131,10 +166,10 @@ export class S3Service {
 
     await this.providerFor(bucket).uploadFromFile(
       s3Key,
-      localPath,
+      containedLocalPath,
       'application/octet-stream',
     );
-    const fileStats = await stat(localPath);
+    const fileStats = await stat(containedLocalPath);
 
     this.loggerService.log(caller, {
       bucket,
@@ -149,14 +184,15 @@ export class S3Service {
 
   async listObjects(bucket: string, prefix: string): Promise<S3Object[]> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const safePrefix = assertSafeObjectKeyPrefix(prefix, createBadRequest);
 
     this.loggerService.log(caller, {
       bucket,
       message: 'Listing storage objects',
-      prefix,
+      prefix: safePrefix,
     });
 
-    const objects = await this.providerFor(bucket).listObjects(prefix);
+    const objects = await this.providerFor(bucket).listObjects(safePrefix);
     const mapped: S3Object[] = objects.map((object) => ({
       key: object.key,
       lastModified: object.lastModified.toISOString(),
@@ -167,7 +203,7 @@ export class S3Service {
       bucket,
       count: mapped.length,
       message: 'Listed storage objects',
-      prefix,
+      prefix: safePrefix,
     });
 
     return mapped;

@@ -77,6 +77,7 @@ describe('LoraService', () => {
         'test-bucket',
         'ingredients/trainings/loras/my-lora.safetensors',
         '/comfyui/models/loras/my-lora.safetensors',
+        '/comfyui/models/loras',
       );
     });
 
@@ -167,6 +168,7 @@ describe('LoraService', () => {
         'test-bucket',
         'ingredients/trainings/loras/my-lora.safetensors',
         '/comfyui/models/loras/my-lora.safetensors',
+        '/comfyui/models/loras',
       );
     });
 

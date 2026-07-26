@@ -1,7 +1,10 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Mock, Mocked, MockedFunction } from 'vitest';
 
@@ -251,7 +254,7 @@ describe('YtDlpService', () => {
   describe('downloadVideo', () => {
     it('should download a 720p mp4 video to a custom output path', async () => {
       const url = 'https://youtube.com/watch?v=test';
-      const outputPath = '/tmp/genfeed/video.mp4';
+      const outputPath = path.join(FILES_TMP_ROOT, 'nested', 'video.mp4');
       const mockProcess = useMockProcess(spawnMock);
       fsMock.existsSync.mockReturnValue(true);
 
@@ -282,9 +285,23 @@ describe('YtDlpService', () => {
       );
     });
 
+    it('rejects an output path outside the files temp root before spawning', async () => {
+      // downloadVideo is async, so the guard surfaces as a rejected promise.
+      // `expect(fn).toThrow()` only observes a synchronous throw and would pass
+      // even if the containment check never ran.
+      await expect(
+        service.downloadVideo(
+          'https://youtube.com/watch?v=test',
+          '/etc/escaped.mp4',
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(spawnMock).not.toHaveBeenCalled();
+    });
+
     it('kills a timed-out process and removes partial output after close', async () => {
       vi.useFakeTimers();
-      const outputPath = '/tmp/genfeed/video.mp4';
+      const outputPath = path.join(FILES_TMP_ROOT, 'genfeed', 'video.mp4');
       const mockProcess = useMockProcess(spawnMock);
       fsMock.existsSync.mockReturnValue(true);
 
@@ -311,7 +328,7 @@ describe('YtDlpService', () => {
     });
 
     it('rejects a successful process that did not create an output file', async () => {
-      const outputPath = '/tmp/genfeed/video.mp4';
+      const outputPath = path.join(FILES_TMP_ROOT, 'genfeed', 'video.mp4');
       const mockProcess = useMockProcess(spawnMock);
       fsMock.existsSync
         .mockReturnValueOnce(true)
@@ -331,7 +348,7 @@ describe('YtDlpService', () => {
   describe('downloadAudioLowestQuality', () => {
     it('should download the lowest quality mp3 to the requested output path', async () => {
       const url = 'https://youtube.com/watch?v=test';
-      const outputPath = '/tmp/genfeed/audio.mp3';
+      const outputPath = path.join(FILES_TMP_ROOT, 'nested', 'audio.mp3');
       const mockProcess = useMockProcess(spawnMock);
       fsMock.existsSync.mockReturnValue(true);
 

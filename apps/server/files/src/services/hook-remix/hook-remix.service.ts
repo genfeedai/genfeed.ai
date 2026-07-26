@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import type {
   HookRemixJobData,
@@ -8,8 +9,15 @@ import type {
 import { UploadService } from '@files/services/upload/upload.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  assertSafeSegment,
+  resolveContainedObjectKey,
+  resolveContainedPath,
+} from '@libs/security';
 import { safeFetch } from '@libs/security/destination-guard';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 @Injectable()
 export class HookRemixService {
@@ -21,7 +29,17 @@ export class HookRemixService {
   ) {}
 
   async processHookRemix(data: HookRemixJobData): Promise<HookRemixResult> {
-    const tempDir = path.resolve('public', 'tmp', 'hook-remix', data.jobId);
+    const jobId = assertSafeSegment(data.jobId, 'jobId', createBadRequest);
+    const organizationId = assertSafeSegment(
+      data.organizationId,
+      'organizationId',
+      createBadRequest,
+    );
+    const tempDir = resolveContainedPath(
+      path.join(FILES_TMP_ROOT, 'hook-remix'),
+      jobId,
+      createBadRequest,
+    );
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
@@ -59,7 +77,11 @@ export class HookRemixService {
       );
 
       // Step 5: Upload to S3
-      const s3Key = `${data.organizationId}/hook-remix/${data.jobId}.mp4`;
+      const s3Key = resolveContainedObjectKey(
+        `${organizationId}/hook-remix`,
+        `${jobId}.mp4`,
+        createBadRequest,
+      );
       this.logger.log(`[HookRemix] Uploading to S3: ${s3Key}`);
       const uploadResult = await this.uploadService.uploadToS3(
         s3Key,

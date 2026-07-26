@@ -138,82 +138,122 @@ describe('GenerationService', () => {
     it('should call workflowService.buildWan22I2V during async processing', async () => {
       await service.generateVideo(baseRequest);
 
-      // Wait for async processing to complete
-      await new Promise((resolve) => setTimeout(resolve, 20));
-
-      expect(workflowService.buildWan22I2V).toHaveBeenCalledOnce();
+      await vi.waitFor(() => {
+        expect(workflowService.buildWan22I2V).toHaveBeenCalledOnce();
+      });
     });
 
     it('should update job to processing status before ComfyUI call', async () => {
       await service.generateVideo(baseRequest);
-      await new Promise((resolve) => setTimeout(resolve, 20));
 
-      expect(jobService.updateJob).toHaveBeenCalledWith('job-abc-123', {
-        status: 'processing',
+      await vi.waitFor(() => {
+        expect(jobService.updateJob).toHaveBeenCalledWith('job-abc-123', {
+          status: 'processing',
+        });
       });
     });
 
     it('should upload to S3 and set CDN videoUrl on success', async () => {
       await service.generateVideo(baseRequest);
-      await new Promise((resolve) => setTimeout(resolve, 20));
 
-      expect(s3Service.uploadFile).toHaveBeenCalledWith(
-        'test-bucket',
-        expect.stringContaining('ingredients/videos/generated/job-abc-123'),
-        expect.stringContaining('output-video.mp4'),
-        'video/mp4',
-      );
+      await vi.waitFor(() => {
+        expect(s3Service.uploadFile).toHaveBeenCalledWith(
+          'test-bucket',
+          expect.stringContaining('ingredients/videos/generated/job-abc-123'),
+          expect.stringContaining('output-video.mp4'),
+          '/comfyui/output',
+          'video/mp4',
+        );
 
-      expect(jobService.updateJob).toHaveBeenCalledWith(
-        'job-abc-123',
-        expect.objectContaining({
-          status: 'completed',
-          videoUrl: expect.stringContaining('cdn.genfeed.ai'),
-        }),
-      );
+        expect(jobService.updateJob).toHaveBeenCalledWith(
+          'job-abc-123',
+          expect.objectContaining({
+            status: 'completed',
+            videoUrl: expect.stringContaining('cdn.genfeed.ai'),
+          }),
+        );
+      });
+    });
+
+    it('should preserve a legitimate nested ComfyUI output path', async () => {
+      comfyuiService.queueAndWait.mockResolvedValue('nested/output-video.mp4');
+
+      await service.generateVideo(baseRequest);
+
+      await vi.waitFor(() => {
+        expect(s3Service.uploadFile).toHaveBeenCalledWith(
+          'test-bucket',
+          expect.stringContaining(
+            'ingredients/videos/generated/job-abc-123/nested/output-video.mp4',
+          ),
+          '/comfyui/output/nested/output-video.mp4',
+          '/comfyui/output',
+          'video/mp4',
+        );
+      });
+    });
+
+    it('should reject a ComfyUI output path that escapes the configured root', async () => {
+      comfyuiService.queueAndWait.mockResolvedValue('../escaped.mp4');
+
+      await service.generateVideo(baseRequest);
+
+      await vi.waitFor(() => {
+        expect(s3Service.uploadFile).not.toHaveBeenCalled();
+        expect(jobService.updateJob).toHaveBeenCalledWith(
+          'job-abc-123',
+          expect.objectContaining({
+            error: expect.stringContaining('must stay within'),
+            status: 'failed',
+          }),
+        );
+      });
     });
 
     it('should set status to failed when ComfyUI is offline', async () => {
       comfyuiService.getStatus.mockResolvedValue({ status: 'offline' });
 
       await service.generateVideo(baseRequest);
-      await new Promise((resolve) => setTimeout(resolve, 20));
 
-      expect(jobService.updateJob).toHaveBeenCalledWith(
-        'job-abc-123',
-        expect.objectContaining({ status: 'failed' }),
-      );
+      await vi.waitFor(() => {
+        expect(jobService.updateJob).toHaveBeenCalledWith(
+          'job-abc-123',
+          expect.objectContaining({ status: 'failed' }),
+        );
+      });
     });
 
     it('should set status to failed when ComfyUI returns no output', async () => {
       comfyuiService.queueAndWait.mockResolvedValue(null);
 
       await service.generateVideo(baseRequest);
-      await new Promise((resolve) => setTimeout(resolve, 20));
 
-      expect(jobService.updateJob).toHaveBeenCalledWith(
-        'job-abc-123',
-        expect.objectContaining({
-          error: expect.any(String),
-          status: 'failed',
-        }),
-      );
+      await vi.waitFor(() => {
+        expect(jobService.updateJob).toHaveBeenCalledWith(
+          'job-abc-123',
+          expect.objectContaining({
+            error: expect.any(String),
+            status: 'failed',
+          }),
+        );
+      });
     });
 
     it('should fall back to local filename URL when S3 upload fails', async () => {
       s3Service.uploadFile.mockRejectedValue(new Error('S3 unreachable'));
 
       await service.generateVideo(baseRequest);
-      await new Promise((resolve) => setTimeout(resolve, 20));
 
-      expect(jobService.updateJob).toHaveBeenCalledWith(
-        'job-abc-123',
-        expect.objectContaining({
-          status: 'completed',
-          videoUrl: 'output-video.mp4',
-        }),
-      );
-      expect(loggerService.error).toHaveBeenCalled();
+      await vi.waitFor(() => {
+        expect(jobService.updateJob).toHaveBeenCalledWith(
+          'job-abc-123',
+          expect.objectContaining({
+            status: 'completed',
+            videoUrl: 'output-video.mp4',
+          }),
+        );
+        expect(loggerService.error).toHaveBeenCalled();
+      });
     });
   });
 });

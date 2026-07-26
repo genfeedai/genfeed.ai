@@ -1,9 +1,13 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { YT_DLP_PROCESS_TIMEOUT_MS } from '@genfeedai/constants';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { resolveContainedPath } from '@libs/security';
+import { BadRequestException, Injectable } from '@nestjs/common';
+
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 // Download audio from a YouTube video
 
@@ -12,7 +16,11 @@ export class YtDlpService {
   constructor(private readonly logger: LoggerService) {}
 
   public downloadAudio(url: string): Promise<string> {
-    const outputDir = path.resolve('public', 'tmp', 'clips');
+    const outputDir = resolveContainedPath(
+      FILES_TMP_ROOT,
+      'clips',
+      createBadRequest,
+    );
     this.ensureOutputDir(outputDir);
 
     const timestamp = Date.now();
@@ -25,16 +33,19 @@ export class YtDlpService {
   }
 
   public downloadVideo(url: string, outputPath?: string): Promise<string> {
-    const outputDir = outputPath
-      ? path.dirname(outputPath)
-      : path.resolve('public', 'tmp', 'clips');
+    const containedOutputPath = outputPath
+      ? resolveContainedPath(FILES_TMP_ROOT, outputPath, createBadRequest)
+      : undefined;
+    const outputDir = containedOutputPath
+      ? path.dirname(containedOutputPath)
+      : resolveContainedPath(FILES_TMP_ROOT, 'clips', createBadRequest);
     this.ensureOutputDir(outputDir);
 
     const timestamp = Date.now();
     const outputTemplate =
-      outputPath || path.join(outputDir, `${timestamp}.%(ext)s`);
+      containedOutputPath || path.join(outputDir, `${timestamp}.%(ext)s`);
     const expectedOutput =
-      outputPath || path.join(outputDir, `${timestamp}.mp4`);
+      containedOutputPath || path.join(outputDir, `${timestamp}.mp4`);
 
     const args = [
       '--no-playlist',
@@ -58,7 +69,12 @@ export class YtDlpService {
     url: string,
     outputPath: string,
   ): Promise<string> {
-    const outputDir = path.dirname(outputPath);
+    const containedOutputPath = resolveContainedPath(
+      FILES_TMP_ROOT,
+      outputPath,
+      createBadRequest,
+    );
+    const outputDir = path.dirname(containedOutputPath);
     this.ensureOutputDir(outputDir);
 
     const args = [
@@ -68,11 +84,11 @@ export class YtDlpService {
       '--audio-quality',
       '9',
       '-o',
-      outputPath,
+      containedOutputPath,
       url,
     ];
 
-    return this.runYtDlp(args, outputPath);
+    return this.runYtDlp(args, containedOutputPath);
   }
 
   private ensureOutputDir(outputDir: string): void {

@@ -181,6 +181,7 @@ describe('GenerationService', () => {
         'test-bucket',
         'ingredients/images/generated/job-image/generated.png',
         '/tmp/comfyui-output/runs/generated.png',
+        '/tmp/comfyui-output',
         'image/png',
       );
       expect(jobService.updateJob).toHaveBeenCalledWith(
@@ -272,6 +273,7 @@ describe('GenerationService', () => {
         'test-bucket',
         'ingredients/images/generated/job-image/passwd',
         '/tmp/comfyui-output/runs/passwd',
+        '/tmp/comfyui-output',
         expect.any(String),
       );
     });
@@ -322,6 +324,7 @@ describe('GenerationService', () => {
         'test-bucket',
         'ingredients/pulid/generated/job-pulid/generated.png',
         '/tmp/comfyui-output/runs/generated.png',
+        '/tmp/comfyui-output',
         'image/png',
       );
       expect(jobService.updateJob).toHaveBeenCalledWith(

@@ -1,5 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { S3Service } from '@libs/s3/s3.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 const mockProvider = {
@@ -67,7 +68,7 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
     it('creates the provider lazily with config credentials and the bucket', async () => {
       expect(mockCreateStorageProvider).not.toHaveBeenCalled();
 
-      await service.downloadFile('bucket-a', 'k.png', '/tmp/k.png');
+      await service.downloadFile('bucket-a', 'k.png', '/tmp/k.png', '/tmp');
 
       expect(mockCreateStorageProvider).toHaveBeenCalledTimes(1);
       expect(mockCreateStorageProvider).toHaveBeenCalledWith({
@@ -79,9 +80,9 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
     });
 
     it('caches one provider per bucket', async () => {
-      await service.downloadFile('bucket-a', 'k1.png', '/tmp/k1.png');
-      await service.downloadFile('bucket-a', 'k2.png', '/tmp/k2.png');
-      await service.downloadFile('bucket-b', 'k3.png', '/tmp/k3.png');
+      await service.downloadFile('bucket-a', 'k1.png', '/tmp/k1.png', '/tmp');
+      await service.downloadFile('bucket-a', 'k2.png', '/tmp/k2.png', '/tmp');
+      await service.downloadFile('bucket-b', 'k3.png', '/tmp/k3.png', '/tmp');
 
       expect(mockCreateStorageProvider).toHaveBeenCalledTimes(2);
     });
@@ -93,6 +94,7 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
         'test-bucket',
         'images/photo.jpg',
         '/tmp/photo.jpg',
+        '/tmp',
       );
 
       expect(mockProvider.download).toHaveBeenCalledWith(
@@ -108,8 +110,39 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
       );
 
       await expect(
-        service.downloadFile('test-bucket', 'images/photo.jpg', '/tmp/p.jpg'),
+        service.downloadFile(
+          'test-bucket',
+          'images/photo.jpg',
+          '/tmp/p.jpg',
+          '/tmp',
+        ),
       ).rejects.toThrow('Empty response body');
+    });
+
+    it('rejects a local path outside the caller-owned download root', async () => {
+      await expect(
+        service.downloadFile(
+          'test-bucket',
+          'images/photo.jpg',
+          '/etc/escaped.jpg',
+          '/tmp/downloads',
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockProvider.download).not.toHaveBeenCalled();
+    });
+
+    it('rejects traversal in the object key before downloading', async () => {
+      await expect(
+        service.downloadFile(
+          'test-bucket',
+          '../secret.txt',
+          '/tmp/secret.txt',
+          '/tmp',
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockProvider.download).not.toHaveBeenCalled();
     });
   });
 
@@ -119,6 +152,7 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
         'test-bucket',
         'videos/job123/video.mp4',
         '/tmp/video.mp4',
+        '/tmp',
         'video/mp4',
       );
 
@@ -131,11 +165,44 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
     });
 
     it('passes undefined content type through for provider-side inference', async () => {
-      await service.uploadFile('test-bucket', 'images/photo.jpg', '/tmp/p.jpg');
+      await service.uploadFile(
+        'test-bucket',
+        'images/photo.jpg',
+        '/tmp/p.jpg',
+        '/tmp',
+      );
 
       expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
         'images/photo.jpg',
         '/tmp/p.jpg',
+        undefined,
+      );
+    });
+
+    it('rejects a local path outside the caller-owned upload root', async () => {
+      await expect(
+        service.uploadFile(
+          'test-bucket',
+          'images/photo.jpg',
+          '/etc/escaped.jpg',
+          '/tmp/uploads',
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockProvider.uploadFromFile).not.toHaveBeenCalled();
+    });
+
+    it('accepts a legitimate nested object key', async () => {
+      await service.uploadFile(
+        'test-bucket',
+        'images/jobs/job-1/photo.jpg',
+        '/tmp/photo.jpg',
+        '/tmp',
+      );
+
+      expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
+        'images/jobs/job-1/photo.jpg',
+        '/tmp/photo.jpg',
         undefined,
       );
     });
@@ -147,6 +214,7 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
         'test-bucket',
         'my-lora',
         '/tmp/my-lora.safetensors',
+        '/tmp',
       );
 
       expect(result.s3Key).toBe(
@@ -159,6 +227,34 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
         'application/octet-stream',
       );
       expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects a LoRA name that escapes the fixed S3 prefix', async () => {
+      await expect(
+        service.uploadSafetensors(
+          'test-bucket',
+          '../evil',
+          '/tmp/evil.safetensors',
+          '/tmp',
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockProvider.uploadFromFile).not.toHaveBeenCalled();
+    });
+
+    it('accepts a legitimate nested-safe LoRA object name', async () => {
+      await service.uploadSafetensors(
+        'test-bucket',
+        'org-1.model',
+        '/tmp/org-1.model.safetensors',
+        '/tmp',
+      );
+
+      expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
+        'ingredients/trainings/loras/org-1.model.safetensors',
+        '/tmp/org-1.model.safetensors',
+        'application/octet-stream',
+      );
     });
   });
 

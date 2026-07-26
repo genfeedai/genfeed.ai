@@ -1,6 +1,7 @@
 import { ChildProcess, spawn } from 'node:child_process';
 import { existsSync, promises as fs, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
 import { BinaryValidationService } from '@files/services/ffmpeg/config/binary-validation.service';
 import {
@@ -8,8 +9,11 @@ import {
   FFprobeData,
 } from '@files/shared/interfaces/ffmpeg.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { assertSafeSegment, resolveContainedPath } from '@libs/security';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
+
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 /**
  * Core FFmpeg execution service.
@@ -185,14 +189,18 @@ export class FFmpegCoreService implements OnModuleInit {
    * Get temporary file path
    */
   getTempPath(type: string, ingredientId?: string): string {
-    const basePath = path.join(process.cwd(), 'public', 'tmp');
-    let tmpDir: string;
-
-    if (ingredientId) {
-      tmpDir = path.join(basePath, type, ingredientId);
-    } else {
-      tmpDir = path.join(basePath, type);
-    }
+    const safeType = assertSafeSegment(type, 'type', createBadRequest);
+    const candidate = ingredientId
+      ? path.join(
+          safeType,
+          assertSafeSegment(ingredientId, 'ingredientId', createBadRequest),
+        )
+      : safeType;
+    const tmpDir = resolveContainedPath(
+      FILES_TMP_ROOT,
+      candidate,
+      createBadRequest,
+    );
 
     if (!existsSync(tmpDir)) {
       mkdirSync(tmpDir, { recursive: true });
@@ -206,9 +214,14 @@ export class FFmpegCoreService implements OnModuleInit {
   async cleanupTempFiles(...filePaths: string[]): Promise<void> {
     for (const filePath of filePaths) {
       try {
-        if (existsSync(filePath)) {
-          await fs.unlink(filePath);
-          this.loggerService.log(`Cleaned up temp file: ${filePath}`);
+        const containedPath = resolveContainedPath(
+          FILES_TMP_ROOT,
+          filePath,
+          createBadRequest,
+        );
+        if (existsSync(containedPath)) {
+          await fs.unlink(containedPath);
+          this.loggerService.log(`Cleaned up temp file: ${containedPath}`);
         }
       } catch (error: unknown) {
         this.loggerService.error(`Failed to clean up ${filePath}`, error);

@@ -35,15 +35,17 @@ vi.mock('node:fs', () => ({
   },
 }));
 
-vi.mock('node:path', () => ({
-  default: {
-    extname: (p: string) => {
-      const parts = p.split('.');
-      return parts.length > 1 ? `.${parts[parts.length - 1]}` : '';
+vi.mock('node:path', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:path')>();
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      extname: actual.posix.extname,
+      join: actual.posix.join,
     },
-    join: (...args: string[]) => args.join('/'),
-  },
-}));
+  };
+});
 
 import { promises as fs } from 'node:fs';
 

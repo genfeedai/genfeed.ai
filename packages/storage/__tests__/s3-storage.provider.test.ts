@@ -61,6 +61,35 @@ describe('S3StorageProvider', () => {
     });
   });
 
+  describe('object-key containment', () => {
+    it('rejects traversal before sending an S3 command', async () => {
+      const provider = new S3StorageProvider({ bucket: 'b' });
+
+      await expect(
+        provider.upload(Buffer.from('payload'), '../escaped.png'),
+      ).rejects.toThrow(/invalid path segment/);
+
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('accepts and preserves a legitimate nested object key', async () => {
+      mockSend.mockResolvedValue({});
+      const provider = new S3StorageProvider({ bucket: 'b' });
+
+      await expect(
+        provider.upload(
+          Buffer.from('payload'),
+          'images/org-1/nested/photo.png',
+        ),
+      ).resolves.toBe('images/org-1/nested/photo.png');
+
+      const [command] = mockSend.mock.calls[0] as [
+        { params: Record<string, unknown> },
+      ];
+      expect(command.params.Key).toBe('images/org-1/nested/photo.png');
+    });
+  });
+
   describe('uploadFromFile', () => {
     it('reads the local file and puts it with inferred content type', async () => {
       mockSend.mockResolvedValue({});

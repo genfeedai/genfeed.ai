@@ -86,7 +86,12 @@ export class VoiceCloneService {
       voiceId,
     });
 
-    await this.s3Service.uploadFile(bucket, s3Key, localPath);
+    await this.s3Service.uploadFile(
+      bucket,
+      s3Key,
+      localPath,
+      this.configService.VOICE_MODELS_PATH,
+    );
 
     this.loggerService.log(caller, {
       message: 'Voice clone uploaded successfully',
@@ -145,7 +150,7 @@ export class VoiceCloneService {
         filename,
         createBadRequest,
       );
-      await this.s3Service.downloadFile(bucket, obj.key, localPath);
+      await this.s3Service.downloadFile(bucket, obj.key, localPath, localDir);
     }
 
     this.loggerService.log(caller, {

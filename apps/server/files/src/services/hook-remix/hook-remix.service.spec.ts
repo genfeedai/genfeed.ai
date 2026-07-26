@@ -1,8 +1,11 @@
+import path from 'node:path';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 vi.mock('@libs/security/destination-guard', () => ({
@@ -114,7 +117,34 @@ describe('HookRemixService', () => {
       await service.processHookRemix(baseJobData);
       expect(ytDlpService.downloadVideo).toHaveBeenCalledWith(
         baseJobData.youtubeUrl,
-        expect.stringContaining('source.mp4'),
+        path.join(
+          FILES_TMP_ROOT,
+          'hook-remix',
+          baseJobData.jobId,
+          'source.mp4',
+        ),
+      );
+    });
+
+    it('rejects a traversal job ID before touching the filesystem', async () => {
+      await expect(
+        service.processHookRemix({ ...baseJobData, jobId: '../escape' }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(ytDlpService.downloadVideo).not.toHaveBeenCalled();
+    });
+
+    it('accepts a legitimate job ID under the fixed nested root', async () => {
+      await service.processHookRemix(baseJobData);
+
+      expect(ytDlpService.downloadVideo).toHaveBeenCalledWith(
+        baseJobData.youtubeUrl,
+        path.join(
+          FILES_TMP_ROOT,
+          'hook-remix',
+          baseJobData.jobId,
+          'source.mp4',
+        ),
       );
     });
 
