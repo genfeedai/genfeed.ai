@@ -78,10 +78,12 @@ export default function AppLayout({
         {menuComponent && (
           <>
             {/* Desktop sidebar */}
+            {/* Always "Navigation": the column belongs to whichever module owns
+              the surface, and only that module decides what goes in it. It was
+              named after the conversation back when the conversation was the
+              only thing that could be in there. */}
             <DesktopSidebar
-              ariaLabel={
-                isWorkspaceShell ? 'Conversation threads' : 'Navigation'
-              }
+              ariaLabel="Navigation"
               collapsedWidth={desktopSidebarCollapsedWidth}
               isCollapsed={isDesktopCollapsed}
               shellChromeVariant={shellChromeVariant}

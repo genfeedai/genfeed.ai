@@ -114,14 +114,15 @@ describe('AppLayout', () => {
     expect(screen.getAllByTestId('menu-component')).toHaveLength(2);
   });
 
-  it('labels and scopes the conversation workspace thread rail', () => {
+  it('marks the workspace shell root without renaming the nav column', () => {
     render(
       <AppLayout isWorkspaceShell menuComponent={<MenuComponent />}>
         <div>Content</div>
       </AppLayout>,
     );
 
-    expect(screen.getByLabelText('Conversation threads')).toBeInTheDocument();
+    // The column is the active module's, not the conversation's.
+    expect(screen.getByLabelText('Navigation')).toBeInTheDocument();
     expect(
       screen.getByTestId('app-content-shell').parentElement,
     ).toHaveAttribute('data-workspace-shell', 'true');

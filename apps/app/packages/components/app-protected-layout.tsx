@@ -127,7 +127,6 @@ function AppLayoutWithDynamicMenu({
     isFocusedOnboardingRoute,
     isLibraryLandingRoute,
     isLibraryRoute,
-    isMoodboardRoute,
     isOrgRoute,
     isPromptBarRoute,
     isResearchRoute,
@@ -162,14 +161,17 @@ function AppLayoutWithDynamicMenu({
     isUniversalWorkspaceShell,
     workspaceShellRoute,
   } = useAppProtectedLayout(initialBootstrap);
-  const isWorkspaceShellReady =
+  // Whether the workspace shell body is up — not whether the app has a frame.
+  // The frame is permanent: sidebar, topbar and error boundary are decided by
+  // the route alone, so nothing below waits on this to render chrome.
+  const isWorkspaceShellMounted =
     isUniversalWorkspaceShell && agentApiService !== null;
   const hasCapturedPerformanceRef = useRef(false);
 
   useEffect(() => {
     if (
       hasCapturedPerformanceRef.current ||
-      !isWorkspaceShellReady ||
+      !isWorkspaceShellMounted ||
       typeof performance === 'undefined'
     ) {
       return;
@@ -186,7 +188,7 @@ function AppLayoutWithDynamicMenu({
       routeClass: workspaceShellRoute?.telemetryClass ?? 'management',
       shellMode: 'conversation',
     });
-  }, [isWorkspaceShellReady, workspaceShellRoute?.telemetryClass]);
+  }, [isWorkspaceShellMounted, workspaceShellRoute?.telemetryClass]);
 
   const renderConversations = useCallback(
     () =>
@@ -219,10 +221,10 @@ function AppLayoutWithDynamicMenu({
   );
 
   const menuComponent = useMemo(() => {
-    if (
-      !isWorkspaceShellReady &&
-      (isFocusedOnboardingRoute || isEditorCanvasRoute || isMoodboardRoute)
-    ) {
+    // Only the focused onboarding flow runs without navigation. Canvas surfaces
+    // — the editor, a workflow graph, the moodboard — keep the frame they are
+    // rendered inside; they used to lose it whenever the shell had not booted.
+    if (isFocusedOnboardingRoute) {
       return undefined;
     }
 
@@ -269,17 +271,14 @@ function AppLayoutWithDynamicMenu({
     isAnalyticsRoute,
     isComposeRoute,
     isConversationRoute,
-    isEditorCanvasRoute,
     isEditorRoute,
     isFocusedOnboardingRoute,
     isLibraryRoute,
-    isMoodboardRoute,
     isOrgRoute,
     isResearchRoute,
     isSettingsRoute,
     isStudioRoute,
     isWorkflowsRoute,
-    isWorkspaceShellReady,
     libraryMenuItems,
     menuItems,
     orgMenuItems,
@@ -292,13 +291,11 @@ function AppLayoutWithDynamicMenu({
     workflowsMenuItems,
   ]);
 
-  const topbarComponent =
-    !isWorkspaceShellReady &&
-    (isEditorCanvasRoute || isFocusedOnboardingRoute || isMoodboardRoute)
-      ? undefined
-      : isAdminRoute
-        ? AdminAppProtectedTopbar
-        : AppProtectedTopbar;
+  const topbarComponent = isFocusedOnboardingRoute
+    ? undefined
+    : isAdminRoute
+      ? AdminAppProtectedTopbar
+      : AppProtectedTopbar;
   const topbarChromeVariant = 'default';
   const navigationMenuItems = isAdminRoute
     ? adminMenuItems
@@ -352,25 +349,32 @@ function AppLayoutWithDynamicMenu({
         hasSecondaryTopbar={hasSecondaryTopbar}
         menuItems={navigationMenuItems}
         orgSlug={orgSlug}
-        isWorkspaceShell={isWorkspaceShellReady}
+        isWorkspaceShell={isWorkspaceShellMounted}
       >
-        {isWorkspaceShellReady && agentApiService ? (
-          <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
-            {children}
-          </LazyUniversalWorkspaceShell>
-        ) : isUniversalWorkspaceShell ? (
-          <LazyLoadingFallback variant="grid" />
+        {/* The shell is the body of a frame that is already there, so a route
+          it does not know still renders — it just renders without the
+          inspector rail rather than without an application around it. */}
+        {isUniversalWorkspaceShell ? (
+          agentApiService ? (
+            <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
+              {children}
+            </LazyUniversalWorkspaceShell>
+          ) : (
+            <LazyLoadingFallback variant="grid" />
+          )
         ) : (
           children
         )}
       </AppLayout>
     </WorkspaceInspectorProvider>
   );
-  const guardedMainLayout = isWorkspaceShellReady ? (
+  // Permanent frame, permanent boundary: a render failure anywhere under it is
+  // contained the same way on every route, not only where the shell booted.
+  const guardedMainLayout = (
     <ErrorBoundary
       onError={(error) => {
         captureWorkspaceShellError('render', 'render_failed');
-        logger.error('Conversation shell render failed', {
+        logger.error('Protected shell render failed', {
           error,
           reportToSentry: true,
         });
@@ -378,8 +382,6 @@ function AppLayoutWithDynamicMenu({
     >
       {mainLayout}
     </ErrorBoundary>
-  ) : (
-    mainLayout
   );
 
   return (
@@ -388,15 +390,16 @@ function AppLayoutWithDynamicMenu({
         <StreakNotificationsBridge initialStreak={initialBootstrap?.streak} />
       ) : null}
       <CommandPaletteProvider>
-        {!isFocusedOnboardingRoute &&
-        (!isEditorCanvasRoute || isWorkspaceShellReady) &&
-        (isConversationRoute || isWorkspaceShellReady) ? (
+        {/* The conversation is reachable from every surface, so its threads
+          belong in the palette on every surface — the focused onboarding flow
+          being the one place with no palette to put them in. */}
+        {isFocusedOnboardingRoute ? null : (
           <AgentThreadCommandsBridge
             threads={threads}
             enabled
             onNavigate={handleNavigate}
           />
-        ) : null}
+        )}
         <CommandPaletteInitializer />
         {guardedMainLayout}
         <LazyCommandPalette />

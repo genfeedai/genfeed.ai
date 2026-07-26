@@ -21,7 +21,7 @@ const {
   appSidebarSpy: vi.fn(),
   commandPaletteOpenSpy: vi.fn(),
   dispatchOpenTaskComposerSpy: vi.fn(),
-  shellState: { isShellThrowing: false },
+  shellState: { isAuthLoaded: true, isShellThrowing: false },
   lowCreditsBannerSpy: vi.fn(),
   onboardingGuardSpy: vi.fn(),
   protectedProvidersSpy: vi.fn(),
@@ -350,8 +350,11 @@ vi.mock('@genfeedai/agent', () => ({
 vi.mock('@/hooks/useOptionalAuth', () => ({
   useOptionalAuth: () => ({
     getToken: vi.fn().mockResolvedValue('token'),
-    isLoaded: true,
-    isSignedIn: true,
+    // Held open by a test that needs the pre-boot window: no auth means no
+    // agent API service, which is the only thing that keeps the shell body from
+    // mounting.
+    isLoaded: shellState.isAuthLoaded,
+    isSignedIn: shellState.isAuthLoaded,
   }),
 }));
 
@@ -492,6 +495,7 @@ vi.mock('@services/core/agent-overlay-coordination.service', async () => {
 describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockPathname.value = '/workspace';
+    shellState.isAuthLoaded = true;
     shellState.isShellThrowing = false;
     sessionStorage.clear();
     mockBrandState.brandId = 'brand-123';
@@ -706,7 +710,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps render failures inside the agent-first error boundary', () => {
+  it('keeps render failures inside the protected shell error boundary', () => {
     shellState.isShellThrowing = true;
     mockPathname.value = '/org-123/brand-123/studio/image';
     const consoleError = vi
@@ -896,7 +900,9 @@ describe('AppProtectedLayout', () => {
   });
 
   it('hides sidebar and topbar chrome for focused onboarding agent routes', () => {
-    mockPathname.value = '/agent/onboarding';
+    // Org-scoped on purpose: onboarding is a registered shell route, so this is
+    // the one flow whose chrome the route itself has to suppress.
+    mockPathname.value = '/org-123/brand-123/agent/onboarding';
 
     render(
       <AppProtectedLayout>
@@ -912,6 +918,31 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         bannerComponent: expect.anything(),
         topbarComponent: undefined,
+      }),
+    );
+  });
+
+  it('keeps the frame on a canvas route while the shell body is still booting', () => {
+    // No auth yet means no agent API service, so the shell body cannot mount.
+    // The application around it is not the shell's to withhold: chrome used to
+    // disappear on canvas routes for exactly this window.
+    shellState.isAuthLoaded = false;
+    mockPathname.value = '/org-123/brand-123/editor/new';
+
+    render(
+      <AppProtectedLayout>
+        <div>Editor canvas</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(
+      screen.queryByTestId('universal-workspace-shell'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('app-sidebar')).toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isWorkspaceShell: false,
+        topbarComponent: expect.any(Function),
       }),
     );
   });
