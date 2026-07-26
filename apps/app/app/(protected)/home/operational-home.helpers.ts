@@ -37,10 +37,11 @@ export function resolveOperationalHomeScope({
   selectedBrand?: IBrand | null;
 }): OperationalHomeScope {
   const scopedOrganizationId = organizationId || accessOrganizationId || '';
-  const brand = [selectedBrand, ...brands].find(
-    (candidate) =>
-      candidate && getBrandOrganizationId(candidate) === scopedOrganizationId,
-  );
+  const brand =
+    [selectedBrand, ...brands].find(
+      (candidate) =>
+        candidate && getBrandOrganizationId(candidate) === scopedOrganizationId,
+    ) ?? undefined;
 
   return {
     brand,
