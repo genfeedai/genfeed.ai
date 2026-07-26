@@ -56,6 +56,7 @@ import {
   Query,
   Req,
   SetMetadata,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiExcludeEndpoint } from '@nestjs/swagger';
@@ -539,12 +540,9 @@ export class UsersController {
     );
     const { selectedBrandId, ...userPatchDto } = updateUserDto;
 
-    // Completing onboarding is a cascade, not a plain field write: it marks any
-    // proactive lead paid and invalidates the access caches so OnboardingGuard
-    // sees the new state on the next request. Handled inline here (REST audit
-    // #1354 — dissolves POST /onboarding/complete-funnel) so UsersController no
-    // longer imports OnboardingService; the proactive-lead cascade runs behind
-    // OnboardingModule via an event.
+    // Completing onboarding is a cascade, not a plain field write: it records
+    // the completion state and invalidates access caches so OnboardingGuard
+    // sees the new state on the next request.
     if (userPatchDto.isOnboardingCompleted === true) {
       const completed = await this.completeOnboardingFunnel(request, user);
       return completed;
@@ -619,7 +617,11 @@ export class UsersController {
       isDeleted: false,
     });
 
-    if (dbUser && !dbUser.isOnboardingCompleted) {
+    if (!dbUser?.id) {
+      throw new UnauthorizedException('User account not found');
+    }
+
+    if (!dbUser.isOnboardingCompleted) {
       await this.usersService.patch(dbUser.id, {
         isOnboardingCompleted: true,
         onboardingCompletedAt: new Date(),
@@ -627,13 +629,11 @@ export class UsersController {
       } as Partial<UpdateUserDto>);
     }
 
-    const dbUserId = dbUser?.id?.toString();
-    if (dbUserId) {
-      await this.invalidateUserAccessCaches(dbUserId);
-    }
+    const dbUserId = dbUser.id.toString();
+    await this.invalidateUserAccessCaches(dbUserId);
 
     const completed = await this.usersService.findOne({
-      _id: dbUserId ?? publicMetadata.user,
+      _id: dbUserId,
       isDeleted: false,
     });
 

@@ -581,7 +581,7 @@ export class WebhooksService {
 
     try {
       const asset = await this.assetsService.findOne({ _id: assetId }, [
-        { path: 'user', select: '_id id' },
+        { path: 'user', select: 'id' },
       ]);
 
       if (!asset) {

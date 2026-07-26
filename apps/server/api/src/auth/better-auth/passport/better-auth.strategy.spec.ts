@@ -82,6 +82,23 @@ describe('BetterAuthStrategy', () => {
     expect(identityResolver.resolve).not.toHaveBeenCalled();
   });
 
+  it('passes a canonical cuid subject to identity resolution', async () => {
+    const canonicalUserId = 'cm1234567890abcdefghijkl';
+    betterAuthService.verifyToken.mockResolvedValue({
+      sub: canonicalUserId,
+    });
+    identityResolver.resolve.mockResolvedValue({
+      brandId: null,
+      isSuperAdmin: false,
+      organizationId: 'org_1',
+      userId: canonicalUserId,
+    });
+
+    await strategy.validate(requestWith('Bearer tok'));
+
+    expect(identityResolver.resolve).toHaveBeenCalledWith(canonicalUserId);
+  });
+
   it('propagates verification failures as Unauthorized', async () => {
     betterAuthService.verifyToken.mockRejectedValue(
       new UnauthorizedException('Invalid token'),

@@ -77,6 +77,9 @@ export class AgentToolsController {
         if (tool.requiredRole === 'superadmin' && !isSuperAdmin) {
           throw new ForbiddenException(`Tool ${name} requires superadmin`);
         }
+        // The removed role metadata had no writers, and the current registry
+        // exposes no organization-admin tools. Keep the prior deny-by-default
+        // behavior without introducing a new membership authorization path.
         if (tool.requiredRole === 'admin' && !isSuperAdmin) {
           throw new ForbiddenException(`Tool ${name} requires admin`);
         }

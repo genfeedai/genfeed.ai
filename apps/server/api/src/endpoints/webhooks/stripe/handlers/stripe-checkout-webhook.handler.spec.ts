@@ -660,12 +660,12 @@ describe('StripeCheckoutWebhookHandler', () => {
         string,
         unknown
       >;
-      expect(createArg.email).toBe(email);
-      expect(
-        Object.keys(createArg).some(
-          (key) => key.startsWith('auth') && key.endsWith('Id'),
-        ),
-      ).toBe(false);
+      expect(createArg).toEqual({
+        email,
+        firstName: 'Ada',
+        handle: expect.any(String),
+        lastName: 'Lovelace',
+      });
       expect(eventEmitter.emitAsync).toHaveBeenCalledWith(
         BETTER_AUTH_USER_CREATED_EVENT,
         { email, userId: 'user_new_1' },

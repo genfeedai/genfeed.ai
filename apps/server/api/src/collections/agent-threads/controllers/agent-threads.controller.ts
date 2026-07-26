@@ -350,8 +350,9 @@ export class AgentThreadsController {
    * resolver and is exactly the id AgentThread.userId expects.
    *
    * The DB lookup below is retained only as a last-resort fallback for the
-   * rare case where publicMetadata carries no user id at all, and it must
-   * never reinterpret the authenticated subject as an external identifier.
+   * rare case where publicMetadata carries no user id at all. It resolves
+   * `user.id` as the canonical primary key; an unresolved subject fails with
+   * 401 rather than being reinterpreted as an external identifier.
    */
   private async resolveMongoUserId(user: User): Promise<string> {
     const { user: metadataUserId } = getPublicMetadata(user);

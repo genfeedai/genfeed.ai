@@ -166,6 +166,9 @@ export class OnboardingService {
     outputs: unknown[];
     summary: string;
   }> {
+    // This metadata had no writers, so this endpoint always returned this
+    // exact error. Preserve that behavior in this strictly subtractive cleanup;
+    // a live proactive-workspace replacement is separate product work.
     throw new HttpException(
       {
         detail: 'Missing proactive onboarding context',
@@ -186,6 +189,7 @@ export class OnboardingService {
     summary: string;
     claimedAt?: Date;
   }> {
+    // Preserve the pre-cleanup response contract; see getProactiveWorkspace.
     throw new HttpException(
       {
         detail: 'Missing proactive onboarding context',
