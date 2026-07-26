@@ -213,6 +213,8 @@ export abstract class BaseCRUDController<
       ErrorResponse.notFound(this.entityName, id);
     }
 
+    await this.assertPatchAllowed(user, existing, updateDto);
+
     // Add user context to create data
     const enrichedDto = await this.enrichUpdateDto(updateDto, user);
     const data = await this.service.patch(
@@ -227,6 +229,12 @@ export abstract class BaseCRUDController<
 
     return serializeSingle(request, this.serializer, data);
   }
+
+  protected assertPatchAllowed(
+    _user: User,
+    _existing: T,
+    _updateDto: Partial<UpdateDto>,
+  ): Promise<void> | void {}
 
   /**
    * Soft delete an entity by ID

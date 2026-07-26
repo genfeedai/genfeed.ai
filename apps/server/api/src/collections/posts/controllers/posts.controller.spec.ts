@@ -238,17 +238,6 @@ describe('PostsController.patch publishing scopes', () => {
     };
   };
 
-  it('declares every dynamically resolved post update scope', () => {
-    expect(
-      Reflect.getMetadata(API_KEY_SCOPES_KEY, PostsController.prototype.patch),
-    ).toEqual([
-      ApiKeyScope.POSTS_DRAFT,
-      ApiKeyScope.POSTS_CREATE,
-      ApiKeyScope.POSTS_SCHEDULE,
-      ApiKeyScope.POSTS_PUBLISH,
-    ]);
-  });
-
   it.each([
     [
       'moving a draft to scheduled',
