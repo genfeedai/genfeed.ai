@@ -848,21 +848,21 @@ Tweet 3: Tech innovation is changing the world.`,
         'draft replies without a draft scope',
         PostStatus.DRAFT,
         [],
-        ApiKeyScope.POSTS_DRAFT,
+        [ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE],
       ],
       [
         'scheduled replies with only the draft scope',
         PostStatus.SCHEDULED,
         [ApiKeyScope.POSTS_DRAFT],
-        ApiKeyScope.POSTS_SCHEDULE,
+        [ApiKeyScope.POSTS_SCHEDULE],
       ],
       [
         'public replies with only the schedule scope',
         PostStatus.PUBLIC,
         [ApiKeyScope.POSTS_SCHEDULE],
-        ApiKeyScope.POSTS_PUBLISH,
+        [ApiKeyScope.POSTS_PUBLISH],
       ],
-    ])('rejects API-key %s before reads or writes', async (_case, status, scopes, requiredScope) => {
+    ])('rejects API-key %s before reads or writes', async (_case, status, scopes, requiredScopes) => {
       await expect(
         controller.addThreadReply(mockRequest, apiKeyUser(scopes), postId, {
           ...createPostDto,
@@ -871,7 +871,7 @@ Tweet 3: Tech innovation is changing the world.`,
       ).rejects.toMatchObject({
         response: expect.objectContaining({
           code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
-          requiredScopes: [requiredScope],
+          requiredScopes,
         }),
       });
       expect(mockPostsService.findOne).not.toHaveBeenCalled();
