@@ -380,7 +380,9 @@ export class ImageGenerationProviderDispatchService {
       metadataId,
       new MetadataEntity({
         externalId,
-        ...(result.promptId ? { prompt: result.promptId } : {}),
+        ...(result.kind === 'external-id' && result.promptId
+          ? { prompt: result.promptId }
+          : {}),
       }),
     );
   }
