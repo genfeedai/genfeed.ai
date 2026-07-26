@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   REDACTED_VALUE,
+  redactSensitiveString,
   redactSensitiveValue,
 } from './redact-sensitive-value.helper';
 
@@ -39,5 +40,31 @@ describe('redactSensitiveValue', () => {
     expect(
       redactSensitiveValue({ attempts: 2, models: ['gpt-5', 'claude'] }),
     ).toEqual({ attempts: 2, models: ['gpt-5', 'claude'] });
+  });
+
+  it.each([
+    '',
+    'RSA ',
+    'EC ',
+  ])('redacts complete %sprivate key blocks', (keyType) => {
+    const beginMarker = ['-----BEGIN ', keyType, 'PRIVATE KEY-----'].join('');
+    const endMarker = ['-----END ', keyType, 'PRIVATE KEY-----'].join('');
+    const value = [beginMarker, 'private-material', endMarker].join('\n');
+
+    expect(redactSensitiveString(`before ${value} after`)).toBe(
+      `before ${REDACTED_VALUE} after`,
+    );
+  });
+
+  it('preserves an incomplete private key marker like the previous matcher', () => {
+    const value = ['-----BEGIN ', 'PRIVATE KEY-----\ntruncated'].join('');
+    expect(redactSensitiveString(value)).toBe(value);
+  });
+
+  it('handles repeated unmatched begin markers without ambiguous matching', () => {
+    const marker = ['-----BEGIN ', 'PRIVATE KEY-----'].join('');
+    const value = marker.repeat(20_000);
+
+    expect(redactSensitiveString(value)).toBe(value);
   });
 });

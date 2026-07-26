@@ -31,12 +31,23 @@ export interface ISubscriptionOssReadModel {
   customer?: SubscriptionRefId | null;
   customerId?: SubscriptionRefId | null;
   currentPeriodEnd?: Date | string | null;
+  /**
+   * Scalar foreign key — always present on a Prisma row. Prefer this over the
+   * `organization` relation alias, which is only an id string while
+   * `BaseService.normalizeDocument` back-fills it and becomes a populated
+   * object (or `undefined`) as soon as a query adds an include.
+   */
+  organizationId?: SubscriptionRefId;
+  /** Mongo-era relation alias — see `organizationId`. */
   organization?: SubscriptionRefId;
   plan?: string | null;
   stripePriceId?: string | null;
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   type?: string | null;
+  /** Scalar foreign key — see `organizationId` for why this is preferred. */
+  userId?: SubscriptionRefId;
+  /** Mongo-era relation alias — see `userId`. */
   user?: SubscriptionRefId;
   isDeleted?: boolean;
   status?: string | null;

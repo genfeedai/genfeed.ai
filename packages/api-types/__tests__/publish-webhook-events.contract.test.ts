@@ -167,6 +167,16 @@ describe('publish webhook helpers', () => {
     ).toBe('publish:target.published:release-123:target-123:published');
   });
 
+  test('normalizes long invalid event-id runs without ambiguous matching', () => {
+    expect(
+      createPublishWebhookEventId({
+        event: 'target.published',
+        releaseId: `---Release${' '.repeat(50_000)}123---`,
+        status: TargetExecutionState.PUBLISHED,
+      }),
+    ).toBe('publish:target.published:release-123:release:published');
+  });
+
   test.each([
     ['missing channel configuration', 'misconfiguration'],
     ['credential token expired', 'credential'],

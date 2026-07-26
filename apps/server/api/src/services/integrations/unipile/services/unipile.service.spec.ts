@@ -68,7 +68,7 @@ describe('UnipileService', () => {
 
     const result = await service.configure('org_1', {
       allowedAccountIds: ['acct_1', 'acct_1', 'acct_2'],
-      apiBaseUrl: 'https://api1.unipile.com:13111',
+      apiBaseUrl: 'https://api1.unipile.com:13111///',
       apiKey: 'secret-key',
       defaultAccountId: 'acct_1',
     });
@@ -93,6 +93,27 @@ describe('UnipileService', () => {
       defaultAccountId: 'acct_1',
       source: 'organization',
       status: 'active',
+    });
+  });
+
+  it('normalizes a long trailing-slash run without backtracking', async () => {
+    mockOrgIntegration.findFirst.mockResolvedValue(null);
+    mockOrgIntegration.create.mockResolvedValue({
+      id: 'integration_1',
+      status: 'ACTIVE',
+    });
+
+    await service.configure('org_1', {
+      apiBaseUrl: `https://api1.unipile.com:13111${'/'.repeat(50_000)}`,
+      apiKey: 'secret-key',
+    });
+
+    expect(mockOrgIntegration.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          apiBaseUrl: 'https://api1.unipile.com:13111/api/v1',
+        }),
+      }),
     });
   });
 

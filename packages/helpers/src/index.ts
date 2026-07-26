@@ -18,6 +18,7 @@ export * from './model-capability.helper';
 export * from './publisher/publishing-diagnostics.helper';
 export * from './quality-routing.helper';
 export * from './security/redact-sensitive-value.helper';
+export * from './security/sanitize-html.helper';
 export * from './serializer.helper';
 export * from './social-url.helper';
 export * from './trends/trend-digest.helper';

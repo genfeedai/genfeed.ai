@@ -30,6 +30,14 @@ describe('executionApi', () => {
     it('uses a relative API boundary when no endpoint is configured', () => {
       expect(resolveExecutionApiBaseUrl(undefined)).toBe('/v1');
     });
+
+    it('removes a long run of trailing slashes without ambiguous matching', () => {
+      expect(
+        resolveExecutionApiBaseUrl(
+          `http://genfeed.localhost:3010/v1${'/'.repeat(50_000)}`,
+        ),
+      ).toBe('http://genfeed.localhost:3010/v1');
+    });
   });
 
   describe('execution headers', () => {

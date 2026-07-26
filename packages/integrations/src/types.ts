@@ -16,6 +16,12 @@ export interface OrgIntegration {
     apiBaseUrl?: string;
     defaultAccountId?: string;
     defaultWorkflow?: string;
+    /**
+     * Explicit opt-out of the allowlist: when `true`, any platform user may
+     * drive the bot. An empty `allowedUserIds` alone denies everyone — see
+     * `isBotUserAuthorized`.
+     */
+    isOpenToAllUsers?: boolean;
     webhookMode?: boolean;
   };
   status: `${IntegrationStatus}`;
