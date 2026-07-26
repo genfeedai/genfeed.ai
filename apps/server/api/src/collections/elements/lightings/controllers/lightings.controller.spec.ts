@@ -205,7 +205,10 @@ describe('ElementsLightingsController', () => {
         id,
       );
 
-      expect(lightingsService.findOne).toHaveBeenCalledWith({ _id: id });
+      expect(lightingsService.findOne).toHaveBeenCalledWith({
+        _id: id,
+        isDeleted: false,
+      });
       expect(lightingsService.remove).toHaveBeenCalledWith(id);
       expect(result).toBeDefined();
     });

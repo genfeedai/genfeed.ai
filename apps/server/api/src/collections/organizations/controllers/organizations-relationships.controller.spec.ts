@@ -136,21 +136,38 @@ describe('OrganizationsRelationshipsController', () => {
   });
 
   describe('findAllPosts', () => {
-    it('uses a Prisma-safe root-post filter', async () => {
+    it('preserves root-post, relation, and PostsQueryDto filters', async () => {
       await controller.findAllPosts(
         {} as never,
         '507f1f77bcf86cd799439012',
         mockUser,
-        { status: 'draft' } as never,
+        {
+          credential: 'credential-1',
+          endDate: '2026-07-31T23:59:59.999Z',
+          platform: 'youtube',
+          startDate: '2026-07-01T00:00:00.000Z',
+          status: 'draft',
+        } as never,
       );
 
       expect(mockServices.postsService.findAll).toHaveBeenCalledWith(
         {
+          include: {
+            credential: true,
+            ingredients: true,
+            postAnalytics: true,
+          },
           orderBy: { createdAt: -1 },
           where: {
+            credential: 'credential-1',
             isDeleted: false,
             organization: '507f1f77bcf86cd799439012',
             parentId: null,
+            platform: 'youtube',
+            scheduledDate: {
+              gte: new Date('2026-07-01T00:00:00.000Z'),
+              lte: new Date('2026-07-31T23:59:59.999Z'),
+            },
             status: 'draft',
           },
         },
@@ -186,6 +203,7 @@ describe('OrganizationsRelationshipsController', () => {
       });
       expect(mockServices.ingredientsService.findAll).toHaveBeenCalledWith(
         {
+          include: { metadata: true },
           orderBy: { createdAt: -1 },
           where: {
             category: 'video',
@@ -216,6 +234,77 @@ describe('OrganizationsRelationshipsController', () => {
       );
 
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('findAllVideos', () => {
+    it('scopes videos to the organization and requesting user', async () => {
+      await controller.findAllVideos(
+        {} as never,
+        '507f1f77bcf86cd799439012',
+        mockUser,
+        {} as never,
+      );
+
+      expect(mockServices.videosService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { createdAt: -1 },
+          where: {
+            isDeleted: false,
+            organization: '507f1f77bcf86cd799439012',
+            user: '507f1f77bcf86cd799439011',
+          },
+        },
+        expect.objectContaining({ limit: 10, page: 1 }),
+      );
+    });
+  });
+
+  describe('findAllTags', () => {
+    it('scopes tags to global, organization, and user-owned tags', async () => {
+      await controller.findAllTags(
+        {} as never,
+        '507f1f77bcf86cd799439012',
+        mockUser,
+        {} as never,
+      );
+
+      expect(mockServices.tagsService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { createdAt: -1 },
+          where: {
+            OR: [
+              { organizationId: null, userId: null },
+              { organizationId: '507f1f77bcf86cd799439012' },
+              { userId: '507f1f77bcf86cd799439011' },
+            ],
+            isDeleted: false,
+          },
+        },
+        expect.objectContaining({ limit: 10, page: 1 }),
+      );
+    });
+  });
+
+  describe('findAllActivities', () => {
+    it('scopes activities to the organization with default sort', async () => {
+      await controller.findAllActivities(
+        {} as never,
+        '507f1f77bcf86cd799439012',
+        mockUser,
+        {} as never,
+      );
+
+      expect(mockServices.activitiesService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { createdAt: -1, key: 1, label: 1 },
+          where: {
+            isDeleted: false,
+            organization: '507f1f77bcf86cd799439012',
+          },
+        },
+        expect.objectContaining({ limit: 10, page: 1 }),
+      );
     });
   });
 

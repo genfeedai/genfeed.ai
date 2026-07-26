@@ -11,13 +11,13 @@
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { type ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
-import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationQueryDto } from '@api/collections/organizations/dto/organization-query.dto';
@@ -28,10 +28,10 @@ import {
   TopContentQueryDto,
 } from '@api/collections/posts/dto/analytics-query.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
-import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { type TagDocument } from '@api/collections/tags/schemas/tag.schema';
+import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -54,7 +54,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { MemberRole } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -87,10 +88,6 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
-type MatchConditions = Record<string, unknown>;
-
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
-
 @AutoSwagger()
 @ApiTags('organizations')
 @ApiBearerAuth()
@@ -110,6 +107,10 @@ export class OrganizationsRelationshipsController {
     private readonly videosService: VideosService,
   ) {}
 
+  /**
+   * Verify user has access to organization (owner, member, or superadmin)
+   * Throws HttpException if access is denied
+   */
   private async verifyOrganizationAccess(
     request: Request,
     organizationId: string,
@@ -158,16 +159,21 @@ export class OrganizationsRelationshipsController {
     };
 
     const publicMetadata = getPublicMetadata(user);
-    const aggregate = {
-      where: {
-        OR: [{ user: publicMetadata.user }, { organization: organizationId }],
-        isDeleted,
-      },
-      orderBy: handleQuerySort(query.sort),
-    };
-
     const data: AggregatePaginateResult<BrandDocument> =
-      await this.brandsService.findAll(aggregate, options);
+      await this.brandsService.findAll(
+        {
+          include: { credentials: true },
+          orderBy: handleQuerySort(query.sort),
+          where: {
+            OR: [
+              { user: publicMetadata.user },
+              { organization: organizationId },
+            ],
+            isDeleted,
+          },
+        },
+        options,
+      );
     return serializeCollection(request, BrandSerializer, data);
   }
 
@@ -377,35 +383,35 @@ export class OrganizationsRelationshipsController {
       query.parent,
     );
 
-    const matchConditions: MatchConditions = {
+    const where = {
       isDeleted,
       organization: organizationId,
-      ...(statusFilter as MatchConditions),
-      ...(query.search
-        ? {
-            OR: [
-              { label: { mode: 'insensitive', contains: query.search } },
-              { description: { mode: 'insensitive', contains: query.search } },
-            ] as MatchConditions[],
-          }
-        : {}),
+      ...statusFilter,
+      ...(query.search && {
+        OR: [
+          { label: { contains: query.search, mode: 'insensitive' } },
+          { description: { contains: query.search, mode: 'insensitive' } },
+        ],
+      }),
       ...(query.category && { category: query.category }),
       ...(query.brand &&
         isEntityId(query.brand) && {
           brand: query.brand,
         }),
       ...(Object.keys(parentConditions).length > 0 && {
-        AND: [parentConditions as MatchConditions],
+        AND: [parentConditions],
       }),
     };
 
-    const aggregate = {
-      orderBy: handleQuerySort(query.sort),
-      where: matchConditions,
-    };
-
     const data: AggregatePaginateResult<IngredientDocument> =
-      await this.ingredientsService.findAll(aggregate, options);
+      await this.ingredientsService.findAll(
+        {
+          include: { metadata: true },
+          orderBy: handleQuerySort(query.sort),
+          where,
+        },
+        options,
+      );
     return serializeCollection(request, IngredientSerializer, data);
   }
 
@@ -425,17 +431,18 @@ export class OrganizationsRelationshipsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate = {
-      where: {
-        isDeleted,
-        organization: organizationId,
-        user: publicMetadata.user,
-      },
-      orderBy: handleQuerySort(query.sort),
-    };
-
     const data: AggregatePaginateResult<IngredientDocument> =
-      await this.videosService.findAll(aggregate, options);
+      await this.videosService.findAll(
+        {
+          orderBy: handleQuerySort(query.sort),
+          where: {
+            isDeleted,
+            organization: organizationId,
+            user: publicMetadata.user,
+          },
+        },
+        options,
+      );
     return serializeCollection(request, VideoSerializer, data);
   }
 
@@ -455,24 +462,21 @@ export class OrganizationsRelationshipsController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    // Build match conditions to return:
-    // 1. Global tags (no organization and no user)
-    // 2. Tags for this specific organization
-    // 3. Tags for the current user
-    const aggregate = {
-      orderBy: handleQuerySort(query.sort),
-      where: {
-        OR: [
-          { organization: null, user: null },
-          { organization: organizationId },
-          { user: publicMetadata.user },
-        ],
-        isDeleted,
-      },
-    };
-
     const data: AggregatePaginateResult<TagDocument> =
-      await this.tagsService.findAll(aggregate, options);
+      await this.tagsService.findAll(
+        {
+          orderBy: handleQuerySort(query.sort),
+          where: {
+            OR: [
+              { organizationId: null, userId: null },
+              { organizationId },
+              { userId: publicMetadata.user },
+            ],
+            isDeleted,
+          },
+        },
+        options,
+      );
     return serializeCollection(request, TagSerializer, data);
   }
 
@@ -485,31 +489,7 @@ export class OrganizationsRelationshipsController {
     @CurrentUser() user: User,
     @Query() query: PostsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
-    // Check if user has member access to this organization
-    const member = await this.membersService.findOne({
-      isActive: true,
-      isDeleted: false,
-      organization: organizationId,
-      user: publicMetadata.user,
-    });
-
-    const isOwner = await this.organizationsService.findOne({
-      _id: organizationId,
-      user: publicMetadata.user,
-    });
-
-    // Verify user has access to this organization (owner, member, or superadmin)
-    if (!isOwner && !member && !getIsSuperAdmin(user, request)) {
-      throw new HttpException(
-        {
-          detail: 'Access denied to this organization',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
+    await this.verifyOrganizationAccess(request, organizationId, user);
 
     const options = {
       customLabels,
@@ -517,31 +497,37 @@ export class OrganizationsRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
+    const scheduledDate: { gte?: Date; lte?: Date } = {};
+    if (query.startDate) {
+      scheduledDate.gte = new Date(query.startDate);
+    }
+    if (query.endDate) {
+      scheduledDate.lte = new Date(query.endDate);
+    }
 
-    // Build match filter
-    const matchFilter: MatchConditions = {
+    const where: Record<string, unknown> = {
       isDeleted,
       organization: organizationId,
       parentId: null,
-    };
-
-    // Add platform filter if provided
-    if (query.platform) {
-      matchFilter.platform = query.platform;
-    }
-
-    // Add status filter if provided
-    if (query.status) {
-      matchFilter.status = query.status;
-    }
-
-    const aggregate = {
-      where: matchFilter,
-      orderBy: handleQuerySort(query.sort),
+      ...(Object.keys(scheduledDate).length > 0 && { scheduledDate }),
+      ...(query.platform && { platform: query.platform }),
+      ...(query.status && { status: query.status }),
+      ...(query.credential && { credential: query.credential }),
     };
 
     const data: AggregatePaginateResult<PostDocument> =
-      await this.postsService.findAll(aggregate, options);
+      await this.postsService.findAll(
+        {
+          include: {
+            credential: true,
+            ingredients: true,
+            postAnalytics: true,
+          },
+          orderBy: handleQuerySort(query.sort),
+          where,
+        },
+        options,
+      );
     return serializeCollection(request, PostSerializer, data);
   }
 
@@ -553,31 +539,7 @@ export class OrganizationsRelationshipsController {
     @CurrentUser() user: User,
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
-    const publicMetadata = getPublicMetadata(user);
-
-    // Check if user has member access to this organization
-    const member = await this.membersService.findOne({
-      isActive: true,
-      isDeleted: false,
-      organization: organizationId,
-      user: publicMetadata.user,
-    });
-
-    const isOwner = await this.organizationsService.findOne({
-      _id: organizationId,
-      user: publicMetadata.user,
-    });
-
-    // Verify user has access to this organization (owner, member, or superadmin)
-    if (!isOwner && !member && !getIsSuperAdmin(user, request)) {
-      throw new HttpException(
-        {
-          detail: 'Access denied to this organization',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
+    await this.verifyOrganizationAccess(request, organizationId, user);
 
     const options = {
       customLabels,
@@ -585,20 +547,19 @@ export class OrganizationsRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate = {
-      where: {
-        isDeleted,
-        organization: organizationId,
-      },
-      orderBy: query.sort
-        ? handleQuerySort(query.sort)
-        : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
-    };
-
     const data: AggregatePaginateResult<ActivityDocument> =
-      await this.activitiesService.findAll(aggregate, options);
+      await this.activitiesService.findAll(
+        {
+          orderBy: query.sort
+            ? handleQuerySort(query.sort)
+            : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
+          where: {
+            isDeleted,
+            organization: organizationId,
+          },
+        },
+        options,
+      );
     return serializeCollection(request, ActivitySerializer, data);
   }
-
-  // Duplicate route removed - use findAnalytics() above which has role-based access control
 }
