@@ -3,6 +3,12 @@ import { UnrecoverableError } from 'bullmq';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const dnsLookupMock = vi.hoisted(() => vi.fn());
+
+vi.mock('node:dns/promises', () => ({
+  lookup: dnsLookupMock,
+}));
+
 describe('WebhookClientProcessor', () => {
   let httpService: { post: ReturnType<typeof vi.fn> };
   let logger: {
@@ -16,6 +22,7 @@ describe('WebhookClientProcessor', () => {
   let processor: WebhookClientProcessor;
 
   beforeEach(() => {
+    dnsLookupMock.mockReset();
     httpService = {
       post: vi.fn().mockReturnValue(of({ status: 200 })),
     };
@@ -32,6 +39,138 @@ describe('WebhookClientProcessor', () => {
       logger as never,
       organizationSettingsService as never,
     );
+  });
+
+  it('pins HTTPS dispatch to the validated addresses while preserving Host and SNI', async () => {
+    dnsLookupMock.mockResolvedValueOnce([
+      { address: '93.184.216.34', family: 4 },
+      { address: '2606:4700:4700::1111', family: 6 },
+    ]);
+    const job = {
+      attemptsMade: 0,
+      data: {
+        endpoint: 'https://hooks.example.com/webhook',
+        organizationId: 'org-1',
+        payload: {
+          event: 'ingredient.generated',
+          timestamp: '2026-05-17T10:00:00.000Z',
+        },
+        secret: 'secret',
+      },
+      id: 'job-https-pinned',
+      opts: { attempts: 5 },
+      updateProgress: vi.fn(),
+    };
+
+    await processor.process(job as never);
+
+    const [requestUrl, _payload, requestOptions] =
+      httpService.post.mock.calls[0] ?? [];
+    expect(requestUrl).toBe('https://hooks.example.com/webhook');
+    expect(requestOptions).toMatchObject({
+      headers: {
+        Host: 'hooks.example.com',
+      },
+      httpsAgent: expect.any(Object),
+      maxRedirects: 0,
+      timeout: 30000,
+    });
+    expect(requestOptions.httpAgent).toBeUndefined();
+    expect(requestOptions.httpsAgent.options.servername).toBe(
+      'hooks.example.com',
+    );
+
+    dnsLookupMock.mockResolvedValueOnce([{ address: '127.0.0.1', family: 4 }]);
+    await new Promise<void>((resolve, reject) => {
+      requestOptions.httpsAgent.options.lookup(
+        'hooks.example.com',
+        { all: true },
+        (error: Error | null, addresses: unknown) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          expect(addresses).toEqual([
+            { address: '93.184.216.34', family: 4 },
+            { address: '2606:4700:4700::1111', family: 6 },
+          ]);
+          resolve();
+        },
+      );
+    });
+    expect(dnsLookupMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('pins HTTP dispatch to a public IPv6 literal', async () => {
+    const job = {
+      attemptsMade: 0,
+      data: {
+        endpoint: 'http://[2606:4700:4700::1111]/webhook',
+        organizationId: 'org-1',
+        payload: {
+          event: 'ingredient.generated',
+          timestamp: '2026-05-17T10:00:00.000Z',
+        },
+        secret: 'secret',
+      },
+      id: 'job-http-ipv6-pinned',
+      opts: { attempts: 5 },
+      updateProgress: vi.fn(),
+    };
+
+    await processor.process(job as never);
+
+    const requestOptions = httpService.post.mock.calls[0]?.[2];
+    expect(requestOptions).toMatchObject({
+      headers: {
+        Host: '[2606:4700:4700::1111]',
+      },
+      httpAgent: expect.any(Object),
+    });
+    expect(requestOptions.httpsAgent).toBeUndefined();
+    expect(dnsLookupMock).not.toHaveBeenCalled();
+
+    await new Promise<void>((resolve, reject) => {
+      requestOptions.httpAgent.options.lookup(
+        '2606:4700:4700::1111',
+        {},
+        (error: Error | null, address: string, family: number) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          expect(address).toBe('2606:4700:4700::1111');
+          expect(family).toBe(6);
+          resolve();
+        },
+      );
+    });
+  });
+
+  it('fails closed without dispatch when DNS returns no public addresses', async () => {
+    dnsLookupMock.mockResolvedValueOnce([]);
+    const job = {
+      attemptsMade: 0,
+      data: {
+        endpoint: 'https://hooks.example.com/webhook',
+        organizationId: 'org-1',
+        payload: {
+          event: 'ingredient.generated',
+          timestamp: '2026-05-17T10:00:00.000Z',
+        },
+        secret: 'secret',
+      },
+      id: 'job-empty-dns',
+      opts: { attempts: 5 },
+      updateProgress: vi.fn(),
+    };
+
+    await expect(processor.process(job as never)).rejects.toBeInstanceOf(
+      UnrecoverableError,
+    );
+    expect(httpService.post).not.toHaveBeenCalled();
   });
 
   it('rejects unsafe webhook endpoints before dispatch', async () => {

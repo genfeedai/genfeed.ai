@@ -11,9 +11,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const assertSafeWebhookEndpoint = vi.fn().mockResolvedValue(undefined);
+const pinnedWebhookAgent = { options: { servername: 'example.com' } };
+const assertSafeWebhookEndpoint = vi.fn().mockResolvedValue({
+  addresses: [{ address: '93.184.216.34', family: 4 }],
+  hostname: 'example.com',
+  url: new URL('https://example.com/hook'),
+});
+const createPinnedWebhookAgent = vi.fn(() => pinnedWebhookAgent);
 vi.mock('@api/services/webhook-client/webhook-endpoint.validator', () => ({
   assertSafeWebhookEndpoint: (url: string) => assertSafeWebhookEndpoint(url),
+  createPinnedWebhookAgent: (endpoint: unknown) =>
+    createPinnedWebhookAgent(endpoint),
 }));
 
 const CTX = {
@@ -56,6 +64,7 @@ describe('ReviewGateNotificationService', () => {
 
   beforeEach(async () => {
     assertSafeWebhookEndpoint.mockClear();
+    createPinnedWebhookAgent.mockClear();
     notificationsService = {
       sendReviewGatePendingEmail: vi.fn().mockResolvedValue(undefined),
       sendReviewGatePendingSlack: vi.fn().mockResolvedValue(undefined),
@@ -143,7 +152,18 @@ describe('ReviewGateNotificationService', () => {
     expect(httpService.post).toHaveBeenCalledWith(
       'https://example.com/hook',
       expect.objectContaining({ event: 'review_gate.pending' }),
-      expect.any(Object),
+      expect.objectContaining({
+        headers: { Host: 'example.com' },
+        httpsAgent: pinnedWebhookAgent,
+        maxRedirects: 0,
+        timeout: 8000,
+      }),
+    );
+    expect(createPinnedWebhookAgent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        addresses: [{ address: '93.184.216.34', family: 4 }],
+        hostname: 'example.com',
+      }),
     );
   });
 

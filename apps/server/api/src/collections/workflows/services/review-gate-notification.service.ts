@@ -3,7 +3,10 @@ import type { TasksService } from '@api/collections/tasks/services/tasks.service
 import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import type { PendingReviewGateState } from '@api/collections/workflows/services/workflow-executor.types';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { assertSafeWebhookEndpoint } from '@api/services/webhook-client/webhook-endpoint.validator';
+import {
+  assertSafeWebhookEndpoint,
+  createPinnedWebhookAgent,
+} from '@api/services/webhook-client/webhook-endpoint.validator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { NotificationChannel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -193,7 +196,12 @@ export class ReviewGateNotificationService {
     }
 
     // SSRF guard: reject private/loopback/link-local targets before any request.
-    await assertSafeWebhookEndpoint(url);
+    const validatedEndpoint = await assertSafeWebhookEndpoint(url);
+    const pinnedAgent = createPinnedWebhookAgent(validatedEndpoint);
+    const pinnedAgentConfig =
+      validatedEndpoint.url.protocol === 'https:'
+        ? { httpsAgent: pinnedAgent }
+        : { httpAgent: pinnedAgent };
 
     await firstValueFrom(
       this.httpService.post(
@@ -209,7 +217,12 @@ export class ReviewGateNotificationService {
           workflowId: ctx.workflowId,
           workflowLabel: ctx.workflowLabel,
         },
-        { timeout: WEBHOOK_POST_TIMEOUT_MS },
+        {
+          headers: { Host: validatedEndpoint.url.host },
+          ...pinnedAgentConfig,
+          maxRedirects: 0,
+          timeout: WEBHOOK_POST_TIMEOUT_MS,
+        },
       ),
     );
   }
