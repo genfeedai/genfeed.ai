@@ -26,6 +26,8 @@ export interface UseOverviewBootstrapOptions {
 export interface UseOverviewBootstrapReturn {
   activeRuns: IAgentRun[];
   analytics: Partial<IAnalytics>;
+  error: Error | null;
+  isError: boolean;
   isLoading: boolean;
   refresh: () => Promise<void>;
   reviewInbox: OverviewBootstrapPayload['reviewInbox'];
@@ -96,7 +98,7 @@ export function useOverviewBootstrap(
     (options.revalidateOnMount ?? initialData === undefined) === false &&
     !!initialData;
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, error, isError, isLoading, refetch } = useQuery({
     queryKey: ['overview-bootstrap', effectiveUserId, orgId ?? 'no-org'],
     queryFn: async () => {
       const service = await getAuthService();
@@ -111,6 +113,8 @@ export function useOverviewBootstrap(
     () => ({
       activeRuns: data?.activeRuns ?? [],
       analytics: data?.analytics ?? {},
+      error,
+      isError,
       isLoading,
       refresh: async () => {
         await refetch();
@@ -134,6 +138,8 @@ export function useOverviewBootstrap(
       data?.runs,
       data?.stats,
       data?.timeSeries,
+      error,
+      isError,
       isLoading,
       refetch,
     ],

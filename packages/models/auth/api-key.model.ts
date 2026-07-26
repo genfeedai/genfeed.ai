@@ -1,6 +1,19 @@
-import type { IApiKey } from '@genfeedai/interfaces';
+import type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces';
 
 export type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces';
+
+interface ApiKeyOrganizationReference {
+  id: string;
+}
+
+type ApiKeyOrganization = ApiKeyOrganizationReference | string;
+
+type ApiKeyInput = Partial<IApiKey> & {
+  attributes?: IApiKeyAttributes & {
+    organization?: ApiKeyOrganization;
+  };
+  organization?: ApiKeyOrganization;
+};
 
 function toIsoDateString(
   value: string | Date | null | undefined,
@@ -30,12 +43,13 @@ export class ApiKey {
   updatedAt: string;
   rateLimit?: number;
   metadata?: Record<string, unknown>;
+  organization?: ApiKeyOrganization;
   isActive: boolean;
   isRevoked: boolean;
   revokedAt?: string | null;
   usageCount: number;
 
-  constructor(partial: Partial<IApiKey> = {}) {
+  constructor(partial: ApiKeyInput = {}) {
     this.id = partial.id ?? '';
     this.type = partial.type ?? 'api-keys';
 
@@ -58,6 +72,7 @@ export class ApiKey {
       toIsoDateString(attrs.updatedAt) ?? new Date().toISOString();
     this.rateLimit = attrs.rateLimit;
     this.metadata = attrs.metadata;
+    this.organization = attrs.organization;
     this.isRevoked = attrs.isRevoked ?? false;
     this.revokedAt = toIsoDateString(attrs.revokedAt);
     this.usageCount = attrs.usageCount ?? 0;

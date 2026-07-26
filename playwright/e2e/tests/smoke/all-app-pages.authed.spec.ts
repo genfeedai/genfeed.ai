@@ -9,7 +9,7 @@ import { setupStrictNetworkGuard } from '../../utils/network-guard';
  * Auth session minted by playwright/e2e/auth.setup.ts against the job-local API
  * (sign-up + onboarding completion). It exercises the genuine proxy.ts /
  * authMiddleware path end-to-end: session cookie → /auth/token → /auth/bootstrap
- * → canonical workspace redirect — all against the hermetic local stack
+ * → authenticated operational home — all against the hermetic local stack
  * (Postgres + Redis + real compiled API on :3010). No production dependency.
  */
 
@@ -60,24 +60,47 @@ function buildProtectedRoutes(orgSlug: string, brandSlug: string): string[] {
   ];
 }
 
+async function readWorkspaceSlugs(page: Page): Promise<{
+  brandSlug: string;
+  orgSlug: string;
+}> {
+  const cookie = (await page.context().cookies()).find(
+    ({ name }) => name === 'gf_ws',
+  );
+  expect(
+    cookie,
+    'proxy did not prime the canonical workspace cookie',
+  ).toBeTruthy();
+
+  const payload = cookie?.value.split('.')[0] ?? '';
+  const decoded = JSON.parse(
+    Buffer.from(payload, 'base64url').toString('utf8'),
+  ) as {
+    s?: { brandSlug?: string; orgSlug?: string };
+  };
+  expect(decoded.s?.orgSlug).toBeTruthy();
+  expect(decoded.s?.brandSlug).toBeTruthy();
+
+  return {
+    brandSlug: decoded.s?.brandSlug ?? '',
+    orgSlug: decoded.s?.orgSlug ?? '',
+  };
+}
+
 test.describe('Authenticated route smoke (real Better Auth session)', () => {
   test.setTimeout(600_000);
 
   test('protected routes render under a real session', async ({ page }) => {
     const networkGuard = await setupStrictNetworkGuard(page, { strict: true });
 
-    // `/` routes a signed-in, onboarded user to the canonical workspace path
-    // (/{orgSlug}/{brandSlug}/workspace/overview) via proxy.ts — the first real
-    // proof the session is honored, and the source of the provisioned slugs.
+    // `/` renders the operational home in place. The proxy still resolves and
+    // signs the canonical scope cookie used by bare protected routes.
     await assertRouteLoads(page, '/');
-    const workspaceMatch = new URL(page.url()).pathname.match(
-      /^\/([a-zA-Z0-9-]+)\/([a-zA-Z0-9-]+)\//,
-    );
-    expect(
-      workspaceMatch,
-      `/ did not land on a /{org}/{brand}/… workspace path (got ${page.url()})`,
-    ).not.toBeNull();
-    const [, orgSlug, brandSlug] = workspaceMatch as RegExpMatchArray;
+    expect(new URL(page.url()).pathname).toBe('/');
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Operational home' }),
+    ).toBeVisible();
+    const { brandSlug, orgSlug } = await readWorkspaceSlugs(page);
 
     const failures: string[] = [];
     for (const route of buildProtectedRoutes(orgSlug, brandSlug)) {

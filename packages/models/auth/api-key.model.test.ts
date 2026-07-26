@@ -94,6 +94,7 @@ describe('ApiKey', () => {
         label: 'MCP',
         lastUsedIp: '127.0.0.1',
         metadata: { source: 'settings' },
+        organization: 'org-1',
         rateLimit: 120,
         scopes: ['videos:read', 'analytics:read'],
         usageCount: 7,
@@ -104,6 +105,7 @@ describe('ApiKey', () => {
       expect(apiKey.key).toBe('gf_test_plain');
       expect(apiKey.allowedIps).toEqual(['127.0.0.1']);
       expect(apiKey.metadata).toEqual({ source: 'settings' });
+      expect(apiKey.organization).toBe('org-1');
       expect(apiKey.lastUsedIp).toBe('127.0.0.1');
       expect(apiKey.usageCount).toBe(7);
       expect(apiKey.isActive).toBe(true);
