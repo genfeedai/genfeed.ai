@@ -17,6 +17,7 @@ import {
   resolveContainedObjectKey,
   resolveContainedPath,
 } from '@libs/security';
+import { safeFetch } from '@libs/security/destination-guard';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 
@@ -205,7 +206,9 @@ export class S3Service {
       createBadRequest,
     );
     try {
-      const response = await fetch(url);
+      // This helper accepts caller-supplied media URLs, not a configured
+      // storage service origin. Keep the public-network policy fail-closed.
+      const response = await safeFetch(url);
       if (!response.ok) {
         const errorText = await response
           .text()

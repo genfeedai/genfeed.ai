@@ -11,16 +11,97 @@ const INLINE_SECRET_PATTERN =
   /\b((?:access[_-]?token|api[_-]?key|authorization|client[_-]?secret|id[_-]?token|password|private[_-]?key|refresh[_-]?token|secret|session|token)\s*[:=]\s*)["']?[^\s,&"'#]+/gi;
 const PROVIDER_TOKEN_PATTERN =
   /\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{10,}|gh[pousr]_[A-Za-z0-9_]{10,})\b/g;
-const PRIVATE_KEY_BLOCK_PATTERN =
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g;
+const PRIVATE_KEY_BEGIN_PREFIX = '-----BEGIN ';
+const PRIVATE_KEY_END_PREFIX = '-----END ';
+const PRIVATE_KEY_MARKER_SUFFIX = 'PRIVATE KEY-----';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function findPrivateKeyMarkerEnd(
+  value: string,
+  start: number,
+  prefix: string,
+): number {
+  if (!value.startsWith(prefix, start)) {
+    return -1;
+  }
+
+  let cursor = start + prefix.length;
+  while (cursor < value.length) {
+    if (value.startsWith(PRIVATE_KEY_MARKER_SUFFIX, cursor)) {
+      return cursor + PRIVATE_KEY_MARKER_SUFFIX.length;
+    }
+
+    const code = value.charCodeAt(cursor);
+    const isUppercaseLetter = code >= 65 && code <= 90;
+    if (!isUppercaseLetter && value[cursor] !== ' ') {
+      return -1;
+    }
+
+    cursor += 1;
+  }
+
+  return -1;
+}
+
+function redactPrivateKeyBlocks(value: string): string {
+  const output: string[] = [];
+  let copyStart = 0;
+  let blockStart = -1;
+  let cursor = 0;
+
+  while (cursor < value.length) {
+    if (blockStart < 0) {
+      const candidate = value.indexOf(PRIVATE_KEY_BEGIN_PREFIX, cursor);
+      if (candidate < 0) {
+        break;
+      }
+
+      const markerEnd = findPrivateKeyMarkerEnd(
+        value,
+        candidate,
+        PRIVATE_KEY_BEGIN_PREFIX,
+      );
+      if (markerEnd < 0) {
+        cursor = candidate + 1;
+        continue;
+      }
+
+      output.push(value.slice(copyStart, candidate));
+      blockStart = candidate;
+      cursor = markerEnd;
+      continue;
+    }
+
+    const candidate = value.indexOf(PRIVATE_KEY_END_PREFIX, cursor);
+    if (candidate < 0) {
+      break;
+    }
+
+    const markerEnd = findPrivateKeyMarkerEnd(
+      value,
+      candidate,
+      PRIVATE_KEY_END_PREFIX,
+    );
+    if (markerEnd < 0) {
+      cursor = candidate + 1;
+      continue;
+    }
+
+    output.push(REDACTED_VALUE);
+    blockStart = -1;
+    copyStart = markerEnd;
+    cursor = markerEnd;
+  }
+
+  output.push(value.slice(blockStart >= 0 ? blockStart : copyStart));
+  return output.join('');
+}
+
 export function redactSensitiveString(value: string): string {
-  return value
-    .replace(PRIVATE_KEY_BLOCK_PATTERN, REDACTED_VALUE)
+  return redactPrivateKeyBlocks(value)
     .replace(AUTH_HEADER_PATTERN, (_match, scheme: string) => {
       return `${scheme} ${REDACTED_VALUE}`;
     })

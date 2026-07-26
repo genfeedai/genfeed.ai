@@ -284,7 +284,7 @@ export class LinkTrackingService extends HTTPBaseService {
     let sessionId = localStorage.getItem(storageKey);
 
     if (!sessionId) {
-      sessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      sessionId = `sess_${crypto.randomUUID()}`;
       localStorage.setItem(storageKey, sessionId);
     }
 

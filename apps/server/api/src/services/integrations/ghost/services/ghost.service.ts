@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { trimTrailingCharacter } from '@api/shared/utils/string/linear-string.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   GhostImageUploadResponse,
@@ -227,7 +228,7 @@ export class GhostService {
    * Normalize a Ghost URL (strip trailing slashes, ensure https).
    */
   private normalizeUrl(ghostUrl: string): string {
-    let normalized = ghostUrl.replace(/\/+$/, '');
+    let normalized = trimTrailingCharacter(ghostUrl, '/');
 
     if (
       !normalized.startsWith('http://') &&

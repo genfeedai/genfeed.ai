@@ -119,6 +119,24 @@ describe('MastodonService', () => {
       );
     });
 
+    it('should remove every trailing slash from the instance URL', async () => {
+      const mockRegistration = {
+        client_id: 'client-id',
+        client_secret: 'client-secret',
+        id: 'app-id',
+        name: 'Genfeed.ai',
+        redirect_uri: 'https://callback',
+      };
+      httpService.post.mockReturnValue(of({ data: mockRegistration }) as never);
+
+      await service.registerApp(`${instanceUrl}///`, 'https://callback');
+
+      expect(httpService.post).toHaveBeenCalledWith(
+        `${instanceUrl}/api/v1/apps`,
+        expect.any(Object),
+      );
+    });
+
     it('should log error and rethrow on HTTP failure', async () => {
       httpService.post.mockReturnValue(
         throwError(() => new Error('Connection refused')) as never,
@@ -357,7 +375,7 @@ describe('MastodonService', () => {
 
     it('accepts redirect URIs under the configured app origin', () => {
       configService.get.mockImplementation((k: string) =>
-        k === 'GENFEEDAI_APP_URL' ? 'https://app.genfeed.ai' : `mock-${k}`,
+        k === 'GENFEEDAI_APP_URL' ? 'https://app.genfeed.ai///' : `mock-${k}`,
       );
 
       expect(() =>

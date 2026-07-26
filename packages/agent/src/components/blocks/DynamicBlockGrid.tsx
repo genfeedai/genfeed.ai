@@ -3,6 +3,7 @@
 import CompositeLayout from '@genfeedai/agent/components/blocks/CompositeLayout';
 import DynamicChart from '@genfeedai/agent/components/blocks/DynamicChart';
 import DynamicTable from '@genfeedai/agent/components/blocks/DynamicTable';
+import { formatAnimatedValue } from '@genfeedai/agent/components/blocks/metric-value-format.util';
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import { ButtonVariant } from '@genfeedai/enums';
 import type {
@@ -109,14 +110,6 @@ function getAlertStyles(severity?: AlertBlock['severity']): {
         text: 'text-blue-400',
       };
   }
-}
-
-function formatAnimatedValue(value: number, template: string): string {
-  const suffixMatch = template.match(/([KMBT%]+)$/i);
-  const suffix = suffixMatch?.[1] ?? '';
-  const hasDecimals = /\.\d/.test(template);
-  const precision = hasDecimals ? 1 : 0;
-  return `${value.toFixed(precision)}${suffix}`;
 }
 
 function parseAnimatedValue(value: MetricCardBlock['value']): {

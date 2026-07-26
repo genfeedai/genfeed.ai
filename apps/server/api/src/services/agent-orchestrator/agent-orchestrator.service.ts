@@ -62,6 +62,11 @@ import {
   mergeAgentArtifactCompletionMetadata,
   persistRunArtifacts,
 } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
+import {
+  extractBatchTopic,
+  extractRecurringContentCount,
+  extractStyleNotes,
+} from '@api/services/agent-orchestrator/utils/agent-orchestrator-input-parsing.util';
 import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
 import {
   buildAgentRoutingMetadata,
@@ -3327,9 +3332,7 @@ export class AgentOrchestratorService {
     defaultTimezone: string,
   ): RecurringTaskDraft {
     const normalized = content.toLowerCase();
-    const countMatch = normalized.match(
-      /\b(\d{1,2})\s+(?:instagram|tiktok|linkedin|x|twitter|facebook)?\s*(images?|videos?|posts?|newsletters?)\b/,
-    );
+    const count = extractRecurringContentCount(normalized);
     const contentType = normalized.includes('video')
       ? 'video'
       : normalized.includes('newsletter')
@@ -3344,7 +3347,7 @@ export class AgentOrchestratorService {
 
     return {
       contentType,
-      count: countMatch ? Number.parseInt(countMatch[1], 10) : 1,
+      count: count ?? 1,
       diversityMode: normalized.includes('distinct')
         ? 'high'
         : normalized.includes('consistent')
@@ -3404,8 +3407,7 @@ export class AgentOrchestratorService {
   }
 
   private extractStyleNotesFromMessage(content: string): string | undefined {
-    const styleMatch = content.match(/\b(?:in|with)\s+an?\s+(.+?)\s+style\b/i);
-    return styleMatch?.[1]?.trim();
+    return extractStyleNotes(content);
   }
 
   private extractCronScheduleFromMessage(
@@ -4054,24 +4056,7 @@ export class AgentOrchestratorService {
     originalContent: string,
     normalizedContent: string,
   ): string[] {
-    const aboutMatch = normalizedContent.match(
-      /\babout\s+(.+?)(?:\s+(?:for|on|this|next|over)\b|[.!?]|$)/,
-    );
-
-    if (!aboutMatch) {
-      return [];
-    }
-
-    const startIndex = aboutMatch.index ?? -1;
-    if (startIndex < 0) {
-      return [];
-    }
-
-    const originalSlice = originalContent.slice(
-      startIndex + 'about '.length,
-      startIndex + 'about '.length + aboutMatch[1].length,
-    );
-    const topic = originalSlice.trim();
+    const topic = extractBatchTopic(originalContent, normalizedContent);
 
     return topic ? [topic] : [];
   }

@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -42,7 +43,7 @@ export class SlackController {
     }
 
     const orgId = organization;
-    const state = Math.random().toString(36).substring(2, 15);
+    const state = randomBytes(32).toString('base64url');
 
     const existingCredential = await this.credentialsService.findOne({
       brand: brandId,

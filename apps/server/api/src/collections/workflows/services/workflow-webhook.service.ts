@@ -5,6 +5,7 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { WorkflowExecutionTrigger } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -145,7 +146,18 @@ export class WorkflowWebhookService {
       webhookTriggerCount: currentWebhookTriggerCount + 1,
     });
 
-    if (!workflow.user || !workflow.organization) {
+    // Scalar FKs first: `user`/`organization` are Mongo-era relation aliases
+    // that only hold an id while `BaseService.normalizeDocument` back-fills
+    // them, so `.toString()` below would throw the moment a query populates
+    // them or a raw row skips normalization. Systemic workflow templates
+    // legitimately have no owner, which is what an unresolved id means here.
+    const userId = resolveRelationId(workflow.userId, workflow.user);
+    const organizationId = resolveRelationId(
+      workflow.organizationId,
+      workflow.organization,
+    );
+
+    if (!userId || !organizationId) {
       throw new Error(
         'Systemic workflow templates cannot be executed directly. Clone the workflow first.',
       );
@@ -173,8 +185,8 @@ export class WorkflowWebhookService {
 
     const result = await this.workflowExecutorService.executeManualWorkflow(
       String(workflow.id),
-      workflow.user.toString(),
-      workflow.organization.toString(),
+      userId,
+      organizationId,
       payload,
       {
         triggerSource: 'webhook',

@@ -4,9 +4,9 @@ import { TrainingsService } from '@api/collections/trainings/services/trainings.
 import { LoraStatus, TrainingStage, TrainingStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { safeFetch } from '@libs/security/destination-guard';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import axios from 'axios';
 
 interface TrainingHyperparams {
   steps: number;
@@ -80,10 +80,62 @@ export class AdminFleetTrainingService {
    * which compares the bearer token against its own `GENFEEDAI_API_KEY`. Both
    * sides read the same shared secret, so every outbound call must carry it.
    */
-  private get requestConfig(): { headers: Record<string, string> } {
+  private get requestHeaders(): Record<string, string> {
     return {
-      headers: { Authorization: `Bearer ${this.internalApiKey}` },
+      Authorization: `Bearer ${this.internalApiKey}`,
+      'Content-Type': 'application/json',
     };
+  }
+
+  private async requestImagesApi<T>(
+    pathname: string,
+    options: {
+      body?: Record<string, unknown>;
+      method?: 'GET' | 'POST';
+      timeoutMs: number;
+    },
+  ): Promise<T> {
+    let baseUrl: URL;
+    try {
+      baseUrl = new URL(this.imagesApiUrl);
+    } catch {
+      throw new Error('GPU_IMAGES_URL must be a valid http(s) URL');
+    }
+
+    const baseWithTrailingSlash = baseUrl.href.endsWith('/')
+      ? baseUrl.href
+      : `${baseUrl.href}/`;
+    const url = new URL(pathname.replace(/^\/+/, ''), baseWithTrailingSlash);
+    const response = await safeFetch(
+      url,
+      {
+        body: options.body ? JSON.stringify(options.body) : undefined,
+        headers: this.requestHeaders,
+        method: options.method ?? 'GET',
+        signal: AbortSignal.timeout(options.timeoutMs),
+      },
+      {
+        allowedOrigins: [baseUrl.origin],
+        allowPrivateNetwork: true,
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Images service returned ${response.status} ${response.statusText}`,
+      );
+    }
+
+    if (response.status === 204 || response.status === 205) {
+      return undefined as T;
+    }
+
+    const responseBody = await response.text();
+    if (responseBody.trim() === '') {
+      return undefined as T;
+    }
+
+    return JSON.parse(responseBody) as T;
   }
 
   /**
@@ -183,9 +235,9 @@ export class AdminFleetTrainingService {
         10,
       );
 
-      const { data: dataset } = await axios.get<ImagesDatasetResponse>(
-        `${this.imagesApiUrl}/datasets/${params.personaSlug}`,
-        { ...this.requestConfig, timeout: 15000 },
+      const dataset = await this.requestImagesApi<ImagesDatasetResponse>(
+        `datasets/${encodeURIComponent(params.personaSlug)}`,
+        { timeoutMs: 15_000 },
       );
 
       if (dataset.imageCount === 0) {
@@ -208,17 +260,20 @@ export class AdminFleetTrainingService {
       // Stage: TRAINING — start training via NestJS images service
       await this.updateStage(params.trainingId, TrainingStage.TRAINING, 30);
 
-      const { data: trainResult } = await axios.post<ImagesTrainResponse>(
-        `${this.imagesApiUrl}/train`,
+      const trainResult = await this.requestImagesApi<ImagesTrainResponse>(
+        'train',
         {
-          learningRate: params.learningRate,
-          loraName: params.loraName,
-          loraRank: params.loraRank,
-          personaSlug: params.personaSlug,
-          steps: params.steps,
-          triggerWord: params.triggerWord,
+          body: {
+            learningRate: params.learningRate,
+            loraName: params.loraName,
+            loraRank: params.loraRank,
+            personaSlug: params.personaSlug,
+            steps: params.steps,
+            triggerWord: params.triggerWord,
+          },
+          method: 'POST',
+          timeoutMs: 30_000,
         },
-        { ...this.requestConfig, timeout: 30000 },
       );
 
       this.loggerService.log(caller, {
@@ -268,9 +323,9 @@ export class AdminFleetTrainingService {
     for (let attempt = 0; attempt < maxPollAttempts; attempt++) {
       await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
 
-      const { data: job } = await axios.get<ImagesJobStatus>(
-        `${this.imagesApiUrl}/train/${gpuJobId}`,
-        { ...this.requestConfig, timeout: 15000 },
+      const job = await this.requestImagesApi<ImagesJobStatus>(
+        `train/${encodeURIComponent(gpuJobId)}`,
+        { timeoutMs: 15_000 },
       );
 
       // Map GPU job stage to TrainingStage enum
@@ -359,13 +414,16 @@ export class AdminFleetTrainingService {
     // `POST /loras` — the images LoRA controller is `@Controller('loras')` with
     // a bare `@Post()`. The previous `/loras/upload` spelling 404'd, failing
     // every training run at the upload stage.
-    const { data: uploadResult } = await axios.post<ImagesLoraUploadResponse>(
-      `${this.imagesApiUrl}/loras`,
+    const uploadResult = await this.requestImagesApi<ImagesLoraUploadResponse>(
+      'loras',
       {
-        localPath: `/comfyui/models/loras/${loraName}.safetensors`,
-        loraName,
+        body: {
+          localPath: `/comfyui/models/loras/${loraName}.safetensors`,
+          loraName,
+        },
+        method: 'POST',
+        timeoutMs: 120_000,
       },
-      { ...this.requestConfig, timeout: 120000 },
     );
 
     this.loggerService.log(caller, {
@@ -378,11 +436,10 @@ export class AdminFleetTrainingService {
   }
 
   async getDatasetInfo(slug: string): Promise<ImagesDatasetResponse> {
-    const { data } = await axios.get<ImagesDatasetResponse>(
-      `${this.imagesApiUrl}/datasets/${slug}`,
-      { ...this.requestConfig, timeout: 15000 },
+    return this.requestImagesApi<ImagesDatasetResponse>(
+      `datasets/${encodeURIComponent(slug)}`,
+      { timeoutMs: 15_000 },
     );
-    return data;
   }
 
   /**
@@ -391,10 +448,13 @@ export class AdminFleetTrainingService {
    * credentials at an arbitrary one.
    */
   async syncDataset(slug: string, s3Keys: string[]): Promise<void> {
-    await axios.post(
-      `${this.imagesApiUrl}/datasets/${slug}/sync`,
-      { s3Keys },
-      { ...this.requestConfig, timeout: 120000 },
+    await this.requestImagesApi<void>(
+      `datasets/${encodeURIComponent(slug)}/sync`,
+      {
+        body: { s3Keys },
+        method: 'POST',
+        timeoutMs: 120_000,
+      },
     );
   }
 

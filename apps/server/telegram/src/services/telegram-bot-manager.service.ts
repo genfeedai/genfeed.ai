@@ -8,6 +8,8 @@ import {
   extractWorkflowOutputsFromExecution,
   IMAGE_MODELS,
   IntegrationEvent,
+  isBotOpenToAllUsers,
+  isBotUserAuthorized,
   isWorkflowExecutionTerminalStatus,
   OrgIntegration,
   REDIS_EVENTS,
@@ -163,15 +165,18 @@ export class TelegramBotManager
 
   private setupBotHandlers(bot: Bot, integration: OrgIntegration) {
     const orgId = integration.orgId;
-    const allowedUserIds = integration.config.allowedUserIds || [];
+    const accessConfig = integration.config;
+
+    if (isBotOpenToAllUsers(accessConfig)) {
+      this.logger.warn(
+        `Telegram integration ${integration.id} (org ${orgId}) is configured open to all users — every Telegram user who can reach this bot can spend its org's credits`,
+      );
+    }
 
     // Auth middleware
     bot.use(async (ctx, next) => {
       const userId = ctx.from?.id?.toString();
-      if (
-        allowedUserIds.length > 0 &&
-        (!userId || !allowedUserIds.includes(userId))
-      ) {
+      if (!isBotUserAuthorized(accessConfig, userId)) {
         await ctx.reply('You are not authorized to use this bot.');
         return;
       }

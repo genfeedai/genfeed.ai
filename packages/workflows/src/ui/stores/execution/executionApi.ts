@@ -22,7 +22,17 @@ import type {
  */
 
 export function resolveExecutionApiBaseUrl(value?: string): string {
-  const trimmed = value?.trim().replace(/\/+$/, '');
+  const normalized = value?.trim();
+  let end = normalized?.length ?? 0;
+
+  while (normalized && end > 0 && normalized[end - 1] === '/') {
+    end -= 1;
+  }
+
+  const trimmed =
+    normalized && end < normalized.length
+      ? normalized.slice(0, end)
+      : normalized;
   return trimmed || '/v1';
 }
 

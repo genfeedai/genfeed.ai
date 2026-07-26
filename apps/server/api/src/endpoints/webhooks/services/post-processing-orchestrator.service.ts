@@ -3,6 +3,7 @@ import { type IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
+import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -89,14 +90,33 @@ export class PostProcessingOrchestratorService {
       return;
     }
 
+    // Scalar FK first, and fail closed. `organization` is a Mongo-era relation
+    // alias that is only an id string while `BaseService.normalizeDocument`
+    // back-fills it; when it is `undefined` the filter value is dropped by
+    // `normalizeWhere`, turning this tenant-scoped lookup into an unscoped
+    // `findFirst` that reads another organization's auto-evaluate setting —
+    // and then feeds that foreign id into `evaluateContent` below.
+    const organizationId = resolveRelationId(
+      ingredient.organizationId,
+      ingredient.organization,
+    );
+
+    if (!organizationId) {
+      this.loggerService.error(
+        `${this.logContext} ingredient is missing an organization id`,
+        { ingredientId: ingredient.id },
+      );
+      return;
+    }
+
     const orgSettings = await this.organizationSettingsService.findOne({
-      organization: ingredient.organization,
+      organization: organizationId,
     });
 
     if (!orgSettings?.isAutoEvaluateEnabled) {
       this.loggerService.debug(`${this.logContext} auto-evaluate disabled`, {
         ingredientId: ingredient.id,
-        organizationId: ingredient.organization,
+        organizationId,
       });
       return;
     }
@@ -141,7 +161,7 @@ export class PostProcessingOrchestratorService {
       ingredient.category as IngredientCategory,
       String(ingredient.id),
       EvaluationType.PRE_PUBLICATION,
-      String(ingredient.organization),
+      organizationId,
       userId,
       brandId,
     );

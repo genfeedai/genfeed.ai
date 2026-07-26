@@ -635,6 +635,17 @@ export class WebhooksService {
       );
 
       if (userId) {
+        // `parent`/`parentModel` are Mongo-era compat fields — the Prisma
+        // `Asset` row has no such columns. They only ever hold a value because
+        // `BaseService.normalizeDocument` back-fills them from `parentType` and
+        // the four typed parent FKs, so read those scalars directly instead.
+        const parentId =
+          asset.parentBrandId ??
+          asset.parentOrgId ??
+          asset.parentIngredientId ??
+          asset.parentArticleId ??
+          undefined;
+
         await this.websocketService.publishAssetStatus(
           assetId.toString(),
           'completed',
@@ -642,8 +653,8 @@ export class WebhooksService {
           {
             assetId: assetId.toString(),
             category: asset.category,
-            parent: asset.parent?.toString(),
-            parentModel: asset.parentModel,
+            parent: parentId,
+            parentModel: asset.parentType,
           },
         );
 

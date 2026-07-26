@@ -66,6 +66,28 @@ describe('LinkTrackingService', () => {
     expect(typeof LinkTrackingService.getInstance).toBe('function');
   });
 
+  it('creates a cryptographically random analytics session ID', () => {
+    const randomUUID = vi
+      .fn()
+      .mockReturnValue('123e4567-e89b-42d3-a456-426614174000');
+    const localStorage = {
+      getItem: vi.fn().mockReturnValue(null),
+      setItem: vi.fn(),
+    };
+    vi.stubGlobal('window', {});
+    vi.stubGlobal('crypto', { randomUUID });
+    vi.stubGlobal('localStorage', localStorage);
+
+    const sessionId = service.getOrCreateSessionId();
+
+    expect(sessionId).toBe('sess_123e4567-e89b-42d3-a456-426614174000');
+    expect(randomUUID).toHaveBeenCalledOnce();
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'genfeed_session_id',
+      sessionId,
+    );
+  });
+
   it('sends GA events through gtag when available', () => {
     const gtag = vi.fn();
     vi.stubGlobal('window', { gtag });

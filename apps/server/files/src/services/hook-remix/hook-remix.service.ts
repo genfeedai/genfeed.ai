@@ -14,6 +14,7 @@ import {
   resolveContainedObjectKey,
   resolveContainedPath,
 } from '@libs/security';
+import { safeFetch } from '@libs/security/destination-guard';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 const createBadRequest = (message: string) => new BadRequestException(message);
@@ -121,7 +122,9 @@ export class HookRemixService {
   }
 
   private async downloadFile(url: string, outputPath: string): Promise<void> {
-    const response = await fetch(url);
+    // CTA URLs arrive in job data and are not a configured internal service.
+    // Keep the public-network policy fail-closed.
+    const response = await safeFetch(url);
     if (!response.ok) {
       throw new Error(
         `Failed to download CTA clip: ${response.status} ${response.statusText}`,

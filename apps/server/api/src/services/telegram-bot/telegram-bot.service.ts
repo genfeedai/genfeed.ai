@@ -120,6 +120,12 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
+    if (this.allowedUserIds.size === 0) {
+      this.loggerService.warn(
+        `TelegramBotService: a bot token is configured but ${TELEGRAM_BOT_ENV.ALLOWED_USER_IDS} names no user, so every command will be refused. Set it to the comma-separated Telegram user ids allowed to drive this bot.`,
+      );
+    }
+
     const defaultOrganizationId = this.configService.get(
       TELEGRAM_BOT_ENV.DEFAULT_ORGANIZATION_ID,
     );
@@ -186,11 +192,14 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     this.conversation.setWorkflows(workflows);
   }
 
-  /** Check if a user is authorized to use the bot. */
+  /**
+   * Check if a user is authorized to use the bot.
+   *
+   * An unconfigured allowlist denies everyone. The bot spends the deployment's
+   * credits and can reach its workflow runners, so an operator who provisions a
+   * token without naming the users is treated as having named nobody.
+   */
   private isAuthorized(userId: number): boolean {
-    if (this.allowedUserIds.size === 0) {
-      return true;
-    }
     return this.allowedUserIds.has(userId);
   }
 
@@ -376,7 +385,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   getStatus() {
     return {
       activeConversations: this.conversation.getActiveCount(),
-      allowedUsers: this.allowedUserIds.size || 'all',
+      allowedUsers: this.allowedUserIds.size,
       connectedChats: this.runCommands.getConnectedChatCount(),
       engineReady: !!this.engine,
       hasDefaultContext: this.runCommands.hasDefaultContext(),

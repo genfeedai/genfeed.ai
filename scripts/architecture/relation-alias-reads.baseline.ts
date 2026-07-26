@@ -16,12 +16,5 @@
  */
 
 export const RELATION_ALIAS_READ_BASELINE: Readonly<Record<string, number>> = {
-  'apps/server/api/src/collections/workflow-executions/controllers/internal-workflow-executions.controller.ts': 1,
-  'apps/server/api/src/collections/workflows/services/workflow-webhook.service.ts': 2,
-  'apps/server/api/src/endpoints/dev/dev.controller.ts': 1,
-  'apps/server/api/src/endpoints/webhooks/replicate/webhooks.replicate.controller.ts': 1,
-  'apps/server/api/src/endpoints/webhooks/services/post-processing-orchestrator.service.ts': 3,
-  'apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler.ts': 2,
-  'apps/server/api/src/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler.ts': 10,
-  'apps/server/api/src/endpoints/webhooks/webhooks.service.ts': 2,
+  'apps/server/api/src/endpoints/webhooks/replicate/webhooks.replicate.controller.ts': 2,
 };

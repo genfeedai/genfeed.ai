@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { DiscordService } from '@api/services/integrations/discord/services/discord.service';
@@ -28,8 +29,8 @@ export class DiscordController {
     @Body('organizationId') organizationId: string,
     @Body('brandId') brandId: string,
   ) {
-    // Generate random state for CSRF protection
-    const state = Math.random().toString(36).substring(2, 15);
+    // Generate a cryptographically unpredictable state for CSRF protection.
+    const state = randomBytes(32).toString('base64url');
 
     // Create or update pending credential with state
     const existingCredential = await this.credentialsService.findOne({
