@@ -61,6 +61,25 @@ describe('curated action catalog change reporter', () => {
     ]);
   });
 
+  it('accepts canonical publishing approval metadata', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{
+            name: 'publish_action',
+            requiresPublishingApproval: true,
+            surfaces: ['mcp'],
+          }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'publish_action',
+        surfaces: ['mcp'],
+      }),
+    ]);
+  });
+
   it('formats warning annotations and a complete step summary', () => {
     const [change] = diffCatalogs(
       [],

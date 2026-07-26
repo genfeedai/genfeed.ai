@@ -1008,11 +1008,11 @@ export class AgentOrchestratorService {
               continue;
             }
           }
-
           const result = await this.toolExecutorService.executeTool(
             toolName,
             toolParams,
             {
+              apiKeyContext: context.apiKeyContext,
               attachmentUrls: request.attachments?.map((a) => a.url),
               authToken: context.authToken,
               autonomyMode: policy.autonomyMode,
@@ -1944,12 +1944,11 @@ export class AgentOrchestratorService {
               continue;
             }
           }
-
-          // Execute tool
           const result = await this.toolExecutorService.executeTool(
             toolName,
             toolParams,
             {
+              apiKeyContext: context.apiKeyContext,
               attachmentUrls: attachments?.map((a) => a.url),
               authToken: context.authToken,
               autonomyMode: resolvedPolicy.autonomyMode,
@@ -2822,11 +2821,11 @@ export class AgentOrchestratorService {
         workEventLabel: 'Batch generation',
       }),
     );
-
     const result = await this.toolExecutorService.executeTool(
       toolName,
       toolParams,
       {
+        apiKeyContext: params.context.apiKeyContext,
         authToken: params.context.authToken,
         autonomyMode: params.policy.autonomyMode,
         brandId: params.policy.brandId,
@@ -3129,7 +3128,6 @@ export class AgentOrchestratorService {
         metadata: this.buildResolvedModelMetadata(params.model),
       };
     }
-
     const result = await this.toolExecutorService.executeTool(
       AgentToolName.CREATE_WORKFLOW,
       {
@@ -3144,6 +3142,7 @@ export class AgentOrchestratorService {
         timezone: params.draft.timezone,
       },
       {
+        apiKeyContext: params.context.apiKeyContext,
         brandId: params.context.scope?.brandId,
         organizationId: params.context.organizationId,
         runId: params.context.runId,
@@ -4166,11 +4165,11 @@ export class AgentOrchestratorService {
       threadId: params.threadId,
       toolName,
     });
-
     const result = await this.toolExecutorService.executeTool(
       toolName,
       toolPayload,
       {
+        apiKeyContext: params.context.apiKeyContext,
         authToken: params.context.authToken,
         generationPriority: params.context.generationPriority,
         organizationId: params.context.organizationId,
@@ -4237,11 +4236,11 @@ export class AgentOrchestratorService {
       threadId: params.threadId,
       toolName,
     });
-
     const result = await this.toolExecutorService.executeTool(
       toolName,
       toolPayload,
       {
+        apiKeyContext: params.context.apiKeyContext,
         authToken: params.context.authToken,
         generationPriority: params.context.generationPriority,
         organizationId: params.context.organizationId,
@@ -4324,11 +4323,11 @@ export class AgentOrchestratorService {
       threadId: params.threadId,
       toolName,
     });
-
     const result = await this.toolExecutorService.executeTool(
       toolName,
       toolPayload,
       {
+        apiKeyContext: params.context.apiKeyContext,
         authToken: params.context.authToken,
         generationPriority: params.context.generationPriority,
         organizationId: params.context.organizationId,

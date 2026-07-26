@@ -1,6 +1,11 @@
 import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-mcp-approval.dto';
 import { UpdateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/update-mcp-approval.dto';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
+import {
+  type ApiKeyPublishingContext,
+  assertApiKeyPublishingScope,
+  isPublishingMcpApprovalTool,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -105,7 +110,15 @@ export class McpApprovalsService extends BaseService<
     organizationId: string,
     decision: 'approve' | 'decline',
     result?: Record<string, unknown>,
+    apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<McpApprovalDocument> {
+    if (decision === 'approve') {
+      const approval = await this.findOneWithOrganization(id, organizationId);
+      if (isPublishingMcpApprovalTool(approval.toolName)) {
+        assertApiKeyPublishingScope(apiKeyContext ?? {}, 'approve');
+      }
+    }
+
     const status =
       decision === 'approve'
         ? McpApprovalStatus.APPROVED

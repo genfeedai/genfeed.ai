@@ -7,10 +7,15 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Effect } from 'effect';
 
-vi.mock('@genfeedai/tools', () => ({
-  getToolsForSurface: vi.fn(() => []),
-  toAgentTools: vi.fn(() => []),
-}));
+vi.mock('@genfeedai/tools', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/tools')>();
+
+  return {
+    ...actual,
+    getToolsForSurface: vi.fn(() => []),
+    toAgentTools: vi.fn(() => []),
+  };
+});
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
     handle: vi.fn((error: unknown) => {
@@ -124,6 +129,10 @@ describe('Threading AgentThreadRuntimeController', () => {
         threadId,
       },
       {
+        apiKeyContext: expect.objectContaining({
+          organization: organizationId,
+          user: userId,
+        }),
         organizationId,
         userId,
       },

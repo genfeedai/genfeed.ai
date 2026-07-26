@@ -17,6 +17,7 @@ export type {
 export {
   CURATED_ACTION_CATALOG,
   isActionOnSurface,
+  requiresPublishingApproval,
 } from './registry/curated-action-catalog.js';
 export {
   ALL_TOOLS,
