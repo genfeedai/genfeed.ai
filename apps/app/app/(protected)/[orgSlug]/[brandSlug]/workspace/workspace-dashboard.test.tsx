@@ -6,19 +6,11 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import {
   DashboardAgentCards,
-  DashboardChartsGrid,
   DashboardRecentActivity,
   DashboardRecentTasks,
   DashboardStatsStrip,
   WorkspaceDashboard,
 } from './workspace-dashboard';
-
-vi.mock('next/dynamic', () => ({
-  default: (loader: () => Promise<unknown>) => () => {
-    void loader;
-    return <div data-testid="chart-piece" />;
-  },
-}));
 
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -171,57 +163,40 @@ describe('workspace dashboard sections', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders stats and charts with trend fallbacks', () => {
-    const runs = [
-      makeRun({ id: 'run-1', status: AgentExecutionStatus.RUNNING }),
-      makeRun({ id: 'run-2', status: AgentExecutionStatus.PENDING }),
-    ];
-
+  it('renders stats with trend fallbacks', () => {
     render(
-      <>
-        <DashboardStatsStrip
-          activeRuns={runs}
-          reviewInbox={{
-            approvedCount: 2,
-            changesRequestedCount: 1,
-            pendingCount: 3,
-            readyCount: 4,
-            recentItems: [],
-            rejectedCount: 0,
-          }}
-          stats={{
-            activeRuns: 5,
-            completedToday: 7,
-            failedToday: 1,
-            totalCreditsToday: 12.345,
-            trends: [
-              {
-                autoRoutedRate: 1.25,
-                bucket: '2026-05-20T00:00:00.000Z',
-                totalCreditsUsed: 2.345,
-                totalRuns: 9,
-              },
-            ],
-          }}
-          workspaceTasks={[
-            makeTask({ id: 'task-1', status: 'backlog' }),
-            makeTask({ id: 'task-2', status: 'in_progress' }),
-          ]}
-        />
-        <DashboardChartsGrid
-          runs={runs}
-          stats={{
-            trends: [
-              {
-                autoRoutedRate: 0.75,
-                bucket: '2026-05-20T00:00:00.000Z',
-                totalCreditsUsed: 3.456,
-                totalRuns: 4,
-              },
-            ],
-          }}
-        />
-      </>,
+      <DashboardStatsStrip
+        activeRuns={[
+          makeRun({ id: 'run-1', status: AgentExecutionStatus.RUNNING }),
+          makeRun({ id: 'run-2', status: AgentExecutionStatus.PENDING }),
+        ]}
+        reviewInbox={{
+          approvedCount: 2,
+          changesRequestedCount: 1,
+          pendingCount: 3,
+          readyCount: 4,
+          recentItems: [],
+          rejectedCount: 0,
+        }}
+        stats={{
+          activeRuns: 5,
+          completedToday: 7,
+          failedToday: 1,
+          totalCreditsToday: 12.345,
+          trends: [
+            {
+              autoRoutedRate: 1.25,
+              bucket: '2026-05-20T00:00:00.000Z',
+              totalCreditsUsed: 2.345,
+              totalRuns: 9,
+            },
+          ],
+        }}
+        workspaceTasks={[
+          makeTask({ id: 'task-1', status: 'backlog' }),
+          makeTask({ id: 'task-2', status: 'in_progress' }),
+        ]}
+      />,
     );
 
     expect(screen.getByText('Agents Active')).toBeVisible();
@@ -231,17 +206,8 @@ describe('workspace dashboard sections', () => {
     // the live balance, so repeating it here read as a duplicate meter.
     expect(screen.queryByText('Credits Used')).toBeNull();
     expect(screen.queryByText('12.35')).toBeNull();
-    expect(screen.getByText('Run Activity')).toBeVisible();
-    expect(screen.getByText('Success Rate')).toBeVisible();
-    expect(screen.getAllByTestId('chart-piece').length).toBeGreaterThan(0);
-  });
-
-  it('omits charts when there are no runs or trends', () => {
-    const { container } = render(
-      <DashboardChartsGrid runs={[]} stats={null} />,
-    );
-
-    expect(container).toBeEmptyDOMElement();
+    // The dense chart grid moved to orchestration/runs — see RunChartsGrid.
+    expect(screen.queryByText('Run Activity')).toBeNull();
   });
 
   it('renders recent activity and task rows with empty states and status variants', () => {

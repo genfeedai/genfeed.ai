@@ -9,7 +9,7 @@ import {
 } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
 import type { TrendItem } from '@genfeedai/props/trends/trends-page.props';
-import type { AgentRunStats, AgentRunTrendPoint } from '@genfeedai/types';
+import type { AgentRunStats } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
@@ -26,37 +26,10 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { HiOutlineArrowRight, HiOutlineCpuChip } from 'react-icons/hi2';
 import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
-
-const Bar = dynamic(() => import('recharts').then((module) => module.Bar), {
-  ssr: false,
-});
-const BarChart = dynamic(
-  () => import('recharts').then((module) => module.BarChart),
-  { ssr: false },
-);
-const CartesianGrid = dynamic(
-  () => import('recharts').then((module) => module.CartesianGrid),
-  { ssr: false },
-);
-const ResponsiveContainer = dynamic(
-  () => import('recharts').then((module) => module.ResponsiveContainer),
-  { ssr: false },
-);
-const Tooltip = dynamic(
-  () => import('recharts').then((module) => module.Tooltip),
-  { ssr: false },
-);
-const XAxis = dynamic(() => import('recharts').then((module) => module.XAxis), {
-  ssr: false,
-});
-const YAxis = dynamic(() => import('recharts').then((module) => module.YAxis), {
-  ssr: false,
-});
 
 interface ReviewInboxSummary {
   approvedCount: number;
@@ -332,282 +305,6 @@ export function DashboardStatsStrip({
             ) : null}
           </Card>
         ))}
-      </DashboardGrid>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Mini Charts                                                        */
-/* ------------------------------------------------------------------ */
-
-const CHART_COLORS = {
-  amber: '#fbbf24',
-  blue: '#60a5fa',
-  cyan: '#22d3ee',
-  emerald: '#34d399',
-  rose: '#fb7185',
-};
-
-interface MiniChartCardProps {
-  children: React.ReactNode;
-  subtitle: string;
-  title: string;
-}
-
-function MiniChartCard({ children, subtitle, title }: MiniChartCardProps) {
-  return (
-    <Card bodyClassName="p-4">
-      <div className="mb-2 space-y-0.5">
-        <h3 className="text-xs font-semibold text-foreground">{title}</h3>
-        <p className="text-[10px] uppercase tracking-wider text-foreground/40">
-          {subtitle}
-        </p>
-      </div>
-      <div className="h-[120px]">{children}</div>
-    </Card>
-  );
-}
-
-function RunActivityChart({ trends }: { trends: AgentRunTrendPoint[] }) {
-  const data = useMemo(
-    () =>
-      trends.slice(-14).map((point) => ({
-        date: point.bucket.split('T')[0]?.slice(5) ?? point.bucket,
-        runs: point.totalRuns,
-      })),
-    [trends],
-  );
-
-  if (data.length === 0) {
-    return <EmptyChartPlaceholder />;
-  }
-
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ bottom: 0, left: -20, right: 0, top: 0 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="hsl(var(--border))"
-          vertical={false}
-        />
-        <XAxis
-          dataKey="date"
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-          axisLine={false}
-          tickLine={false}
-          allowDecimals={false}
-        />
-        <Tooltip
-          contentStyle={{
-            background: 'hsl(var(--popover))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-            color: 'hsl(var(--foreground))',
-            fontSize: '12px',
-          }}
-        />
-        <Bar dataKey="runs" fill={CHART_COLORS.blue} radius={[3, 3, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function RunsByStatusChart({ runs }: { runs: IAgentRun[] }) {
-  const data = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const run of runs) {
-      const status = formatStatusLabel(run.status);
-      counts[status] = (counts[status] ?? 0) + 1;
-    }
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [runs]);
-
-  if (data.length === 0) {
-    return <EmptyChartPlaceholder />;
-  }
-
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ bottom: 0, left: -20, right: 0, top: 0 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="hsl(var(--border))"
-          vertical={false}
-        />
-        <XAxis
-          dataKey="name"
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-          axisLine={false}
-          tickLine={false}
-          allowDecimals={false}
-        />
-        <Tooltip
-          contentStyle={{
-            background: 'hsl(var(--popover))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-            color: 'hsl(var(--foreground))',
-            fontSize: '12px',
-          }}
-        />
-        <Bar dataKey="value" radius={[3, 3, 0, 0]} fill={CHART_COLORS.cyan} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function SuccessRateChart({ trends }: { trends: AgentRunTrendPoint[] }) {
-  const data = useMemo(
-    () =>
-      trends.slice(-14).map((point) => {
-        const autoRoutedRate = Math.round(point.autoRoutedRate * 100);
-        return {
-          date: point.bucket.split('T')[0]?.slice(5) ?? point.bucket,
-          rate: autoRoutedRate > 100 ? 100 : autoRoutedRate,
-        };
-      }),
-    [trends],
-  );
-
-  if (data.length === 0) {
-    return <EmptyChartPlaceholder />;
-  }
-
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ bottom: 0, left: -20, right: 0, top: 0 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="hsl(var(--border))"
-          vertical={false}
-        />
-        <XAxis
-          dataKey="date"
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-          axisLine={false}
-          tickLine={false}
-          domain={[0, 100]}
-        />
-        <Tooltip
-          contentStyle={{
-            background: 'hsl(var(--popover))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-            color: 'hsl(var(--foreground))',
-            fontSize: '12px',
-          }}
-          formatter={(value: unknown) => [`${String(value ?? 0)}%`, 'Rate']}
-        />
-        <Bar dataKey="rate" fill={CHART_COLORS.emerald} radius={[3, 3, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function CreditsByDayChart({ trends }: { trends: AgentRunTrendPoint[] }) {
-  const data = useMemo(
-    () =>
-      trends.slice(-14).map((point) => ({
-        credits: Number(point.totalCreditsUsed.toFixed(2)),
-        date: point.bucket.split('T')[0]?.slice(5) ?? point.bucket,
-      })),
-    [trends],
-  );
-
-  if (data.length === 0) {
-    return <EmptyChartPlaceholder />;
-  }
-
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ bottom: 0, left: -20, right: 0, top: 0 }}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="hsl(var(--border))"
-          vertical={false}
-        />
-        <XAxis
-          dataKey="date"
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <Tooltip
-          contentStyle={{
-            background: 'hsl(var(--popover))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-            color: 'hsl(var(--foreground))',
-            fontSize: '12px',
-          }}
-        />
-        <Bar
-          dataKey="credits"
-          fill={CHART_COLORS.amber}
-          radius={[3, 3, 0, 0]}
-        />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function EmptyChartPlaceholder() {
-  return (
-    <div className="flex h-full items-center justify-center rounded-card bg-background text-xs text-foreground/32 shadow-border">
-      No data for this period
-    </div>
-  );
-}
-
-export function DashboardChartsGrid({
-  runs,
-  stats,
-}: {
-  runs: IAgentRun[];
-  stats: AgentRunStats | null;
-}) {
-  const trends = stats?.trends ?? [];
-
-  if (trends.length === 0 && runs.length === 0) {
-    return null;
-  }
-
-  return (
-    <section data-testid="dashboard-charts">
-      <DashboardGrid>
-        <MiniChartCard title="Run Activity" subtitle="Last 14 days">
-          <RunActivityChart trends={trends} />
-        </MiniChartCard>
-        <MiniChartCard title="Runs by Status" subtitle="Last 14 days">
-          <RunsByStatusChart runs={runs} />
-        </MiniChartCard>
-        <MiniChartCard title="Credits by Day" subtitle="Last 14 days">
-          <CreditsByDayChart trends={trends} />
-        </MiniChartCard>
-        <MiniChartCard title="Success Rate" subtitle="Last 14 days">
-          <SuccessRateChart trends={trends} />
-        </MiniChartCard>
       </DashboardGrid>
     </section>
   );
@@ -954,8 +651,8 @@ export function WorkspaceDashboard({
   }
 
   // Overview lives inside the conversation canvas, so it stays a centered,
-  // hard-capped 3/6/9 card grid. Dense back-office charts (DashboardChartsGrid)
-  // are intentionally not part of this composition.
+  // hard-capped 3/6/9 card grid. The dense back-office chart grid now lives in
+  // the operations module (`orchestration/runs/RunChartsGrid`), not here.
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
       <DashboardStatsStrip
