@@ -1,123 +1,96 @@
 # Memory Index
 
-## Project State
+Link index only. Descriptions are one line by design — open the file for detail.
+Keep it that way: this file is auto-loaded into every request.
 
-- [Operational App Home Spec](spec-operational-app-home.md) — verified-MCP root state machine and independently degradable control-plane summaries for #1866
-- [Operational App Home Decisions](decisions-operational-app-home.md) — authenticated-root ownership, configured-state evidence, and frontend-only aggregation decisions for #1866
-- [Filesystem and S3 Path Containment Spec](spec-filesystem-s3-path-containment.md) — shared fixed-root and fixed-prefix containment contract for #2068
-- [Filesystem and S3 Path Containment Decisions](decisions-filesystem-s3-path-containment.md) — canonical helper placement, S3 semantics, and adapter-boundary decisions for #2068
-- [Scheduler Target Analytics Summary Spec](spec-scheduler-target-analytics.md) — typed latest-snapshot scheduler target read model for #1975
-- [Scheduler Target Analytics Decisions](decisions-scheduler-target-analytics.md) — batch hydration and response-shape tradeoffs for #1975
-- [Pull-request Validation Telemetry Spec](spec-pr-validation-telemetry.md) — exact-head, read-only validation evidence contract for issue #1966
-- [Pull-request Validation Telemetry Decisions](decisions-pr-validation-telemetry.md) — collector boundary, fail-closed semantics, and surface classification decisions
-- [Brand and Social Visual Enrichment Spec](spec-brand-social-visual-enrichment.md) — S3-backed website headers and connected-account PFPs with platform badges
-- [Brand and Social Visual Enrichment Decisions](decisions-brand-social-visual-enrichment.md) — storage, overwrite, and failure-isolation decisions
-- [MCP Instagram and Meta Inspiration Remix Spec](spec-mcp-instagram-meta-inspiration-remix.md) — curated brand-aware public inspiration and review-only remix actions
-- [MCP Instagram and Meta Inspiration Remix Decisions](decisions-mcp-instagram-meta-inspiration-remix.md) — ephemeral discovery, strict brand resolution, and approval boundaries
-- [Superseded Pull-request Validation Waste](spec-pr-validation-superseded-waste.md) — exact-SHA cancellation replacement and discarded runner-time evidence contract
-- [Superseded Validation Waste Decisions](decisions-pr-validation-superseded-waste.md) — runner-time and replacement-proof decisions
-- [Project Overview](project_overview.md) — Genfeed.ai monorepo structure and key context
-- [One API Epic](project_one_api_epic.md) — Epic #95: consolidate self-hosted + cloud into one NestJS API, 20 issues, 8 phases
-- [Fallow Health](project_fallow.md) — Fallow codebase health analysis (#83), weekly CI, score 72/100
-- [BullMQ Processor Placement](project_bullmq.md) — API no longer owns BullMQ processors; add new processors to workers or the owning runtime service
-- [Backend type-check pattern](project_backend_typecheck.md) — dedicated `tsconfig.typecheck.json` for all 12 backend service/server-tier workspaces (never the runtime config); shared base, `useDefineForClassFields:false`, cross-app `$TURBO_ROOT$` inputs. Includes `@genfeedai/server` from #1584.
-- [Migration Status](project_migration.md) — cloud + core → genfeed.ai migration complete, all pages/tests present
-- [Settings Routing](project_settings_routing.md) — canonical personal/org/brand settings URL shapes
-- [Desktop BYOK Generation](project_desktop_byok_generation.md) — desktop local/BYOK generation is local-first; cloud connect is optional
-- [Desktop First Run and Sync Consent](project_desktop_first_run.md) — shared auth presentation, one account-less/cloud workspace, and per-account sync consent
-- [TS6.0/Prisma-7 build regression](project_ts6_prisma7_build_regression.md) — **BUILD REGRESSION RESOLVED 2026-06-03** (CI green @ 2e66b0aa8). Root cause was outdated turbo cache + mv-dist-src hack, not ~2020 real errors; removed the hack + fixed ~7 Prisma-7 Document interfaces. Stage 4 + migration-apply still pending.
-- **Deployment Modes & Auth Baseline (2026-06-29)** — canonical 3-mode model (SaaS / Community / Desktop as `deployment × client` axes) locked in [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md). Better Auth is now the active auth baseline across modes after #769/#866; platform admin access uses `users.platformRole`; headless API keys remain tracked under #747/#878. Multi-tenancy stays EE/SaaS; managed credits cloud-only; Community = funnel charter. Supersedes the auth half of #95.
+## Rules (permanent — user corrections)
 
-## Rules (user corrections — permanent)
+- [never_lose_code](never_lose_code.md) — branch+push WIP before destructive git ops
+- [trunk_pr_workflow](trunk_pr_workflow.md) — short-lived branches → PR; `master` is PR-only; secret-scan every commit
+- [end_to_end_implementation](end_to_end_implementation.md) — wire the full user path, never half-architecture
+- [ui_primitives](ui_primitives.md) — no raw HTML controls; enforced by `scripts/ui/control-guard.ts`
+- [proxy_middleware](proxy_middleware.md) — Next.js 16 renamed `middleware.ts` → `proxy.ts`
+- [codex_adversarial_review](codex_adversarial_review.md) — mandatory before ExitPlanMode
+- [gh_issue_worktree_workflow](gh_issue_worktree_workflow.md) — assigned issues use worktrees off master
+- [ready_pr_default](ready_pr_default.md) — ready PRs by default; draft only on request
+- [no_external_symlinks](no_external_symlinks.md) — internal symlinks only (public repo)
+- [p0_priority_not_label](p0_priority_not_label.md) — priority lives in Project #12, not labels
+- [no_issue_body_frontmatter](no_issue_body_frontmatter.md) — no YAML in issue bodies
+- [skill_boundary](skill_boundary.md) — `.agents/skills` build the app; `skills/` are product content
+- [genfeed_project_kanban](genfeed_project_kanban.md) — project #12 is canonical
+- [epic_status_on_child_start](epic_status_on_child_start.md) — epics go In Progress when a child starts
+- [positive_memory_framing](positive_memory_framing.md) — write memory as target state
+- [shared_checkout_automation](shared_checkout_automation.md) — path-scope `git add`; checkout state moves
+- [gpu_instances_off_by_default](gpu_instances_off_by_default.md) — keep GPU/Fleet instances off
+- [inference_servers_private_boundary](inference_servers_private_boundary.md) — inference impls stay private
+- [genfeedai_managed_provider](genfeedai_managed_provider.md) — managed inference is `provider=genfeedai`
+- [console_managed_inference_control_plane](console_managed_inference_control_plane.md) — console owns assignment
+- [system_workflows_content_os](system_workflows_content_os.md) — automation via immutable system workflows
+- [curated_agent_mcp_actions](curated_agent_mcp_actions.md) — one reviewed action catalog; OpenAPI ≠ tool parity
+- [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps
+- [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — failed deploy re-cuts the SAME version
+- [production_deploy_master_only](production_deploy_master_only.md) — production deploys run from master CI
+- [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
 
-- [Never lose code](never_lose_code.md) — Always branch+push WIP before destructive git ops
-- [Trunk PR workflow](trunk_pr_workflow.md) — Trunk-based: commit/push/PR on short-lived branches; master is PR-only; secret-scan every commit.
-- [proxy.ts is middleware](proxy_middleware.md) — Next.js 16 renamed middleware.ts → proxy.ts
-- [Use @ui/primitives](ui_primitives.md) — Never raw HTML elements — blocked by scripts/ui/control-guard.ts
-- [Codex adversarial review](codex_adversarial_review.md) — MANDATORY before ExitPlanMode
-- [GitHub issue worktree workflow](gh_issue_worktree_workflow.md) — Assigned issues use worktrees from master → PR to master
-- [Ready PRs by default](ready_pr_default.md) — Open normal ready PRs to master by default; draft only by explicit request or blocked WIP
-- [No external symlinks](no_external_symlinks.md) — Open source repo. Internal symlinks only.
-- [End-to-end implementation](end_to_end_implementation.md) — Never ship half-architecture; wire the full user path
-- [P0 priority field](p0_priority_not_label.md) — P0/P1/P2/P3 live in Project #12 Priority; no priority labels
-- [No issue-body frontmatter](no_issue_body_frontmatter.md) — GitHub issue PRDs use native project fields for metadata; never add YAML frontmatter to issue bodies
-- [Skill boundary](skill_boundary.md) — .agents/skills are repo-build skills; root skills/ are Genfeed product content skills
-- [GPU instances off by default](gpu_instances_off_by_default.md) — Keep Genfeed GPU/Fleet inference instances off unless explicitly needed
-- [Inference servers private boundary](inference_servers_private_boundary.md) — Keep Genfeed inference server implementations out of the public monorepo
-- [GenfeedAI managed provider](genfeedai_managed_provider.md) — Model Genfeed-managed inference as provider=genfeedai, enabled per customer from console
-- [Console managed inference control plane](console_managed_inference_control_plane.md) — Private console owns Genfeed-managed Fleet/model/customer assignment
-- [Shared checkout automation](shared_checkout_automation.md) — Treat shared checkout state as moving; path-scope git add
-- [Genfeed project kanban](genfeed_project_kanban.md) — Use project #12 Genfeed.ai as canonical
-- [System Workflows Content OS](system_workflows_content_os.md) — Content automation uses immutable system workflows instead of hard-coded publish/action/cron paths
-- [Curated Agent and MCP actions](curated_agent_mcp_actions.md) — one reviewed product-action catalog controls Agent/MCP surfaces; OpenAPI never defines tool parity
-- [Positive memory framing](positive_memory_framing.md) — Write memory as target-state guidance with active sources of truth
-- [Epic status on child start](epic_status_on_child_start.md) — Move parent epics to In Progress as soon as a child starts
-- [Failed deploys never burn a version](release_tag_after_green_deploy.md) — pre-gate release cutting is normal; on deploy failure fix master and re-cut the SAME version (delete unconsumed tag), never bump
-- [Production deploys master-only](production_deploy_master_only.md) — Never deploy any non-master ref to production unless Vincent explicitly overrides; production deploys run from GitHub CI on master
-- [Vercel release gate](feedback_vercel_release_gate.md) — SaaS Vercel frontends deploy only through the API-first production release workflow; Vercel Git auto-deploy stays disabled
-- [PRD-pass verify state first](rules/prd_pass_verify_state_first.md) — On any epic PRD pass, verify child issue states via `gh` + audit real code before trusting the epic body; never rewrite closed/shipped cards
-- [Prisma legacy alias fields](rules/prisma_legacy_alias_fields.md) — Mongo-era `*Document` aliases (`organization`/`user`/`_id`) are undefined on Prisma rows; read scalar FKs (`organizationId`/`userId`); `BaseService.findOne` guards empty ids (canonical: docs/identity-resolution.md)
-- [NestJS value imports for DI](rules/nestjs_value_imports_for_di.md) — never `import type` classes used in decorator metadata (constructor DI, `@Body`/`@Query`/`@Param` DTOs); emitDecoratorMetadata erases them → DI injects undefined / validation silently skips; guarded by `check:di-value-imports` in CI
-- [server, not core](rules/server_not_core.md) — #1090 server-tier lib = `apps/server/server` / `@genfeedai/server`; the name "core" is permanently retired (no new package or directory may use it); workflow consolidation shipped — `packages/workflows` is canonical and `core`/`workflow-engine`/`workflow-saas`/`workflow-ui` are deleted; workflow UI target is `@genfeedai/workflows/ui`
-- [Pricing output meter](pricing_output_meter.md) — Credits/API rates are the monetization throttle; do not add hard product caps for brands or connected channels
-- [Better Auth additionalFields](rules/better_auth_additional_fields.md) — any `User` column a Better Auth hook sets (e.g. `handle`) MUST be declared in `user.additionalFields` or it's stripped and first-time signup fails with `Argument 'X' is missing` (#1576)
-- [Worktree env sync](rules/worktree_env_sync.md) — `.env*` is gitignored; new worktrees have no env. Use `git wt <path>` (after `bun run wt:setup`) or run `bun run wt:sync <path>` after `git worktree add`. NOT automatic for plain `git worktree add` (#1578)
-- [Canonical local development host](rules/local_development_host.md) — `genfeed.localhost` + env/config boundaries; interactive notifications use `3111`, while Docker/self-hosted remains on loopback `3011`
+## Rules (auto-loaded via `.claude/rules` symlink)
+
+These are already in context every request — do not re-read them to "check".
+
+- [prd_pass_verify_state_first](rules/prd_pass_verify_state_first.md) · [prisma_legacy_alias_fields](rules/prisma_legacy_alias_fields.md) · [nestjs_value_imports_for_di](rules/nestjs_value_imports_for_di.md) · [better_auth_additional_fields](rules/better_auth_additional_fields.md) · [server_not_core](rules/server_not_core.md) · [worktree_env_sync](rules/worktree_env_sync.md) · [local_development_host](rules/local_development_host.md)
+- Scoped: [00-security](rules/00-security.md) · [10-backend-services](rules/10-backend-services.md) · [20-web-apps](rules/20-web-apps.md) · [30-shared-packages](rules/30-shared-packages.md)
+
+## Architecture decisions
+
+- [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md) — 3 modes (SaaS/Community/Desktop) as `deployment × client`; Better Auth is the active baseline; platform admin via `users.platformRole`; multi-tenancy stays EE/SaaS; managed credits cloud-only. Supersedes the auth half of #95. Contributor doc: `docs/deployment-modes.md`
+- [ADR-CONVERSATION-SHELL-CONTRACTS](architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md) — conversation/canvas/overlay state, scope precedence, approval pins, rollout gates
+- [ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via the workflow engine
+- [ADR-PLG-BOUNDARY-OSS-CLOUD](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split
+- [ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION](architecture/ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION.md) — recurring agent automation
+- [ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY](architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md) — OSS single-player vs cloud governance
+- [VERSIONED-AGENT-ARTIFACTS](architecture/VERSIONED-AGENT-ARTIFACTS.md) — canonical refs, immutable pins, #1673 gate
+
+## Specs and decisions (per issue)
+
+- [filesystem-s3-path-containment](spec-filesystem-s3-path-containment.md) · [decisions](decisions-filesystem-s3-path-containment.md) — #2068
+- [scheduler-target-analytics](spec-scheduler-target-analytics.md) · [decisions](decisions-scheduler-target-analytics.md) — #1975
+- [pr-validation-telemetry](spec-pr-validation-telemetry.md) · [decisions](decisions-pr-validation-telemetry.md) — #1966
+- [pr-validation-superseded-waste](spec-pr-validation-superseded-waste.md) · [decisions](decisions-pr-validation-superseded-waste.md)
+- [brand-social-visual-enrichment](spec-brand-social-visual-enrichment.md) · [decisions](decisions-brand-social-visual-enrichment.md)
+- [mcp-instagram-meta-inspiration-remix](spec-mcp-instagram-meta-inspiration-remix.md) · [decisions](decisions-mcp-instagram-meta-inspiration-remix.md)
+- [local-development-host](spec-local-development-host.md) · [decisions](decisions-local-development-host.md)
+
+## Project state
+
+- [project_overview](project_overview.md) — monorepo structure and key context
+- [project_one_api_epic](project_one_api_epic.md) — epic #95, one NestJS API
+- [project_migration](project_migration.md) — cloud + core → genfeed.ai, complete
+- [project_backend_typecheck](project_backend_typecheck.md) — `tsconfig.typecheck.json` per backend workspace
+- [project_bullmq](project_bullmq.md) — new processors go to workers or the owning service, not API
+- [project_settings_routing](project_settings_routing.md) — personal/org/brand settings URL shapes
+- [project_desktop_byok_generation](project_desktop_byok_generation.md) — desktop generation is local-first
+- [project_desktop_first_run](project_desktop_first_run.md) — first run, workspaces, per-account sync consent
+- [project_ts6_prisma7_build_regression](project_ts6_prisma7_build_regression.md) — resolved 2026-06-03; stage 4 + migration-apply pending
+- [project_fallow](project_fallow.md) — codebase health (#83), weekly CI
 
 ## References
 
-- [App Page Map](reference_app_page_map.md) — current app route/page map for QA review of app switcher, sidebars, org scope, brand scope, and admin surfaces
-- [Postgres RDS](reference_postgres_rds.md) — prod `genfeed-data` + dev `local-genfeedai` instances, sslmode gotcha, PrismaService env path
-- [Production AWS Runtime](reference_prod_aws_runtime.md) — live AWS source of truth: ECS/Fargate production, AL2023 EC2 stopped as rollback host, community deploy unaffected
-- [Production Fargate + Vercel webhook](reference_production_fargate_vercel_webhook.md) — live ECS service state, Vercel webhook receiver, Discord notification sink disabled, correct webhook reset scope
-- [Skills Source Repos](reference_skills_source_repos.md) — free product skills come from `genfeedai/skills`; paid Skills Pro comes from private `genfeedai/skills-pro`
+- [reference_app_page_map](reference_app_page_map.md) — route/page map for QA
+- [reference_postgres_rds](reference_postgres_rds.md) — prod/dev instances, sslmode gotcha
+- [reference_prod_aws_runtime](reference_prod_aws_runtime.md) — live AWS source of truth
+- [reference_production_fargate_vercel_webhook](reference_production_fargate_vercel_webhook.md) — ECS state, webhook receiver
+- [reference_skills_source_repos](reference_skills_source_repos.md) — `genfeedai/skills` + private `skills-pro`
 
-## Context (loaded via CLAUDE.md @import)
+## Context (auto-loaded via CLAUDE.md @import)
 
-- [System Patterns](context/system-patterns.md) — architecture patterns, serializers, multi-tenancy
-- [Project Structure](context/project-structure.md) — directory layout, 12 backend service/server-tier workspaces, 7 frontend/client workspaces
-- [Style Guide](context/project-style-guide.md) — TypeScript, git, formatting, naming conventions
-- [Skills Architecture](context/skills-architecture.md) — skills/ vs .agents/skills/ vs .claude/skills/
-- [Progress](context/progress.md) — migration status, active work areas
-- [Product Context](context/product-context.md) — what Genfeed.ai is and does
-- [Project Overview](context/project-overview.md) — high-level project summary
-- [Project Brief](context/project-brief.md) — project brief
-- [Project Vision](context/project-vision.md) — long-term vision
-- [Tech Context](context/tech-context.md) — technology stack details
-- [E2E Architecture](context/e2e-architecture.md) — GitHub Actions E2E pipeline, API boot gate, sharded Playwright suite, triggers, DB provisioning, known debt
+Already in context: [system-patterns](context/system-patterns.md) · [project-structure](context/project-structure.md) · [project-style-guide](context/project-style-guide.md) · [skills-architecture](context/skills-architecture.md)
 
-## Features
+Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](context/progress.md) · [tech-context](context/tech-context.md) · [product-context](context/product-context.md) · [project-overview](context/project-overview.md) · [project-brief](context/project-brief.md) · [project-vision](context/project-vision.md)
 
-- [Agent Architecture](features/agent/README.md) — orchestration, threading, collections, tools, frontend
+## Features and system
 
-## System
+- [features/agent](features/agent/README.md) — orchestration, threading, collections, tools, frontend
+- [AGENT-RUNTIME](system/AGENT-RUNTIME.md) · [CRITICAL-NEVER-DO](system/CRITICAL-NEVER-DO.md) · [SYSTEM-RULES](system/SYSTEM-RULES.md) · [PRIORITY-READING](system/PRIORITY-READING.md) · [CROSS-PROJECT-RULES](system/CROSS-PROJECT-RULES.md) · [OPEN-SOURCE-CONTEXT](system/OPEN-SOURCE-CONTEXT.md) · [SELF-HOSTED-GUIDE](system/SELF-HOSTED-GUIDE.md)
 
-- [Agent Runtime](system/AGENT-RUNTIME.md) — task loop, verification, completion gate
-- [Critical Never Do](system/CRITICAL-NEVER-DO.md) — production-breaking violations
-- [System Rules](system/SYSTEM-RULES.md) — coding standards
-- [Priority Reading](system/PRIORITY-READING.md) — what to read first
-- [Cross-Project Rules](system/CROSS-PROJECT-RULES.md) — rules shared across repos
-- [Open Source Context](system/OPEN-SOURCE-CONTEXT.md) — OSS licensing, contribution
-- [Self-Hosted Guide](system/SELF-HOSTED-GUIDE.md) — Docker deployment guide
+## Plans
 
-## Plans (UI design outputs)
-
-- **MergedSwitcher** (2026-05-17) — Merged AppSwitcher + ContentTypeSwitcher. Generate section: 4×2 colored icon grid (GenerationType enum). Navigate section: 2-col grid (Overview, Workflows, Library, Calendar, Analytics). Component: `packages/ui/src/components/shell/merged-switcher/MergedSwitcher.tsx`. HTML mockups gitignored under `.agents/plans/`.
-
-## Architecture Decisions
-
-- [Local Development Host Spec](spec-local-development-host.md) and [decisions](decisions-local-development-host.md) — canonical host, environment boundaries, compatibility scope, and notifications-port split
-- [Versioned Agent Artifacts](architecture/VERSIONED-AGENT-ARTIFACTS.md) — finite canonical references, immutable content pins, Desktop v1 exclusion, and the #1671 compatibility-removal gate for #1673
-- [Conversation Shell Contracts](architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md) — conversation/canvas/overlay state and history, scope precedence, protected-route parity, trusted surfaces, approval pins, multi-tab authority, fallback, rollout gates, and #1009/#1644 disposition for epic #1670
-- [Dynamic Scheduling](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via workflow engine
-- [PLG Boundary](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split
-- [Workflow-Backed Agents](architecture/ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION.md) — recurring agent automation
-- [Skills, Routines, and Memory Boundary](architecture/ADR-SKILLS-ROUTINES-MEMORY-BOUNDARY.md) — OSS single-player loop vs cloud collaborative governance
-- [Deployment Modes & Auth](architecture/ADR-DEPLOYMENT-MODES.md) — 3 product modes (SaaS/Community/Desktop) as `deployment × client` axes; Better Auth active baseline; brand-always/org-SaaS-only switcher; platform admin via `users.platformRole`; multi-tenancy = EE/SaaS; managed credits cloud-only; Community funnel charter. Epics #735, #740. (contributor doc: `docs/deployment-modes.md`)
-
-## Rules (symlinked to .claude/rules/)
-
-- [Security](rules/00-security.md) — secret isolation, no outbound HTTP
-- [Backend Services](rules/10-backend-services.md) — soft deletes, service boundaries
-- [Web Apps](rules/20-web-apps.md) — semantic UI, async cancellation
-- [Shared Packages](rules/30-shared-packages.md) — strict types, canonical locations
+- **MergedSwitcher** (2026-05-17) — merged AppSwitcher + ContentTypeSwitcher; `packages/ui/src/components/shell/merged-switcher/MergedSwitcher.tsx`. HTML mockups gitignored under `.agents/plans/`.
