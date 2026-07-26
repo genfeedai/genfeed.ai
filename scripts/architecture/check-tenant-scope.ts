@@ -191,7 +191,8 @@ function lowerFirst(value: string): string {
 
 export function discoverTenantModels(schema: string): TenantModel[] {
   const tenantModels: TenantModel[] = [];
-  const modelPattern = /^model\s+([A-Za-z_]\w*)\s+\{([\s\S]*?)^[ \t]*\}/gmu;
+  const modelPattern =
+    /^[ \t]*model\s+([A-Za-z_]\w*)\s+\{([\s\S]*?)^[ \t]*\}/gmu;
 
   for (const match of schema.matchAll(modelPattern)) {
     const [, model, body] = match;
