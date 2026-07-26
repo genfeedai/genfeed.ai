@@ -16,6 +16,7 @@ import {
   SocialInboxService,
 } from '@api/collections/social-inbox/services/social-inbox.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -25,7 +26,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { QueueService } from '@api/queues/core/queue.service';
-import { MemberRole } from '@genfeedai/enums';
+import { ApiKeyScope, MemberRole } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -136,6 +137,7 @@ export class SocialInboxController {
   }
 
   @Post(':conversationId/drafts')
+  @RequiredScopes(ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @ApiOperation({ summary: 'Create a local reply draft for review' })
   async createDraft(
@@ -154,6 +156,7 @@ export class SocialInboxController {
   }
 
   @Patch(':conversationId/drafts/:messageId')
+  @RequiredScopes(ApiKeyScope.POSTS_APPROVE)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Approve (and publish) or reject a draft reply/DM' })
   async updateDraft(
@@ -181,6 +184,7 @@ export class SocialInboxController {
   }
 
   @Post(':conversationId/replies')
+  @RequiredScopes(ApiKeyScope.POSTS_PUBLISH)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Post a reply through the connected account' })
   async postReply(
@@ -199,6 +203,7 @@ export class SocialInboxController {
   }
 
   @Post(':conversationId/dms')
+  @RequiredScopes(ApiKeyScope.POSTS_PUBLISH)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @ApiOperation({ summary: 'Send a DM through a supported connected account' })
   async sendDm(

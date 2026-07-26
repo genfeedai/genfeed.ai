@@ -1488,6 +1488,7 @@
                 "articles:read",
                 "articles:create",
                 "posts:create",
+                "posts:draft",
                 "videos:update",
                 "videos:delete",
                 "images:update",
@@ -1496,6 +1497,9 @@
                 "prompts:delete",
                 "brands:read",
                 "credits:read",
+                "posts:schedule",
+                "posts:approve",
+                "posts:publish",
                 "analytics:read"
               ],
               "type": "string"
@@ -10690,6 +10694,7 @@
                 "articles:read",
                 "articles:create",
                 "posts:create",
+                "posts:draft",
                 "videos:update",
                 "videos:delete",
                 "images:update",
@@ -10698,6 +10703,9 @@
                 "prompts:delete",
                 "brands:read",
                 "credits:read",
+                "posts:schedule",
+                "posts:approve",
+                "posts:publish",
                 "analytics:read"
               ],
               "type": "string"

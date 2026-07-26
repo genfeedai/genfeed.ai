@@ -7,6 +7,10 @@ import type {
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
+import {
+  type ApiKeyPublishingContext,
+  assertApiKeyPublishingScope,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { validateChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
 import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
@@ -50,6 +54,7 @@ export class PostGroupsService {
     body: unknown,
     headerIdempotencyKey?: string,
     provenance?: PostGroupCreateProvenance,
+    apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<IReleaseGroup> {
     const input = this.contractService.parseCreateInput(
       body,
@@ -62,6 +67,10 @@ export class PostGroupsService {
         input.idempotencyKey,
       );
       if (existing) {
+        assertApiKeyPublishingScope(
+          apiKeyContext ?? {},
+          existing.status === ReleaseStatus.DRAFT ? 'draft' : 'schedule',
+        );
         if (existing.status === ReleaseStatus.SCHEDULED) {
           await this.approveReleaseTargets(existing, userId, 'scheduled');
         }
@@ -70,6 +79,10 @@ export class PostGroupsService {
     }
 
     const status = this.contractService.resolveCreateStatus(input);
+    assertApiKeyPublishingScope(
+      apiKeyContext ?? {},
+      status === ReleaseStatus.DRAFT ? 'draft' : 'schedule',
+    );
     const scheduledAt = this.contractService.toDate(input.scheduledDate);
     const release = await this.prisma.$transaction((tx) =>
       this.persistenceService.createPostGroup(tx, {
@@ -276,6 +289,7 @@ export class PostGroupsService {
     userId: string,
     groupId: string,
     body: unknown,
+    apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<IReleaseGroup> {
     const input = this.contractService.parseUpdateInput(body);
 
@@ -286,6 +300,25 @@ export class PostGroupsService {
         groupId,
       );
       const nextStatus = input.status ?? existing.status;
+      const changesPublishState =
+        nextStatus === ReleaseStatus.PUBLISHED ||
+        nextStatus === ReleaseStatus.PUBLISHING ||
+        nextStatus === ReleaseStatus.PARTIALLY_PUBLISHED;
+      const changesScheduleIntent =
+        !changesPublishState &&
+        (existing.status !== ReleaseStatus.DRAFT ||
+          nextStatus !== ReleaseStatus.DRAFT ||
+          input.recurrence !== undefined ||
+          input.scheduledDate !== undefined ||
+          input.timezone !== undefined);
+      assertApiKeyPublishingScope(
+        apiKeyContext ?? {},
+        changesPublishState
+          ? 'publish'
+          : changesScheduleIntent
+            ? 'schedule'
+            : 'draft',
+      );
       const transition =
         nextStatus !== existing.status
           ? this.contractService.appendTransition(
@@ -396,8 +429,20 @@ export class PostGroupsService {
     groupId: string,
     targetId: string,
     body: unknown,
+    apiKeyContext?: ApiKeyPublishingContext,
   ): Promise<IReleaseGroup> {
     const input = this.contractService.parseTargetInput(body);
+    const changesPublishState =
+      input.executionState === TargetExecutionState.PUBLISHED ||
+      input.executionState === TargetExecutionState.PUBLISHING ||
+      input.externalProviderId !== undefined ||
+      input.externalShortcode !== undefined ||
+      input.publishedAt !== undefined ||
+      input.url !== undefined;
+    assertApiKeyPublishingScope(
+      apiKeyContext ?? {},
+      changesPublishState ? 'publish' : 'schedule',
+    );
 
     const result = await this.prisma.$transaction(async (tx) => {
       const group = await this.persistenceService.getGroupOrThrow(

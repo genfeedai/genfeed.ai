@@ -2,7 +2,13 @@ import 'reflect-metadata';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import {
+  ApiKeyScope,
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/enums';
 import type { PostsQueryDto } from '../dto/posts-query.dto';
 
 const makeUser = (overrides: Partial<User['publicMetadata']> = {}): User =>
@@ -145,6 +151,56 @@ describe('PostsController.create account-health warmup gate', () => {
       }),
     );
     expect(postsService.handleYoutubePost).not.toHaveBeenCalled();
+  });
+
+  it('rejects a draft-only API key before scheduling side effects', async () => {
+    const credentialsService = { findOne: vi.fn() };
+    const controller = new PostsController(
+      {} as never,
+      {} as never,
+      credentialsService as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { error: vi.fn(), log: vi.fn() } as never,
+    );
+
+    await expect(
+      controller.create(
+        request,
+        makeUser({
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_CREATE],
+        }),
+        {
+          category: PostCategory.TEXT,
+          credential: 'credential-1',
+          description: 'Scheduled content',
+          ingredients: [],
+          label: 'Scheduled content',
+          scheduledDate: new Date('2026-07-01T10:00:00.000Z'),
+          status: PostStatus.SCHEDULED,
+          tags: [],
+        },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+      }),
+    });
+    expect(credentialsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('declares all dynamically resolved post creation scopes', () => {
+    expect(
+      Reflect.getMetadata(API_KEY_SCOPES_KEY, PostsController.prototype.create),
+    ).toEqual([
+      ApiKeyScope.POSTS_DRAFT,
+      ApiKeyScope.POSTS_CREATE,
+      ApiKeyScope.POSTS_SCHEDULE,
+      ApiKeyScope.POSTS_PUBLISH,
+    ]);
   });
 });
 

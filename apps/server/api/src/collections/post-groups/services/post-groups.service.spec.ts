@@ -4,6 +4,7 @@ import { PostGroupsService } from '@api/collections/post-groups/services/post-gr
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ApiKeyScope,
   CredentialPlatform,
   PublishApprovalStatus,
   ReleaseStatus,
@@ -372,6 +373,143 @@ describe('PostGroupsService', () => {
     expect(result.id).toBe('existing-group');
     expect(prisma.postGroup.create).not.toHaveBeenCalled();
     expect(prisma.post.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a posts:create API key before scheduled writes', async () => {
+    await expect(
+      service.create(
+        'org-1',
+        'user-1',
+        {
+          baseContent: 'Launch note for X',
+          brandId: 'brand-1',
+          status: ReleaseStatus.SCHEDULED,
+          targets: [
+            {
+              credentialId: 'cred-x',
+              platform: CredentialPlatform.TWITTER,
+            },
+          ],
+          timezone: 'UTC',
+          title: 'Launch note',
+        },
+        undefined,
+        undefined,
+        { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+      }),
+    });
+
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+    expect(prisma.post.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a draft-scoped replay of an existing scheduled release', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({
+        id: 'existing-group',
+        idempotencyKey: 'same-request',
+        status: ReleaseStatus.SCHEDULED,
+      }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'existing-group', id: 'target-1' }),
+    ]);
+
+    await expect(
+      service.create(
+        'org-1',
+        'user-1',
+        {
+          baseContent: 'Launch note for X',
+          brandId: 'brand-1',
+          status: ReleaseStatus.DRAFT,
+          targets: [
+            {
+              credentialId: 'cred-x',
+              platform: CredentialPlatform.TWITTER,
+            },
+          ],
+          timezone: 'UTC',
+          title: 'Launch note',
+        },
+        'same-request',
+        undefined,
+        { isApiKey: true, scopes: [ApiKeyScope.POSTS_DRAFT] },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+      }),
+    });
+
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
+  it('rejects draft-scoped edits to an existing scheduled release', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({ id: 'group-1', status: ReleaseStatus.SCHEDULED }),
+    );
+
+    await expect(
+      service.update(
+        'org-1',
+        'user-1',
+        'group-1',
+        { title: 'Changed title' },
+        { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+      }),
+    });
+
+    expect(prisma.postGroup.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects target mutations without the schedule scope before reading data', async () => {
+    await expect(
+      service.updateTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        { timezone: 'Europe/Malta' },
+        { isApiKey: true, scopes: [ApiKeyScope.POSTS_DRAFT] },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+      }),
+    });
+
+    expect(prisma.postGroup.findFirst).not.toHaveBeenCalled();
+    expect(prisma.post.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('does not let a schedule-scoped key forge a published target state', async () => {
+    await expect(
+      service.updateTarget(
+        'org-1',
+        'user-1',
+        'group-1',
+        'target-1',
+        { executionState: TargetExecutionState.PUBLISHED },
+        { isApiKey: true, scopes: [ApiKeyScope.POSTS_SCHEDULE] },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+        requiredScopes: [ApiKeyScope.POSTS_PUBLISH],
+      }),
+    });
+
+    expect(prisma.postGroup.findFirst).not.toHaveBeenCalled();
+    expect(prisma.post.findFirst).not.toHaveBeenCalled();
   });
 
   it('rejects scheduled targets that fail channel capability validation before writing', async () => {

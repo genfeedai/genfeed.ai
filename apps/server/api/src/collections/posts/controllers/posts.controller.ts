@@ -26,9 +26,11 @@ import {
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
@@ -46,6 +48,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  ApiKeyScope,
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
@@ -150,6 +153,12 @@ export class PostsController extends BaseCRUDController<
   }
 
   @Post()
+  @RequiredScopes(
+    ApiKeyScope.POSTS_DRAFT,
+    ApiKeyScope.POSTS_CREATE,
+    ApiKeyScope.POSTS_SCHEDULE,
+    ApiKeyScope.POSTS_PUBLISH,
+  )
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -157,6 +166,14 @@ export class PostsController extends BaseCRUDController<
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
+    assertApiKeyPublishingScope(
+      publicMetadata,
+      createPostDto.status === PostStatus.DRAFT
+        ? 'draft'
+        : createPostDto.status === PostStatus.SCHEDULED
+          ? 'schedule'
+          : 'publish',
+    );
 
     try {
       const credential = await this.credentialsService.findOne({
