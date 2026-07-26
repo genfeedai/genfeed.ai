@@ -1,6 +1,13 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
+import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
+import { VideoGenerationCompletionService } from '@api/collections/videos/services/video-generation-completion.service';
+import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
+import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
+import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { MODEL_KEYS } from '@genfeedai/constants';
@@ -100,9 +107,9 @@ describe('VideoGenerationService', () => {
     };
     const falService = { generateVideo: vi.fn() };
     const providerDispatchService = new VideoGenerationProviderDispatchService(
-      falService as never,
-      klingAIService as never,
-      replicateService as never,
+      new KlingAiVideoGenerationProviderAdapter(klingAIService as never),
+      new FalVideoGenerationProviderAdapter(falService as never),
+      new ReplicateVideoGenerationProviderAdapter(replicateService as never),
     );
     const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
     const videosService = {
@@ -142,30 +149,46 @@ describe('VideoGenerationService', () => {
       warn: vi.fn(),
     } as unknown as LoggerService;
 
-    const service = new VideoGenerationService(
-      configService as never,
-      activitiesService as never,
-      brandsService as never,
+    const preparationService = new VideoGenerationPreparationService(
       assetsService as never,
-      bookmarksService as never,
-      creditsUtilsService as never,
-      providerDispatchService,
-      failedGenerationService as never,
+      brandsService as never,
+      configService as never,
       ingredientsService as never,
-      pollingService as never,
+      loggerService,
+      modelRegistrationService as never,
+      organizationSettingsService as never,
+      promptBuilderService as never,
+      promptsService as never,
+      routerService as never,
+      sharedService as never,
+    );
+    const creditsService = new VideoGenerationCreditsService(
+      creditsUtilsService as never,
+      modelsService as never,
+    );
+    const executionService = new VideoGenerationExecutionService(
+      activitiesService as never,
+      failedGenerationService as never,
       loggerService,
       metadataService as never,
-      modelRegistrationService as never,
-      modelsService as never,
-      organizationSettingsService as never,
-      promptsService as never,
-      promptBuilderService as never,
+      providerDispatchService,
       sharedService as never,
+      videosService as never,
+      websocketService as never,
+    );
+    const completionService = new VideoGenerationCompletionService(
+      bookmarksService as never,
+      cacheService as never,
+      pollingService as never,
+      loggerService,
       videoMusicOrchestrationService as never,
       videosService as never,
-      cacheService as never,
-      routerService as never,
-      websocketService as never,
+    );
+    const service = new VideoGenerationService(
+      completionService,
+      creditsService,
+      executionService,
+      preparationService,
     );
 
     return {

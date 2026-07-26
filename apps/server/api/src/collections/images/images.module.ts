@@ -13,8 +13,16 @@ import { ImagesRelationshipsController } from '@api/collections/images/controlle
 import { ImagesTransformationsController } from '@api/collections/images/controllers/transformations/images-transformations.controller';
 import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
+import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
+import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
+import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
+import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
+import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
+import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -90,10 +98,18 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => WebhookClientModule),
   ],
   providers: [
+    FalImageGenerationProviderAdapter,
+    GenfeedAiImageGenerationProviderAdapter,
     ImagesService,
+    ImageGenerationCreditsService,
     ImageGenerationProviderDispatchService,
+    ImageGenerationProviderRegistryService,
     ImageGenerationService,
+    KlingAiImageGenerationProviderAdapter,
+    LeonardoImageGenerationProviderAdapter,
     ModelRegistrationService,
+    ReplicateImageGenerationProviderAdapter,
+    SdxlImageGenerationProviderAdapter,
     CreditsGuard,
     ModelsGuard,
     CreditsInterceptor,

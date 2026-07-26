@@ -1,5 +1,12 @@
 import type { ImageGenerationContext } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
+import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
+import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
+import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
+import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
+import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
+import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
+import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -51,19 +58,25 @@ describe('ImageGenerationProviderDispatchService', () => {
     publishVideoComplete: vi.fn(),
   };
 
+  const providerRegistry = new ImageGenerationProviderRegistryService(
+    new GenfeedAiImageGenerationProviderAdapter(comfyUIService as never),
+    new KlingAiImageGenerationProviderAdapter(klingAIService as never),
+    new FalImageGenerationProviderAdapter(falService as never),
+    new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),
+    new ReplicateImageGenerationProviderAdapter(
+      promptBuilderService as never,
+      replicateService as never,
+    ),
+    new SdxlImageGenerationProviderAdapter(),
+  );
   const service = new ImageGenerationProviderDispatchService(
     activitiesService as never,
-    comfyUIService as never,
     failedGenerationService as never,
     filesClientService as never,
-    falService as never,
     imagesService as never,
-    klingAIService as never,
-    leonardoaiService as never,
     loggerService,
     metadataService as never,
-    promptBuilderService as never,
-    replicateService as never,
+    providerRegistry,
     sharedService as never,
     websocketService as never,
   );
@@ -113,7 +126,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     klingAIService.queueGenerateImage.mockResolvedValue('kling-job-1');
     const context = buildContext();
 
-    const plan = await service.dispatch(context, 'klingai');
+    const plan = await service.dispatch(context);
     await plan?.generationPromise;
 
     expect(klingAIService.queueGenerateImage).toHaveBeenCalledWith(
@@ -150,7 +163,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
     });
 
-    const plan = await service.dispatch(context, 'genfeedai');
+    const plan = await service.dispatch(context);
     await plan?.generationPromise;
 
     expect(comfyUIService.generateImage).toHaveBeenCalledWith(
@@ -188,7 +201,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       outputs: 2,
     });
 
-    const plan = await service.dispatch(context, 'fal');
+    const plan = await service.dispatch(context);
     await plan?.generationPromise;
 
     expect(falService.generateImage).toHaveBeenCalledTimes(2);
@@ -209,6 +222,40 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(plan?.kind).toBe('background-only');
   });
 
+  it('routes Leonardo with its existing request and polling result', async () => {
+    leonardoaiService.generateImage.mockResolvedValue('leonardo-job');
+    const context = buildContext({ model: MODEL_KEYS.LEONARDOAI });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(leonardoaiService.generateImage).toHaveBeenCalledWith(
+      'A cinematic sunrise',
+      expect.objectContaining({
+        height: 1080,
+        style: 'cinematic',
+        width: 1920,
+      }),
+    );
+    expect(metadataService.patch).toHaveBeenCalledWith(
+      'metadata-1',
+      expect.objectContaining({ externalId: 'leonardo-job' }),
+    );
+    expect(plan?.kind).toBe('poll-single');
+  });
+
+  it('keeps the existing SDXL no-external-generation behavior typed', async () => {
+    const context = buildContext({ model: MODEL_KEYS.SDXL });
+
+    await expect(service.dispatch(context)).resolves.toBeNull();
+
+    expect(comfyUIService.generateImage).not.toHaveBeenCalled();
+    expect(falService.generateImage).not.toHaveBeenCalled();
+    expect(klingAIService.queueGenerateImage).not.toHaveBeenCalled();
+    expect(leonardoaiService.generateImage).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+
   it('normalizes batch Replicate outputs into indexed placeholders', async () => {
     const model = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE;
     promptBuilderService.buildPrompt.mockResolvedValue({
@@ -226,7 +273,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       });
     const context = buildContext({ model, outputs: 3 });
 
-    const plan = await service.dispatch(context, 'replicate');
+    const plan = await service.dispatch(context);
     await plan?.generationPromise;
 
     expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(

@@ -1,46 +1,34 @@
-import { isFalDestination } from '@api/collections/models/utils/model-key.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
+import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
+import type {
+  DispatchVideoGenerationParams,
+  VideoGenerationProviderAdapter,
+  VideoGenerationProviderResult,
+} from '@api/collections/videos/services/video-generation.types';
 import { Injectable } from '@nestjs/common';
-import { FalService } from '@server/services/integrations/fal/services/fal.service';
-import { KlingAIService } from '@server/services/integrations/klingai/services/klingai.service';
-import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
-import type { DispatchVideoGenerationParams } from './video-generation.types';
 
-/**
- * Owns provider selection and request normalization for standard video
- * generation. Shared generation orchestration remains provider-agnostic.
- */
 @Injectable()
 export class VideoGenerationProviderDispatchService {
+  private readonly adapters: readonly VideoGenerationProviderAdapter[];
+
   constructor(
-    private readonly falService: FalService,
-    private readonly klingAIService: KlingAIService,
-    private readonly replicateService: ReplicateService,
-  ) {}
+    klingAiAdapter: KlingAiVideoGenerationProviderAdapter,
+    falAdapter: FalVideoGenerationProviderAdapter,
+    replicateAdapter: ReplicateVideoGenerationProviderAdapter,
+  ) {
+    this.adapters = [klingAiAdapter, falAdapter, replicateAdapter];
+  }
 
   async dispatch(
     params: DispatchVideoGenerationParams,
-  ): Promise<string | null> {
-    const { duration, height, imageUrl, model, prompt, promptParams, width } =
-      params;
-
-    if (model === MODEL_KEYS.KLINGAI_V2) {
-      return this.klingAIService.queueGenerateTextToVideo(prompt, {
-        height,
-        model,
-        width,
-      });
+  ): Promise<VideoGenerationProviderResult> {
+    const adapter = this.adapters.find((candidate) =>
+      candidate.supports(params.model),
+    );
+    if (!adapter) {
+      throw new Error(`No video provider adapter for model ${params.model}`);
     }
-
-    if (isFalDestination(model)) {
-      const result = await this.falService.generateVideo(model, {
-        prompt,
-        ...(duration && { duration }),
-        ...(imageUrl && { image_url: imageUrl }),
-      });
-      return result.url;
-    }
-
-    return this.replicateService.generateTextToVideo(model, promptParams);
+    return adapter.generate(params);
   }
 }

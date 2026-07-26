@@ -1,7 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
+import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
+import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
+import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
+import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
+import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/klingai-image-generation-provider.adapter';
+import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
+import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
+import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -24,8 +32,8 @@ const RESOLVED_BRAND = 'brand-resolved';
 
 // REPLICATE_BYTEDANCE_SEEDREAM_5_LITE / _4_5 and REPLICATE_FAST_FLUX_TRAINER are
 // the batch-capable IMAGE models in MODEL_OUTPUT_CAPABILITIES; everything else is
-// non-batch. Use the `seedream-5-lite` key (no dot) so classifyProvider's
-// owner/model regex resolves it to the Replicate provider.
+// non-batch. Use the `seedream-5-lite` key (no dot) so the provider registry's
+// owner/model matcher resolves it to the Replicate adapter.
 const BATCH_MODEL = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE;
 const NON_BATCH_REPLICATE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
 const FAL_MODEL = MODEL_KEYS.FAL_NANO_BANANA_2;
@@ -158,28 +166,39 @@ const createService = () => {
     warn: vi.fn(),
   } as unknown as LoggerService;
 
+  const providerRegistry = new ImageGenerationProviderRegistryService(
+    new GenfeedAiImageGenerationProviderAdapter(comfyUIService as never),
+    new KlingAiImageGenerationProviderAdapter(klingAIService as never),
+    new FalImageGenerationProviderAdapter(falService as never),
+    new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),
+    new ReplicateImageGenerationProviderAdapter(
+      promptBuilderService as never,
+      replicateService as never,
+    ),
+    new SdxlImageGenerationProviderAdapter(),
+  );
   const providerDispatchService = new ImageGenerationProviderDispatchService(
     activitiesService as never,
-    comfyUIService as never,
     failedGenerationService as never,
     filesClientService as never,
-    falService as never,
     imagesService as never,
-    klingAIService as never,
-    leonardoaiService as never,
     loggerService,
     metadataService as never,
-    promptBuilderService as never,
-    replicateService as never,
+    providerRegistry,
     sharedService as never,
     websocketService as never,
+  );
+  const creditsService = new ImageGenerationCreditsService(
+    creditsUtilsService as never,
+    modelsService as never,
+    providerRegistry,
   );
 
   const service = new ImageGenerationService(
     configService as never,
     assetsService as never,
     brandsService as never,
-    creditsUtilsService as never,
+    creditsService,
     pollingService as never,
     providerDispatchService,
     imagesService as never,
@@ -187,7 +206,6 @@ const createService = () => {
     organizationSettingsService as never,
     loggerService,
     modelRegistrationService as never,
-    modelsService as never,
     promptBuilderService as never,
     promptsService as never,
     routerService as never,
