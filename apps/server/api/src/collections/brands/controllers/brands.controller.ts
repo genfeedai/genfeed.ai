@@ -33,7 +33,7 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { ActivityKey } from '@genfeedai/enums';
+import { ActivityKey, ActivitySource } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -41,6 +41,7 @@ import type {
 import { BrandSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
