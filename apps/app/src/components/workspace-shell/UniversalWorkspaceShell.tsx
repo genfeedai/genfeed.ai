@@ -101,6 +101,7 @@ import {
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
 const INSPECTOR_MAX_WIDTH = 480;
+const INSPECTOR_COLLAPSED_WIDTH = 48;
 
 type UniversalWorkspaceShellProps = {
   readonly agentApiService: AgentApiService;
@@ -813,12 +814,43 @@ function UniversalWorkspaceShellContent({
   );
 
   const resolveInspectorWidth = useCallback(
-    (): number =>
-      inspectorWidth ??
-      inspectorRef.current?.getBoundingClientRect().width ??
-      INSPECTOR_DEFAULT_WIDTH,
+    (): number => inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH,
     [inspectorWidth],
   );
+
+  // The rail's width is state-derived, never content-derived: the topbar and the
+  // main content reserve space for it down to the pixel, and `max-content` sizing
+  // resolves to a fractional width that can never be matched exactly by a
+  // reserved offset. A concrete number here is what keeps the topbar's right edge
+  // flush against the rail's left edge with no seam.
+  const inspectorRailWidth = isInspectorOpen
+    ? (inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH)
+    : INSPECTOR_COLLAPSED_WIDTH;
+
+  // The rail is fixed-positioned, so it no longer occupies a grid track. Publish
+  // its width on the AppLayout root instead — the topbar and main content offset
+  // themselves by it, exactly as they do for the left sidebar. Consumers apply the
+  // offset only at `xl:`, which is also the only breakpoint where the rail renders.
+  // Layout effect, not effect: publishing before first paint keeps the reserved
+  // space correct on mount so the offset transition never plays on page load.
+  useLayoutEffect(() => {
+    const layoutRoot = inspectorRef.current?.closest<HTMLElement>(
+      '[data-workspace-shell="true"]',
+    );
+
+    if (!layoutRoot) {
+      return;
+    }
+
+    layoutRoot.style.setProperty(
+      '--workspace-inspector-width',
+      `${inspectorRailWidth}px`,
+    );
+
+    return () => {
+      layoutRoot.style.removeProperty('--workspace-inspector-width');
+    };
+  }, [inspectorRailWidth]);
 
   const handleInspectorResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -995,7 +1027,7 @@ function UniversalWorkspaceShellContent({
         </div>
 
         <div
-          className="h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0 xl:grid xl:grid-cols-[minmax(0,1fr)_auto]"
+          className="h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0"
           data-testid="workspace-shell-regions"
         >
           <div className="relative h-full min-h-0 min-w-0">
@@ -1109,22 +1141,19 @@ function UniversalWorkspaceShellContent({
             ) : null}
           </div>
 
+          {/* Full-height rail, mirroring the left navigation sidebar: fixed to the
+              viewport edge, flush from titlebar to bottom, square. The topbar and
+              main content reserve space for it through --workspace-inspector-width. */}
           <aside
             aria-label="Context inspector"
-            className={cn(
-              'relative hidden min-h-0 overflow-hidden border-l border-border bg-background-secondary transition-[width] duration-300 xl:block',
-              !isInspectorOpen && 'w-12',
-            )}
+            className="fixed right-0 bottom-0 z-30 hidden min-h-0 flex-col overflow-hidden border-l border-border bg-background-secondary xl:flex"
             ref={inspectorRef}
-            style={
-              isInspectorOpen
-                ? {
-                    maxWidth: INSPECTOR_MAX_WIDTH,
-                    minWidth: INSPECTOR_MIN_WIDTH,
-                    width: inspectorWidth ?? 'max-content',
-                  }
-                : undefined
-            }
+            style={{
+              top: 'var(--desktop-titlebar-height)',
+              transition:
+                'width var(--motion-duration-normal) var(--motion-ease-standard)',
+              width: inspectorRailWidth,
+            }}
           >
             {isInspectorOpen ? (
               <>

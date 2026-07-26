@@ -289,7 +289,12 @@ export function useAppLayout({
     onClose: handleCloseSidebar,
   });
 
-  const agentPanelTransition = `height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`;
+  // `--desktop-sidebar-width` flips instantly when the rail is toggled, so any
+  // consumer that offsets itself by that var must ease over the exact same
+  // duration/easing as DesktopSidebar's own width animation. Otherwise the
+  // content jumps to its final position a frame before the rail starts moving.
+  const sidebarOffsetTransition = `padding-left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, padding-right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`;
+  const agentPanelTransition = `height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, ${sidebarOffsetTransition}`;
 
   return {
     agentPanelHeight,
@@ -306,6 +311,7 @@ export function useAppLayout({
     mobileMenuContent,
     mobileSidebarWidth,
     shouldRenderTopbarChrome,
+    sidebarOffsetTransition,
     topbarProps,
   };
 }

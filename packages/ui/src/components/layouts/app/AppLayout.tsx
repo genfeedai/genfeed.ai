@@ -47,6 +47,7 @@ export default function AppLayout({
     mobileMenuContent,
     mobileSidebarWidth,
     shouldRenderTopbarChrome,
+    sidebarOffsetTransition,
     topbarProps,
   } = useAppLayout({
     agentPanel,
@@ -126,18 +127,20 @@ export default function AppLayout({
 
         <section
           data-testid="app-content-shell"
-          className="relative min-h-screen bg-background md:pl-[var(--desktop-sidebar-width)] lg:pb-[var(--desktop-agent-height)]"
+          className="relative min-h-screen bg-background md:pl-[var(--desktop-sidebar-width)] lg:pb-[var(--desktop-agent-height)] xl:pr-[var(--workspace-inspector-width,0px)]"
+          style={{ transition: sidebarOffsetTransition }}
         >
           {topbarContent ? (
             <div
               data-testid="app-topbar-shell"
               className={cn(
-                'fixed top-0 right-0 left-0 z-50 h-12 md:left-[var(--desktop-sidebar-width)]',
+                'fixed top-0 right-0 left-0 z-50 h-12 md:left-[var(--desktop-sidebar-width)] xl:right-[var(--workspace-inspector-width,0px)]',
                 shouldRenderTopbarChrome &&
                   'border-b border-border bg-background',
               )}
               style={{
                 top: 'var(--desktop-titlebar-height)',
+                transition: sidebarOffsetTransition,
               }}
             >
               {topbarContent}
@@ -165,7 +168,7 @@ export default function AppLayout({
           <aside
             data-testid="agent-panel-rail"
             className={cn(
-              'fixed right-0 bottom-0 left-0 z-20 hidden overflow-hidden lg:flex',
+              'fixed right-0 bottom-0 left-0 z-20 hidden overflow-hidden lg:flex xl:right-[var(--workspace-inspector-width,0px)]',
               shellChromeVariant === 'transparent'
                 ? !isAgentCollapsed && 'bg-transparent shadow-none'
                 : 'bg-background-secondary',
