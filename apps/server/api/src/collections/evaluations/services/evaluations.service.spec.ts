@@ -1,5 +1,6 @@
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { Status } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,8 +8,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 function createMocks() {
   const prisma = {
     evaluation: {
+      create: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
     },
   };
@@ -20,13 +23,19 @@ function createMocks() {
       getOrganizationCreditsBalance: vi.fn(),
       refundOrganizationCredits: vi.fn(),
     },
-    evaluationsOperationsService: {},
+    evaluationsOperationsService: {
+      evaluatePost: vi.fn(),
+    },
     logger: {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
     },
     prisma,
+    postsService: {
+      findOne: vi.fn(),
+      getChildren: vi.fn(),
+    },
     videosService: {
       findOne: vi.fn(),
     },
@@ -53,6 +62,8 @@ describe('EvaluationsService review and comparison workflow', () => {
       mocks.websocketService as never,
       undefined,
       mocks.videosService as never,
+      undefined,
+      mocks.postsService as never,
     );
   });
 
@@ -90,6 +101,66 @@ describe('EvaluationsService review and comparison workflow', () => {
       expect(mocks.prisma.evaluation.findFirst).toHaveBeenCalledWith({
         where: { id: 'eval-1', isDeleted: false, organizationId },
       });
+    });
+  });
+
+  describe('evaluatePost provider failure', () => {
+    it('persists and reports a failed async evaluation without charging credits', async () => {
+      mocks.postsService.findOne.mockResolvedValue({
+        brand: { name: 'Genfeed' },
+        description: 'Launch post',
+        id: 'post-1',
+      });
+      mocks.postsService.getChildren.mockResolvedValue([]);
+      mocks.prisma.evaluation.create.mockResolvedValue({
+        id: 'eval-1',
+      });
+      mocks.prisma.evaluation.findFirst.mockResolvedValue({
+        data: { status: Status.PROCESSING },
+        updatedAt: new Date('2026-07-01T00:00:00.000Z'),
+      });
+      mocks.prisma.evaluation.findUnique.mockResolvedValue({
+        data: { status: Status.PROCESSING },
+        id: 'eval-1',
+      });
+      mocks.prisma.evaluation.update.mockResolvedValue({
+        data: { status: Status.FAILED },
+        id: 'eval-1',
+      });
+      mocks.evaluationsOperationsService.evaluatePost.mockRejectedValue(
+        new Error('provider unavailable'),
+      );
+
+      const evaluation = await service.evaluatePost(
+        'post-1',
+        'pre_publication' as never,
+        organizationId,
+        reviewerId,
+        'brand-1',
+      );
+
+      expect(evaluation.id).toBe('eval-1');
+      await vi.waitFor(() => {
+        expect(mocks.prisma.evaluation.update).toHaveBeenCalledWith({
+          where: { id: 'eval-1' },
+          data: {
+            data: expect.objectContaining({ status: Status.FAILED }),
+          },
+        });
+      });
+      expect(mocks.websocketService.emit).toHaveBeenCalledWith(
+        WebSocketPaths.evaluation('eval-1'),
+        {
+          error: 'provider unavailable',
+          status: Status.FAILED,
+        },
+      );
+      expect(
+        mocks.creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+      expect(
+        mocks.creditsUtilsService.refundOrganizationCredits,
+      ).not.toHaveBeenCalled();
     });
   });
 
