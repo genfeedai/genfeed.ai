@@ -150,7 +150,9 @@ function UniversalWorkspaceShellContent({
     useActiveWorkspaceSurfacePresentationAdapter();
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
-  const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
+  // `null` keeps the inspector sized to its own content (clamped by the CSS
+  // min/max below); a number means the operator has resized it explicitly.
+  const [inspectorWidth, setInspectorWidth] = useState<number | null>(null);
   const [composerPortalTarget, setComposerPortalTarget] =
     useState<HTMLElement | null>(null);
   const [failedSurfaceScopeKey, setFailedSurfaceScopeKey] = useState<
@@ -161,6 +163,7 @@ function UniversalWorkspaceShellContent({
     readonly token: symbol;
   } | null>(null);
   const primaryRegionRef = useRef<HTMLElement>(null);
+  const inspectorRef = useRef<HTMLElement>(null);
   const previousActiveThreadIdRef = useRef(activeThreadId);
   const previousPathnameRef = useRef<string | null>(null);
   const previousStateRef = useRef<WorkspaceShellState | null>(null);
@@ -809,11 +812,19 @@ function UniversalWorkspaceShellContent({
     [activeThreadId, effectiveThreadId, handleDismissOverlay, seedComposer],
   );
 
+  const resolveInspectorWidth = useCallback(
+    (): number =>
+      inspectorWidth ??
+      inspectorRef.current?.getBoundingClientRect().width ??
+      INSPECTOR_DEFAULT_WIDTH,
+    [inspectorWidth],
+  );
+
   const handleInspectorResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       const startX = event.clientX;
-      const startWidth = inspectorWidth;
+      const startWidth = resolveInspectorWidth();
 
       const handleMouseMove = (moveEvent: MouseEvent): void => {
         setInspectorWidth(
@@ -828,7 +839,7 @@ function UniversalWorkspaceShellContent({
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     },
-    [inspectorWidth],
+    [resolveInspectorWidth],
   );
 
   const handleInspectorResizeKeyDown = useCallback(
@@ -837,13 +848,13 @@ function UniversalWorkspaceShellContent({
 
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        setInspectorWidth((width) => clampInspectorWidth(width + step));
+        setInspectorWidth(clampInspectorWidth(resolveInspectorWidth() + step));
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
-        setInspectorWidth((width) => clampInspectorWidth(width - step));
+        setInspectorWidth(clampInspectorWidth(resolveInspectorWidth() - step));
       }
     },
-    [],
+    [resolveInspectorWidth],
   );
 
   const inspectorContent = (
@@ -971,7 +982,7 @@ function UniversalWorkspaceShellContent({
       shellState={state}
     >
       <div
-        className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-background p-2"
+        className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-background"
         data-shell-state={state}
         data-workspace-surface={surfaceKey}
         data-testid="universal-workspace-shell"
@@ -984,14 +995,14 @@ function UniversalWorkspaceShellContent({
         </div>
 
         <div
-          className="h-[calc(100dvh-var(--desktop-titlebar-height)-4rem)] min-h-0 gap-2 xl:grid xl:grid-cols-[minmax(0,1fr)_auto]"
+          className="h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0 xl:grid xl:grid-cols-[minmax(0,1fr)_auto]"
           data-testid="workspace-shell-regions"
         >
           <div className="relative h-full min-h-0 min-w-0">
             <div
               aria-hidden={baseState !== 'conversation'}
               className={cn(
-                'gen-workspace-shell-region-emphasis h-full min-h-0 overflow-hidden bg-background shadow-border',
+                'h-full min-h-0 overflow-hidden bg-background',
                 baseState !== 'conversation' && 'hidden',
               )}
               data-testid="workspace-conversation-region"
@@ -1041,7 +1052,7 @@ function UniversalWorkspaceShellContent({
               aria-hidden={baseState !== 'canvas'}
               aria-label="Primary workspace canvas"
               className={cn(
-                'gen-workspace-shell-region-emphasis h-full min-w-0 bg-background shadow-border',
+                'h-full min-w-0 bg-background',
                 workflowSurfaceRoute.isGraphCanvas
                   ? 'overflow-hidden'
                   : 'overflow-auto pb-48 md:pb-56',
@@ -1101,10 +1112,19 @@ function UniversalWorkspaceShellContent({
           <aside
             aria-label="Context inspector"
             className={cn(
-              'gen-workspace-shell-region relative hidden min-h-0 overflow-hidden bg-background-secondary shadow-border transition-[width] duration-300 xl:block',
+              'relative hidden min-h-0 overflow-hidden border-l border-border bg-background-secondary transition-[width] duration-300 xl:block',
               !isInspectorOpen && 'w-12',
             )}
-            style={isInspectorOpen ? { width: inspectorWidth } : undefined}
+            ref={inspectorRef}
+            style={
+              isInspectorOpen
+                ? {
+                    maxWidth: INSPECTOR_MAX_WIDTH,
+                    minWidth: INSPECTOR_MIN_WIDTH,
+                    width: inspectorWidth ?? 'max-content',
+                  }
+                : undefined
+            }
           >
             {isInspectorOpen ? (
               <>
@@ -1112,7 +1132,7 @@ function UniversalWorkspaceShellContent({
                   aria-orientation="vertical"
                   aria-valuemax={INSPECTOR_MAX_WIDTH}
                   aria-valuemin={INSPECTOR_MIN_WIDTH}
-                  aria-valuenow={inspectorWidth}
+                  aria-valuenow={inspectorWidth ?? undefined}
                   ariaLabel="Resize context inspector"
                   className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
                   onKeyDown={handleInspectorResizeKeyDown}

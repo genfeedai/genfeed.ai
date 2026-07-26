@@ -83,7 +83,6 @@ export default function AppLayout({
               }
               collapsedWidth={desktopSidebarCollapsedWidth}
               isCollapsed={isDesktopCollapsed}
-              isWorkspaceShell={isWorkspaceShell}
               shellChromeVariant={shellChromeVariant}
               width={desktopSidebarExpandedWidth}
             >

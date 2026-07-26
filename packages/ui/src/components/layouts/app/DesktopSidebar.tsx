@@ -14,7 +14,6 @@ type DesktopSidebarProps = {
   children: ReactNode;
   collapsedWidth?: number;
   isCollapsed: boolean;
-  isWorkspaceShell?: boolean;
   shellChromeVariant?: AppLayoutProps['shellChromeVariant'];
   width?: number;
 };
@@ -24,7 +23,6 @@ export default function DesktopSidebar({
   children,
   collapsedWidth = SIDEBAR_COLLAPSED_WIDTH,
   isCollapsed,
-  isWorkspaceShell = false,
   shellChromeVariant = 'default',
   width = SIDEBAR_WIDTH,
 }: DesktopSidebarProps) {
@@ -36,7 +34,6 @@ export default function DesktopSidebar({
       data-testid="desktop-sidebar-rail"
       className={cn(
         'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
-        isWorkspaceShell && 'gen-workspace-shell-region',
         shellChromeVariant === 'transparent'
           ? 'bg-transparent'
           : 'bg-background',
