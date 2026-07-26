@@ -437,6 +437,7 @@ export class EvaluationResultProjection {
     const scores = this.readObjectRecord(data?.scores);
 
     if (
+      !previousEvaluation ||
       data?.status !== Status.COMPLETED ||
       data.overallScore === undefined ||
       Object.keys(scores).length === 0
