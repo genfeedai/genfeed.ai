@@ -221,7 +221,7 @@ function ApprovalsSurface({
             ) : (
               reviewInbox.recentItems.slice(0, 3).map((item) => (
                 <Button
-                  className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 text-sm shadow-border transition hover:bg-foreground/[0.04]"
+                  className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 text-sm shadow-border transition hover:bg-foreground/[0.04] focus-visible:bg-foreground/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   asChild
                   key={item.id}
                   variant={ButtonVariant.UNSTYLED}
@@ -265,7 +265,6 @@ function PublishingSurface({
   isLoading,
   onRetry,
   orgSlug,
-  readyCount,
   runs,
 }: {
   activeRuns: IAgentRun[];
@@ -276,7 +275,6 @@ function PublishingSurface({
   isLoading: boolean;
   onRetry: () => Promise<void>;
   orgSlug: string;
-  readyCount: number;
   runs: IAgentRun[];
 }) {
   const brandSetupHref = createOrganizationAppRoute(
@@ -331,12 +329,11 @@ function PublishingSurface({
         <>
           <MetricGrid>
             <Metric label="Active runs" value={String(activeRuns.length)} />
-            <Metric label="Ready to review" value={String(readyCount)} />
             <Metric
               label="Pending posts"
               value={String(analyticsPendingPosts)}
             />
-            <Metric label="Failed today" value={String(failedToday)} />
+            <Metric label="Failed runs today" value={String(failedToday)} />
           </MetricGrid>
 
           <div className="space-y-2">
@@ -637,7 +634,6 @@ export default function OperationalHomeSections({
         isLoading={isLoading}
         onRetry={refresh}
         orgSlug={orgSlug}
-        readyCount={reviewInbox.readyCount}
         runs={runs}
       />
       <CredentialHealthSurface

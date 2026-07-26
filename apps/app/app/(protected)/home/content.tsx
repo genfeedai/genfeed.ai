@@ -178,10 +178,6 @@ export default function OperationalHomeContent() {
         </div>
       ) : null}
 
-      {connection.status === 'unconfigured' ? (
-        <ConnectionState apiKeysHref={apiKeysHref} connectHref={connectHref} />
-      ) : null}
-
       {connection.status === 'error' ? (
         <Alert variant="destructive">
           <HiOutlineBolt aria-hidden="true" className="size-4" />
@@ -212,8 +208,10 @@ export default function OperationalHomeContent() {
         </Alert>
       ) : null}
 
-      {connection.status === 'configured' || connection.status === 'error' ? (
-        <OperationalHomeSections brandSlug={brandSlug} orgSlug={orgSlug} />
+      <OperationalHomeSections brandSlug={brandSlug} orgSlug={orgSlug} />
+
+      {connection.status === 'unconfigured' ? (
+        <ConnectionState apiKeysHref={apiKeysHref} connectHref={connectHref} />
       ) : null}
     </main>
   );

@@ -52,8 +52,8 @@ export function useConnectGenfeedStatus(): ConnectGenfeedStatus {
   });
 
   const verifiedConnection = useMemo(
-    () => getVerifiedMcpConnection(apiKeys),
-    [apiKeys],
+    () => getVerifiedMcpConnection(apiKeys, organizationId),
+    [apiKeys, organizationId],
   );
   const refresh = useCallback(async () => {
     await refetch();

@@ -167,9 +167,7 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.getByRole('link', { name: /Manage API keys/ }),
     ).toHaveAttribute('href', '/acme/~/settings/api-keys');
-    expect(
-      screen.queryByTestId('operational-home-sections'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
   });
 
   it('renders all operational control-plane sections when configured', () => {
@@ -329,7 +327,7 @@ describe('OperationalHomeContent', () => {
     ).toBeInTheDocument();
   });
 
-  it('announces connection-state loading without rendering either state', () => {
+  it('announces connection-state loading while keeping operations visible', () => {
     mocks.connectionState = {
       error: null,
       key: null,
@@ -343,8 +341,6 @@ describe('OperationalHomeContent', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'Checking MCP connection state',
     );
-    expect(
-      screen.queryByTestId('operational-home-sections'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
   });
 });

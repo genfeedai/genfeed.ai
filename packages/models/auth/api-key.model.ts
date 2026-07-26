@@ -1,4 +1,4 @@
-import type { IApiKey } from '@genfeedai/interfaces';
+import type { IApiKey, IOrganization } from '@genfeedai/interfaces';
 
 export type { IApiKey, IApiKeyAttributes } from '@genfeedai/interfaces';
 
@@ -30,6 +30,7 @@ export class ApiKey {
   updatedAt: string;
   rateLimit?: number;
   metadata?: Record<string, unknown>;
+  organization?: IOrganization | string;
   isActive: boolean;
   isRevoked: boolean;
   revokedAt?: string | null;
@@ -58,6 +59,7 @@ export class ApiKey {
       toIsoDateString(attrs.updatedAt) ?? new Date().toISOString();
     this.rateLimit = attrs.rateLimit;
     this.metadata = attrs.metadata;
+    this.organization = attrs.organization;
     this.isRevoked = attrs.isRevoked ?? false;
     this.revokedAt = toIsoDateString(attrs.revokedAt);
     this.usageCount = attrs.usageCount ?? 0;

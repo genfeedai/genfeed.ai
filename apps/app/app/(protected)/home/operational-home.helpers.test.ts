@@ -22,6 +22,7 @@ function createVerifiedKey(overrides: Partial<ApiKey> = {}): ApiKey {
         transport: 'streamable-http',
       },
     },
+    organization: 'org_1',
     scopes: [...API_KEY_SCOPE_PRESETS.mcp],
     updatedAt: '2026-07-26T11:00:00.000Z',
     ...overrides,
@@ -30,7 +31,11 @@ function createVerifiedKey(overrides: Partial<ApiKey> = {}): ApiKey {
 
 describe('getVerifiedMcpConnection', () => {
   it('accepts an active verified MCP key', () => {
-    const result = getVerifiedMcpConnection([createVerifiedKey()], NOW);
+    const result = getVerifiedMcpConnection(
+      [createVerifiedKey()],
+      'org_1',
+      NOW,
+    );
 
     expect(result?.apiKey.id).toBe('key_1');
     expect(result?.verifiedAt).toBe('2026-07-26T11:00:00.000Z');
@@ -41,6 +46,8 @@ describe('getVerifiedMcpConnection', () => {
     ['revoked', { isRevoked: true }],
     ['expired', { expiresAt: '2026-07-26T10:00:00.000Z' }],
     ['wrong scope', { scopes: ['brands:read'] }],
+    ['wrong organization', { organization: 'org_2' }],
+    ['missing organization', { organization: undefined }],
     ['missing metadata', { metadata: {} }],
     [
       'wrong transport',
@@ -79,6 +86,7 @@ describe('getVerifiedMcpConnection', () => {
     expect(
       getVerifiedMcpConnection(
         [createVerifiedKey(overrides as Partial<ApiKey>)],
+        'org_1',
         NOW,
       ),
     ).toBeNull();

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -71,6 +71,7 @@ const { default: ProtectedRootResolver } = await import(
 
 describe('ProtectedRootResolver', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
     mocks.accessState = null;
     mocks.isAccessStateLoading = false;
@@ -220,7 +221,9 @@ describe('ProtectedRootResolver', () => {
   });
 
   it('shows an actionable SaaS workspace state instead of waiting forever', async () => {
+    vi.useFakeTimers();
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.brandState.isReady = false;
     mocks.currentUserState.currentUser = {
       id: 'user_1',
       isOnboardingCompleted: true,
@@ -229,8 +232,12 @@ describe('ProtectedRootResolver', () => {
 
     render(<ProtectedRootResolver />);
 
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000);
+    });
+
     expect(
-      await screen.findByRole('heading', {
+      screen.getByRole('heading', {
         name: 'Workspace setup needs attention',
       }),
     ).toBeInTheDocument();

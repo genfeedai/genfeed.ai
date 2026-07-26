@@ -83,9 +83,14 @@ function getConnectGenfeedMetadata(
 
 export function getVerifiedMcpConnection(
   apiKeys: ApiKey[],
+  organizationId: string,
   now = Date.now(),
 ): { apiKey: ApiKey; verifiedAt: string } | null {
   for (const apiKey of apiKeys) {
+    const apiKeyOrganizationId =
+      typeof apiKey.organization === 'string'
+        ? apiKey.organization
+        : apiKey.organization?.id;
     const expiresAt = apiKey.expiresAt ? Date.parse(apiKey.expiresAt) : null;
     const isExpired =
       expiresAt !== null && (!Number.isFinite(expiresAt) || expiresAt <= now);
@@ -97,6 +102,7 @@ export function getVerifiedMcpConnection(
     if (
       apiKey.isActive &&
       !apiKey.isRevoked &&
+      apiKeyOrganizationId === organizationId &&
       !isExpired &&
       hasRequiredScopes &&
       verification

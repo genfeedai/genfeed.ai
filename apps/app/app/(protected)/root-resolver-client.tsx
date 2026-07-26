@@ -21,6 +21,8 @@ import { useEffect, useRef, useState } from 'react';
 import OperationalHomeContent from './home/content';
 import { resolveOperationalHomeScope } from './home/operational-home.helpers';
 
+const WORKSPACE_RESOLUTION_TIMEOUT_MS = 8_000;
+
 export default function ProtectedRootResolver() {
   const { brands, isReady, organizationId, refreshBrands, selectedBrand } =
     useBrand();
@@ -33,6 +35,35 @@ export default function ProtectedRootResolver() {
   );
   const [isHomeReady, setIsHomeReady] = useState(false);
   const [needsWorkspaceAction, setNeedsWorkspaceAction] = useState(false);
+
+  useEffect(() => {
+    if (
+      !isSaaS() ||
+      isReady ||
+      isAccessStateLoading ||
+      isCurrentUserLoading ||
+      !currentUser ||
+      isHomeReady ||
+      needsWorkspaceAction
+    ) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setNeedsWorkspaceAction(true);
+    }, WORKSPACE_RESOLUTION_TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [
+    currentUser,
+    isAccessStateLoading,
+    isCurrentUserLoading,
+    isHomeReady,
+    isReady,
+    needsWorkspaceAction,
+  ]);
 
   useEffect(() => {
     if (
