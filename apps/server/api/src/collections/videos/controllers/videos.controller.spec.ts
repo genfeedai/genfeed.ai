@@ -1173,24 +1173,21 @@ describe('VideosController', () => {
       MODEL_KEYS.FAL_VEO_3_1,
       MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO,
       MODEL_KEYS.FAL_PIXVERSE_V6,
-    ])(
-      'routes every output of a multi-output %s request to falService, never replicateService',
-      async (model) => {
-        const dto: CreateVideoDto = {
-          ...baseCreateDto,
-          model,
-          outputs: 3,
-        };
+    ])('routes every multi-output %s request to FAL', async (model) => {
+      const dto: CreateVideoDto = {
+        ...baseCreateDto,
+        model,
+        outputs: 3,
+      };
 
-        await controller.create(mockRequest, dto, mockUser);
+      await controller.create(mockRequest, dto, mockUser);
 
-        // Primary output + 2 additional outputs all dispatch to FAL.
-        expect(
-          testingModule.get(FalService).generateVideo,
-        ).toHaveBeenCalledTimes(3);
-        expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
-      },
-    );
+      // Primary output + 2 additional outputs all dispatch to FAL.
+      expect(testingModule.get(FalService).generateVideo).toHaveBeenCalledTimes(
+        3,
+      );
+      expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+    });
 
     it('should link video to bookmark if provided', async () => {
       const bookmarkId = '507f191e810c19729de860ee';
