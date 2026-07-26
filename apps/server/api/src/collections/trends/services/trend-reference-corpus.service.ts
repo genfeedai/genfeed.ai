@@ -1,17 +1,10 @@
-import { createHash } from 'node:crypto';
 import type {
   TrendCorpusFreshnessResult,
-  TrendPromptReferenceBrandSuitability,
-  TrendPromptReferenceFreshnessStatus,
-  TrendPromptReferencePack,
-  TrendPromptReferencePackFreshness,
   TrendPromptReferencePackResult,
-  TrendPromptReferencePackSource,
   TrendPromptReferencePackType,
   TrendSourceAccountResult,
   TrendSourceAccountSummary,
   TrendSourceClassification,
-  TrendSourceConfidence,
   TrendSourceIntendedUse,
   TrendSourceItem,
   TrendSourceKind,
@@ -22,23 +15,18 @@ import {
   type TrendCorpusFreshnessHealthOptions,
   TrendCorpusFreshnessService,
 } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
+import { TrendReferenceSyncService } from '@api/collections/trends/services/modules/trend-reference-sync.service';
+import { TrendPromptReferencePackBuilder } from '@api/collections/trends/services/trend-prompt-reference-pack.builder';
+import type {
+  SyncTrendReferenceInput,
+  TrendReferenceRecordData,
+} from '@api/collections/trends/services/trend-reference-corpus.types';
 import { normalizeTrendSourceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { normalizeTrendSourceUrl } from '@api/collections/trends/utils/trend-source-url.util';
-import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-
-interface SyncTrendInput {
-  id: string;
-  topic: string;
-  platform: string;
-  mentions: number;
-  viralityScore: number;
-  sourcePreviewState: 'live' | 'fallback' | 'empty';
-  sourcePreview: TrendSourceItem[];
-}
 
 interface RemixLineagePayload {
   organizationId: string;
@@ -69,238 +57,25 @@ interface PromptReferencePackQueryOptions {
   types?: TrendPromptReferencePackType[];
 }
 
-interface ReferenceRecordData {
-  authorHandle?: string;
-  canonicalUrl: string;
-  contentType: TrendSourceItem['contentType'];
-  currentEngagementTotal: number;
-  currentMetrics?: TrendSourceItem['metrics'];
-  firstSeenAt: string;
-  lastSeenAt: string;
-  latestTrendMentions: number;
-  latestTrendViralityScore: number;
-  matchedTrendTopics: string[];
-  mediaUrl?: string;
-  platform: string;
-  publishedAt?: string;
-  sourcePreviewState: 'live' | 'fallback' | 'empty';
-  sourceClassification?: TrendSourceClassification;
-  text?: string;
-  thumbnailUrl?: string;
-  title?: string;
-}
-
 const DEFAULT_REFERENCE_CORPUS_LIMIT = 30;
 const DEFAULT_REFERENCE_ACCOUNT_LIMIT = 20;
 const DEFAULT_PROMPT_REFERENCE_PACK_LIMIT = 12;
-const DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS = 7;
 const MAX_REFERENCE_QUERY_LIMIT = 100;
-const PROMPT_REFERENCE_PACK_TYPES: TrendPromptReferencePackType[] = [
-  'hooks',
-  'formats',
-  'references',
-  'constraints',
-];
+const promptReferencePackBuilder = new TrendPromptReferencePackBuilder();
+
 @Injectable()
 export class TrendReferenceCorpusService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
     private readonly trendCorpusFreshnessService: TrendCorpusFreshnessService,
+    private readonly trendReferenceSyncService: TrendReferenceSyncService,
   ) {}
 
   async syncTrendReferences(
-    trends: SyncTrendInput[],
+    trends: SyncTrendReferenceInput[],
   ): Promise<{ links: number; references: number; snapshots: number }> {
-    let references = 0;
-    let snapshots = 0;
-    let links = 0;
-
-    for (const trend of trends) {
-      for (const sourceItem of trend.sourcePreview) {
-        if (!sourceItem.sourceUrl) {
-          continue;
-        }
-
-        const canonicalUrl = this.normalizeSourceUrl(sourceItem.sourceUrl);
-
-        const matchedRef = await this.prisma.trendSourceReference.findFirst({
-          where: {
-            canonicalUrl,
-            isDeleted: false,
-            platform: sourceItem.platform,
-          },
-        });
-
-        const engagementTotal = this.getEngagementTotal(sourceItem.metrics);
-        const now = new Date();
-
-        let referenceId: string;
-
-        if (matchedRef) {
-          const existingData =
-            matchedRef.data as unknown as ReferenceRecordData;
-          const sourceClassification = this.buildReferenceSourceClassification({
-            capturedAt: now,
-            existingClassification: existingData.sourceClassification,
-            sourceItem,
-            trend,
-          });
-          const matchedTopics = Array.isArray(existingData.matchedTrendTopics)
-            ? existingData.matchedTrendTopics
-            : [];
-          const updatedTopics = matchedTopics.includes(trend.topic)
-            ? matchedTopics
-            : [...matchedTopics, trend.topic];
-
-          await this.prisma.trendSourceReference.update({
-            data: {
-              authorHandle: sourceItem.authorHandle,
-              canonicalUrl,
-              currentEngagementTotal: engagementTotal,
-              data: {
-                ...existingData,
-                authorHandle: sourceItem.authorHandle,
-                canonicalUrl,
-                contentType: sourceItem.contentType,
-                currentEngagementTotal: engagementTotal,
-                currentMetrics: sourceItem.metrics || {},
-                externalId: sourceItem.id,
-                lastSeenAt: now.toISOString(),
-                latestTrendMentions: trend.mentions,
-                latestTrendViralityScore: trend.viralityScore,
-                matchedTrendTopics: updatedTopics,
-                mediaUrl: sourceItem.mediaUrl,
-                publishedAt: sourceItem.publishedAt
-                  ? new Date(sourceItem.publishedAt).toISOString()
-                  : undefined,
-                sourceClassification,
-                sourcePreviewState: trend.sourcePreviewState,
-                text: sourceItem.text,
-                thumbnailUrl: sourceItem.thumbnailUrl,
-                title: sourceItem.title,
-              } as never,
-              lastSeenAt: now,
-              latestTrendViralityScore: trend.viralityScore,
-              platform: sourceItem.platform,
-            },
-            where: { id: matchedRef.id },
-          });
-          referenceId = matchedRef.id;
-        } else {
-          const sourceClassification = this.buildReferenceSourceClassification({
-            capturedAt: now,
-            sourceItem,
-            trend,
-          });
-          const created = await this.prisma.trendSourceReference.create({
-            data: {
-              authorHandle: sourceItem.authorHandle,
-              canonicalUrl,
-              currentEngagementTotal: engagementTotal,
-              data: {
-                authorHandle: sourceItem.authorHandle,
-                canonicalUrl,
-                contentType: sourceItem.contentType,
-                currentEngagementTotal: engagementTotal,
-                currentMetrics: sourceItem.metrics || {},
-                externalId: sourceItem.id,
-                firstSeenAt: now.toISOString(),
-                lastSeenAt: now.toISOString(),
-                latestTrendMentions: trend.mentions,
-                latestTrendViralityScore: trend.viralityScore,
-                matchedTrendTopics: [trend.topic],
-                mediaUrl: sourceItem.mediaUrl,
-                platform: sourceItem.platform,
-                publishedAt: sourceItem.publishedAt
-                  ? new Date(sourceItem.publishedAt).toISOString()
-                  : undefined,
-                sourceClassification,
-                sourcePreviewState: trend.sourcePreviewState,
-                text: sourceItem.text,
-                thumbnailUrl: sourceItem.thumbnailUrl,
-                title: sourceItem.title,
-              } as never,
-              isDeleted: false,
-              lastSeenAt: now,
-              latestTrendViralityScore: trend.viralityScore,
-              platform: sourceItem.platform,
-            },
-          });
-          referenceId = created.id;
-        }
-        references += 1;
-
-        // Upsert snapshot for today
-        const snapshotDate = this.toSnapshotDate();
-        const matchedSnapshot =
-          await this.prisma.trendSourceReferenceSnapshot.findFirst({
-            where: {
-              isDeleted: false,
-              snapshotDate,
-              sourceReferenceId: referenceId,
-            },
-          });
-
-        if (!matchedSnapshot) {
-          await this.prisma.trendSourceReferenceSnapshot.create({
-            data: {
-              data: {
-                engagementTotal,
-                metrics: sourceItem.metrics || {},
-                snapshotDate: snapshotDate.toISOString(),
-                trendMentions: trend.mentions,
-                trendViralityScore: trend.viralityScore,
-              } as never,
-              isDeleted: false,
-              snapshotDate,
-              sourceReferenceId: referenceId,
-            },
-          });
-          snapshots += 1;
-        } else {
-          await this.prisma.trendSourceReferenceSnapshot.update({
-            data: {
-              data: {
-                engagementTotal,
-                metrics: sourceItem.metrics || {},
-                snapshotDate: snapshotDate.toISOString(),
-                trendMentions: trend.mentions,
-                trendViralityScore: trend.viralityScore,
-              } as never,
-              snapshotDate,
-            },
-            where: { id: matchedSnapshot.id },
-          });
-        }
-
-        // Upsert link between trend and source reference
-        const existingLink =
-          await this.prisma.trendSourceReferenceLink.findFirst({
-            where: {
-              isDeleted: false,
-              sourceReferenceId: referenceId,
-              trendId: trend.id,
-            },
-          });
-
-        if (!existingLink) {
-          await this.prisma.trendSourceReferenceLink.create({
-            data: {
-              isDeleted: false,
-              sourceReferenceId: referenceId,
-              trendId: trend.id,
-            },
-          });
-          links += 1;
-        } else {
-          // Update matchReason/rankAtCapture in a data-like field if needed
-          // TrendSourceReferenceLink has no data blob — nothing to update
-        }
-      }
-    }
-
-    return { links, references, snapshots };
+    return this.trendReferenceSyncService.syncTrendReferences(trends);
   }
 
   async countGlobalReferences(): Promise<number> {
@@ -448,7 +223,7 @@ export class TrendReferenceCorpusService {
 
     const referenceMap = new Map(
       matchedRefs.map((doc) => {
-        const d = doc.data as unknown as ReferenceRecordData;
+        const d = doc.data as unknown as TrendReferenceRecordData;
         return [doc.canonicalUrl ?? d.canonicalUrl, doc.id];
       }),
     );
@@ -532,7 +307,7 @@ export class TrendReferenceCorpusService {
     });
     const classificationFiltered = docs.filter((doc) =>
       this.shouldIncludeReferenceByClassification(
-        doc.data as unknown as ReferenceRecordData,
+        doc.data as unknown as TrendReferenceRecordData,
         options,
       ),
     );
@@ -553,7 +328,7 @@ export class TrendReferenceCorpusService {
       items: filteredDocs.map((doc) =>
         this.toReferenceRecord(
           doc.id,
-          doc.data as unknown as ReferenceRecordData,
+          doc.data as unknown as TrendReferenceRecordData,
           doc.createdAt,
           remixCounts,
         ),
@@ -574,7 +349,7 @@ export class TrendReferenceCorpusService {
     );
     const targetPlatform = options.platform ?? 'multi_platform';
     const contentIntent = options.intent ?? 'organic_trend_discovery';
-    const requestedTypes = this.normalizePromptReferencePackTypes(
+    const requestedTypes = promptReferencePackBuilder.normalizeTypes(
       options.types,
     );
 
@@ -601,13 +376,13 @@ export class TrendReferenceCorpusService {
       .map((doc) =>
         this.toReferenceRecord(
           doc.id,
-          doc.data as unknown as ReferenceRecordData,
+          doc.data as unknown as TrendReferenceRecordData,
           doc.createdAt,
           emptyRemixCounts,
         ),
       )
       .filter((reference) =>
-        this.isPromptReadyReference(reference, contentIntent),
+        promptReferencePackBuilder.isPromptReady(reference, contentIntent),
       );
     const selectedReferences = promptReadyReferences.slice(0, limit);
 
@@ -620,17 +395,13 @@ export class TrendReferenceCorpusService {
       reference.remixCount = remixCounts.get(reference.id) ?? 0;
     }
 
-    const packs = requestedTypes
-      .map((type) =>
-        this.toPromptReferencePack({
-          contentIntent,
-          generatedAt,
-          references: selectedReferences,
-          targetPlatform,
-          type,
-        }),
-      )
-      .filter((pack): pack is TrendPromptReferencePack => pack != null);
+    const packs = promptReferencePackBuilder.build({
+      contentIntent,
+      generatedAt,
+      references: selectedReferences,
+      targetPlatform,
+      types: requestedTypes,
+    });
 
     return {
       packs,
@@ -740,29 +511,6 @@ export class TrendReferenceCorpusService {
     });
   }
 
-  private buildReferenceSourceClassification(input: {
-    capturedAt: Date;
-    existingClassification?: TrendSourceClassification;
-    sourceItem: TrendSourceItem;
-    trend: SyncTrendInput;
-  }): TrendSourceClassification | undefined {
-    return normalizeTrendSourceClassification({
-      capturedAt: input.capturedAt,
-      confidence: 'medium',
-      intendedUse: 'organic_trend_discovery',
-      platform: input.sourceItem.platform,
-      sourceAuthor: input.sourceItem.authorHandle,
-      sourceKind: 'public_platform_reference',
-      sourceLabel:
-        input.sourceItem.sourceClassification?.sourceLabel ??
-        input.sourceItem.platform,
-      sourceTimestamp: input.sourceItem.publishedAt,
-      sourceTopic: input.trend.topic,
-      value:
-        input.sourceItem.sourceClassification ?? input.existingClassification,
-    });
-  }
-
   private async resolveSourceReferenceIds(
     metadata?: Record<string, unknown>,
   ): Promise<string[]> {
@@ -846,7 +594,7 @@ export class TrendReferenceCorpusService {
   }
 
   private shouldIncludeReferenceByClassification(
-    data: ReferenceRecordData,
+    data: TrendReferenceRecordData,
     options: ReferenceQueryOptions,
   ): boolean {
     const classification = data.sourceClassification;
@@ -879,454 +627,6 @@ export class TrendReferenceCorpusService {
     }
 
     return true;
-  }
-
-  private normalizePromptReferencePackTypes(
-    types: TrendPromptReferencePackType[] | undefined,
-  ): TrendPromptReferencePackType[] {
-    if (!types || types.length === 0) {
-      return PROMPT_REFERENCE_PACK_TYPES;
-    }
-
-    return PROMPT_REFERENCE_PACK_TYPES.filter((type) => types.includes(type));
-  }
-
-  private isPromptReadyReference(
-    reference: TrendSourceReferenceRecord,
-    contentIntent: TrendSourceClassification['intendedUse'],
-  ): boolean {
-    return (
-      reference.sourceClassification?.intendedUse === contentIntent &&
-      reference.canonicalUrl.length > 0 &&
-      reference.platform.length > 0 &&
-      reference.contentType.length > 0 &&
-      Number.isFinite(reference.currentEngagementTotal) &&
-      this.getReferenceLabel(reference).length > 0
-    );
-  }
-
-  private toPromptReferencePack(input: {
-    contentIntent: TrendSourceClassification['intendedUse'];
-    generatedAt: Date;
-    references: TrendSourceReferenceRecord[];
-    targetPlatform: string;
-    type: TrendPromptReferencePackType;
-  }): TrendPromptReferencePack | undefined {
-    if (input.references.length === 0) {
-      return undefined;
-    }
-
-    const topReferences = input.references.slice(0, 6);
-    const sourceReferenceIds = topReferences.map((reference) => reference.id);
-    const freshness = this.buildPromptPackFreshness(topReferences);
-    const sourceFingerprint =
-      this.buildPromptPackSourceFingerprint(topReferences);
-    const cacheKey = this.hashPromptPackKey([
-      input.type,
-      input.targetPlatform,
-      input.contentIntent,
-      sourceFingerprint,
-    ]);
-    const confidence = this.aggregateConfidence(topReferences);
-    const sourceKinds = this.getUniqueSourceKinds(topReferences);
-    const contentTypes = this.getUniqueContentTypes(topReferences);
-    const matchedTopics = this.getUniqueMatchedTopics(topReferences);
-    const sourceLabel = this.describePromptPackSources(topReferences);
-    const promptContent = this.buildPromptPackContent(
-      input.type,
-      topReferences,
-    );
-
-    return {
-      brandSuitability: this.getBrandSuitability(topReferences),
-      confidence,
-      constraints: promptContent.constraints,
-      contentIntent: input.contentIntent,
-      examples: promptContent.examples,
-      freshness,
-      id: `prompt-pack:${input.type}:${input.targetPlatform}:${cacheKey}`,
-      instructions: promptContent.instructions,
-      metadata: {
-        contentTypes,
-        generatedAt: input.generatedAt.toISOString(),
-        matchedTopics,
-        sourceCount: topReferences.length,
-        sourceKinds,
-      },
-      regeneration: {
-        cacheKey,
-        regenerateAfter: freshness.regenerateAfter,
-        sourceFingerprint,
-        trigger: this.getRegenerationTrigger(freshness),
-      },
-      sourceReferenceIds,
-      sources: topReferences.map((reference) =>
-        this.toPromptReferencePackSource(reference),
-      ),
-      summary: promptContent.summary,
-      targetPlatform: input.targetPlatform,
-      title: `${this.toTitleCase(input.type)} pack from ${sourceLabel}`,
-      type: input.type,
-    };
-  }
-
-  private buildPromptPackContent(
-    type: TrendPromptReferencePackType,
-    references: TrendSourceReferenceRecord[],
-  ): {
-    constraints: string[];
-    examples: string[];
-    instructions: string[];
-    summary: string;
-  } {
-    switch (type) {
-      case 'hooks':
-        return {
-          constraints: [
-            'Keep the opening claim grounded in the cited source references.',
-            'Do not copy creator wording verbatim when adapting the hook.',
-          ],
-          examples: references.map(
-            (reference) => `Hook angle: ${this.deriveHook(reference)}`,
-          ),
-          instructions: [
-            'Start with the concrete tension, result, or surprising detail visible in the source.',
-            'Adapt the hook structure to the target brand voice before generation.',
-          ],
-          summary: `Reusable hook patterns from ${references.length} prompt-ready corpus references.`,
-        };
-      case 'formats':
-        return {
-          constraints: [
-            'Use the observed format as structure, not as a copied creative.',
-            'Match the target platform constraints before publishing.',
-          ],
-          examples: this.deriveFormatExamples(references),
-          instructions: [
-            'Choose the format that matches the requested platform and creative intent.',
-            'Preserve the source-backed sequence of setup, proof, and payoff when present.',
-          ],
-          summary: `Observed content formats across ${this.getUniqueContentTypes(references).join(', ')} references.`,
-        };
-      case 'references':
-        return {
-          constraints: [
-            'Keep reference URLs available for audit and remix lineage.',
-            'Treat sources as inspiration and evidence, not generated output.',
-          ],
-          examples: references.map(
-            (reference) =>
-              `${this.getReferenceLabel(reference)} (${reference.canonicalUrl})`,
-          ),
-          instructions: [
-            'Use these references to ground examples, claims, and creative direction.',
-            'Prefer newer or higher-confidence sources when the pack contains conflicts.',
-          ],
-          summary: `Traceable source-reference set with ${references.length} canonical corpus records.`,
-        };
-      case 'constraints':
-        return {
-          constraints: this.deriveSourceBackedConstraints(references),
-          examples: references.map(
-            (reference) =>
-              `${reference.platform}: ${this.getReferenceLabel(reference)}`,
-          ),
-          instructions: [
-            'Apply these constraints before drafting generation prompts.',
-            'Regenerate the pack when freshness metadata marks the source set stale or expired.',
-          ],
-          summary: `Source-backed generation constraints from ${references.length} classified references.`,
-        };
-      default: {
-        const exhaustive: never = type;
-        return exhaustive;
-      }
-    }
-  }
-
-  private deriveHook(reference: TrendSourceReferenceRecord): string {
-    const label = this.getReferenceLabel(reference);
-    const firstSentence = label.split(/[.!?]/)[0]?.trim();
-    return SecurityUtil.sanitizePromptInput(firstSentence || label, 160);
-  }
-
-  private deriveFormatExamples(
-    references: TrendSourceReferenceRecord[],
-  ): string[] {
-    const examples = references.map((reference) => {
-      const topic = reference.matchedTrendTopics[0] ?? 'source-backed topic';
-      return `${reference.platform} ${reference.contentType}: lead with ${SecurityUtil.sanitizePromptInput(topic, 80)}, then adapt "${this.getReferenceLabel(reference)}".`;
-    });
-
-    return this.uniqueStrings(examples).slice(0, 6);
-  }
-
-  private deriveSourceBackedConstraints(
-    references: TrendSourceReferenceRecord[],
-  ): string[] {
-    const sourceLabels = this.uniqueStrings(
-      references
-        .map((reference) => reference.sourceClassification?.sourceLabel)
-        .filter((value): value is string => Boolean(value)),
-    );
-    const topics = this.getUniqueMatchedTopics(references);
-    const platforms = this.uniqueStrings(
-      references.map((reference) => reference.platform),
-    );
-
-    return [
-      `Use only references classified for ${references[0]?.sourceClassification?.intendedUse ?? 'prompt context'}.`,
-      `Target platform evidence comes from ${platforms.join(', ')}.`,
-      sourceLabels.length > 0
-        ? `Source labels represented: ${sourceLabels.join(', ')}.`
-        : 'Source labels are unavailable; keep claims generic.',
-      topics.length > 0
-        ? `Ground angles in matched topics: ${topics.slice(0, 6).join(', ')}.`
-        : 'No matched trend topics are available; avoid trend-specific claims.',
-    ];
-  }
-
-  private buildPromptPackFreshness(
-    references: TrendSourceReferenceRecord[],
-  ): TrendPromptReferencePackFreshness {
-    const sourceFreshness = references.map((reference) => ({
-      id: reference.id,
-      status: this.getReferenceFreshnessStatus(reference),
-    }));
-    const freshnessWindowDays = Math.max(
-      ...references.map(
-        (reference) =>
-          reference.sourceClassification?.freshnessWindowDays ??
-          DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS,
-      ),
-    );
-    const lastSourceSeenAt = references
-      .map((reference) => reference.lastSeenAt)
-      .sort()
-      .at(-1);
-    const regenerateAfter = references
-      .map((reference) => this.getRegenerateAfter(reference))
-      .filter((value): value is string => Boolean(value))
-      .sort()[0];
-    const expiredSourceIds = sourceFreshness
-      .filter((source) => source.status === 'expired')
-      .map((source) => source.id);
-    const staleSourceIds = sourceFreshness
-      .filter((source) => source.status === 'stale')
-      .map((source) => source.id);
-
-    return {
-      expiredSourceIds,
-      freshnessWindowDays,
-      lastSourceSeenAt,
-      regenerateAfter,
-      staleSourceIds,
-      status:
-        expiredSourceIds.length > 0
-          ? 'expired'
-          : staleSourceIds.length > 0
-            ? 'stale'
-            : 'fresh',
-    };
-  }
-
-  private getReferenceFreshnessStatus(
-    reference: TrendSourceReferenceRecord,
-  ): TrendPromptReferenceFreshnessStatus {
-    const freshnessWindowDays =
-      reference.sourceClassification?.freshnessWindowDays ??
-      DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS;
-    const lastSeenAt = new Date(reference.lastSeenAt).getTime();
-    if (!Number.isFinite(lastSeenAt)) {
-      return 'expired';
-    }
-
-    const ageMs = Date.now() - lastSeenAt;
-    const freshnessWindowMs = freshnessWindowDays * 24 * 60 * 60 * 1000;
-
-    if (ageMs <= freshnessWindowMs) {
-      return 'fresh';
-    }
-
-    return ageMs <= freshnessWindowMs * 2 ? 'stale' : 'expired';
-  }
-
-  private getRegenerateAfter(
-    reference: TrendSourceReferenceRecord,
-  ): string | undefined {
-    const lastSeenAt = new Date(reference.lastSeenAt).getTime();
-    if (!Number.isFinite(lastSeenAt)) {
-      return undefined;
-    }
-
-    const freshnessWindowDays =
-      reference.sourceClassification?.freshnessWindowDays ??
-      DEFAULT_PROMPT_REFERENCE_FRESHNESS_DAYS;
-    return new Date(
-      lastSeenAt + freshnessWindowDays * 24 * 60 * 60 * 1000,
-    ).toISOString();
-  }
-
-  private getRegenerationTrigger(
-    freshness: TrendPromptReferencePackFreshness,
-  ): TrendPromptReferencePack['regeneration']['trigger'] {
-    if (freshness.expiredSourceIds.length > 0) {
-      return 'source_expired';
-    }
-    if (freshness.staleSourceIds.length > 0) {
-      return 'source_stale';
-    }
-    return 'cache_key_changed';
-  }
-
-  private toPromptReferencePackSource(
-    reference: TrendSourceReferenceRecord,
-  ): TrendPromptReferencePackSource {
-    const source: TrendPromptReferencePackSource = {
-      authorHandle: reference.authorHandle,
-      canonicalUrl: reference.canonicalUrl,
-      confidence: reference.sourceClassification?.confidence ?? 'low',
-      contentType: reference.contentType,
-      freshnessStatus: this.getReferenceFreshnessStatus(reference),
-      id: reference.id,
-      lastSeenAt: reference.lastSeenAt,
-      platform: reference.platform,
-      sourceClassification: reference.sourceClassification,
-    };
-
-    if (reference.text) {
-      source.text = reference.text;
-    }
-    if (reference.title) {
-      source.title = reference.title;
-    }
-
-    return source;
-  }
-
-  private buildPromptPackSourceFingerprint(
-    references: TrendSourceReferenceRecord[],
-  ): string {
-    return references
-      .map(
-        (reference) =>
-          `${reference.id}:${reference.lastSeenAt}:${reference.latestTrendViralityScore}:${reference.currentEngagementTotal}`,
-      )
-      .sort()
-      .join('|');
-  }
-
-  private hashPromptPackKey(parts: string[]): string {
-    return createHash('sha256')
-      .update(parts.join('|'))
-      .digest('hex')
-      .slice(0, 16);
-  }
-
-  private aggregateConfidence(
-    references: TrendSourceReferenceRecord[],
-  ): TrendSourceConfidence {
-    const confidences = references.map(
-      (reference) => reference.sourceClassification?.confidence ?? 'low',
-    );
-
-    if (confidences.every((confidence) => confidence === 'high')) {
-      return 'high';
-    }
-    if (confidences.some((confidence) => confidence !== 'low')) {
-      return 'medium';
-    }
-    return 'low';
-  }
-
-  private getBrandSuitability(
-    references: TrendSourceReferenceRecord[],
-  ): TrendPromptReferenceBrandSuitability {
-    if (
-      references.some(
-        (reference) =>
-          reference.sourceClassification?.sourceKind ===
-            'paid_creative_reference' ||
-          reference.sourceClassification?.confidence === 'low',
-      )
-    ) {
-      return 'requires_review';
-    }
-
-    return references.every((reference) => reference.sourceClassification)
-      ? 'brand_safe'
-      : 'unknown';
-  }
-
-  private getUniqueSourceKinds(
-    references: TrendSourceReferenceRecord[],
-  ): TrendSourceKind[] {
-    return this.uniqueStrings(
-      references
-        .map((reference) => reference.sourceClassification?.sourceKind)
-        .filter((value): value is TrendSourceKind => Boolean(value)),
-    ) as TrendSourceKind[];
-  }
-
-  private getUniqueContentTypes(
-    references: TrendSourceReferenceRecord[],
-  ): TrendSourceItem['contentType'][] {
-    return this.uniqueStrings(
-      references.map((reference) => reference.contentType),
-    ) as TrendSourceItem['contentType'][];
-  }
-
-  private getUniqueMatchedTopics(
-    references: TrendSourceReferenceRecord[],
-  ): string[] {
-    return this.uniqueStrings(
-      references.flatMap((reference) => reference.matchedTrendTopics),
-    ).slice(0, 12);
-  }
-
-  private describePromptPackSources(
-    references: TrendSourceReferenceRecord[],
-  ): string {
-    const platforms = this.uniqueStrings(
-      references.map((reference) => reference.platform),
-    );
-    return platforms.length === 1
-      ? platforms[0]
-      : `${platforms.length} platforms`;
-  }
-
-  private getReferenceLabel(reference: TrendSourceReferenceRecord): string {
-    return SecurityUtil.sanitizePromptInput(
-      reference.title || reference.text || reference.canonicalUrl,
-      180,
-    );
-  }
-
-  private toTitleCase(value: string): string {
-    return value
-      .split(/[-_\s]+/)
-      .filter(Boolean)
-      .map((part) => `${part[0]?.toUpperCase() ?? ''}${part.slice(1)}`)
-      .join(' ');
-  }
-
-  private uniqueStrings(values: string[]): string[] {
-    return Array.from(new Set(values.filter((value) => value.length > 0)));
-  }
-
-  private getEngagementTotal(metrics?: TrendSourceItem['metrics']): number {
-    return (
-      (metrics?.comments || 0) +
-      (metrics?.likes || 0) +
-      (metrics?.shares || 0) +
-      (metrics?.views || 0)
-    );
-  }
-
-  private toSnapshotDate(): Date {
-    const snapshotDate = new Date();
-    snapshotDate.setUTCHours(0, 0, 0, 0);
-    return snapshotDate;
   }
 
   private async getRemixCounts(
@@ -1416,7 +716,7 @@ export class TrendReferenceCorpusService {
 
   private toReferenceRecord(
     id: string,
-    data: ReferenceRecordData,
+    data: TrendReferenceRecordData,
     createdAt: Date,
     remixCounts: Map<string, number>,
   ): TrendSourceReferenceRecord {
