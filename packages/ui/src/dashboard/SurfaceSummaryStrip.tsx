@@ -1,6 +1,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn';
+import { Skeleton } from '@ui/primitives/skeleton';
 import type { ReactNode } from 'react';
-import { Skeleton } from '../components/display/skeleton/skeleton';
 import { DashboardGrid } from './DashboardGrid';
 
 export interface SurfaceSummaryItem {
@@ -88,7 +88,7 @@ export function SurfaceSummaryStrip({
           >
             <div className="flex items-start justify-between gap-3">
               {item.isLoading ? (
-                <Skeleton variant="text" height={32} className="w-16" />
+                <Skeleton className="h-8 w-16" />
               ) : (
                 <div className={styles.value}>{item.value}</div>
               )}
@@ -96,7 +96,7 @@ export function SurfaceSummaryStrip({
             </div>
             <p className={cn('mt-1', styles.label)}>{item.label}</p>
             {item.isLoading ? (
-              <Skeleton variant="text" height={12} className="mt-2 w-28" />
+              <Skeleton className="mt-2 h-3 w-28" />
             ) : item.accent ? (
               <p className={cn('mt-1.5', styles.accent)}>{item.accent}</p>
             ) : null}
