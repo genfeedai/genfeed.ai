@@ -79,10 +79,19 @@ export class ClipProjectsService extends BaseService<
     id: string,
     updateDto: Partial<UpdateClipProjectDto> | Record<string, unknown>,
     populate: PopulateInput = [],
+    organizationId?: string,
   ): Promise<ClipProjectDocument> {
-    const existing = await this.findOne({ _id: id, isDeleted: false });
+    const existing = await this.findOne({
+      _id: id,
+      isDeleted: false,
+      ...(organizationId !== undefined ? { organizationId } : {}),
+    });
+    if (!existing) {
+      throw new NotFoundException('ClipProject', id);
+    }
+
     const existingConfig = this.readRecord(
-      (existing as Record<string, unknown> | null)?.config,
+      (existing as Record<string, unknown>).config,
     );
     const canonicalId =
       typeof existing?.id === 'string' && existing.id.length > 0
@@ -138,13 +147,18 @@ export class ClipProjectsService extends BaseService<
       return project;
     }
 
-    return await this.patch(projectId, {
-      referenceFrames: {
-        ...referenceFrames,
-        selectedCandidateId: candidateId,
-        status: 'selected',
+    return await this.patch(
+      projectId,
+      {
+        referenceFrames: {
+          ...referenceFrames,
+          selectedCandidateId: candidateId,
+          status: 'selected',
+        },
       },
-    });
+      [],
+      organizationId,
+    );
   }
 
   async reconcileTerminalState(
@@ -214,7 +228,7 @@ export class ClipProjectsService extends BaseService<
       return project;
     }
 
-    return this.patch(canonicalProjectId, update);
+    return this.patch(canonicalProjectId, update, [], organizationId);
   }
 
   private toPrismaWriteData(
