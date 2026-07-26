@@ -5,6 +5,14 @@ import { EvaluateExternalDto } from '@api/collections/evaluations/dto/evaluate-e
 import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluation-filters.dto';
 import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
 import type { EvaluationDocument } from '@api/collections/evaluations/schemas/evaluation.schema';
+import {
+  type EvaluationAiResult,
+  type EvaluationData,
+  EvaluationResultProjection,
+  type PostEvaluationContent,
+  type PostThreadChild,
+  type PublicationMetrics,
+} from '@api/collections/evaluations/services/evaluation-result.projection';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -21,12 +29,7 @@ import {
   IngredientCategory,
   Status,
 } from '@genfeedai/enums';
-import type {
-  IEvaluationComparisonResult,
-  IEvaluationComparisonScoreBreakdown,
-  IEvaluationReview,
-  IEvaluationReviewerComment,
-} from '@genfeedai/interfaces';
+import type { IEvaluationComparisonResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -36,55 +39,11 @@ import {
   Optional,
 } from '@nestjs/common';
 
-type EvaluationAiResult = {
-  analysis: unknown;
-  flags: unknown;
-  overallScore: number;
-  scores: unknown;
-};
-
 type EvaluationContext = NonNullable<
   Parameters<EvaluationsOperationsService['evaluateVideo']>[1]
 >;
 
-type PostThreadChild = {
-  description?: string;
-  order?: number;
-};
-
-type PostBrandContext = {
-  guidelines?: unknown;
-  name?: string;
-};
-
-type PostEvaluationContent = {
-  id?: string;
-  _id?: unknown;
-  brand?: PostBrandContext;
-  description?: string;
-  label?: string;
-  platform?: string;
-};
-
-type PublicationMetrics = {
-  engagement?: number;
-  engagementRate?: number;
-  views?: number;
-};
-
-type EvaluationData = {
-  analysis?: unknown;
-  flags?: unknown;
-  overallScore?: number;
-  scores?: unknown;
-  status?: string;
-  evaluationType?: string;
-  brandId?: string;
-  userId?: string;
-  actualPerformance?: unknown;
-  review?: IEvaluationReview;
-  reviewerComments?: IEvaluationReviewerComment[];
-};
+const evaluationResultProjection = new EvaluationResultProjection();
 
 @Injectable()
 export class EvaluationsService extends BaseService<EvaluationDocument> {
@@ -106,167 +65,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     @Optional() private readonly postsService?: PostsService,
   ) {
     super(prisma, 'evaluation', logger);
-  }
-
-  private readObjectRecord(value: unknown): Record<string, unknown> {
-    return typeof value === 'object' && value !== null
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private readNumber(value: unknown): number | undefined {
-    return typeof value === 'number' && Number.isFinite(value)
-      ? value
-      : undefined;
-  }
-
-  private readString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  private readStringArray(value: unknown): string[] {
-    return Array.isArray(value)
-      ? value.filter((entry): entry is string => typeof entry === 'string')
-      : [];
-  }
-
-  private serializeJsonRecord(
-    value: Record<string, unknown>,
-  ): Record<string, unknown> {
-    return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
-  }
-
-  private buildBrandContext(brand?: {
-    name?: string;
-    guidelines?: unknown;
-  }): EvaluationContext['brand'] {
-    const label = this.readString(brand?.name);
-    if (!label) {
-      return undefined;
-    }
-
-    const guidelines = this.readString(brand?.guidelines);
-
-    return {
-      label,
-      ...(guidelines
-        ? {
-            description: guidelines,
-            text: guidelines,
-          }
-        : {}),
-    };
-  }
-
-  private buildStoredEvaluationData(
-    value: EvaluationData,
-  ): Record<string, unknown> {
-    return this.serializeJsonRecord(
-      Object.fromEntries(
-        Object.entries(value).filter(([, entry]) => entry !== undefined),
-      ),
-    );
-  }
-
-  private readScoreBucket(value: unknown):
-    | {
-        overall?: number;
-      }
-    | undefined {
-    const record = this.readObjectRecord(value);
-    const overall = this.readNumber(record.overall);
-
-    return overall !== undefined ? { overall } : undefined;
-  }
-
-  private normalizeScore(value: number): number {
-    return Math.round(Math.max(0, Math.min(100, value)) * 100) / 100;
-  }
-
-  private readReviewerComments(value: unknown): IEvaluationReviewerComment[] {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return value.flatMap((entry) => {
-      const record = this.readObjectRecord(entry);
-      const reviewerId = this.readString(record.reviewerId);
-      const comment = this.readString(record.comment);
-      const createdAt = this.readString(record.createdAt);
-
-      if (!reviewerId || !comment || !createdAt) {
-        return [];
-      }
-
-      const decision = this.readString(record.decision);
-
-      return [
-        {
-          comment,
-          createdAt,
-          ...(decision
-            ? { decision: decision as IEvaluationReview['decision'] }
-            : {}),
-          reviewerId,
-        },
-      ];
-    });
-  }
-
-  private buildReviewTags(tags?: string[]): string[] | undefined {
-    const cleaned = tags
-      ?.map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0);
-
-    return cleaned && cleaned.length > 0 ? cleaned : undefined;
-  }
-
-  private buildComparisonScoreBreakdown(
-    data: EvaluationData,
-  ): IEvaluationComparisonScoreBreakdown {
-    const scores = this.readObjectRecord(data.scores);
-    const brandScore = this.readScoreBucket(scores.brand)?.overall;
-    const engagementScore = this.readScoreBucket(scores.engagement)?.overall;
-    const technicalScore = this.readScoreBucket(scores.technical)?.overall;
-    const review = this.readObjectRecord(data.review);
-
-    return {
-      brandScore,
-      engagementScore,
-      modelScore: this.readNumber(data.overallScore),
-      reviewerScore: this.readNumber(review.reviewerScore),
-      technicalScore,
-    };
-  }
-
-  private calculateCompositeScore(
-    scoreBreakdown: IEvaluationComparisonScoreBreakdown,
-  ): number {
-    const weightedScores = [
-      { value: scoreBreakdown.modelScore, weight: 0.5 },
-      { value: scoreBreakdown.reviewerScore, weight: 0.25 },
-      { value: scoreBreakdown.brandScore, weight: 0.1 },
-      { value: scoreBreakdown.engagementScore, weight: 0.1 },
-      { value: scoreBreakdown.technicalScore, weight: 0.05 },
-    ].filter(
-      (entry): entry is { value: number; weight: number } =>
-        entry.value !== undefined,
-    );
-
-    if (weightedScores.length === 0) {
-      return 0;
-    }
-
-    const totalWeight = weightedScores.reduce(
-      (sum, entry) => sum + entry.weight,
-      0,
-    );
-    const totalScore = weightedScores.reduce(
-      (sum, entry) => sum + entry.value * entry.weight,
-      0,
-    );
-
-    return this.normalizeScore(totalScore / totalWeight);
   }
 
   private async validateContentForEvaluation(
@@ -417,9 +215,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const brand = video.brand as { name?: string; guidelines?: string };
 
     const context: EvaluationContext = {
-      brand: this.buildBrandContext(brand),
+      brand: evaluationResultProjection.buildBrandContext(brand),
       prompt:
-        this.readString(prompt?.enhanced) ?? this.readString(prompt?.original),
+        evaluationResultProjection.readString(prompt?.enhanced) ??
+        evaluationResultProjection.readString(prompt?.original),
     };
 
     let billedCredits = 0;
@@ -438,7 +237,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         userId,
         contentType: IngredientCategory.VIDEO,
         contentId: videoId,
-        data: this.buildStoredEvaluationData({
+        data: evaluationResultProjection.buildStoredEvaluationData({
           analysis: aiResult.analysis,
           brandId,
           evaluationType,
@@ -487,9 +286,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const brand = image.brand as { name?: string; guidelines?: string };
 
     const context: EvaluationContext = {
-      brand: this.buildBrandContext(brand),
+      brand: evaluationResultProjection.buildBrandContext(brand),
       prompt:
-        this.readString(prompt?.enhanced) ?? this.readString(prompt?.original),
+        evaluationResultProjection.readString(prompt?.enhanced) ??
+        evaluationResultProjection.readString(prompt?.original),
     };
 
     let billedCredits = 0;
@@ -508,7 +308,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         userId,
         contentType: IngredientCategory.IMAGE,
         contentId: imageId,
-        data: this.buildStoredEvaluationData({
+        data: evaluationResultProjection.buildStoredEvaluationData({
           analysis: aiResult.analysis,
           brandId,
           evaluationType,
@@ -552,11 +352,11 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     const brand = article.brand as { name?: string; guidelines?: string };
     const context: EvaluationContext = {
-      brand: this.buildBrandContext(brand),
-      metadata: this.serializeJsonRecord({
-        category: this.readString(article.category),
-        summary: this.readString(article.summary),
-        title: this.readString(article.label),
+      brand: evaluationResultProjection.buildBrandContext(brand),
+      metadata: evaluationResultProjection.serializeJsonRecord({
+        category: evaluationResultProjection.readString(article.category),
+        summary: evaluationResultProjection.readString(article.summary),
+        title: evaluationResultProjection.readString(article.label),
       }),
     };
 
@@ -576,7 +376,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         userId,
         contentType: 'article',
         contentId: articleId,
-        data: this.buildStoredEvaluationData({
+        data: evaluationResultProjection.buildStoredEvaluationData({
           analysis: aiResult.analysis,
           brandId,
           evaluationType,
@@ -623,7 +423,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         userId,
         contentType: 'post',
         contentId: postId,
-        data: this.buildStoredEvaluationData({
+        data: evaluationResultProjection.buildStoredEvaluationData({
           brandId,
           evaluationType,
           status: Status.PROCESSING,
@@ -664,22 +464,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       const children = (await this.postsService?.getChildren(postId)) as
         | PostThreadChild[]
         | undefined;
-      const threadChildren = children ?? [];
-      const isThread = threadChildren.length > 0;
-
-      let threadContent = post.description || '';
-      if (isThread) {
-        const sortedChildren = [...threadChildren].sort(
-          (a, b) => (a.order || 0) - (b.order || 0),
-        );
-        for (const child of sortedChildren) {
-          threadContent += `\n---\n${child.description || ''}`;
-        }
-      }
-
-      const brand = post.brand;
-
-      const prevRaw = await this.prisma.evaluation.findFirst({
+      const previousEvaluation = await this.prisma.evaluation.findFirst({
         where: {
           contentId: postId,
           contentType: 'post',
@@ -688,38 +473,16 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         },
         orderBy: { updatedAt: 'desc' },
       });
-
-      const prevData = prevRaw?.data as EvaluationData | null;
-      const previousScores = this.readObjectRecord(prevData?.scores);
-      const previousEval =
-        prevData?.status === Status.COMPLETED &&
-        prevData?.overallScore !== undefined &&
-        Object.keys(previousScores).length > 0
-          ? {
-              overallScore: prevData.overallScore as number,
-              scores: {
-                brand: this.readScoreBucket(previousScores.brand),
-                engagement: this.readScoreBucket(previousScores.engagement),
-                technical: this.readScoreBucket(previousScores.technical),
-              },
-              updatedAt: prevRaw!.updatedAt,
-            }
-          : undefined;
-
-      const context: EvaluationContext = {
-        brand: this.buildBrandContext(
-          brand as { guidelines?: unknown; name?: string } | undefined,
-        ),
-        isThread,
-        label: this.readString(post.label),
-        platform: this.readString(post.platform),
-        previousEvaluation: previousEval,
-        threadLength: isThread ? threadChildren.length + 1 : 1,
-      };
+      const { context, threadContent } =
+        evaluationResultProjection.buildPostEvaluationContext(
+          post,
+          children ?? [],
+          previousEvaluation,
+        );
 
       const aiResult = (await this.evaluationsOperationsService.evaluatePost(
         threadContent,
-        context,
+        context as EvaluationContext,
         organizationId,
         (amount) => {
           billedCredits += amount;
@@ -742,7 +505,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       const updatedEvaluation = await this.prisma.evaluation.update({
         where: { id: evaluationId },
         data: {
-          data: this.buildStoredEvaluationData({
+          data: evaluationResultProjection.buildStoredEvaluationData({
             ...existingData,
             analysis: aiResult.analysis,
             flags: aiResult.flags,
@@ -773,7 +536,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       await this.prisma.evaluation.update({
         where: { id: evaluationId },
         data: {
-          data: this.buildStoredEvaluationData({
+          data: evaluationResultProjection.buildStoredEvaluationData({
             ...existingData,
             status: Status.FAILED,
           }) as never,
@@ -827,7 +590,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     dto: RecordEvaluationReviewDto,
   ): Promise<EvaluationDocument> {
     const comment = dto.comment?.trim();
-    const tags = this.buildReviewTags(dto.tags);
+    const tags = evaluationResultProjection.buildReviewTags(dto.tags);
 
     if (dto.reviewerScore === undefined && !comment && !dto.decision && !tags) {
       throw new BadRequestException(
@@ -849,39 +612,18 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     const reviewedAt = new Date().toISOString();
     const existingData = (evaluation.data as EvaluationData | null) ?? {};
-    const existingComments = this.readReviewerComments(
-      existingData.reviewerComments,
-    );
-    const review: IEvaluationReview = {
-      ...(comment ? { comment } : {}),
-      ...(dto.decision ? { decision: dto.decision } : {}),
-      ...(dto.reviewerScore !== undefined
-        ? { reviewerScore: dto.reviewerScore }
-        : {}),
-      ...(tags ? { tags } : {}),
-      reviewedAt,
-      reviewerId: userId,
-    };
-    const reviewerComments = comment
-      ? [
-          ...existingComments,
-          {
-            comment,
-            ...(dto.decision ? { decision: dto.decision } : {}),
-            createdAt: reviewedAt,
-            reviewerId: userId,
-          },
-        ]
-      : existingComments;
 
     const updated = await this.prisma.evaluation.update({
       where: { id: evaluationId },
       data: {
-        data: this.buildStoredEvaluationData({
-          ...existingData,
-          review,
-          reviewerComments:
-            reviewerComments.length > 0 ? reviewerComments : undefined,
+        data: evaluationResultProjection.buildReviewData({
+          comment,
+          decision: dto.decision,
+          existingData,
+          reviewedAt,
+          reviewerId: userId,
+          reviewerScore: dto.reviewerScore,
+          tags,
         }) as never,
       },
     });
@@ -893,12 +635,8 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     organizationId: string,
     dto: CompareEvaluationsDto,
   ): Promise<IEvaluationComparisonResult> {
-    const evaluationIds = Array.from(
-      new Set(
-        dto.evaluationIds
-          .map((evaluationId) => evaluationId.trim())
-          .filter((evaluationId) => evaluationId.length > 0),
-      ),
+    const evaluationIds = evaluationResultProjection.normalizeEvaluationIds(
+      dto.evaluationIds,
     );
 
     if (evaluationIds.length < 2) {
@@ -929,12 +667,8 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     }
 
     if (!dto.includeIncomplete) {
-      const incompleteIds = evaluations
-        .filter((evaluation) => {
-          const data = (evaluation.data as EvaluationData | null) ?? {};
-          return data.status !== Status.COMPLETED;
-        })
-        .map((evaluation) => evaluation.id);
+      const incompleteIds =
+        evaluationResultProjection.findIncompleteEvaluationIds(evaluations);
 
       if (incompleteIds.length > 0) {
         throw new BadRequestException(
@@ -943,49 +677,11 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       }
     }
 
-    const rankings = evaluations.map((evaluation) => {
-      const data = (evaluation.data as EvaluationData | null) ?? {};
-      const analysis = this.readObjectRecord(data.analysis);
-      const review = this.readObjectRecord(data.review);
-      const scoreBreakdown = this.buildComparisonScoreBreakdown(data);
-
-      return {
-        compositeScore: this.calculateCompositeScore(scoreBreakdown),
-        contentId: evaluation.contentId ?? null,
-        contentType: evaluation.contentType ?? null,
-        evaluationId: evaluation.id,
-        evaluationType: data.evaluationType,
-        reviewedAt: this.readString(review.reviewedAt),
-        reviewerComment: this.readString(review.comment),
-        scoreBreakdown,
-        status: data.status,
-        strengths: this.readStringArray(analysis.strengths),
-        updatedAt: evaluation.updatedAt,
-        weaknesses: this.readStringArray(analysis.weaknesses),
-      };
-    });
-
-    rankings.sort((left, right) => {
-      if (right.compositeScore !== left.compositeScore) {
-        return right.compositeScore - left.compositeScore;
-      }
-
-      return (
-        new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime()
-      );
-    });
-
-    const ranked = rankings.map((ranking, index) => ({
-      ...ranking,
-      rank: index + 1,
-    }));
-
-    return {
-      comparedAt: new Date().toISOString(),
+    return evaluationResultProjection.buildComparisonResult(
       evaluationIds,
-      rankings: ranked,
-      winnerEvaluationId: ranked[0]?.evaluationId,
-    };
+      evaluations,
+      new Date().toISOString(),
+    );
   }
 
   async syncPostPublicationPerformance(
@@ -1032,23 +728,16 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
 
     const metrics = publicationData as PublicationMetrics;
     const predictedEngagement = scores.engagement.overall;
-    const actualEngagement = metrics.engagement || 0;
-    const accuracyScore =
-      100 - Math.abs(predictedEngagement - actualEngagement);
 
     const updated = await this.prisma.evaluation.update({
       where: { id: evaluationId },
       data: {
-        data: this.buildStoredEvaluationData({
-          ...data,
-          actualPerformance: {
-            accuracyScore,
-            engagement: actualEngagement,
-            engagementRate: metrics.engagementRate || 0,
-            syncedAt: new Date().toISOString(),
-            views: metrics.views || 0,
-          },
-        }) as never,
+        data: evaluationResultProjection.buildActualPerformanceData(
+          data,
+          metrics,
+          predictedEngagement,
+          new Date().toISOString(),
+        ) as never,
       },
     });
 
@@ -1092,73 +781,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       orderBy: { updatedAt: 'asc' },
     });
 
-    // Group by date in application code; filter by evaluationType/brand/scores from data JSON
-    const grouped = new Map<
-      string,
-      {
-        count: number;
-        scores: number[];
-        brandScores: number[];
-        engagementScores: number[];
-        technicalScores: number[];
-      }
-    >();
-
-    for (const ev of evaluations) {
-      const data = ev.data as EvaluationData | null;
-
-      if (
-        filters.evaluationType &&
-        data?.evaluationType !== filters.evaluationType
-      )
-        continue;
-      if (
-        filters.minScore &&
-        (data?.overallScore ?? 0) < parseFloat(filters.minScore)
-      )
-        continue;
-      if (
-        filters.maxScore &&
-        (data?.overallScore ?? 0) > parseFloat(filters.maxScore)
-      )
-        continue;
-
-      const dateKey = ev.updatedAt.toISOString().slice(0, 10);
-      if (!grouped.has(dateKey)) {
-        grouped.set(dateKey, {
-          count: 0,
-          scores: [],
-          brandScores: [],
-          engagementScores: [],
-          technicalScores: [],
-        });
-      }
-      const group = grouped.get(dateKey)!;
-      group.count++;
-
-      if (typeof data?.overallScore === 'number')
-        group.scores.push(data.overallScore);
-      const s = data?.scores as Record<string, Record<string, number>> | null;
-      if (s?.brand?.overall) group.brandScores.push(s.brand.overall);
-      if (s?.engagement?.overall)
-        group.engagementScores.push(s.engagement.overall);
-      if (s?.technical?.overall)
-        group.technicalScores.push(s.technical.overall);
-    }
-
-    const avg = (arr: number[]) =>
-      arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-
-    return Array.from(grouped.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([dateKey, group]) => ({
-        _id: dateKey,
-        avgBrandScore: avg(group.brandScores),
-        avgEngagementScore: avg(group.engagementScores),
-        avgScore: avg(group.scores),
-        avgTechnicalScore: avg(group.technicalScores),
-        count: group.count,
-      }));
+    return evaluationResultProjection.buildEvaluationTrends(
+      evaluations,
+      filters,
+    );
   }
 
   private async assertOrganizationCreditsAvailable(
