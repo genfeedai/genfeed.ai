@@ -4,9 +4,30 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Mirrors the real destination guard's reject-before-connect contract. A bare
+// pass-through to fetch would stub out the very check the redirect-SSRF tests
+// assert, so blocked hosts must throw here rather than reach the network. Kept
+// hermetic (no DNS) by matching on the literal hostname.
+const BLOCKED_HOST_PATTERNS = [
+  /^localhost$/i,
+  /^\[?::1\]?$/,
+  /^127\./,
+  /^10\./,
+  /^192\.168\./,
+  /^169\.254\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+];
+
 vi.mock('@libs/security/destination-guard', () => ({
-  safeFetch: (input: string | URL, init?: RequestInit) =>
-    globalThis.fetch(input, init),
+  safeFetch: (input: string | URL, init?: RequestInit) => {
+    const { hostname } = new URL(String(input));
+
+    if (BLOCKED_HOST_PATTERNS.some((pattern) => pattern.test(hostname))) {
+      throw new Error(`URL points to a blocked address: ${hostname}`);
+    }
+
+    return globalThis.fetch(input, init);
+  },
 }));
 
 // ---------------------------------------------------------------------------
