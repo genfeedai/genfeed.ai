@@ -13,7 +13,7 @@
       {
         "hooks": [
           {
-            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-multi-tenancy.py",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-tenant-scope.py",
             "type": "command"
           },
           {
