@@ -298,7 +298,7 @@ export class IngredientsService extends BaseService<
           category: 'IMAGE' as const,
           reviewStatus: 'APPROVED' as const,
           status: {
-            in: ['GENERATED', 'VALIDATED'] as const,
+            in: ['GENERATED' as const, 'VALIDATED' as const],
           },
         }),
         orderBy: [{ id: 'asc' }, { createdAt: 'asc' }],
