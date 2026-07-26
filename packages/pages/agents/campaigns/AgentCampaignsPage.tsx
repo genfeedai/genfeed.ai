@@ -6,7 +6,10 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaigns';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
-import Card from '@ui/card/Card';
+import {
+  type SurfaceSummaryItem,
+  SurfaceSummaryStrip,
+} from '@ui/dashboard/SurfaceSummaryStrip';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
@@ -67,15 +70,8 @@ function formatRelativeTime(dateStr: string | undefined): string {
 /*  KPI Stats Strip                                                    */
 /* ------------------------------------------------------------------ */
 
-interface StatItem {
-  accent?: string;
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}
-
 function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
-  const items: StatItem[] = useMemo(() => {
+  const items: SurfaceSummaryItem[] = useMemo(() => {
     const activeCampaigns = campaigns.filter((c) => c.status === 'active');
     const totalCreditsUsed = campaigns.reduce(
       (sum, c) => sum + c.creditsUsed,
@@ -123,36 +119,7 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
     ];
   }, [campaigns]);
 
-  return (
-    <section data-testid="campaign-stats-strip">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {items.map((item) => (
-          <Card
-            key={item.label}
-            className="min-h-[100px] shadow-none"
-            bodyClassName="p-4"
-          >
-            <div className="flex items-start gap-3">
-              <div className="flex size-8 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06]">
-                {item.icon}
-              </div>
-              <div className="space-y-1">
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
-                  {item.label}
-                </p>
-                <div className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
-                  {item.value}
-                </div>
-              </div>
-            </div>
-            {item.accent ? (
-              <p className="mt-1 text-xs text-foreground/45">{item.accent}</p>
-            ) : null}
-          </Card>
-        ))}
-      </div>
-    </section>
-  );
+  return <SurfaceSummaryStrip items={items} testId="campaign-stats-strip" />;
 }
 
 /* ------------------------------------------------------------------ */

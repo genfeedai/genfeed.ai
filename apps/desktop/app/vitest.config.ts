@@ -63,6 +63,12 @@ export default defineConfig({
         find: /^@ui\/primitives\/(.*)$/,
         replacement: packagePath('ui', 'src/primitives/$1'),
       },
+      // Shared surface primitives live at `src/`, not `src/components/`, so they
+      // must be matched before the catch-all `@ui` prefix below.
+      {
+        find: /^@ui\/dashboard\/(.*)$/,
+        replacement: packagePath('ui', 'src/dashboard/$1'),
+      },
       {
         find: '@ui',
         replacement: packagePath('ui', 'src/components'),
