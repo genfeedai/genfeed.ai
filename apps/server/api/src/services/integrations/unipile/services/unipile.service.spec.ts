@@ -96,6 +96,27 @@ describe('UnipileService', () => {
     });
   });
 
+  it('normalizes a long trailing-slash run without backtracking', async () => {
+    mockOrgIntegration.findFirst.mockResolvedValue(null);
+    mockOrgIntegration.create.mockResolvedValue({
+      id: 'integration_1',
+      status: 'ACTIVE',
+    });
+
+    await service.configure('org_1', {
+      apiBaseUrl: `https://api1.unipile.com:13111${'/'.repeat(50_000)}`,
+      apiKey: 'secret-key',
+    });
+
+    expect(mockOrgIntegration.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        config: expect.objectContaining({
+          apiBaseUrl: 'https://api1.unipile.com:13111/api/v1',
+        }),
+      }),
+    });
+  });
+
   it('filters connected accounts to the org allow-list and redacts secrets', async () => {
     mockOrgIntegration.findFirst.mockResolvedValue({
       config: {

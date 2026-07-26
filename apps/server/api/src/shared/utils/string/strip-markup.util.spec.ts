@@ -24,6 +24,15 @@ describe('replaceMarkup', () => {
     ).toBe('Helloworld');
   });
 
+  it('does not mistake less-than signs in blocked content for tag starts', () => {
+    expect(
+      replaceMarkup('<script>if (a<b) { alert(1); }</script>x', '', true),
+    ).toBe('x');
+    expect(
+      replaceMarkup("<style>a::before{content:'<'}</style>x", '', true),
+    ).toBe('x');
+  });
+
   it('preserves an unclosed blocked element body like the previous matcher', () => {
     expect(replaceMarkup('<script>visible fallback', '', true)).toBe(
       'visible fallback',

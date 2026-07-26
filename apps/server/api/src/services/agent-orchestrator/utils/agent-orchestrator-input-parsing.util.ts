@@ -39,6 +39,29 @@ function isWhitespace(character: string): boolean {
   return character.trim().length === 0;
 }
 
+function isLineTerminator(character: string): boolean {
+  return (
+    character === '\n' ||
+    character === '\r' ||
+    character === '\u2028' ||
+    character === '\u2029'
+  );
+}
+
+function containsLineTerminator(
+  value: string,
+  start: number,
+  end: number,
+): boolean {
+  for (let index = start; index < end; index += 1) {
+    if (isLineTerminator(value[index])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function containsOnlyWhitespace(
   value: string,
   start: number,
@@ -171,13 +194,19 @@ export function extractStyleNotes(content: string): string | undefined {
         continue;
       }
 
+      let notesStart = contentStart;
+      while (notesStart < notesEnd && isWhitespace(content[notesStart])) {
+        notesStart += 1;
+      }
+      if (containsLineTerminator(content, notesStart, notesEnd)) {
+        continue;
+      }
+
       const notes = content.slice(contentStart, notesEnd).trim();
       if (notes) {
         return notes;
       }
     }
-
-    return undefined;
   }
 
   return undefined;
@@ -218,6 +247,7 @@ export function extractBatchTopic(
     }
 
     let cursor = topicStart;
+    let crossedUnsupportedLineBreak = false;
     while (cursor < normalizedContent.length) {
       const character = normalizedContent[cursor];
       if (character === '.' || character === '!' || character === '?') {
@@ -237,11 +267,23 @@ export function extractBatchTopic(
           break;
         }
 
+        if (
+          nextWordStart < normalizedContent.length &&
+          containsLineTerminator(normalizedContent, cursor, nextWordStart)
+        ) {
+          crossedUnsupportedLineBreak = true;
+          break;
+        }
+
         cursor = nextWordStart;
         continue;
       }
 
       cursor += 1;
+    }
+
+    if (crossedUnsupportedLineBreak) {
+      continue;
     }
 
     const topic = originalContent.slice(topicStart, cursor).trim();

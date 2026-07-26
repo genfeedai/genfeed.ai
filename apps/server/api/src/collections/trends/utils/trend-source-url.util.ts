@@ -13,6 +13,10 @@ function removeTrailingSlash(value: string): string {
   return value.endsWith('/') ? value.slice(0, -1) : value;
 }
 
+/**
+ * Treat the first delimiter as terminal even for malformed multi-line input.
+ * This intentionally avoids retaining attacker-controlled lines after a URL.
+ */
 function stripQueryAndFragment(value: string): string {
   let end = value.length;
 

@@ -30,6 +30,13 @@ describe('normalizeTrendSourceUrl', () => {
     );
   });
 
+  it('drops every line after a delimiter in malformed multi-line input', () => {
+    expect(
+      normalizeTrendSourceUrl('not a url/reference?query\nuntrusted-line')
+        .normalizedUrl,
+    ).toBe('not a url/reference');
+  });
+
   it('handles long delimiter tails without regular-expression backtracking', () => {
     const path = `not a url/${'a'.repeat(50_000)}`;
     const result = normalizeTrendSourceUrl(
