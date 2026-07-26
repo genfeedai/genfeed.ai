@@ -6,7 +6,7 @@
 @.agents/memory/context/project-style-guide.md
 @.agents/memory/context/skills-architecture.md
 
-TypeScript monorepo: 7 app workspaces, 12 backend service workspaces, 43 shared packages.
+TypeScript monorepo: 7 app workspaces, 12 backend service workspaces, 38 shared packages.
 Next.js + NestJS + PostgreSQL (Prisma) + Redis + BullMQ.
 
 > These five files plus `.claude/rules/*` load into **every request**. Keep additions short and
@@ -73,7 +73,7 @@ bun run test --filter=@genfeedai/[name]              # Test one package
 - Soft deletes: `isDeleted: boolean`
 - Compound indexes in Prisma `@@index` directives or explicit migrations
 - No backward-compatibility wrappers — fix at the source
-- Every tenant-scoped Prisma query includes `{ organizationId: orgId, isDeleted: false }`.
+- Every tenant-scoped Prisma query **MUST** include `{ organizationId: orgId, isDeleted: false }`.
   Self-hosted single-tenant may omit the org filter. Enforcement details in `system-patterns.md`.
 
 ### Files & git
@@ -81,7 +81,7 @@ bun run test --filter=@genfeedai/[name]              # Test one package
   implementations before writing new code.
 - **Scan staged content for secrets before every commit** (`.env*`, `secrets/`, tokens, private
   keys, provider credentials). If found, STOP and flag — this repo is public; a leak is indexed
-  before it can be rotated.
+  before it can be rotated. Never commit it, even if explicitly staged.
 - When session work is complete, ship it: commit, push the short-lived branch, open a PR to
   `master`. Review is gated by the PR, not by a per-commit approval dance.
 - Conventional commits: `fix:`, `feat:`, `refactor:`, `chore:`

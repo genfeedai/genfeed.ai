@@ -11,7 +11,7 @@ full inventory; this file records only what `ls` cannot tell you.
 | `apps/app`, `apps/docs`, `apps/website` | Next.js App Router apps |
 | `apps/desktop/app`, `apps/mobile/app` | Electron and Expo workspaces |
 | `apps/extensions/{browser,ide}/app` | browser + IDE extensions (v2 milestone) |
-| `packages/*` | 43 shared `@genfeedai/*` packages |
+| `packages/*` | 38 shared `@genfeedai/*` packages |
 | `ee/packages/{billing,harness}` | commercial-license packages |
 | `playwright/` `tests/` `scripts/` `tools/` `docker/` `docs/` | suites, tooling, deploy, docs |
 | `.agents/` | agent memory, sessions, build skills |
