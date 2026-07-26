@@ -91,6 +91,20 @@ export default defineConfig({
         replacement: path.resolve(serviceDir, '../../../packages/pricing/src'),
       },
       {
+        find: '@genfeedai/storage/path-containment',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/storage/src/path-containment.ts',
+        ),
+      },
+      {
+        find: '@genfeedai/storage',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/storage/src/index.ts',
+        ),
+      },
+      {
         find: /^@genfeedai\/harness\/(.*)$/,
         replacement: path.resolve(
           serviceDir,
