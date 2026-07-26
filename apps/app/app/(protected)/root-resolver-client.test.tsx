@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -9,13 +9,15 @@ const mocks = vi.hoisted(() => ({
   brandState: {
     brandId: '',
     brands: [] as Array<{
-      organization?: { slug?: string };
+      organization?: { id?: string; slug?: string };
+      organizationId?: string;
       slug?: string;
     }>,
     isReady: true,
     organizationId: '',
     selectedBrand: null as {
-      organization?: { slug?: string };
+      organization?: { id?: string; slug?: string };
+      organizationId?: string;
       slug?: string;
     } | null,
   },
@@ -52,6 +54,10 @@ vi.mock('@ui/loading/page/PageLoadingState', () => ({
   ),
 }));
 
+vi.mock('./home/content', () => ({
+  default: () => <main data-testid="operational-home" />,
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     replace: mocks.replace,
@@ -82,37 +88,33 @@ describe('ProtectedRootResolver', () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
   });
 
-  it('opens the selected brand workspace when org and brand are selected', async () => {
+  it('renders the operational home when org and brand are selected', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brandId = 'brand_1';
     mocks.brandState.selectedBrand = {
-      organization: { slug: 'acme' },
+      organization: { id: 'org_1', slug: 'acme' },
       slug: 'moonrise',
     };
 
     render(<ProtectedRootResolver />);
 
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith(
-        '/acme/moonrise/workspace/overview',
-      );
-    });
+    expect(await screen.findByTestId('operational-home')).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
-  it('opens org overview when an org exists and no brand is selected', async () => {
+  it('renders the operational home from the first org brand', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brands = [
       {
-        organization: { slug: 'acme' },
+        organization: { id: 'org_1', slug: 'acme' },
         slug: 'moonrise',
       },
     ];
 
     render(<ProtectedRootResolver />);
 
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/overview');
-    });
+    expect(await screen.findByTestId('operational-home')).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   it('resumes onboarding before opening a seeded workspace', async () => {
@@ -124,7 +126,7 @@ describe('ProtectedRootResolver', () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brandId = 'brand_1';
     mocks.brandState.selectedBrand = {
-      organization: { slug: 'acme' },
+      organization: { id: 'org_1', slug: 'acme' },
       slug: 'default',
     };
 
@@ -154,7 +156,7 @@ describe('ProtectedRootResolver', () => {
       onboardingStepsCompleted: ['brand'],
     };
     mocks.brandState.selectedBrand = {
-      organization: { slug: 'acme' },
+      organization: { id: 'org_1', slug: 'acme' },
       slug: 'default',
     };
 
@@ -180,7 +182,7 @@ describe('ProtectedRootResolver', () => {
 
     mocks.brandState.isReady = true;
     mocks.brandState.selectedBrand = {
-      organization: { slug: 'acme' },
+      organization: { id: 'org_1', slug: 'acme' },
       slug: 'default',
     };
     rerender(<ProtectedRootResolver />);
@@ -199,7 +201,7 @@ describe('ProtectedRootResolver', () => {
       onboardingStepsCompleted: ['brand'],
     };
     mocks.brandState.selectedBrand = {
-      organization: { slug: 'acme' },
+      organization: { id: 'org_1', slug: 'acme' },
       slug: 'default',
     };
 

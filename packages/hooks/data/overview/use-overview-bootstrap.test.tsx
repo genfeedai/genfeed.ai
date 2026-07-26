@@ -160,4 +160,22 @@ describe('useOverviewBootstrap', () => {
     expect(result.current.timeSeriesData).toEqual([]);
     expect(typeof result.current.refresh).toBe('function');
   });
+
+  it('surfaces bootstrap errors for independently degradable home sections', async () => {
+    mockGetOverviewBootstrap.mockRejectedValue(
+      new Error('overview unavailable'),
+    );
+
+    const { result } = renderHook(() => useOverviewBootstrap(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true);
+    });
+
+    expect(result.current.error).toEqual(new Error('overview unavailable'));
+    expect(result.current.reviewInbox.readyCount).toBe(0);
+    expect(result.current.runs).toEqual([]);
+  });
 });

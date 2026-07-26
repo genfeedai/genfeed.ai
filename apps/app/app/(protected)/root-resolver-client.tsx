@@ -1,11 +1,14 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  getBrandOrganizationId,
+  getBrandOrganizationSlug,
+} from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { isSaaS } from '@genfeedai/config/deployment';
 import {
   APP_ROUTES,
-  createBrandAppRoute,
   createOrganizationAppRoute,
   getResumeStep,
   ONBOARDING_STEPS,
@@ -14,27 +17,10 @@ import { useAccessState } from '@providers/access-state/access-state.provider';
 import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-
-function getBrandOrganizationSlug(
-  brand: ReturnType<typeof useBrand>['selectedBrand'],
-): string {
-  const organization = brand?.organization;
-
-  if (
-    organization &&
-    typeof organization === 'object' &&
-    'slug' in organization &&
-    typeof organization.slug === 'string'
-  ) {
-    return organization.slug;
-  }
-
-  return '';
-}
+import OperationalHomeContent from './home/content';
 
 export default function ProtectedRootResolver() {
-  const { brandId, brands, isReady, organizationId, selectedBrand } =
-    useBrand();
+  const { brands, isReady, organizationId, selectedBrand } = useBrand();
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const { accessState, isLoading: isAccessStateLoading } = useAccessState();
   const { replace } = useRouter();
@@ -42,6 +28,7 @@ export default function ProtectedRootResolver() {
   const [statusMessage, setStatusMessage] = useState(
     'Checking workspace state...',
   );
+  const [isHomeReady, setIsHomeReady] = useState(false);
 
   useEffect(() => {
     if (
@@ -86,59 +73,32 @@ export default function ProtectedRootResolver() {
       (typeof organizationId === 'string' && organizationId.length > 0) ||
       (typeof accessState?.organizationId === 'string' &&
         accessState.organizationId.length > 0);
-    const hasSelectedBrand =
-      (typeof brandId === 'string' && brandId.length > 0) ||
-      (typeof accessState?.brandId === 'string' &&
-        accessState.brandId.length > 0);
+    const scopedOrganizationId =
+      organizationId || accessState?.organizationId || '';
+    const fallbackBrand = [selectedBrand, ...brands].find(
+      (brand) =>
+        brand && getBrandOrganizationId(brand) === scopedOrganizationId,
+    );
+    const fallbackOrgSlug = getBrandOrganizationSlug(fallbackBrand);
+    const hasBrand =
+      typeof fallbackBrand?.slug === 'string' && fallbackBrand.slug.length > 0;
 
-    let nextMessage: string;
-    let nextUrl: string;
-
-    if (hasOrganization && hasSelectedBrand) {
-      const orgSlug = getBrandOrganizationSlug(selectedBrand);
-      const brandSlug = selectedBrand?.slug;
-
-      if (orgSlug && brandSlug) {
-        nextMessage = 'Opening workspace...';
-        nextUrl = createBrandAppRoute(
-          orgSlug,
-          brandSlug,
-          '/workspace/overview',
-        );
-      } else {
-        const fallbackOrgSlug = getBrandOrganizationSlug(brands[0]);
-        nextMessage =
-          hasOrganization && fallbackOrgSlug
-            ? 'Opening organization...'
-            : 'Opening onboarding...';
-        nextUrl =
-          hasOrganization && fallbackOrgSlug
-            ? `/${fallbackOrgSlug}/~/overview`
-            : '/onboarding';
-      }
-    } else {
-      const fallbackOrgSlug = getBrandOrganizationSlug(brands[0]);
-      nextMessage =
-        hasOrganization && fallbackOrgSlug
-          ? 'Opening organization...'
-          : 'Opening onboarding...';
-      nextUrl =
-        hasOrganization && fallbackOrgSlug
-          ? `/${fallbackOrgSlug}/~/overview`
-          : '/onboarding';
+    if (hasOrganization && fallbackOrgSlug && hasBrand) {
+      setStatusMessage('Opening operational home...');
+      setIsHomeReady(true);
+      return;
     }
 
-    if (isSaaS() && nextUrl === '/onboarding') {
+    if (isSaaS()) {
       hasStartedRef.current = false;
       setStatusMessage('Preparing your agent workspace...');
       return;
     }
 
-    setStatusMessage(nextMessage);
-    replace(nextUrl);
+    setStatusMessage('Opening onboarding...');
+    replace(APP_ROUTES.ONBOARDING.ROOT);
   }, [
     accessState,
-    brandId,
     brands,
     currentUser,
     isCurrentUserLoading,
@@ -148,6 +108,10 @@ export default function ProtectedRootResolver() {
     replace,
     selectedBrand,
   ]);
+
+  if (isHomeReady) {
+    return <OperationalHomeContent />;
+  }
 
   return <PageLoadingState className="bg-background" message={statusMessage} />;
 }
