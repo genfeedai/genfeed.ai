@@ -41,11 +41,8 @@ vi.mock('node:path', async (importOriginal) => {
     ...actual,
     default: {
       ...actual,
-      extname: (p: string) => {
-        const parts = p.split('.');
-        return parts.length > 1 ? `.${parts[parts.length - 1]}` : '';
-      },
-      join: (...args: string[]) => args.join('/'),
+      extname: actual.posix.extname,
+      join: actual.posix.join,
     },
   };
 });
