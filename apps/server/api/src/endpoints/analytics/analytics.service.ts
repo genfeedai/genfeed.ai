@@ -1,3 +1,9 @@
+import {
+  type AnalyticsBestPostingTime,
+  AnalyticsResponseProjection,
+  type RawAnalyticsRow,
+  type ViralHooksResult,
+} from '@api/endpoints/analytics/analytics-response.projection';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -10,65 +16,10 @@ import { Injectable } from '@nestjs/common';
 
 type PrismaSql = ReturnType<typeof Prisma.sql>;
 type PostAnalyticsTextColumn = 'brandId' | 'organizationId';
-type RawRow = Record<string, unknown>;
-type PlatformTotals = {
-  engagement: number;
-  posts: number;
-  views: number;
-};
 
-/** Platform metrics for time series */
-interface PlatformMetrics {
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  engagementRate: number;
-}
+export type { AnalyticsBestPostingTime } from '@api/endpoints/analytics/analytics-response.projection';
 
-export type AnalyticsBestPostingTime = {
-  avgEngagementRate: number;
-  hour: number;
-  platform: string;
-  postCount: number;
-};
-
-/** One viral-hook video projection */
-type ViralHookVideo = {
-  description: string;
-  hook: string;
-  id: string;
-  platforms: string[];
-  title: string;
-  totalEngagement: number;
-  totalViews: number;
-};
-
-/** Aggregated effectiveness of a single hook pattern */
-type HookEffectiveness = {
-  hook: string;
-  avgEngagement: number;
-  avgViews: number;
-  postCount: number;
-};
-
-type TopPlatformSummary = {
-  platform: string;
-  postCount: number;
-  totalEngagement: number;
-  totalViews: number;
-};
-
-type ViralHooksResult = {
-  analysis: {
-    hookEffectiveness: HookEffectiveness[];
-    topHooks: Array<{ hook: string; avgEngagement: number; postCount: number }>;
-    topPlatforms: TopPlatformSummary[];
-    totalVideos: number;
-  };
-  videos: ViralHookVideo[];
-};
+const analyticsResponseProjection = new AnalyticsResponseProjection();
 
 @Injectable()
 export class AnalyticsService extends BaseService<Record<string, unknown>> {
@@ -141,7 +92,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     end.setUTCHours(23, 59, 59, 999); // Include the entire end date (UTC)
 
     // Aggregate timeseries data across all organizations and platforms using raw SQL
-    const rawResults = await this.prisma.$queryRaw<RawRow[]>`
+    const rawResults = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         TO_CHAR("date", 'YYYY-MM-DD') AS day,
         "platform"::text AS platform,
@@ -159,95 +110,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       ORDER BY day ASC
     `;
 
-    // Generate date scaffolding
-    const allDates = this.generateDateScaffolding(start, end);
-
-    // Build a nested map: date -> platform -> metrics
-    const dataMap = new Map<string, Map<string, PlatformMetrics>>();
-    for (const row of rawResults) {
-      const day = row.day as string;
-      const platform = row.platform as string;
-      if (!dataMap.has(day)) {
-        dataMap.set(day, new Map<string, PlatformMetrics>());
-      }
-      dataMap.get(day)!.set(platform, {
-        comments: Number(row.comments),
-        engagementRate: Number(row.engagement_rate) || 0,
-        likes: Number(row.likes),
-        saves: Number(row.saves),
-        shares: Number(row.shares),
-        views: Number(row.views),
-      });
-    }
-
-    // Build response with all dates and platforms
-    return allDates.map((date) =>
-      this.buildTimeSeriesRow(
-        date,
-        dataMap.get(date) || new Map<string, PlatformMetrics>(),
-      ),
-    );
-  }
-
-  /** Project a single day's platform map into the fixed 9-platform output row */
-  private buildTimeSeriesRow(
-    date: string,
-    platformData: Map<string, PlatformMetrics>,
-  ): Record<string, unknown> {
-    return {
-      date,
-      facebook:
-        platformData.get(CredentialPlatform.FACEBOOK) ||
-        this.createEmptyPlatformMetrics(),
-      instagram:
-        platformData.get(CredentialPlatform.INSTAGRAM) ||
-        this.createEmptyPlatformMetrics(),
-      linkedin:
-        platformData.get(CredentialPlatform.LINKEDIN) ||
-        this.createEmptyPlatformMetrics(),
-      medium:
-        platformData.get(CredentialPlatform.MEDIUM) ||
-        this.createEmptyPlatformMetrics(),
-      pinterest:
-        platformData.get(CredentialPlatform.PINTEREST) ||
-        this.createEmptyPlatformMetrics(),
-      reddit:
-        platformData.get(CredentialPlatform.REDDIT) ||
-        this.createEmptyPlatformMetrics(),
-      tiktok:
-        platformData.get(CredentialPlatform.TIKTOK) ||
-        this.createEmptyPlatformMetrics(),
-      twitter:
-        platformData.get(CredentialPlatform.TWITTER) ||
-        this.createEmptyPlatformMetrics(),
-      youtube:
-        platformData.get(CredentialPlatform.YOUTUBE) ||
-        this.createEmptyPlatformMetrics(),
-    };
-  }
-
-  private generateDateScaffolding(startDate: Date, endDate: Date): string[] {
-    const dates: string[] = [];
-    const current = new Date(startDate);
-    current.setUTCHours(0, 0, 0, 0);
-
-    while (current <= endDate) {
-      dates.push(current.toISOString().split('T')[0]);
-      current.setUTCDate(current.getUTCDate() + 1);
-    }
-
-    return dates;
-  }
-
-  private createEmptyPlatformMetrics(): PlatformMetrics {
-    return {
-      comments: 0,
-      engagementRate: 0,
-      likes: 0,
-      saves: 0,
-      shares: 0,
-      views: 0,
-    };
+    return analyticsResponseProjection.buildTimeSeries(rawResults, start, end);
   }
 
   /**
@@ -289,7 +152,10 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       this.countOverviewEntities(organizationId),
     ]);
 
-    const metrics = this.computeOverviewMetrics(current, previous);
+    const metrics = analyticsResponseProjection.buildOverview(
+      current,
+      previous,
+    );
 
     return {
       ...metrics,
@@ -303,8 +169,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     endDate: Date,
     brandFilter: PrismaSql,
     orgFilter: PrismaSql,
-  ): Promise<RawRow> {
-    const currentMetrics = await this.prisma.$queryRaw<RawRow[]>`
+  ): Promise<RawAnalyticsRow> {
+    const currentMetrics = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         AVG("engagementRate") AS avg_engagement_rate,
         SUM("totalComments") AS total_comments,
@@ -337,8 +203,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     previousEndDate: Date,
     brandFilter: PrismaSql,
     orgFilter: PrismaSql,
-  ): Promise<RawRow> {
-    const previousMetrics = await this.prisma.$queryRaw<RawRow[]>`
+  ): Promise<RawAnalyticsRow> {
+    const previousMetrics = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         SUM("totalLikes" + "totalComments" + "totalShares" + "totalSaves") AS total_engagement,
         COUNT(*) AS total_posts,
@@ -356,50 +222,6 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         total_views: 0,
       }
     );
-  }
-
-  private computeOverviewMetrics(
-    current: RawRow,
-    previous: RawRow,
-  ): {
-    avgEngagementRate: number;
-    growth: { engagement: number; posts: number; views: number };
-    totalEngagement: number;
-    totalPosts: number;
-    totalViews: number;
-  } {
-    const totalLikes = Number(current.total_likes);
-    const totalComments = Number(current.total_comments);
-    const totalShares = Number(current.total_shares);
-    const totalSaves = Number(current.total_saves);
-    const totalEngagement =
-      totalLikes + totalComments + totalShares + totalSaves;
-    const totalPosts = Number(current.total_posts);
-    const totalViews = Number(current.total_views);
-    const prevEngagement = Number(previous.total_engagement);
-    const prevPosts = Number(previous.total_posts);
-    const prevViews = Number(previous.total_views);
-
-    const postsGrowth =
-      prevPosts > 0 ? ((totalPosts - prevPosts) / prevPosts) * 100 : 0;
-    const viewsGrowth =
-      prevViews > 0 ? ((totalViews - prevViews) / prevViews) * 100 : 0;
-    const engagementGrowth =
-      prevEngagement > 0
-        ? ((totalEngagement - prevEngagement) / prevEngagement) * 100
-        : 0;
-
-    return {
-      avgEngagementRate: Number(current.avg_engagement_rate) || 0,
-      growth: {
-        engagement: engagementGrowth,
-        posts: postsGrowth,
-        views: viewsGrowth,
-      },
-      totalEngagement,
-      totalPosts,
-      totalViews,
-    };
   }
 
   private async countOverviewEntities(
@@ -443,7 +265,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     );
 
     // Group by platform and hour, pick the best hour per platform
-    const results = await this.prisma.$queryRaw<RawRow[]>`
+    const results = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       WITH hour_stats AS (
         SELECT
           "platform"::text AS platform,
@@ -471,14 +293,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       ORDER BY platform ASC
     `;
 
-    return results.map((row) => ({
-      avgEngagementRate: Number(
-        (Number(row.avg_engagement_rate) || 0).toFixed(2),
-      ),
-      hour: Number(row.hour),
-      platform: row.platform as string,
-      postCount: Number(row.post_count),
-    }));
+    return analyticsResponseProjection.buildBestPostingTimes(results);
   }
 
   /**
@@ -530,26 +345,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       orgFilter,
     );
 
-    return results.map((row) => ({
-      _id: row.id as string,
-      brandName: row.brand_name as string,
-      brandLogo: row.brand_logo as unknown,
-      date: row.date as Date,
-      description: row.description as string,
-      engagementRate: Number(row.engagement_rate),
-      label: row.label as string,
-      platform: row.platform as string,
-      postId: row.post_id as string,
-      thumbnailUrl: undefined,
-      ingredientUrl: undefined,
-      isVideo: false,
-      totalComments: Number(row.total_comments),
-      totalEngagement: Number(row.total_engagement),
-      totalLikes: Number(row.total_likes),
-      totalSaves: Number(row.total_saves),
-      totalShares: Number(row.total_shares),
-      totalViews: Number(row.total_views),
-    }));
+    return analyticsResponseProjection.buildTopContent(results);
   }
 
   private async fetchTopContent(
@@ -560,8 +356,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     brandFilter: PrismaSql,
     platformFilter: PrismaSql,
     orgFilter: PrismaSql,
-  ): Promise<RawRow[]> {
-    const results = await this.prisma.$queryRaw<RawRow[]>`
+  ): Promise<RawAnalyticsRow[]> {
+    const results = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         pa.id,
         pa."postId" AS post_id,
@@ -612,7 +408,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       brandId,
     );
 
-    const results = await this.prisma.$queryRaw<RawRow[]>`
+    const results = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         "platform"::text AS platform,
         AVG("engagementRate") AS avg_engagement_rate,
@@ -630,38 +426,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       ORDER BY SUM("totalViews") DESC
     `;
 
-    // Calculate totals for percentage calculation
-    const totals = results.reduce<PlatformTotals>(
-      (acc, platform) => {
-        acc.views += Number(platform.total_views);
-        acc.engagement += Number(platform.total_engagement);
-        acc.posts += Number(platform.total_posts);
-        return acc;
-      },
-      { engagement: 0, posts: 0, views: 0 },
-    );
-
-    // Add percentages to each platform
-    return results.map((platform) => {
-      const totalViews = Number(platform.total_views);
-      const totalEngagement = Number(platform.total_engagement);
-      const totalPosts = Number(platform.total_posts);
-      return {
-        avgEngagementRate: Number(platform.avg_engagement_rate) || 0,
-        engagementPercentage:
-          totals.engagement > 0
-            ? (totalEngagement / totals.engagement) * 100
-            : 0,
-        platform: platform.platform as string,
-        postsPercentage:
-          totals.posts > 0 ? (totalPosts / totals.posts) * 100 : 0,
-        totalEngagement,
-        totalPosts,
-        totalViews,
-        viewsPercentage:
-          totals.views > 0 ? (totalViews / totals.views) * 100 : 0,
-      };
-    });
+    return analyticsResponseProjection.buildPlatformComparison(results);
   }
 
   /**
@@ -697,7 +462,11 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     );
 
     return {
-      data: this.buildGrowthTrends(currentResults, previous, metric),
+      data: analyticsResponseProjection.buildGrowthTrends(
+        currentResults,
+        previous,
+        metric,
+      ),
       endDate: endDate.toISOString().split('T')[0],
       metric,
       startDate: startDate.toISOString().split('T')[0],
@@ -708,9 +477,9 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     startDate: Date,
     endDate: Date,
     brandFilter: PrismaSql,
-  ): Promise<RawRow[]> {
+  ): Promise<RawAnalyticsRow[]> {
     // Current period: group by day
-    const currentResults = await this.prisma.$queryRaw<RawRow[]>`
+    const currentResults = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         TO_CHAR("date", 'YYYY-MM-DD') AS day,
         SUM("totalComments") AS comments,
@@ -734,9 +503,9 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     previousStartDate: Date,
     previousEndDate: Date,
     brandFilter: PrismaSql,
-  ): Promise<RawRow> {
+  ): Promise<RawAnalyticsRow> {
     // Previous period: aggregate totals
-    const previousResults = await this.prisma.$queryRaw<RawRow[]>`
+    const previousResults = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         SUM("totalComments") AS total_comments,
         SUM("totalLikes") AS total_likes,
@@ -761,53 +530,6 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     );
   }
 
-  private buildGrowthTrends(
-    currentResults: RawRow[],
-    previous: RawRow,
-    metric:
-      | AnalyticsMetric.VIEWS
-      | AnalyticsMetric.ENGAGEMENT
-      | AnalyticsMetric.POSTS,
-  ): Array<{ date: string; growth: number; trend: string; value: number }> {
-    const prevEngagement =
-      Number(previous.total_likes) +
-      Number(previous.total_comments) +
-      Number(previous.total_shares) +
-      Number(previous.total_saves);
-
-    // Calculate growth for each day
-    return currentResults.map((day) => {
-      let growth = 0;
-      let previousValue = 0;
-      let currentValue = 0;
-
-      switch (metric) {
-        case AnalyticsMetric.ENGAGEMENT:
-          previousValue = prevEngagement;
-          currentValue = Number(day.engagement);
-          break;
-        case AnalyticsMetric.POSTS:
-          previousValue = Number(previous.total_posts);
-          currentValue = Number(day.posts);
-          break;
-        default:
-          previousValue = Number(previous.total_views);
-          currentValue = Number(day.views);
-      }
-
-      if (previousValue > 0) {
-        growth = ((currentValue - previousValue) / previousValue) * 100;
-      }
-
-      return {
-        date: day.day as string,
-        growth,
-        trend: growth > 0 ? 'up' : growth < 0 ? 'down' : 'stable',
-        value: currentValue,
-      };
-    });
-  }
-
   /**
    * Get engagement breakdown by type
    */
@@ -829,7 +551,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     );
     const platformFilter = this.postAnalyticsOptionalPlatformFilter(platform);
 
-    const results = await this.prisma.$queryRaw<RawRow[]>`
+    const results = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         SUM("totalComments") AS total_comments,
         SUM("totalLikes") AS total_likes,
@@ -841,32 +563,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
         ${platformFilter}
     `;
 
-    const data = results[0] || {
-      total_comments: 0,
-      total_likes: 0,
-      total_saves: 0,
-      total_shares: 0,
-    };
-
-    const totalComments = Number(data.total_comments);
-    const totalLikes = Number(data.total_likes);
-    const totalSaves = Number(data.total_saves);
-    const totalShares = Number(data.total_shares);
-    const total = totalLikes + totalComments + totalShares + totalSaves;
-
-    return {
-      comments: totalComments,
-      likes: totalLikes,
-      percentages: {
-        comments: total > 0 ? (totalComments / total) * 100 : 0,
-        likes: total > 0 ? (totalLikes / total) * 100 : 0,
-        saves: total > 0 ? (totalSaves / total) * 100 : 0,
-        shares: total > 0 ? (totalShares / total) * 100 : 0,
-      },
-      saves: totalSaves,
-      shares: totalShares,
-      total,
-    };
+    return analyticsResponseProjection.buildEngagementBreakdown(results[0]);
   }
 
   /**
@@ -912,33 +609,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       orgFilter,
     );
 
-    // Extract hook text from each video's description (first sentence/line)
-    const videosWithHooks: ViralHookVideo[] = videos.map((v) => ({
-      description: (v.description as string) || '',
-      hook: this.extractHookFromDescription(v.description as string),
-      id: v.id as string,
-      platforms: (v.platforms as string[]) || [],
-      title: (v.title as string) || 'Untitled',
-      totalEngagement: Number(v.total_engagement),
-      totalViews: Number(v.total_views),
-    }));
-
-    const hookEffectiveness = this.buildHookEffectiveness(videosWithHooks);
-    const topHooks = hookEffectiveness.slice(0, 10).map((h) => ({
-      avgEngagement: h.avgEngagement,
-      hook: h.hook,
-      postCount: h.postCount,
-    }));
-
-    return {
-      analysis: {
-        hookEffectiveness,
-        topHooks,
-        topPlatforms: this.mapTopPlatforms(topPlatformsRaw),
-        totalVideos: videosWithHooks.length,
-      },
-      videos: videosWithHooks,
-    };
+    return analyticsResponseProjection.buildViralHooks(videos, topPlatformsRaw);
   }
 
   private async fetchViralHookVideos(
@@ -946,9 +617,9 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     endDate: Date,
     brandFilter: PrismaSql,
     orgFilter: PrismaSql,
-  ): Promise<RawRow[]> {
+  ): Promise<RawAnalyticsRow[]> {
     // Get top performing posts with description data
-    const videos = await this.prisma.$queryRaw<RawRow[]>`
+    const videos = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         pa."postId" AS id,
         ARRAY_AGG(DISTINCT pa."platform"::text) AS platforms,
@@ -974,9 +645,9 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     endDate: Date,
     brandFilter: PrismaSql,
     orgFilter: PrismaSql,
-  ): Promise<RawRow[]> {
+  ): Promise<RawAnalyticsRow[]> {
     // Platform aggregation
-    const topPlatformsRaw = await this.prisma.$queryRaw<RawRow[]>`
+    const topPlatformsRaw = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         pa."platform"::text AS platform,
         COUNT(*) AS post_count,
@@ -992,78 +663,5 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     `;
 
     return topPlatformsRaw;
-  }
-
-  /** Group videos by normalized hook text and rank by average engagement */
-  private buildHookEffectiveness(
-    videosWithHooks: ViralHookVideo[],
-  ): HookEffectiveness[] {
-    const hookMap = new Map<
-      string,
-      { totalEngagement: number; totalViews: number; count: number }
-    >();
-
-    for (const v of videosWithHooks) {
-      if (!v.hook) {
-        continue;
-      }
-      const normalized = v.hook.toLowerCase().trim();
-      const existing = hookMap.get(normalized) || {
-        count: 0,
-        totalEngagement: 0,
-        totalViews: 0,
-      };
-      existing.totalEngagement += v.totalEngagement;
-      existing.totalViews += v.totalViews;
-      existing.count += 1;
-      hookMap.set(normalized, existing);
-    }
-
-    return Array.from(hookMap.entries())
-      .map(([hook, stats]) => ({
-        avgEngagement: Math.round(stats.totalEngagement / stats.count),
-        avgViews: Math.round(stats.totalViews / stats.count),
-        hook,
-        postCount: stats.count,
-      }))
-      .sort((a, b) => b.avgEngagement - a.avgEngagement);
-  }
-
-  private mapTopPlatforms(rows: RawRow[]): TopPlatformSummary[] {
-    return rows.map((p) => ({
-      platform: p.platform as string,
-      postCount: Number(p.post_count),
-      totalEngagement: Number(p.total_engagement),
-      totalViews: Number(p.total_views),
-    }));
-  }
-
-  /**
-   * Extract the hook (opening line/sentence) from a post description.
-   * The hook is the first sentence that grabs attention.
-   */
-  private extractHookFromDescription(description?: string): string {
-    if (!description || description.trim().length === 0) {
-      return '';
-    }
-
-    const trimmed = description.trim();
-
-    // Split by newlines first (hooks are often on the first line)
-    const firstLine = trimmed.split('\n')[0].trim();
-
-    // If the first line is short enough, use it as the hook
-    if (firstLine.length <= 150) {
-      return firstLine;
-    }
-
-    // Otherwise, extract the first sentence
-    const sentenceMatch = firstLine.match(/^[^.!?]+[.!?]/);
-    if (sentenceMatch) {
-      return sentenceMatch[0].trim();
-    }
-
-    // Fallback: truncate to 150 chars
-    return firstLine.substring(0, 150);
   }
 }
