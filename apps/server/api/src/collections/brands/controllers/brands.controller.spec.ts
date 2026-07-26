@@ -42,7 +42,7 @@ vi.mock('@genfeedai/helpers', async () => ({
   getDeserializer: vi.fn((dto) => Promise.resolve(dto)),
 }));
 
-vi.mock('@helpers/utils/response/response.util', () => ({
+vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
     errors: [
       { detail: `${type} ${id} not found`, status: '404', title: 'Not Found' },
