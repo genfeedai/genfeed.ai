@@ -4,7 +4,9 @@ import process from 'node:process';
 
 const CATALOG_PATH = 'packages/tools/src/registry/curated-action-catalog.ts';
 const ENTRY_PATTERN =
-  /^\s*\{ name: '([a-z][a-z0-9_]*)', surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\] \},\s*$/u;
+  /^\s*\{ name: '([a-z][a-z0-9_]*)', (?:requiresPublishingApproval: true, )?surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\] \},\s*$/u;
+const PUBLISHING_APPROVAL_ENTRY_PATTERN =
+  /^\{ name: '([a-z][a-z0-9_]*)', requiresPublishingApproval: true, surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\], \},$/u;
 
 export type CatalogSurface = 'agent' | 'mcp';
 
@@ -55,15 +57,26 @@ export function parseCatalogSource(
     if (line.trim().length === 0 || line.trimStart().startsWith('//')) {
       continue;
     }
-    const match = line.match(ENTRY_PATTERN);
+    const isPublishingApprovalEntry = line.trim() === '{';
+    const entryLine = index + 1;
+    const match = isPublishingApprovalEntry
+      ? lines
+          .slice(index, index + 5)
+          .map((candidate) => candidate.trim())
+          .join(' ')
+          .match(PUBLISHING_APPROVAL_ENTRY_PATTERN)
+      : line.match(ENTRY_PATTERN);
     if (!match) {
       throw new Error(
-        `${fileName}:${index + 1} is not a canonical catalog entry`,
+        `${fileName}:${entryLine} is not a canonical catalog entry`,
       );
+    }
+    if (isPublishingApprovalEntry) {
+      index += 4;
     }
     const [, name, surfaceText] = match;
     if (!name || surfaceText === undefined) {
-      throw new Error(`${fileName}:${index + 1} has an invalid catalog entry`);
+      throw new Error(`${fileName}:${entryLine} has an invalid catalog entry`);
     }
     const surfaces = [...surfaceText.matchAll(/'(agent|mcp)'/gu)].map(
       (surface) => surface[1] as CatalogSurface,
@@ -77,7 +90,7 @@ export function parseCatalogSource(
       throw new Error(`${fileName} duplicates action ${name}`);
     }
     names.add(name);
-    actions.push({ line: index + 1, name, surfaces });
+    actions.push({ line: entryLine, name, surfaces });
   }
 
   return actions.sort((a, b) => a.name.localeCompare(b.name));
