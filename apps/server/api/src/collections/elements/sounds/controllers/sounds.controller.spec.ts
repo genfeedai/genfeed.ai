@@ -119,10 +119,13 @@ describe('ElementsSoundsController', () => {
 
       const result = await controller.findOne(mockRequest, mockUser, soundId);
 
-      expect(soundsService.findOne).toHaveBeenCalledWith({
-        _id: soundId,
-        isDeleted: false,
-      });
+      expect(soundsService.findOne).toHaveBeenCalledWith(
+        {
+          _id: soundId,
+          isDeleted: false,
+        },
+        [],
+      );
       expect(result).toBeDefined();
     });
 
