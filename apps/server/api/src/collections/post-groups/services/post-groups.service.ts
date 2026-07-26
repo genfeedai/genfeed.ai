@@ -10,6 +10,7 @@ import { PublishApprovalsService } from '@api/collections/publish-approvals/serv
 import {
   type ApiKeyPublishingContext,
   assertApiKeyPublishingScope,
+  type PublishingCapability,
 } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { validateChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
@@ -51,6 +52,22 @@ function changesPublishedTargetState(input: UpdateChannelTargetInput): boolean {
   );
 }
 
+function publishingCapabilityForReleaseStatus(
+  status: ReleaseStatus,
+): PublishingCapability {
+  if (status === ReleaseStatus.DRAFT) {
+    return 'draft';
+  }
+  if (
+    status === ReleaseStatus.PUBLISHED ||
+    status === ReleaseStatus.PUBLISHING ||
+    status === ReleaseStatus.PARTIALLY_PUBLISHED
+  ) {
+    return 'publish';
+  }
+  return 'schedule';
+}
+
 @Injectable()
 export class PostGroupsService {
   constructor(
@@ -83,7 +100,7 @@ export class PostGroupsService {
       if (existing) {
         assertApiKeyPublishingScope(
           apiKeyContext ?? {},
-          existing.status === ReleaseStatus.DRAFT ? 'draft' : 'schedule',
+          publishingCapabilityForReleaseStatus(existing.status),
         );
         if (existing.status === ReleaseStatus.SCHEDULED) {
           await this.approveReleaseTargets(existing, userId, 'scheduled');

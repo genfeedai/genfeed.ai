@@ -87,5 +87,6 @@ describe('API key publishing scope policy', () => {
     expect(isPublishingMcpApprovalTool('post_social_reply')).toBe(true);
     expect(isPublishingMcpApprovalTool('create_article')).toBe(false);
     expect(isPublishingMcpApprovalTool('generate_image')).toBe(false);
+    expect(isPublishingMcpApprovalTool('schedule_post')).toBe(false);
   });
 });

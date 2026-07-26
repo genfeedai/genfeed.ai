@@ -24,8 +24,12 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import {
+  getIsSuperAdmin,
+  getPublicMetadata,
+} from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
+import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -34,6 +38,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
@@ -44,6 +49,7 @@ import type {
 } from '@genfeedai/interfaces';
 import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
   Controller,
@@ -51,6 +57,7 @@ import {
   HttpException,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -134,6 +141,71 @@ export class PostsController extends BaseCRUDController<
       }
       throw error;
     }
+  }
+
+  @Patch(':id')
+  @RequiredScopes(
+    ApiKeyScope.POSTS_DRAFT,
+    ApiKeyScope.POSTS_CREATE,
+    ApiKeyScope.POSTS_SCHEDULE,
+    ApiKeyScope.POSTS_PUBLISH,
+  )
+  async patch(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() updateDto: UpdatePostDto,
+  ): Promise<JsonApiSingleResponse> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    this.logger.log(url, { params: { id }, updateDto });
+
+    if (!isEntityId(id)) {
+      ErrorResponse.notFound(this.entityName, id);
+    }
+
+    const existing = await this.postsService.findOne(
+      { _id: id },
+      this.getPopulateForOwnershipCheck(),
+    );
+    if (!existing) {
+      ErrorResponse.notFound(this.entityName, id);
+    }
+    if (
+      !this.canUserModifyEntity(user, existing) &&
+      !getIsSuperAdmin(user, request)
+    ) {
+      ErrorResponse.notFound(this.entityName, id);
+    }
+
+    const existingStatus = existing.status as PostStatus;
+    const nextStatus = updateDto.status ?? existingStatus;
+    const changesPublishState =
+      ![PostStatus.DRAFT, PostStatus.SCHEDULED].includes(existingStatus) ||
+      ![PostStatus.DRAFT, PostStatus.SCHEDULED].includes(nextStatus);
+    const changesScheduleIntent =
+      !changesPublishState &&
+      (existingStatus === PostStatus.SCHEDULED ||
+        nextStatus === PostStatus.SCHEDULED ||
+        updateDto.scheduledDate !== undefined);
+    assertApiKeyPublishingScope(
+      getPublicMetadata(user),
+      changesPublishState
+        ? 'publish'
+        : changesScheduleIntent
+          ? 'schedule'
+          : 'draft',
+    );
+
+    const enrichedDto = await this.enrichUpdateDto(updateDto, user);
+    const data = await this.postsService.patch(
+      id,
+      enrichedDto,
+      this.getPopulateFields(),
+    );
+    if (!data) {
+      ErrorResponse.notFound(this.entityName, id);
+    }
+    return serializeSingle(request, this.serializer, data);
   }
 
   /**

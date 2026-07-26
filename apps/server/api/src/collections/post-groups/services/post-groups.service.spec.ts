@@ -407,6 +407,39 @@ describe('PostGroupsService', () => {
     expect(prisma.post.create).not.toHaveBeenCalled();
   });
 
+  it('rejects an inferred schedule with a posts:create API key before writes', async () => {
+    await expect(
+      service.create(
+        'org-1',
+        'user-1',
+        {
+          baseContent: 'Launch note for X',
+          brandId: 'brand-1',
+          scheduledDate: '2026-07-09T12:00:00.000Z',
+          targets: [
+            {
+              credentialId: 'cred-x',
+              platform: CredentialPlatform.TWITTER,
+            },
+          ],
+          timezone: 'UTC',
+          title: 'Launch note',
+        },
+        undefined,
+        undefined,
+        { isApiKey: true, scopes: [ApiKeyScope.POSTS_CREATE] },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+        requiredScopes: [ApiKeyScope.POSTS_SCHEDULE],
+      }),
+    });
+
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+    expect(prisma.post.create).not.toHaveBeenCalled();
+  });
+
   it('rejects a draft-scoped replay of an existing scheduled release', async () => {
     prisma.postGroup.findFirst.mockResolvedValue(
       makeGroup({
@@ -447,6 +480,50 @@ describe('PostGroupsService', () => {
     });
 
     expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
+  it('requires publish scope to replay an existing published release', async () => {
+    prisma.postGroup.findFirst.mockResolvedValue(
+      makeGroup({
+        id: 'existing-group',
+        idempotencyKey: 'same-request',
+        status: ReleaseStatus.PUBLISHED,
+      }),
+    );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'existing-group', id: 'target-1' }),
+    ]);
+
+    await expect(
+      service.create(
+        'org-1',
+        'user-1',
+        {
+          baseContent: 'Launch note for X',
+          brandId: 'brand-1',
+          status: ReleaseStatus.DRAFT,
+          targets: [
+            {
+              credentialId: 'cred-x',
+              platform: CredentialPlatform.TWITTER,
+            },
+          ],
+          timezone: 'UTC',
+          title: 'Launch note',
+        },
+        'same-request',
+        undefined,
+        { isApiKey: true, scopes: [ApiKeyScope.POSTS_SCHEDULE] },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+        requiredScopes: [ApiKeyScope.POSTS_PUBLISH],
+      }),
+    });
+
+    expect(prisma.postGroup.create).not.toHaveBeenCalled();
+    expect(prisma.post.create).not.toHaveBeenCalled();
   });
 
   it('rejects draft-scoped edits to an existing scheduled release', async () => {

@@ -204,6 +204,96 @@ describe('PostsController.create account-health warmup gate', () => {
   });
 });
 
+describe('PostsController.patch publishing scopes', () => {
+  const request = {
+    context: {},
+    get: vi.fn().mockReturnValue('localhost'),
+    headers: {},
+    path: '/posts/ckpost0000000000000000001',
+    protocol: 'https',
+  } as never;
+  const postId = 'ckpost0000000000000000001';
+
+  const makeController = (existingStatus: PostStatus) => {
+    const postsService = {
+      findOne: vi.fn().mockResolvedValue({
+        id: postId,
+        status: existingStatus,
+        userId: 'user-1',
+      }),
+      patch: vi.fn(),
+    };
+    return {
+      controller: new PostsController(
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        {} as never,
+        postsService as never,
+        { error: vi.fn(), log: vi.fn() } as never,
+      ),
+      postsService,
+    };
+  };
+
+  it('declares every dynamically resolved post update scope', () => {
+    expect(
+      Reflect.getMetadata(API_KEY_SCOPES_KEY, PostsController.prototype.patch),
+    ).toEqual([
+      ApiKeyScope.POSTS_DRAFT,
+      ApiKeyScope.POSTS_CREATE,
+      ApiKeyScope.POSTS_SCHEDULE,
+      ApiKeyScope.POSTS_PUBLISH,
+    ]);
+  });
+
+  it.each([
+    [
+      'moving a draft to scheduled',
+      PostStatus.DRAFT,
+      { status: PostStatus.SCHEDULED },
+      [ApiKeyScope.POSTS_CREATE],
+      ApiKeyScope.POSTS_SCHEDULE,
+    ],
+    [
+      'editing an existing scheduled post',
+      PostStatus.SCHEDULED,
+      { label: 'Changed label' },
+      [ApiKeyScope.POSTS_CREATE],
+      ApiKeyScope.POSTS_SCHEDULE,
+    ],
+    [
+      'moving a draft to public',
+      PostStatus.DRAFT,
+      { status: PostStatus.PUBLIC },
+      [ApiKeyScope.POSTS_SCHEDULE],
+      ApiKeyScope.POSTS_PUBLISH,
+    ],
+  ])(
+    'fails closed before writes when %s',
+    async (_case, existingStatus, updateDto, scopes, requiredScope) => {
+      const { controller, postsService } = makeController(existingStatus);
+
+      await expect(
+        controller.patch(
+          request,
+          makeUser({ isApiKey: true, scopes }),
+          postId,
+          updateDto,
+        ),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+          requiredScopes: [requiredScope],
+        }),
+      });
+      expect(postsService.patch).not.toHaveBeenCalled();
+    },
+  );
+});
+
 describe('PostsController.findAll (#1223)', () => {
   const request = {
     get: vi.fn().mockReturnValue('localhost'),

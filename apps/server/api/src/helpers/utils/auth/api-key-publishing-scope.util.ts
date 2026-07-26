@@ -1,6 +1,9 @@
 import type { IAuthPublicMetadata } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiKeyScope } from '@genfeedai/enums';
-import type { CuratedActionName } from '@genfeedai/tools';
+import {
+  CURATED_ACTION_CATALOG,
+  requiresPublishingApproval,
+} from '@genfeedai/tools';
 import { ForbiddenException } from '@nestjs/common';
 
 export type PublishingCapability = 'approve' | 'draft' | 'publish' | 'schedule';
@@ -17,18 +20,10 @@ const PUBLISHING_CAPABILITY_SCOPES = {
   schedule: [ApiKeyScope.POSTS_SCHEDULE],
 } as const satisfies Record<PublishingCapability, readonly ApiKeyScope[]>;
 
-const PUBLISHING_MCP_APPROVAL_TOOL_NAMES = [
-  'approve_social_draft',
-  'control_scheduled_release',
-  'create_post',
-  'create_scheduled_release',
-  'post_social_reply',
-  'send_social_dm',
-  'update_scheduled_release',
-] as const satisfies readonly CuratedActionName[];
-
 const PUBLISHING_MCP_APPROVAL_TOOLS: ReadonlySet<string> = new Set(
-  PUBLISHING_MCP_APPROVAL_TOOL_NAMES,
+  CURATED_ACTION_CATALOG.filter(requiresPublishingApproval).map(
+    (entry) => entry.name,
+  ),
 );
 
 export function assertApiKeyPublishingScope(

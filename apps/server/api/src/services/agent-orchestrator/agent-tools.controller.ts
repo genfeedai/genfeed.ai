@@ -140,13 +140,7 @@ export class AgentToolsController {
       return;
     }
 
-    const hasContentReference =
-      (typeof parameters.contentId === 'string' &&
-        parameters.contentId.trim().length > 0) ||
-      (typeof parameters.ingredientId === 'string' &&
-        parameters.ingredientId.trim().length > 0);
-    const isConfirmedPublish =
-      hasContentReference && parameters.confirmed === true;
+    const isConfirmedPublish = parameters.confirmed === true;
     const isScheduled =
       typeof parameters.scheduledAt === 'string' &&
       parameters.scheduledAt.trim().length > 0;

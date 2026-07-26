@@ -52,6 +52,30 @@ describe('AgentToolsController publishing scopes', () => {
     expect(executor.executeTool).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['a numeric content reference', { confirmed: true, contentId: 42 }],
+    ['no content reference', { confirmed: true }],
+  ])(
+    'fails closed for confirmed direct publishing with %s',
+    async (_case, parameters) => {
+      await expect(
+        controller.execute(
+          'create_post',
+          { parameters },
+          apiKeyUser([ApiKeyScope.POSTS_CREATE]),
+          request,
+          'Bearer gf_test',
+        ),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+          requiredScopes: [ApiKeyScope.POSTS_PUBLISH],
+        }),
+      });
+      expect(executor.executeTool).not.toHaveBeenCalled();
+    },
+  );
+
   it('rejects scheduled agent publishing without the schedule scope', async () => {
     await expect(
       controller.execute(
