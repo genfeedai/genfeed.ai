@@ -51,6 +51,27 @@ function createValidatedWebhookAddress(
   };
 }
 
+function getRequestedAddressFamily(
+  family: number | undefined,
+): 4 | 6 | undefined {
+  if (family === 4 || family === 6) {
+    return family;
+  }
+
+  return undefined;
+}
+
+function filterAddressesByFamily(
+  addresses: ValidatedWebhookAddress[],
+  family: 4 | 6 | undefined,
+): ValidatedWebhookAddress[] {
+  if (!family) {
+    return addresses;
+  }
+
+  return addresses.filter((address) => address.family === family);
+}
+
 export async function assertSafeWebhookEndpoint(
   endpoint: string,
 ): Promise<ValidatedWebhookEndpoint> {
@@ -125,42 +146,50 @@ export function createPinnedWebhookAgent(
     options,
     callback,
   ) => {
+    const rejectLookup = (error: Error, family: 4 | 6): void => {
+      callback(error, options.all ? [] : '', family);
+    };
+    const resolveLookup = (
+      eligibleAddresses: ValidatedWebhookAddress[],
+      selectedAddress: ValidatedWebhookAddress,
+    ): void => {
+      if (options.all) {
+        callback(null, eligibleAddresses);
+        return;
+      }
+
+      callback(null, selectedAddress.address, selectedAddress.family);
+    };
+
     const normalizedRequestedHostname = normalizeHostname(requestedHostname);
     if (normalizedRequestedHostname !== endpoint.hostname) {
-      callback(
+      rejectLookup(
         new WebhookEndpointValidationError(
           `Unexpected webhook hostname during connection: ${requestedHostname}`,
         ),
-        options.all ? [] : '',
         firstAddress.family,
       );
       return;
     }
 
-    const requestedFamily =
-      options.family === 4 || options.family === 6 ? options.family : undefined;
-    const eligibleAddresses = requestedFamily
-      ? addresses.filter((address) => address.family === requestedFamily)
-      : addresses;
+    const requestedFamily = getRequestedAddressFamily(options.family);
+    const eligibleAddresses = filterAddressesByFamily(
+      addresses,
+      requestedFamily,
+    );
     const selectedAddress = eligibleAddresses[0];
 
     if (!selectedAddress) {
-      callback(
+      rejectLookup(
         new WebhookEndpointValidationError(
           'Webhook endpoint has no validated address for the requested family',
         ),
-        options.all ? [] : '',
         requestedFamily ?? firstAddress.family,
       );
       return;
     }
 
-    if (options.all) {
-      callback(null, eligibleAddresses);
-      return;
-    }
-
-    callback(null, selectedAddress.address, selectedAddress.family);
+    resolveLookup(eligibleAddresses, selectedAddress);
   };
 
   if (endpoint.url.protocol === 'https:') {
