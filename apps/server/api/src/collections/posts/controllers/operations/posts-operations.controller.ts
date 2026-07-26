@@ -448,7 +448,6 @@ export class PostsOperationsController {
     const parentId = postId;
     try {
       const parentPost = await this.postsService.findOne({ _id: parentId });
-
       if (!parentPost) {
         throw new HttpException(
           {
