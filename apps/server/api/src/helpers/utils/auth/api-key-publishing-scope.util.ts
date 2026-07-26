@@ -1,5 +1,6 @@
 import type { IAuthPublicMetadata } from '@api/auth/interfaces/authenticated-user.interface';
 import { ApiKeyScope } from '@genfeedai/enums';
+import { AgentToolName } from '@genfeedai/interfaces';
 import {
   CURATED_ACTION_CATALOG,
   requiresPublishingApproval,
@@ -46,6 +47,31 @@ export function assertApiKeyPublishingScope(
     requiredScopes: acceptedScopes,
     title: 'Insufficient API key publishing scope',
   });
+}
+
+export function assertApiKeyAgentPublishingScope(
+  context: ApiKeyPublishingContext,
+  toolName: string,
+  parameters: Record<string, unknown>,
+): void {
+  if (toolName === AgentToolName.SCHEDULE_POST) {
+    assertApiKeyPublishingScope(context, 'schedule');
+    return;
+  }
+
+  if (toolName !== AgentToolName.CREATE_POST) {
+    return;
+  }
+
+  const isConfirmedPublish = parameters.confirmed === true;
+  const isScheduled =
+    typeof parameters.scheduledAt === 'string' &&
+    parameters.scheduledAt.trim().length > 0;
+
+  assertApiKeyPublishingScope(
+    context,
+    !isConfirmedPublish ? 'draft' : isScheduled ? 'schedule' : 'publish',
+  );
 }
 
 export function isPublishingMcpApprovalTool(toolName: string): boolean {

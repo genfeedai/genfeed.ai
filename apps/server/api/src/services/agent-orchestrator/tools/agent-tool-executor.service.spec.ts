@@ -17,7 +17,7 @@ import {
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
-import { PostStatus, ReleaseStatus } from '@genfeedai/enums';
+import { ApiKeyScope, PostStatus, ReleaseStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -1759,6 +1759,36 @@ describe('AgentToolExecutorService', () => {
       postIds: ['target-1', 'target-2'],
       totalCreated: 2,
     });
+  });
+
+  it('rejects direct publishing at the executor boundary for an under-scoped API key', async () => {
+    const { postGroupsService, postsService, service } = createService();
+
+    await expect(
+      service.executeTool(
+        AgentToolName.CREATE_POST,
+        {
+          confirmed: true,
+          contentId: 42,
+          platforms: ['linkedin'],
+        },
+        {
+          ...scopedContext('67a123456789012345678941'),
+          apiKeyContext: {
+            isApiKey: true,
+            scopes: [ApiKeyScope.POSTS_CREATE],
+          },
+        },
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+        requiredScopes: [ApiKeyScope.POSTS_PUBLISH],
+      }),
+    });
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
+    expect(postsService.create).not.toHaveBeenCalled();
   });
 
   it('creates a scheduled canonical release without publishing it early', async () => {

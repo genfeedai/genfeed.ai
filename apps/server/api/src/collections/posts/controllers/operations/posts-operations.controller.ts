@@ -17,12 +17,14 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
@@ -37,6 +39,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  ApiKeyScope,
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
@@ -329,6 +332,7 @@ export class PostsOperationsController {
   }
 
   @Patch('batch')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async batchUpdate(
     @Req() request: Request,
@@ -336,6 +340,7 @@ export class PostsOperationsController {
     @CurrentUser() user: User,
   ) {
     const publicMetadata = getPublicMetadata(user);
+    assertApiKeyPublishingScope(publicMetadata, 'schedule');
 
     try {
       // Validate credential
@@ -435,6 +440,12 @@ export class PostsOperationsController {
   }
 
   @Post(':postId/replies')
+  @RequiredScopes(
+    ApiKeyScope.POSTS_DRAFT,
+    ApiKeyScope.POSTS_CREATE,
+    ApiKeyScope.POSTS_SCHEDULE,
+    ApiKeyScope.POSTS_PUBLISH,
+  )
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async addThreadReply(
     @Req() request: Request,
@@ -443,6 +454,14 @@ export class PostsOperationsController {
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
+    assertApiKeyPublishingScope(
+      publicMetadata,
+      createPostDto.status === PostStatus.DRAFT
+        ? 'draft'
+        : createPostDto.status === PostStatus.SCHEDULED
+          ? 'schedule'
+          : 'publish',
+    );
     const parentId = postId;
 
     try {

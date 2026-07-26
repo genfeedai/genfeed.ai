@@ -1,3 +1,4 @@
+import type { ApiKeyPublishingContext } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import type { AgentType } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
@@ -50,6 +51,7 @@ export interface AgentChatRequest {
 }
 
 export interface AgentChatContext {
+  apiKeyContext?: ApiKeyPublishingContext;
   authToken?: string;
   /** Campaign ID — when set, enables campaign coordination features */
   campaignId?: string;

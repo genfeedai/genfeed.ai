@@ -2,7 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -57,7 +57,11 @@ export class AgentToolsController {
     @Req() request: Request,
     @Headers('authorization') authorization?: string,
   ) {
-    this.assertPublishingToolScope(user, name, body.parameters ?? {});
+    assertApiKeyAgentPublishingScope(
+      getPublicMetadata(user),
+      name,
+      body.parameters ?? {},
+    );
 
     try {
       const tool = getToolByName(name);
@@ -91,6 +95,7 @@ export class AgentToolsController {
 
       const context: ToolExecutionContext = {
         ...(body.context ?? {}),
+        apiKeyContext: getPublicMetadata(user),
         authToken,
         organizationId,
         userId,
@@ -124,31 +129,6 @@ export class AgentToolsController {
       );
     }
     return organization;
-  }
-
-  private assertPublishingToolScope(
-    user: User,
-    name: string,
-    parameters: Record<string, unknown>,
-  ): void {
-    if (name === AgentToolName.SCHEDULE_POST) {
-      assertApiKeyPublishingScope(getPublicMetadata(user), 'schedule');
-      return;
-    }
-
-    if (name !== AgentToolName.CREATE_POST) {
-      return;
-    }
-
-    const isConfirmedPublish = parameters.confirmed === true;
-    const isScheduled =
-      typeof parameters.scheduledAt === 'string' &&
-      parameters.scheduledAt.trim().length > 0;
-
-    assertApiKeyPublishingScope(
-      getPublicMetadata(user),
-      !isConfirmedPublish ? 'draft' : isScheduled ? 'schedule' : 'publish',
-    );
   }
 
   private async resolveMongoUserId(user: User): Promise<string> {

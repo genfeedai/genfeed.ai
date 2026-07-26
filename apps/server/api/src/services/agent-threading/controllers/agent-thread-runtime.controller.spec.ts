@@ -129,6 +129,10 @@ describe('Threading AgentThreadRuntimeController', () => {
         threadId,
       },
       {
+        apiKeyContext: expect.objectContaining({
+          organization: organizationId,
+          user: userId,
+        }),
         organizationId,
         userId,
       },

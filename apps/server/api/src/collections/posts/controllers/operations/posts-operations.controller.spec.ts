@@ -41,6 +41,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { QuotaService } from '@api/services/quota/quota.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import {
+  ApiKeyScope,
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
@@ -73,6 +74,18 @@ describe('PostsOperationsController', () => {
       user: userId,
     },
   } as unknown as User;
+
+  const apiKeyUser = (scopes: string[]): User =>
+    ({
+      id: mockUser.id,
+      publicMetadata: {
+        brand: brandId,
+        isApiKey: true,
+        organization: organizationId,
+        scopes,
+        user: userId,
+      },
+    }) as User;
 
   // Shaped like a Prisma row: scalar FKs only. The Mongo-era `brand`/
   // `credential`/`organization`/`user` aliases are absent unless a query
@@ -729,6 +742,27 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(result).toBeDefined();
     });
 
+    it.each([
+      ['a missing scope list', []],
+      ['the legacy draft scope', [ApiKeyScope.POSTS_CREATE]],
+      ['a whitespace-prefixed scope', [` ${ApiKeyScope.POSTS_SCHEDULE}`]],
+    ])('rejects API-key batch scheduling with %s before reads or writes', async (_case, scopes) => {
+      await expect(
+        controller.batchUpdate(
+          mockRequest,
+          batchScheduleDto,
+          apiKeyUser(scopes),
+        ),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+          requiredScopes: [ApiKeyScope.POSTS_SCHEDULE],
+        }),
+      });
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockPostsService.batchSchedule).not.toHaveBeenCalled();
+    });
+
     it('should record every scheduled activity in one insert', async () => {
       await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
 
@@ -807,6 +841,42 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(mockQuotaService.verifyQuota).toHaveBeenCalled();
       expect(mockPostsService.addThreadReply).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it.each([
+      [
+        'draft replies without a draft scope',
+        PostStatus.DRAFT,
+        [],
+        ApiKeyScope.POSTS_DRAFT,
+      ],
+      [
+        'scheduled replies with only the draft scope',
+        PostStatus.SCHEDULED,
+        [ApiKeyScope.POSTS_DRAFT],
+        ApiKeyScope.POSTS_SCHEDULE,
+      ],
+      [
+        'public replies with only the schedule scope',
+        PostStatus.PUBLIC,
+        [ApiKeyScope.POSTS_SCHEDULE],
+        ApiKeyScope.POSTS_PUBLISH,
+      ],
+    ])('rejects API-key %s before reads or writes', async (_case, status, scopes, requiredScope) => {
+      await expect(
+        controller.addThreadReply(mockRequest, apiKeyUser(scopes), postId, {
+          ...createPostDto,
+          status,
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+          requiredScopes: [requiredScope],
+        }),
+      });
+      expect(mockPostsService.findOne).not.toHaveBeenCalled();
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockPostsService.addThreadReply).not.toHaveBeenCalled();
     });
 
     it('should throw NOT_FOUND when parent post not found', async () => {
