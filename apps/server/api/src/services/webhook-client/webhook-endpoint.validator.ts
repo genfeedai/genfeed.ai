@@ -52,10 +52,14 @@ function createValidatedWebhookAddress(
 }
 
 function getRequestedAddressFamily(
-  family: number | undefined,
+  family: number | string | undefined,
 ): 4 | 6 | undefined {
-  if (family === 4 || family === 6) {
-    return family;
+  if (family === 4 || family === 'IPv4') {
+    return 4;
+  }
+
+  if (family === 6 || family === 'IPv6') {
+    return 6;
   }
 
   return undefined;

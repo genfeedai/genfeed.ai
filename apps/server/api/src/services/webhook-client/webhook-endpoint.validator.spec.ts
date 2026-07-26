@@ -161,6 +161,23 @@ describe('assertSafeWebhookEndpoint', () => {
         },
       );
     });
+
+    await new Promise<void>((resolve, reject) => {
+      pinnedLookup?.(
+        'hooks.example.com',
+        { family: 'IPv4' },
+        (error, address, family) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          expect(address).toBe('93.184.216.34');
+          expect(family).toBe(4);
+          resolve();
+        },
+      );
+    });
   });
 
   it('rejects an unexpected hostname without falling back to DNS', async () => {
