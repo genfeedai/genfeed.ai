@@ -285,13 +285,16 @@ describe('YtDlpService', () => {
       );
     });
 
-    it('rejects an output path outside the files temp root before spawning', () => {
-      expect(() =>
+    it('rejects an output path outside the files temp root before spawning', async () => {
+      // downloadVideo is async, so the guard surfaces as a rejected promise.
+      // `expect(fn).toThrow()` only observes a synchronous throw and would pass
+      // even if the containment check never ran.
+      await expect(
         service.downloadVideo(
           'https://youtube.com/watch?v=test',
           '/etc/escaped.mp4',
         ),
-      ).toThrow(BadRequestException);
+      ).rejects.toThrow(BadRequestException);
 
       expect(spawnMock).not.toHaveBeenCalled();
     });

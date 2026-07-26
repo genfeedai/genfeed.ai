@@ -139,7 +139,20 @@ export class S3StorageProvider implements StorageProvider {
 
   getUrl(filePath: string): string {
     const safeFilePath = assertSafeObjectKey(filePath, createStorageError);
-    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${safeFilePath}`;
+    return this.buildObjectUrl(safeFilePath);
+  }
+
+  /**
+   * Build the public URL for a key that is already known to be safe.
+   *
+   * `assertSafeObjectKey` guards *caller-supplied* paths against traversal. Keys
+   * returned by ListObjectsV2 are S3's own output, and legitimately include
+   * shapes that validator rejects — folder-marker objects ending in `/` and keys
+   * containing empty segments. Re-validating them made `list()` throw on
+   * ordinary buckets, so listing builds its URLs through here instead.
+   */
+  private buildObjectUrl(objectKey: string): string {
+    return `https://${this.bucket}.s3.${this.region}.amazonaws.com/${objectKey}`;
   }
 
   async delete(filePath: string): Promise<void> {
@@ -167,7 +180,7 @@ export class S3StorageProvider implements StorageProvider {
       return {
         name,
         path: key,
-        url: this.getUrl(key),
+        url: this.buildObjectUrl(key),
         type: getFileType(key),
         size: obj.Size ?? 0,
         modifiedAt: obj.LastModified ?? new Date(),
