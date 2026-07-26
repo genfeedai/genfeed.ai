@@ -2,6 +2,8 @@ import * as crypto from 'node:crypto';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
   assertSafeWebhookEndpoint,
+  createPinnedWebhookAgent,
+  type ValidatedWebhookEndpoint,
   WebhookEndpointValidationError,
 } from '@api/services/webhook-client/webhook-endpoint.validator';
 import { redactPublishWebhookText } from '@api-types/contracts/publish-webhook-events.contract';
@@ -44,8 +46,9 @@ export class WebhookClientProcessor extends WorkerHost {
     });
 
     try {
+      let validatedEndpoint: ValidatedWebhookEndpoint;
       try {
-        await assertSafeWebhookEndpoint(endpoint);
+        validatedEndpoint = await assertSafeWebhookEndpoint(endpoint);
       } catch (error: unknown) {
         if (error instanceof WebhookEndpointValidationError) {
           throw new UnrecoverableError(redactPublishWebhookText(error.message));
@@ -61,6 +64,11 @@ export class WebhookClientProcessor extends WorkerHost {
         .createHmac('sha256', secret)
         .update(payloadString)
         .digest('hex');
+      const pinnedAgent = createPinnedWebhookAgent(validatedEndpoint);
+      const pinnedAgentConfig =
+        validatedEndpoint.url.protocol === 'https:'
+          ? { httpsAgent: pinnedAgent }
+          : { httpAgent: pinnedAgent };
 
       await job.updateProgress(30);
 
@@ -69,10 +77,12 @@ export class WebhookClientProcessor extends WorkerHost {
         this.httpService.post(endpoint, payload, {
           headers: {
             'Content-Type': 'application/json',
+            Host: validatedEndpoint.url.host,
             'X-Genfeed-Delivery': deliveryId,
             'X-Genfeed-Event': payload.event,
             'X-Genfeed-Signature': `sha256=${signature}`,
           },
+          ...pinnedAgentConfig,
           maxRedirects: 0,
           timeout: 30000, // 30 second timeout
           validateStatus: (status) => status < 500, // Retry on 5xx, not 4xx
