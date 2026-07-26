@@ -7,6 +7,7 @@ import {
   type ConversationComposerActionInvocation,
   type ConversationComposerDispatchResult,
   ConversationComposerShellProvider,
+  ConversationInspectorPanel,
   ConversationInspectorShellProvider,
   getConversationComposerAction,
   runAgentApiEffect,
@@ -29,6 +30,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@ui/primitives/drawer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -111,6 +113,8 @@ const INSPECTOR_TRANSITION_DURATION_MS = 300;
 const INSPECTOR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}, min-width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}`;
 
+type WorkspaceInspectorTab = 'context' | 'conversation';
+
 type UniversalWorkspaceShellProps = {
   readonly agentApiService: AgentApiService;
   readonly children: ReactNode;
@@ -177,6 +181,11 @@ function UniversalWorkspaceShellContent({
   const [agentInspectorPortalTarget, setAgentInspectorPortalTarget] =
     useState<HTMLElement | null>(null);
   const [hasAgentInspectorPanel, setHasAgentInspectorPanel] = useState(false);
+  // The rail carries two things now: the conversation, reachable from every
+  // surface, and the surface's own context. Conversation leads — that is the
+  // whole point of it no longer being a shell state you navigate away to.
+  const [inspectorTab, setInspectorTab] =
+    useState<WorkspaceInspectorTab>('conversation');
   const [failedSurfaceScopeKey, setFailedSurfaceScopeKey] = useState<
     string | null
   >(null);
@@ -859,35 +868,84 @@ function UniversalWorkspaceShellContent({
     [resolveInspectorWidth],
   );
 
+  // Exactly one conversation may be mounted at a time: each one portals its
+  // prompt bar into the single shell composer slot, so a second copy would put
+  // two prompt bars in one slot.
+  //
+  // `/agent/*` is the first owner — it renders the conversation as its own
+  // canvas. Off that route the inspector owns it, and between the inspector's
+  // two hosts the mobile drawer wins while it is open: its trigger lives in an
+  // `xl:hidden` bar, so it can only be open at widths where the desktop rail is
+  // display:none anyway.
+  const conversationInspectorSlot = isAgentRoute ? null : (
+    <ConversationInspectorPanel
+      apiService={agentApiService}
+      onOpenConversation={handleReturnToConversation}
+    />
+  );
+
   // Rendered at two sites (desktop rail + mobile drawer), so this stays a
   // function: only the desktop rail may own the agent portal target, otherwise
   // the ref callback would race between two mounted copies.
-  const renderInspectorContent = (agentPanelSlot: ReactNode = null) => {
+  const renderInspectorContent = (
+    agentPanelSlot: ReactNode = null,
+    conversationSlot: ReactNode = null,
+  ) => {
     const isAgentOwned = agentPanelSlot !== null && hasAgentInspectorPanel;
+    const activeInspectorTab = conversationSlot ? inspectorTab : 'context';
 
     return (
-      <div className="flex h-full min-h-0 flex-col bg-background">
+      <Tabs
+        className="flex h-full min-h-0 flex-col bg-background"
+        onValueChange={(value) =>
+          setInspectorTab(value === 'conversation' ? 'conversation' : 'context')
+        }
+        value={activeInspectorTab}
+      >
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
-          <div>
-            <p className="text-sm font-medium text-foreground">Context</p>
-            <p className="text-xs text-muted-foreground">
-              {surfaceScopeStatus === 'syncing'
-                ? 'Synchronizing surface brand…'
-                : surfaceScopeStatus === 'error'
-                  ? 'Surface brand synchronization failed'
-                  : effectiveThreadId
-                    ? 'Conversation connected'
-                    : 'No conversation selected'}
-            </p>
-          </div>
+          {conversationSlot ? (
+            <TabsList className="h-8">
+              <TabsTrigger value="conversation">Conversation</TabsTrigger>
+              <TabsTrigger value="context">Context</TabsTrigger>
+            </TabsList>
+          ) : (
+            <div>
+              <p className="text-sm font-medium text-foreground">Context</p>
+              <p className="text-xs text-muted-foreground">
+                {surfaceScopeStatus === 'syncing'
+                  ? 'Synchronizing surface brand…'
+                  : surfaceScopeStatus === 'error'
+                    ? 'Surface brand synchronization failed'
+                    : effectiveThreadId
+                      ? 'Conversation connected'
+                      : 'No conversation selected'}
+              </p>
+            </div>
+          )}
           {/* No collapse control here: the rail collapses to nothing, so the one
             toggle is pinned in the topbar instead of disappearing with it. */}
         </div>
-        <div
+
+        {/* `forceMount` on both panes: switching tabs must not unmount the
+          conversation, or its prompt bar would vanish from the shell composer
+          and an in-flight run would lose its transcript. */}
+        {conversationSlot ? (
+          <TabsContent
+            className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
+            forceMount
+            value="conversation"
+          >
+            {conversationSlot}
+          </TabsContent>
+        ) : null}
+
+        <TabsContent
           className={cn(
-            'flex min-h-0 flex-1 flex-col overflow-y-auto',
+            'mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto data-[state=inactive]:hidden',
             !isAgentOwned && 'gap-4 p-4',
           )}
+          forceMount
+          value="context"
         >
           {agentPanelSlot}
           {isAgentOwned ? null : (
@@ -961,8 +1019,8 @@ function UniversalWorkspaceShellContent({
               </Button>
             </>
           )}
-        </div>
-      </div>
+        </TabsContent>
+      </Tabs>
     );
   };
 
@@ -1110,6 +1168,7 @@ function UniversalWorkspaceShellContent({
                 isInspectorOpen && 'border-l border-border',
               )}
               id="workspace-context-inspector"
+              inert={!isInspectorOpen}
               ref={inspectorRef}
               style={{
                 minWidth: inspectorRailWidth,
@@ -1119,28 +1178,35 @@ function UniversalWorkspaceShellContent({
               }}
             >
               {isInspectorOpen ? (
-                <>
-                  <Button
-                    aria-orientation="vertical"
-                    aria-valuemax={INSPECTOR_MAX_WIDTH}
-                    aria-valuemin={INSPECTOR_MIN_WIDTH}
-                    aria-valuenow={inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH}
-                    ariaLabel="Resize context inspector"
-                    className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
-                    onKeyDown={handleInspectorResizeKeyDown}
-                    onMouseDown={handleInspectorResizeStart}
-                    role="separator"
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                  />
-                  {renderInspectorContent(
-                    <div
-                      className="flex min-h-0 flex-1 flex-col empty:hidden"
-                      ref={setAgentInspectorPortalTarget}
-                    />,
-                  )}
-                </>
+                <Button
+                  aria-orientation="vertical"
+                  aria-valuemax={INSPECTOR_MAX_WIDTH}
+                  aria-valuemin={INSPECTOR_MIN_WIDTH}
+                  aria-valuenow={inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH}
+                  ariaLabel="Resize context inspector"
+                  className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
+                  onKeyDown={handleInspectorResizeKeyDown}
+                  onMouseDown={handleInspectorResizeStart}
+                  role="separator"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                />
               ) : null}
+              {/* Rendered through the collapse, not gated on it: the
+                conversation's prompt bar lives in the shell composer, so
+                unmounting the rail would take the composer's input with it and
+                drop an in-flight run. Collapsed means zero width, `inert`, and
+                invisible — not gone. The agent portal target stays gated, since
+                a panel portaled into a hidden rail has nowhere to be seen. */}
+              {renderInspectorContent(
+                isInspectorOpen ? (
+                  <div
+                    className="flex min-h-0 flex-1 flex-col empty:hidden"
+                    ref={setAgentInspectorPortalTarget}
+                  />
+                ) : null,
+                isMobileInspectorOpen ? null : conversationInspectorSlot,
+              )}
             </aside>
           </div>
 
@@ -1155,8 +1221,8 @@ function UniversalWorkspaceShellContent({
                   Context for the active canonical product route.
                 </DrawerDescription>
               </DrawerHeader>
-              <div className="min-h-0 overflow-y-auto">
-                {renderInspectorContent()}
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+                {renderInspectorContent(null, conversationInspectorSlot)}
               </div>
             </DrawerContent>
           </Drawer>
