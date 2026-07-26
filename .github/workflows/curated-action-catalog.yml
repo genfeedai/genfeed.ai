@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'packages/tools/src/registry/curated-action-catalog.ts'
+      - '.github/workflows/curated-action-catalog.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -40,6 +40,7 @@ import {
   PostCategory,
   PostStatus,
 } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -760,13 +761,13 @@ export class AgentStrategyAutopilotExecutionService {
     const createdPostIds: string[] = [];
 
     for (const platform of platforms) {
-      const credential = await this.credentialsService.findOne({
-        brandId: getStrategyBrandId(strategy) ?? '',
-        isConnected: true,
-        isDeleted: false,
-        organizationId: getStrategyOrganizationId(strategy),
-        platform,
-      });
+      const credential = await this.credentialsService.findOne(
+        scopedWhere(getStrategyOrganizationId(strategy), {
+          brandId: getStrategyBrandId(strategy) ?? '',
+          isConnected: true,
+          platform,
+        }),
+      );
 
       if (!credential) {
         continue;

@@ -55,6 +55,17 @@ test('fails when an applicable upstream job fails', () => {
   assert.deepEqual(result.failures, ['Package tests failure']);
 });
 
+test('fails closed when an applicable upstream result is missing', () => {
+  assert.throws(
+    () =>
+      createTestsGateJobs({
+        ...ALL_SUCCESS_ENV,
+        TEST_PACKAGES_RESULT: undefined,
+      }),
+    /TEST_PACKAGES_RESULT must be a GitHub job result/,
+  );
+});
+
 test('exits non-zero when an applicable upstream job fails', () => {
   const result = runGateCli({ TEST_PACKAGES_RESULT: 'failure' });
 
