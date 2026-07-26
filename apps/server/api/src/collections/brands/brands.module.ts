@@ -6,6 +6,7 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
+import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
@@ -39,7 +40,11 @@ import { MasterPromptGeneratorService } from '@api/services/knowledge-base/maste
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [BrandsController, BrandsRelationshipsController],
+  controllers: [
+    BrandsAgentConfigController,
+    BrandsController,
+    BrandsRelationshipsController,
+  ],
   // BrandDataMapper is exported so the onboarding preview pipeline (which still
   // lives in OnboardingModule and already imports BrandsModule) can reuse the
   // single canonical mapper without re-registering it.

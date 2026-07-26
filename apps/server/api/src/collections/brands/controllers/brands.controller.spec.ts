@@ -7,6 +7,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
+import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -55,6 +56,7 @@ vi.mock('@helpers/utils/response/response.util', () => ({
 }));
 
 describe('BrandsController', () => {
+  let agentConfigController: BrandsAgentConfigController;
   let controller: BrandsController;
   let brandSetupService: vi.Mocked<BrandSetupService>;
   let brandsService: vi.Mocked<BrandsService>;
@@ -86,7 +88,7 @@ describe('BrandsController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [BrandsController],
+      controllers: [BrandsAgentConfigController, BrandsController],
       providers: [
         {
           provide: REQUEST,
@@ -182,6 +184,9 @@ describe('BrandsController', () => {
       })
       .compile();
 
+    agentConfigController = module.get<BrandsAgentConfigController>(
+      BrandsAgentConfigController,
+    );
     controller = module.get<BrandsController>(BrandsController);
     brandSetupService = module.get(BrandSetupService);
     brandsService = module.get(BrandsService);
@@ -202,7 +207,10 @@ describe('BrandsController', () => {
 
   it('charges one credit for direct AI brand profile generation', () => {
     expect(
-      Reflect.getMetadata(CREDITS_KEY, controller.generateBrandVoice),
+      Reflect.getMetadata(
+        CREDITS_KEY,
+        agentConfigController.generateBrandVoice,
+      ),
     ).toMatchObject({
       amount: 1,
       description: 'AI brand profile generation',
@@ -346,7 +354,7 @@ describe('BrandsController', () => {
         >,
       );
 
-      const result = await controller.crawlBrandKitWebsite(
+      const result = await agentConfigController.crawlBrandKitWebsite(
         mockRequest,
         mockUser,
         brandId,
@@ -390,7 +398,7 @@ describe('BrandsController', () => {
       );
 
       await expect(
-        controller.crawlBrandKitWebsite(
+        agentConfigController.crawlBrandKitWebsite(
           mockRequest,
           userWithoutOrganization,
           brandId,
@@ -425,7 +433,7 @@ describe('BrandsController', () => {
         applyResult as Awaited<ReturnType<BrandsService['applyBrandKitDraft']>>,
       );
 
-      const result = await controller.applyBrandKitDraft(
+      const result = await agentConfigController.applyBrandKitDraft(
         mockRequest,
         mockUser,
         brandId,
@@ -481,7 +489,7 @@ describe('BrandsController', () => {
       );
 
       await expect(
-        controller.applyBrandKitDraft(
+        agentConfigController.applyBrandKitDraft(
           mockRequest,
           userWithoutOrganization,
           brandId,
@@ -534,7 +542,7 @@ describe('BrandsController', () => {
         draft as Awaited<ReturnType<BrandsService['buildManualBrandKitDraft']>>,
       );
 
-      const result = await controller.createManualBrandKitDraft(
+      const result = await agentConfigController.createManualBrandKitDraft(
         mockRequest,
         mockUser,
         brandId,
@@ -576,7 +584,7 @@ describe('BrandsController', () => {
       );
 
       await expect(
-        controller.createManualBrandKitDraft(
+        agentConfigController.createManualBrandKitDraft(
           mockRequest,
           userWithoutOrganization,
           brandId,
@@ -624,7 +632,7 @@ describe('BrandsController', () => {
         >,
       );
 
-      const result = await controller.importBrandKitAssets(
+      const result = await agentConfigController.importBrandKitAssets(
         mockRequest,
         mockUser,
         brandId,

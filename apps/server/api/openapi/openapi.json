@@ -24642,7 +24642,7 @@
     },
     "/brands/{id}/agent-config": {
       "patch": {
-        "operationId": "BrandsController.updateAgentConfig",
+        "operationId": "BrandsAgentConfigController.updateAgentConfig",
         "parameters": [
           {
             "in": "path",
@@ -24676,7 +24676,7 @@
     },
     "/brands/{id}/agent-config/enabled-skills": {
       "patch": {
-        "operationId": "BrandsController.updateEnabledSkills",
+        "operationId": "BrandsAgentConfigController.updateEnabledSkills",
         "parameters": [
           {
             "in": "path",
@@ -24710,7 +24710,7 @@
     },
     "/brands/{id}/agent-config/generate-voice": {
       "post": {
-        "operationId": "BrandsController.generateBrandVoice",
+        "operationId": "BrandsAgentConfigController.generateBrandVoice",
         "parameters": [
           {
             "in": "path",
@@ -24744,7 +24744,7 @@
     },
     "/brands/{id}/brand-kit/apply": {
       "post": {
-        "operationId": "BrandsController.applyBrandKitDraft",
+        "operationId": "BrandsAgentConfigController.applyBrandKitDraft",
         "parameters": [
           {
             "in": "path",
@@ -24778,7 +24778,7 @@
     },
     "/brands/{id}/brand-kit/assets/import": {
       "post": {
-        "operationId": "BrandsController.importBrandKitAssets",
+        "operationId": "BrandsAgentConfigController.importBrandKitAssets",
         "parameters": [
           {
             "in": "path",
@@ -24812,7 +24812,7 @@
     },
     "/brands/{id}/brand-kit/crawl": {
       "post": {
-        "operationId": "BrandsController.crawlBrandKitWebsite",
+        "operationId": "BrandsAgentConfigController.crawlBrandKitWebsite",
         "parameters": [
           {
             "in": "path",
@@ -24846,7 +24846,7 @@
     },
     "/brands/{id}/brand-kit/manual": {
       "post": {
-        "operationId": "BrandsController.createManualBrandKitDraft",
+        "operationId": "BrandsAgentConfigController.createManualBrandKitDraft",
         "parameters": [
           {
             "in": "path",
@@ -24880,7 +24880,7 @@
     },
     "/brands/{id}/fastlane/ideas": {
       "post": {
-        "operationId": "BrandsController.generateFastlaneIdeas",
+        "operationId": "BrandsAgentConfigController.generateFastlaneIdeas",
         "parameters": [
           {
             "in": "path",

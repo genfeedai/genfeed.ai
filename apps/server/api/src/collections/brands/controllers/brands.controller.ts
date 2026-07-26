@@ -2,42 +2,28 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
-import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
-import { ApplyBrandKitDto } from '@api/collections/brands/dto/apply-brand-kit.dto';
-import { CrawlBrandKitDto } from '@api/collections/brands/dto/crawl-brand-kit.dto';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
-import { GenerateBrandVoiceDto } from '@api/collections/brands/dto/generate-brand-voice.dto';
-import { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
-import { ImportBrandKitAssetsDto } from '@api/collections/brands/dto/import-brand-kit-assets.dto';
-import { ManualBrandKitDto } from '@api/collections/brands/dto/manual-brand-kit.dto';
-import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
-import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { LinksService } from '@api/collections/links/services/links.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { AddReferenceImagesDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -47,20 +33,14 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { ActivityKey, ActivitySource } from '@genfeedai/enums';
+import { ActivityKey } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import {
-  BrandKitApplySerializer,
-  BrandKitAssetImportSerializer,
-  BrandKitSerializer,
-  BrandSerializer,
-} from '@genfeedai/serializers';
+import { BrandSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -73,7 +53,6 @@ import {
   Query,
   Req,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -94,9 +73,7 @@ export class BrandsController extends BaseCRUDController<
     public readonly articlesService: ArticlesService,
     public readonly musicsService: MusicsService,
     public readonly credentialsService: CredentialsService,
-    public readonly ingredientsService: IngredientsService,
     public readonly linksService: LinksService,
-    public readonly organizationSettingsService: OrganizationSettingsService,
     public readonly postsService: PostsService,
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
@@ -451,322 +428,5 @@ export class BrandsController extends BaseCRUDController<
 
     // Call parent implementation without caching
     return super.findOne(request, user, brandId);
-  }
-
-  @Patch(':id/agent-config')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async updateAgentConfig(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() updateAgentConfigDto: UpdateBrandAgentConfigDto,
-  ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-
-    if (!organizationId) {
-      throw new HttpException(
-        {
-          detail: 'Organization context is required',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    if (updateAgentConfigDto.defaultAvatarIngredientId !== undefined) {
-      if (updateAgentConfigDto.defaultAvatarIngredientId !== null) {
-        const avatarIngredient =
-          await this.ingredientsService.findAvatarImageById(
-            updateAgentConfigDto.defaultAvatarIngredientId,
-            organizationId,
-          );
-
-        if (!avatarIngredient) {
-          throw new BadRequestException(
-            'Default avatar must reference an avatar image ingredient in this organization',
-          );
-        }
-      }
-    }
-
-    const updatedBrand = await this.brandsService.updateAgentConfig(
-      id,
-      organizationId,
-      updateAgentConfigDto,
-    );
-
-    if (!updatedBrand) {
-      throw new HttpException(
-        {
-          detail: 'Brand not found',
-          title: 'Not Found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    return serializeSingle(request, BrandSerializer, updatedBrand);
-  }
-
-  @Post(':id/brand-kit/crawl')
-  @HttpCode(200)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async crawlBrandKitWebsite(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() dto: CrawlBrandKitDto,
-  ): Promise<JsonApiSingleResponse> {
-    await this.verifyBrandAccess(id, user);
-
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-
-    if (!organizationId) {
-      throw new HttpException(
-        {
-          detail: 'Organization context is required',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const draft = await this.brandsService.crawlWebsiteBrandKitDraft(
-      id,
-      organizationId,
-      dto,
-    );
-
-    return serializeSingle(request, BrandKitSerializer, draft);
-  }
-
-  @Post(':id/brand-kit/apply')
-  @HttpCode(200)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async applyBrandKitDraft(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() dto: ApplyBrandKitDto,
-  ): Promise<JsonApiSingleResponse> {
-    await this.verifyBrandAccess(id, user);
-
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-
-    if (!organizationId) {
-      throw new HttpException(
-        {
-          detail: 'Organization context is required',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const result = await this.brandsService.applyBrandKitDraft(
-      id,
-      organizationId,
-      dto,
-    );
-
-    return serializeSingle(request, BrandKitApplySerializer, result);
-  }
-
-  @Post(':id/brand-kit/manual')
-  @HttpCode(200)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async createManualBrandKitDraft(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() dto: ManualBrandKitDto,
-  ): Promise<JsonApiSingleResponse> {
-    await this.verifyBrandAccess(id, user);
-
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-
-    if (!organizationId) {
-      throw new HttpException(
-        {
-          detail: 'Organization context is required',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const draft = await this.brandsService.buildManualBrandKitDraft(
-      id,
-      organizationId,
-      dto,
-    );
-
-    return serializeSingle(request, BrandKitSerializer, draft);
-  }
-
-  @Post(':id/brand-kit/assets/import')
-  @HttpCode(200)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async importBrandKitAssets(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() dto: ImportBrandKitAssetsDto,
-  ): Promise<JsonApiSingleResponse> {
-    await this.verifyBrandAccess(id, user);
-
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-    const userId = publicMetadata.user?.toString();
-
-    if (!organizationId || !userId) {
-      throw new HttpException(
-        {
-          detail: 'Organization and user context are required',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const result = await this.brandsService.importBrandKitAssets(
-      id,
-      organizationId,
-      userId,
-      dto,
-    );
-
-    return serializeSingle(request, BrandKitAssetImportSerializer, result);
-  }
-
-  @Post(':id/agent-config/generate-voice')
-  @Credits({
-    amount: BRAND_PROFILE_GENERATION_CREDIT_COST,
-    description: 'AI brand profile generation',
-    source: ActivitySource.SCRIPT,
-  })
-  @UseGuards(CreditsGuard)
-  @UseInterceptors(CreditsInterceptor)
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async generateBrandVoice(
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() generateBrandVoiceDto: GenerateBrandVoiceDto,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-
-    if (!organizationId) {
-      throw new HttpException(
-        {
-          detail: 'Organization context is required',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    // If no URL or brandId provided, default to using this brand
-    if (!generateBrandVoiceDto.url && !generateBrandVoiceDto.brandId) {
-      generateBrandVoiceDto.brandId = id;
-    }
-
-    const voice = await this.brandsService.generateBrandVoice(
-      generateBrandVoiceDto,
-      organizationId,
-    );
-
-    return { data: voice };
-  }
-
-  @Post(':id/fastlane/ideas')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async generateFastlaneIdeas(
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() generateFastlaneIdeasDto: GenerateFastlaneIdeasDto,
-  ) {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-
-    if (!organizationId) {
-      throw new HttpException(
-        {
-          detail: 'Organization context is required',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    // Backend flag guard: the studio `studio` FeatureGate does NOT enforce
-    // isFastlaneEnabled, so a direct call here must be rejected when the org
-    // flag is off — before any LLM work is metered.
-    const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: organizationId,
-    });
-
-    if (!settings?.isFastlaneEnabled) {
-      throw new HttpException(
-        {
-          detail: 'Fastlane is not enabled for this organization',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const ideas = await this.brandsService.generateFastlaneIdeas(
-      id,
-      generateFastlaneIdeasDto,
-      organizationId,
-    );
-
-    return { data: ideas };
-  }
-
-  @Patch(':id/agent-config/enabled-skills')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async updateEnabledSkills(
-    @Req() request: Request,
-    @CurrentUser() user: User,
-    @Param('id') id: string,
-    @Body() toggleDto: ToggleBrandSkillDto,
-  ): Promise<JsonApiSingleResponse> {
-    const publicMetadata = getPublicMetadata(user);
-    const organizationId = publicMetadata.organization?.toString();
-
-    if (!organizationId) {
-      throw new HttpException(
-        {
-          detail: 'Organization context is required',
-          title: 'Forbidden',
-        },
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    const updatedBrand = await this.brandsService.updateAgentConfig(
-      id,
-      organizationId,
-      { enabledSkills: toggleDto.enabledSkills } as UpdateBrandAgentConfigDto,
-    );
-
-    if (!updatedBrand) {
-      throw new HttpException(
-        {
-          detail: 'Brand not found or update failed',
-          title: 'Not Found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
-
-    return serializeSingle(request, BrandSerializer, updatedBrand);
   }
 }

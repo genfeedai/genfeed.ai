@@ -1,12 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
+import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { BrandSerializer } from '@genfeedai/serializers';
-import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
 
-describe('BrandsController agent-config endpoint', () => {
+describe('BrandsAgentConfigController agent-config endpoint', () => {
   const orgId = '507f191e810c19729de860ee'.toString();
   const userId = '507f191e810c19729de860ee'.toString();
 
@@ -31,13 +30,7 @@ describe('BrandsController agent-config endpoint', () => {
 
   let mockBrandsService: { updateAgentConfig: ReturnType<typeof vi.fn> };
   let mockIngredientsService: { findAvatarImageById: ReturnType<typeof vi.fn> };
-  let loggerService: {
-    debug: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
-  let controller: BrandsController;
+  let controller: BrandsAgentConfigController;
 
   beforeEach(() => {
     mockBrandsService = {
@@ -48,27 +41,9 @@ describe('BrandsController agent-config endpoint', () => {
       findAvatarImageById: vi.fn().mockResolvedValue({ _id: 'avatar-1' }),
     };
 
-    loggerService = {
-      debug: vi.fn(),
-      error: vi.fn(),
-      log: vi.fn(),
-      warn: vi.fn(),
-    };
-
-    controller = new BrandsController(
+    controller = new BrandsAgentConfigController(
       mockBrandsService as unknown as BrandsService,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
       mockIngredientsService as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      {} as never,
-      loggerService as unknown as LoggerService,
       {} as never,
     );
 
