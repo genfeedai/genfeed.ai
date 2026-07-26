@@ -137,6 +137,11 @@ vi.mock('@genfeedai/agent', () => ({
       />
     </div>
   ),
+  ConversationInspectorShellProvider: ({
+    children,
+  }: {
+    children: ReactNode;
+  }) => <>{children}</>,
   getConversationComposerAction: (name: string) => {
     if (name === 'publish' || name === 'remix') {
       return {
