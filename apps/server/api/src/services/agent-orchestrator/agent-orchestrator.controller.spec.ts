@@ -13,10 +13,15 @@ const identity = vi.hoisted(() => ({
   organizationId: '507f191e810c19729de860ea',
 }));
 
-vi.mock('@genfeedai/tools', () => ({
-  getToolsForSurface: vi.fn(() => []),
-  toAgentTools: vi.fn(() => []),
-}));
+vi.mock('@genfeedai/tools', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/tools')>();
+
+  return {
+    ...actual,
+    getToolsForSurface: vi.fn(() => []),
+    toAgentTools: vi.fn(() => []),
+  };
+});
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
     brand: 'brand-1',
