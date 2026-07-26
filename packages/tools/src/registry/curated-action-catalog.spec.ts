@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CURATED_ACTION_CATALOG,
   isActionOnSurface,
+  requiresPublishingApproval,
 } from './curated-action-catalog.js';
 import { SOURCE_TOOLS } from './source/index.js';
 import {
@@ -66,6 +67,22 @@ describe('curated action catalog', () => {
 
   it('contains no generated endpoint mirrors', () => {
     expect(ALL_TOOLS.some((tool) => tool.name.includes('__'))).toBe(false);
+  });
+
+  it('owns the exact reviewed set of publishing approval actions', () => {
+    expect(
+      CURATED_ACTION_CATALOG.filter(requiresPublishingApproval).map(
+        (entry) => entry.name,
+      ),
+    ).toEqual([
+      'approve_social_draft',
+      'control_scheduled_release',
+      'create_post',
+      'create_scheduled_release',
+      'post_social_reply',
+      'send_social_dm',
+      'update_scheduled_release',
+    ]);
   });
 
   it('publishes Instagram inspiration and review-only remix schemas on both surfaces', () => {

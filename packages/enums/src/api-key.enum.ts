@@ -25,7 +25,12 @@ export enum ApiKeyScope {
   CREDITS_READ = 'credits:read',
   CREDITS_PROVISION = 'credits:provision',
   MANAGED_INFERENCE_EXECUTE = 'managed-inference:execute',
+  /** Backward-compatible alias for draft creation only. */
   POSTS_CREATE = 'posts:create',
+  POSTS_DRAFT = 'posts:draft',
+  POSTS_SCHEDULE = 'posts:schedule',
+  POSTS_APPROVE = 'posts:approve',
+  POSTS_PUBLISH = 'posts:publish',
   ANALYTICS_READ = 'analytics:read',
   ADMIN = 'admin',
 }

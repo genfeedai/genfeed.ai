@@ -2,6 +2,8 @@
 
 ## Project State
 
+- [Operational App Home Spec](spec-operational-app-home.md) — verified-MCP root state machine and independently degradable control-plane summaries for #1866
+- [Operational App Home Decisions](decisions-operational-app-home.md) — authenticated-root ownership, configured-state evidence, and frontend-only aggregation decisions for #1866
 - [Filesystem and S3 Path Containment Spec](spec-filesystem-s3-path-containment.md) — shared fixed-root and fixed-prefix containment contract for #2068
 - [Filesystem and S3 Path Containment Decisions](decisions-filesystem-s3-path-containment.md) — canonical helper placement, S3 semantics, and adapter-boundary decisions for #2068
 - [Scheduler Target Analytics Summary Spec](spec-scheduler-target-analytics.md) — typed latest-snapshot scheduler target read model for #1975

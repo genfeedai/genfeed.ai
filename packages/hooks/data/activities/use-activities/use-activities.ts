@@ -48,6 +48,8 @@ export function useActivities({
 
   const {
     data: activitiesData,
+    error,
+    isError,
     isLoading,
     isFetching,
     refetch,
@@ -215,8 +217,10 @@ export function useActivities({
     activities,
     activityStats,
     clearCompletedActivities,
+    error,
     filter,
     filteredActivities,
+    isError,
     isLoading,
     isRefreshing,
     markActivitiesAsRead,

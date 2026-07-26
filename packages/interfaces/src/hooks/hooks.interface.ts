@@ -132,6 +132,8 @@ export interface ActivitiesOptions {
 
 export interface ActivitiesReturn {
   activities: IActivity[];
+  error: Error | null;
+  isError: boolean;
   isLoading: boolean;
   isRefreshing: boolean;
   filter: string;

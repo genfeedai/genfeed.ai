@@ -16,6 +16,9 @@ const MCP_SCOPES = [
   'brands:read',
   'credits:read',
   'posts:create',
+  'posts:draft',
+  'posts:schedule',
+  'posts:approve',
   'analytics:read',
 ];
 const CREATED_TEST_KEY = ['gf', 'test', 'created-secret-value-1234567890'].join(

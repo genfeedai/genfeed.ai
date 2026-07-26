@@ -1,4 +1,6 @@
 import { SocialInboxController } from '@api/collections/social-inbox/controllers/social-inbox.controller';
+import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import { ApiKeyScope } from '@genfeedai/enums';
 
 describe('SocialInboxController RBAC', () => {
   it('should require owner, admin, or creator role for syncYoutubeComments', () => {
@@ -68,5 +70,32 @@ describe('SocialInboxController RBAC', () => {
         SocialInboxController.prototype.listMessages,
       ),
     ).toBeUndefined();
+  });
+
+  it('requires tiered publishing scopes for draft and external-send actions', () => {
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        SocialInboxController.prototype.createDraft,
+      ),
+    ).toEqual([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE]);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        SocialInboxController.prototype.updateDraft,
+      ),
+    ).toEqual([ApiKeyScope.POSTS_APPROVE]);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        SocialInboxController.prototype.postReply,
+      ),
+    ).toEqual([ApiKeyScope.POSTS_PUBLISH]);
+    expect(
+      Reflect.getMetadata(
+        API_KEY_SCOPES_KEY,
+        SocialInboxController.prototype.sendDm,
+      ),
+    ).toEqual([ApiKeyScope.POSTS_PUBLISH]);
   });
 });

@@ -17,12 +17,18 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import {
+  API_KEY_POST_CREATION_SCOPES,
+  assertApiKeyPostStatusPublishingScope,
+  assertApiKeyPublishingScope,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
@@ -37,6 +43,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  ApiKeyScope,
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
@@ -68,7 +75,6 @@ import type { Request } from 'express';
 @UseGuards(RolesGuard)
 export class PostsOperationsController {
   private readonly serializer = PostSerializer;
-
   constructor(
     private readonly activitiesService: ActivitiesService,
     private readonly configService: ConfigService,
@@ -80,10 +86,6 @@ export class PostsOperationsController {
     private readonly quotaService: QuotaService,
     private readonly seoScorerService: SeoScorerService,
   ) {}
-
-  // ============================================================================
-  // HELPER METHODS
-  // ============================================================================
 
   private getRefId(
     ref: string | IngredientRefDocument | null | undefined,
@@ -142,10 +144,6 @@ export class PostsOperationsController {
         return PostCategory.TEXT;
     }
   }
-
-  // ============================================================================
-  // ENDPOINTS
-  // ============================================================================
 
   @Post('account-generations')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -329,6 +327,7 @@ export class PostsOperationsController {
   }
 
   @Patch('batch')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async batchUpdate(
     @Req() request: Request,
@@ -336,6 +335,7 @@ export class PostsOperationsController {
     @CurrentUser() user: User,
   ) {
     const publicMetadata = getPublicMetadata(user);
+    assertApiKeyPublishingScope(publicMetadata, 'schedule');
 
     try {
       // Validate credential
@@ -435,6 +435,7 @@ export class PostsOperationsController {
   }
 
   @Post(':postId/replies')
+  @RequiredScopes(...API_KEY_POST_CREATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async addThreadReply(
     @Req() request: Request,
@@ -443,11 +444,10 @@ export class PostsOperationsController {
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
+    assertApiKeyPostStatusPublishingScope(publicMetadata, createPostDto.status);
     const parentId = postId;
-
     try {
       const parentPost = await this.postsService.findOne({ _id: parentId });
-
       if (!parentPost) {
         throw new HttpException(
           {
@@ -824,10 +824,6 @@ export class PostsOperationsController {
 
     return serializeSingle(request, this.serializer, updatedPost ?? post);
   }
-
-  // ============================================================================
-  // HOOK VARIATIONS
-  // ============================================================================
 
   @Post('hook-generations')
   @UseGuards(SubscriptionGuard, CreditsGuard)

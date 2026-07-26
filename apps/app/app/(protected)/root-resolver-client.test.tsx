@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { render, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -9,13 +9,16 @@ const mocks = vi.hoisted(() => ({
   brandState: {
     brandId: '',
     brands: [] as Array<{
-      organization?: { slug?: string };
+      organization?: { id?: string; slug?: string };
+      organizationId?: string;
       slug?: string;
     }>,
     isReady: true,
     organizationId: '',
+    refreshBrands: vi.fn(async () => undefined),
     selectedBrand: null as {
-      organization?: { slug?: string };
+      organization?: { id?: string; slug?: string };
+      organizationId?: string;
       slug?: string;
     } | null,
   },
@@ -52,6 +55,10 @@ vi.mock('@ui/loading/page/PageLoadingState', () => ({
   ),
 }));
 
+vi.mock('./home/content', () => ({
+  default: () => <main data-testid="operational-home" />,
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     replace: mocks.replace,
@@ -64,6 +71,7 @@ const { default: ProtectedRootResolver } = await import(
 
 describe('ProtectedRootResolver', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     vi.clearAllMocks();
     mocks.accessState = null;
     mocks.isAccessStateLoading = false;
@@ -71,6 +79,7 @@ describe('ProtectedRootResolver', () => {
     mocks.brandState.brands = [];
     mocks.brandState.isReady = true;
     mocks.brandState.organizationId = '';
+    mocks.brandState.refreshBrands.mockClear();
     mocks.brandState.selectedBrand = null;
     mocks.currentUserState.currentUser = {
       id: 'user_1',
@@ -82,37 +91,35 @@ describe('ProtectedRootResolver', () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
   });
 
-  it('opens the selected brand workspace when org and brand are selected', async () => {
+  it('renders the operational home when org and brand are selected', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brandId = 'brand_1';
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'moonrise',
     };
 
     render(<ProtectedRootResolver />);
 
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith(
-        '/acme/moonrise/workspace/overview',
-      );
-    });
+    expect(await screen.findByTestId('operational-home')).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
-  it('opens org overview when an org exists and no brand is selected', async () => {
+  it('renders the operational home from the first org brand', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brands = [
       {
         organization: { slug: 'acme' },
+        organizationId: 'org_1',
         slug: 'moonrise',
       },
     ];
 
     render(<ProtectedRootResolver />);
 
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/overview');
-    });
+    expect(await screen.findByTestId('operational-home')).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   it('resumes onboarding before opening a seeded workspace', async () => {
@@ -125,6 +132,7 @@ describe('ProtectedRootResolver', () => {
     mocks.brandState.brandId = 'brand_1';
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'default',
     };
 
@@ -135,15 +143,14 @@ describe('ProtectedRootResolver', () => {
     });
   });
 
-  it('opens onboarding when no project exists for the organization', async () => {
+  it('opens the operational home with organization scope before a brand exists', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brands = [];
 
     render(<ProtectedRootResolver />);
 
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/onboarding');
-    });
+    expect(await screen.findByTestId('operational-home')).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   it('routes incomplete SaaS users to the agent onboarding surface', async () => {
@@ -155,6 +162,7 @@ describe('ProtectedRootResolver', () => {
     };
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'default',
     };
 
@@ -181,6 +189,7 @@ describe('ProtectedRootResolver', () => {
     mocks.brandState.isReady = true;
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'default',
     };
     rerender(<ProtectedRootResolver />);
@@ -200,6 +209,7 @@ describe('ProtectedRootResolver', () => {
     };
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'default',
     };
 
@@ -208,5 +218,35 @@ describe('ProtectedRootResolver', () => {
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith('/onboarding/providers');
     });
+  });
+
+  it('shows an actionable SaaS workspace state instead of waiting forever', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.brandState.isReady = false;
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: true,
+      onboardingStepsCompleted: ['brand', 'providers', 'summary'],
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000);
+    });
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'Workspace setup needs attention',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Continue setup' }),
+    ).toHaveAttribute('href', '/onboarding');
+
+    screen.getByRole('button', { name: 'Retry workspace' }).click();
+
+    expect(mocks.brandState.refreshBrands).toHaveBeenCalledTimes(1);
   });
 });

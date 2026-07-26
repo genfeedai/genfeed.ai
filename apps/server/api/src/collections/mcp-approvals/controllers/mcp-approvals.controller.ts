@@ -123,12 +123,13 @@ export class McpApprovalsController {
     @Param('id') id: string,
     @Body() dto: ResolveMcpApprovalDto,
   ): Promise<{ data: McpApprovalResponse }> {
-    const { organization } = getPublicMetadata(user);
+    const metadata = getPublicMetadata(user);
     const result = await this.service.resolve(
       id,
-      organization,
+      metadata.organization,
       dto.decision,
       dto.result,
+      metadata,
     );
     return { data: this.toResponse(result) };
   }

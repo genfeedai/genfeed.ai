@@ -2,6 +2,7 @@ import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ApiKeyScope } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -164,6 +165,53 @@ describe('McpApprovalsService', () => {
         }),
       });
       expect(result).toEqual(updated);
+    });
+
+    it('requires approve scope before claiming a deferred publishing tool', async () => {
+      mcpApproval.findFirst.mockResolvedValue({
+        id: 'approval-publish',
+        organizationId: 'org-1',
+        status: 'PENDING',
+        toolName: 'post_social_reply',
+      });
+
+      await expect(
+        service.resolve('approval-publish', 'org-1', 'approve', undefined, {
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_PUBLISH],
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+          requiredScopes: [ApiKeyScope.POSTS_APPROVE],
+        }),
+      });
+
+      expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('allows an approve-scoped key to claim a deferred publishing tool', async () => {
+      mcpApproval.findFirst
+        .mockResolvedValueOnce({
+          id: 'approval-publish',
+          organizationId: 'org-1',
+          status: 'PENDING',
+          toolName: 'create_scheduled_release',
+        })
+        .mockResolvedValueOnce({
+          id: 'approval-publish',
+          organizationId: 'org-1',
+          status: 'APPROVED',
+          toolName: 'create_scheduled_release',
+        });
+      mcpApproval.updateMany.mockResolvedValue({ count: 1 });
+
+      await expect(
+        service.resolve('approval-publish', 'org-1', 'approve', undefined, {
+          isApiKey: true,
+          scopes: [ApiKeyScope.POSTS_APPROVE],
+        }),
+      ).resolves.toMatchObject({ status: 'APPROVED' });
     });
 
     it('updates status to DECLINED when decision is decline', async () => {

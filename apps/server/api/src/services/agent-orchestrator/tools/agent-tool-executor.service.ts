@@ -30,6 +30,10 @@ import {
   type ExecuteAiActionDto,
 } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
+import {
+  type ApiKeyPublishingContext,
+  assertApiKeyAgentPublishingScope as assertScope,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
@@ -130,8 +134,8 @@ import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
 
 const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
-
 export interface ToolExecutionContext {
+  apiKeyContext?: ApiKeyPublishingContext;
   /** URLs of user-attached images from the chat message */
   attachmentUrls?: string[];
   userId: string;
@@ -160,21 +164,17 @@ export interface ToolExecutionContext {
   /** Server-validated immutable organization + mutable brand/version scope. */
   validatedScope?: ValidatedAgentScope;
 }
-
 interface DashboardHydrationState {
   status?: 'idle' | 'loading' | 'ready';
   staggerMs?: number;
 }
-
 type HydratableDashboardBlock<T extends AgentUIBlock = AgentUIBlock> = T & {
   hydration?: DashboardHydrationState;
 };
-
 type OfficialWorkflowSourceKind =
   | 'generated'
   | 'marketplace-listing'
   | 'seeded-template';
-
 interface OfficialWorkflowSource {
   id: string;
   kind: OfficialWorkflowSourceKind;
@@ -185,7 +185,6 @@ interface OfficialWorkflowSource {
   price?: number;
   pricingTier?: string;
 }
-
 type LivestreamBotPlatform = 'youtube' | 'twitch';
 type LivestreamBotMessageType =
   | 'scheduled_link_drop'
@@ -754,6 +753,7 @@ export class AgentToolExecutorService {
     parameters: Record<string, unknown>,
     context: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    assertScope(context.apiKeyContext ?? {}, toolName, parameters);
     return runWithActionOrigin(
       resolveNestedActionOrigin(ActionOrigin.AGENT),
       () => this.executeToolWithActionOrigin(toolName, parameters, context),
