@@ -21,11 +21,11 @@ import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
-import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
-import { HiBars3, HiOutlineViewColumns, HiXMark } from 'react-icons/hi2';
+import { HiBars3, HiXMark } from 'react-icons/hi2';
+import { LuPanelRightClose, LuPanelRightOpen } from 'react-icons/lu';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
@@ -323,9 +323,25 @@ function AppProtectedTopbarContent({
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 
-          {/* The inspector rail collapses to zero width, so its only toggle has
-              to live here — fixed in the topbar, mirroring how the left sidebar
-              is driven from outside itself. */}
+          {effectiveOrgSlug ? (
+            <AppSwitcher
+              variant="icon"
+              currentApp={effectiveCurrentApp}
+              currentPath={pathname}
+              orgSlug={effectiveOrgSlug}
+              brandAwareSlug={brandAwareAppSlug}
+              brandSlug={effectiveBrandSlug}
+              isAssetGateLocked={isAssetGateLocked}
+              preservedSearch={preservedTaskSearch || undefined}
+              resolveNavigation={resolveAppSwitcherNavigation}
+              showAdmin={isAdminChrome || isSuperAdmin}
+            />
+          ) : null}
+
+          {/* Last control in the bar, always: the inspector rail collapses to
+              zero width, so its only toggle lives here — and pinning it to the
+              extreme right means it never shifts between the two states. The
+              icon itself carries the state (panel closing vs opening). */}
           {workspaceInspector?.isRegistered ? (
             <Button
               type="button"
@@ -341,30 +357,13 @@ function AppProtectedTopbarContent({
               }
               onClick={workspaceInspector.toggle}
             >
-              <HiOutlineViewColumns className="size-5" />
+              {workspaceInspector.isOpen ? (
+                <LuPanelRightClose className="size-5" />
+              ) : (
+                <LuPanelRightOpen className="size-5" />
+              )}
             </Button>
           ) : null}
-
-          {/* Grouped account controls: section switcher sits directly beside
-              the settings/user menu so they read as one cluster. */}
-          <div className="flex items-center gap-2">
-            {effectiveOrgSlug ? (
-              <AppSwitcher
-                variant="icon"
-                currentApp={effectiveCurrentApp}
-                currentPath={pathname}
-                orgSlug={effectiveOrgSlug}
-                brandAwareSlug={brandAwareAppSlug}
-                brandSlug={effectiveBrandSlug}
-                isAssetGateLocked={isAssetGateLocked}
-                preservedSearch={preservedTaskSearch || undefined}
-                resolveNavigation={resolveAppSwitcherNavigation}
-                showAdmin={isAdminChrome || isSuperAdmin}
-              />
-            ) : null}
-
-            {!isAdminChrome ? <TopbarEnd /> : null}
-          </div>
         </div>
       </div>
     </header>

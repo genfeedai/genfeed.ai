@@ -150,6 +150,7 @@ export default function AppProtectedLayoutSidebar({
       )}
       shellMode="default"
       showPrimaryItems={false}
+      showUserProfile
       shellChromeVariant={shellChromeVariant}
     />
   );
@@ -254,7 +255,7 @@ export default function AppProtectedLayoutSidebar({
         sectionLabel={surface.sectionLabel}
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={surface.showOrgSwitcher ? orgSwitcherSlot : undefined}
-        showUserProfile={surface.showUserProfile}
+        showUserProfile={surface.showUserProfile ?? true}
       />
     );
   }
@@ -291,6 +292,7 @@ export default function AppProtectedLayoutSidebar({
       secondaryItems={secondaryMenuItems}
       shellMode="workspace"
       showPrimaryItems
+      showUserProfile
       sidebarWidth={304}
       shellChromeVariant={shellChromeVariant}
     />

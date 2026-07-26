@@ -146,10 +146,6 @@ vi.mock('@ui/topbars/credits-bar/TopbarCreditsBar', () => ({
   default: () => <div data-testid="topbar-credits-bar">Credits</div>,
 }));
 
-vi.mock('@ui/topbars/end/TopbarEnd', () => ({
-  default: () => <div data-testid="topbar-end">Topbar End</div>,
-}));
-
 vi.mock('@/components/cloud-sync-indicator/CloudSyncIndicator', () => ({
   default: () => <div data-testid="cloud-sync-indicator" />,
 }));
@@ -311,7 +307,6 @@ describe('AppProtectedTopbar', () => {
     expect(
       screen.queryByTestId('cloud-sync-indicator'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('topbar-end')).not.toBeInTheDocument();
     expect(screen.queryByTestId('topbar-credits-bar')).not.toBeInTheDocument();
   });
 
@@ -378,7 +373,6 @@ describe('AppProtectedTopbar', () => {
 
     const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
     const switcher = screen.getByTestId('app-switcher');
-    const topbarEnd = screen.getByTestId('topbar-end');
     const credits = screen.getByTestId('topbar-credits-bar');
 
     expect(
@@ -387,10 +381,6 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
     expect(
       cloudSyncIndicator.compareDocumentPosition(switcher) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      switcher.compareDocumentPosition(topbarEnd) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
