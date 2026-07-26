@@ -677,7 +677,7 @@ describe('UniversalWorkspaceShell', () => {
     expect(screen.queryByText(/^route:\//)).not.toBeInTheDocument();
   });
 
-  it('launches the organization overview from organization conversation scope', () => {
+  it('keeps an organization conversation route as its own canvas', () => {
     navigation.pathname = '/acme/~/agent/thread-1';
 
     render(
@@ -686,14 +686,14 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Open workspace canvas' }),
-    );
-
-    expect(router.push).toHaveBeenCalledWith('/acme/~/overview');
+    expect(screen.getByText('Conversation')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Open workspace canvas' }),
+    ).not.toBeInTheDocument();
+    expect(router.push).not.toHaveBeenCalled();
   });
 
-  it('launches the brand overview from brand conversation scope', () => {
+  it('keeps a brand conversation route as its own canvas', () => {
     navigation.pathname = '/acme/moonrise/agent/thread-1';
 
     render(
@@ -702,13 +702,11 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Open workspace canvas' }),
-    );
-
-    expect(router.push).toHaveBeenCalledWith(
-      '/acme/moonrise/workspace/overview',
-    );
+    expect(screen.getByText('Conversation')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Open workspace canvas' }),
+    ).not.toBeInTheDocument();
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it('preserves the existing new-conversation reset on canonical agent entry', () => {

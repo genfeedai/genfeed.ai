@@ -275,7 +275,9 @@ function UniversalWorkspaceShellContent({
   const isSameRouteScope = previousRouteScopeRef.current === routeScope;
   const effectiveThreadId =
     threadId ??
-    (!isAgentRoute && isSameRouteScope ? retainedThreadIdRef.current : null);
+    (!isAgentRoute && isSameRouteScope
+      ? (retainedThreadIdRef.current ?? activeThreadId)
+      : null);
   const currentHref = appendSearchParamsToHref(
     rawPathname,
     new URLSearchParams(searchParamsString),

@@ -382,7 +382,7 @@ describe('AppProtectedTopbar', () => {
       ),
     ).toEqual({
       announcement: 'Opening analytics in canvas mode.',
-      href: '/acme/brand/analytics/overview?taskId=task-1&thread=thread-1',
+      href: '/acme/brand/analytics/overview?taskId=task-1',
     });
   });
 
