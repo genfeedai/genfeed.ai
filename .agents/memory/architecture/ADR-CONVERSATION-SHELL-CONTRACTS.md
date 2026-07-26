@@ -1,6 +1,6 @@
 ---
 name: Conversation Shell Contracts
-description: Locks state, scope, trust, history, approval, multi-tab, failure recovery, and permanent route-parity contracts for epic #1670.
+description: Locks state, scope, trust, history, approval, multi-tab, failure recovery, and permanent route-parity contracts for epic #1670. v3 makes the conversation a surface rather than a shell state.
 type: project
 ---
 
@@ -12,11 +12,11 @@ Accepted
 
 ## Contract Version
 
-v2.0.0
+v3.0.0
 
 ## Last Updated
 
-2026-07-17
+2026-07-26
 
 ## Canonical Source
 
@@ -26,20 +26,22 @@ protected-route parity inventory is
 
 ## Scope
 
-This ADR locks the observable contracts required before the conversation-first
-shell is implemented:
+This ADR locks the observable contracts for the permanent protected shell:
 
-- conversation, focused-canvas, and temporary-overlay state and history rules
+- canvas and temporary-overlay state and history rules
+- the conversation surface: its route, its inspector region, and the single
+  composer owner
+- nav-column ownership by the module that owns the surface
 - organization, brand, resource, artifact, and approval precedence
 - trusted surface registration and protected-route parity
 - immutable version pins and consequential-action approval
 - authoritative multi-tab context versions
-- permanent agent-first shell and scoped render-recovery behavior
+- permanent frame and scoped render-recovery behavior
 - post-cutover health and compatibility-removal evidence
 - disposition of #1009, #1012, #1015, and #1644
 
-It does not build the shell, migrate a product surface, add persistence, or
-change workflow semantics. Those remain downstream work in #1672 and later.
+It does not migrate a product surface, add persistence, or change workflow
+semantics. Those remain downstream work in #1672 and later.
 
 **Why:** Downstream shell, context, artifact, and surface PRs need one testable
 contract so they cannot diverge on history, scope, trust, approval, or recovery.
@@ -47,6 +49,25 @@ contract so they cannot diverge on history, scope, trust, approval, or recovery.
 **How to apply:** Treat this ADR and its linked route inventory as the acceptance
 boundary for #1672-#1682; change product-level behavior here before implementing
 a conflicting downstream rule.
+
+## What v3 Changes
+
+v2 made the conversation the shell's base state: the shell chose between
+rendering a conversation and rendering a product surface, and the conversation
+owned the nav column on every protected route it framed. In practice that
+inverted ownership — Studio, Library, Workflows and admin all surrendered their
+own navigation to the agent thread list, and a product surface could only be
+reached by the shell agreeing to step aside.
+
+v3 keeps every permanence guarantee and demotes the conversation from a *state*
+to a *surface*. The frame is unconditional and route-decided. Inside it, the
+conversation is one module among many: it has its own route family under
+`/agent`, and it is simultaneously present on every other surface as the
+inspector region. Nothing about parity, trust, approval, scope, or recovery is
+relaxed.
+
+Nothing in the v2 URL, precedence, approval, or multi-tab contracts is weakened.
+The one URL removal — reserved `thread` — narrows what the URL may assert.
 
 ## Verified Baseline
 
@@ -77,26 +98,30 @@ This decision was checked against the repository and live issue state on
 
 ## Optimization Target And Considered Approaches
 
-The target is a persistent conversation shell with zero protected-route loss,
-predictable browser history, and no scope widening.
+The target is a permanent shell with an ever-present conversation, zero
+protected-route loss, predictable browser history, and no scope widening.
 
 Two approaches were considered:
 
 1. Make a new shell URL own every product surface and encode the old route as
    shell state. This centralizes the UI but duplicates routing, breaks existing
    deep links, and creates a second parity surface.
-2. Keep each protected product URL canonical and add only thread/overlay state
-   to it. This preserves links, keeps failures inside the shell's scoped error
+2. Keep each protected product URL canonical and add only overlay state to it.
+   This preserves links, keeps failures inside the shell's scoped error
    boundary, and makes the versioned route inventory the parity denominator.
 
-The second approach is accepted.
+The second approach is accepted. v3 narrows it further: the conversation is
+carried by the shell rather than by the URL, so a product URL asserts only what
+the product surface owns.
 
 ## Core Terms
 
 | Term                 | Contract                                                                                                                                                        |
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Conversation         | The active agent thread as the primary work region.                                                                                                             |
+| Conversation         | The active agent thread as a surface. It is the canvas of the `/agent` route family and the inspector region of every other surface. It is not a shell state.    |
+| Conversation inspector | The region in which the conversation is present alongside another surface — a desktop rail, or a drawer where the rail is not rendered.                        |
 | Focused canvas       | One registered product surface or canonical protected route as the primary work region, with its selected resource encoded by the route or surface-owned query. |
+| Nav panel            | A nav column body supplied by the module that owns the current surface, replacing that surface's menu items while the module is active.                          |
 | Temporary overlay    | One registered transient surface above a conversation or canvas. The underlying base location remains restorable.                                               |
 | Shell location       | The browser-visible canonical path, shell query parameters, and history entry.                                                                                  |
 | Execution context    | Server-authoritative organization, optional brand, selected references, and monotonic `contextVersion` used to authorize an action.                             |
@@ -106,10 +131,12 @@ The second approach is accepted.
 
 ## Non-Negotiable Invariants
 
-1. Exactly one top-level shell state is active: `conversation`, `canvas`, or
-   `overlay`. An overlay retains exactly one base location for dismissal.
+1. Exactly one top-level shell state is active: `canvas` or `overlay`. An
+   overlay retains exactly one base location for dismissal. The conversation is
+   a surface, not a state: it is the canvas of its own route family and the
+   inspector region everywhere else.
 2. Canonical protected URLs remain directly addressable inside the permanent
-   agent-first shell.
+   protected shell.
 3. The URL may request UI state but never grants organization, brand, resource,
    admin, approval, or execution authority.
 4. Organization authority comes from authenticated server membership and the
@@ -126,36 +153,56 @@ The second approach is accepted.
    render arbitrary code, or navigate directly.
 9. Invalid, inaccessible, or incomplete state falls back to a safe canonical
    route without widening scope.
-10. The agent-first shell has no runtime disable path. Recovery is a normal
+10. The protected shell has no runtime disable path. Recovery is a normal
     deploy rollback; localized render errors stay in the shell error boundary
     without deleting threads, drafts, or product data.
+11. The frame — sidebar, topbar, error boundary, command palette — is decided by
+    the route alone. It is never conditioned on whether the shell body has
+    booted, on authentication timing, or on any other readiness signal.
+12. At most one conversation is mounted at a time, and it owns the single shell
+    composer. A second mounted copy is a defect, not a layout variation.
+13. The nav column belongs to the module that owns the current surface. No
+    surface may take another surface's column, and the conversation holds no
+    standing claim on it.
 
 ## Canonical URL Contract
 
 Existing protected paths remain canonical. The shell reserves only these query
 keys:
 
-| Key          | Meaning                                         | Rules                                                                                                             |
-| ------------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `thread`     | Active thread id on a non-agent protected route | Optional; server validates membership and organization. Agent thread routes continue to carry the id in the path. |
-| `overlay`    | Registered overlay key                          | Valid only with a registry entry allowed for overlay mode.                                                        |
-| `overlayRef` | URL-encoded typed reference in `kind:id` form   | Optional; parsed and authorized by the registered overlay. Never an approval or scope grant.                      |
+| Key          | Meaning                                       | Rules                                                                                        |
+| ------------ | --------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `overlay`    | Registered overlay key                        | Valid only with a registry entry allowed for overlay mode.                                   |
+| `overlayRef` | URL-encoded typed reference in `kind:id` form | Optional; parsed and authorized by the registered overlay. Never an approval or scope grant. |
+
+`thread` was a reserved key in v2 and is **withdrawn**. Thread identity has
+exactly two sources: the path segment of the conversation route (`/agent/:id`)
+and the agent store's active thread. A non-agent protected URL never carries a
+thread id.
 
 Rules:
 
 - Organization and brand slugs remain path state. Server-resolved ids are the
   authority.
-- A direct product deep link without `thread` is valid canvas state. It does not
-  create a server thread merely by loading. The first send or explicit thread
-  selection binds a thread and replaces the current entry with `thread=<id>`.
+- The resolver strips `thread` from any incoming URL and canonicalizes by
+  `replace`. A stale link keeps working — it lands on the surface it names, with
+  the user's active conversation in the inspector.
+- Thread identity is read from the registered route, never from a pathname
+  pattern. `/agent/journey` and `/agent/onboarding` belong to a different
+  registered surface and their segments are not thread ids.
+- A product deep link is valid canvas state. It does not create a server thread
+  merely by loading; the first send or explicit thread selection binds one, and
+  binding changes no URL outside the conversation route.
 - The selected resource remains in the canonical path when the route has an id
   segment. Existing surface-owned query parameters remain opaque to the shell.
 - `contextVersion`, approval state, permission state, and artifact digests are
   never URL authority and are not persisted in browser history.
 - Unknown shell query keys are ignored. An invalid reserved value is removed by
   `replace`, and the user stays on the nearest authorized canonical route.
-- A brand-scoped path with a thread from another organization is rejected. The
-  thread is removed from the location and no transcript or artifact is copied.
+- A conversation route whose path thread belongs to another organization is
+  rejected. The thread is removed from the location and no transcript or
+  artifact is copied. A malformed thread segment is a restoration failure, not a
+  lookup — it never reaches the server as a query.
 
 ## State And Browser-History Matrix
 
@@ -163,33 +210,101 @@ Rules:
 entry, `none` leaves history unchanged, and `pop` consumes browser history
 without creating another entry.
 
-| From         | Trigger                                                                 | To                                                 | History                              | Required result                                                                                                                 |
-| ------------ | ----------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| Initial load | Canonical conversation URL                                              | Conversation                                       | none                                 | Restore the authorized thread; otherwise replace to the new-thread conversation route.                                          |
-| Initial load | Canonical product deep link                                             | Canvas                                             | none                                 | Restore the route/resource. A thread is optional until selected or first send.                                                  |
-| Initial load | Valid overlay URL                                                       | Overlay                                            | none                                 | Restore the registered overlay over the encoded base location.                                                                  |
-| Initial load | Invalid/inaccessible URL or reference                                   | Safest authorized conversation or canvas           | replace                              | Remove invalid state; never fall back to another org, brand, or admin scope.                                                    |
-| Conversation | User launches a registered product                                      | Canvas                                             | push                                 | Preserve the thread in `thread`; use the product's canonical route.                                                             |
-| Conversation | User opens a registered transient surface                               | Overlay                                            | push                                 | Keep conversation as the overlay base; browser Back dismisses it.                                                               |
-| Canvas       | User navigates to another route/resource                                | Canvas                                             | push                                 | Preserve the thread and use the destination's canonical URL.                                                                    |
-| Canvas       | Programmatic canonicalization or thread creation                        | Canvas                                             | replace                              | Preserve visible state while normalizing path/query.                                                                            |
-| Canvas       | User returns to the active thread                                       | Conversation                                       | push                                 | Navigate to the canonical thread route without remounting or deleting it.                                                       |
-| Canvas       | User opens a registered transient surface                               | Overlay                                            | push                                 | Retain the full canvas URL as the base location.                                                                                |
+"Conversation route" below means a canvas whose registered surface is the
+conversation. It is a `From`/`To` value only because the route changes, never
+because the shell changes state.
+
+| From               | Trigger                                                                 | To                                                 | History                              | Required result                                                                                                                 |
+| ------------------ | ----------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Initial load       | Canonical conversation URL                                              | Conversation route                                 | none                                 | Restore the authorized thread; otherwise replace to the new-thread conversation route.                                          |
+| Initial load       | Canonical product deep link                                             | Canvas                                             | none                                 | Restore the route/resource. The active conversation, if any, is present in the inspector.                                       |
+| Initial load       | Valid overlay URL                                                       | Overlay                                            | none                                 | Restore the registered overlay over the encoded base location.                                                                  |
+| Initial load       | URL carrying the withdrawn `thread` key                                 | Same canvas                                        | replace                              | Strip the key and keep the surface. The link resolves; the conversation stays reachable through the inspector.                  |
+| Initial load       | Invalid/inaccessible URL or reference                                   | Safest authorized canvas                           | replace                              | Remove invalid state; never fall back to another org, brand, or admin scope.                                                    |
+| Conversation route | User launches a registered product                                      | Canvas                                             | push                                 | Use the product's canonical route. The thread is not encoded in it and is not lost — it moves to the inspector.                 |
+| Conversation route | User opens a registered transient surface                               | Overlay                                            | push                                 | Keep the conversation route as the overlay base; browser Back dismisses it.                                                     |
+| Canvas             | User navigates to another route/resource                                | Canvas                                             | push                                 | Use the destination's canonical URL. The conversation persists in the inspector across the navigation.                          |
+| Canvas             | Programmatic canonicalization or thread binding                         | Canvas                                             | replace                              | Preserve visible state while normalizing path/query. Binding a thread rewrites no non-conversation URL.                         |
+| Canvas             | User returns to the active thread                                       | Conversation route                                 | push                                 | Navigate to the canonical thread route without remounting or deleting it.                                                       |
+| Canvas             | User opens a registered transient surface                               | Overlay                                            | push                                 | Retain the full canvas URL as the base location.                                                                                |
+| Any                | User opens, closes, or resizes the conversation inspector               | Same state                                         | none                                 | Inspector presentation is ephemeral chrome. It never enters the URL and never remounts the conversation.                        |
 | Overlay      | User replaces the overlay target in the same interaction                | Overlay                                            | replace                              | Update `overlay`/`overlayRef`; one Back dismisses the overlay interaction.                                                      |
-| Overlay      | User closes via UI and the current entry was shell-created              | Base conversation/canvas                           | pop                                  | Behave exactly like browser Back.                                                                                               |
-| Overlay      | User closes a direct-linked/restored overlay with no owned parent entry | Base conversation/canvas                           | replace                              | Remove overlay keys without navigating outside the product.                                                                     |
-| Any          | User selects another thread in the same organization                    | Conversation                                       | push                                 | Restore that thread's server context; do not carry selected resources or approvals from the previous thread.                    |
+| Overlay      | User closes via UI and the current entry was shell-created              | Base canvas                                        | pop                                  | Behave exactly like browser Back.                                                                                               |
+| Overlay      | User closes a direct-linked/restored overlay with no owned parent entry | Base canvas                                        | replace                              | Remove overlay keys without navigating outside the product.                                                                     |
+| Any          | User selects another thread in the same organization                    | Conversation route                                 | push                                 | Restore that thread's server context; do not carry selected resources or approvals from the previous thread.                    |
 | Any          | User changes brand in the same organization                             | Same visible state or authorized fallback          | push after accepted context mutation | Keep the thread/transcript, increment `contextVersion`, clear incompatible resource/approval state, and rewrite the brand path. |
-| Any          | User changes organization                                               | New-thread conversation in the target organization | push                                 | Create a target-org thread with zero transcript, artifact, approval, or draft carry.                                            |
+| Any          | User changes organization                                               | New-thread conversation route in the target org    | push                                 | Create a target-org thread with zero transcript, artifact, approval, or draft carry.                                            |
 | Any          | Browser Back/Forward                                                    | URL-described state                                | pop                                  | Attempt restore without generating history. If context is stale, apply the multi-tab rules below.                               |
 | Any          | Reload                                                                  | Same URL-described state                           | none                                 | Re-resolve authorization and server context before enabling actions.                                                            |
-| Any          | Shell bootstrap or render fails                                          | Scoped agent-first error state at same canonical URL | none                               | Preserve data, report the error, and offer a bounded retry without mounting legacy chrome.                                      |
+| Any          | Shell bootstrap or render fails                                          | Scoped error state at same canonical URL           | none                                 | Preserve data, report the error, and offer a bounded retry. The frame stays; no legacy chrome is mounted.                       |
 | Stale tab    | User synchronizes to server context                                     | Server-authoritative location                      | replace                              | Preserve the local unsent draft, remove stale shell state, and re-enable actions only after synchronization.                    |
 | Any          | Model proposes a surface/reference                                      | No immediate state change                          | none                                 | Require a trusted typed UI action or explicit user invocation before navigation.                                                |
 
 Overlay-internal tabs, accordion state, filters, hover state, scroll, pane widths,
 and composer expansion are ephemeral and do not create browser history unless a
 surface already owns them as canonical URL state.
+
+## Conversation Surface Contract
+
+The conversation exists in exactly two places, and they are different objects.
+
+| Object              | Where                                 | Contract                                                                                                              |
+| ------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| The thread list     | The conversation module's own surface | Reachable from the `/agent` route family. It is that module's nav panel and appears on no other surface.               |
+| The active thread   | Every surface                         | Present as the canvas at `/agent/:id` and as the inspector region everywhere else. It follows the user across routes. |
+
+Rules:
+
+1. **One mounted conversation.** Every mounted conversation portals its prompt
+   bar into the single shell composer slot, so two mounted copies would put two
+   prompt bars in one slot. Ownership is ordered: the conversation route's canvas
+   wins, then the drawer while open, then the desktop rail. A region may only
+   claim ownership where the region above it is not rendered.
+2. **Collapse is not unmount.** The inspector renders the conversation through
+   its collapsed state — zero width, `inert`, invisible — because unmounting
+   takes the composer's input with it and drops an in-flight run. Only the
+   presentation affordances may be gated on the open state.
+3. **Inspector presentation is chrome.** Open/closed, width, and which inspector
+   tab is selected are ephemeral. They never enter the URL, never create history,
+   and never mutate execution context.
+4. **A surface summarizes; it does not embed.** A product surface may expose its
+   state to the conversation as at most one row of cards plus a deep link into
+   the surface. The full surface is never rendered inside the conversation, and
+   the conversation is never rendered inside a product surface's content area.
+5. **Consequential actions are the surface's, not the inspector's.** The
+   conversation may propose; execution still requires the surface's own typed
+   control under the precedence and approval rules below.
+
+## Nav Column Ownership
+
+The nav column belongs to the module that owns the current surface.
+
+- A module may supply a nav panel, and the shell renders that body in place of
+  the surface's menu items. Everything framing it — logo, section label, org and
+  brand switchers, user profile — stays with the shell.
+- The shell never inspects what a panel renders, and a panel never reaches
+  outside its column.
+- Exactly one module owns the column at a time. There is no shell-level branch
+  that hands the column to a particular module across unrelated routes; the
+  conversation's thread list is one panel among many and appears only on the
+  conversation's own surface.
+
+## Permanent Frame Contract
+
+The frame is the sidebar, the topbar, the render error boundary, and the command
+palette. It is decided by the route and nothing else.
+
+1. No readiness signal may decide whether the frame exists — not shell
+   bootstrap, not authentication timing, not the availability of an API client.
+   A surface that renders inside the frame keeps it while its body is still
+   loading.
+2. A route may suppress frame elements only as a declared property of that route.
+   The focused onboarding flow is the one such route.
+3. The render error boundary wraps the protected tree unconditionally, including
+   routes the shell registry does not know. An unregistered route renders without
+   the inspector, never without an application around it.
+4. A registered route whose shell body cannot mount renders its children
+   directly. Failure to mount the shell degrades the inspector, not the page.
 
 ## Context Precedence And Mutation Rules
 
@@ -285,8 +400,11 @@ browser history index.
 A trusted registry entry is application-owned code and declares:
 
 - stable surface key
-- canonical route pattern and allowed state (`conversation`, `canvas`,
-  `overlay`, or dedicated route only)
+- canonical route pattern and route mode — `conversation`, `canvas`, or
+  `dedicated`, plus whether the surface may also be raised as an `overlay`.
+  `conversation` is classification, not renderer selection: it marks the routes
+  whose thread lives in the path, and those routes frame the same canvas as any
+  other.
 - required scope (`personal`, `organization`, `brand`, or `platform-admin`)
 - typed reference parser and restoration validator
 - permission/capability resolver
@@ -302,8 +420,10 @@ for navigation or any consequential effect.
 
 Admin, settings, billing, credentials, policy, destructive management, agent
 onboarding, lab/internal pages, and full-screen editors remain canonical routes,
-but render as focused canvases inside the agent-first shell. They do not bypass
-the shell through a dedicated route mode.
+but render as focused canvases inside the permanent shell. They do not bypass
+the shell through a dedicated route mode. A surface may declare that it owns its
+own primary input, which suppresses the shell composer on that surface; it does
+not suppress the frame.
 
 ## Protected-Route Inventory And Surface Classification
 
@@ -313,13 +433,17 @@ canonical protected patterns plus two intentional hard-cut families** as of
 New protected routes enter the denominator immediately. Removing an entry
 requires a separate accepted product decision.
 
+v3 does not move the denominator. Demoting the conversation from a state to a
+surface removes no route: the `/agent/**` family stays registered and
+parity-eligible, and every other family is framed exactly as before.
+
 The app switcher is discovery for nine primary modules, not the inventory.
 
 | Route family                                                           | Required availability   | Allowed shell treatment                            | Important non-switcher coverage                                                                                                                                                      |
 | ---------------------------------------------------------------------- | ----------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `/`, `/settings`, `/settings/help`                                     | Personal/root protected | Bootstrap or canvas                                | Personal settings and Help remain direct.                                                                                                                                            |
 | `/:orgSlug`, `/:orgSlug/~/overview`, org analytics                     | Organization            | Canvas                                             | Organization overview is distinct from brand Workspace.                                                                                                                              |
-| `/:orgSlug/~/agent/**`, `/:orgSlug/:brandSlug/agent/**`                | Organization or brand   | Conversation or focused canvas                     | New, journey, thread detail, onboarding, and onboarding thread routes.                                                                                                               |
+| `/:orgSlug/~/agent/**`, `/:orgSlug/:brandSlug/agent/**`                | Organization or brand   | Canvas — the conversation's own surface            | New, journey, thread detail, onboarding, and onboarding thread routes. Only thread detail carries a thread id in its path.                                                            |
 | `/:orgSlug/~/{library,studio,posts,write,compose,workflows,editor}/**` | Organization            | Canvas                                             | Org-scoped catch-all products, workflow library/templates/executions/new/detail, editor projects/new/detail.                                                                         |
 | `/:orgSlug/~/settings/**`                                              | Organization            | Canvas                                             | Members, billing, credits, API keys, webhooks, policy, brands, models/types, scenes, personal, Help.                                                                                 |
 | `/:orgSlug/:brandSlug/{workspace,tasks,overview}/**`                   | Brand                   | Canvas; task detail may also register an overlay   | Dashboard, Inbox views, Activity, Tasks/detail, and the separate Overview Activities route.                                                                                          |
@@ -344,7 +468,8 @@ Special inventory rules:
 - Notifications are a shell service/accessible live-region and may use a trusted
   overlay. They are not a protected route and do not add a route denominator.
 - The former Community/Desktop terminal dock is not a destination and is not
-  registered. Persistent conversation chrome is shared across deployment modes.
+  registered. The frame and the conversation inspector are shared across
+  deployment modes.
 - `/:orgSlug/~/workspace/*` and
   `/:orgSlug/~/settings/organization/*` remain intentional 404 hard cuts. The
   shell must not resurrect or redirect those families.
@@ -390,14 +515,15 @@ pin id, organization/brand scope, `contextVersion`, and timestamp.
 
 ## Permanent Shell And Recovery Contract
 
-1. The agent-first shell is the protected application's default and has no
-   feature-flag, cohort, environment-variable, or user-preference gate.
+1. The protected shell is the application's default and has no feature-flag,
+   cohort, environment-variable, or user-preference gate.
 2. Missing or malformed generic feature-flag configuration cannot affect shell
    selection.
-3. Every registered protected route renders as `conversation` or `canvas`.
-   There is no registered `dedicated` bypass and no legacy terminal-dock chrome.
-4. A bootstrap or render error remains inside the shell's ErrorBoundary, reports
-   through the existing logger/Sentry path, and may offer a bounded retry.
+3. Every registered protected route renders as a canvas. There is no registered
+   `dedicated` bypass and no legacy terminal-dock chrome.
+4. A bootstrap or render error remains inside the protected ErrorBoundary,
+   reports through the existing logger/Sentry path, and may offer a bounded
+   retry. That boundary is unconditional and covers unregistered routes.
 5. A failure must not widen scope, redirect to another organization, mount
    legacy chrome, persist a circuit-breaker decision, or poll a runtime rollback
    endpoint.
@@ -459,6 +585,16 @@ Downstream verification must cover:
 - version-pin mutation, target/credential mutation, rejection, revocation,
   idempotent retry, and free-form status drift
 - missing/malformed generic feature-flag configuration has no shell effect
+- exactly one mounted conversation across the conversation route, the open
+  drawer, and the desktop rail, including an in-flight run surviving an
+  inspector collapse
+- a link carrying the withdrawn `thread` key resolving to its surface with the
+  key stripped, and thread identity read from the registry so `/agent/journey`
+  and `/agent/onboarding` are never parsed as thread ids
+- each module rendering its own nav column, and a nav panel replacing a
+  surface's menu items without changing that surface's identity
+- the frame surviving on a canvas route whose shell body cannot mount, and a
+  render failure on an unregistered route staying inside the boundary
 - scoped render failure and bounded retry without legacy chrome
 - SaaS, Community, Desktop-to-cloud, Desktop-to-self-hosted, and enterprise
   authorization behavior
@@ -474,5 +610,6 @@ Downstream verification must cover:
 
 | Version | Date       | Summary                                                                                                                                                        |
 | ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v3.0.0  | 2026-07-26 | Demoted the conversation from a shell state to a surface — its own route family plus an inspector region on every other surface — withdrew the reserved `thread` key, gave the nav column to the module that owns the surface, and made the frame and its error boundary unconditional. Parity denominator unchanged. |
 | v2.0.0  | 2026-07-17 | Made the agent-first shell unconditional, removed flag/cohort/legacy fallback contracts, converted protected routes to shell canvases, and made deploy rollback the recovery path. |
 | v1.0.0  | 2026-07-13 | Locked state/history, context precedence, trusted surfaces, route parity, approvals, multi-tab behavior, fallback, rollout gates, and predecessor disposition. |
