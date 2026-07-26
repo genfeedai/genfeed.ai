@@ -1,4 +1,7 @@
 import type {
+  AnalyticsAggregateResult,
+  AnalyticsDateRow,
+  AnalyticsPlatformDateRow,
   DistinctPostCountRow,
   EngagementBreakdown,
   GrowthTrends,
@@ -11,7 +14,11 @@ import type {
   TimeSeriesDataPoint,
   TimeSeriesDataPointWithPlatforms,
   TopContent,
+  TopContentAnalyticsRow,
+  TopContentPostRow,
+  ViewsByDateRow,
 } from '@api/collections/posts/services/analytics-aggregation.types';
+import { PostAnalyticsProjection } from '@api/collections/posts/services/post-analytics.projection';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -34,43 +41,14 @@ export type {
   TopContent,
 };
 
+const postAnalyticsProjection = new PostAnalyticsProjection();
+
 @Injectable()
 export class AnalyticsAggregationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly postsService: PostsService,
   ) {}
-
-  private readNumber(value: unknown): number {
-    return Number(value ?? 0);
-  }
-
-  private readDateKey(date: Date, groupBy: 'day' | 'week'): string {
-    if (groupBy === 'day') {
-      return new Date(date).toISOString().split('T')[0];
-    }
-
-    const current = new Date(date);
-    const year = current.getFullYear();
-    const oneJan = new Date(year, 0, 1);
-    const days = Math.floor(
-      (current.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000),
-    );
-    const week = Math.ceil((days + oneJan.getDay() + 1) / 7);
-    return `${year}-${String(week).padStart(2, '0')}`;
-  }
-
-  private totalEngagementFromSums(sums: {
-    totalComments?: unknown;
-    totalLikes?: unknown;
-    totalShares?: unknown;
-  }): number {
-    return (
-      this.readNumber(sums.totalLikes) +
-      this.readNumber(sums.totalComments) +
-      this.readNumber(sums.totalShares)
-    );
-  }
 
   private buildBrandSqlPredicate(brandId?: string): Prisma.Sql {
     return brandId ? Prisma.sql`AND "brandId" = ${brandId}` : Prisma.empty;
@@ -152,58 +130,17 @@ export class AnalyticsAggregationService {
       where: { isDeleted: false, organizationId },
     });
 
-    const currentSums =
-      (
-        currentAggregate as {
-          _avg?: { engagementRate?: unknown };
-          _sum?: Record<string, unknown>;
-        }
-      )._sum ?? {};
-    const previousSums =
-      (previousAggregate as { _sum?: Record<string, unknown> })._sum ?? {};
-
-    const totalViews = this.readNumber(currentSums.totalViews);
-    const totalLikes = this.readNumber(currentSums.totalLikes);
-    const totalComments = this.readNumber(currentSums.totalComments);
-    const totalSaves = this.readNumber(currentSums.totalSaves);
-    const totalShares = this.readNumber(currentSums.totalShares);
-    const totalEngagement = totalLikes + totalComments + totalShares;
-    const avgEngagementRate = this.readNumber(
-      (
-        currentAggregate as {
-          _avg?: { engagementRate?: unknown };
-        }
-      )._avg?.engagementRate,
-    );
     const activePlatforms = (platformRows as Array<{ platform: string }>).map(
       (row) => row.platform,
     );
-    const bestPlatform = activePlatforms[0] ?? 'N/A';
-    const prevViews = this.readNumber(previousSums.totalViews);
-    const prevEngagement = this.totalEngagementFromSums(previousSums);
 
-    const viewsGrowth =
-      prevViews > 0 ? ((totalViews - prevViews) / prevViews) * 100 : 0;
-    const engagementGrowth =
-      prevEngagement > 0
-        ? ((totalEngagement - prevEngagement) / prevEngagement) * 100
-        : 0;
-
-    return {
+    return postAnalyticsProjection.buildOverview({
       activePlatforms,
-      avgEngagementRate,
-      bestPerformingPlatform: bestPlatform,
-      engagementGrowth,
+      currentAggregate: currentAggregate as AnalyticsAggregateResult,
+      previousAggregate: previousAggregate as AnalyticsAggregateResult,
       totalBrands,
-      totalComments,
-      totalEngagement,
-      totalLikes,
       totalPosts: postCount,
-      totalSaves,
-      totalShares,
-      totalViews,
-      viewsGrowth,
-    };
+    });
   }
 
   /**
@@ -239,120 +176,10 @@ export class AnalyticsAggregationService {
       where: where as never,
     } as never);
 
-    const grouped = new Map<
-      string,
-      {
-        comments: number;
-        engagementRate: number;
-        likes: number;
-        rowCount: number;
-        saves: number;
-        shares: number;
-        views: number;
-      }
-    >();
-
-    for (const row of rows as Array<{
-      _avg?: { engagementRate?: unknown };
-      _sum?: Record<string, unknown>;
-      date: Date;
-    }>) {
-      const dateKey = this.readDateKey(row.date, groupBy);
-      const sums = row._sum ?? {};
-      const engagementRate = this.readNumber(row._avg?.engagementRate);
-      const existing = grouped.get(dateKey);
-      if (existing) {
-        existing.views += this.readNumber(sums.totalViews);
-        existing.likes += this.readNumber(sums.totalLikes);
-        existing.comments += this.readNumber(sums.totalComments);
-        existing.shares += this.readNumber(sums.totalShares);
-        existing.saves += this.readNumber(sums.totalSaves);
-        existing.engagementRate += engagementRate;
-        existing.rowCount += 1;
-      } else {
-        grouped.set(dateKey, {
-          comments: this.readNumber(sums.totalComments),
-          engagementRate,
-          likes: this.readNumber(sums.totalLikes),
-          rowCount: 1,
-          saves: this.readNumber(sums.totalSaves),
-          shares: this.readNumber(sums.totalShares),
-          views: this.readNumber(sums.totalViews),
-        });
-      }
-    }
-
-    return Array.from(grouped.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, data]) => {
-        const engagementRate =
-          data.rowCount > 0 ? data.engagementRate / data.rowCount : 0;
-        return {
-          comments: data.comments,
-          date,
-          engagementRate,
-          likes: data.likes,
-          saves: data.saves,
-          shares: data.shares,
-          totalEngagement: data.likes + data.comments + data.shares,
-          views: data.views,
-        };
-      });
-  }
-
-  /**
-   * Generate date scaffolding for a date range
-   */
-  private generateDateScaffolding(
-    startDate: Date,
-    endDate: Date,
-    groupBy: 'day' | 'week' = 'day',
-  ): string[] {
-    const dates: string[] = [];
-    const current = new Date(startDate);
-    current.setHours(0, 0, 0, 0);
-
-    while (current <= endDate) {
-      if (groupBy === 'day') {
-        dates.push(current.toISOString().split('T')[0]);
-        current.setDate(current.getDate() + 1);
-      } else {
-        const year = current.getFullYear();
-        const oneJan = new Date(year, 0, 1);
-        const numberOfDays = Math.floor(
-          (current.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000),
-        );
-        const week = Math.ceil((numberOfDays + oneJan.getDay() + 1) / 7);
-        dates.push(`${year}-${String(week).padStart(2, '0')}`);
-        current.setDate(current.getDate() + 7);
-      }
-    }
-
-    return dates;
-  }
-
-  /**
-   * Calculate growth percentage between current and previous values
-   */
-  private calculateGrowthPercentage(current: number, previous: number): number {
-    if (previous > 0) {
-      return ((current - previous) / previous) * 100;
-    }
-    return current > 0 ? 100 : 0;
-  }
-
-  /**
-   * Create empty platform metrics object
-   */
-  private createEmptyPlatformMetrics(): PlatformMetrics {
-    return {
-      comments: 0,
-      engagementRate: 0,
-      likes: 0,
-      saves: 0,
-      shares: 0,
-      views: 0,
-    };
+    return postAnalyticsProjection.buildTimeSeries(
+      rows as AnalyticsDateRow[],
+      groupBy,
+    );
   }
 
   /**
@@ -392,66 +219,12 @@ export class AnalyticsAggregationService {
       where: where as never,
     } as never);
 
-    const dataMap = new Map<string, Map<string, PlatformMetrics>>();
-
-    for (const row of rows as Array<{
-      _avg?: { engagementRate?: unknown };
-      _sum?: Record<string, unknown>;
-      date: Date;
-      platform: string;
-    }>) {
-      const dateKey = this.readDateKey(row.date, groupBy);
-      const sums = row._sum ?? {};
-      if (!dataMap.has(dateKey)) {
-        dataMap.set(dateKey, new Map());
-      }
-
-      const platformMap = dataMap.get(dateKey)!;
-      const existing = platformMap.get(row.platform);
-      if (existing) {
-        existing.views += this.readNumber(sums.totalViews);
-        existing.likes += this.readNumber(sums.totalLikes);
-        existing.comments += this.readNumber(sums.totalComments);
-        existing.shares += this.readNumber(sums.totalShares);
-        existing.saves += this.readNumber(sums.totalSaves);
-        existing.engagementRate = this.readNumber(row._avg?.engagementRate);
-      } else {
-        platformMap.set(row.platform, {
-          comments: this.readNumber(sums.totalComments),
-          engagementRate: this.readNumber(row._avg?.engagementRate),
-          likes: this.readNumber(sums.totalLikes),
-          saves: this.readNumber(sums.totalSaves),
-          shares: this.readNumber(sums.totalShares),
-          views: this.readNumber(sums.totalViews),
-        });
-      }
-    }
-
-    const allDates = this.generateDateScaffolding(startDate, endDate, groupBy);
-
-    return allDates.map((date) => {
-      const platformData =
-        dataMap.get(date) || new Map<string, PlatformMetrics>();
-
-      return {
-        date,
-        facebook:
-          platformData.get('facebook') || this.createEmptyPlatformMetrics(),
-        instagram:
-          platformData.get('instagram') || this.createEmptyPlatformMetrics(),
-        linkedin:
-          platformData.get('linkedin') || this.createEmptyPlatformMetrics(),
-        medium: platformData.get('medium') || this.createEmptyPlatformMetrics(),
-        pinterest:
-          platformData.get('pinterest') || this.createEmptyPlatformMetrics(),
-        reddit: platformData.get('reddit') || this.createEmptyPlatformMetrics(),
-        tiktok: platformData.get('tiktok') || this.createEmptyPlatformMetrics(),
-        twitter:
-          platformData.get('twitter') || this.createEmptyPlatformMetrics(),
-        youtube:
-          platformData.get('youtube') || this.createEmptyPlatformMetrics(),
-      };
-    });
+    return postAnalyticsProjection.buildTimeSeriesWithPlatforms(
+      rows as AnalyticsPlatformDateRow[],
+      startDate,
+      endDate,
+      groupBy,
+    );
   }
 
   /**
@@ -499,22 +272,7 @@ export class AnalyticsAggregationService {
       `,
     );
 
-    return rows.map((row) => {
-      const postCount = this.readNumber(row.post_count);
-      const views = this.readNumber(row.views);
-
-      return {
-        avgViewsPerPost: postCount > 0 ? views / postCount : 0,
-        comments: this.readNumber(row.comments),
-        engagementRate: this.readNumber(row.engagement_rate),
-        likes: this.readNumber(row.likes),
-        platform: row.platform || 'unknown',
-        postCount,
-        saves: this.readNumber(row.saves),
-        shares: this.readNumber(row.shares),
-        views,
-      };
-    });
+    return postAnalyticsProjection.buildPlatformComparison(rows);
   }
 
   /**
@@ -566,39 +324,11 @@ export class AnalyticsAggregationService {
       where: where as never,
     } as never);
 
-    const scored = (
-      rows as Array<{
-        _avg?: { engagementRate?: unknown };
-        _max?: Record<string, unknown>;
-        platform: string;
-        postId: string;
-      }>
-    ).map((row) => {
-      const max = row._max ?? {};
-      const likes = this.readNumber(max.totalLikes);
-      const comments = this.readNumber(max.totalComments);
-      const shares = this.readNumber(max.totalShares);
-      const totalEngagement = likes + comments + shares;
-
-      return {
-        avgEngagementRate: this.readNumber(row._avg?.engagementRate),
-        comments,
-        likes,
-        platform: row.platform,
-        postId: row.postId,
-        shares,
-        totalEngagement,
-        views: this.readNumber(max.totalViews),
-      };
-    });
-
-    // Sort by metric
-    const sorted =
-      metric === AnalyticsMetric.ENGAGEMENT
-        ? scored.sort((a, b) => b.totalEngagement - a.totalEngagement)
-        : scored.sort((a, b) => b.views - a.views);
-
-    const topScored = sorted.slice(0, safeLimit);
+    const topScored = postAnalyticsProjection.scoreTopContent(
+      rows as TopContentAnalyticsRow[],
+      metric,
+      safeLimit,
+    );
 
     // Fetch post details
     const postIds = topScored.map((s) => s.postId);
@@ -614,35 +344,10 @@ export class AnalyticsAggregationService {
       where: { id: { in: postIds } },
     });
 
-    const postMap2 = new Map(
-      (
-        posts as unknown as Array<{
-          id: string;
-          description?: string;
-          label?: string;
-          publicationDate?: Date;
-          url?: string;
-        }>
-      ).map((p) => [p.id, p]),
+    return postAnalyticsProjection.buildTopContent(
+      topScored,
+      posts as unknown as TopContentPostRow[],
     );
-
-    return topScored.map((item) => {
-      const post = postMap2.get(item.postId);
-      return {
-        comments: item.comments,
-        description: post?.description || '',
-        engagementRate: item.avgEngagementRate,
-        ingredientId: '',
-        likes: item.likes,
-        platform: item.platform,
-        postId: item.postId,
-        publishDate: post?.publicationDate || new Date(),
-        shares: item.shares,
-        title: post?.label || 'Untitled',
-        url: post?.url,
-        views: item.views,
-      };
-    });
   }
 
   /**
@@ -700,54 +405,11 @@ export class AnalyticsAggregationService {
         } as never),
       ]);
 
-    const currentSums =
-      (currentAggregate as { _sum?: Record<string, unknown> })._sum ?? {};
-    const previousSums =
-      (previousAggregate as { _sum?: Record<string, unknown> })._sum ?? {};
-    const totalViews = this.readNumber(currentSums.totalViews);
-    const totalEngagement = this.totalEngagementFromSums(currentSums);
-    const prevViews = this.readNumber(previousSums.totalViews);
-    const prevEngagement = this.totalEngagementFromSums(previousSums);
-
-    // Best day
-    const bestDay = (
-      viewsByDateRows as Array<{
-        _sum?: { totalViews?: unknown };
-        date: Date;
-      }>
-    )[0];
-    const bestDate = bestDay ? this.readDateKey(bestDay.date, 'day') : 'N/A';
-    const bestViews = this.readNumber(bestDay?._sum?.totalViews);
-
-    const viewsGrowth = totalViews - prevViews;
-    const viewsGrowthPct = prevViews > 0 ? (viewsGrowth / prevViews) * 100 : 0;
-    const engGrowth = totalEngagement - prevEngagement;
-    const engGrowthPct =
-      prevEngagement > 0 ? (engGrowth / prevEngagement) * 100 : 0;
-
-    let trendingDirection: 'up' | 'down' | 'stable' = 'stable';
-    if (viewsGrowthPct > 5) {
-      trendingDirection = 'up';
-    } else if (viewsGrowthPct < -5) {
-      trendingDirection = 'down';
-    }
-
-    return {
-      bestDay: { date: bestDate, views: bestViews },
-      engagement: {
-        current: totalEngagement,
-        growth: engGrowth,
-        growthPercentage: engGrowthPct,
-        previous: prevEngagement,
-      },
-      trendingDirection,
-      views: {
-        current: totalViews,
-        growth: viewsGrowth,
-        growthPercentage: viewsGrowthPct,
-        previous: prevViews,
-      },
-    };
+    return postAnalyticsProjection.buildGrowthTrends(
+      currentAggregate as AnalyticsAggregateResult,
+      previousAggregate as AnalyticsAggregateResult,
+      viewsByDateRows as ViewsByDateRow[],
+    );
   }
 
   /**
@@ -781,25 +443,9 @@ export class AnalyticsAggregationService {
       where: where as never,
     });
 
-    const sums = (aggregate as { _sum?: Record<string, unknown> })._sum ?? {};
-    const likes = this.readNumber(sums.totalLikes);
-    const comments = this.readNumber(sums.totalComments);
-    const shares = this.readNumber(sums.totalShares);
-    const saves = this.readNumber(sums.totalSaves);
-
-    const total = likes + comments + shares + saves;
-
-    return {
-      comments,
-      commentsPercentage: total > 0 ? (comments / total) * 100 : 0,
-      likes,
-      likesPercentage: total > 0 ? (likes / total) * 100 : 0,
-      saves,
-      savesPercentage: total > 0 ? (saves / total) * 100 : 0,
-      shares,
-      sharesPercentage: total > 0 ? (shares / total) * 100 : 0,
-      total,
-    };
+    return postAnalyticsProjection.buildEngagementBreakdown(
+      aggregate as AnalyticsAggregateResult,
+    );
   }
 
   /**
@@ -870,50 +516,18 @@ export class AnalyticsAggregationService {
         ),
       ]);
 
-    const currentSums =
-      (currentAggregate as { _sum?: Record<string, unknown> })._sum ?? {};
-    const previousSums =
-      (previousAggregate as { _sum?: Record<string, unknown> })._sum ?? {};
-    const totalViews = this.readNumber(currentSums.totalViews);
-    const totalLikes = this.readNumber(currentSums.totalLikes);
-    const totalComments = this.readNumber(currentSums.totalComments);
-    const totalSaves = this.readNumber(currentSums.totalSaves);
-    const totalShares = this.readNumber(currentSums.totalShares);
-    const totalEngagement = totalLikes + totalComments + totalShares;
-    const avgEngagementRate = this.readNumber(
-      (
-        currentAggregate as {
-          _avg?: { engagementRate?: unknown };
-        }
-      )._avg?.engagementRate,
-    );
-    const prevViews = this.readNumber(previousSums.totalViews);
-    const prevEngagement = this.totalEngagementFromSums(previousSums);
-    const totalPosts = this.readNumber(postCountRows[0]?.post_count);
-
     // Authoritative brand count for the organization — org-scoped and
     // soft-delete-aware so the "Total Brands" metric matches the brand switcher.
     const totalBrands = await this.prisma.brand.count({
       where: { isDeleted: false, organizationId },
     });
 
-    return {
-      activePlatforms: [platform],
-      avgEngagementRate,
-      bestPerformingPlatform: platform,
-      engagementGrowth: this.calculateGrowthPercentage(
-        totalEngagement,
-        prevEngagement,
-      ),
+    return postAnalyticsProjection.buildPlatformOverview({
+      currentAggregate: currentAggregate as AnalyticsAggregateResult,
+      platform,
+      previousAggregate: previousAggregate as AnalyticsAggregateResult,
       totalBrands,
-      totalComments,
-      totalEngagement,
-      totalLikes,
-      totalPosts,
-      totalSaves,
-      totalShares,
-      totalViews,
-      viewsGrowth: this.calculateGrowthPercentage(totalViews, prevViews),
-    };
+      totalPosts: Number(postCountRows[0]?.post_count ?? 0),
+    });
   }
 }

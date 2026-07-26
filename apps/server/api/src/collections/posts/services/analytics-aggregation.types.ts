@@ -127,3 +127,49 @@ export type PostViewsRow = {
   post_id: string;
   total_views: NumericSqlValue;
 };
+
+export interface AnalyticsAggregateResult {
+  _avg?: { engagementRate?: unknown };
+  _sum?: Record<string, unknown>;
+}
+
+export interface AnalyticsDateRow {
+  _avg?: { engagementRate?: unknown };
+  _sum?: Record<string, unknown>;
+  date: Date;
+}
+
+export interface AnalyticsPlatformDateRow extends AnalyticsDateRow {
+  platform: string;
+}
+
+export interface TopContentAnalyticsRow {
+  _avg?: { engagementRate?: unknown };
+  _max?: Record<string, unknown>;
+  platform: string;
+  postId: string;
+}
+
+export interface TopContentPostRow {
+  description?: string;
+  id: string;
+  label?: string;
+  publicationDate?: Date;
+  url?: string;
+}
+
+export interface TopContentScore {
+  avgEngagementRate: number;
+  comments: number;
+  likes: number;
+  platform: string;
+  postId: string;
+  shares: number;
+  totalEngagement: number;
+  views: number;
+}
+
+export interface ViewsByDateRow {
+  _sum?: { totalViews?: unknown };
+  date: Date;
+}
