@@ -27,6 +27,7 @@ import {
   TimeSeriesQueryDto,
   TopContentQueryDto,
 } from '@api/collections/posts/dto/analytics-query.dto';
+import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -34,6 +35,7 @@ import type { TagDocument } from '@api/collections/tags/schemas/tag.schema';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -141,6 +143,7 @@ export class OrganizationsRelationshipsController {
   }
 
   @Get(':organizationId/brands')
+  @Cache({ tags: ['brands'], ttl: 300 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllBrands(
     @Req() request: Request,
@@ -359,6 +362,7 @@ export class OrganizationsRelationshipsController {
   }
 
   @Get(':organizationId/ingredients')
+  @Cache({ tags: ['ingredients'], ttl: 120 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllIngredients(
     @Req() request: Request,
@@ -380,7 +384,6 @@ export class OrganizationsRelationshipsController {
     );
 
     const where = {
-      ...(Object.keys(parentConditions).length > 0 ? parentConditions : {}),
       isDeleted,
       organization: organizationId,
       ...statusFilter,
@@ -395,6 +398,9 @@ export class OrganizationsRelationshipsController {
         isEntityId(query.brand) && {
           brand: query.brand,
         }),
+      ...(Object.keys(parentConditions).length > 0 && {
+        AND: [parentConditions],
+      }),
     };
 
     const data: AggregatePaginateResult<IngredientDocument> =
@@ -410,6 +416,7 @@ export class OrganizationsRelationshipsController {
   }
 
   @Get(':organizationId/videos')
+  @Cache({ tags: ['videos'], ttl: 60 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllVideos(
     @Req() request: Request,
@@ -440,6 +447,7 @@ export class OrganizationsRelationshipsController {
   }
 
   @Get(':organizationId/tags')
+  @Cache({ tags: ['tags'], ttl: 600 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllTags(
     @Req() request: Request,
@@ -461,8 +469,8 @@ export class OrganizationsRelationshipsController {
           where: {
             OR: [
               { organizationId: null, userId: null },
-              { organization: organizationId },
-              { user: publicMetadata.user },
+              { organizationId },
+              { userId: publicMetadata.user },
             ],
             isDeleted,
           },
@@ -473,12 +481,13 @@ export class OrganizationsRelationshipsController {
   }
 
   @Get(':organizationId/posts')
+  @Cache({ tags: ['posts'], ttl: 60 })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findAllPosts(
     @Req() request: Request,
     @Param('organizationId') organizationId: string,
     @CurrentUser() user: User,
-    @Query() query: BaseQueryDto,
+    @Query() query: PostsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     await this.verifyOrganizationAccess(request, organizationId, user);
 
@@ -488,6 +497,24 @@ export class OrganizationsRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
+    const scheduledDate: { gte?: Date; lte?: Date } = {};
+    if (query.startDate) {
+      scheduledDate.gte = new Date(query.startDate);
+    }
+    if (query.endDate) {
+      scheduledDate.lte = new Date(query.endDate);
+    }
+
+    const where: Record<string, unknown> = {
+      isDeleted,
+      organization: organizationId,
+      parentId: null,
+      ...(Object.keys(scheduledDate).length > 0 && { scheduledDate }),
+      ...(query.platform && { platform: query.platform }),
+      ...(query.status && { status: query.status }),
+      ...(query.credential && { credential: query.credential }),
+    };
+
     const data: AggregatePaginateResult<PostDocument> =
       await this.postsService.findAll(
         {
@@ -497,10 +524,7 @@ export class OrganizationsRelationshipsController {
             postAnalytics: true,
           },
           orderBy: handleQuerySort(query.sort),
-          where: {
-            isDeleted,
-            organization: organizationId,
-          },
+          where,
         },
         options,
       );

@@ -136,12 +136,18 @@ describe('OrganizationsRelationshipsController', () => {
   });
 
   describe('findAllPosts', () => {
-    it('scopes posts to the organization and includes related content', async () => {
+    it('preserves root-post, relation, and PostsQueryDto filters', async () => {
       await controller.findAllPosts(
         {} as never,
         '507f1f77bcf86cd799439012',
         mockUser,
-        {} as never,
+        {
+          credential: 'credential-1',
+          endDate: '2026-07-31T23:59:59.999Z',
+          platform: 'youtube',
+          startDate: '2026-07-01T00:00:00.000Z',
+          status: 'draft',
+        } as never,
       );
 
       expect(mockServices.postsService.findAll).toHaveBeenCalledWith(
@@ -153,8 +159,16 @@ describe('OrganizationsRelationshipsController', () => {
           },
           orderBy: { createdAt: -1 },
           where: {
+            credential: 'credential-1',
             isDeleted: false,
             organization: '507f1f77bcf86cd799439012',
+            parentId: null,
+            platform: 'youtube',
+            scheduledDate: {
+              gte: new Date('2026-07-01T00:00:00.000Z'),
+              lte: new Date('2026-07-31T23:59:59.999Z'),
+            },
+            status: 'draft',
           },
         },
         expect.objectContaining({ limit: 10, page: 1 }),
@@ -261,8 +275,8 @@ describe('OrganizationsRelationshipsController', () => {
           where: {
             OR: [
               { organizationId: null, userId: null },
-              { organization: '507f1f77bcf86cd799439012' },
-              { user: '507f1f77bcf86cd799439011' },
+              { organizationId: '507f1f77bcf86cd799439012' },
+              { userId: '507f1f77bcf86cd799439011' },
             ],
             isDeleted: false,
           },
