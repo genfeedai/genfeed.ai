@@ -443,8 +443,12 @@ function hasTenantGuard(callText: string): boolean {
     return false;
   }
 
-  return /organization(Id)?\s*:|user(Id)?\s*:|brand(Id)?\s*:|isDeleted\s*:/i.test(
-    callText.slice(whereIndex),
+  const whereText = callText.slice(whereIndex);
+  return (
+    /\bwhere\s*:\s*scopedWhere\s*\(/i.test(whereText) ||
+    /organization(Id)?\s*:|user(Id)?\s*:|brand(Id)?\s*:|isDeleted\s*:/i.test(
+      whereText,
+    )
   );
 }
 

@@ -96,6 +96,39 @@ describe('sql risk audit', () => {
     );
   });
 
+  it('recognizes canonical scopedWhere bulk-write guards', () => {
+    writeFixture(
+      'apps/server/api/src/batches/batches.service.ts',
+      `
+      export class BatchesService {
+        constructor(private readonly prisma: PrismaService) {}
+
+        async archive(organizationId: string, batchId: string) {
+          return this.prisma.batch.updateMany({
+            data: { status: 'archived' },
+            where: scopedWhere(organizationId, { id: batchId }),
+          });
+        }
+
+        async unsafe(batchId: string) {
+          return this.prisma.batch.updateMany({
+            data: { status: 'archived' },
+            where: { id: batchId },
+          });
+        }
+      }
+      `,
+    );
+
+    const result = runSqlRiskAudit({ rootDir: testDir });
+    const bulkWriteFindings = result.findings.filter(
+      (finding) => finding.category === 'bulk-write-tenant-review',
+    );
+
+    expect(bulkWriteFindings).toHaveLength(1);
+    expect(bulkWriteFindings[0]?.snippet).toContain('where: { id: batchId }');
+  });
+
   it('allows reviewed raw SQL suppressions with local rationale', () => {
     writeFixture(
       'apps/server/api/src/analytics/analytics.service.ts',
