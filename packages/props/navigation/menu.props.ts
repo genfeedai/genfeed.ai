@@ -34,6 +34,19 @@ export interface MenuShellConfig extends MenuConfig {
   secondaryItems?: MenuItemConfig[];
 }
 
+/**
+ * A module's own nav column. When a module supplies one, the sidebar renders
+ * this body in place of that surface's menu items — the conversation swaps in
+ * its thread list, and Library → collections / Workflows → runs use the same
+ * seam. One module owns the column at a time; the surface it belongs to still
+ * owns the logo, section label and switchers around it.
+ */
+export interface SidebarNavPanel {
+  render: () => ReactNode;
+  /** Overrides the surface's own label while the panel is mounted. */
+  sectionLabel?: string;
+}
+
 export interface SidebarSizingProps {
   collapsedSidebarWidth?: number;
   mobileSidebarWidth?: number;

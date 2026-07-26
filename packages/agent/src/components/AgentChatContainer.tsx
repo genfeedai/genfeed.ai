@@ -174,10 +174,12 @@ export function AgentChatContainer({
       onSend={handleSuggestionSend}
     />
   ) : null;
+  const shouldRenderInlineComposerFeedback =
+    !composerShell || composerShell.isComposerVisible === false;
 
   return (
     <div className="relative flex h-full flex-col">
-      {error && !composerShell ? (
+      {error && shouldRenderInlineComposerFeedback ? (
         <Alert
           className={cn(
             'mx-auto mt-3 w-[calc(100%-2rem)]',
@@ -241,7 +243,8 @@ export function AgentChatContainer({
             isReadOnly && 'opacity-60',
           )}
         >
-          {pendingInputRequest && (onboardingMode || !composerShell) ? (
+          {pendingInputRequest &&
+          (onboardingMode || shouldRenderInlineComposerFeedback) ? (
             <AgentInputRequestOverlay
               isSubmitting={isSubmittingInputRequest}
               onSubmit={handleSubmitInputRequest}
@@ -252,7 +255,14 @@ export function AgentChatContainer({
           <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
             <div
               className={cn(
-                'mx-auto space-y-1 p-4 pb-56 md:px-6 md:pb-72',
+                'mx-auto space-y-1 p-4 md:px-6',
+                // The prompt bar floats over the transcript and has to be
+                // scrolled clear of — unless the shell hosts it in its own
+                // composer slot, where the canvas already reserves the room.
+                composerShell?.portalTarget ||
+                  composerShell?.isComposerVisible === false
+                  ? 'pb-6'
+                  : 'pb-56 md:pb-72',
                 conversationColumnMaxWidthClass,
               )}
             >
@@ -332,7 +342,8 @@ export function AgentChatContainer({
         </div>
       )}
 
-      {composerShell || !isEmpty || onboardingMode ? (
+      {(composerShell?.isComposerVisible ?? true) &&
+      (composerShell || !isEmpty || onboardingMode) ? (
         <AgentChatPromptBar
           activeWorkEvent={activeWorkEvent}
           addFiles={addFiles}

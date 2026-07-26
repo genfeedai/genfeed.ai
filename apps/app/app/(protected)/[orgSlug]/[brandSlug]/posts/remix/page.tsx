@@ -36,23 +36,15 @@ export default async function PostsRemixPage({
   const sourceArtifact = resolvedSearchParams[LIBRARY_REMIX_SOURCE_QUERY_KEY];
   const sourceVersion =
     resolvedSearchParams[LIBRARY_REMIX_SOURCE_VERSION_QUERY_KEY];
-  const threadId = resolvedSearchParams.thread;
 
   if (typeof sourceArtifact !== 'string' || !sourceArtifact.trim()) {
-    return (
-      <LibraryRemixSurface
-        sourceArtifact={null}
-        sourceVersion={null}
-        threadId={typeof threadId === 'string' ? threadId : null}
-      />
-    );
+    return <LibraryRemixSurface sourceArtifact={null} sourceVersion={null} />;
   }
 
   return (
     <LibraryRemixSurface
       sourceArtifact={sourceArtifact}
       sourceVersion={typeof sourceVersion === 'string' ? sourceVersion : null}
-      threadId={typeof threadId === 'string' ? threadId : null}
     />
   );
 }

@@ -11,7 +11,6 @@ function createMocks() {
       create: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
-      findUnique: vi.fn(),
       update: vi.fn(),
     },
   };
@@ -119,10 +118,6 @@ describe('EvaluationsService review and comparison workflow', () => {
         data: { status: Status.PROCESSING },
         updatedAt: new Date('2026-07-01T00:00:00.000Z'),
       });
-      mocks.prisma.evaluation.findUnique.mockResolvedValue({
-        data: { status: Status.PROCESSING },
-        id: 'eval-1',
-      });
       mocks.prisma.evaluation.update.mockResolvedValue({
         data: { status: Status.FAILED },
         id: 'eval-1',
@@ -142,7 +137,11 @@ describe('EvaluationsService review and comparison workflow', () => {
       expect(evaluation.id).toBe('eval-1');
       await vi.waitFor(() => {
         expect(mocks.prisma.evaluation.update).toHaveBeenCalledWith({
-          where: { id: 'eval-1' },
+          where: {
+            id: 'eval-1',
+            isDeleted: false,
+            organizationId,
+          },
           data: {
             data: expect.objectContaining({ status: Status.FAILED }),
           },
@@ -204,7 +203,11 @@ describe('EvaluationsService review and comparison workflow', () => {
         },
       });
       expect(mocks.prisma.evaluation.update).toHaveBeenCalledWith({
-        where: { id: 'eval-1' },
+        where: {
+          id: 'eval-1',
+          isDeleted: false,
+          organizationId,
+        },
         data: {
           data: expect.objectContaining({
             review: expect.objectContaining({

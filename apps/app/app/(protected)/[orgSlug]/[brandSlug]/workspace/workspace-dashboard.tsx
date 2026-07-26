@@ -14,7 +14,10 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
+import {
+  type SurfaceSummaryItem,
+  SurfaceSummaryStrip,
+} from '@ui/dashboard/SurfaceSummaryStrip';
 import { OverviewTrendsPanel } from '@ui/overview/OverviewTrendsPanel';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Button } from '@ui/primitives/button';
@@ -224,13 +227,6 @@ export function DashboardAgentCards({
 /*  Stats Strip                                                        */
 /* ------------------------------------------------------------------ */
 
-interface StatItem {
-  accent?: string;
-  isLoading?: boolean;
-  label: string;
-  value: string;
-}
-
 export function DashboardStatsStrip({
   activeRuns,
   isRunsLoading = false,
@@ -249,7 +245,7 @@ export function DashboardStatsStrip({
   const inProgressTaskCount = workspaceTasks.filter(
     (task) => task.status === 'backlog' || task.status === 'in_progress',
   ).length;
-  const items: StatItem[] = useMemo(
+  const items: SurfaceSummaryItem[] = useMemo(
     () => [
       {
         accent: `${stats?.activeRuns ?? activeRuns.length} running, ${activeRuns.filter((r) => r.status === AgentExecutionStatus.PENDING).length} queued`,
@@ -281,32 +277,14 @@ export function DashboardStatsStrip({
     ],
   );
 
+  // `inline`: this is the surface the agent conversation projects, so it is
+  // held to the one-row / three-card contract by the component itself.
   return (
-    <section data-testid="dashboard-stats-strip">
-      <DashboardGrid cols={3}>
-        {items.map((item) => (
-          <Card key={item.label} bodyClassName="p-4">
-            {item.isLoading ? (
-              <Skeleton variant="text" height={32} className="w-16" />
-            ) : (
-              <div className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
-                {item.value}
-              </div>
-            )}
-            <p className="mt-1 text-[10px] font-medium uppercase tracking-[0.14em] text-foreground/55">
-              {item.label}
-            </p>
-            {item.isLoading ? (
-              <Skeleton variant="text" height={12} className="mt-2 w-28" />
-            ) : item.accent ? (
-              <p className="mt-1.5 text-[11px] text-foreground/45">
-                {item.accent}
-              </p>
-            ) : null}
-          </Card>
-        ))}
-      </DashboardGrid>
-    </section>
+    <SurfaceSummaryStrip
+      items={items}
+      testId="dashboard-stats-strip"
+      variant="inline"
+    />
   );
 }
 

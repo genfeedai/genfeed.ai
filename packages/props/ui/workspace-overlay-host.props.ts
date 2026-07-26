@@ -17,5 +17,4 @@ export interface WorkspaceOverlayHostProps {
   readonly overlay: WorkspaceShellOverlayRequest | null;
   readonly registration: WorkspaceShellOverlayRegistration | null;
   readonly returnFocusRef: RefObject<HTMLElement | null>;
-  readonly threadId?: string | null;
 }

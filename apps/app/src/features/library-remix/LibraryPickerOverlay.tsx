@@ -13,7 +13,6 @@ import { Button } from '@ui/primitives/button';
 import { Tabs, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import Link from 'next/link';
 import { HiOutlineArrowRight, HiOutlineFolderOpen } from 'react-icons/hi2';
-import { buildWorkspaceShellHref } from '@/lib/workspace-shell/workspace-shell-location';
 import LibrarySourcePreview, {
   getLibrarySourceLabel,
 } from './LibrarySourcePreview';
@@ -25,7 +24,6 @@ import {
 
 type LibraryPickerOverlayProps = {
   readonly onSelect: (reference: AgentArtifactReference) => void;
-  readonly threadId?: string | null;
 };
 
 function LibraryPickerSkeleton() {
@@ -93,7 +91,6 @@ function LibrarySourceButton({
 
 export default function LibraryPickerOverlay({
   onSelect,
-  threadId,
 }: LibraryPickerOverlayProps) {
   const { href } = useOrgUrl();
   const {
@@ -107,10 +104,7 @@ export default function LibraryPickerOverlay({
     setCategory,
     state,
   } = useLibraryPicker({ onSelect });
-  const managementHref = buildWorkspaceShellHref(
-    href(APP_ROUTES.LIBRARY.ROOT),
-    { threadId },
-  );
+  const managementHref = href(APP_ROUTES.LIBRARY.ROOT);
 
   return (
     <div className="flex min-h-0 flex-col">

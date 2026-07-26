@@ -30,6 +30,7 @@ import {
   Status,
 } from '@genfeedai/enums';
 import type { IEvaluationComparisonResult } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -497,13 +498,13 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       );
       creditsSettled = true;
 
-      const existing = await this.prisma.evaluation.findUnique({
-        where: { id: evaluationId },
+      const existing = await this.prisma.evaluation.findFirst({
+        where: scopedWhere(organizationId, { id: evaluationId }),
       });
       const existingData = (existing?.data as EvaluationData) ?? {};
 
       const updatedEvaluation = await this.prisma.evaluation.update({
-        where: { id: evaluationId },
+        where: scopedWhere(organizationId, { id: evaluationId }),
         data: {
           data: evaluationResultProjection.buildStoredEvaluationData({
             ...existingData,
@@ -528,13 +529,13 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     } catch (error: unknown) {
       this.logger.error(`Post evaluation failed: ${evaluationId}`, error);
 
-      const existing = await this.prisma.evaluation.findUnique({
-        where: { id: evaluationId },
+      const existing = await this.prisma.evaluation.findFirst({
+        where: scopedWhere(organizationId, { id: evaluationId }),
       });
       const existingData = (existing?.data as EvaluationData) ?? {};
 
       await this.prisma.evaluation.update({
-        where: { id: evaluationId },
+        where: scopedWhere(organizationId, { id: evaluationId }),
         data: {
           data: evaluationResultProjection.buildStoredEvaluationData({
             ...existingData,
@@ -614,7 +615,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const existingData = (evaluation.data as EvaluationData | null) ?? {};
 
     const updated = await this.prisma.evaluation.update({
-      where: { id: evaluationId },
+      where: scopedWhere(organizationId, { id: evaluationId }),
       data: {
         data: evaluationResultProjection.buildReviewData({
           comment,
@@ -730,7 +731,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     const predictedEngagement = scores.engagement.overall;
 
     const updated = await this.prisma.evaluation.update({
-      where: { id: evaluationId },
+      where: scopedWhere(organizationId, { id: evaluationId }),
       data: {
         data: evaluationResultProjection.buildActualPerformanceData(
           data,
