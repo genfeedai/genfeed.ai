@@ -4,6 +4,7 @@
 
 export * from './ads';
 export * from './base-bot-manager';
+export * from './bot-authorization';
 export * from './bot-internal-api-client';
 export * from './bot-normalize';
 export * from './bot-workflow';

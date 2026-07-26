@@ -96,6 +96,40 @@ describe('TelegramBotService', () => {
     });
   });
 
+  describe('authorization', () => {
+    function probe(target: TelegramBotService) {
+      return target as unknown as {
+        allowedUserIds: Set<number>;
+        isAuthorized(userId: number): boolean;
+      };
+    }
+
+    it('denies every user when no allowlist is configured', () => {
+      expect(probe(service).allowedUserIds.size).toBe(0);
+      expect(probe(service).isAuthorized(123)).toBe(false);
+    });
+
+    it('allows a user named in the allowlist', () => {
+      probe(service).allowedUserIds.add(123);
+
+      expect(probe(service).isAuthorized(123)).toBe(true);
+    });
+
+    it('denies a user absent from a populated allowlist', () => {
+      probe(service).allowedUserIds.add(123);
+
+      expect(probe(service).isAuthorized(456)).toBe(false);
+    });
+
+    it('reports the allowlist size rather than claiming every user is allowed', () => {
+      expect(service.getStatus().allowedUsers).toBe(0);
+
+      probe(service).allowedUserIds.add(123);
+
+      expect(service.getStatus().allowedUsers).toBe(1);
+    });
+  });
+
   describe('message handling', () => {
     it('should validate message context before processing', () => {
       // Basic validation test - the service should exist and be ready to handle messages

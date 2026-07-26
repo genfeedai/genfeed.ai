@@ -20,6 +20,14 @@ export class IntegrationConfigDto {
   @IsString()
   defaultWorkflow?: string;
 
+  /**
+   * Explicit opt-out of the allowlist. An empty `allowedUserIds` denies every
+   * platform user; only this flag opens the bot to everyone.
+   */
+  @IsOptional()
+  @IsBoolean()
+  isOpenToAllUsers?: boolean;
+
   @IsOptional()
   @IsBoolean()
   webhookMode?: boolean;
