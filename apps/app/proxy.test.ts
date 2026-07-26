@@ -1089,8 +1089,8 @@ describe('proxy', () => {
   });
 
   it('lets the keyless self-hosted root render operational home', async () => {
-    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
-    delete process.env.BETTER_AUTH_SECRET;
+    vi.stubEnv('NEXT_PUBLIC_BETTER_AUTH_ENABLED', 'false');
+    vi.stubEnv('BETTER_AUTH_SECRET', undefined);
 
     vi.resetModules();
     const { default: proxy } = await import('./proxy');
@@ -1098,9 +1098,6 @@ describe('proxy', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
-
-    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
-    process.env.BETTER_AUTH_SECRET = 'sk_test';
   });
 
   it('canonicalizes bare protected routes in desktop shell mode when a desktop token is present', async () => {
