@@ -12,11 +12,16 @@
  * it still cannot prove:
  * - delegates hidden behind aliases or dynamic element access;
  * - `where` objects assembled across functions or files;
+ * - local object mutation performed indirectly through a function call;
  * - raw SQL calls or custom Prisma extension methods;
  * - the runtime value or boolean semantics of a syntactically present key
  *   (for example, `organizationId: undefined` or a negated condition);
  * - that a model-shaped object is definitely a Prisma client without a type
  *   checker.
+ *
+ * The scan surface is intentionally limited to `apps/server/api/src` and
+ * `apps/server/server/src`. Other backend workspaces are outside this chip and
+ * must not be assumed covered by the CI guard.
  *
  * New code should use the canonical `scopedWhere` export from
  * `@genfeedai/server`. Existing Chips B/C debt is captured by an exact,
@@ -83,6 +88,39 @@ const SCOPED_WHERE_MODULE_PATTERNS = [
   /^@server(?:\/|$)/u,
   /(?:^|\/)tenancy\/scoped-where$/u,
 ];
+
+const TENANT_SCOPE_BASELINE_ENTRY_KEYS = new Set([
+  'delegate',
+  'file',
+  'fingerprint',
+  'method',
+  'model',
+  'reason',
+]);
+const TENANT_SCOPE_BASELINE_KEYS = new Set([
+  'entries',
+  'schemaPath',
+  'version',
+]);
+const TENANT_SCOPE_FINGERPRINT_PATTERN = /^[0-9a-f]{20}$/u;
+const ASSIGNMENT_OPERATOR_KINDS = new Set<ts.SyntaxKind>([
+  ts.SyntaxKind.AmpersandAmpersandEqualsToken,
+  ts.SyntaxKind.AmpersandEqualsToken,
+  ts.SyntaxKind.AsteriskAsteriskEqualsToken,
+  ts.SyntaxKind.AsteriskEqualsToken,
+  ts.SyntaxKind.BarBarEqualsToken,
+  ts.SyntaxKind.BarEqualsToken,
+  ts.SyntaxKind.CaretEqualsToken,
+  ts.SyntaxKind.EqualsToken,
+  ts.SyntaxKind.GreaterThanGreaterThanEqualsToken,
+  ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
+  ts.SyntaxKind.LessThanLessThanEqualsToken,
+  ts.SyntaxKind.MinusEqualsToken,
+  ts.SyntaxKind.PercentEqualsToken,
+  ts.SyntaxKind.PlusEqualsToken,
+  ts.SyntaxKind.QuestionQuestionEqualsToken,
+  ts.SyntaxKind.SlashEqualsToken,
+]);
 
 export type TenantModel = {
   delegate: string;
@@ -179,6 +217,16 @@ function normalizePath(filePath: string): string {
   return filePath.replaceAll('\\', '/');
 }
 
+function compareText(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
+}
+
 function resolveFromRoot(rootDir: string, filePath: string): string {
   return path.isAbsolute(filePath) ? filePath : path.resolve(rootDir, filePath);
 }
@@ -214,8 +262,8 @@ export function discoverTenantModels(schema: string): TenantModel[] {
 
   return tenantModels.sort(
     (left, right) =>
-      left.delegate.localeCompare(right.delegate) ||
-      left.model.localeCompare(right.model),
+      compareText(left.delegate, right.delegate) ||
+      compareText(left.model, right.model),
   );
 }
 
@@ -281,6 +329,41 @@ function enclosingLexicalScope(node: ts.Node): ts.Node {
   return node.getSourceFile();
 }
 
+function rootIdentifier(expression: ts.Expression): ts.Identifier | null {
+  let current = unwrapExpression(expression);
+
+  while (
+    ts.isPropertyAccessExpression(current) ||
+    ts.isElementAccessExpression(current)
+  ) {
+    current = unwrapExpression(current.expression);
+  }
+
+  return ts.isIdentifier(current) ? current : null;
+}
+
+function writesIdentifier(node: ts.Node, identifier: string): boolean {
+  if (
+    ts.isBinaryExpression(node) &&
+    ASSIGNMENT_OPERATOR_KINDS.has(node.operatorToken.kind)
+  ) {
+    return rootIdentifier(node.left)?.text === identifier;
+  }
+
+  if (
+    (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
+    (node.operator === ts.SyntaxKind.PlusPlusToken ||
+      node.operator === ts.SyntaxKind.MinusMinusToken)
+  ) {
+    return rootIdentifier(node.operand)?.text === identifier;
+  }
+
+  return (
+    ts.isDeleteExpression(node) &&
+    rootIdentifier(node.expression)?.text === identifier
+  );
+}
+
 function resolveLocalInitializer(
   identifier: ts.Identifier,
   sourceFile: ts.SourceFile,
@@ -312,7 +395,32 @@ function resolveLocalInitializer(
   };
 
   visit(sourceFile);
-  return best?.initializer ?? null;
+  const declaration = best;
+  if (!declaration?.initializer) {
+    return null;
+  }
+
+  const scope = enclosingLexicalScope(declaration);
+  let mutated = false;
+  const visitWrites = (node: ts.Node): void => {
+    if (
+      mutated ||
+      node.end <= declaration.end ||
+      node.getStart(sourceFile) >= identifier.getStart(sourceFile)
+    ) {
+      return;
+    }
+
+    if (writesIdentifier(node, identifier.text)) {
+      mutated = true;
+      return;
+    }
+
+    ts.forEachChild(node, visitWrites);
+  };
+
+  visitWrites(scope);
+  return mutated ? null : declaration.initializer;
 }
 
 function collectScopedWhereBindings(
@@ -477,6 +585,29 @@ function mergeScopePresence(
   };
 }
 
+function intersectPresence(left: Presence, right: Presence): Presence {
+  if (left === 'absent' || right === 'absent') {
+    return 'absent';
+  }
+  if (left === 'unresolved' || right === 'unresolved') {
+    return 'unresolved';
+  }
+  return 'present';
+}
+
+function intersectScopePresence(
+  left: ScopePresence,
+  right: ScopePresence,
+): ScopePresence {
+  return {
+    isDeleted: intersectPresence(left.isDeleted, right.isDeleted),
+    organizationId: intersectPresence(
+      left.organizationId,
+      right.organizationId,
+    ),
+  };
+}
+
 function applySpreadPresence(
   current: ScopePresence,
   spread: ScopePresence,
@@ -489,6 +620,76 @@ function applySpreadPresence(
         ? current.organizationId
         : spread.organizationId,
   };
+}
+
+function inspectDisjunction(
+  expression: ts.Expression,
+  sourceFile: ts.SourceFile,
+  bindings: ScopedWhereBindings,
+  visitedIdentifiers: Set<string>,
+): ScopePresence {
+  const unwrapped = unwrapExpression(expression);
+
+  if (ts.isIdentifier(unwrapped)) {
+    if (visitedIdentifiers.has(unwrapped.text)) {
+      return {
+        isDeleted: 'unresolved',
+        organizationId: 'unresolved',
+      };
+    }
+
+    const initializer = resolveLocalInitializer(unwrapped, sourceFile);
+    if (!initializer) {
+      return {
+        isDeleted: 'unresolved',
+        organizationId: 'unresolved',
+      };
+    }
+
+    const nextVisited = new Set(visitedIdentifiers);
+    nextVisited.add(unwrapped.text);
+    return inspectDisjunction(initializer, sourceFile, bindings, nextVisited);
+  }
+
+  if (!ts.isArrayLiteralExpression(unwrapped)) {
+    return inspectWhereExpression(
+      unwrapped,
+      sourceFile,
+      bindings,
+      new Set(visitedIdentifiers),
+    );
+  }
+
+  if (unwrapped.elements.length === 0) {
+    return {
+      isDeleted: 'absent',
+      organizationId: 'absent',
+    };
+  }
+
+  return unwrapped.elements.reduce<ScopePresence>(
+    (presence, element) =>
+      intersectScopePresence(
+        presence,
+        ts.isSpreadElement(element)
+          ? inspectWhereExpression(
+              element.expression,
+              sourceFile,
+              bindings,
+              new Set(visitedIdentifiers),
+            )
+          : inspectWhereExpression(
+              element,
+              sourceFile,
+              bindings,
+              new Set(visitedIdentifiers),
+            ),
+      ),
+    {
+      isDeleted: 'present',
+      organizationId: 'present',
+    },
+  );
 }
 
 function inspectWhereExpression(
@@ -614,13 +815,22 @@ function inspectWhereExpression(
       presence.isDeleted = 'present';
     }
 
-    if (
-      ts.isPropertyAssignment(property) &&
-      (name === 'AND' || name === 'OR' || name === 'NOT')
-    ) {
+    if (ts.isPropertyAssignment(property) && name === 'AND') {
       presence = mergeScopePresence(
         presence,
         inspectWhereExpression(
+          property.initializer,
+          sourceFile,
+          bindings,
+          new Set(visitedIdentifiers),
+        ),
+      );
+    }
+
+    if (ts.isPropertyAssignment(property) && name === 'OR') {
+      presence = mergeScopePresence(
+        presence,
+        inspectDisjunction(
           property.initializer,
           sourceFile,
           bindings,
@@ -821,12 +1031,12 @@ function compareFindings(
   right: TenantScopeFinding,
 ): number {
   return (
-    left.file.localeCompare(right.file) ||
+    compareText(left.file, right.file) ||
     left.line - right.line ||
-    left.delegate.localeCompare(right.delegate) ||
-    left.method.localeCompare(right.method) ||
-    left.reason.localeCompare(right.reason) ||
-    left.fingerprint.localeCompare(right.fingerprint)
+    compareText(left.delegate, right.delegate) ||
+    compareText(left.method, right.method) ||
+    compareText(left.reason, right.reason) ||
+    compareText(left.fingerprint, right.fingerprint)
   );
 }
 
@@ -893,7 +1103,7 @@ export function runTenantScopeCheck(
     cwd: rootDir,
     ignore: options.ignoreGlobs ?? DEFAULT_IGNORE_GLOBS,
     nodir: true,
-  }).sort((left, right) => left.localeCompare(right));
+  }).sort(compareText);
   const findings: TenantScopeFinding[] = [];
   const suppressionViolations: TenantScopeSuppressionViolation[] = [];
 
@@ -908,7 +1118,7 @@ export function runTenantScopeCheck(
     findings: findings.sort(compareFindings),
     suppressionViolations: suppressionViolations.sort(
       (left, right) =>
-        left.file.localeCompare(right.file) || left.line - right.line,
+        compareText(left.file, right.file) || left.line - right.line,
     ),
     tenantModels,
   };
@@ -922,10 +1132,14 @@ function isTenantScopeBaselineEntry(
   }
 
   const entry = value as Record<string, unknown>;
+  const keys = Object.keys(entry);
   return (
+    keys.length === TENANT_SCOPE_BASELINE_ENTRY_KEYS.size &&
+    keys.every((key) => TENANT_SCOPE_BASELINE_ENTRY_KEYS.has(key)) &&
     typeof entry.delegate === 'string' &&
     typeof entry.file === 'string' &&
     typeof entry.fingerprint === 'string' &&
+    TENANT_SCOPE_FINGERPRINT_PATTERN.test(entry.fingerprint) &&
     typeof entry.method === 'string' &&
     typeof entry.model === 'string' &&
     typeof entry.reason === 'string' &&
@@ -936,10 +1150,14 @@ function isTenantScopeBaselineEntry(
 export function parseTenantScopeBaseline(source: string): TenantScopeBaseline {
   const parsed = JSON.parse(source) as Record<string, unknown>;
   const entries = parsed.entries;
+  const keys = Object.keys(parsed);
 
   if (
+    keys.length !== TENANT_SCOPE_BASELINE_KEYS.size ||
+    !keys.every((key) => TENANT_SCOPE_BASELINE_KEYS.has(key)) ||
     parsed.version !== TENANT_SCOPE_BASELINE_VERSION ||
     typeof parsed.schemaPath !== 'string' ||
+    parsed.schemaPath.length === 0 ||
     !Array.isArray(entries) ||
     !entries.every(isTenantScopeBaselineEntry)
   ) {
@@ -981,11 +1199,11 @@ function compareBaselineEntries(
   right: TenantScopeBaselineEntry,
 ): number {
   return (
-    left.file.localeCompare(right.file) ||
-    left.delegate.localeCompare(right.delegate) ||
-    left.method.localeCompare(right.method) ||
-    left.reason.localeCompare(right.reason) ||
-    left.fingerprint.localeCompare(right.fingerprint)
+    compareText(left.file, right.file) ||
+    compareText(left.delegate, right.delegate) ||
+    compareText(left.method, right.method) ||
+    compareText(left.reason, right.reason) ||
+    compareText(left.fingerprint, right.fingerprint)
   );
 }
 
@@ -1152,7 +1370,7 @@ function main(): void {
 
   if (diff.regressions.length === 0 && diff.stale.length === 0) {
     console.log(
-      `check:tenant-scope — ${result.filesScanned} files scanned against ` +
+      `check:tenant-scope — API/shared-server surface: ${result.filesScanned} files scanned against ` +
         `${result.tenantModels.length} schema-derived tenant model(s); ` +
         `${result.findings.length} baselined finding(s), no new ones.`,
     );

@@ -283,7 +283,7 @@ jobs:
         run: bun run check:di-value-imports
       - name: Relation Alias Reads
         run: bun run check:relation-alias-reads
-      - name: Tenant Scope
+      - name: Tenant Scope (API + shared server)
         run: bun run check:tenant-scope
       - name: Desktop Schema Drift
         run: bun run check:desktop-schema-drift

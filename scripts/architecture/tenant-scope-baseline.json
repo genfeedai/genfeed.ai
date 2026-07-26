@@ -11,6 +11,14 @@
     {
       "delegate": "activity",
       "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
+      "fingerprint": "2a45ea55294aefe841d7",
+      "method": "findMany",
+      "model": "Activity",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "activity",
+      "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
       "fingerprint": "8ad52445a6d301c9309f",
       "method": "update",
       "model": "Activity",
@@ -21,6 +29,14 @@
       "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
       "fingerprint": "5db29a56307e0679428e",
       "method": "update",
+      "model": "Activity",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "activity",
+      "file": "apps/server/api/src/collections/activities/services/activities.service.ts",
+      "fingerprint": "a12e072d00132dc0d063",
+      "method": "updateMany",
       "model": "Activity",
       "reason": "missing-organization-id"
     },
@@ -463,6 +479,14 @@
       "method": "update",
       "model": "ContentRun",
       "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "contextBase",
+      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
+      "fingerprint": "860cf6a1649a2646ce82",
+      "method": "findMany",
+      "model": "ContextBase",
+      "reason": "unresolved-where"
     },
     {
       "delegate": "contextBase",
@@ -915,6 +939,14 @@
     {
       "delegate": "distribution",
       "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
+      "fingerprint": "b5d8b0cda61c74c596af",
+      "method": "findMany",
+      "model": "Distribution",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "distribution",
+      "file": "apps/server/api/src/collections/distributions/services/distributions.service.ts",
       "fingerprint": "3726980a38a16d8489b7",
       "method": "findUnique",
       "model": "Distribution",
@@ -1107,6 +1139,14 @@
     {
       "delegate": "evaluation",
       "file": "apps/server/api/src/collections/evaluations/services/evaluations.service.ts",
+      "fingerprint": "fc67eb75f0df08f43cd3",
+      "method": "findMany",
+      "model": "Evaluation",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "evaluation",
+      "file": "apps/server/api/src/collections/evaluations/services/evaluations.service.ts",
       "fingerprint": "582189854e323e83e77b",
       "method": "findUnique",
       "model": "Evaluation",
@@ -1267,6 +1307,14 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
+      "fingerprint": "53c9102476169353bbe1",
+      "method": "count",
+      "model": "Ingredient",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "ingredient",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "8c1e040cf54dc05cc365",
       "method": "count",
       "model": "Ingredient",
@@ -1331,6 +1379,22 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
+      "fingerprint": "594bb9426f9f672fb986",
+      "method": "findMany",
+      "model": "Ingredient",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "ingredient",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
+      "fingerprint": "cb1ac5c1330f29c80b30",
+      "method": "findMany",
+      "model": "Ingredient",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "ingredient",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "feea9ffdfa8f48e94bec",
       "method": "findMany",
       "model": "Ingredient",
@@ -1357,6 +1421,14 @@
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "815e30d79778e7d14a83",
       "method": "update",
+      "model": "Ingredient",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "ingredient",
+      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
+      "fingerprint": "6754acd1589ab673f4a1",
+      "method": "updateMany",
       "model": "Ingredient",
       "reason": "missing-organization-id"
     },
@@ -1587,14 +1659,6 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "a06d9357e2bdef4c4499",
-      "method": "findMany",
-      "model": "Model",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "2c1ffffd225620bc5576",
       "method": "findMany",
       "model": "Model",
@@ -1620,6 +1684,14 @@
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "80b695460589436f7fd3",
+      "method": "findMany",
+      "model": "Model",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "model",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
+      "fingerprint": "d2009b2df6a19a2bbba5",
       "method": "findMany",
       "model": "Model",
       "reason": "unresolved-where"
@@ -1843,18 +1915,10 @@
     {
       "delegate": "outreachCampaign",
       "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
-      "fingerprint": "5c7cf4d7215eeab8d5e1",
+      "fingerprint": "18a8946475cd7d56c1e7",
       "method": "findMany",
       "model": "OutreachCampaign",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "outreachCampaign",
-      "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
-      "fingerprint": "d775ea46d5f39ca7d42c",
-      "method": "findMany",
-      "model": "OutreachCampaign",
-      "reason": "missing-organization-id"
+      "reason": "unresolved-where"
     },
     {
       "delegate": "outreachCampaign",
@@ -2363,6 +2427,22 @@
     {
       "delegate": "run",
       "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
+      "fingerprint": "78c6c23947bee15f87de",
+      "method": "count",
+      "model": "Run",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "run",
+      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
+      "fingerprint": "1788a678b9d8f35220d5",
+      "method": "findMany",
+      "model": "Run",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "run",
+      "file": "apps/server/api/src/collections/runs/services/runs.service.ts",
       "fingerprint": "0828cb194633ecfed022",
       "method": "update",
       "model": "Run",
@@ -2707,10 +2787,10 @@
     {
       "delegate": "template",
       "file": "apps/server/api/src/collections/templates/services/templates.service.ts",
-      "fingerprint": "158f58ee5c0b066ff885",
+      "fingerprint": "d2b0abcbb5c978a425a8",
       "method": "findMany",
       "model": "Template",
-      "reason": "missing-organization-id"
+      "reason": "unresolved-where"
     },
     {
       "delegate": "template",
@@ -2787,6 +2867,14 @@
     {
       "delegate": "trackedLink",
       "file": "apps/server/api/src/collections/tracked-links/services/tracked-links.service.ts",
+      "fingerprint": "eb250a6198b893a19a80",
+      "method": "findMany",
+      "model": "TrackedLink",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "trackedLink",
+      "file": "apps/server/api/src/collections/tracked-links/services/tracked-links.service.ts",
       "fingerprint": "39d34caf7b79b077124b",
       "method": "update",
       "model": "TrackedLink",
@@ -2803,10 +2891,10 @@
     {
       "delegate": "trend",
       "file": "apps/server/api/src/collections/trends/services/modules/trend-analysis.service.ts",
-      "fingerprint": "83e01189ac3e4b51474c",
+      "fingerprint": "02a1fd0063dfee26c587",
       "method": "findMany",
       "model": "Trend",
-      "reason": "missing-organization-id"
+      "reason": "unresolved-where"
     },
     {
       "delegate": "trend",
@@ -4171,6 +4259,22 @@
     {
       "delegate": "batch",
       "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
+      "fingerprint": "2fb13a2de1da25814f7a",
+      "method": "count",
+      "model": "Batch",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "batch",
+      "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
+      "fingerprint": "53c1bfd78ff5985e887f",
+      "method": "findMany",
+      "model": "Batch",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "batch",
+      "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
       "fingerprint": "9f14259587facd7c7fc9",
       "method": "findMany",
       "model": "Batch",
@@ -4471,6 +4575,14 @@
       "method": "update",
       "model": "AdPerformance",
       "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "contentPerformance",
+      "file": "apps/server/server/src/collections/content-performance/services/analytics-sync.service.ts",
+      "fingerprint": "0f16780f76fb7bdb8262",
+      "method": "findFirst",
+      "model": "ContentPerformance",
+      "reason": "unresolved-where"
     },
     {
       "delegate": "post",
