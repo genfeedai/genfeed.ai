@@ -324,6 +324,7 @@ export class AgentRunsService extends BaseService<
     organizationId: string,
     progress: number,
   ): Promise<void> {
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false after caller input, while id bounds the write to one run.
     await this.delegate.updateMany({
       where: scopedWhere(organizationId, { id }),
       data: { progress: Math.min(100, Math.max(0, progress)) },
@@ -547,6 +548,7 @@ export class AgentRunsService extends BaseService<
       summary: null,
       updatedAt: claimedAt,
     };
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false after caller input, while id and prior status form a single-run retry claim.
     const claim = await this.delegate.updateMany({
       where: scopedWhere(organizationId, {
         id,
@@ -591,6 +593,7 @@ export class AgentRunsService extends BaseService<
     rollback: AgentRunRetryRollback,
     brandId?: string | null,
   ): Promise<boolean> {
+    // sql-risk-audit: ignore bulk-write-tenant-review -- scopedWhere forces organizationId and isDeleted:false after caller input, while id and claimed state bound rollback to one run.
     const result = await this.delegate.updateMany({
       data: rollback.state,
       where: scopedWhere(organizationId, {
