@@ -282,7 +282,7 @@ export default function RunChartsGrid({
         <MiniChartCard title="Run Activity" subtitle="Last 14 days">
           <RunActivityChart trends={trends} />
         </MiniChartCard>
-        <MiniChartCard title="Runs by Status" subtitle="Last 14 days">
+        <MiniChartCard title="Runs by Status" subtitle="Current filtered page">
           <RunsByStatusChart runs={runs} />
         </MiniChartCard>
         <MiniChartCard title="Credits by Day" subtitle="Last 14 days">

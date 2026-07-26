@@ -261,10 +261,11 @@ describe('SocialMessagesPage', () => {
   it('renders the inbox route, workflow automation link, and reply action', async () => {
     render(<SocialMessagesPage />);
 
-    // The surface no longer paints its own "Messages" title — the shell
-    // breadcrumb names it — so the toolbar row is the render landmark.
     expect(
-      await screen.findByRole('button', { name: /sync youtube/i }),
+      await screen.findByRole('heading', { level: 1, name: 'Messages' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /sync youtube/i }),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenCalledWith(

@@ -21,6 +21,7 @@ import { Button } from '@ui/primitives/button';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
+import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
@@ -344,6 +345,8 @@ function AppProtectedTopbarContent({
               icon itself carries the state (panel closing vs opening). */}
           {workspaceInspector?.isRegistered ? (
             <Button
+              aria-controls="workspace-context-inspector"
+              aria-expanded={workspaceInspector.isOpen}
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
@@ -364,6 +367,8 @@ function AppProtectedTopbarContent({
               )}
             </Button>
           ) : null}
+
+          {!isAdminChrome && isSidebarCollapsed ? <TopbarEnd /> : null}
         </div>
       </div>
     </header>

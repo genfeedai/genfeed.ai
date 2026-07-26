@@ -13,6 +13,12 @@ import { createContext, useContext, useMemo } from 'react';
  * standalone/unit-test rendering of `AgentFullPage` intact.
  */
 export interface ConversationInspectorShellContextValue {
+  /**
+   * The conversation only owns the inspector while it is the active shell
+   * surface. Portals must not escape a hidden/inert conversation subtree and
+   * replace the active canvas inspector.
+   */
+  isActive: boolean;
   portalTarget: HTMLElement | null;
   /**
    * Told whether the conversation currently owns the rail, so the shell can
@@ -24,6 +30,7 @@ export interface ConversationInspectorShellContextValue {
 
 interface ConversationInspectorShellProviderProps {
   children: ReactNode;
+  isActive: boolean;
   portalTarget: HTMLElement | null;
   onPanelPresenceChange: (hasPanel: boolean) => void;
 }
@@ -33,12 +40,13 @@ const ConversationInspectorShellContext =
 
 export function ConversationInspectorShellProvider({
   children,
+  isActive,
   onPanelPresenceChange,
   portalTarget,
 }: ConversationInspectorShellProviderProps): ReactElement {
   const value = useMemo<ConversationInspectorShellContextValue>(
-    () => ({ portalTarget, setHasPanel: onPanelPresenceChange }),
-    [onPanelPresenceChange, portalTarget],
+    () => ({ isActive, portalTarget, setHasPanel: onPanelPresenceChange }),
+    [isActive, onPanelPresenceChange, portalTarget],
   );
 
   return (

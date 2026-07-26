@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { WORKSPACE_SURFACES_WITH_OWN_PRIMARY_INPUT } from './workspace-composer-surfaces';
 import {
   getWorkspaceShellOverlayRegistration,
   PROTECTED_ROUTE_INVENTORY,
@@ -68,6 +69,18 @@ describe('workspace shell trusted registry', () => {
     }
   });
 
+  it('registers every surface that suppresses the shell composer', () => {
+    const registeredSurfaceKeys = new Set(
+      PROTECTED_ROUTE_INVENTORY.map((route) => route.surfaceKey),
+    );
+
+    expect(
+      [...WORKSPACE_SURFACES_WITH_OWN_PRIMARY_INPUT].filter(
+        (surfaceKey) => !registeredSurfaceKeys.has(surfaceKey),
+      ),
+    ).toEqual([]);
+  });
+
   it('resolves every canonical inventory pattern to its exact registration', () => {
     for (const registration of PROTECTED_ROUTE_INVENTORY) {
       const route = resolveWorkspaceShellRoute(
@@ -114,12 +127,15 @@ describe('workspace shell trusted registry', () => {
       'Campaign',
     ],
     ['/acme/moonrise/orchestration/library/images', 'Workflows', 'Images'],
-  ] as const)('resolves canonical breadcrumb metadata for %s', (pathname, rootLabel, leafLabel) => {
-    expect(resolveWorkspaceShellRoute(pathname)?.breadcrumb).toEqual({
-      leafLabel,
-      rootLabel,
-    });
-  });
+  ] as const)(
+    'resolves canonical breadcrumb metadata for %s',
+    (pathname, rootLabel, leafLabel) => {
+      expect(resolveWorkspaceShellRoute(pathname)?.breadcrumb).toEqual({
+        leafLabel,
+        rootLabel,
+      });
+    },
+  );
 
   it.each([
     ['/:orgSlug/:brandSlug/posts/calendar', 'canvas'],

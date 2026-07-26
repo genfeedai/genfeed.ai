@@ -65,6 +65,7 @@ describe('RunChartsGrid', () => {
     expect(screen.getByTestId('run-charts')).toBeVisible();
     expect(screen.getByText('Run Activity')).toBeVisible();
     expect(screen.getByText('Runs by Status')).toBeVisible();
+    expect(screen.getByText('Current filtered page')).toBeVisible();
     expect(screen.getByText('Credits by Day')).toBeVisible();
     expect(screen.getByText('Success Rate')).toBeVisible();
     expect(screen.getAllByTestId('chart-piece').length).toBeGreaterThan(0);

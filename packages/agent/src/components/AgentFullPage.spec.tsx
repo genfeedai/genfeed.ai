@@ -4,6 +4,7 @@ import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ConversationInspectorShellProvider } from './ConversationInspectorShellContext';
 
 vi.mock('@ui/primitives', () => ({
   Drawer: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
@@ -504,6 +505,62 @@ describe('AgentFullPage', () => {
     expect(screen.getAllByText('agent-outputs-panel')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Outputs' })).toBeInTheDocument();
     expect(screen.getByText('standard-layout')).toBeInTheDocument();
+  });
+
+  it('projects outputs only while the conversation owns the shell inspector', async () => {
+    storeState.messages = [
+      {
+        content: 'Generated something useful',
+        createdAt: '2026-03-10T10:00:00.000Z',
+        id: 'msg-output',
+        metadata: {
+          uiActions: [
+            {
+              id: 'action-output',
+              images: ['https://cdn.test/output.png'],
+              title: 'Generated outputs',
+              type: 'content_preview_card',
+            },
+          ],
+        },
+        role: 'assistant',
+        threadId: 'thread-1',
+      },
+    ];
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+    const onPanelPresenceChange = vi.fn();
+
+    const view = render(
+      <ConversationInspectorShellProvider
+        isActive
+        onPanelPresenceChange={onPanelPresenceChange}
+        portalTarget={portalTarget}
+      >
+        <AgentFullPage apiService={createApiService() as never} />
+      </ConversationInspectorShellProvider>,
+    );
+
+    await waitFor(() => {
+      expect(onPanelPresenceChange).toHaveBeenLastCalledWith(true);
+    });
+    expect(portalTarget).toHaveTextContent('agent-outputs-panel');
+
+    view.rerender(
+      <ConversationInspectorShellProvider
+        isActive={false}
+        onPanelPresenceChange={onPanelPresenceChange}
+        portalTarget={portalTarget}
+      >
+        <AgentFullPage apiService={createApiService() as never} />
+      </ConversationInspectorShellProvider>,
+    );
+
+    await waitFor(() => {
+      expect(onPanelPresenceChange).toHaveBeenLastCalledWith(false);
+    });
+    expect(portalTarget).toBeEmptyDOMElement();
+    portalTarget.remove();
   });
 
   it('prefers latest assistant completion recos over static page-context actions', () => {

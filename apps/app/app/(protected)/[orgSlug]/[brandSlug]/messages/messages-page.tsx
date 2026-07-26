@@ -1118,8 +1118,7 @@ export default function MessagesPage() {
 
   return (
     <Container>
-      {/* No page title here: the shell breadcrumb already names this surface,
-        and repeating it inside the canvas was a duplicated header. */}
+      <h1 className="sr-only">Messages</h1>
       <div className="mb-5 flex flex-wrap items-center justify-end gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <Button

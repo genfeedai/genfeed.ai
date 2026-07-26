@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mockSearchParams = new URLSearchParams();
@@ -11,6 +11,13 @@ const mockPathname = vi.hoisted(() => ({
 }));
 const mockAccessState = vi.hoisted(() => ({
   isSuperAdmin: false,
+}));
+const workspaceInspectorState = vi.hoisted(() => ({
+  value: null as {
+    isOpen: boolean;
+    isRegistered: boolean;
+    toggle: () => void;
+  } | null,
 }));
 const originalLocation = window.location;
 
@@ -75,21 +82,31 @@ vi.mock('@ui/primitives/button', () => ({
     onClick,
     ariaLabel,
     className,
+    ...props
   }: {
     children: ReactNode;
     onClick?: () => void;
     ariaLabel?: string;
     className?: string;
-  }) => (
+  } & ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
       className={className}
+      {...props}
     >
       {children}
     </button>
   ),
+}));
+
+vi.mock('@ui/topbars/end/TopbarEnd', () => ({
+  default: () => <div data-testid="topbar-account-menu" />,
+}));
+
+vi.mock('@/components/workspace-shell/WorkspaceInspectorContext', () => ({
+  useWorkspaceInspector: () => workspaceInspectorState.value,
 }));
 
 vi.mock('@ui/menus/switchers/MenuBrandSwitcher', () => ({
@@ -178,6 +195,7 @@ describe('AppProtectedTopbar', () => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace/overview';
     mockAccessState.isSuperAdmin = false;
+    workspaceInspectorState.value = null;
     appSwitcherSpy.mockClear();
     brandSwitcherSpy.mockClear();
     mockPush.mockClear();
@@ -426,6 +444,34 @@ describe('AppProtectedTopbar', () => {
     expect(screen.getByTestId('app-protected-topbar-inner')).toHaveClass(
       'pl-14',
     );
+    expect(screen.getByTestId('topbar-account-menu')).toBeInTheDocument();
+  });
+
+  it('keeps the account menu in the sidebar while it is expanded', () => {
+    render(<AppProtectedTopbar />);
+
+    expect(screen.queryByTestId('topbar-account-menu')).toBeNull();
+  });
+
+  it('exposes the inspector toggle as a controlled disclosure', () => {
+    const toggle = vi.fn();
+    workspaceInspectorState.value = {
+      isOpen: true,
+      isRegistered: true,
+      toggle,
+    };
+
+    render(<AppProtectedTopbar />);
+
+    const inspectorToggle = screen.getByTestId('topbar-inspector-toggle');
+    expect(inspectorToggle).toHaveAttribute(
+      'aria-controls',
+      'workspace-context-inspector',
+    );
+    expect(inspectorToggle).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(inspectorToggle);
+    expect(toggle).toHaveBeenCalledTimes(1);
   });
 
   it('clears the visible brand on explicit organization routes', () => {

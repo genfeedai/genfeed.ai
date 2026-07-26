@@ -105,7 +105,8 @@ export function AgentFullPage({
 
   const hasInlineContextPanel = !inspectorShell && contextPanel !== null;
   const setInspectorHasPanel = inspectorShell?.setHasPanel;
-  const hasProjectedContextPanel = Boolean(inspectorShell) && !!contextPanel;
+  const hasProjectedContextPanel =
+    inspectorShell?.isActive === true && contextPanel !== null;
 
   useEffect(() => {
     if (!setInspectorHasPanel) {
@@ -185,7 +186,7 @@ export function AgentFullPage({
         </div>
       </div>
 
-      {inspectorShell?.portalTarget && contextPanel
+      {hasProjectedContextPanel && inspectorShell?.portalTarget && contextPanel
         ? createPortal(
             <div className="min-h-0 w-full">{contextPanel}</div>,
             inspectorShell.portalTarget,

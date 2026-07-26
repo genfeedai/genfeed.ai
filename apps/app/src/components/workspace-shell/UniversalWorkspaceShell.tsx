@@ -1029,6 +1029,7 @@ function UniversalWorkspaceShellContent({
 
   return (
     <ConversationInspectorShellProvider
+      isActive={baseState === 'conversation'}
       onPanelPresenceChange={setHasAgentInspectorPanel}
       portalTarget={agentInspectorPortalTarget}
     >
@@ -1144,7 +1145,7 @@ function UniversalWorkspaceShellContent({
                   // composer is actually overlaying it.
                   !workflowSurfaceRoute.isGraphCanvas &&
                     isShellComposerVisible &&
-                    'pb-28 md:pb-32',
+                    'pb-48 md:pb-56',
                   baseState !== 'canvas' && 'hidden',
                 )}
                 data-testid="workspace-canvas-layout"
@@ -1215,6 +1216,7 @@ function UniversalWorkspaceShellContent({
                 'fixed right-0 bottom-0 z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
                 isInspectorOpen && 'border-l border-border',
               )}
+              id="workspace-context-inspector"
               ref={inspectorRef}
               style={{
                 minWidth: inspectorRailWidth,
@@ -1229,7 +1231,7 @@ function UniversalWorkspaceShellContent({
                     aria-orientation="vertical"
                     aria-valuemax={INSPECTOR_MAX_WIDTH}
                     aria-valuemin={INSPECTOR_MIN_WIDTH}
-                    aria-valuenow={inspectorWidth ?? undefined}
+                    aria-valuenow={inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH}
                     ariaLabel="Resize context inspector"
                     className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
                     onKeyDown={handleInspectorResizeKeyDown}

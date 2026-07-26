@@ -9,15 +9,16 @@
  * affordance. Conversation state is unaffected: there the floating composer IS
  * the primary input.
  */
-const SURFACES_WITH_OWN_PRIMARY_INPUT: ReadonlySet<string> = new Set([
-  'compose',
-  'editor',
-  'messages',
-  'post-composer',
-  'studio',
-  'studio-specialized',
-]);
+export const WORKSPACE_SURFACES_WITH_OWN_PRIMARY_INPUT: ReadonlySet<string> =
+  new Set([
+    'compose',
+    'editor',
+    'messages',
+    'post-composer',
+    'studio',
+    'studio-specialized',
+  ]);
 
 export function surfaceOwnsPrimaryInput(surfaceKey: string): boolean {
-  return SURFACES_WITH_OWN_PRIMARY_INPUT.has(surfaceKey);
+  return WORKSPACE_SURFACES_WITH_OWN_PRIMARY_INPUT.has(surfaceKey);
 }
