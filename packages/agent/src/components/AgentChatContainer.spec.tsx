@@ -430,6 +430,7 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
 }));
 
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
+import { ConversationComposerShellProvider } from '@genfeedai/agent/components/ConversationComposerShellContext';
 
 describe('AgentChatContainer', () => {
   beforeAll(() => {
@@ -557,6 +558,30 @@ describe('AgentChatContainer', () => {
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
       'true',
     );
+  });
+
+  it('does not render a conversation composer when the product surface owns the primary input', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [buildAssistantMessage()];
+
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Studio"
+        draftScopeKey="acme:thread-1:3"
+        isComposerVisible={false}
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} isStreaming />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(container.querySelector('[data-layout-mode]')).toBeNull();
+    expect(screen.queryByText('chat-input')).not.toBeInTheDocument();
+    expect(container.querySelector('.pb-6')).not.toBeNull();
+    expect(container.querySelector('.pb-56')).toBeNull();
   });
 
   it('uses an inflow prompt bar layout on the empty state even when a surface layout is requested', () => {

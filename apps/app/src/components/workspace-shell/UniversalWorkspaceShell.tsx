@@ -324,6 +324,11 @@ function UniversalWorkspaceShellContent({
   // down there and the surface owns its input.
   const isShellComposerVisible =
     state !== 'overlay' && !surfaceOwnsPrimaryInput(surfaceKey);
+  // Registered overlays provide their own composer portal even though the
+  // canvas slot stands down. Outside an overlay, a product-owned primary input
+  // is the only composer for that surface.
+  const isConversationComposerVisible =
+    state === 'overlay' || isShellComposerVisible;
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
   // Human-readable breadcrumb leaf resolved from the route registry
   // (param-interpolated), never the raw `route:/…` pattern from `routeKey`.
@@ -1050,6 +1055,7 @@ function UniversalWorkspaceShellContent({
         dispatchAction={handleComposerAction}
         draftScopeKey={draftScopeKey}
         isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
+        isComposerVisible={isConversationComposerVisible}
         portalTarget={composerPortalTarget}
         references={activeResearchSurfaceAdapter?.references}
         scopeControls={

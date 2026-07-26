@@ -47,6 +47,7 @@ vi.mock('@genfeedai/agent', () => ({
     children,
     dispatchAction,
     draftScopeKey,
+    isComposerVisible,
     scopeControls,
   }: {
     artifactReferences?: ReadonlyArray<{
@@ -65,6 +66,7 @@ vi.mock('@genfeedai/agent', () => ({
       arguments: string;
     }) => void;
     draftScopeKey: string;
+    isComposerVisible?: boolean;
     scopeControls?: ReactNode;
   }) => (
     <div
@@ -72,6 +74,7 @@ vi.mock('@genfeedai/agent', () => ({
       data-composer-references={artifactReferences
         ?.map((item) => item.reference.recordId)
         .join(',')}
+      data-composer-visible={String(isComposerVisible)}
       data-draft-scope={draftScopeKey}
     >
       {children}
@@ -482,6 +485,9 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByText('Studio canvas').closest('[data-composer-references]'),
     ).toHaveAttribute('data-composer-references', 'ingredient-1');
+    expect(
+      screen.getByText('Studio canvas').closest('[data-composer-visible]'),
+    ).toHaveAttribute('data-composer-visible', 'false');
   });
 
   it('keeps a conversation created from Studio out of the canonical URL', () => {
@@ -759,6 +765,11 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByTestId('workspace-overlay-composer-slot'),
     ).toBeInTheDocument();
+    expect(
+      screen
+        .getByTestId('workspace-overlay-composer-slot')
+        .closest('[data-composer-visible]'),
+    ).toHaveAttribute('data-composer-visible', 'true');
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Dismiss workspace overlay' }),

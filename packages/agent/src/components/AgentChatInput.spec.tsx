@@ -196,7 +196,7 @@ describe('AgentChatInput', () => {
         dispatchAction={dispatchAction}
         draftScopeKey="acme:thread-1:3"
         portalTarget={null}
-        shellState="conversation"
+        shellState="canvas"
       >
         <AgentChatInput onSend={onSend} />
       </ConversationComposerShellProvider>,

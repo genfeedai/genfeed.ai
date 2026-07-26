@@ -256,7 +256,10 @@ export function AgentChatContainer({
                 // The prompt bar floats over the transcript and has to be
                 // scrolled clear of — unless the shell hosts it in its own
                 // composer slot, where the canvas already reserves the room.
-                composerShell?.portalTarget ? 'pb-6' : 'pb-56 md:pb-72',
+                composerShell?.portalTarget ||
+                  composerShell?.isComposerVisible === false
+                  ? 'pb-6'
+                  : 'pb-56 md:pb-72',
                 conversationColumnMaxWidthClass,
               )}
             >
@@ -336,7 +339,8 @@ export function AgentChatContainer({
         </div>
       )}
 
-      {composerShell || !isEmpty || onboardingMode ? (
+      {(composerShell?.isComposerVisible ?? true) &&
+      (composerShell || !isEmpty || onboardingMode) ? (
         <AgentChatPromptBar
           activeWorkEvent={activeWorkEvent}
           addFiles={addFiles}
