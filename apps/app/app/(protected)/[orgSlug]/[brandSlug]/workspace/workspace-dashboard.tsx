@@ -290,12 +290,8 @@ export function DashboardStatsStrip({
         label: 'Tasks In Progress',
         value: String(inProgressTaskCount),
       },
-      {
-        accent: 'current period',
-        isLoading: isRunsLoading,
-        label: 'Credits Used',
-        value: `${(stats?.totalCreditsToday ?? 0).toFixed(2)}`,
-      },
+      // Credits deliberately omitted: the topbar already carries the live
+      // credit balance, and repeating it here read as a duplicate meter.
       {
         accent: `${reviewInbox.approvedCount} approved`,
         label: 'Pending Approvals',
@@ -314,7 +310,7 @@ export function DashboardStatsStrip({
 
   return (
     <section data-testid="dashboard-stats-strip">
-      <DashboardGrid>
+      <DashboardGrid cols={3}>
         {items.map((item) => (
           <Card key={item.label} bodyClassName="p-4">
             {item.isLoading ? (
@@ -842,8 +838,91 @@ export function DashboardRecentTasks({
 }
 
 /* ------------------------------------------------------------------ */
+/*  Guided first run                                                   */
+/* ------------------------------------------------------------------ */
+
+const FIRST_RUN_STEPS = [
+  'Describe what you want in the conversation below — a post, a campaign, a research pass.',
+  'The agent plans it, runs it, and drops the output in your inbox for review.',
+  'Approved work shows up here as runs, tasks, and trends.',
+];
+
+function WorkspaceDashboardFirstRun({ trendsHref }: { trendsHref: string }) {
+  return (
+    <section
+      className="gen-shell-empty-state mx-auto w-full max-w-2xl p-8"
+      data-testid="workspace-dashboard-first-run"
+    >
+      <h2 className="text-sm font-medium text-foreground">
+        Nothing running yet
+      </h2>
+      <ol className="mt-4 space-y-2.5">
+        {FIRST_RUN_STEPS.map((step, index) => (
+          <li
+            key={step}
+            className="flex gap-3 text-xs leading-5 text-muted-foreground"
+          >
+            <span className="mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-border text-[10px] font-medium text-foreground/55">
+              {index + 1}
+            </span>
+            {step}
+          </li>
+        ))}
+      </ol>
+      <div className="mt-6">
+        <Button asChild variant={ButtonVariant.SECONDARY} size={ButtonSize.XS}>
+          <Link href={trendsHref}>Browse trends for an idea</Link>
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main Dashboard Layout                                              */
 /* ------------------------------------------------------------------ */
+
+/**
+ * True once the brand has anything at all to show. Exported because the overview
+ * page has to hide its task queue and sidebar on exactly the same condition —
+ * two definitions would let the first-run block render with empty bands stacked
+ * underneath it, which is the state it exists to replace.
+ */
+export function hasWorkspaceOverviewSignal({
+  activeRuns,
+  isRunsLoading = false,
+  isTasksLoading = false,
+  isTrendsLoading = false,
+  reviewInbox,
+  runs,
+  trendItems = [],
+  workspaceTasks,
+}: Pick<
+  DashboardProps,
+  | 'activeRuns'
+  | 'isRunsLoading'
+  | 'isTasksLoading'
+  | 'isTrendsLoading'
+  | 'reviewInbox'
+  | 'runs'
+  | 'trendItems'
+  | 'workspaceTasks'
+>): boolean {
+  // Loading counts as signal: collapsing to the guided block mid-fetch would
+  // flash the first-run copy at every returning operator.
+  if (isRunsLoading || isTasksLoading || isTrendsLoading) {
+    return true;
+  }
+
+  return (
+    activeRuns.length > 0 ||
+    runs.length > 0 ||
+    workspaceTasks.length > 0 ||
+    reviewInbox.pendingCount > 0 ||
+    reviewInbox.recentItems.length > 0 ||
+    trendItems.length > 0
+  );
+}
 
 export function WorkspaceDashboard({
   activeRuns,
@@ -857,14 +936,28 @@ export function WorkspaceDashboard({
   trendItems = [],
   workspaceTasks,
 }: DashboardProps) {
-  return (
-    <div className="flex flex-col gap-4">
-      <DashboardAgentCards
-        activeRuns={activeRuns}
-        isLoading={isRunsLoading}
-        runs={runs}
-      />
+  // A brand with nothing in it used to render six empty bands stacked on top of
+  // each other. Collapse the whole thing into one guided block instead.
+  if (
+    !hasWorkspaceOverviewSignal({
+      activeRuns,
+      isRunsLoading,
+      isTasksLoading,
+      isTrendsLoading,
+      reviewInbox,
+      runs,
+      trendItems,
+      workspaceTasks,
+    })
+  ) {
+    return <WorkspaceDashboardFirstRun trendsHref={trendsHref} />;
+  }
 
+  // Overview lives inside the conversation canvas, so it stays a centered,
+  // hard-capped 3/6/9 card grid. Dense back-office charts (DashboardChartsGrid)
+  // are intentionally not part of this composition.
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
       <DashboardStatsStrip
         activeRuns={activeRuns}
         isRunsLoading={isRunsLoading}
@@ -874,9 +967,13 @@ export function WorkspaceDashboard({
         workspaceTasks={workspaceTasks}
       />
 
-      <DashboardChartsGrid runs={runs} stats={stats} />
+      <DashboardAgentCards
+        activeRuns={activeRuns}
+        isLoading={isRunsLoading}
+        runs={runs}
+      />
 
-      <DashboardGrid cols={2}>
+      <DashboardGrid cols={3}>
         <DashboardRecentActivity
           isLoading={isTasksLoading}
           workspaceTasks={workspaceTasks}
@@ -885,13 +982,12 @@ export function WorkspaceDashboard({
           isLoading={isTasksLoading}
           workspaceTasks={workspaceTasks}
         />
+        <OverviewTrendsPanel
+          trends={trendItems}
+          isLoading={isTrendsLoading}
+          viewAllHref={trendsHref}
+        />
       </DashboardGrid>
-
-      <OverviewTrendsPanel
-        trends={trendItems}
-        isLoading={isTrendsLoading}
-        viewAllHref={trendsHref}
-      />
     </div>
   );
 }

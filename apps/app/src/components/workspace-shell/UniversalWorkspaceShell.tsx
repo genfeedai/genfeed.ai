@@ -45,8 +45,6 @@ import {
   HiOutlineArrowLeft,
   HiOutlineBolt,
   HiOutlineChatBubbleLeftRight,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
   HiOutlineEye,
   HiOutlineSquares2X2,
   HiOutlineViewColumns,
@@ -89,6 +87,10 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
+import {
+  useRegisterWorkspaceInspector,
+  useWorkspaceInspector,
+} from './WorkspaceInspectorContext';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
 import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
 import {
@@ -101,7 +103,13 @@ import {
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
 const INSPECTOR_MAX_WIDTH = 480;
-const INSPECTOR_COLLAPSED_WIDTH = 48;
+// Zero, not a rail stub: collapsed means gone, exactly like the left navigation
+// sidebar. The only toggle then lives in the topbar (WorkspaceInspectorContext).
+const INSPECTOR_COLLAPSED_WIDTH = 0;
+// Motion parity with DesktopSidebar — same duration, same curve, both axes.
+const INSPECTOR_TRANSITION_DURATION_MS = 300;
+const INSPECTOR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
+const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}, min-width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}`;
 
 type UniversalWorkspaceShellProps = {
   readonly agentApiService: AgentApiService;
@@ -149,7 +157,13 @@ function UniversalWorkspaceShellContent({
   const activeWorkspaceSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
   const activeSurfacePresentationAdapter =
     useActiveWorkspaceSurfacePresentationAdapter();
-  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  // The topbar owns the inspector toggle, so open state is shared through a
+  // provider that sits above AppLayout. The shell also renders standalone (unit
+  // tests, non-protected layouts) where there is no toggle at all, so it defaults
+  // to expanded there.
+  const workspaceInspector = useWorkspaceInspector();
+  const isInspectorOpen = workspaceInspector?.isOpen ?? true;
+  useRegisterWorkspaceInspector();
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
   // `null` keeps the inspector sized to its own content (clamped by the CSS
   // min/max below); a number means the operator has resized it explicitly.
@@ -890,7 +904,7 @@ function UniversalWorkspaceShellContent({
   );
 
   const inspectorContent = (
-    <div className="flex h-full min-h-0 flex-col bg-background-secondary">
+    <div className="flex h-full min-h-0 flex-col bg-background">
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
         <div>
           <p className="text-sm font-medium text-foreground">Context</p>
@@ -904,15 +918,8 @@ function UniversalWorkspaceShellContent({
                   : 'No conversation selected'}
           </p>
         </div>
-        <Button
-          ariaLabel="Collapse context inspector"
-          className="hidden size-7 xl:inline-flex"
-          icon={<HiOutlineChevronRight className="size-4" />}
-          onClick={() => setIsInspectorOpen(false)}
-          size={ButtonSize.ICON}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        />
+        {/* No collapse control here: the rail collapses to nothing, so the one
+            toggle is pinned in the topbar instead of disappearing with it. */}
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         {conversationScope.inspectorScope}
@@ -1030,9 +1037,9 @@ function UniversalWorkspaceShellContent({
           className="h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0"
           data-testid="workspace-shell-regions"
         >
-          {/* Flex column, not a positioned stack: the composer is docked as the
-              last row so it reserves its own space instead of floating over the
-              conversation and canvas. */}
+          {/* Flex column for the regions, with the composer absolutely pinned to
+              its bottom edge — hence `relative` here. The composer floats over
+              the active region rather than reserving a row of its own. */}
           <div className="relative flex h-full min-h-0 min-w-0 flex-col">
             <div
               aria-hidden={baseState !== 'conversation'}
@@ -1088,9 +1095,12 @@ function UniversalWorkspaceShellContent({
               aria-label="Primary workspace canvas"
               className={cn(
                 'min-h-0 min-w-0 flex-1 bg-background',
+                // Scrolling surfaces clear the floating composer so their last
+                // row can still be scrolled into view. A graph canvas owns its
+                // own viewport, so it keeps the full box.
                 workflowSurfaceRoute.isGraphCanvas
                   ? 'overflow-hidden'
-                  : 'overflow-auto',
+                  : 'overflow-auto pb-28 md:pb-32',
                 baseState !== 'canvas' && 'hidden',
               )}
               data-testid="workspace-canvas-layout"
@@ -1131,27 +1141,41 @@ function UniversalWorkspaceShellContent({
               </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
             </section>
 
+            {/* Floated, not docked: a reserved last row painted an opaque band
+                under the prompt bar. The composer now overlays the bottom of the
+                stack and the regions below scroll under it, kept reachable by
+                their own bottom padding. `pointer-events-none` on the frame so
+                the gap either side of the bar stays scrollable. */}
             {state !== 'overlay' ? (
               <div
-                className="shrink-0 px-3 pb-3 md:px-5 md:pb-5"
+                className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3 pb-3 md:px-5 md:pb-5"
                 data-testid="workspace-composer-slot"
               >
-                <div ref={setComposerPortalTarget} />
+                <div
+                  className="pointer-events-auto"
+                  ref={setComposerPortalTarget}
+                />
               </div>
             ) : null}
           </div>
 
           {/* Full-height rail, mirroring the left navigation sidebar: fixed to the
-              viewport edge, flush from titlebar to bottom, square. The topbar and
-              main content reserve space for it through --workspace-inspector-width. */}
+              viewport edge, flush from titlebar to bottom, square, same surface
+              colour, same 300ms curve on width and min-width. Collapsed it goes
+              to zero — border included, or a 1px line survives at width 0. The
+              topbar and main content reserve space for it through
+              --workspace-inspector-width, which is how the rail pushes content. */}
           <aside
             aria-label="Context inspector"
-            className="fixed right-0 bottom-0 z-30 hidden min-h-0 flex-col overflow-hidden border-l border-border bg-background-secondary xl:flex"
+            className={cn(
+              'fixed right-0 bottom-0 z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
+              isInspectorOpen && 'border-l border-border',
+            )}
             ref={inspectorRef}
             style={{
+              minWidth: inspectorRailWidth,
               top: 'var(--desktop-titlebar-height)',
-              transition:
-                'width var(--motion-duration-normal) var(--motion-ease-standard)',
+              transition: INSPECTOR_RAIL_TRANSITION,
               width: inspectorRailWidth,
             }}
           >
@@ -1172,19 +1196,7 @@ function UniversalWorkspaceShellContent({
                 />
                 {inspectorContent}
               </>
-            ) : (
-              <div className="flex h-full flex-col items-center pt-3">
-                <Button
-                  ariaLabel="Expand context inspector"
-                  className="size-8"
-                  icon={<HiOutlineChevronLeft className="size-4" />}
-                  onClick={() => setIsInspectorOpen(true)}
-                  size={ButtonSize.ICON}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                />
-              </div>
-            )}
+            ) : null}
           </aside>
         </div>
 

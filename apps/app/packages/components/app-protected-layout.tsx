@@ -28,6 +28,7 @@ import {
   useRef,
 } from 'react';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
+import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
 import {
   captureWorkspaceShellError,
@@ -317,31 +318,36 @@ function AppLayoutWithDynamicMenu({
       {lowCreditsBanner}
     </>
   );
+  // Provided above AppLayout on purpose: the inspector rail lives inside the
+  // workspace shell (AppLayout's child) but its collapse toggle renders in the
+  // topbar (AppLayout's sibling prop), so the shared state has to sit above both.
   const mainLayout = (
-    <AppLayout
-      bannerComponent={shellBanner}
-      breadcrumb={workspaceShellRoute?.breadcrumb}
-      brandSlug={brandSlug}
-      currentApp={currentApp}
-      menuComponent={menuComponent}
-      topbarComponent={topbarComponent}
-      shellChromeVariant={shellChromeVariant}
-      topbarChromeVariant={topbarChromeVariant}
-      hasSecondaryTopbar={hasSecondaryTopbar}
-      menuItems={navigationMenuItems}
-      orgSlug={orgSlug}
-      isWorkspaceShell={isWorkspaceShellReady}
-    >
-      {isWorkspaceShellReady && agentApiService ? (
-        <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
-          {children}
-        </LazyUniversalWorkspaceShell>
-      ) : isUniversalWorkspaceShell ? (
-        <LazyLoadingFallback variant="grid" />
-      ) : (
-        children
-      )}
-    </AppLayout>
+    <WorkspaceInspectorProvider>
+      <AppLayout
+        bannerComponent={shellBanner}
+        breadcrumb={workspaceShellRoute?.breadcrumb}
+        brandSlug={brandSlug}
+        currentApp={currentApp}
+        menuComponent={menuComponent}
+        topbarComponent={topbarComponent}
+        shellChromeVariant={shellChromeVariant}
+        topbarChromeVariant={topbarChromeVariant}
+        hasSecondaryTopbar={hasSecondaryTopbar}
+        menuItems={navigationMenuItems}
+        orgSlug={orgSlug}
+        isWorkspaceShell={isWorkspaceShellReady}
+      >
+        {isWorkspaceShellReady && agentApiService ? (
+          <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
+            {children}
+          </LazyUniversalWorkspaceShell>
+        ) : isUniversalWorkspaceShell ? (
+          <LazyLoadingFallback variant="grid" />
+        ) : (
+          children
+        )}
+      </AppLayout>
+    </WorkspaceInspectorProvider>
   );
   const guardedMainLayout = isWorkspaceShellReady ? (
     <ErrorBoundary

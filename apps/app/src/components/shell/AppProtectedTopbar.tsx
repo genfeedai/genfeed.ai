@@ -25,8 +25,9 @@ import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback } from 'react';
-import { HiBars3, HiXMark } from 'react-icons/hi2';
+import { HiBars3, HiOutlineViewColumns, HiXMark } from 'react-icons/hi2';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
+import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   appendSearchParamsToHref,
   getBrandSwitchHref,
@@ -120,6 +121,7 @@ function AppProtectedTopbarContent({
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
   const { isAssetGateLocked, isSuperAdmin } = useAccessState();
+  const workspaceInspector = useWorkspaceInspector();
   // Route props are authoritative; only fall back to useOrgUrl when the shell is
   // rendered without route context. On org-level `/:org/~/...` pages
   // effectiveBrandSlug stays undefined so the app switcher links into org-scoped
@@ -320,6 +322,28 @@ function AppProtectedTopbarContent({
           {!isAdminChrome ? <TopbarCreditsBar /> : null}
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
+
+          {/* The inspector rail collapses to zero width, so its only toggle has
+              to live here — fixed in the topbar, mirroring how the left sidebar
+              is driven from outside itself. */}
+          {workspaceInspector?.isRegistered ? (
+            <Button
+              type="button"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="hidden size-7 xl:inline-flex"
+              data-active={workspaceInspector.isOpen ? 'true' : 'false'}
+              data-testid="topbar-inspector-toggle"
+              ariaLabel={
+                workspaceInspector.isOpen
+                  ? 'Collapse context inspector'
+                  : 'Expand context inspector'
+              }
+              onClick={workspaceInspector.toggle}
+            >
+              <HiOutlineViewColumns className="size-5" />
+            </Button>
+          ) : null}
 
           {/* Grouped account controls: section switcher sits directly beside
               the settings/user menu so they read as one cluster. */}

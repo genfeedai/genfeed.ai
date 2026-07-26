@@ -152,7 +152,10 @@ export function AgentChatInput({
 
       <PromptBarShell
         className={cn(
-          'overflow-hidden rounded-xl border border-border bg-card shadow-border transition-[border-color,box-shadow] focus-within:border-foreground/[0.18] focus-within:shadow-border-strong',
+          // The prompt bar floats over the conversation/canvas, which scrolls
+          // underneath it — the outer lift is what separates the two, so no
+          // opaque filler band is needed below the composer.
+          'overflow-hidden rounded-xl border border-border bg-card shadow-composer transition-[border-color,box-shadow] focus-within:border-foreground/[0.18] focus-within:shadow-composer-strong',
           isDragActive && 'ring-1 ring-primary/40',
         )}
         data-testid="agent-chat-input-shell"

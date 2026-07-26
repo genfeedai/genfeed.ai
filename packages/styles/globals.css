@@ -182,6 +182,21 @@ body.gf-studio-app {
 @utility shadow-border-strong {
   box-shadow: inset 0 0 0 1px hsl(var(--border-strong, var(--border)));
 }
+/* Floating composer: the prompt bar hovers over content that scrolls beneath it,
+   so it needs an outer lift on top of the usual containment border to read as a
+   raised surface instead of a band welded to the bottom of the page. */
+@utility shadow-composer {
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--border)),
+    0 -4px 16px -8px rgba(0, 0, 0, 0.35),
+    0 18px 44px -12px rgba(0, 0, 0, 0.55);
+}
+@utility shadow-composer-strong {
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--border-strong, var(--border))),
+    0 -4px 16px -8px rgba(0, 0, 0, 0.35),
+    0 18px 44px -12px rgba(0, 0, 0, 0.55);
+}
 @utility shadow-dropdown {
   box-shadow:
     inset 0 0 0 1px hsl(var(--border)),

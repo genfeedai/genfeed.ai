@@ -225,7 +225,12 @@ describe('workspace dashboard sections', () => {
     );
 
     expect(screen.getByText('Agents Active')).toBeVisible();
-    expect(screen.getByText('12.35')).toBeVisible();
+    expect(screen.getByText('Tasks In Progress')).toBeVisible();
+    expect(screen.getByText('Pending Approvals')).toBeVisible();
+    // Credits are deliberately absent from the strip — the topbar already shows
+    // the live balance, so repeating it here read as a duplicate meter.
+    expect(screen.queryByText('Credits Used')).toBeNull();
+    expect(screen.queryByText('12.35')).toBeNull();
     expect(screen.getByText('Run Activity')).toBeVisible();
     expect(screen.getByText('Success Rate')).toBeVisible();
     expect(screen.getAllByTestId('chart-piece').length).toBeGreaterThan(0);
@@ -333,7 +338,8 @@ describe('workspace dashboard sections', () => {
         stats={null}
         trendsHref="/org/brand/research/discovery"
         trendItems={[]}
-        workspaceTasks={[]}
+        // One task is enough signal to get past the first-run block below.
+        workspaceTasks={[makeTask() as never]}
       />,
     );
 
@@ -342,5 +348,56 @@ describe('workspace dashboard sections', () => {
       'href',
       '/org/brand/research/discovery',
     );
+  });
+
+  it('collapses an empty brand into a single guided first-run block', () => {
+    render(
+      <WorkspaceDashboard
+        activeRuns={[]}
+        reviewInbox={{
+          approvedCount: 0,
+          changesRequestedCount: 0,
+          pendingCount: 0,
+          readyCount: 0,
+          recentItems: [],
+          rejectedCount: 0,
+        }}
+        runs={[]}
+        stats={null}
+        trendsHref="/org/brand/research/discovery"
+        trendItems={[]}
+        workspaceTasks={[]}
+      />,
+    );
+
+    expect(screen.getByTestId('workspace-dashboard-first-run')).toBeVisible();
+    // The stacked empty bands it replaces must not render alongside it.
+    expect(screen.queryByTestId('dashboard-stats-strip')).toBeNull();
+    expect(screen.queryByTestId('overview-trends-panel')).toBeNull();
+    expect(screen.queryByText('Recent Activity')).toBeNull();
+  });
+
+  it('keeps the composed dashboard while data is still loading', () => {
+    render(
+      <WorkspaceDashboard
+        activeRuns={[]}
+        isTasksLoading
+        reviewInbox={{
+          approvedCount: 0,
+          changesRequestedCount: 0,
+          pendingCount: 0,
+          readyCount: 0,
+          recentItems: [],
+          rejectedCount: 0,
+        }}
+        runs={[]}
+        stats={null}
+        trendItems={[]}
+        workspaceTasks={[]}
+      />,
+    );
+
+    expect(screen.queryByTestId('workspace-dashboard-first-run')).toBeNull();
+    expect(screen.getByTestId('dashboard-stats-strip')).toBeVisible();
   });
 });
