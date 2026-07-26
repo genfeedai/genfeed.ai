@@ -1,8 +1,8 @@
-import { join } from 'node:path';
 import { LoggerService } from '@libs/logger/logger.service';
 import { S3Service } from '@libs/s3/s3.service';
+import { resolveContainedPath } from '@libs/security';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@videos/config/config.service';
 import type {
   GenerateVideoRequest,
@@ -11,6 +11,8 @@ import type {
 import { ComfyUIService } from '@videos/services/comfyui.service';
 import { JobService } from '@videos/services/job.service';
 import { WorkflowService } from '@videos/services/workflow.service';
+
+const createBadRequest = (message: string) => new BadRequestException(message);
 
 @Injectable()
 export class GenerationService {
@@ -101,9 +103,10 @@ export class GenerationService {
       if (outputFilename) {
         // Upload to S3 and build CDN URL
         const s3Key = `ingredients/videos/generated/${jobId}/${outputFilename}`;
-        const localPath = join(
+        const localPath = resolveContainedPath(
           this.configService.COMFYUI_OUTPUT_PATH,
           outputFilename,
+          createBadRequest,
         );
 
         let videoUrl = outputFilename;
@@ -113,6 +116,7 @@ export class GenerationService {
             this.configService.AWS_S3_BUCKET,
             s3Key,
             localPath,
+            this.configService.COMFYUI_OUTPUT_PATH,
             'video/mp4',
           );
           videoUrl = `https://cdn.genfeed.ai/${s3Key}`;

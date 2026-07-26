@@ -161,6 +161,7 @@ describe('GenerationService', () => {
         'test-bucket',
         expect.stringContaining('ingredients/videos/generated/job-abc-123'),
         expect.stringContaining('output-video.mp4'),
+        '/comfyui/output',
         'video/mp4',
       );
 
@@ -169,6 +170,39 @@ describe('GenerationService', () => {
         expect.objectContaining({
           status: 'completed',
           videoUrl: expect.stringContaining('cdn.genfeed.ai'),
+        }),
+      );
+    });
+
+    it('should preserve a legitimate nested ComfyUI output path', async () => {
+      comfyuiService.queueAndWait.mockResolvedValue('nested/output-video.mp4');
+
+      await service.generateVideo(baseRequest);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(s3Service.uploadFile).toHaveBeenCalledWith(
+        'test-bucket',
+        expect.stringContaining(
+          'ingredients/videos/generated/job-abc-123/nested/output-video.mp4',
+        ),
+        '/comfyui/output/nested/output-video.mp4',
+        '/comfyui/output',
+        'video/mp4',
+      );
+    });
+
+    it('should reject a ComfyUI output path that escapes the configured root', async () => {
+      comfyuiService.queueAndWait.mockResolvedValue('../escaped.mp4');
+
+      await service.generateVideo(baseRequest);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(s3Service.uploadFile).not.toHaveBeenCalled();
+      expect(jobService.updateJob).toHaveBeenCalledWith(
+        'job-abc-123',
+        expect.objectContaining({
+          error: expect.stringContaining('must stay within'),
+          status: 'failed',
         }),
       );
     });
