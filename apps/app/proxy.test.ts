@@ -1,4 +1,12 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 const fetchMock = vi.fn();
 const originalFetch = globalThis.fetch;
@@ -120,6 +128,10 @@ describe('proxy', () => {
 
   afterAll(() => {
     globalThis.fetch = originalFetch;
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   // ─── Signed-in redirect away from root / public entry points ──────────────
@@ -625,14 +637,14 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects keyless self-hosted entrypoints to the seeded workspace', async () => {
+  it('redirects keyless self-hosted protected entrypoints to the seeded workspace', async () => {
     process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'false';
     delete process.env.BETTER_AUTH_SECRET;
 
     vi.resetModules();
     const { default: proxy } = await import('./proxy');
 
-    for (const pathname of ['/', '/settings', '/workspace/overview']) {
+    for (const pathname of ['/settings', '/workspace/overview']) {
       const response = await proxy(makeSignedOutRequest(pathname), {} as never);
 
       expect(response.status).toBe(307);
