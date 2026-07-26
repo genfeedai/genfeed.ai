@@ -68,6 +68,9 @@ describe('agent orchestrator input parsing', () => {
         'create posts about ai safety\nfor linkedin',
       ),
     ).toBe('AI Safety');
+    expect(
+      extractBatchTopic('Create posts about AI\n', 'create posts about ai\n'),
+    ).toBeUndefined();
   });
 
   it('handles long repeated spaces and words without ambiguous matching', () => {
@@ -82,5 +85,17 @@ describe('agent orchestrator input parsing', () => {
         `create posts about ${repeated}for linkedin`,
       ),
     ).toBe(repeated.trim());
+  });
+
+  it('does not rescan rejected style and topic candidates', () => {
+    const repeatedStyleCandidates = 'in a '.repeat(20_000);
+    expect(extractStyleNotes(repeatedStyleCandidates)).toBeUndefined();
+
+    const repeatedTopicCandidates = `${'about '.repeat(20_000)}${'x'.repeat(
+      50_000,
+    )}\ny`;
+    expect(
+      extractBatchTopic(repeatedTopicCandidates, repeatedTopicCandidates),
+    ).toBeUndefined();
   });
 });
