@@ -28,8 +28,8 @@ Keep it that way: this file is auto-loaded into every request.
 - [system_workflows_content_os](system_workflows_content_os.md) — automation via immutable system workflows
 - [curated_agent_mcp_actions](curated_agent_mcp_actions.md) — one reviewed action catalog; OpenAPI ≠ tool parity
 - [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps
-- [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — failed deploy re-cuts the SAME version
-- [production_deploy_master_only](production_deploy_master_only.md) — production deploys run from master CI
+- [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — failed deploy: delete the unconsumed tag and re-cut the SAME version; never bump
+- [production_deploy_master_only](production_deploy_master_only.md) — never deploy a non-master ref to production unless Vincent explicitly overrides; master CI only
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
 
 ## Rules (auto-loaded via `.claude/rules` symlink)
@@ -51,6 +51,7 @@ These are already in context every request — do not re-read them to "check".
 
 ## Specs and decisions (per issue)
 
+- [operational-app-home](spec-operational-app-home.md) · [decisions](decisions-operational-app-home.md) — #1866
 - [filesystem-s3-path-containment](spec-filesystem-s3-path-containment.md) · [decisions](decisions-filesystem-s3-path-containment.md) — #2068
 - [scheduler-target-analytics](spec-scheduler-target-analytics.md) · [decisions](decisions-scheduler-target-analytics.md) — #1975
 - [pr-validation-telemetry](spec-pr-validation-telemetry.md) · [decisions](decisions-pr-validation-telemetry.md) — #1966
@@ -93,4 +94,4 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 
 ## Plans
 
-- **MergedSwitcher** (2026-05-17) — merged AppSwitcher + ContentTypeSwitcher; `packages/ui/src/components/shell/merged-switcher/MergedSwitcher.tsx`. HTML mockups gitignored under `.agents/plans/`.
+- **MergedSwitcher** (2026-05-17) — historical AppSwitcher + ContentTypeSwitcher plan; implementation has since changed.

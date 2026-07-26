@@ -3,9 +3,9 @@
 **last_verified: 2026-07-26** · Enforced by `bun run check:di-value-imports`
 (`scripts/check-di-value-imports.ts`), an AST guard in the CI `guards` job
 
-`apps/server/**` compiles with `emitDecoratorMetadata`, which writes each decorated signature's
-parameter classes into `design:paramtypes` as **runtime value references**. `import type` erases the
-value, so the entry degrades to `undefined`/`Object`:
+`apps/server/**` inherits `emitDecoratorMetadata` from `tsconfig.server.decorators.json`, which
+writes each decorated signature's parameter classes into `design:paramtypes` as **runtime value
+references**. `import type` erases the value, so the entry degrades to `undefined`/`Object`:
 
 - **Constructor DI** — Nest resolves garbage or injects the wrong provider.
 - **`@Body`/`@Query`/`@Param` DTOs** — ValidationPipe loses the metatype and **silently skips
