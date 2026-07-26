@@ -6,13 +6,11 @@ type: reference
 
 # App Page Map
 
-Last audited: 2026-07-18.
+Last audited: 2026-07-27.
 
-Conversation-shell parity baseline: the 208 canonical protected route patterns
-accepted in `architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md`, plus the
-organization workflow-run detail route added by #1703, for a current executable
-denominator of 209 patterns. Two intentional hard-cut families remain outside
-the denominator. The app switcher is only a discovery subset.
+The current executable protected denominator is 211 canonical patterns. Two
+intentional hard-cut families remain outside the denominator. The app switcher
+is only a discovery subset.
 
 Source of truth:
 
@@ -20,18 +18,20 @@ Source of truth:
 - Route constants in `packages/constants/src/routes.constant.ts`
 - Executable protected-route classification in
   `apps/app/src/lib/workspace-shell/workspace-shell-registry.ts`
+- Protected/public page drift guard and public classification registry in
+  `scripts/architecture/check-product-route-inventory.ts`
 - Shell surface resolver in `apps/app/packages/components/useAppProtectedLayout.ts`
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
 - App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
 
-The application registry mirrors all 209 parity-eligible patterns below and
-keeps Notifications plus the Community/Desktop terminal dock as explicit
-trusted non-route surfaces. The two hard-cut families remain outside it.
+The application registry mirrors all 211 parity-eligible patterns below and
+keeps Notifications plus trusted pickers as explicit non-route surfaces. The
+two hard-cut families remain outside it.
 
 Regenerate the raw route list with:
 
 ```bash
-rg --files apps/app/app | rg '/page\.(tsx|ts)$' | sort
+bun run check:route-inventory
 ```
 
 ## App Switcher Modules
@@ -97,9 +97,9 @@ Sidebar surfaces currently resolved by `AppProtectedLayoutSidebar`:
 - `/sign-up/magic-link`
 - `/forgot-password`
 - `/reset-password`
-- `/request-access`
 - `/managed-credits/success`
 - `/oauth/cli`
+- `/oauth/consent`
 - `/oauth/:platform`
 
 ## Onboarding Pages
@@ -115,6 +115,7 @@ Sidebar surfaces currently resolved by `AppProtectedLayoutSidebar`:
 ## Protected Personal/Root Pages
 
 - `/`
+- `/connect`
 - `/settings`
 - `/settings/help`
 
@@ -125,6 +126,7 @@ Organization scope uses `/:orgSlug/~`.
 Canonical explicit organization pages:
 
 - `/:orgSlug`
+- `/:orgSlug/~/connect`
 - `/:orgSlug/~/overview`
 - `/:orgSlug/~/analytics/overview`
 

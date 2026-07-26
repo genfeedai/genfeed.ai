@@ -52,6 +52,7 @@ These are already in context every request — do not re-read them to "check".
 ## Specs and decisions (per issue)
 
 - [operational-app-home](spec-operational-app-home.md) · [decisions](decisions-operational-app-home.md) — #1866
+- [retire-redundant-product-routes](spec-retire-redundant-product-routes.md) · [decisions](decisions-retire-redundant-product-routes.md) — #1867
 - [filesystem-s3-path-containment](spec-filesystem-s3-path-containment.md) · [decisions](decisions-filesystem-s3-path-containment.md) — #2068
 - [scheduler-target-analytics](spec-scheduler-target-analytics.md) · [decisions](decisions-scheduler-target-analytics.md) — #1975
 - [pr-validation-telemetry](spec-pr-validation-telemetry.md) · [decisions](decisions-pr-validation-telemetry.md) — #1966

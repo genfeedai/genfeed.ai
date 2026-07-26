@@ -64,6 +64,9 @@ describe('workspace shell trusted registry', () => {
             ? 'inline'
             : 'dedicated-route',
       );
+      expect(route.productClass).toMatch(
+        /^(compatibility-only|contextual-action|control-plane|removable|visual-data)$/,
+      );
       expect(route.safeFallback).toMatch(/^\//);
       expect(route.surfaceKey).not.toHaveLength(0);
     }
@@ -182,9 +185,51 @@ describe('workspace shell trusted registry', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/posts/remix'),
     ).toMatchObject({
+      productClass: 'contextual-action',
       surfaceKey: 'publish',
       switcherItems: ['posts'],
     });
+  });
+
+  it('preserves visual-data and control-plane families from route retirement', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/research/ads/meta'),
+    ).toMatchObject({ productClass: 'visual-data' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/analytics/trends'),
+    ).toMatchObject({ productClass: 'visual-data' });
+
+    for (const pathname of [
+      '/acme/moonrise/library/images',
+      '/acme/moonrise/posts/calendar',
+      '/acme/moonrise/posts/review',
+      '/acme/moonrise/workflows/executions/run-1',
+      '/acme/moonrise/settings/publishing',
+      '/acme/~/settings/api-keys',
+      '/acme/~/settings/billing',
+      '/admin/overview/activities',
+    ]) {
+      expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({
+        productClass: 'control-plane',
+      });
+    }
+  });
+
+  it('keeps evidence-gated candidates out of the removable class', () => {
+    expect(
+      PROTECTED_ROUTE_INVENTORY.filter(
+        (route) => route.productClass === 'removable',
+      ),
+    ).toEqual([]);
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/image'),
+    ).toMatchObject({ productClass: 'contextual-action' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/workflows/autopilot'),
+    ).toMatchObject({ productClass: 'compatibility-only' });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/workflows/configuration'),
+    ).toMatchObject({ productClass: 'compatibility-only' });
   });
 
   it('keeps the two accepted hard-cut families outside the registry', () => {

@@ -33,6 +33,13 @@ export type WorkspaceShellAccessPolicy =
   | 'organization-member'
   | 'platform-admin';
 
+export type WorkspaceShellProductClass =
+  | 'compatibility-only'
+  | 'contextual-action'
+  | 'control-plane'
+  | 'removable'
+  | 'visual-data';
+
 export type WorkspaceShellAvailability =
   | 'always'
   | 'conversation-shell'
@@ -135,6 +142,7 @@ export interface WorkspaceShellRouteRegistration {
     'dedicated-route' | 'focused-canvas' | 'inline'
   >;
   readonly mode: WorkspaceShellRouteMode;
+  readonly productClass: WorkspaceShellProductClass;
   readonly restoration: WorkspaceShellRestorationPolicy;
   readonly safeFallback: string;
   readonly scope: WorkspaceShellScopeRequirement;
