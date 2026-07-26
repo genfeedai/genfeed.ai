@@ -7,139 +7,113 @@
 @.agents/memory/context/skills-architecture.md
 
 TypeScript monorepo: 7 app workspaces, 12 backend service workspaces, 43 shared packages.
-Stack: Next.js + NestJS + PostgreSQL (Prisma) + Redis + BullMQ
+Next.js + NestJS + PostgreSQL (Prisma) + Redis + BullMQ.
+
+> These five files plus `.claude/rules/*` load into **every request**. Keep additions short and
+> put detail in a linked file that loads on demand.
 
 ## Git Workflow
 
-**Trunk-based: `master` is the single trunk. Short-lived branches → PR → `master`. Always via PR. No exceptions.**
+**Trunk-based: `master` is the single trunk. Short-lived branch → PR → `master`. No exceptions.**
 
-### Rules
-- **NEVER push directly to `master`** — always create a PR
-- **NEVER merge until `master`'s required CI checks are green**
-- **Feature work**: `feat/xxx` off `master` → work → PR to `master`
-- **Hotfix**: `hotfix/xxx` off `master` → fix → PR to `master`
-- **Releases** are cut from `master` (semver tag + GitHub release via `/release`); `staging`/`production` are deploy environments driven by CI/tags, not branches
-- **bun.lock is `merge=binary`** — on conflicts: `rm bun.lock && bun install`
+- **Never push directly to `master`** — PR only, always
+- **Never merge until required CI is green**
+- `feat/xxx` / `hotfix/xxx` off `master`
+- Releases are cut from `master` (semver tag + GitHub release via `/release`); `staging` and
+  `production` are deploy environments driven by CI/tags, not branches
+- `bun.lock` is `merge=binary` — on conflict: `rm bun.lock && bun install`
 
 ## Commands
 
 ```bash
-# Development
 bun install                                          # Install dependencies
-bun run dev:backend                                  # Core backend services (api, files, mcp, notifications, workers)
+bun run dev:backend                                  # api, files, mcp, notifications, workers
 bun run dev:app:be                                   # API + notifications only
 bun run dev:app                                      # Main app (apps/app)
-bunx turbo run dev --filter=@genfeedai/[name]        # Start any specific app/service
+bunx turbo run dev --filter=@genfeedai/[name]        # Any specific app/service
 
-# Build (NEVER run `bun run build` at root)
-bunx turbo run build --filter=@genfeedai/[name]      # Build specific app/package
-
-# Quality
-bun type-check                           # Type-check all packages
-bunx turbo lint                          # Lint all packages
-bunx biome check --write .               # Format all files
-
-# Testing
-bun run test --filter=@genfeedai/[name]  # Run specific package tests
+bunx turbo run build --filter=@genfeedai/[name]      # NEVER run `bun run build` at root
+bun type-check                                       # Type-check all packages
+bunx turbo lint                                      # Lint all packages
+bunx biome check --write .                           # Format all files
+bun run test --filter=@genfeedai/[name]              # Test one package
 ```
 
 ## Critical Rules
 
-### Type Safety (ALWAYS)
-- No `any` types — define proper interfaces
-- No inline interfaces — place in `packages/props/` or `packages/interfaces/`
-- No `console.log` — use project LoggerService
-- Booleans use `is`/`has` prefix: `isActive`, `hasPermission`
+### Type safety
+- No `any` — define proper interfaces
+- No inline interfaces — use `packages/props/` or `packages/interfaces/`
+- No `console.log` — use the project LoggerService
+- Booleans take an `is`/`has` prefix: `isActive`, `hasPermission`
 
-### Import Rules (ALWAYS)
+### Imports
 - Path aliases (`@genfeedai/enums`, `@components/`, `@ui/`) over relative imports
-- Import order: external packages → internal `@genfeedai/*` → path aliases → same-directory only
+- Order: external → `@genfeedai/*` → path aliases → same-directory relative
 
-### Serializers (ALWAYS)
-- Serializers live in `packages/serializers/`, NEVER in API modules
-- Never return raw database records — serialize first
-- Flow: DB record → Serializer → Client Response
-
-### Frontend (ALWAYS)
-- AbortController in every useEffect with async calls
-- No `deletedAt` field — use `isDeleted: boolean`
-- Components use `function` declarations (not arrow), default export
-- **Never raw HTML elements** — use `@ui/primitives/*` instead. `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`, `<table>`, `<hr>`, etc. are blocked by the canonical raw-control scanner `scripts/ui/control-guard.ts`, run pre-commit via lint-staged (`lint-staged.config.mjs`) and repo-wide in CI via `bun run check:ui-guards` (`scripts/ui/check-ui-guards.ts`). For unstyled usage, use `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button` inside `Button` (invalid HTML) — restructure as siblings.
-
-### Backend (ALWAYS)
-- Compound indexes live in Prisma schema `@@index` directives or explicit migrations
-- NestJS exceptions for errors (`NotFoundException`, `BadRequestException`)
-- No backward compatibility wrappers — fix at the source
-- Soft deletes: `isDeleted: boolean` (NOT `deletedAt`)
-- ConfigService: `{ provide: ConfigService, useValue: new ConfigService() }` — never use `process.env` directly
-
-### Multi-Tenancy
-- Every tenant-scoped Prisma query MUST include `{ organizationId: orgId, isDeleted: false }`
-- Self-hosted single-tenant: organization filter is optional
-- Org enforcement lives in the OSS API **by design** (`CombinedAuthGuard` in `apps/server/api/src/helpers/guards/combined-auth/` + inline `organizationId` filters). Resolved in #1093: no extractable EE code unit exists — the guard is the OSS auth entry point and query scoping is mode-agnostic. Multi-tenancy as a *product* boundary stays SaaS/EE per ADR-DEPLOYMENT-MODES; there is no `ee/packages/multi-tenancy` package.
-
-### Files & Git (ALWAYS)
-- **Research the codebase before editing. Never change code you haven't read.**
-- **When session work is complete, ship it autonomously**: commit, push the short-lived branch, and open a PR to `master`. Review is gated by the PR (reviewers + required CI), not by a per-commit approval dance.
-- **NEVER push directly to `master`** — PR only, always (see Git Workflow above).
-- **Scan staged content for secrets before every commit** (`.env*`, `secrets/`, tokens, private keys, provider credentials). If found, STOP and flag — never commit it even if explicitly staged. This repo is public; a leak is indexed before rotation.
-- Search 3+ similar implementations before writing new code
-- Use conventional commits: `fix:`, `feat:`, `refactor:`, `chore:`
-
-## Architecture
-
-### Backend (`apps/server/`)
-| App | Port | Purpose |
-|-----|------|---------|
-| `api/` | 3010 | Main NestJS API |
-| `notifications/` | 3111 local / 3011 deployed | Notification service |
-| `files/` | 3012 | File processing service |
-| `workers/` | 3013 | Background job processors |
-| `mcp/` | 3014 | MCP server for AI tools |
-| `discord/` | 3016 | Discord integration |
-| `slack/` | 3018 | Slack integration |
-| `telegram/` | 3019 | Telegram bot |
-| `images/` | 3020 | Image generation pipeline |
-| `videos/` | 3021 | Video generation pipeline |
-| `voices/` | 3022 | Voice generation pipeline |
-
-`apps/server/clips/` is not currently a Bun workspace or Nest service package on `origin/master`; clip generation/runtime code is currently under API/packages/files paths. Re-verify before reintroducing a separate clips service.
+### Serializers
+- Live in `packages/serializers/`, **never** in API modules
+- Never return a raw database record — serialize first
 
 ### Frontend
-| App | Purpose |
-|-----|---------|
-| `apps/app/` | Main studio app |
-| `apps/docs/` | Documentation site |
-| `apps/website/` | Marketing site |
-| `apps/desktop/app/` | Electron desktop app |
-| `apps/mobile/app/` | React Native / Expo |
-| `apps/extensions/browser/app/`, `apps/extensions/ide/app/` | Browser + IDE extensions |
+- **Never raw HTML controls.** `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`,
+  `<table>`, `<hr>` etc. are blocked by `scripts/ui/control-guard.ts` (pre-commit via
+  `lint-staged.config.mjs`, repo-wide in CI via `bun run check:ui-guards` →
+  `scripts/ui/check-ui-guards.ts`). Use `@ui/primitives/*`; for unstyled cases use
+  `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button`
+  inside `Button` — restructure as siblings.
+- AbortController in every `useEffect` with async calls
+- Soft delete is `isDeleted: boolean` — there is no `deletedAt` field
+- Components use `function` declarations (not arrow), default export
 
-### Infrastructure
-- **Self-hosted**: Docker deployment (see `docs/self-hosting.md`)
-- **Database**: PostgreSQL (via Prisma ORM — `packages/prisma/`)
-- **Cache/Queue**: Redis + BullMQ
-- **Auth**: Better Auth
-- **Monitoring**: Sentry
-- **CI/CD**: GitHub Actions
+### Backend
+- NestJS exceptions for errors (`NotFoundException`, `BadRequestException`)
+- `ConfigService` via `{ provide: ConfigService, useValue: new ConfigService() }` — never
+  `process.env` directly
+- Soft deletes: `isDeleted: boolean`
+- Compound indexes in Prisma `@@index` directives or explicit migrations
+- No backward-compatibility wrappers — fix at the source
+- Every tenant-scoped Prisma query includes `{ organizationId: orgId, isDeleted: false }`.
+  Self-hosted single-tenant may omit the org filter. Enforcement details in `system-patterns.md`.
+
+### Files & git
+- **Research before editing. Never change code you haven't read.** Search 3+ similar
+  implementations before writing new code.
+- **Scan staged content for secrets before every commit** (`.env*`, `secrets/`, tokens, private
+  keys, provider credentials). If found, STOP and flag — this repo is public; a leak is indexed
+  before it can be rotated.
+- When session work is complete, ship it: commit, push the short-lived branch, open a PR to
+  `master`. Review is gated by the PR, not by a per-commit approval dance.
+- Conventional commits: `fix:`, `feat:`, `refactor:`, `chore:`
+
+## Backend ports
+
+| app | port | | app | port |
+|---|---|---|---|---|
+| `api/` | 3010 | | `discord/` | 3016 |
+| `notifications/` | 3111 local / 3011 deployed | | `slack/` | 3018 |
+| `files/` | 3012 | | `telegram/` | 3019 |
+| `workers/` | 3013 | | `images/` | 3020 |
+| `mcp/` | 3014 | | `videos/` | 3021 |
+| | | | `voices/` | 3022 |
+
+Frontends: `apps/app` (studio), `apps/docs`, `apps/website`, `apps/desktop/app` (Electron),
+`apps/mobile/app` (Expo), `apps/extensions/{browser,ide}/app`.
+
+Infrastructure: PostgreSQL via `packages/prisma/` · Redis + BullMQ · Better Auth · Sentry ·
+GitHub Actions · Docker self-hosting (`docs/self-hosting.md`).
 
 ## Essential Reading
 
-Before making changes, check:
-1. `.agents/memory/system/CRITICAL-NEVER-DO.md` — Production-breaking violations
-2. `.agents/memory/system/SYSTEM-RULES.md` — Coding standards and patterns
-3. `.agents/memory/system/AGENT-RUNTIME.md` — Task loop, context checkpoints
+1. `.agents/memory/system/CRITICAL-NEVER-DO.md` — production-breaking violations
+2. `.agents/memory/system/SYSTEM-RULES.md` — coding standards and patterns
+3. `.agents/memory/system/AGENT-RUNTIME.md` — task loop, context checkpoints
 
-## Green-Field Philosophy
+## Philosophy, licensing, tracking
 
-Early-stage open-source project. Delete dead code aggressively. No legacy support. No backward compatibility. Prefer deletion over deprecation. When in doubt, delete — it's in git history.
-
-## License
-
-- Root: AGPL-3.0
-- `ee/`: Commercial License (see `ee/LICENSE`)
-
-## Tracking Policy
-
-- GitHub Issues/Projects are canonical for task and status tracking.
-- Do not create or maintain local task markdown files.
+- **Green-field.** Delete dead code aggressively. No legacy support, no backward compatibility,
+  no deprecation — it's in git history.
+- **License:** root AGPL-3.0; `ee/` under a commercial license (`ee/LICENSE`).
+- **Tracking:** GitHub Issues/Projects are canonical. Do not create local task markdown files.
+  Before opening an issue:
+  `gh issue list --state all --search "<keywords>" --repo genfeedai/genfeed.ai`
