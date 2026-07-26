@@ -1,4 +1,3 @@
-import type { IOrganization } from '../organization/organization.interface';
 import type { IBaseEntity } from './base.interface';
 
 type ApiKeyDateValue = Date | string | null;
@@ -24,7 +23,6 @@ export interface IApiKeyAttributes {
   usageCount?: number;
   rateLimit?: number;
   metadata?: Record<string, unknown>;
-  organization?: IOrganization | string;
 }
 
 export interface IApiKey
