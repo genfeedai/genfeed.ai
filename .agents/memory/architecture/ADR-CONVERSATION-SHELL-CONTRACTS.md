@@ -427,11 +427,11 @@ not suppress the frame.
 
 ## Protected-Route Inventory And Surface Classification
 
-The exact baseline is `reference_app_page_map.md`: **206 parity-eligible
-canonical protected patterns plus two intentional hard-cut families** as of
-2026-07-13. The compiled registry currently owns **209 protected patterns**.
-New protected routes enter the denominator immediately. Removing an entry
-requires a separate accepted product decision.
+The original v2 baseline was **206 parity-eligible canonical protected
+patterns** as of 2026-07-13. The current executable baseline in
+`reference_app_page_map.md` is **209 protected patterns plus two intentional
+hard-cut families** as of 2026-07-18. New protected routes enter the denominator
+immediately. Removing an entry requires a separate accepted product decision.
 
 v3 does not move the denominator. Demoting the conversation from a state to a
 surface removes no route: the `/agent/**` family stays registered and
@@ -610,6 +610,6 @@ Downstream verification must cover:
 
 | Version | Date       | Summary                                                                                                                                                        |
 | ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| v3.0.0  | 2026-07-26 | Demoted the conversation from a shell state to a surface — its own route family plus an inspector region on every other surface — withdrew the reserved `thread` key, gave the nav column to the module that owns the surface, and made the frame and its error boundary unconditional. Parity denominator unchanged. |
+| v3.0.0  | 2026-07-26 | Demoted the conversation from a shell state to a surface — its own route family plus an inspector region on every other surface — withdrew the reserved `thread` key, gave the nav column to the module that owns the surface, and made the frame and its error boundary unconditional. Current 209-route parity denominator unchanged. |
 | v2.0.0  | 2026-07-17 | Made the agent-first shell unconditional, removed flag/cohort/legacy fallback contracts, converted protected routes to shell canvases, and made deploy rollback the recovery path. |
 | v1.0.0  | 2026-07-13 | Locked state/history, context precedence, trusted surfaces, route parity, approvals, multi-tab behavior, fallback, rollout gates, and predecessor disposition. |
