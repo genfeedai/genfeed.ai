@@ -11,6 +11,12 @@ interface PlatformMetrics {
   views: number;
 }
 
+interface PlatformTotals {
+  engagement: number;
+  posts: number;
+  views: number;
+}
+
 export type AnalyticsBestPostingTime = {
   avgEngagementRate: number;
   hour: number;
@@ -168,7 +174,7 @@ export class AnalyticsResponseProjection {
   buildPlatformComparison(
     rows: RawAnalyticsRow[],
   ): Array<Record<string, unknown>> {
-    const totals = rows.reduce(
+    const totals = rows.reduce<PlatformTotals>(
       (acc, platform) => {
         acc.views += Number(platform.total_views);
         acc.engagement += Number(platform.total_engagement);
