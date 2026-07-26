@@ -14,6 +14,7 @@ import type {
   ArticleGenerationResponse,
   GeneratedArticleData,
 } from '@genfeedai/interfaces/content/article.interface';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -211,12 +212,9 @@ export class ArticleContentPersistenceService {
     organizationId: string,
     brandId: string,
   ): Promise<boolean> {
-    const existing = await this.articlesService?.findOne({
-      brandId: brandId,
-      isDeleted: false,
-      organizationId: organizationId,
-      slug,
-    });
+    const existing = await this.articlesService?.findOne(
+      scopedWhere(organizationId, { brandId: brandId, slug }),
+    );
 
     return !!existing;
   }

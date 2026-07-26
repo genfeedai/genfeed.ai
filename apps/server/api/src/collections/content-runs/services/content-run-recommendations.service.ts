@@ -14,6 +14,7 @@ import type {
   ContentRunRecommendation,
   ContentRunVariant,
 } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -319,7 +320,7 @@ export class ContentRunRecommendationsService {
     runId: string,
   ): Promise<RunRecommendationResult> {
     const run = (await this.prisma.contentRun.findFirst({
-      where: { id: runId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: runId }),
     })) as unknown as ContentRunRow | null;
 
     if (!run) {
@@ -329,11 +330,7 @@ export class ContentRunRecommendationsService {
     const config = this.readConfig(run);
     const variants = this.readVariants(config);
     const rows = (await this.prisma.contentPerformance.findMany({
-      where: {
-        contentRunId: runId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { contentRunId: runId }),
     })) as PerformanceRow[];
     const scores = this.aggregateRows(rows, variants);
     const analyticsSummary = this.buildAnalyticsSummary(scores, rows.length);

@@ -1,6 +1,7 @@
 import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 
@@ -189,7 +190,7 @@ export class OptimizationCycleService {
   ): Promise<CycleHistoryEntry[]> {
     const rows = (await this.prisma.contentPerformance.findMany({
       orderBy: { createdAt: 'asc' },
-      where: { brandId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { brandId }),
     })) as unknown as ContentPerformanceDocument[];
 
     const grouped = new Map<number, ContentPerformanceDocument[]>();
@@ -245,10 +246,8 @@ export class OptimizationCycleService {
     brandId: string,
     options: OptimizationCycleOptions = {},
   ): Record<string, unknown> {
-    return {
+    return scopedWhere(organizationId, {
       brandId,
-      isDeleted: false,
-      organizationId,
       ...(options.cycleNumber !== undefined
         ? { cycleNumber: options.cycleNumber }
         : {}),
@@ -262,7 +261,7 @@ export class OptimizationCycleService {
             },
           }
         : {}),
-    };
+    });
   }
 
   private async getRankedContent(

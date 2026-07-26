@@ -11,6 +11,7 @@ import {
   ContentIntelligencePlatform,
   ContentPatternType,
 } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -63,11 +64,9 @@ export class PlaybookBuilderService extends BaseService<
     playbookId: string,
     organizationId: string,
   ): Promise<PatternPlaybookDocument> {
-    const playbook = await this.findOne({
-      id: playbookId,
-      isDeleted: false,
-      organizationId,
-    });
+    const playbook = await this.findOne(
+      scopedWhere(organizationId, { id: playbookId }),
+    );
     if (!playbook) {
       throw new Error('Playbook not found');
     }
@@ -240,11 +239,9 @@ export class PlaybookBuilderService extends BaseService<
     creatorId: string,
     organizationId: string,
   ): Promise<PatternPlaybookDocument> {
-    const playbook = await this.findOne({
-      id: playbookId,
-      isDeleted: false,
-      organizationId,
-    });
+    const playbook = await this.findOne(
+      scopedWhere(organizationId, { id: playbookId }),
+    );
     if (!playbook) {
       throw new Error('Playbook not found');
     }
@@ -260,11 +257,9 @@ export class PlaybookBuilderService extends BaseService<
     creatorId: string,
     organizationId: string,
   ): Promise<PatternPlaybookDocument> {
-    const playbook = await this.findOne({
-      id: playbookId,
-      isDeleted: false,
-      organizationId,
-    });
+    const playbook = await this.findOne(
+      scopedWhere(organizationId, { id: playbookId }),
+    );
     if (!playbook) {
       throw new Error('Playbook not found');
     }

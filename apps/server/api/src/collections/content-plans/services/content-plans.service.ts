@@ -14,6 +14,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { ContentPlanStatus } from '@genfeedai/enums';
 import type { ContentPlan as PrismaContentPlan } from '@genfeedai/prisma';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -88,11 +89,7 @@ export class ContentPlansService extends BaseService<
   ): Promise<ContentPlanDocument[]> {
     const docs = (await this.delegate.findMany({
       orderBy: { createdAt: 'desc' },
-      where: {
-        brandId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { brandId }),
     })) as PrismaContentPlan[];
 
     return docs.map((doc) => this.toDocument(doc));
@@ -104,12 +101,10 @@ export class ContentPlansService extends BaseService<
     brandId?: string,
   ): Promise<ContentPlanDocument> {
     const plan = (await this.delegate.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id: planId,
-        isDeleted: false,
-        organizationId,
         ...(brandId ? { brandId } : {}),
-      },
+      }),
     })) as PrismaContentPlan | null;
 
     if (!plan) {
@@ -160,12 +155,10 @@ export class ContentPlansService extends BaseService<
     brandId?: string,
   ): Promise<ContentPlanDocument> {
     const existing = (await this.delegate.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id: planId,
-        isDeleted: false,
-        organizationId,
         ...(brandId ? { brandId } : {}),
-      },
+      }),
     })) as PrismaContentPlan | null;
 
     if (!existing) {
@@ -188,12 +181,10 @@ export class ContentPlansService extends BaseService<
     brandId?: string,
   ): Promise<void> {
     const existing = (await this.delegate.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id: planId,
-        isDeleted: false,
-        organizationId,
         ...(brandId ? { brandId } : {}),
-      },
+      }),
     })) as PrismaContentPlan | null;
 
     if (!existing) {
@@ -220,12 +211,10 @@ export class ContentPlansService extends BaseService<
     brandId?: string,
   ): Promise<ContentPlanDocument> {
     const existing = (await this.delegate.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id: planId,
-        isDeleted: false,
-        organizationId,
         ...(brandId ? { brandId } : {}),
-      },
+      }),
     })) as PrismaContentPlan | null;
 
     if (!existing) {

@@ -7,6 +7,7 @@ import {
   TemplateCategory,
 } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -75,10 +76,7 @@ export class PatternStoreService extends BaseService<
       minEngagementRate?: number;
     },
   ): Promise<ContentPatternDocument[]> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
+    const where: Record<string, unknown> = scopedWhere(organizationId, {});
 
     if (filters?.platform) {
       where.platform = filters.platform;
@@ -116,7 +114,7 @@ export class PatternStoreService extends BaseService<
     organizationId: string,
   ): Promise<ContentPatternDocument[]> {
     return this.delegate.findMany({
-      where: { isDeleted: false, organizationId, sourceCreatorId: creatorId },
+      where: scopedWhere(organizationId, { sourceCreatorId: creatorId }),
     }) as Promise<ContentPatternDocument[]>;
   }
 
@@ -141,7 +139,7 @@ export class PatternStoreService extends BaseService<
     organizationId: string,
   ): Promise<{ count: number }> {
     const result = (await this.delegate.updateMany({
-      where: { isDeleted: false, organizationId, sourceCreatorId: creatorId },
+      where: scopedWhere(organizationId, { sourceCreatorId: creatorId }),
       data: { isDeleted: true },
     })) as { count: number };
     return { count: result.count };

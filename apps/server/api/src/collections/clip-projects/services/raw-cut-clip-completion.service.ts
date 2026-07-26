@@ -9,6 +9,7 @@ import { isTerminalClipStatus } from '@api/collections/clip-shared/clip-terminal
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { JobState, Status } from '@genfeedai/enums';
 import type { IJobStatusResponse } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -48,11 +49,9 @@ export class RawCutClipCompletionService {
       return true;
     }
 
-    const clipResult = await this.clipResultsService.findOne({
-      _id: event.ingredientId,
-      isDeleted: false,
-      organizationId,
-    });
+    const clipResult = await this.clipResultsService.findOne(
+      scopedWhere(organizationId, { _id: event.ingredientId }),
+    );
 
     if (clipResult?.mode !== 'raw-cut') {
       return false;

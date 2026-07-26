@@ -12,6 +12,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import {
   AgentArtifactReferenceService,
   type AgentArtifactReferenceTelemetryContext,
+  scopedWhere,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -113,12 +114,7 @@ export class AgentMessagesService extends BaseService<
   ): Promise<ResolvedAgentArtifactReference[]> {
     const message = await this.delegate.findFirst({
       select: { brandId: true, id: true },
-      where: {
-        id: messageId,
-        isDeleted: false,
-        organizationId,
-        threadId,
-      },
+      where: scopedWhere(organizationId, { id: messageId, threadId }),
     });
     if (!message) {
       throw new NotFoundException({ message: 'Agent message not found' });
@@ -149,12 +145,10 @@ export class AgentMessagesService extends BaseService<
     const skip = cursorDate ? undefined : (page - 1) * limit;
 
     return this.delegate.findMany({
-      where: {
+      where: scopedWhere(organizationId, {
         ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}),
-        isDeleted: false,
-        organizationId,
         threadId: roomId,
-      },
+      }),
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       skip,
       take: limit,
@@ -296,11 +290,7 @@ export class AgentMessagesService extends BaseService<
         ...(cursor ? { cursor, skip: 1 } : {}),
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         take: DEFAULT_AGENT_MESSAGE_BACKLOG_LIMIT,
-        where: {
-          isDeleted: false,
-          organizationId,
-          threadId: sourceRoomId,
-        },
+        where: scopedWhere(organizationId, { threadId: sourceRoomId }),
       });
 
       if (docs.length === 0) {

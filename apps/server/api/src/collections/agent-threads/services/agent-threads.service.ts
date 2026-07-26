@@ -8,6 +8,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -52,11 +53,9 @@ export class AgentThreadsService extends BaseService<
     organizationId: string,
     status?: AgentThreadStatus,
   ): Promise<AgentThreadWithSummary[]> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
+    const where: Record<string, unknown> = scopedWhere(organizationId, {
       userId,
-    };
+    });
 
     if (status === AgentThreadStatus.ACTIVE) {
       where.status = AgentThreadStatus.ACTIVE;
@@ -83,12 +82,10 @@ export class AgentThreadsService extends BaseService<
     organizationId: string,
   ): Promise<number> {
     const result = await this.delegate.updateMany({
-      where: {
-        isDeleted: false,
-        organizationId,
+      where: scopedWhere(organizationId, {
         status: AgentThreadStatus.ACTIVE,
         userId,
-      },
+      }),
       data: { status: AgentThreadStatus.ARCHIVED },
     });
 
@@ -116,12 +113,9 @@ export class AgentThreadsService extends BaseService<
     organizationId: string,
     userId: string,
   ): Promise<AgentRoomDocument> {
-    const parent = await this.findOne({
-      id: threadId,
-      isDeleted: false,
-      organizationId,
-      userId,
-    });
+    const parent = await this.findOne(
+      scopedWhere(organizationId, { id: threadId, userId }),
+    );
 
     if (!parent) {
       throw new NotFoundException('Thread', threadId);
@@ -179,7 +173,7 @@ export class AgentThreadsService extends BaseService<
     status: AgentThreadStatus,
   ): Promise<AgentRoomDocument> {
     const updated = (await this.delegate.update({
-      where: { id: threadId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: threadId }),
       data: { status },
     })) as AgentRoomDocument | null;
 
@@ -196,7 +190,7 @@ export class AgentThreadsService extends BaseService<
     update: Record<string, unknown>,
   ): Promise<AgentRoomDocument> {
     const updated = (await this.delegate.update({
-      where: { id: threadId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: threadId }),
       data: update,
     })) as AgentRoomDocument | null;
 
@@ -240,11 +234,7 @@ export class AgentThreadsService extends BaseService<
     }
 
     const snapshots = await this.prisma.agentThreadSnapshot.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-        threadId: { in: threadIds },
-      },
+      where: scopedWhere(organizationId, { threadId: { in: threadIds } }),
     });
 
     const snapshotsByThreadId = new Map(
@@ -321,11 +311,7 @@ export class AgentThreadsService extends BaseService<
   ): Promise<Map<string, AgentRunDocument>> {
     const runs = await this.prisma.agentRun.findMany({
       orderBy: { createdAt: 'desc' },
-      where: {
-        isDeleted: false,
-        organizationId,
-        threadId: { in: threadIds },
-      },
+      where: scopedWhere(organizationId, { threadId: { in: threadIds } }),
     });
 
     const latestRunsByThreadId = new Map<string, AgentRunDocument>();

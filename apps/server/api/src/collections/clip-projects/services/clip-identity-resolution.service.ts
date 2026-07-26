@@ -2,6 +2,7 @@ import { resolveClipIdentity } from '@api/collections/clip-projects/services/cli
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 
 export interface ResolveClipIdentityParams {
@@ -27,11 +28,7 @@ export class ClipIdentityResolutionService {
               agentConfig: true,
               id: true,
             },
-            where: {
-              id: params.brandId,
-              isDeleted: false,
-              organizationId: params.organizationId,
-            },
+            where: scopedWhere(params.organizationId, { id: params.brandId }),
           })
         : Promise.resolve(null),
       this.prisma.organizationSetting.findUnique({
