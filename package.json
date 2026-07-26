@@ -121,6 +121,7 @@
     "docker:logs": "docker compose -f docker/docker-compose.yml logs -f",
     "docker:up": "docker compose -f docker/docker-compose.yml up -d",
     "env:check": "bun run scripts/env-check.ts",
+    "env:strip-clerk": "bun run scripts/strip-clerk-env-vars.ts",
     "env:sync": "bun run scripts/env-sync.ts",
     "format": "biome format --write .",
     "format:check": "biome format .",
