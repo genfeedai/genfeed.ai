@@ -6,7 +6,6 @@ import {
   getResumeStep,
   ONBOARDING_STEPS,
 } from '@genfeedai/constants';
-import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -15,16 +14,10 @@ import { useEffect } from 'react';
  */
 export default function OnboardingRootPage() {
   const { currentUser, isLoading } = useCurrentUser();
-  const { user: authUser, isLoaded: isAuthLoaded } = useAuthUser();
   const { replace } = useRouter();
 
   useEffect(() => {
-    if (isLoading || !currentUser || !isAuthLoaded) {
-      return;
-    }
-
-    if (authUser?.publicMetadata?.proactiveLeadId) {
-      replace(APP_ROUTES.ONBOARDING.PROACTIVE);
+    if (isLoading || !currentUser) {
       return;
     }
 
@@ -44,7 +37,7 @@ export default function OnboardingRootPage() {
     }
 
     replace(`/onboarding/${getResumeStep(completedSteps)}`);
-  }, [authUser, currentUser, isAuthLoaded, isLoading, replace]);
+  }, [currentUser, isLoading, replace]);
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

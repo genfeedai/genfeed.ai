@@ -71,6 +71,17 @@ describe('BetterAuthStrategy', () => {
     );
   });
 
+  it('rejects a legacy Mongo-shaped subject before identity resolution', async () => {
+    betterAuthService.verifyToken.mockResolvedValue({
+      sub: '507f1f77bcf86cd799439011',
+    });
+
+    await expect(strategy.validate(requestWith('Bearer tok'))).rejects.toThrow(
+      'Legacy user subject is not accepted',
+    );
+    expect(identityResolver.resolve).not.toHaveBeenCalled();
+  });
+
   it('propagates verification failures as Unauthorized', async () => {
     betterAuthService.verifyToken.mockRejectedValue(
       new UnauthorizedException('Invalid token'),

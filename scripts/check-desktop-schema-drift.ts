@@ -124,7 +124,6 @@ const CONTRACT: Record<string, ModelContract> = {
   },
   User: {
     fields: {
-      authProviderId: { server: 'authProviderId' },
       createdAt: { server: 'createdAt' },
       email: { server: 'email' },
       id: { server: 'id' },

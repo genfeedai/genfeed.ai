@@ -5,7 +5,6 @@ import {
 } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { UsersService } from '@api/collections/users/services/users.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
 import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
@@ -53,7 +52,6 @@ export class WebhooksService {
     private readonly metadataService: MetadataService,
     private readonly notificationsService: NotificationsService,
     private readonly postProcessingOrchestrator: PostProcessingOrchestratorService,
-    private readonly usersService: UsersService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
@@ -92,7 +90,7 @@ export class WebhooksService {
 
   private toUserReference(
     ref: string | IngredientRefDocument | null | undefined,
-  ): string | { id?: string; authProviderId?: string } | undefined {
+  ): string | { id: string } | undefined {
     if (typeof ref === 'string') {
       return ref;
     }
@@ -102,17 +100,11 @@ export class WebhooksService {
     }
 
     const userId = this.getRefId(ref);
-    const authProviderId =
-      typeof ref.authProviderId === 'string' ? ref.authProviderId : undefined;
-
-    if (!userId && !authProviderId) {
+    if (!userId) {
       return undefined;
     }
 
-    return {
-      ...(userId ? { id: userId } : {}),
-      ...(authProviderId ? { authProviderId } : {}),
-    };
+    return { id: userId };
   }
 
   async processMediaFromWebhook(
@@ -224,7 +216,7 @@ export class WebhooksService {
       input.externalId,
     );
 
-    // Re-populate user after patch to ensure we have authProviderId
+    // Re-populate the user after patch to preserve the canonical relation.
     const ingredient = await this.ingredientsService.findOne(
       { _id: input.ingredientId },
       [PopulatePatterns.userMinimal],
@@ -266,31 +258,9 @@ export class WebhooksService {
       ingredient as IngredientDocument,
     );
 
-    // 5. Resolve user IDs (with authProviderId fallback)
-    let { dbUserId, authProviderUserId, userId, userRoom } =
+    // 5. Resolve the canonical user identity and compatibility room fields.
+    const { dbUserId, authProviderUserId, userId, userRoom } =
       UserExtractionUtil.extractUserIds(this.toUserReference(ingredient.user));
-
-    if (!authProviderUserId && dbUserId) {
-      try {
-        const fullUser = await this.usersService.findOne({
-          _id: dbUserId,
-        });
-        if (fullUser?.authProviderId) {
-          authProviderUserId = fullUser.authProviderId;
-          userId = authProviderUserId;
-          userRoom = getUserRoomName(authProviderUserId);
-          this.loggerService.debug(
-            `${logContext} found authProviderId by fetching full user document`,
-            { authProviderUserId, dbUserId },
-          );
-        }
-      } catch (error: unknown) {
-        this.loggerService.warn(
-          `${logContext} failed to fetch full user for authProviderId lookup`,
-          { dbUserId, error: getErrorMessage(error) },
-        );
-      }
-    }
 
     // 6. Activity update
     if (dbUserId) {
@@ -611,7 +581,7 @@ export class WebhooksService {
 
     try {
       const asset = await this.assetsService.findOne({ _id: assetId }, [
-        { path: 'user', select: '_id authProviderId' },
+        { path: 'user', select: '_id id' },
       ]);
 
       if (!asset) {

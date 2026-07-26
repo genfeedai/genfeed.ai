@@ -12,8 +12,9 @@ describe('UserExtractionUtil', () => {
       const id = '507f191e810c19729de860ee';
       const result = UserExtractionUtil.extractUserIds(id);
       expect(result.dbUserId).toBe(id);
-      expect(result.authProviderUserId).toBeUndefined();
+      expect(result.authProviderUserId).toBe(id);
       expect(result.userId).toBe(id);
+      expect(result.userRoom).toBe(`user:${id}`);
     });
 
     it('extracts dbUserId from a string', () => {
@@ -23,36 +24,34 @@ describe('UserExtractionUtil', () => {
       expect(result.userId).toBe(oid);
     });
 
-    it('extracts id and authProviderId from a populated user document', () => {
+    it('extracts the canonical id from a populated user document', () => {
       const oid = '507f191e810c19729de860ee';
-      const userDoc = { id: oid, authProviderId: 'authProvider_abc123' };
+      const userDoc = { id: oid };
       const result = UserExtractionUtil.extractUserIds(userDoc);
       expect(result.dbUserId).toBe(oid);
-      expect(result.authProviderUserId).toBe('authProvider_abc123');
-      expect(result.userId).toBe('authProvider_abc123');
-      expect(result.userRoom).toBe('user:authProvider_abc123');
+      expect(result.authProviderUserId).toBe(oid);
+      expect(result.userId).toBe(oid);
+      expect(result.userRoom).toBe(`user:${oid}`);
     });
 
-    it('extracts string id from a populated user document', () => {
+    it('extracts _id when the populated compatibility shape uses it', () => {
       const strId = '507f191e810c19729de860ee';
-      const userDoc = { id: strId, authProviderId: 'authProvider_xyz' };
+      const userDoc = { _id: strId };
       const result = UserExtractionUtil.extractUserIds(userDoc);
       expect(result.dbUserId).toBe(strId);
-      expect(result.authProviderUserId).toBe('authProvider_xyz');
+      expect(result.userId).toBe(strId);
     });
 
-    it('sets userRoom only when authProviderUserId is present', () => {
-      const oid = '507f191e810c19729de860ee';
-      const userDoc = { id: oid, authProviderId: undefined };
-      const result = UserExtractionUtil.extractUserIds(userDoc);
+    it('does not create a room when a populated document has no id', () => {
+      const result = UserExtractionUtil.extractUserIds({});
       expect(result.userRoom).toBeUndefined();
     });
 
-    it('prefers authProviderUserId as userId over dbUserId', () => {
+    it('uses one canonical id for queue compatibility and ownership', () => {
       const oid = '507f191e810c19729de860ee';
-      const userDoc = { id: oid, authProviderId: 'authProvider_preferred' };
-      const result = UserExtractionUtil.extractUserIds(userDoc);
-      expect(result.userId).toBe('authProvider_preferred');
+      const result = UserExtractionUtil.extractUserIds({ id: oid });
+      expect(result.authProviderUserId).toBe(oid);
+      expect(result.userId).toBe(oid);
     });
   });
 

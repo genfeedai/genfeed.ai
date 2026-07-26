@@ -38,6 +38,9 @@ export class BetterAuthStrategy extends PassportStrategy(
     }
 
     const claims = await this.betterAuthService.verifyToken(token);
+    if (/^[0-9a-f]{24}$/i.test(claims.sub)) {
+      throw new UnauthorizedException('Legacy user subject is not accepted');
+    }
     const identity = await this.identityResolver.resolve(claims.sub);
 
     return {

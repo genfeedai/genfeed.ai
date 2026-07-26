@@ -93,7 +93,6 @@ export class CronTrendSummaryNotificationsService {
                   email: true,
                   firstName: true,
                   lastName: true,
-                  authProviderId: true,
                 },
               },
             },

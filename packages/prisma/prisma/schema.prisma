@@ -504,7 +504,6 @@ enum WarmupAccountStatus {
 model User {
   id                       String          @id @default(cuid())
   mongoId                  String?         @unique
-  authProviderId           String?         @unique
   handle                   String          @unique
   firstName                String?
   lastName                 String?

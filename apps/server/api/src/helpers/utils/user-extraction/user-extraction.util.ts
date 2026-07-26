@@ -4,8 +4,8 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
  * User document structure from populated user references
  */
 export interface PopulatedUserDoc {
+  _id?: string;
   id?: string;
-  authProviderId?: string | null;
 }
 
 /**
@@ -14,9 +14,9 @@ export interface PopulatedUserDoc {
 export interface ExtractedUserIds {
   /** Database user ID as string */
   dbUserId?: string;
-  /** legacy auth provider user ID */
+  /** Compatibility queue field, now carrying the canonical database user ID. */
   authProviderUserId?: string;
-  /** Preferred user ID (authProviderUserId if available, else dbUserId) */
+  /** Canonical user ID */
   userId?: string;
   /** WebSocket room identifier */
   userRoom?: string;
@@ -24,14 +24,14 @@ export interface ExtractedUserIds {
 
 /**
  * Utility for extracting user IDs from populated or unpopulated user references.
- * Consolidates the repeated pattern of extracting dbUserId and authProviderUserId
- * from ingredient.user, asset.user, etc.
+ * Consolidates canonical user ID extraction from ingredient.user, asset.user,
+ * and similar populated references.
  */
 export class UserExtractionUtil {
   /**
    * Extract user IDs from a user reference field.
    * Handles multiple formats:
-   * - Populated user document with _id and authProviderId
+   * - Populated user document with id or _id
    * - String user ID
    * - Types.ObjectId
    *
@@ -41,7 +41,7 @@ export class UserExtractionUtil {
   static extractUserIds(
     userField:
       | PopulatedUserDoc
-      | { id?: string; authProviderId?: string | null }
+      | { _id?: string; id?: string }
       | string
       | null
       | undefined,
@@ -51,8 +51,6 @@ export class UserExtractionUtil {
     }
 
     let dbUserId: string | undefined;
-    let authProviderUserId: string | undefined;
-
     // Handle string user ID
     if (typeof userField === 'string') {
       dbUserId = userField;
@@ -64,16 +62,14 @@ export class UserExtractionUtil {
       // Extract _id
       if (typeof userDoc.id === 'string') {
         dbUserId = userDoc.id;
+      } else if (typeof userDoc._id === 'string') {
+        dbUserId = userDoc._id;
       }
-
-      // Extract authProviderId
-      authProviderUserId = userDoc.authProviderId ?? undefined;
     }
 
-    const userId = authProviderUserId || dbUserId;
-    const userRoom = authProviderUserId
-      ? getUserRoomName(authProviderUserId)
-      : undefined;
+    const authProviderUserId = dbUserId;
+    const userId = dbUserId;
+    const userRoom = userId ? getUserRoomName(userId) : undefined;
 
     return {
       authProviderUserId,

@@ -620,9 +620,11 @@ export class UsersController {
    */
   private async completeOnboardingFunnel(request: Request, user: User) {
     const publicMetadata = getPublicMetadata(user);
+    const canonicalUserId = publicMetadata.user || user.id;
 
     const dbUser = await this.usersService.findOne({
-      authProviderId: user.id,
+      _id: canonicalUserId,
+      isDeleted: false,
     });
 
     if (dbUser && !dbUser.isOnboardingCompleted) {
@@ -645,12 +647,9 @@ export class UsersController {
         dbUser as { lastUsedOrganizationId?: string | null } | null
       )?.lastUsedOrganizationId?.toString() ||
       '';
-    const proactiveLeadId = publicMetadata.proactiveLeadId?.toString();
-
-    if (proactiveLeadId && organizationId) {
+    if (organizationId) {
       this.eventEmitter.emit(ONBOARDING_FUNNEL_COMPLETED_EVENT, {
         organizationId,
-        proactiveLeadId,
       } satisfies IOnboardingFunnelCompletedEvent);
     }
 

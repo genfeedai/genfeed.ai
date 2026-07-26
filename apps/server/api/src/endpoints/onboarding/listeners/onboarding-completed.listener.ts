@@ -30,24 +30,20 @@ export class OnboardingCompletedListener {
   async handleFunnelCompleted(
     event: IOnboardingFunnelCompletedEvent,
   ): Promise<void> {
-    const { proactiveLeadId, organizationId } = event;
+    const { organizationId } = event;
 
-    if (!proactiveLeadId || !organizationId) {
+    if (!organizationId) {
       return;
     }
 
     try {
-      await this.proactiveOnboardingService.markPaymentMade(
-        proactiveLeadId,
-        organizationId,
-      );
+      await this.proactiveOnboardingService.markPaymentMade(organizationId);
     } catch (error: unknown) {
       // Best-effort: a lead-status mismatch must never surface — the user has
       // already completed the funnel (paid via Stripe) before this fires.
       this.logger.warn(`${this.context} markPaymentMade skipped`, {
         error: error instanceof Error ? error.message : error,
         organizationId,
-        proactiveLeadId,
       });
     }
   }

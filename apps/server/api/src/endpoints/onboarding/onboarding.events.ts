@@ -10,8 +10,6 @@
 export const ONBOARDING_FUNNEL_COMPLETED_EVENT = 'onboarding.funnel.completed';
 
 export interface IOnboardingFunnelCompletedEvent {
-  /** Proactive lead id from the caller's public metadata, when present. */
-  proactiveLeadId: string;
-  /** Organization the completing user belongs to. */
+  /** Active organization, used to resolve any matching proactive lead. */
   organizationId: string;
 }

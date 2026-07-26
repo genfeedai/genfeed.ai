@@ -68,12 +68,11 @@ export class AssetAccessGuard implements CanActivate {
     // Check permissions based on scope
     switch (assetScope) {
       case AssetScope.ORGANIZATION: {
-        const assetUserAuthProviderId = this.getRefAuthProviderId(asset.user);
-        const assetUserObjectId = this.getRefId(asset.user);
+        const assetUserId = this.getRefId(asset.user);
 
         if (
-          assetUserAuthProviderId === user.id ||
-          assetUserObjectId === user.publicMetadata?.user
+          assetUserId === user.id ||
+          assetUserId === user.publicMetadata?.user
         ) {
           return true;
         }
@@ -93,14 +92,11 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.BRAND: {
-        const brandAssetUserAuthProviderId = this.getRefAuthProviderId(
-          asset.user,
-        );
-        const brandAssetUserObjectId = this.getRefId(asset.user);
+        const brandAssetUserId = this.getRefId(asset.user);
 
         if (
-          brandAssetUserAuthProviderId === user.id ||
-          brandAssetUserObjectId === user.publicMetadata?.user
+          brandAssetUserId === user.id ||
+          brandAssetUserId === user.publicMetadata?.user
         ) {
           return true;
         }
@@ -120,14 +116,11 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.USER: {
-        const userAssetUserAuthProviderId = this.getRefAuthProviderId(
-          asset.user,
-        );
-        const userAssetUserObjectId = this.getRefId(asset.user);
+        const userAssetUserId = this.getRefId(asset.user);
 
         if (
-          userAssetUserAuthProviderId === user.id ||
-          userAssetUserObjectId === user.publicMetadata?.user
+          userAssetUserId === user.id ||
+          userAssetUserId === user.publicMetadata?.user
         ) {
           return true;
         }
@@ -147,16 +140,6 @@ export class AssetAccessGuard implements CanActivate {
       return ref;
     }
 
-    return ref?.id?.toString() ?? ref?.id?.toString();
-  }
-
-  private getRefAuthProviderId(
-    ref: string | { authProviderId?: string | null } | null | undefined,
-  ): string | undefined {
-    if (typeof ref === 'string') {
-      return undefined;
-    }
-
-    return ref?.authProviderId ?? undefined;
+    return ref?._id?.toString() ?? ref?.id?.toString();
   }
 }

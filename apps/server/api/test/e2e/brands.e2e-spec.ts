@@ -89,7 +89,6 @@ describe('Brands E2E Tests', () => {
     // Create test user
     testUser = createTestUser({
       id: generateIdString(),
-      authProviderId: 'authProvider_brand_test_user',
       email: 'brand-test@example.com',
     });
 
@@ -144,7 +143,7 @@ describe('Brands E2E Tests', () => {
   const authenticatedRequest = () => {
     return request(app.getHttpServer())
       .set('Authorization', 'Bearer mock-jwt-token')
-      .set('x-authProvider-user-id', testUser.authProviderId)
+      .set('x-authProvider-user-id', testUser.id.toString())
       .set('x-user-id', testUser.id.toString())
       .set('x-organization-id', testOrganization.id.toString());
   };
@@ -652,7 +651,6 @@ describe('Brands E2E Tests', () => {
       // Create another organization with a brand
       otherUser = createTestUser({
         id: generateIdString(),
-        authProviderId: 'authProvider_other_brand_user',
         email: 'other-brand@example.com',
       });
 

@@ -76,11 +76,11 @@ describe('WebSocketRoomUtil', () => {
       expect(result.warning).toBeUndefined();
     });
 
-    it('should warn when only dbUserId is present', () => {
+    it('should be valid when only dbUserId is present', () => {
       const result = validateRoomMatch(undefined, 'db_123');
 
-      expect(result.isValid).toBe(false);
-      expect(result.warning).toContain('authProviderId');
+      expect(result.isValid).toBe(true);
+      expect(result.warning).toBeUndefined();
     });
 
     it('should warn when no IDs are present', () => {

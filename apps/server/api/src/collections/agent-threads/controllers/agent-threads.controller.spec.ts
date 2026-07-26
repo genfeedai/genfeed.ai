@@ -168,7 +168,7 @@ describe('AgentThreadsController', () => {
 
       expect(usersService.findOne).toHaveBeenCalledTimes(1);
       expect(usersService.findOne).toHaveBeenCalledWith(
-        { authProviderId: 'authProvider_123' },
+        { _id: 'authProvider_123', isDeleted: false },
         [],
       );
       expect(service.getUserThreads).toHaveBeenCalledWith(

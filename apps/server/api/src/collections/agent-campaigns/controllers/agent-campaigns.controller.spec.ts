@@ -81,7 +81,7 @@ describe('AgentCampaignsController', () => {
   describe('patch', () => {
     const mockReq = { headers: {}, url: '/agent-campaigns/campaign-1' } as any;
 
-    it('routes status=active through executionService.execute using the Mongo user id from public metadata', async () => {
+    it('routes status=active through executionService.execute using the canonical user id from public metadata', async () => {
       mockExecutionService.execute.mockResolvedValue({
         id: 'campaign-1',
       });
@@ -127,7 +127,7 @@ describe('AgentCampaignsController', () => {
         '507f1f77bcf86cd799439099',
       );
       expect(mockUsersService.findOne).toHaveBeenCalledWith(
-        { authProviderId: 'user_123' },
+        { _id: 'user_123', isDeleted: false },
         [],
       );
     });

@@ -97,7 +97,6 @@ describe('Organizations E2E Tests', () => {
     // Create test user
     testUser = createTestUser({
       id: generateIdString(),
-      authProviderId: 'authProvider_org_test_user',
       email: 'org-test@example.com',
     });
 
@@ -150,7 +149,7 @@ describe('Organizations E2E Tests', () => {
   const authenticatedRequest = () => {
     return request(app.getHttpServer())
       .set('Authorization', 'Bearer mock-jwt-token')
-      .set('x-authProvider-user-id', testUser.authProviderId)
+      .set('x-authProvider-user-id', testUser.id.toString())
       .set('x-user-id', testUser.id.toString())
       .set('x-organization-id', testOrganization.id.toString());
   };
@@ -461,7 +460,6 @@ describe('Organizations E2E Tests', () => {
       // Create another user who is not a member
       const otherUser = createTestUser({
         id: generateIdString(),
-        authProviderId: 'authProvider_other_user',
         email: 'other@example.com',
       });
       await dbHelper.seedCollection('users', [otherUser]);
@@ -469,7 +467,7 @@ describe('Organizations E2E Tests', () => {
       const response = await request(app.getHttpServer())
         .get(`/v1/organizations/${testOrganization.id}/posts`)
         .set('Authorization', 'Bearer mock-jwt-token')
-        .set('x-authProvider-user-id', otherUser.authProviderId)
+        .set('x-authProvider-user-id', otherUser.id.toString())
         .set('x-user-id', otherUser.id.toString())
         .set('x-organization-id', testOrganization.id.toString());
 
@@ -483,7 +481,6 @@ describe('Organizations E2E Tests', () => {
       // Create another user who IS a member
       const memberUser = createTestUser({
         id: generateIdString(),
-        authProviderId: 'authProvider_member_user',
         email: 'member@example.com',
       });
 
@@ -500,7 +497,7 @@ describe('Organizations E2E Tests', () => {
       const response = await request(app.getHttpServer())
         .get(`/v1/organizations/${testOrganization.id}/brands`)
         .set('Authorization', 'Bearer mock-jwt-token')
-        .set('x-authProvider-user-id', memberUser.authProviderId)
+        .set('x-authProvider-user-id', memberUser.id.toString())
         .set('x-user-id', memberUser.id.toString())
         .set('x-organization-id', testOrganization.id.toString());
 
@@ -516,7 +513,6 @@ describe('Organizations E2E Tests', () => {
       // Create another organization with different user
       otherUser = createTestUser({
         id: generateIdString(),
-        authProviderId: 'authProvider_other_org_user',
         email: 'other-org@example.com',
       });
 

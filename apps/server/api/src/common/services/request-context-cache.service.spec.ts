@@ -65,12 +65,12 @@ describe('RequestContextCacheService', () => {
     });
 
     it('should unlink all cached keys and the set key when keys exist', async () => {
-      const authProviderId = 'user_abc';
+      const userId = 'user_abc';
       const cachedKeys = ['rc:user_abc:org1', 'rc:user_abc:org2'];
       mockSMembers.mockResolvedValue(cachedKeys);
       mockUnlink.mockResolvedValue(3);
 
-      await service.invalidateForUser(authProviderId);
+      await service.invalidateForUser(userId);
 
       expect(mockSMembers).toHaveBeenCalledWith('rc:keys:user_abc');
       expect(mockUnlink).toHaveBeenCalledWith([
@@ -81,24 +81,24 @@ describe('RequestContextCacheService', () => {
     });
 
     it('should unlink only the set key when no cached keys exist', async () => {
-      const authProviderId = 'user_empty';
+      const userId = 'user_empty';
       mockSMembers.mockResolvedValue([]);
       mockUnlink.mockResolvedValue(1);
 
-      await service.invalidateForUser(authProviderId);
+      await service.invalidateForUser(userId);
 
       expect(mockUnlink).toHaveBeenCalledWith('rc:keys:user_empty');
     });
 
     it('should log an error when smembers throws', async () => {
-      const authProviderId = 'user_error';
+      const userId = 'user_error';
       const error = new Error('Redis connection lost');
       mockSMembers.mockRejectedValue(error);
 
-      await service.invalidateForUser(authProviderId);
+      await service.invalidateForUser(userId);
 
       expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining(authProviderId),
+        expect.stringContaining(userId),
         error,
         expect.any(Object),
       );

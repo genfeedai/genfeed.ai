@@ -528,17 +528,8 @@ export class PostsService extends BaseService<
     });
 
     try {
-      const user = post.user as unknown as { authProviderId?: string };
-      const authProviderUserId: string | undefined =
-        typeof user === 'object' && user?.authProviderId
-          ? user.authProviderId
-          : undefined;
-
-      // Scalar FKs first. `post.user` is a populated relation object on this
-      // call path (needed above for `authProviderId`), so `post.user.toString()`
-      // produced "[object Object]"; `post.brand` / `post.organization` are
-      // whatever the caller's populate happened to load. Fail closed rather
-      // than enqueueing a job with an unusable owner id.
+      // Scalar FKs first. Populated relations cannot be stringified safely, so
+      // fail closed rather than enqueueing a job with an unusable owner id.
       const postRef = `Post ${postId}`;
       const brandId = requireRelationId(
         post.brandId,
@@ -553,6 +544,7 @@ export class PostsService extends BaseService<
         postRef,
       );
       const userId = requireRelationId(post.userId, post.user, 'user', postRef);
+      const authProviderUserId = userId;
 
       await this.fileQueueService?.uploadYoutube({
         brandId,

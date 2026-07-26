@@ -25,7 +25,6 @@ describe('AssetsController', () => {
     id: 'user_123',
     publicMetadata: {
       brand: mockBrandId.toString(),
-      authProviderId: 'user_123',
       organization: mockOrgId.toString(),
       user: mockUserId.toString(),
     },

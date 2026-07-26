@@ -70,7 +70,7 @@ export class OnboardingService {
 
     if (!dbUser && user.id) {
       dbUser = await this.usersService.findOne(
-        { authProviderId: user.id, isDeleted: false },
+        { _id: user.id, isDeleted: false },
         [],
       );
     }
@@ -79,8 +79,7 @@ export class OnboardingService {
     if (!userId) {
       throw new HttpException(
         {
-          detail:
-            'Missing local user account for legacy auth provider authorization',
+          detail: 'Missing local user account for the authenticated subject',
           title: 'Bad Request',
         },
         HttpStatus.BAD_REQUEST,
@@ -171,10 +170,9 @@ export class OnboardingService {
     summary: string;
   }> {
     const publicMetadata = getPublicMetadata(user);
-    const leadId = publicMetadata.proactiveLeadId?.toString();
     const organizationId = publicMetadata.organization?.toString();
 
-    if (!leadId || !organizationId) {
+    if (!organizationId) {
       throw new HttpException(
         {
           detail: 'Missing proactive onboarding context',
@@ -184,8 +182,7 @@ export class OnboardingService {
       );
     }
 
-    return this.proactiveOnboardingService.getWorkspaceSummary(
-      leadId,
+    return this.proactiveOnboardingService.getWorkspaceSummaryByShadowOrganization(
       organizationId,
     );
   }
@@ -202,11 +199,10 @@ export class OnboardingService {
     claimedAt?: Date;
   }> {
     const publicMetadata = getPublicMetadata(user);
-    const leadId = publicMetadata.proactiveLeadId?.toString();
     const organizationId = publicMetadata.organization?.toString();
     const userId = publicMetadata.user?.toString();
 
-    if (!leadId || !organizationId || !userId) {
+    if (!organizationId || !userId) {
       throw new HttpException(
         {
           detail: 'Missing proactive onboarding context',
@@ -217,7 +213,6 @@ export class OnboardingService {
     }
 
     return this.proactiveOnboardingService.claimWorkspace(
-      leadId,
       organizationId,
       userId,
     );

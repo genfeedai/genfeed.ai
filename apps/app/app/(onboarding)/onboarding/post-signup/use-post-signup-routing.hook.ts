@@ -54,7 +54,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   );
   const hasAuthUser = Boolean(authUser);
   const authPrimaryEmail = authUser?.primaryEmailAddress?.emailAddress ?? '';
-  const proactiveLeadId = authUser?.publicMetadata?.proactiveLeadId;
   const checkoutEmail = currentUser?.email || authPrimaryEmail || '';
 
   // Resolve the active organization slug so we can build the org-scoped agent
@@ -87,10 +86,6 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   // onboarding; Community/Desktop retain the deterministic wizard until their
   // local/BYOK onboarding reaches parity.
   const resolveCheckoutReturnHref = useCallback(async (): Promise<string> => {
-    if (proactiveLeadId) {
-      return '/onboarding/proactive';
-    }
-
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
     const hasCompletedAllOnboardingSteps =
       currentUser?.isOnboardingCompleted === true ||
@@ -113,16 +108,12 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     return orgSlug
       ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
       : '/';
-  }, [currentUser, proactiveLeadId, resolveActiveOrgSlug]);
+  }, [currentUser, resolveActiveOrgSlug]);
 
   // Default first-run destination. Agent-first onboarding is the cloud SaaS
   // default; self-hosted/desktop keep the form wizard because the agent
   // onboarding surface needs the managed orchestrator to run.
   const resolveOnboardingHref = useCallback(async (): Promise<string> => {
-    if (proactiveLeadId) {
-      return '/onboarding/proactive';
-    }
-
     const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
     const hasCompletedAllOnboardingSteps =
       currentUser?.isOnboardingCompleted === true ||
@@ -145,7 +136,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     return orgSlug
       ? createOrganizationAppRoute(orgSlug, APP_ROUTES.AGENT.ONBOARDING)
       : '/';
-  }, [currentUser, proactiveLeadId, resolveActiveOrgSlug]);
+  }, [currentUser, resolveActiveOrgSlug]);
 
   useEffect(() => {
     if (isLoading || !currentUser || !hasAuthUser || calledRef.current) {

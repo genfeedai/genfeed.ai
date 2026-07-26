@@ -86,9 +86,8 @@ describe('UserStripeController', () => {
     lastName: 'Doe',
   } as unknown as User;
 
-  // Post-cutover user: authProviderId is NULL; identity is the Genfeed id.
+  // Post-cutover identity is the canonical Genfeed user id.
   const mockDbUser = {
-    authProviderId: null,
     id: dbUserId,
     stripeCustomerId: 'cus_existing',
   };
@@ -175,8 +174,7 @@ describe('UserStripeController', () => {
         id: 'cs_user_1',
         url: 'https://checkout.stripe.com/pay',
       });
-      // Regression (#1199): resolve the DB user by Genfeed User.id, never the
-      // frozen authProviderId column (NULL for post-cutover Better Auth users).
+      // Regression (#1199): resolve the DB user by canonical Genfeed User.id.
       expect(usersService.findOne).toHaveBeenCalledWith({
         _id: dbUserId,
         isDeleted: false,

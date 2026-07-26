@@ -68,7 +68,6 @@ describe('Authentication E2E Tests', () => {
     // Create test user
     testUser = createTestUser({
       id: generateIdString(),
-      authProviderId: 'authProvider_test_user_123',
       email: 'auth-test@example.com',
     });
 
@@ -131,10 +130,10 @@ describe('Authentication E2E Tests', () => {
           organization: testOrganization.id.toString(),
           user: testUser.id.toString(),
         },
-        sub: testUser.authProviderId,
+        sub: testUser.id.toString(),
       };
 
-      expect(mockJwtPayload.sub).toBe('authProvider_test_user_123');
+      expect(mockJwtPayload.sub).toBe(testUser.id.toString());
       expect(mockJwtPayload.publicMetadata.isOwner).toBe(true);
     });
 
@@ -182,7 +181,6 @@ describe('Authentication E2E Tests', () => {
     it('should verify user can be member of different organizations with different roles', async () => {
       const anotherUser = createTestUser({
         id: generateIdString(),
-        authProviderId: 'authProvider_another_user',
         email: 'another@example.com',
       });
 

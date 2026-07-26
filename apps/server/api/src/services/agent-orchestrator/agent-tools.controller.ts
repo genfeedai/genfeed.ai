@@ -12,7 +12,6 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { MemberRole } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolByName } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -79,13 +78,7 @@ export class AgentToolsController {
           throw new ForbiddenException(`Tool ${name} requires superadmin`);
         }
         if (tool.requiredRole === 'admin' && !isSuperAdmin) {
-          const memberRole = getPublicMetadata(user).role;
-          if (
-            memberRole !== MemberRole.OWNER &&
-            memberRole !== MemberRole.ADMIN
-          ) {
-            throw new ForbiddenException(`Tool ${name} requires admin`);
-          }
+          throw new ForbiddenException(`Tool ${name} requires admin`);
         }
       }
 
@@ -137,14 +130,17 @@ export class AgentToolsController {
       return metadataUserId;
     }
 
-    const authProviderId = user.id;
-    if (!authProviderId) {
+    const userId = user.id;
+    if (!userId) {
       throw new UnauthorizedException(
         'Missing user identity. Please sign in again.',
       );
     }
 
-    const dbUser = await this.usersService.findOne({ authProviderId }, []);
+    const dbUser = await this.usersService.findOne(
+      { _id: userId, isDeleted: false },
+      [],
+    );
     if (!dbUser?.id) {
       throw new UnauthorizedException('User account not found');
     }

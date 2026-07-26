@@ -545,7 +545,6 @@ async function seedBenchmarkData(
 
   const user = createTestUser({
     _id: randomUUID(SEED_USER_ID),
-    authProviderId: 'authProvider_api_benchmark_user',
     email: 'api-benchmark@example.com',
   });
   const role = {
@@ -647,7 +646,7 @@ async function seedBenchmarkData(
 
   return {
     brandId: String(brands[0]?._id ?? ''),
-    authProviderUserId: user.authProviderId,
+    authProviderUserId: String(user.id),
     organizationId: String(organization._id),
     userId: String(user._id),
   };

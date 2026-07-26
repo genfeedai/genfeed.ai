@@ -12,9 +12,6 @@ import type { MetadataEntity } from '@api/collections/metadata/entities/metadata
 import type { MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import type { UserEntity } from '@api/collections/users/entities/user.entity';
-import type { UserDocument } from '@api/collections/users/schemas/user.schema';
-import { UsersService } from '@api/collections/users/services/users.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
 import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
@@ -49,7 +46,6 @@ describe('WebhooksService', () => {
   let ingredientsService: vi.Mocked<IngredientsService>;
   let metadataService: vi.Mocked<MetadataService>;
   let cacheService: vi.Mocked<CacheService>;
-  let usersService: vi.Mocked<UsersService>;
   let assetsService: vi.Mocked<AssetsService>;
   let metadataLookupService: vi.Mocked<MetadataLookupService>;
   let mediaUploadService: vi.Mocked<MediaUploadService>;
@@ -62,7 +58,6 @@ describe('WebhooksService', () => {
   const mockBrandId = '507f191e810c19729de860ee';
   const mockMetadataId = '507f191e810c19729de860ee';
   const mockIngredientId = '507f191e810c19729de860ee';
-  const mockAuthProviderId = 'authProvider_user_123';
 
   const mockMetadata = {
     id: mockMetadataId,
@@ -87,7 +82,6 @@ describe('WebhooksService', () => {
 
   const mockUser = {
     id: mockUserId,
-    authProviderId: mockAuthProviderId,
     email: 'test@example.com',
     firstName: 'Test',
     lastName: 'User',
@@ -118,8 +112,6 @@ describe('WebhooksService', () => {
   const mockMetadataDoc = mockMetadata as unknown as MetadataDocument;
   const mockMetadataEntity = mockMetadata as unknown as MetadataEntity;
   const mockVideoMetadataDoc = mockVideoMetadata as unknown as MetadataDocument;
-  const mockUserEntity = mockUser as unknown as UserEntity;
-  const mockUserDoc = mockUser as unknown as UserDocument;
   const mockIngredientDoc = mockIngredient as unknown as IngredientDocument;
   const mockIngredientEntity = mockIngredient as unknown as IngredientEntity;
   const mockVideoIngredientDoc =
@@ -232,12 +224,6 @@ describe('WebhooksService', () => {
           },
         },
         {
-          provide: UsersService,
-          useValue: {
-            findOne: vi.fn(),
-          },
-        },
-        {
           provide: AssetsService,
           useValue: {
             findOne: vi.fn(),
@@ -295,7 +281,6 @@ describe('WebhooksService', () => {
     ingredientsService = module.get(IngredientsService);
     metadataService = module.get(MetadataService);
     cacheService = module.get(CacheService);
-    usersService = module.get(UsersService);
     assetsService = module.get(AssetsService);
     metadataLookupService = module.get(MetadataLookupService);
     mediaUploadService = module.get(MediaUploadService);
@@ -323,7 +308,7 @@ describe('WebhooksService', () => {
         ingredient: mockIngredientDoc,
         metadata: mockMetadataDoc,
       });
-      // After patch, findOne returns populated ingredient with authProviderId
+      // After patch, findOne returns the ingredient with its canonical user.
       ingredientsService.patch.mockResolvedValue(mockIngredientDoc);
       ingredientsService.findOne.mockResolvedValue(mockIngredientDoc);
       websocketService.publishVideoComplete.mockResolvedValue(undefined);
@@ -530,71 +515,6 @@ describe('WebhooksService', () => {
         url,
         expect.any(String),
         externalId,
-      );
-    });
-
-    it('should fetch full user document if authProviderId missing from populated user', async () => {
-      const ingredientWithoutAuthProviderId = {
-        ...mockIngredient,
-        user: { id: mockUserId },
-      };
-      metadataLookupService.lookupMetadataAndIngredient.mockResolvedValue({
-        ingredient:
-          ingredientWithoutAuthProviderId as unknown as IngredientDocument,
-        metadata: mockMetadataDoc,
-      });
-      ingredientsService.patch.mockResolvedValue(
-        ingredientWithoutAuthProviderId as unknown as IngredientEntity,
-      );
-      ingredientsService.findOne.mockResolvedValue(
-        ingredientWithoutAuthProviderId as unknown as IngredientEntity,
-      );
-      usersService.findOne.mockResolvedValue(mockUserDoc);
-
-      await service.processMediaFromWebhook(
-        integration,
-        IngredientCategory.IMAGE,
-        externalId,
-        url,
-      );
-
-      expect(usersService.findOne).toHaveBeenCalledWith({
-        _id: mockUserId,
-      });
-    });
-
-    it('should warn when user has no authProviderId for websocket', async () => {
-      const ingredientWithoutAuthProviderId = {
-        ...mockIngredient,
-        user: { id: mockUserId },
-      };
-      metadataLookupService.lookupMetadataAndIngredient.mockResolvedValue({
-        ingredient:
-          ingredientWithoutAuthProviderId as unknown as IngredientDocument,
-        metadata: mockMetadataDoc,
-      });
-      ingredientsService.patch.mockResolvedValue(
-        ingredientWithoutAuthProviderId as unknown as IngredientEntity,
-      );
-      ingredientsService.findOne.mockResolvedValue(
-        ingredientWithoutAuthProviderId as unknown as IngredientEntity,
-      );
-      usersService.findOne.mockResolvedValue({
-        id: mockUserId,
-      } as unknown as UserEntity);
-
-      await service.processMediaFromWebhook(
-        integration,
-        IngredientCategory.IMAGE,
-        externalId,
-        url,
-      );
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'Client joins room using legacy auth provider ID from JWT',
-        ),
-        expect.any(Object),
       );
     });
 

@@ -1,5 +1,5 @@
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
-import type { ActionOrigin, MemberRole } from '@genfeedai/enums';
+import type { ActionOrigin } from '@genfeedai/enums';
 
 export interface IAuthenticatedEmailAddress {
   emailAddress?: string | null;
@@ -15,30 +15,14 @@ export interface IAuthPublicMetadata {
   brand: string;
   apiKeyId?: string;
   actionOrigin?: ActionOrigin;
-  balance?: number;
-  role?: MemberRole;
   scopes?: string[];
 
-  stripeCustomerId?: string;
   stripeSubscriptionId?: string;
   stripeSubscriptionStatus?: string;
-  stripePriceId?: string;
   subscriptionTier?: string;
 
   isApiKey?: boolean;
   isSuperAdmin: boolean;
-
-  /**
-   * Legacy auth provider identifiers retained only while D4 removes historical fields.
-   */
-  authProviderId?: string;
-  authProviderOrganizationId?: string;
-
-  category?: string;
-  isOnboardingCompleted?: boolean;
-  proactiveLeadId?: string;
-
-  hasEverHadCredits?: boolean;
 }
 
 export interface AuthenticatedUser {

@@ -346,23 +346,12 @@ export class AgentThreadsController {
    * key to. This must trust the already-authenticated identity the same way
    * every other working endpoint does (see UsersController): read
    * `getPublicMetadata(user).user` directly, with no DB re-lookup. That value
-   * is populated once per request by AuthIdentityResolverService and is
-   * exactly the id AgentThread.userId expects.
-   *
-   * Previously this re-derived the id via `usersService.findOne({ _id,
-   * authProviderId })` — an AND filter requiring the stored (legacy)
-   * `authProviderId` column to match the current auth-provider subject. For
-   * users where that legacy field doesn't line up (e.g. Better-Auth users,
-   * or any account reconciled by AuthIdentityResolverService's fallback
-   * paths), both that lookup and its `{ authProviderId }` fallback missed,
-   * throwing UnauthorizedException for an already-authenticated user. That
-   * is the exact 401 loop reported on GET /v1/threads while every other
-   * authenticated endpoint (which trusts publicMetadata.user with no
-   * re-lookup) kept returning 200 for the same token.
+   * is populated once per request by the registered Better Auth identity
+   * resolver and is exactly the id AgentThread.userId expects.
    *
    * The DB lookup below is retained only as a last-resort fallback for the
    * rare case where publicMetadata carries no user id at all, and it must
-   * never throw for an authenticated user based on a legacy field mismatch.
+   * never reinterpret the authenticated subject as an external identifier.
    */
   private async resolveMongoUserId(user: User): Promise<string> {
     const { user: metadataUserId } = getPublicMetadata(user);
@@ -370,14 +359,17 @@ export class AgentThreadsController {
       return metadataUserId;
     }
 
-    const authProviderId = user.id;
-    if (!authProviderId) {
+    const userId = user.id;
+    if (!userId) {
       throw new UnauthorizedException(
         'Missing user identity. Please sign in again.',
       );
     }
 
-    const dbUser = await this.usersService.findOne({ authProviderId }, []);
+    const dbUser = await this.usersService.findOne(
+      { _id: userId, isDeleted: false },
+      [],
+    );
     const fallbackUserId = dbUser?.id;
     if (!fallbackUserId) {
       throw new UnauthorizedException('User account not found');
