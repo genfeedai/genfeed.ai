@@ -272,7 +272,7 @@ jobs:
           bun run check:runtime-complexity -- --base "$BASE"
       - name: Architecture Guard Fixtures
         run: |
-          bunx vitest run --config scripts/architecture/vitest.config.ts check-runtime-complexity.test.ts check-deterministic-locale.test.ts check-relation-alias-reads.test.ts check-route-shadowing.test.ts check-tenant-scope.test.ts
+          bunx vitest run --config scripts/architecture/vitest.config.ts check-runtime-complexity.test.ts check-deterministic-locale.test.ts check-relation-alias-reads.test.ts check-route-shadowing.test.ts check-tenant-scope.test.ts check-tenant-scope-hook.test.ts
           bunx vitest run --config scripts/ci/vitest.config.ts feature-test-coverage.test.ts nightly-test-workspace-inventory.test.ts nightly-unit-matrix.test.ts pr-validation-telemetry.test.ts
       - name: Require tests for feature source changes
         if: github.event_name == 'pull_request'
