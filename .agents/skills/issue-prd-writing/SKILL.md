@@ -117,6 +117,8 @@ Before marking a PRD ready for implementation, all of these must pass:
 - `Success Criteria` has at least one verifiable pass/fail bullet.
 - `Out of Scope` has at least one bullet.
 - `User Stories` has at least one story with explicit acceptance checks.
+- Every `Functional Requirements` bullet and every `**Acceptance:**` check matches
+  `^\s*(\d+\.\s*)?(WHEN|WHILE|WHERE|IF|THE SYSTEM)\b.*\bSHALL\b` (EARS).
 - `System Specification` names observable states, data contracts, permissions/trust boundaries, and failure behavior.
 - `Feature Phase Breakdown` contains exactly three ordered phases.
 - `Dependencies` names concrete packages, PRD paths, URLs, or says `None`.
