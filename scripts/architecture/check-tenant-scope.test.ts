@@ -77,11 +77,11 @@ describe('check-tenant-scope', () => {
     expect(result.findings).toEqual([
       expect.objectContaining({
         delegate: 'post',
-        reason: 'missing-organization-id',
+        reason: 'missing-is-deleted',
       }),
       expect.objectContaining({
         delegate: 'post',
-        reason: 'missing-is-deleted',
+        reason: 'missing-organization-id',
       }),
     ]);
   });
