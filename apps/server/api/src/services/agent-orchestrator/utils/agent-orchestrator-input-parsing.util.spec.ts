@@ -35,9 +35,9 @@ describe('agent orchestrator input parsing', () => {
     expect(
       extractStyleNotes('Create images in a bold\neditorial style'),
     ).toBeUndefined();
-    expect(extractStyleNotes('in a broken\nstyle, with a valid style')).toBe(
-      'valid',
-    );
+    expect(
+      extractStyleNotes('in a broken\neditorial style, with a valid style'),
+    ).toBe('valid');
   });
 
   it('extracts a topic before platform, date, or punctuation delimiters', () => {
