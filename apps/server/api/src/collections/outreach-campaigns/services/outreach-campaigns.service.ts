@@ -9,6 +9,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { CampaignStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -141,11 +142,9 @@ export class OutreachCampaignsService {
     const brand = await findOrThrow(
       this.prisma.brand,
       {
-        where: {
+        where: scopedWhere(organizationId, {
           OR: [{ id: brandId }, { mongoId: brandId }],
-          isDeleted: false,
-          organizationId,
-        },
+        }),
       },
       'Brand',
     );
@@ -162,14 +161,12 @@ export class OutreachCampaignsService {
     await findOrThrow(
       this.prisma.credential,
       {
-        where: {
+        where: scopedWhere(organizationId, {
           OR: [{ id: credentialId }, { mongoId: credentialId }],
           isConnected: true,
-          isDeleted: false,
-          organizationId,
           platform: toPrismaCredentialPlatform(platform) as never,
           ...(brandId ? { brandId } : {}),
-        },
+        }),
       },
       'Credential',
     );
@@ -311,12 +308,10 @@ export class OutreachCampaignsService {
     brandId?: string,
   ): Promise<OutreachCampaignDocument | null> {
     const row = await this.prisma.outreachCampaign.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         ...(brandId ? { brandId } : {}),
         id,
-        isDeleted: false,
-        organizationId,
-      },
+      }),
     });
 
     if (!row) return null;
@@ -330,7 +325,7 @@ export class OutreachCampaignsService {
     organizationId: string,
   ): Promise<OutreachCampaignDocument[]> {
     const rows = await this.prisma.outreachCampaign.findMany({
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
     return normalizeDocs(rows);
   }
@@ -342,11 +337,7 @@ export class OutreachCampaignsService {
     organizationId: string,
   ): Promise<OutreachCampaignDocument[]> {
     const rows = await this.prisma.outreachCampaign.findMany({
-      where: {
-        isDeleted: false,
-        organizationId,
-        status: CampaignStatus.ACTIVE,
-      },
+      where: scopedWhere(organizationId, { status: CampaignStatus.ACTIVE }),
     });
     return normalizeDocs(rows);
   }
@@ -359,7 +350,7 @@ export class OutreachCampaignsService {
     status: CampaignStatus,
   ): Promise<OutreachCampaignDocument[]> {
     const rows = await this.prisma.outreachCampaign.findMany({
-      where: { isDeleted: false, organizationId, status },
+      where: scopedWhere(organizationId, { status }),
     });
     return normalizeDocs(rows);
   }

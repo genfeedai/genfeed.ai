@@ -17,6 +17,7 @@ import {
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
+import { scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
   Body,
@@ -118,11 +119,7 @@ export class IngredientsController {
     // Load only an active ingredient in the caller organization, then enforce
     // current-brand or organization-shared access below.
     const ingredient = await this.ingredientsService.findOne(
-      {
-        _id: ingredientId,
-        isDeleted: false,
-        organizationId: publicMetadata.organization,
-      },
+      scopedWhere(publicMetadata.organization, { _id: ingredientId }),
       [PopulatePatterns.metadataFull],
     );
 
@@ -135,11 +132,9 @@ export class IngredientsController {
     }
 
     if (Object.hasOwn(processedDto, 'folder') && processedDto.folder !== null) {
-      const folder = await this.foldersService.findOne({
-        _id: processedDto.folder,
-        isDeleted: false,
-        organizationId: publicMetadata.organization,
-      });
+      const folder = await this.foldersService.findOne(
+        scopedWhere(publicMetadata.organization, { _id: processedDto.folder }),
+      );
 
       if (
         !folder ||
@@ -165,11 +160,7 @@ export class IngredientsController {
     // Fetch the updated document with populated fields
     // Only populate metadata fully and brand minimally (id, label, handle)
     const data = await this.ingredientsService.findOne(
-      {
-        _id: ingredientId,
-        isDeleted: false,
-        organizationId: publicMetadata.organization,
-      },
+      scopedWhere(publicMetadata.organization, { _id: ingredientId }),
       [PopulatePatterns.metadataFull, PopulatePatterns.brandMinimal],
     );
 

@@ -11,6 +11,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { MoodBoardSerializer } from '@genfeedai/serializers';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -63,11 +64,9 @@ export class MoodBoardsController {
   ): Promise<JsonApiSingleResponse> {
     const { organization: organizationId } = getPublicMetadata(user);
 
-    const existing = await this.service.findOne({
-      id,
-      isDeleted: false,
-      organizationId,
-    });
+    const existing = await this.service.findOne(
+      scopedWhere(organizationId, { id }),
+    );
 
     if (!existing) {
       return returnNotFound(this.constructorName, id);

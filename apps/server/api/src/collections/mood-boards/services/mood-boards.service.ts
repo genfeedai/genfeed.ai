@@ -4,6 +4,7 @@ import type { MoodBoardDocument } from '@api/collections/mood-boards/schemas/moo
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -29,7 +30,7 @@ export class MoodBoardsService extends BaseService<
     // another org. Mirrors the org-scoping the PATCH handler already applies.
     const brand = await this.prisma.brand.findFirst({
       select: { organizationId: true },
-      where: { id: brandId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: brandId }),
     });
 
     if (!brand) {

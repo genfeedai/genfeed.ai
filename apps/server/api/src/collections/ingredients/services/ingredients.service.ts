@@ -11,6 +11,7 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientStatus, MetadataExtension } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -224,11 +225,7 @@ export class IngredientsService extends BaseService<
       });
 
       const result = await this.prisma.ingredient.findMany({
-        where: {
-          id: { in: ids },
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, { id: { in: ids } }),
       });
 
       this.logger.debug(`${this.constructorName} findByIds success`, {
@@ -251,12 +248,10 @@ export class IngredientsService extends BaseService<
     organizationId: string,
   ): Promise<IngredientDocument | null> {
     const ingredient = (await this.prisma.ingredient.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id: ingredientId,
-        category: 'AVATAR',
-        isDeleted: false,
-        organizationId,
-      },
+        category: 'AVATAR' as const,
+      }),
       include: { metadata: true } as never,
     })) as
       | (IngredientDocument & {
@@ -297,17 +292,15 @@ export class IngredientsService extends BaseService<
       );
 
       const result = await this.prisma.ingredient.findMany({
-        where: {
+        where: scopedWhere(organizationId, {
           brandId,
           campaign,
-          category: 'IMAGE',
-          isDeleted: false,
-          organizationId,
-          reviewStatus: 'APPROVED',
+          category: 'IMAGE' as const,
+          reviewStatus: 'APPROVED' as const,
           status: {
-            in: ['GENERATED', 'VALIDATED'],
+            in: ['GENERATED', 'VALIDATED'] as const,
           },
-        },
+        }),
         orderBy: [{ id: 'asc' }, { createdAt: 'asc' }],
       });
 
@@ -532,10 +525,10 @@ export class IngredientsService extends BaseService<
     limit?: number;
     organizationId: string;
   }): Promise<AggregatePaginateResult<IngredientDocument>> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId: params.organizationId,
-    };
+    const where: Record<string, unknown> = scopedWhere(
+      params.organizationId,
+      {},
+    );
 
     if (params.brandId) {
       where.brandId = params.brandId;
@@ -591,11 +584,9 @@ export class IngredientsService extends BaseService<
         organizationId,
       });
 
-      const baseWhere: Record<string, unknown> = {
-        isDeleted: false,
-        organizationId,
+      const baseWhere: Record<string, unknown> = scopedWhere(organizationId, {
         ...CategoryPrismaUtil.toIngredientCategoryFilter(category),
-      };
+      });
 
       if (category) {
         const [total, generated, rejected, validated] = await Promise.all([
@@ -720,7 +711,7 @@ export class IngredientsService extends BaseService<
    */
   async countPersonaAssets(organizationId: string): Promise<number> {
     return this.prisma.ingredient.count({
-      where: { isDeleted: false, organizationId, personaId: { not: null } },
+      where: scopedWhere(organizationId, { personaId: { not: null } }),
     });
   }
 
@@ -733,7 +724,7 @@ export class IngredientsService extends BaseService<
     const groups = await this.prisma.ingredient.groupBy({
       _count: { id: true },
       by: ['status'],
-      where: { isDeleted: false, organizationId, personaId: { not: null } },
+      where: scopedWhere(organizationId, { personaId: { not: null } }),
     });
 
     return groups.map((group) => ({
@@ -751,7 +742,7 @@ export class IngredientsService extends BaseService<
     const groups = await this.prisma.ingredient.groupBy({
       _count: { id: true },
       by: ['reviewStatus'],
-      where: { isDeleted: false, organizationId, personaId: { not: null } },
+      where: scopedWhere(organizationId, { personaId: { not: null } }),
     });
 
     return groups.map((group) => ({
@@ -777,12 +768,10 @@ export class IngredientsService extends BaseService<
       _min: { createdAt: true },
       by: ['campaign', 'reviewStatus'],
       orderBy: { campaign: 'asc' },
-      where: {
+      where: scopedWhere(organizationId, {
         campaign: { not: null },
-        isDeleted: false,
-        organizationId,
         personaId: { not: null },
-      },
+      }),
     });
 
     return groups.map((group) => ({

@@ -13,6 +13,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { sanitizeLayoutForPersistence } from '@genfeedai/agent/dashboard';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -58,7 +59,7 @@ export class DashboardLayoutsService extends BaseService<
     organizationId: string,
     pageKey: string,
   ): Promise<DashboardLayoutDocument | null> {
-    return this.findOne({ brandId, isDeleted: false, organizationId, pageKey });
+    return this.findOne(scopedWhere(organizationId, { brandId, pageKey }));
   }
 
   async upsertForPage(
@@ -70,7 +71,7 @@ export class DashboardLayoutsService extends BaseService<
     // owned by another org. Mirrors MoodBoardsService.findOrCreateByBrand.
     const brand = await this.prisma.brand.findFirst({
       select: { organizationId: true },
-      where: { id: dto.brandId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: dto.brandId }),
     });
 
     if (!brand) {
@@ -137,7 +138,7 @@ export class DashboardLayoutsService extends BaseService<
     // BaseService.remove() only scopes by id, so it can't be reused here.
     const { count } = await this.prisma.dashboardLayout.updateMany({
       data: { isDeleted: true },
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
     });
 
     if (count === 0) {
