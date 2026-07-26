@@ -8,6 +8,7 @@ on:
       - "packages/desktop-contracts/**"
       - "packages/props/**"
       - "packages/ui/**"
+      - ".github/workflows/desktop-qa.yml"
   workflow_dispatch:
   workflow_call:
 
@@ -15,7 +16,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: desktop-qa-${{ github.head_ref || github.ref_name }}
+  # PR numbers are repository-unique; head branch names are not (two forks can
+  # both open `fix/desktop`). Non-PR callers fall back to the complete ref so
+  # distinct tags and branches cannot cancel each other.
+  group: desktop-qa-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
