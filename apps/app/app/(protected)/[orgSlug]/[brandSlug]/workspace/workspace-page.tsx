@@ -22,7 +22,10 @@ import { HiOutlineSquares2X2 } from 'react-icons/hi2';
 import { useWorkspaceSurfaceSelection } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 import { getWorkspaceOverviewArtifactReferences } from '@/features/workspace-overview/workspace-overview-artifact-references';
 import { useWorkspacePageContent } from './use-workspace-page-content';
-import { WorkspaceDashboard } from './workspace-dashboard';
+import {
+  hasWorkspaceOverviewSignal,
+  WorkspaceDashboard,
+} from './workspace-dashboard';
 import { workspaceInboxTableColumns } from './workspace-inbox-columns';
 import { WorkspaceOverviewSidebar } from './workspace-overview-sidebar';
 import { WorkspaceSnapshotSection } from './workspace-snapshot-section';
@@ -121,6 +124,35 @@ function WorkspacePageContentContent({
         organizationId,
       }),
     [brandId, organizationId, selectedTask],
+  );
+
+  // Shares one predicate with the dashboard: when a brand has nothing in it the
+  // dashboard collapses to a single guided first-run block, and the task queue
+  // and sidebar have to disappear on exactly the same condition — otherwise the
+  // guided block renders with the empty bands it exists to replace stacked
+  // underneath it.
+  const hasOverviewSignal = useMemo(
+    () =>
+      hasWorkspaceOverviewSignal({
+        activeRuns: initialActiveRuns,
+        isRunsLoading: isWorkspaceRunsLoading,
+        isTasksLoading: isWorkspaceTasksLoading,
+        isTrendsLoading,
+        reviewInbox: initialReviewInbox,
+        runs: initialRuns,
+        trendItems,
+        workspaceTasks,
+      }),
+    [
+      initialActiveRuns,
+      initialReviewInbox,
+      initialRuns,
+      isTrendsLoading,
+      isWorkspaceRunsLoading,
+      isWorkspaceTasksLoading,
+      trendItems,
+      workspaceTasks,
+    ],
   );
 
   useEffect(() => {
@@ -273,7 +305,7 @@ function WorkspacePageContentContent({
 
       <div className={WORKSPACE_SECTION_STACK_CLASS}>
         <div className={WORKSPACE_SECTION_STACK_CLASS}>
-          {isOverviewSection ? (
+          {isOverviewSection && hasOverviewSignal ? (
             <WorkspaceTaskQueueCard
               busyTaskId={busyTaskId}
               isLoading={isWorkspaceTasksLoading}
@@ -333,7 +365,7 @@ function WorkspacePageContentContent({
           ) : null}
         </div>
 
-        {isOverviewSection ? (
+        {isOverviewSection && hasOverviewSignal ? (
           <WorkspaceOverviewSidebar
             busyTaskId={busyTaskId}
             historyPreviewItems={historyPreviewItems}

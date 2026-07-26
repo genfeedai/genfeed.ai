@@ -8,6 +8,7 @@ import {
   type ConversationComposerActionInvocation,
   type ConversationComposerDispatchResult,
   ConversationComposerShellProvider,
+  ConversationInspectorShellProvider,
   getConversationComposerAction,
   runAgentApiEffect,
   useAgentChatStore,
@@ -45,8 +46,6 @@ import {
   HiOutlineArrowLeft,
   HiOutlineBolt,
   HiOutlineChatBubbleLeftRight,
-  HiOutlineChevronLeft,
-  HiOutlineChevronRight,
   HiOutlineEye,
   HiOutlineSquares2X2,
   HiOutlineViewColumns,
@@ -68,6 +67,7 @@ import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
+import { surfaceOwnsPrimaryInput } from '@/lib/workspace-shell/workspace-composer-surfaces';
 import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
 import {
   buildWorkspaceShellHref,
@@ -89,6 +89,10 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
+import {
+  useRegisterWorkspaceInspector,
+  useWorkspaceInspector,
+} from './WorkspaceInspectorContext';
 import WorkspaceOverlayHost from './WorkspaceOverlayHost';
 import { WorkspaceShellActionsProvider } from './WorkspaceShellActionsContext';
 import {
@@ -101,6 +105,13 @@ import {
 const INSPECTOR_DEFAULT_WIDTH = 320;
 const INSPECTOR_MIN_WIDTH = 256;
 const INSPECTOR_MAX_WIDTH = 480;
+// Zero, not a rail stub: collapsed means gone, exactly like the left navigation
+// sidebar. The only toggle then lives in the topbar (WorkspaceInspectorContext).
+const INSPECTOR_COLLAPSED_WIDTH = 0;
+// Motion parity with DesktopSidebar — same duration, same curve, both axes.
+const INSPECTOR_TRANSITION_DURATION_MS = 300;
+const INSPECTOR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
+const INSPECTOR_RAIL_TRANSITION = `width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}, min-width ${INSPECTOR_TRANSITION_DURATION_MS}ms ${INSPECTOR_TRANSITION_EASING}`;
 
 type UniversalWorkspaceShellProps = {
   readonly agentApiService: AgentApiService;
@@ -148,11 +159,26 @@ function UniversalWorkspaceShellContent({
   const activeWorkspaceSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
   const activeSurfacePresentationAdapter =
     useActiveWorkspaceSurfacePresentationAdapter();
-  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  // The topbar owns the inspector toggle, so open state is shared through a
+  // provider that sits above AppLayout. The shell also renders standalone (unit
+  // tests, non-protected layouts) where there is no toggle at all, so it defaults
+  // to expanded there.
+  const workspaceInspector = useWorkspaceInspector();
+  const isInspectorOpen = workspaceInspector?.isOpen ?? true;
+  useRegisterWorkspaceInspector();
   const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState(false);
-  const [inspectorWidth, setInspectorWidth] = useState(INSPECTOR_DEFAULT_WIDTH);
+  // `null` keeps the inspector sized to its own content (clamped by the CSS
+  // min/max below); a number means the operator has resized it explicitly.
+  const [inspectorWidth, setInspectorWidth] = useState<number | null>(null);
   const [composerPortalTarget, setComposerPortalTarget] =
     useState<HTMLElement | null>(null);
+  // The agent conversation hands its context panels (setup, outputs) to the
+  // inspector rail instead of painting a second right-hand column inside the
+  // conversation region. `hasAgentInspectorPanel` lets the rail stand down its
+  // own generic context content while the agent owns it.
+  const [agentInspectorPortalTarget, setAgentInspectorPortalTarget] =
+    useState<HTMLElement | null>(null);
+  const [hasAgentInspectorPanel, setHasAgentInspectorPanel] = useState(false);
   const [failedSurfaceScopeKey, setFailedSurfaceScopeKey] = useState<
     string | null
   >(null);
@@ -161,6 +187,7 @@ function UniversalWorkspaceShellContent({
     readonly token: symbol;
   } | null>(null);
   const primaryRegionRef = useRef<HTMLElement>(null);
+  const inspectorRef = useRef<HTMLElement>(null);
   const previousActiveThreadIdRef = useRef(activeThreadId);
   const previousPathnameRef = useRef<string | null>(null);
   const previousStateRef = useRef<WorkspaceShellState | null>(null);
@@ -282,6 +309,14 @@ function UniversalWorkspaceShellContent({
       ),
     [rawPathname, searchParamsString],
   );
+  // The floating composer is the conversation's own prompt bar. On a canvas
+  // surface that already ships a primary input — Studio's generation bar, the
+  // post composer, the editor, the messages reply box — it only ever rendered
+  // as a second prompt bar carrying the same suggestion chips, so it stands
+  // down there and the surface owns its input.
+  const isShellComposerVisible =
+    state !== 'overlay' &&
+    !(baseState === 'canvas' && surfaceOwnsPrimaryInput(surfaceKey));
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
   // Human-readable breadcrumb leaf resolved from the route registry
   // (param-interpolated), never the raw `route:/…` pattern from `routeKey`.
@@ -809,11 +844,50 @@ function UniversalWorkspaceShellContent({
     [activeThreadId, effectiveThreadId, handleDismissOverlay, seedComposer],
   );
 
+  const resolveInspectorWidth = useCallback(
+    (): number => inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH,
+    [inspectorWidth],
+  );
+
+  // The rail's width is state-derived, never content-derived: the topbar and the
+  // main content reserve space for it down to the pixel, and `max-content` sizing
+  // resolves to a fractional width that can never be matched exactly by a
+  // reserved offset. A concrete number here is what keeps the topbar's right edge
+  // flush against the rail's left edge with no seam.
+  const inspectorRailWidth = isInspectorOpen
+    ? (inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH)
+    : INSPECTOR_COLLAPSED_WIDTH;
+
+  // The rail is fixed-positioned, so it no longer occupies a grid track. Publish
+  // its width on the AppLayout root instead — the topbar and main content offset
+  // themselves by it, exactly as they do for the left sidebar. Consumers apply the
+  // offset only at `xl:`, which is also the only breakpoint where the rail renders.
+  // Layout effect, not effect: publishing before first paint keeps the reserved
+  // space correct on mount so the offset transition never plays on page load.
+  useLayoutEffect(() => {
+    const layoutRoot = inspectorRef.current?.closest<HTMLElement>(
+      '[data-workspace-shell="true"]',
+    );
+
+    if (!layoutRoot) {
+      return;
+    }
+
+    layoutRoot.style.setProperty(
+      '--workspace-inspector-width',
+      `${inspectorRailWidth}px`,
+    );
+
+    return () => {
+      layoutRoot.style.removeProperty('--workspace-inspector-width');
+    };
+  }, [inspectorRailWidth]);
+
   const handleInspectorResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       const startX = event.clientX;
-      const startWidth = inspectorWidth;
+      const startWidth = resolveInspectorWidth();
 
       const handleMouseMove = (moveEvent: MouseEvent): void => {
         setInspectorWidth(
@@ -828,7 +902,7 @@ function UniversalWorkspaceShellContent({
       window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', handleMouseUp);
     },
-    [inspectorWidth],
+    [resolveInspectorWidth],
   );
 
   const handleInspectorResizeKeyDown = useCallback(
@@ -837,173 +911,259 @@ function UniversalWorkspaceShellContent({
 
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        setInspectorWidth((width) => clampInspectorWidth(width + step));
+        setInspectorWidth(clampInspectorWidth(resolveInspectorWidth() + step));
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
-        setInspectorWidth((width) => clampInspectorWidth(width - step));
+        setInspectorWidth(clampInspectorWidth(resolveInspectorWidth() - step));
       }
     },
-    [],
+    [resolveInspectorWidth],
   );
 
-  const inspectorContent = (
-    <div className="flex h-full min-h-0 flex-col bg-background-secondary">
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
-        <div>
-          <p className="text-sm font-medium text-foreground">Context</p>
-          <p className="text-xs text-muted-foreground">
-            {surfaceScopeStatus === 'syncing'
-              ? 'Synchronizing surface brand…'
-              : surfaceScopeStatus === 'error'
-                ? 'Surface brand synchronization failed'
-                : effectiveThreadId
-                  ? 'Conversation connected'
-                  : 'No conversation selected'}
-          </p>
-        </div>
-        <Button
-          ariaLabel="Collapse context inspector"
-          className="hidden size-7 xl:inline-flex"
-          icon={<HiOutlineChevronRight className="size-4" />}
-          onClick={() => setIsInspectorOpen(false)}
-          size={ButtonSize.ICON}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        />
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        {conversationScope.inspectorScope}
-        {productSurfaceAdapter ? (
-          productSurfaceAdapter.renderInspector()
-        ) : surfaceKey === 'workflows' ? (
-          <WorkflowSurfaceInspector
-            contextVersion={activeThread?.contextVersion}
-            pathname={rawPathname}
-            searchParams={new URLSearchParams(searchParamsString)}
-            threadId={effectiveThreadId}
-          />
-        ) : effectiveSurfaceAdapter ? (
-          effectiveSurfaceAdapter.inspectorContent
-        ) : activeResearchSurfaceAdapter ? (
-          activeResearchSurfaceAdapter.inspectorContent
-        ) : resolvedSurfacePresentationAdapter ? (
-          resolvedSurfacePresentationAdapter.inspector
-        ) : resolvedWorkspaceSurfaceAdapter ? (
-          <div
-            className="gen-shell-empty-state p-4"
-            data-testid="workspace-surface-adapter-inspector"
-          >
-            <p className="text-sm font-medium text-foreground">
-              {resolvedWorkspaceSurfaceAdapter.registration.title}
-            </p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {resolvedWorkspaceSurfaceAdapter.registration.description}
-            </p>
-            <p className="mt-3 text-xs leading-5 text-muted-foreground">
-              Full management remains available on this canonical route.
+  // Rendered at two sites (desktop rail + mobile drawer), so this stays a
+  // function: only the desktop rail may own the agent portal target, otherwise
+  // the ref callback would race between two mounted copies.
+  const renderInspectorContent = (agentPanelSlot: ReactNode = null) => {
+    const isAgentOwned = agentPanelSlot !== null && hasAgentInspectorPanel;
+
+    return (
+      <div className="flex h-full min-h-0 flex-col bg-background">
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">Context</p>
+            <p className="text-xs text-muted-foreground">
+              {surfaceScopeStatus === 'syncing'
+                ? 'Synchronizing surface brand…'
+                : surfaceScopeStatus === 'error'
+                  ? 'Surface brand synchronization failed'
+                  : effectiveThreadId
+                    ? 'Conversation connected'
+                    : 'No conversation selected'}
             </p>
           </div>
-        ) : (
-          <CardEmptyContent
-            className="gen-shell-empty-state rounded-lg py-8"
-            description={`Start a conversation or choose a workflow to build ${inspectorBreadcrumbLabel} context here.`}
-            icon={HiOutlineSquares2X2}
-            label={`No ${inspectorBreadcrumbLabel} context yet`}
-            size={CardEmptySize.SM}
-          />
-        )}
-        <Button
-          icon={<HiOutlineBolt className="size-4" />}
-          onClick={handleOpenWorkflowPicker}
-          variant={ButtonVariant.OUTLINE}
-          withWrapper={false}
+          {/* No collapse control here: the rail collapses to nothing, so the one
+            toggle is pinned in the topbar instead of disappearing with it. */}
+        </div>
+        <div
+          className={cn(
+            'flex min-h-0 flex-1 flex-col overflow-y-auto',
+            !isAgentOwned && 'gap-4 p-4',
+          )}
         >
-          Choose workflow
-        </Button>
-        {effectiveSurfaceAdapter ||
-        resolvedSurfacePresentationAdapter ? null : (
-          <Button
-            icon={<HiOutlineEye className="size-4" />}
-            onClick={handleOpenOverlay}
-            variant={ButtonVariant.OUTLINE}
-            withWrapper={false}
-          >
-            Open overlay preview
-          </Button>
-        )}
-        <Button
-          icon={<HiOutlineChatBubbleLeftRight className="size-4" />}
-          onClick={handleReturnToConversation}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        >
-          Return to conversation
-        </Button>
+          {agentPanelSlot}
+          {isAgentOwned ? null : (
+            <>
+              {conversationScope.inspectorScope}
+              {productSurfaceAdapter ? (
+                productSurfaceAdapter.renderInspector()
+              ) : surfaceKey === 'workflows' ? (
+                <WorkflowSurfaceInspector
+                  contextVersion={activeThread?.contextVersion}
+                  pathname={rawPathname}
+                  searchParams={new URLSearchParams(searchParamsString)}
+                  threadId={effectiveThreadId}
+                />
+              ) : effectiveSurfaceAdapter ? (
+                effectiveSurfaceAdapter.inspectorContent
+              ) : activeResearchSurfaceAdapter ? (
+                activeResearchSurfaceAdapter.inspectorContent
+              ) : resolvedSurfacePresentationAdapter ? (
+                resolvedSurfacePresentationAdapter.inspector
+              ) : resolvedWorkspaceSurfaceAdapter ? (
+                <div
+                  className="gen-shell-empty-state p-4"
+                  data-testid="workspace-surface-adapter-inspector"
+                >
+                  <p className="text-sm font-medium text-foreground">
+                    {resolvedWorkspaceSurfaceAdapter.registration.title}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {resolvedWorkspaceSurfaceAdapter.registration.description}
+                  </p>
+                  <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                    Full management remains available on this canonical route.
+                  </p>
+                </div>
+              ) : (
+                <CardEmptyContent
+                  className="gen-shell-empty-state rounded-lg py-8"
+                  description={`Start a conversation or choose a workflow to build ${inspectorBreadcrumbLabel} context here.`}
+                  icon={HiOutlineSquares2X2}
+                  label={`No ${inspectorBreadcrumbLabel} context yet`}
+                  size={CardEmptySize.SM}
+                />
+              )}
+              <Button
+                icon={<HiOutlineBolt className="size-4" />}
+                onClick={handleOpenWorkflowPicker}
+                variant={ButtonVariant.OUTLINE}
+                withWrapper={false}
+              >
+                Choose workflow
+              </Button>
+              {effectiveSurfaceAdapter ||
+              resolvedSurfacePresentationAdapter ? null : (
+                <Button
+                  icon={<HiOutlineEye className="size-4" />}
+                  onClick={handleOpenOverlay}
+                  variant={ButtonVariant.OUTLINE}
+                  withWrapper={false}
+                >
+                  Open overlay preview
+                </Button>
+              )}
+              <Button
+                icon={<HiOutlineChatBubbleLeftRight className="size-4" />}
+                onClick={handleReturnToConversation}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              >
+                Return to conversation
+              </Button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
-    <ConversationComposerShellProvider
-      artifactReferences={
-        surfaceReferences ?? resolvedWorkspaceSurfaceAdapter?.artifactReferences
-      }
-      brandId={
-        isSurfaceScopeAligned
-          ? (surfaceBrandId ?? resolvedWorkspaceSurfaceAdapter?.brandId)
-          : undefined
-      }
-      contextLabel={composerContextLabel}
-      dispatchAction={handleComposerAction}
-      draftScopeKey={draftScopeKey}
-      isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
-      portalTarget={composerPortalTarget}
-      references={activeResearchSurfaceAdapter?.references}
-      scopeControls={
-        <>
-          {conversationScope.scopeControls}
-          {composerScopeControls}
-          {effectiveSurfaceAdapter
-            ? effectiveSurfaceAdapter.composerContext
-            : null}
-        </>
-      }
-      shellState={state}
+    <ConversationInspectorShellProvider
+      isActive={baseState === 'conversation'}
+      onPanelPresenceChange={setHasAgentInspectorPanel}
+      portalTarget={agentInspectorPortalTarget}
     >
-      <div
-        className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-background p-2"
-        data-shell-state={state}
-        data-workspace-surface={surfaceKey}
-        data-testid="universal-workspace-shell"
+      <ConversationComposerShellProvider
+        artifactReferences={
+          surfaceReferences ??
+          resolvedWorkspaceSurfaceAdapter?.artifactReferences
+        }
+        brandId={
+          isSurfaceScopeAligned
+            ? (surfaceBrandId ?? resolvedWorkspaceSurfaceAdapter?.brandId)
+            : undefined
+        }
+        contextLabel={composerContextLabel}
+        dispatchAction={handleComposerAction}
+        draftScopeKey={draftScopeKey}
+        isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
+        portalTarget={composerPortalTarget}
+        references={activeResearchSurfaceAdapter?.references}
+        scopeControls={
+          <>
+            {conversationScope.scopeControls}
+            {composerScopeControls}
+            {effectiveSurfaceAdapter
+              ? effectiveSurfaceAdapter.composerContext
+              : null}
+          </>
+        }
+        shellState={state}
       >
-        <div aria-live="polite" className="sr-only" role="status">
-          Workspace mode: {state}. Active surface: {surfaceKey}.
-          {state === 'overlay' && overlayRegistration
-            ? ` ${overlayRegistration.presentation.openAnnouncement}`
-            : null}
-        </div>
-
         <div
-          className="h-[calc(100dvh-var(--desktop-titlebar-height)-4rem)] min-h-0 gap-2 xl:grid xl:grid-cols-[minmax(0,1fr)_auto]"
-          data-testid="workspace-shell-regions"
+          className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-background"
+          data-shell-state={state}
+          data-workspace-surface={surfaceKey}
+          data-testid="universal-workspace-shell"
         >
-          <div className="relative h-full min-h-0 min-w-0">
-            <div
-              aria-hidden={baseState !== 'conversation'}
-              className={cn(
-                'gen-workspace-shell-region-emphasis h-full min-h-0 overflow-hidden bg-background shadow-border',
-                baseState !== 'conversation' && 'hidden',
-              )}
-              data-testid="workspace-conversation-region"
-              inert={baseState !== 'conversation'}
-            >
-              <div className="flex h-11 items-center justify-between border-b border-border px-3">
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                  Conversation
-                </p>
-                <div className="flex items-center gap-1">
+          <div aria-live="polite" className="sr-only" role="status">
+            Workspace mode: {state}. Active surface: {surfaceKey}.
+            {state === 'overlay' && overlayRegistration
+              ? ` ${overlayRegistration.presentation.openAnnouncement}`
+              : null}
+          </div>
+
+          <div
+            className="h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0"
+            data-testid="workspace-shell-regions"
+          >
+            {/* Flex column for the regions, with the composer absolutely pinned to
+              its bottom edge — hence `relative` here. The composer floats over
+              the active region rather than reserving a row of its own. */}
+            <div className="relative flex h-full min-h-0 min-w-0 flex-col">
+              <div
+                aria-hidden={baseState !== 'conversation'}
+                className={cn(
+                  'flex min-h-0 flex-1 flex-col overflow-hidden bg-background',
+                  baseState !== 'conversation' && 'hidden',
+                )}
+                data-testid="workspace-conversation-region"
+                inert={baseState !== 'conversation'}
+              >
+                <div className="flex h-11 shrink-0 items-center justify-between border-b border-border px-3">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+                    Conversation
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      className="xl:hidden"
+                      icon={<HiOutlineViewColumns className="size-4" />}
+                      onClick={() => setIsMobileInspectorOpen(true)}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    >
+                      Context
+                    </Button>
+                    <Button
+                      icon={<HiOutlineSquares2X2 className="size-4" />}
+                      onClick={handleOpenCanvas}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
+                    >
+                      Open workspace canvas
+                    </Button>
+                  </div>
+                </div>
+                <section
+                  aria-label="Primary conversation workspace"
+                  className="flex min-h-0 flex-1"
+                  ref={
+                    baseState === 'conversation' ? primaryRegionRef : undefined
+                  }
+                  tabIndex={-1}
+                >
+                  <AgentWorkspacePageShell
+                    threadId={effectiveThreadId ?? undefined}
+                  />
+                </section>
+              </div>
+
+              <section
+                aria-hidden={baseState !== 'canvas'}
+                aria-label="Primary workspace canvas"
+                className={cn(
+                  'min-h-0 min-w-0 flex-1 bg-background',
+                  // Scrolling surfaces clear the floating composer so their last
+                  // row can still be scrolled into view. A graph canvas owns its
+                  // own viewport, so it keeps the full box.
+                  workflowSurfaceRoute.isGraphCanvas
+                    ? 'overflow-hidden'
+                    : 'overflow-auto',
+                  // Only reserve room under the scroll box while the floating
+                  // composer is actually overlaying it.
+                  !workflowSurfaceRoute.isGraphCanvas &&
+                    isShellComposerVisible &&
+                    'pb-48 md:pb-56',
+                  baseState !== 'canvas' && 'hidden',
+                )}
+                data-testid="workspace-canvas-layout"
+                inert={baseState !== 'canvas'}
+                ref={baseState === 'canvas' ? primaryRegionRef : undefined}
+                tabIndex={-1}
+              >
+                <div className="flex h-11 items-center justify-between border-b border-border px-3 xl:hidden">
                   <Button
-                    className="xl:hidden"
+                    icon={<HiOutlineArrowLeft className="size-4" />}
+                    onClick={handleReturnToConversation}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.GHOST}
+                    withWrapper={false}
+                  >
+                    Conversation
+                  </Button>
+                  <Button
                     icon={<HiOutlineViewColumns className="size-4" />}
                     onClick={() => setIsMobileInspectorOpen(true)}
                     size={ButtonSize.SM}
@@ -1012,171 +1172,126 @@ function UniversalWorkspaceShellContent({
                   >
                     Context
                   </Button>
-                  <Button
-                    icon={<HiOutlineSquares2X2 className="size-4" />}
-                    onClick={handleOpenCanvas}
-                    size={ButtonSize.SM}
-                    variant={ButtonVariant.GHOST}
-                    withWrapper={false}
-                  >
-                    Open workspace canvas
-                  </Button>
                 </div>
-              </div>
-              <section
-                aria-label="Primary conversation workspace"
-                className="flex h-[calc(100%-2.75rem)] min-h-0"
-                ref={
-                  baseState === 'conversation' ? primaryRegionRef : undefined
-                }
-                tabIndex={-1}
-              >
-                <AgentWorkspacePageShell
-                  threadId={effectiveThreadId ?? undefined}
-                />
+                <ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider
+                  value={registerSurfaceAdapter}
+                >
+                  {baseState === 'canvas' ? (
+                    <WorkspaceShellActionsProvider
+                      openOverlay={launchWorkspaceOverlay}
+                    >
+                      {children}
+                    </WorkspaceShellActionsProvider>
+                  ) : null}
+                </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
               </section>
+
+              {/* Floated, not docked: a reserved last row painted an opaque band
+                under the prompt bar. The composer now overlays the bottom of the
+                stack and the regions below scroll under it, kept reachable by
+                their own bottom padding. `pointer-events-none` on the frame so
+                the gap either side of the bar stays scrollable. */}
+              {isShellComposerVisible ? (
+                <div
+                  className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3 pb-3 md:px-5 md:pb-5"
+                  data-testid="workspace-composer-slot"
+                >
+                  <div
+                    className="pointer-events-auto"
+                    ref={setComposerPortalTarget}
+                  />
+                </div>
+              ) : null}
             </div>
 
-            <section
-              aria-hidden={baseState !== 'canvas'}
-              aria-label="Primary workspace canvas"
+            {/* Full-height rail, mirroring the left navigation sidebar: fixed to the
+              viewport edge, flush from titlebar to bottom, square, same surface
+              colour, same 300ms curve on width and min-width. Collapsed it goes
+              to zero — border included, or a 1px line survives at width 0. The
+              topbar and main content reserve space for it through
+              --workspace-inspector-width, which is how the rail pushes content. */}
+            <aside
+              aria-label="Context inspector"
               className={cn(
-                'gen-workspace-shell-region-emphasis h-full min-w-0 bg-background shadow-border',
-                workflowSurfaceRoute.isGraphCanvas
-                  ? 'overflow-hidden'
-                  : 'overflow-auto pb-48 md:pb-56',
-                baseState !== 'canvas' && 'hidden',
+                'fixed right-0 bottom-0 z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
+                isInspectorOpen && 'border-l border-border',
               )}
-              data-testid="workspace-canvas-layout"
-              inert={baseState !== 'canvas'}
-              ref={baseState === 'canvas' ? primaryRegionRef : undefined}
-              tabIndex={-1}
+              id="workspace-context-inspector"
+              ref={inspectorRef}
+              style={{
+                minWidth: inspectorRailWidth,
+                top: 'var(--desktop-titlebar-height)',
+                transition: INSPECTOR_RAIL_TRANSITION,
+                width: inspectorRailWidth,
+              }}
             >
-              <div className="flex h-11 items-center justify-between border-b border-border px-3 xl:hidden">
-                <Button
-                  icon={<HiOutlineArrowLeft className="size-4" />}
-                  onClick={handleReturnToConversation}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                >
-                  Conversation
-                </Button>
-                <Button
-                  icon={<HiOutlineViewColumns className="size-4" />}
-                  onClick={() => setIsMobileInspectorOpen(true)}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                >
-                  Context
-                </Button>
-              </div>
-              <ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider
-                value={registerSurfaceAdapter}
-              >
-                {baseState === 'canvas' ? (
-                  <WorkspaceShellActionsProvider
-                    openOverlay={launchWorkspaceOverlay}
-                  >
-                    {children}
-                  </WorkspaceShellActionsProvider>
-                ) : null}
-              </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
-            </section>
-
-            {state !== 'overlay' ? (
-              <div
-                className="pointer-events-none absolute inset-x-3 bottom-3 z-40 md:inset-x-5 md:bottom-5"
-                data-testid="workspace-composer-slot"
-              >
-                <div
-                  className="pointer-events-auto"
-                  ref={setComposerPortalTarget}
-                />
-              </div>
-            ) : null}
+              {isInspectorOpen ? (
+                <>
+                  <Button
+                    aria-orientation="vertical"
+                    aria-valuemax={INSPECTOR_MAX_WIDTH}
+                    aria-valuemin={INSPECTOR_MIN_WIDTH}
+                    aria-valuenow={inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH}
+                    ariaLabel="Resize context inspector"
+                    className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
+                    onKeyDown={handleInspectorResizeKeyDown}
+                    onMouseDown={handleInspectorResizeStart}
+                    role="separator"
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
+                  />
+                  {renderInspectorContent(
+                    <div
+                      className="flex min-h-0 flex-1 flex-col empty:hidden"
+                      ref={setAgentInspectorPortalTarget}
+                    />,
+                  )}
+                </>
+              ) : null}
+            </aside>
           </div>
 
-          <aside
-            aria-label="Context inspector"
-            className={cn(
-              'gen-workspace-shell-region relative hidden min-h-0 overflow-hidden bg-background-secondary shadow-border transition-[width] duration-300 xl:block',
-              !isInspectorOpen && 'w-12',
-            )}
-            style={isInspectorOpen ? { width: inspectorWidth } : undefined}
+          <Drawer
+            open={isMobileInspectorOpen}
+            onOpenChange={setIsMobileInspectorOpen}
           >
-            {isInspectorOpen ? (
-              <>
-                <Button
-                  aria-orientation="vertical"
-                  aria-valuemax={INSPECTOR_MAX_WIDTH}
-                  aria-valuemin={INSPECTOR_MIN_WIDTH}
-                  aria-valuenow={inspectorWidth}
-                  ariaLabel="Resize context inspector"
-                  className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
-                  onKeyDown={handleInspectorResizeKeyDown}
-                  onMouseDown={handleInspectorResizeStart}
-                  role="separator"
-                  variant={ButtonVariant.UNSTYLED}
-                  withWrapper={false}
-                />
-                {inspectorContent}
-              </>
-            ) : (
-              <div className="flex h-full flex-col items-center pt-3">
-                <Button
-                  ariaLabel="Expand context inspector"
-                  className="size-8"
-                  icon={<HiOutlineChevronLeft className="size-4" />}
-                  onClick={() => setIsInspectorOpen(true)}
-                  size={ButtonSize.ICON}
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                />
+            <DrawerContent className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]">
+              <DrawerHeader>
+                <DrawerTitle>Context inspector</DrawerTitle>
+                <DrawerDescription>
+                  Context for the active canonical product route.
+                </DrawerDescription>
+              </DrawerHeader>
+              <div className="min-h-0 overflow-y-auto">
+                {renderInspectorContent()}
               </div>
-            )}
-          </aside>
+            </DrawerContent>
+          </Drawer>
+
+          <WorkspaceOverlayHost
+            composerPortalRef={setComposerPortalTarget}
+            content={
+              overlay?.key === 'workflow-picker' ? (
+                <WorkflowPickerOverlay
+                  activeBrandId={activeThread?.brandId}
+                  onAttachWorkflow={handleAttachWorkflow}
+                  onOpenLibrary={() => openWorkflowCanvas()}
+                  onOpenWorkflow={openWorkflowCanvas}
+                />
+              ) : undefined
+            }
+            fallbackFocusRef={primaryRegionRef}
+            isOpen={state === 'overlay'}
+            onDismiss={handleDismissOverlay}
+            onSelectLibraryReference={handleSelectLibraryReference}
+            overlay={overlay}
+            registration={overlayRegistration}
+            returnFocusRef={overlayReturnFocusRef}
+            threadId={effectiveThreadId ?? activeThreadId}
+          />
         </div>
-
-        <Drawer
-          open={isMobileInspectorOpen}
-          onOpenChange={setIsMobileInspectorOpen}
-        >
-          <DrawerContent className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]">
-            <DrawerHeader>
-              <DrawerTitle>Context inspector</DrawerTitle>
-              <DrawerDescription>
-                Context for the active canonical product route.
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="min-h-0 overflow-y-auto">{inspectorContent}</div>
-          </DrawerContent>
-        </Drawer>
-
-        <WorkspaceOverlayHost
-          composerPortalRef={setComposerPortalTarget}
-          content={
-            overlay?.key === 'workflow-picker' ? (
-              <WorkflowPickerOverlay
-                activeBrandId={activeThread?.brandId}
-                onAttachWorkflow={handleAttachWorkflow}
-                onOpenLibrary={() => openWorkflowCanvas()}
-                onOpenWorkflow={openWorkflowCanvas}
-              />
-            ) : undefined
-          }
-          fallbackFocusRef={primaryRegionRef}
-          isOpen={state === 'overlay'}
-          onDismiss={handleDismissOverlay}
-          onSelectLibraryReference={handleSelectLibraryReference}
-          overlay={overlay}
-          registration={overlayRegistration}
-          returnFocusRef={overlayReturnFocusRef}
-          threadId={effectiveThreadId ?? activeThreadId}
-        />
-      </div>
-    </ConversationComposerShellProvider>
+      </ConversationComposerShellProvider>
+    </ConversationInspectorShellProvider>
   );
 }
 

@@ -2,7 +2,6 @@
 
 import { AgentFullPage } from '@genfeedai/agent';
 import { isEEEnabled } from '@genfeedai/config/license';
-import { APP_ROUTES } from '@genfeedai/constants';
 import { useAgentBrandCreate } from '@genfeedai/hooks/agent/use-agent-brand-create';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -55,11 +54,7 @@ export function AgentWorkspacePageShell({
         authReady={isLoaded}
         onboardingMode={isOnboarding}
         onCreateFollowUpTasks={handleCreateFollowUpTasks}
-        onOpenRunThread={(runThreadId) => {
-          push(orgHref(`${APP_ROUTES.AGENT.ROOT}/${runThreadId}`));
-        }}
         showThreadSidebar={false}
-        showRunSummary
         threadId={threadId}
         onNavigateToBilling={() => {
           push(

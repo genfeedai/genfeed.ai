@@ -5,13 +5,15 @@ import { AgentFullPageOnboardingChrome } from '@genfeedai/agent/components/Agent
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentSetupPanel } from '@genfeedai/agent/components/AgentSetupPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
-import { AgentWorkspaceRunSummary } from '@genfeedai/agent/components/AgentWorkspaceRunSummary';
+import { useConversationInspectorShell } from '@genfeedai/agent/components/ConversationInspectorShellContext';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { MemberRole } from '@genfeedai/enums';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ReactElement } from 'react';
+import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 const showOnboardingChecklistChrome = false;
 
@@ -20,7 +22,6 @@ interface AgentFullPageProps {
   authReady?: boolean;
   threadId?: string;
   showThreadSidebar?: boolean;
-  showRunSummary?: boolean;
   onboardingMode?: boolean;
   onOnboardingCompleted?: () => void | Promise<void>;
   onCreateFollowUpTasks?: (taskId: string) => Promise<{ createdCount: number }>;
@@ -29,7 +30,6 @@ interface AgentFullPageProps {
     name: string;
     description: string;
   }) => void | Promise<void>;
-  onOpenRunThread?: (threadId: string) => void;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;
@@ -44,18 +44,15 @@ export function AgentFullPage({
   authReady = true,
   threadId,
   showThreadSidebar = true,
-  showRunSummary = false,
   onboardingMode = false,
   onOnboardingCompleted,
   onCreateFollowUpTasks,
   onOAuthConnect,
   onBrandCreate,
-  onOpenRunThread,
   onSelectCreditPack,
   userRole,
 }: AgentFullPageProps): ReactElement {
   const {
-    activeThreadBrandId,
     activeThreadStatus,
     agentSetup,
     currentStepId,
@@ -88,6 +85,39 @@ export function AgentFullPage({
     userRole,
   });
 
+  // Inside the workspace shell the context panels belong to the shell's
+  // inspector rail — the conversation column must not paint a second
+  // right-hand column next to it. Standalone (no provider) keeps the panels
+  // inline, which is what the onboarding route and unit tests render.
+  const inspectorShell = useConversationInspectorShell();
+
+  const contextPanel = hasThreadOutputs ? (
+    <AgentOutputsPanel className="h-full w-full" />
+  ) : showSetupPanel ? (
+    <AgentSetupPanel
+      className="h-full w-full"
+      brand={agentSetup.brand}
+      connectedConnections={agentSetup.connectedConnections}
+      connectedPlatformsCount={agentSetup.connectedPlatformsCount}
+      onOAuthConnect={onOAuthConnect}
+    />
+  ) : null;
+
+  const hasInlineContextPanel = !inspectorShell && contextPanel !== null;
+  const setInspectorHasPanel = inspectorShell?.setHasPanel;
+  const hasProjectedContextPanel =
+    inspectorShell?.isActive === true && contextPanel !== null;
+
+  useEffect(() => {
+    if (!setInspectorHasPanel) {
+      return;
+    }
+
+    setInspectorHasPanel(hasProjectedContextPanel);
+
+    return () => setInspectorHasPanel(false);
+  }, [hasProjectedContextPanel, setInspectorHasPanel]);
+
   return (
     <div
       className={cn(
@@ -110,15 +140,6 @@ export function AgentFullPage({
           onOpenOutputs={() => setMobileOutputsOpen(true)}
           onOpenSetup={() => setMobileSetupOpen(true)}
         />
-
-        {showRunSummary ? (
-          <AgentWorkspaceRunSummary
-            apiService={apiService}
-            authReady={authReady}
-            brandId={activeThreadBrandId}
-            onOpenThread={onOpenRunThread}
-          />
-        ) : null}
 
         <div className="flex min-h-0 flex-1">
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -151,29 +172,26 @@ export function AgentFullPage({
               onBrandCreate={onBrandCreate}
               onSelectCreditPack={onSelectCreditPack}
               onboardingMode={onboardingMode}
-              isWideLayout={!hasThreadOutputs && !showSetupPanel}
+              isWideLayout={!hasInlineContextPanel}
               promptBarLayoutMode="surface-fixed"
               workspacePlanningTaskId={workspacePlanningTaskId}
             />
           </div>
 
-          {hasThreadOutputs ? (
+          {hasInlineContextPanel ? (
             <div className="hidden min-h-0 overflow-hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background-secondary">
-              <AgentOutputsPanel className="h-full w-full" />
-            </div>
-          ) : showSetupPanel ? (
-            <div className="hidden min-h-0 overflow-hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background-secondary">
-              <AgentSetupPanel
-                className="h-full w-full"
-                brand={agentSetup.brand}
-                connectedConnections={agentSetup.connectedConnections}
-                connectedPlatformsCount={agentSetup.connectedPlatformsCount}
-                onOAuthConnect={onOAuthConnect}
-              />
+              {contextPanel}
             </div>
           ) : null}
         </div>
       </div>
+
+      {hasProjectedContextPanel && inspectorShell?.portalTarget && contextPanel
+        ? createPortal(
+            <div className="min-h-0 w-full">{contextPanel}</div>,
+            inspectorShell.portalTarget,
+          )
+        : null}
 
       {showOnboardingChecklistChrome && onboardingMode && (
         <AgentFullPageOnboardingChrome

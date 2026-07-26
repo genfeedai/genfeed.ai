@@ -272,6 +272,8 @@ describe('WorkspacePageContent', () => {
   });
 
   it('renders the overview layout without duplicate workspace tabs', async () => {
+    listMock.mockResolvedValueOnce([buildTask()]);
+
     render(<WorkspacePageContent section="overview" />);
 
     await waitFor(() => {

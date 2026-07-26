@@ -262,7 +262,10 @@ describe('SocialMessagesPage', () => {
     render(<SocialMessagesPage />);
 
     expect(
-      await screen.findByRole('heading', { name: 'Messages' }),
+      await screen.findByRole('heading', { level: 1, name: 'Messages' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /sync youtube/i }),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(mocks.listPage).toHaveBeenCalledWith(

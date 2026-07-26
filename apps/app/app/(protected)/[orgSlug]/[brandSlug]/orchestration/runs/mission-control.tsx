@@ -19,6 +19,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import ActiveRunsPanel from './ActiveRunsPanel';
 import RunAnomaliesPanel from './RunAnomaliesPanel';
+import RunChartsGrid from './RunChartsGrid';
 import RunHistoryList from './RunHistoryList';
 import RunRoutingInsights from './RunRoutingInsights';
 import RunStatsStrip from './RunStatsStrip';
@@ -168,6 +169,8 @@ function MissionControlContent() {
         </div>
 
         <RunStatsStrip stats={stats} isLoading={isLoading} />
+
+        <RunChartsGrid runs={runs} stats={stats} />
 
         <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
           <RunTrendsPanel stats={stats} />

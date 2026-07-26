@@ -291,6 +291,13 @@ describe('ClipProjectsService', () => {
         organizationId: 'org-1',
       },
     });
+    expect(prisma.clipProject.findFirst).toHaveBeenNthCalledWith(2, {
+      where: {
+        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
     expect(prisma.clipProject.update).toHaveBeenCalledWith({
       data: expect.objectContaining({
         config: expect.objectContaining({
@@ -403,6 +410,56 @@ describe('ClipProjectsService', () => {
     expect(prisma.clipProject.update).not.toHaveBeenCalled();
   });
 
+  it('rejects a scoped patch when the project is outside the organization', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.patch('project-1', { status: 'completed' }, [], 'other-org'),
+    ).rejects.toThrow('ClipProject');
+
+    expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
+      where: {
+        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        isDeleted: false,
+        organizationId: 'other-org',
+      },
+    });
+    expect(prisma.clipProject.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing project for an unscoped patch without writing', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.patch('project-1', { status: 'completed' }),
+    ).rejects.toThrow('ClipProject');
+
+    expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
+      where: {
+        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        isDeleted: false,
+      },
+    });
+    expect(prisma.clipProject.update).not.toHaveBeenCalled();
+  });
+
+  it('does not treat an empty organization scope as an unscoped patch', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.patch('project-1', { status: 'completed' }, [], ''),
+    ).rejects.toThrow('ClipProject');
+
+    expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
+      where: {
+        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        isDeleted: false,
+        organizationId: '',
+      },
+    });
+    expect(prisma.clipProject.update).not.toHaveBeenCalled();
+  });
+
   it('merges patch config and adds terminal readiness for completed projects', async () => {
     prisma.clipProject.findFirst.mockResolvedValue({
       config: {
@@ -492,6 +549,13 @@ describe('ClipProjectsService', () => {
       'project-1',
       'org-1',
     );
+    expect(prisma.clipProject.findFirst).toHaveBeenNthCalledWith(2, {
+      where: {
+        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
     expect(prisma.clipProject.update).toHaveBeenCalledWith({
       data: expect.objectContaining({
         error: null,

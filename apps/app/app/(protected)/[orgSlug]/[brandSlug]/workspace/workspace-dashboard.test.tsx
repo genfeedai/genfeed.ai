@@ -6,19 +6,11 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import {
   DashboardAgentCards,
-  DashboardChartsGrid,
   DashboardRecentActivity,
   DashboardRecentTasks,
   DashboardStatsStrip,
   WorkspaceDashboard,
 } from './workspace-dashboard';
-
-vi.mock('next/dynamic', () => ({
-  default: (loader: () => Promise<unknown>) => () => {
-    void loader;
-    return <div data-testid="chart-piece" />;
-  },
-}));
 
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -171,72 +163,51 @@ describe('workspace dashboard sections', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders stats and charts with trend fallbacks', () => {
-    const runs = [
-      makeRun({ id: 'run-1', status: AgentExecutionStatus.RUNNING }),
-      makeRun({ id: 'run-2', status: AgentExecutionStatus.PENDING }),
-    ];
-
+  it('renders stats with trend fallbacks', () => {
     render(
-      <>
-        <DashboardStatsStrip
-          activeRuns={runs}
-          reviewInbox={{
-            approvedCount: 2,
-            changesRequestedCount: 1,
-            pendingCount: 3,
-            readyCount: 4,
-            recentItems: [],
-            rejectedCount: 0,
-          }}
-          stats={{
-            activeRuns: 5,
-            completedToday: 7,
-            failedToday: 1,
-            totalCreditsToday: 12.345,
-            trends: [
-              {
-                autoRoutedRate: 1.25,
-                bucket: '2026-05-20T00:00:00.000Z',
-                totalCreditsUsed: 2.345,
-                totalRuns: 9,
-              },
-            ],
-          }}
-          workspaceTasks={[
-            makeTask({ id: 'task-1', status: 'backlog' }),
-            makeTask({ id: 'task-2', status: 'in_progress' }),
-          ]}
-        />
-        <DashboardChartsGrid
-          runs={runs}
-          stats={{
-            trends: [
-              {
-                autoRoutedRate: 0.75,
-                bucket: '2026-05-20T00:00:00.000Z',
-                totalCreditsUsed: 3.456,
-                totalRuns: 4,
-              },
-            ],
-          }}
-        />
-      </>,
+      <DashboardStatsStrip
+        activeRuns={[
+          makeRun({ id: 'run-1', status: AgentExecutionStatus.RUNNING }),
+          makeRun({ id: 'run-2', status: AgentExecutionStatus.PENDING }),
+        ]}
+        reviewInbox={{
+          approvedCount: 2,
+          changesRequestedCount: 1,
+          pendingCount: 3,
+          readyCount: 4,
+          recentItems: [],
+          rejectedCount: 0,
+        }}
+        stats={{
+          activeRuns: 5,
+          completedToday: 7,
+          failedToday: 1,
+          totalCreditsToday: 12.345,
+          trends: [
+            {
+              autoRoutedRate: 1.25,
+              bucket: '2026-05-20T00:00:00.000Z',
+              totalCreditsUsed: 2.345,
+              totalRuns: 9,
+            },
+          ],
+        }}
+        workspaceTasks={[
+          makeTask({ id: 'task-1', status: 'backlog' }),
+          makeTask({ id: 'task-2', status: 'in_progress' }),
+        ]}
+      />,
     );
 
     expect(screen.getByText('Agents Active')).toBeVisible();
-    expect(screen.getByText('12.35')).toBeVisible();
-    expect(screen.getByText('Run Activity')).toBeVisible();
-    expect(screen.getByText('Success Rate')).toBeVisible();
-    expect(screen.getAllByTestId('chart-piece').length).toBeGreaterThan(0);
-  });
-
-  it('omits charts when there are no runs or trends', () => {
-    const { container } = render(
-      <DashboardChartsGrid runs={[]} stats={null} />,
-    );
-
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.getByText('Tasks In Progress')).toBeVisible();
+    expect(screen.getByText('Pending Approvals')).toBeVisible();
+    // Credits are deliberately absent from the strip — the topbar already shows
+    // the live balance, so repeating it here read as a duplicate meter.
+    expect(screen.queryByText('Credits Used')).toBeNull();
+    expect(screen.queryByText('12.35')).toBeNull();
+    // The dense chart grid moved to orchestration/runs — see RunChartsGrid.
+    expect(screen.queryByText('Run Activity')).toBeNull();
   });
 
   it('renders recent activity and task rows with empty states and status variants', () => {
@@ -333,7 +304,8 @@ describe('workspace dashboard sections', () => {
         stats={null}
         trendsHref="/org/brand/research/discovery"
         trendItems={[]}
-        workspaceTasks={[]}
+        // One task is enough signal to get past the first-run block below.
+        workspaceTasks={[makeTask() as never]}
       />,
     );
 
@@ -342,5 +314,56 @@ describe('workspace dashboard sections', () => {
       'href',
       '/org/brand/research/discovery',
     );
+  });
+
+  it('collapses an empty brand into a single guided first-run block', () => {
+    render(
+      <WorkspaceDashboard
+        activeRuns={[]}
+        reviewInbox={{
+          approvedCount: 0,
+          changesRequestedCount: 0,
+          pendingCount: 0,
+          readyCount: 0,
+          recentItems: [],
+          rejectedCount: 0,
+        }}
+        runs={[]}
+        stats={null}
+        trendsHref="/org/brand/research/discovery"
+        trendItems={[]}
+        workspaceTasks={[]}
+      />,
+    );
+
+    expect(screen.getByTestId('workspace-dashboard-first-run')).toBeVisible();
+    // The stacked empty bands it replaces must not render alongside it.
+    expect(screen.queryByTestId('dashboard-stats-strip')).toBeNull();
+    expect(screen.queryByTestId('overview-trends-panel')).toBeNull();
+    expect(screen.queryByText('Recent Activity')).toBeNull();
+  });
+
+  it('keeps the composed dashboard while data is still loading', () => {
+    render(
+      <WorkspaceDashboard
+        activeRuns={[]}
+        isTasksLoading
+        reviewInbox={{
+          approvedCount: 0,
+          changesRequestedCount: 0,
+          pendingCount: 0,
+          readyCount: 0,
+          recentItems: [],
+          rejectedCount: 0,
+        }}
+        runs={[]}
+        stats={null}
+        trendItems={[]}
+        workspaceTasks={[]}
+      />,
+    );
+
+    expect(screen.queryByTestId('workspace-dashboard-first-run')).toBeNull();
+    expect(screen.getByTestId('dashboard-stats-strip')).toBeVisible();
   });
 });
