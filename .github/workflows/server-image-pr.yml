@@ -40,4 +40,10 @@ jobs:
           file: docker/Dockerfile.server
           push: false
           cache-from: type=gha,scope=server-image-pr
-          cache-to: type=gha,mode=max,scope=server-image-pr
+          # PR validation needs a successful image build, not an unbounded
+          # export of every intermediate layer. Exact-head baseline runs spent
+          # 6-26 minutes exporting the mode=max cache after the build itself
+          # had finished. Keep the smaller final-image cache useful for later
+          # commits on the same PR, but cap cache-service latency and never
+          # convert a successful build into a cache-infrastructure failure.
+          cache-to: type=gha,mode=min,scope=server-image-pr,timeout=3m,ignore-error=true
