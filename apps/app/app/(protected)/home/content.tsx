@@ -1,12 +1,9 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  getBrandOrganizationId,
-  getBrandOrganizationSlug,
-} from '@contexts/user/brand-context/brand-context.helpers';
 import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
+import { useAccessState } from '@providers/access-state/access-state.provider';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
@@ -22,6 +19,7 @@ import {
   HiOutlineShieldCheck,
 } from 'react-icons/hi2';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { resolveOperationalHomeScope } from './operational-home.helpers';
 import OperationalHomeSections from './operational-home-sections';
 import { useConnectGenfeedStatus } from './use-connect-genfeed-status';
 
@@ -96,22 +94,33 @@ function ConnectionState({
 
 export default function OperationalHomeContent() {
   const { brands, organizationId, selectedBrand } = useBrand();
+  const { accessState } = useAccessState();
   const connection = useConnectGenfeedStatus();
-  const contextBrand = [selectedBrand, ...brands].find(
-    (brand) => brand && getBrandOrganizationId(brand) === organizationId,
-  );
-  const orgSlug = getBrandOrganizationSlug(contextBrand);
-  const brandSlug = contextBrand?.slug;
+  const { brandSlug, orgSlug } = resolveOperationalHomeScope({
+    accessOrganizationId: accessState?.organizationId,
+    brands,
+    organizationId,
+    selectedBrand,
+  });
 
   if (!orgSlug) {
     return (
-      <div
-        aria-live="polite"
-        className="flex min-h-[60vh] items-center justify-center text-sm text-foreground/55"
-        role="status"
-      >
-        Preparing your operational home...
-      </div>
+      <main className="mx-auto flex min-h-[60vh] w-full max-w-3xl items-center px-4 py-10 sm:px-6">
+        <Alert>
+          <AlertTitle aria-level={1} role="heading">
+            Operational home needs an organization
+          </AlertTitle>
+          <AlertDescription>
+            <p>
+              Select or create an organization and brand before opening the
+              operational control plane.
+            </p>
+            <Button asChild className="mt-4" variant={ButtonVariant.SECONDARY}>
+              <Link href={APP_ROUTES.ONBOARDING.ROOT}>Continue setup</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </main>
     );
   }
 

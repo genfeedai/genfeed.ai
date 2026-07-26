@@ -1,17 +1,21 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   activityIsError: false,
+  accessState: { organizationId: 'org_1' } as {
+    organizationId?: string;
+  } | null,
   activityRefresh: vi.fn(async () => undefined),
   brandRefresh: vi.fn(async () => undefined),
   brandState: {
     brands: [
       {
-        organization: { id: 'org_1', slug: 'acme' },
+        organization: { slug: 'acme' },
+        organizationId: 'org_1',
         slug: 'moonrise',
       },
     ],
@@ -19,9 +23,24 @@ const mocks = vi.hoisted(() => ({
     organizationId: 'org_1',
     refreshBrands: vi.fn(async () => undefined),
     selectedBrand: {
-      organization: { id: 'org_1', slug: 'acme' },
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'moonrise',
     },
+  } as {
+    brands: Array<{
+      organization?: { slug?: string };
+      organizationId?: string;
+      slug?: string;
+    }>;
+    credentials: [];
+    organizationId: string;
+    refreshBrands: () => Promise<void>;
+    selectedBrand: {
+      organization?: { slug?: string };
+      organizationId?: string;
+      slug?: string;
+    } | null;
   },
   connectionRefresh: vi.fn(async () => undefined),
   connectionState: {
@@ -43,6 +62,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brandState,
+}));
+
+vi.mock('@providers/access-state/access-state.provider', () => ({
+  useAccessState: () => ({ accessState: mocks.accessState }),
 }));
 
 vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
@@ -100,8 +123,22 @@ const { default: OperationalHomeContent } = await import('./content');
 describe('OperationalHomeContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.accessState = { organizationId: 'org_1' };
     mocks.activityIsError = false;
+    mocks.brandState.brands = [
+      {
+        organization: { slug: 'acme' },
+        organizationId: 'org_1',
+        slug: 'moonrise',
+      },
+    ];
+    mocks.brandState.organizationId = 'org_1';
     mocks.brandState.refreshBrands = mocks.brandRefresh;
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'moonrise',
+    };
     mocks.connectionState = {
       error: null,
       key: null,
@@ -182,6 +219,64 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.getByRole('link', { name: 'Open Connect Genfeed' }),
     ).toHaveAttribute('href', '/acme/~/connect');
+  });
+
+  it('uses organization-level brand setup actions when no brand is available', () => {
+    mocks.brandState.brands = [
+      {
+        organization: { slug: 'acme' },
+        organizationId: 'org_1',
+      },
+    ];
+    mocks.brandState.selectedBrand = mocks.brandState.brands[0] ?? null;
+    mocks.connectionState = {
+      error: null,
+      key: { label: 'Verified MCP' },
+      refresh: mocks.connectionRefresh,
+      status: 'configured',
+      verifiedAt: '2026-07-26T11:00:00.000Z',
+    };
+
+    render(<OperationalHomeContent />);
+
+    for (const name of [
+      'Open queue',
+      'Open publishing',
+      'Manage accounts',
+      'View activity',
+    ]) {
+      expect(screen.getByRole('link', { name })).toHaveAttribute(
+        'href',
+        '/acme/~/settings/brands',
+      );
+    }
+  });
+
+  it('wires connection and surface retry actions to their refresh handlers', () => {
+    mocks.activityIsError = true;
+    mocks.overviewIsError = true;
+    mocks.connectionState = {
+      error: new Error('network unavailable'),
+      key: null,
+      refresh: mocks.connectionRefresh,
+      status: 'error',
+      verifiedAt: null,
+    };
+
+    render(<OperationalHomeContent />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry status' }));
+    for (const button of screen.getAllByRole('button', { name: 'Retry' })) {
+      fireEvent.click(button);
+    }
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Refresh credential health' }),
+    );
+
+    expect(mocks.connectionRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.overviewRefresh).toHaveBeenCalledTimes(2);
+    expect(mocks.activityRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.brandRefresh).toHaveBeenCalledTimes(1);
   });
 
   it('isolates overview failure from credential and activity summaries', () => {

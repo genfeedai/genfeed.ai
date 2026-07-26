@@ -1,5 +1,9 @@
+import {
+  getBrandOrganizationId,
+  getBrandOrganizationSlug,
+} from '@contexts/user/brand-context/brand-context.helpers';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
-import type { ICredential } from '@genfeedai/interfaces';
+import type { IBrand, ICredential } from '@genfeedai/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 
 interface ConnectGenfeedMetadata {
@@ -9,10 +13,41 @@ interface ConnectGenfeedMetadata {
 
 export interface CredentialHealthSummary {
   attention: number;
-  connected: number;
   healthy: number;
   total: number;
   unknown: number;
+}
+
+export interface OperationalHomeScope {
+  brand: IBrand | undefined;
+  brandSlug: string | undefined;
+  organizationId: string;
+  orgSlug: string;
+}
+
+export function resolveOperationalHomeScope({
+  accessOrganizationId,
+  brands,
+  organizationId,
+  selectedBrand,
+}: {
+  accessOrganizationId?: string;
+  brands: IBrand[];
+  organizationId?: string;
+  selectedBrand?: IBrand | null;
+}): OperationalHomeScope {
+  const scopedOrganizationId = organizationId || accessOrganizationId || '';
+  const brand = [selectedBrand, ...brands].find(
+    (candidate) =>
+      candidate && getBrandOrganizationId(candidate) === scopedOrganizationId,
+  );
+
+  return {
+    brand,
+    brandSlug: brand?.slug || undefined,
+    organizationId: scopedOrganizationId,
+    orgSlug: getBrandOrganizationSlug(brand),
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -84,8 +119,6 @@ export function summarizeCredentialHealth(
         return summary;
       }
 
-      summary.connected += 1;
-
       if (
         credential.accountHealth?.holdPublishing ||
         credential.accountHealth?.riskLevel === 'high'
@@ -104,7 +137,6 @@ export function summarizeCredentialHealth(
     },
     {
       attention: 0,
-      connected: 0,
       healthy: 0,
       total: 0,
       unknown: 0,

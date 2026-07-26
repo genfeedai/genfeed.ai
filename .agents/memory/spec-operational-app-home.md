@@ -57,8 +57,9 @@ activity without depending on Studio.
 
 - Incomplete onboarding keeps the existing SaaS agent-onboarding or
   Community/Desktop wizard redirect.
-- SaaS bootstrap can temporarily lack an organization slug; the root stays in
-  its bounded loading state until one is available.
+- Bootstrap can temporarily lack organization scope; the root exposes an
+  actionable retry and brand-settings escape instead of an indefinite loading
+  state.
 - A verified key can be expired, inactive, or revoked after verification; it no
   longer configures the home.
 - Organizations with no brand render organization-safe connection and API-key

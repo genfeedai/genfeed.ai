@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
     }>,
     isReady: true,
     organizationId: '',
+    refreshBrands: vi.fn(async () => undefined),
     selectedBrand: null as {
       organization?: { id?: string; slug?: string };
       organizationId?: string;
@@ -77,6 +78,7 @@ describe('ProtectedRootResolver', () => {
     mocks.brandState.brands = [];
     mocks.brandState.isReady = true;
     mocks.brandState.organizationId = '';
+    mocks.brandState.refreshBrands.mockClear();
     mocks.brandState.selectedBrand = null;
     mocks.currentUserState.currentUser = {
       id: 'user_1',
@@ -92,7 +94,8 @@ describe('ProtectedRootResolver', () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brandId = 'brand_1';
     mocks.brandState.selectedBrand = {
-      organization: { id: 'org_1', slug: 'acme' },
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'moonrise',
     };
 
@@ -106,7 +109,8 @@ describe('ProtectedRootResolver', () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brands = [
       {
-        organization: { id: 'org_1', slug: 'acme' },
+        organization: { slug: 'acme' },
+        organizationId: 'org_1',
         slug: 'moonrise',
       },
     ];
@@ -126,7 +130,8 @@ describe('ProtectedRootResolver', () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brandId = 'brand_1';
     mocks.brandState.selectedBrand = {
-      organization: { id: 'org_1', slug: 'acme' },
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'default',
     };
 
@@ -137,15 +142,14 @@ describe('ProtectedRootResolver', () => {
     });
   });
 
-  it('opens onboarding when no project exists for the organization', async () => {
+  it('opens the operational home with organization scope before a brand exists', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brands = [];
 
     render(<ProtectedRootResolver />);
 
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith('/onboarding');
-    });
+    expect(await screen.findByTestId('operational-home')).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   it('routes incomplete SaaS users to the agent onboarding surface', async () => {
@@ -156,7 +160,8 @@ describe('ProtectedRootResolver', () => {
       onboardingStepsCompleted: ['brand'],
     };
     mocks.brandState.selectedBrand = {
-      organization: { id: 'org_1', slug: 'acme' },
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'default',
     };
 
@@ -182,7 +187,8 @@ describe('ProtectedRootResolver', () => {
 
     mocks.brandState.isReady = true;
     mocks.brandState.selectedBrand = {
-      organization: { id: 'org_1', slug: 'acme' },
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'default',
     };
     rerender(<ProtectedRootResolver />);
@@ -201,7 +207,8 @@ describe('ProtectedRootResolver', () => {
       onboardingStepsCompleted: ['brand'],
     };
     mocks.brandState.selectedBrand = {
-      organization: { id: 'org_1', slug: 'acme' },
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
       slug: 'default',
     };
 
@@ -210,5 +217,29 @@ describe('ProtectedRootResolver', () => {
     await waitFor(() => {
       expect(mocks.replace).toHaveBeenCalledWith('/onboarding/providers');
     });
+  });
+
+  it('shows an actionable SaaS workspace state instead of waiting forever', async () => {
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: true,
+      onboardingStepsCompleted: ['brand', 'providers', 'summary'],
+    };
+
+    render(<ProtectedRootResolver />);
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Workspace setup needs attention',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Continue setup' }),
+    ).toHaveAttribute('href', '/onboarding');
+
+    screen.getByRole('button', { name: 'Retry workspace' }).click();
+
+    expect(mocks.brandState.refreshBrands).toHaveBeenCalledTimes(1);
   });
 });

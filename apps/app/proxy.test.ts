@@ -124,25 +124,24 @@ describe('proxy', () => {
 
   // ─── Signed-in redirect away from root / public entry points ──────────────
 
-  it.each([
-    '/login',
-    '/login/password',
-    '/login/magic-link',
-  ])('redirects a signed-in user away from %s to default workspace routing', async (pathname) => {
-    const { default: proxy } = await import('./proxy');
+  it.each(['/login', '/login/password', '/login/magic-link'])(
+    'redirects a signed-in user away from %s to default workspace routing',
+    async (pathname) => {
+      const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(
-      makeSignedInRequest(pathname, {
-        search: '?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
-      }),
-      {} as never,
-    );
+      const response = await proxy(
+        makeSignedInRequest(pathname, {
+          search: '?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+        }),
+        {} as never,
+      );
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
-  });
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(
+        'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      );
+    },
+  );
 
   it('keeps logout reachable for a signed-in user', async () => {
     const { default: proxy } = await import('./proxy');
@@ -193,17 +192,17 @@ describe('proxy', () => {
     );
   });
 
-  it.each([
-    '/forgot-password',
-    '/reset-password',
-  ])('lets signed-out users render public reset route %s', async (pathname) => {
-    const { default: proxy } = await import('./proxy');
+  it.each(['/forgot-password', '/reset-password'])(
+    'lets signed-out users render public reset route %s',
+    async (pathname) => {
+      const { default: proxy } = await import('./proxy');
 
-    const response = await proxy(makeSignedOutRequest(pathname), {} as never);
+      const response = await proxy(makeSignedOutRequest(pathname), {} as never);
 
-    expect(response.status).not.toBe(307);
-    expect(response.headers.get('location')).toBeNull();
-  });
+      expect(response.status).not.toBe(307);
+      expect(response.headers.get('location')).toBeNull();
+    },
+  );
 
   it('does not treat the deleted request-access route as public', async () => {
     const { default: proxy } = await import('./proxy');
@@ -239,15 +238,13 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects signed-in root to workspace when single brand', async () => {
+  it('lets the signed-in operational root render when a brand is available', async () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
   });
 
   it('redirects signed-in root to onboarding when a seeded brand exists but onboarding is incomplete', async () => {
@@ -417,7 +414,7 @@ describe('proxy', () => {
     });
   });
 
-  it('keeps completed users on workspace routing even when their only brand is seeded', async () => {
+  it('lets completed users open operational home when their only brand is seeded', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -456,13 +453,11 @@ describe('proxy', () => {
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/default/workspace/overview',
-    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
   });
 
-  it('redirects signed-in root to org overview when no brand is selected', async () => {
+  it('lets signed-in root resolve brand scope when no brand is selected', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -496,10 +491,8 @@ describe('proxy', () => {
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/overview',
-    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
   });
 
   it('redirects signed-in root to onboarding when no workspace exists', async () => {
@@ -535,7 +528,7 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects signed-in root to active brand workspace when multiple brands', async () => {
+  it('lets signed-in root render with the active brand when multiple brands exist', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -572,10 +565,8 @@ describe('proxy', () => {
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
   });
 
   it('falls through on root when slug resolution fails', async () => {
@@ -1084,6 +1075,21 @@ describe('proxy', () => {
     expect(response.status).toBe(200);
   });
 
+  it('lets the keyless self-hosted root render operational home', async () => {
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    delete process.env.BETTER_AUTH_SECRET;
+
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+    const response = await proxy(makeSignedOutRequest('/'), {} as never);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
+    process.env.BETTER_AUTH_SECRET = 'sk_test';
+  });
+
   it('canonicalizes bare protected routes in desktop shell mode when a desktop token is present', async () => {
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.BETTER_AUTH_SECRET;
@@ -1110,6 +1116,35 @@ describe('proxy', () => {
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
+
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
+    process.env.BETTER_AUTH_SECRET = 'sk_test';
+  });
+
+  it('lets an authenticated desktop shell render operational home', async () => {
+    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
+    delete process.env.BETTER_AUTH_SECRET;
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        headers: {
+          get: vi.fn((name: string) => {
+            return name === 'x-genfeed-desktop-token' ? 'token_1' : null;
+          }),
+        },
+        nextUrl: { pathname: '/', search: '' },
+        url: 'http://localhost:3000/',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
 
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
     process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';

@@ -27,6 +27,14 @@ independent degradation.
 
 Approach 1 is selected.
 
+The proxy still resolves canonical organization/brand scope at `/` so it can
+prime the signed `gf_ws` cookie, but it returns `NextResponse.next()` instead of
+redirecting completed users to Workspace. Better Auth onboarding redirects,
+stale Desktop-token handling, and canonicalization of other bare protected
+paths remain unchanged. Authenticated Desktop and keyless self-hosted roots
+also fall through to the same page so the state machine has deployment-mode
+parity.
+
 ## Configured-State Evidence
 
 Successful Connect Genfeed verification already persists
@@ -52,6 +60,10 @@ domain from blanking the entire home.
 The structured implementation plan was produced by the configured planner
 (`fable`, high effort) on 2026-07-26 with verdict `PLAN_READY`. Opus remains the
 required exact-head verifier after PR CI.
+
+The first exact-head Opus review correctly found that the pre-existing proxy
+redirect made the page unreachable. Repair cycle 1 moved the root contract into
+the proxy and added proxy-level plus real-session E2E coverage.
 
 **Why:** Issue #1866 must remain frontend-owned and cannot infer connection from
 an unverified key or expose unscoped operational data.

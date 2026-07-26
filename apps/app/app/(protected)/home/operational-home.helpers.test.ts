@@ -86,7 +86,7 @@ describe('getVerifiedMcpConnection', () => {
 });
 
 describe('summarizeCredentialHealth', () => {
-  it('separates connected, healthy, unknown, and attention states', () => {
+  it('separates healthy, unknown, and attention states', () => {
     const credentials = [
       {
         id: 'healthy',
@@ -110,7 +110,6 @@ describe('summarizeCredentialHealth', () => {
 
     expect(summarizeCredentialHealth(credentials)).toEqual({
       attention: 2,
-      connected: 3,
       healthy: 1,
       total: 4,
       unknown: 1,
@@ -120,7 +119,6 @@ describe('summarizeCredentialHealth', () => {
   it('handles an empty credential list', () => {
     expect(summarizeCredentialHealth([])).toEqual({
       attention: 0,
-      connected: 0,
       healthy: 0,
       total: 0,
       unknown: 0,

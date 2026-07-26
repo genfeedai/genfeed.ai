@@ -425,7 +425,7 @@ function CredentialHealthSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const settingsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, '/settings/publishing')
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.SETTINGS.PUBLISHING)
     : brandSetupHref;
   const summary = summarizeCredentialHealth(credentials);
 
@@ -458,7 +458,7 @@ function CredentialHealthSurface({
       title="Channel readiness"
     >
       <MetricGrid>
-        <Metric label="Connected" value={String(summary.connected)} />
+        <Metric label="Total accounts" value={String(summary.total)} />
         <Metric label="Needs attention" value={String(summary.attention)} />
         <Metric label="Healthy" value={String(summary.healthy)} />
         <Metric label="Unknown health" value={String(summary.unknown)} />
