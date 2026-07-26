@@ -24,7 +24,11 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { assertApiKeyPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import {
+  API_KEY_POST_CREATION_SCOPES,
+  assertApiKeyPostStatusPublishingScope,
+  assertApiKeyPublishingScope,
+} from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
@@ -71,7 +75,6 @@ import type { Request } from 'express';
 @UseGuards(RolesGuard)
 export class PostsOperationsController {
   private readonly serializer = PostSerializer;
-
   constructor(
     private readonly activitiesService: ActivitiesService,
     private readonly configService: ConfigService,
@@ -83,10 +86,6 @@ export class PostsOperationsController {
     private readonly quotaService: QuotaService,
     private readonly seoScorerService: SeoScorerService,
   ) {}
-
-  // ============================================================================
-  // HELPER METHODS
-  // ============================================================================
 
   private getRefId(
     ref: string | IngredientRefDocument | null | undefined,
@@ -145,10 +144,6 @@ export class PostsOperationsController {
         return PostCategory.TEXT;
     }
   }
-
-  // ============================================================================
-  // ENDPOINTS
-  // ============================================================================
 
   @Post('account-generations')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -440,12 +435,7 @@ export class PostsOperationsController {
   }
 
   @Post(':postId/replies')
-  @RequiredScopes(
-    ApiKeyScope.POSTS_DRAFT,
-    ApiKeyScope.POSTS_CREATE,
-    ApiKeyScope.POSTS_SCHEDULE,
-    ApiKeyScope.POSTS_PUBLISH,
-  )
+  @RequiredScopes(...API_KEY_POST_CREATION_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async addThreadReply(
     @Req() request: Request,
@@ -454,16 +444,8 @@ export class PostsOperationsController {
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    assertApiKeyPublishingScope(
-      publicMetadata,
-      createPostDto.status === PostStatus.DRAFT
-        ? 'draft'
-        : createPostDto.status === PostStatus.SCHEDULED
-          ? 'schedule'
-          : 'publish',
-    );
+    assertApiKeyPostStatusPublishingScope(publicMetadata, createPostDto.status);
     const parentId = postId;
-
     try {
       const parentPost = await this.postsService.findOne({ _id: parentId });
 
@@ -843,10 +825,6 @@ export class PostsOperationsController {
 
     return serializeSingle(request, this.serializer, updatedPost ?? post);
   }
-
-  // ============================================================================
-  // HOOK VARIATIONS
-  // ============================================================================
 
   @Post('hook-generations')
   @UseGuards(SubscriptionGuard, CreditsGuard)

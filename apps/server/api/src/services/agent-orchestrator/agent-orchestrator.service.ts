@@ -1008,7 +1008,6 @@ export class AgentOrchestratorService {
               continue;
             }
           }
-
           const result = await this.toolExecutorService.executeTool(
             toolName,
             toolParams,
@@ -1945,8 +1944,6 @@ export class AgentOrchestratorService {
               continue;
             }
           }
-
-          // Execute tool
           const result = await this.toolExecutorService.executeTool(
             toolName,
             toolParams,
@@ -2824,7 +2821,6 @@ export class AgentOrchestratorService {
         workEventLabel: 'Batch generation',
       }),
     );
-
     const result = await this.toolExecutorService.executeTool(
       toolName,
       toolParams,
@@ -3132,7 +3128,6 @@ export class AgentOrchestratorService {
         metadata: this.buildResolvedModelMetadata(params.model),
       };
     }
-
     const result = await this.toolExecutorService.executeTool(
       AgentToolName.CREATE_WORKFLOW,
       {
@@ -4170,7 +4165,6 @@ export class AgentOrchestratorService {
       threadId: params.threadId,
       toolName,
     });
-
     const result = await this.toolExecutorService.executeTool(
       toolName,
       toolPayload,
@@ -4242,7 +4236,6 @@ export class AgentOrchestratorService {
       threadId: params.threadId,
       toolName,
     });
-
     const result = await this.toolExecutorService.executeTool(
       toolName,
       toolPayload,
@@ -4330,7 +4323,6 @@ export class AgentOrchestratorService {
       threadId: params.threadId,
       toolName,
     });
-
     const result = await this.toolExecutorService.executeTool(
       toolName,
       toolPayload,

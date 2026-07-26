@@ -1,5 +1,5 @@
 import type { IAuthPublicMetadata } from '@api/auth/interfaces/authenticated-user.interface';
-import { ApiKeyScope } from '@genfeedai/enums';
+import { ApiKeyScope, PostStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import {
   CURATED_ACTION_CATALOG,
@@ -13,6 +13,13 @@ export type ApiKeyPublishingContext = Pick<
   IAuthPublicMetadata,
   'isApiKey' | 'scopes'
 >;
+
+export const API_KEY_POST_CREATION_SCOPES = [
+  ApiKeyScope.POSTS_DRAFT,
+  ApiKeyScope.POSTS_CREATE,
+  ApiKeyScope.POSTS_SCHEDULE,
+  ApiKeyScope.POSTS_PUBLISH,
+] as const;
 
 const PUBLISHING_CAPABILITY_SCOPES = {
   approve: [ApiKeyScope.POSTS_APPROVE],
@@ -47,6 +54,20 @@ export function assertApiKeyPublishingScope(
     requiredScopes: acceptedScopes,
     title: 'Insufficient API key publishing scope',
   });
+}
+
+export function assertApiKeyPostStatusPublishingScope(
+  context: ApiKeyPublishingContext,
+  status: PostStatus,
+): void {
+  assertApiKeyPublishingScope(
+    context,
+    status === PostStatus.DRAFT
+      ? 'draft'
+      : status === PostStatus.SCHEDULED
+        ? 'schedule'
+        : 'publish',
+  );
 }
 
 export function assertApiKeyAgentPublishingScope(
