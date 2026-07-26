@@ -6,6 +6,7 @@ import type {
 } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -130,11 +131,9 @@ export class AgentStrategyOpportunitiesService {
     input: CreateOpportunityInput,
   ): Promise<AgentStrategyOpportunityDocument> {
     const records = await this.prisma.agentStrategyOpportunity.findMany({
-      where: {
-        isDeleted: false,
-        organizationId: input.organizationId,
+      where: scopedWhere(input.organizationId, {
         strategyId: input.strategyId,
-      },
+      }),
     });
     const existing = records
       .map((record) =>
@@ -183,7 +182,7 @@ export class AgentStrategyOpportunitiesService {
     patch: Record<string, unknown> = {},
   ): Promise<AgentStrategyOpportunityDocument | null> {
     const existing = await this.prisma.agentStrategyOpportunity.findFirst({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
     });
 
     if (!existing) {
@@ -192,7 +191,7 @@ export class AgentStrategyOpportunitiesService {
 
     const existingData = this.isPlainObject(existing.data) ? existing.data : {};
     const updated = await this.prisma.agentStrategyOpportunity.update({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
       data: {
         data: this.toJsonValue({
           ...existingData,

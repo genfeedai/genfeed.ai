@@ -14,6 +14,7 @@ import { ContentDraftsService } from '@api/collections/content-drafts/services/c
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ContentDraftStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 
@@ -39,12 +40,12 @@ export class AgentStrategyAutopilotPerformanceService {
     const strategyOrganizationId = getStrategyOrganizationId(strategy);
 
     const [drafts, opportunities, performance, summary] = await Promise.all([
-      this.contentDraftsService.find({
-        brandId: strategyBrandId ?? '',
-        createdAt: { gte: periodStart, lte: periodEnd },
-        isDeleted: false,
-        organizationId: strategyOrganizationId,
-      }),
+      this.contentDraftsService.find(
+        scopedWhere(strategyOrganizationId, {
+          brandId: strategyBrandId ?? '',
+          createdAt: { gte: periodStart, lte: periodEnd },
+        }),
+      ),
       this.opportunitiesService.listByStrategy(strategyId, organizationId),
       strategyBrandId
         ? this.contentPerformanceService.queryPerformance(
