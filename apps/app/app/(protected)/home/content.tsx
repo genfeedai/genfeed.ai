@@ -198,11 +198,11 @@ export default function OperationalHomeContent() {
         </Alert>
       ) : null}
 
-      <OperationalHomeSections brandSlug={brandSlug} orgSlug={orgSlug} />
-
       {connection.status === 'unconfigured' ? (
         <ConnectionState apiKeysHref={apiKeysHref} connectHref={connectHref} />
       ) : null}
+
+      <OperationalHomeSections brandSlug={brandSlug} orgSlug={orgSlug} />
     </main>
   );
 }
