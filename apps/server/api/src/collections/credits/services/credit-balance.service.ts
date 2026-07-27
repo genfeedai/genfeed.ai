@@ -2,6 +2,7 @@ import type { CreditBalanceDocument } from '@api/collections/credits/schemas/cre
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -39,10 +40,7 @@ export class CreditBalanceService {
     }
 
     return (tx ?? this.prisma).creditBalance.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, {}),
     });
   }
 

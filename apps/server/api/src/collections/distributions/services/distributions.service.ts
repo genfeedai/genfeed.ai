@@ -5,6 +5,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { DistributionPlatform, PublishStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -72,10 +73,7 @@ export class DistributionsService extends BaseService<
     page = 1,
     limit = 20,
   ): Promise<{ docs: DistributionDocument[]; total: number }> {
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
+    const where: Record<string, unknown> = scopedWhere(organizationId, {});
 
     if (filters.status) {
       where.status = filters.status;
@@ -109,7 +107,7 @@ export class DistributionsService extends BaseService<
     organizationId: string,
   ): Promise<DistributionDocument> {
     const distribution = await this.prisma.distribution.findFirst({
-      where: { id, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id }),
     });
 
     if (!distribution) {

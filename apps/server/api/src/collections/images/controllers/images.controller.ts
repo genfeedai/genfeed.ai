@@ -28,6 +28,7 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -311,14 +312,14 @@ export class ImagesController {
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const image = await this.imagesService.findOne({
-      _id: imageId,
-      organizationId: publicMetadata.organization,
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.IMAGE,
-      ),
-      isDeleted: false,
-    });
+    const image = await this.imagesService.findOne(
+      scopedWhere(publicMetadata.organization, {
+        _id: imageId,
+        category: CategoryPrismaUtil.toIngredientCategory(
+          IngredientCategory.IMAGE,
+        ),
+      }),
+    );
 
     if (!image) {
       return returnNotFound(this.constructorName, imageId);

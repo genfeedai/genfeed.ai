@@ -11,11 +11,16 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({ organization: 'org-1' })),
 }));
 
-vi.mock('@genfeedai/serializers', () => ({
-  MoodBoardSerializer: {
-    serialize: vi.fn((data: unknown) => ({ data })),
-  },
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    MoodBoardSerializer: {
+      serialize: vi.fn((data: unknown) => ({ data })),
+    },
+  };
+});
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((name: string, id: string) => ({

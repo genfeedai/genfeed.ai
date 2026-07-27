@@ -14,6 +14,7 @@ import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/t
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -49,7 +50,7 @@ export class ContextsService {
   ): Promise<void> {
     const brand = await this.prisma.brand.findFirst({
       select: { id: true },
-      where: { id: brandId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: brandId }),
     });
 
     if (!brand) {
@@ -229,7 +230,7 @@ export class ContextsService {
   ): Promise<ContextBase[]> {
     const rows = await this.prisma.contextBase.findMany({
       orderBy: { createdAt: 'desc' },
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
 
     let results = rows;
@@ -260,11 +261,7 @@ export class ContextsService {
     const contextBase = await findOrThrow(
       this.prisma.contextBase,
       {
-        where: {
-          id,
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, { id }),
       },
       'Context base',
     );
@@ -279,7 +276,7 @@ export class ContextsService {
   ): Promise<ContextBase> {
     const existing = await findOrThrow(
       this.prisma.contextBase,
-      { where: { id, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id }) },
       'Context base',
     );
 
@@ -309,7 +306,7 @@ export class ContextsService {
   async remove(id: string, organizationId: string): Promise<void> {
     await findOrThrow(
       this.prisma.contextBase,
-      { where: { id, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id }) },
       'Context base',
     );
 
@@ -371,12 +368,7 @@ export class ContextsService {
     await findOrThrow(
       this.prisma.contextEntry,
       {
-        where: {
-          contextBaseId,
-          id: entryId,
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, { contextBaseId, id: entryId }),
       },
       'Entry',
     );
@@ -528,10 +520,8 @@ export class ContextsService {
       const posts = await this.prisma.post.findMany({
         orderBy: { publicationDate: 'desc' },
         take: 100,
-        where: {
+        where: scopedWhere(organizationId, {
           brandId: dto.brandId.toString(),
-          isDeleted: false,
-          organizationId,
           platform: credentialPlatform,
           status: PostStatus.PUBLIC,
           ...(dto.dateRange
@@ -542,7 +532,7 @@ export class ContextsService {
                 },
               }
             : {}),
-        },
+        }),
       });
 
       const contextBaseId = String(
@@ -630,10 +620,7 @@ export class ContextsService {
     organizationId: string,
     dto: EnhancePromptDto,
   ): Promise<ContextBase[]> {
-    const baseWhere: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
+    const baseWhere: Record<string, unknown> = scopedWhere(organizationId, {});
 
     if (dto.contextBaseIds?.length) {
       baseWhere.id = { in: dto.contextBaseIds };

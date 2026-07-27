@@ -30,6 +30,7 @@ import type {
   AgentContentMentionItem,
   PopulateOption,
 } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -185,11 +186,7 @@ export class PostsService extends BaseService<
     });
 
     const results = await this.prisma.post.findMany({
-      where: {
-        id: { in: stringIds },
-        isDeleted: false,
-        organizationId: orgId,
-      },
+      where: scopedWhere(orgId, { id: { in: stringIds } }),
     });
 
     this.logger.debug('findByIds success', {
@@ -230,10 +227,7 @@ export class PostsService extends BaseService<
         label: true,
       },
       take: safeLimit,
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, {}),
     })) as unknown as ContentMentionPostRecord[];
 
     return posts.map((post) => ({

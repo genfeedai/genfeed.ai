@@ -77,7 +77,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       case IngredientCategory.VIDEO: {
         if (!this.videosService) throw new Error('VideosService not available');
         const video = await this.videosService.findOne(
-          { _id: contentId, organizationId, isDeleted: false },
+          scopedWhere(organizationId, { _id: contentId }),
           [{ path: 'metadata' }],
         );
         if (!video) throw new NotFoundException('Video', contentId);
@@ -89,7 +89,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       case IngredientCategory.IMAGE: {
         if (!this.imagesService) throw new Error('ImagesService not available');
         const image = await this.imagesService.findOne(
-          { _id: contentId, organizationId, isDeleted: false },
+          scopedWhere(organizationId, { _id: contentId }),
           [{ path: 'metadata' }],
         );
         if (!image) throw new NotFoundException('Image', contentId);
@@ -101,11 +101,9 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       case 'article': {
         if (!this.articlesService)
           throw new Error('ArticlesService not available');
-        const article = await this.articlesService.findOne({
-          _id: contentId,
-          organizationId,
-          isDeleted: false,
-        });
+        const article = await this.articlesService.findOne(
+          scopedWhere(organizationId, { _id: contentId }),
+        );
         if (!article) throw new NotFoundException('Article', contentId);
         if (!article.content)
           throw new NotFoundException(`Article ${contentId} has no content`);
@@ -113,11 +111,9 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       }
       case 'post': {
         if (!this.postsService) throw new Error('PostsService not available');
-        const post = await this.postsService.findOne({
-          _id: contentId,
-          organizationId,
-          isDeleted: false,
-        });
+        const post = await this.postsService.findOne(
+          scopedWhere(organizationId, { _id: contentId }),
+        );
         if (!post) throw new NotFoundException('Post', contentId);
         if (!post.description)
           throw new NotFoundException(`Post ${contentId} has no content`);
@@ -201,7 +197,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     if (!this.videosService) throw new Error('VideosService not available');
 
     const video = await this.videosService.findOne(
-      { _id: videoId, organizationId, isDeleted: false },
+      scopedWhere(organizationId, { _id: videoId }),
       [{ path: 'metadata' }, { path: 'prompt' }, { path: 'brand' }],
     );
 
@@ -272,7 +268,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     if (!this.imagesService) throw new Error('ImagesService not available');
 
     const image = await this.imagesService.findOne(
-      { _id: imageId, organizationId, isDeleted: false },
+      scopedWhere(organizationId, { _id: imageId }),
       [{ path: 'metadata' }, { path: 'prompt' }, { path: 'brand' }],
     );
 
@@ -343,7 +339,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     if (!this.articlesService) throw new Error('ArticlesService not available');
 
     const article = await this.articlesService.findOne(
-      { _id: articleId, organizationId, isDeleted: false },
+      scopedWhere(organizationId, { _id: articleId }),
       [{ path: 'brand' }],
     );
 
@@ -411,7 +407,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     if (!this.postsService) throw new Error('PostsService not available');
 
     const post = await this.postsService.findOne(
-      { _id: postId, organizationId, isDeleted: false },
+      scopedWhere(organizationId, { _id: postId }),
       [{ path: 'brand' }],
     );
     if (!post) throw new NotFoundException('Post', postId);
@@ -466,12 +462,10 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         | PostThreadChild[]
         | undefined;
       const previousEvaluation = await this.prisma.evaluation.findFirst({
-        where: {
+        where: scopedWhere(organizationId, {
           contentId: postId,
           contentType: 'post',
-          isDeleted: false,
-          organizationId,
-        },
+        }),
         orderBy: { updatedAt: 'desc' },
       });
       const { context, threadContent } =
@@ -600,11 +594,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     }
 
     const evaluation = await this.prisma.evaluation.findFirst({
-      where: {
-        id: evaluationId,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id: evaluationId }),
     });
 
     if (!evaluation) {
@@ -647,11 +637,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     }
 
     const evaluations = await this.prisma.evaluation.findMany({
-      where: {
-        id: { in: evaluationIds },
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { id: { in: evaluationIds } }),
       orderBy: { updatedAt: 'desc' },
       take: evaluationIds.length,
     });
@@ -696,7 +682,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     );
 
     const evaluation = await this.prisma.evaluation.findFirst({
-      where: { id: evaluationId, isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, { id: evaluationId }),
     });
 
     if (!evaluation) {
@@ -760,10 +746,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
   > {
     this.logger.log('Getting evaluation trends', this.constructorName);
 
-    const where: Record<string, unknown> = {
-      isDeleted: false,
-      organizationId,
-    };
+    const where: Record<string, unknown> = scopedWhere(organizationId, {});
 
     if (filters.contentType) {
       where.contentType = filters.contentType;

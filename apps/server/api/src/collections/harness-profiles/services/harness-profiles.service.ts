@@ -14,6 +14,7 @@ import type {
   IHarnessProfileVoice,
 } from '@genfeedai/interfaces';
 import type { Profile as PrismaProfile } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -106,7 +107,7 @@ export class HarnessProfilesService {
   ): Promise<HarnessProfileDocument[]> {
     const profiles = await this.prisma.profile.findMany({
       orderBy: { updatedAt: 'desc' },
-      where: {
+      where: scopedWhere(organizationId, {
         AND: [
           { data: { equals: brandId, path: ['brandId'] } },
           {
@@ -116,9 +117,7 @@ export class HarnessProfilesService {
             },
           },
         ],
-        isDeleted: false,
-        organizationId,
-      },
+      }),
     });
 
     const normalized = profiles.map((profile) =>
@@ -234,11 +233,7 @@ export class HarnessProfilesService {
     const profile = await findOrThrow(
       this.prisma.profile,
       {
-        where: {
-          id,
-          isDeleted: false,
-          organizationId,
-        },
+        where: scopedWhere(organizationId, { id }),
       },
       'Harness profile',
     );

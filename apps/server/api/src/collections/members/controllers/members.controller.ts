@@ -24,6 +24,7 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';
+import { scopedWhere } from '@genfeedai/server';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -220,11 +221,9 @@ export class MembersController {
       return returnNotFound(this.constructorName, memberId);
     }
 
-    const data = await this.membersService.findOne({
-      _id: memberId,
-      isDeleted: false,
-      organizationId,
-    });
+    const data = await this.membersService.findOne(
+      scopedWhere(organizationId, { _id: memberId }),
+    );
     // 404 (not 403) on a cross-org miss, matching base-crud.controller.ts — the
     // response must not confirm that the id exists in another organization.
     return data

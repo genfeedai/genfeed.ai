@@ -6,6 +6,7 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
 import { PostCategory, PostStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 /**
@@ -160,7 +161,7 @@ export async function batchSchedulePosts(
 
   const existingPosts = await context.prisma.post.findMany({
     select: { id: true, parentId: true, publishApprovalId: true },
-    where: { id: { in: requestedIds }, isDeleted: false, organizationId },
+    where: scopedWhere(organizationId, { id: { in: requestedIds } }),
   });
   const existingById = new Map<string, ExistingPost>(
     existingPosts.map((post: ExistingPost) => [post.id, post]),

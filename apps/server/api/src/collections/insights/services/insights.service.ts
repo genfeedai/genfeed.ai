@@ -11,6 +11,7 @@ import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/t
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -187,7 +188,7 @@ export class InsightsService {
     // metric; the period filter is loop-invariant.
     const now = new Date();
     const allForecasts = await this.prisma.forecast.findMany({
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
 
     const validForecastsByMetric = new Map<
@@ -240,7 +241,7 @@ export class InsightsService {
       this.logger.debug('Getting insights', { limit, organizationId });
 
       const allInsights = await this.prisma.insight.findMany({
-        where: { isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, {}),
         orderBy: { createdAt: 'desc' },
       });
 
@@ -285,7 +286,7 @@ export class InsightsService {
     limit: number = 5,
   ): Promise<boolean> {
     const allInsights = await this.prisma.insight.findMany({
-      where: { isDeleted: false, organizationId },
+      where: scopedWhere(organizationId, {}),
     });
 
     const now = new Date();
@@ -314,7 +315,7 @@ export class InsightsService {
       this.logger.debug('Updating insight', { insightId, organizationId });
 
       const existing = await this.prisma.insight.findFirst({
-        where: { id: insightId, isDeleted: false, organizationId },
+        where: scopedWhere(organizationId, { id: insightId }),
       });
 
       if (!existing) throw new Error('Insight not found');

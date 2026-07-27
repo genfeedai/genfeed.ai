@@ -12,6 +12,7 @@ import type {
   ManualAccountHealthOverrideRequest,
 } from '@genfeedai/interfaces';
 import { type Credential, type Prisma } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type CredentialHealthRecord = Credential & {
@@ -146,12 +147,7 @@ export class AccountHealthService {
   ): Promise<AccountHealthSummary[]> {
     const credentials = await this.prisma.credential.findMany({
       orderBy: { createdAt: 'asc' },
-      where: {
-        brandId,
-        isConnected: true,
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId, { brandId, isConnected: true }),
     });
 
     return Promise.all(
@@ -260,12 +256,10 @@ export class AccountHealthService {
     organizationId: string;
   }): Promise<CredentialHealthRecord> {
     const credential = await this.prisma.credential.findFirst({
-      where: {
+      where: scopedWhere(params.organizationId, {
         id: params.credentialId,
-        isDeleted: false,
-        organizationId: params.organizationId,
         ...(params.brandId ? { brandId: params.brandId } : {}),
-      },
+      }),
     });
 
     if (!credential) {

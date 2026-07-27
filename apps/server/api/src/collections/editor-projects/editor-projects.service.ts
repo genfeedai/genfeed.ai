@@ -14,6 +14,7 @@ import type {
   IEditorRenderOutputMetadata,
   IEditorRenderProvenance,
 } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -74,7 +75,7 @@ export class EditorProjectsService extends BaseService<
   ): Promise<EditorProjectDocument> {
     const project = await findOrThrow(
       this.prisma.editorProject,
-      { where: { id, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id }) },
       'Project',
     );
 
@@ -97,7 +98,7 @@ export class EditorProjectsService extends BaseService<
     // can return a meaningful NotFoundException vs. a generic ConflictException.
     const existing = await findOrThrow(
       this.prisma.editorProject,
-      { where: { id, isDeleted: false, organizationId } },
+      { where: scopedWhere(organizationId, { id }) },
       'Project',
     );
 
@@ -113,10 +114,8 @@ export class EditorProjectsService extends BaseService<
         ) as never,
         updatedAt: new Date(),
       },
-      where: {
+      where: scopedWhere(organizationId, {
         id,
-        isDeleted: false,
-        organizationId,
         // The JSON path filter below prevents the update when the embedded
         // config.status is already RENDERING.  Prisma exposes JSON-path
         // filtering via `path`+`equals` on JsonFilter.
@@ -126,7 +125,7 @@ export class EditorProjectsService extends BaseService<
             equals: EditorProjectStatus.RENDERING,
           },
         },
-      },
+      }),
     });
 
     if (updated.count === 0) {
@@ -217,10 +216,8 @@ export class EditorProjectsService extends BaseService<
         config: completedConfig,
         renderedVideoId,
       },
-      where: {
+      where: scopedWhere(existing.organizationId, {
         id,
-        isDeleted: false,
-        organizationId: existing.organizationId,
         AND: {
           config: {
             path: ['status'],
@@ -235,7 +232,7 @@ export class EditorProjectsService extends BaseService<
               },
             }
           : {}),
-      },
+      }),
     });
 
     if (updated.count === 0) {
@@ -307,10 +304,8 @@ export class EditorProjectsService extends BaseService<
       data: {
         config: terminalConfig,
       },
-      where: {
+      where: scopedWhere(existing.organizationId, {
         id,
-        isDeleted: false,
-        organizationId: existing.organizationId,
         AND: {
           config: {
             path: ['status'],
@@ -325,7 +320,7 @@ export class EditorProjectsService extends BaseService<
               },
             }
           : {}),
-      },
+      }),
     });
 
     if (updated.count === 0) {

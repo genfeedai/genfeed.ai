@@ -4,6 +4,7 @@ import type {
 } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PatternType } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -83,10 +84,7 @@ export class CreativePatternsService {
     const payload = this.toPersistencePayload(data);
     const existing = (
       await this.prisma.creativePattern.findMany({
-        where: {
-          isDeleted: false,
-          organizationId: payload.organizationId,
-        },
+        where: scopedWhere(payload.organizationId, {}),
       })
     )
       .map((record) => this.normalizeRecord(record))
@@ -132,10 +130,7 @@ export class CreativePatternsService {
     const limit = options?.limit ?? 10;
     const now = new Date();
     const patterns = await this.prisma.creativePattern.findMany({
-      where: {
-        isDeleted: false,
-        organizationId: orgId,
-      },
+      where: scopedWhere(orgId, {}),
     });
 
     return patterns

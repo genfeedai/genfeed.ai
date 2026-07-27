@@ -8,12 +8,17 @@ import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock serializers to avoid real serialization in unit tests
-vi.mock('@genfeedai/serializers', () => ({
-  DistributionSerializer: {
-    opts: {},
-    serialize: vi.fn((data) => data),
-  },
-}));
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    DistributionSerializer: {
+      opts: {},
+      serialize: vi.fn((data) => data),
+    },
+  };
+});
 
 // Mock response util to return data directly
 vi.mock('@api/helpers/utils/response/response.util', () => ({
