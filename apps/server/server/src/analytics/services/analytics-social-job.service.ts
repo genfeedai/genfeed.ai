@@ -1,9 +1,9 @@
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
 import type { SocialAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   SERVER_TOKENS,
-  type ServerAnalyticsCollectionState,
   type ServerLogger,
   type ServerPostAnalytics,
   type ServerPosts,
@@ -163,14 +163,15 @@ export class AnalyticsSocialJobService {
           ...analytics,
           mediaType: transformedMediaType,
         });
-        await this.markReady(post, attemptKey);
         processed++;
-
-        if (processed < posts.length) {
-          await this.delay(this.DEFAULT_DELAY_MS);
-        }
       } catch (error: unknown) {
         await this.recordAnalyticsFailure(post, 'Instagram', error, attemptKey);
+        continue;
+      }
+
+      await this.recordAnalyticsReady(post, attemptKey);
+      if (processed < posts.length) {
+        await this.delay(this.DEFAULT_DELAY_MS);
       }
     }
 
@@ -198,14 +199,15 @@ export class AnalyticsSocialJobService {
           ...analytics,
           shares: analytics.shares ?? 0,
         });
-        await this.markReady(post, attemptKey);
         processed++;
-
-        if (processed < posts.length) {
-          await this.delay(this.DEFAULT_DELAY_MS);
-        }
       } catch (error: unknown) {
         await this.recordAnalyticsFailure(post, 'TikTok', error, attemptKey);
+        continue;
+      }
+
+      await this.recordAnalyticsReady(post, attemptKey);
+      if (processed < posts.length) {
+        await this.delay(this.DEFAULT_DELAY_MS);
       }
     }
 
@@ -233,14 +235,15 @@ export class AnalyticsSocialJobService {
           post.id,
           analytics,
         );
-        await this.markReady(post, attemptKey);
         processed++;
-
-        if (processed < posts.length) {
-          await this.delay(this.DEFAULT_DELAY_MS);
-        }
       } catch (error: unknown) {
         await this.recordAnalyticsFailure(post, 'Pinterest', error, attemptKey);
+        continue;
+      }
+
+      await this.recordAnalyticsReady(post, attemptKey);
+      if (processed < posts.length) {
+        await this.delay(this.DEFAULT_DELAY_MS);
       }
     }
 
@@ -275,14 +278,15 @@ export class AnalyticsSocialJobService {
           shares: analytics.shares,
           views: analytics.views,
         });
-        await this.markReady(post, attemptKey);
         processed++;
-
-        if (processed < posts.length) {
-          await this.delay(this.DEFAULT_DELAY_MS);
-        }
       } catch (error: unknown) {
         await this.recordAnalyticsFailure(post, 'LinkedIn', error, attemptKey);
+        continue;
+      }
+
+      await this.recordAnalyticsReady(post, attemptKey);
+      if (processed < posts.length) {
+        await this.delay(this.DEFAULT_DELAY_MS);
       }
     }
 
@@ -310,14 +314,15 @@ export class AnalyticsSocialJobService {
           post.id,
           analytics,
         );
-        await this.markReady(post, attemptKey);
         processed++;
-
-        if (processed < posts.length) {
-          await this.delay(this.DEFAULT_DELAY_MS);
-        }
       } catch (error: unknown) {
         await this.recordAnalyticsFailure(post, 'Mastodon', error, attemptKey);
+        continue;
+      }
+
+      await this.recordAnalyticsReady(post, attemptKey);
+      if (processed < posts.length) {
+        await this.delay(this.DEFAULT_DELAY_MS);
       }
     }
 
@@ -369,17 +374,24 @@ export class AnalyticsSocialJobService {
     }
   }
 
-  private async markReady(
+  private async recordAnalyticsReady(
     post: SocialAnalyticsJobData['posts'][number],
     attemptKey?: string,
   ): Promise<void> {
-    await this.analyticsCollectionState.markReady({
-      attemptKey,
-      brandId: post.brand,
-      id: post.id,
-      organizationId: post.organization,
-      platform: post.platform,
-    });
+    try {
+      await this.analyticsCollectionState.markReady({
+        attemptKey,
+        brandId: post.brand,
+        id: post.id,
+        organizationId: post.organization,
+        platform: post.platform,
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to mark analytics collection ready for post ${post.id}`,
+        error,
+      );
+    }
   }
 
   private delay(ms: number): Promise<void> {

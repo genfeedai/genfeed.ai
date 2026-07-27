@@ -1,14 +1,14 @@
 import { TargetAnalyticsCollectionState } from '@genfeedai/enums';
-import { Prisma } from '@genfeedai/prisma';
-import { Inject, Injectable } from '@nestjs/common';
-import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
-import { scopedWhere } from '@server/tenancy/scoped-where';
 import type {
   AnalyticsCollectionAttemptRef,
   AnalyticsCollectionFailure,
   AnalyticsCollectionTargetRef,
   ServerAnalyticsCollectionState,
-} from '../analytics-collection-state';
+} from '@genfeedai/interfaces';
+import { Prisma } from '@genfeedai/prisma';
+import { Inject, Injectable } from '@nestjs/common';
+import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 export interface MarkAnalyticsCollectionPendingInput {
   attemptKey: string;

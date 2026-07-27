@@ -3,6 +3,7 @@ import { PostAnalyticsService } from '@api/collections/posts/services/post-analy
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
 import {
   ANALYTICS_FACEBOOK_QUEUE,
   SocialAnalyticsJobData,
@@ -17,10 +18,7 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
-import {
-  SERVER_TOKENS,
-  type ServerAnalyticsCollectionState,
-} from '@server/server.dependencies';
+import { SERVER_TOKENS } from '@server/server.dependencies';
 import { Job } from 'bullmq';
 
 @Processor(ANALYTICS_FACEBOOK_QUEUE)

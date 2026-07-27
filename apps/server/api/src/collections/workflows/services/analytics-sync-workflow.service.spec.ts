@@ -306,7 +306,38 @@ describe('AnalyticsSyncWorkflowService', () => {
       {
         code: 'analytics.provider_unavailable',
         isRetryable: true,
-        message: 'analytics-facebook analytics is temporarily unavailable.',
+        message: 'Facebook analytics is temporarily unavailable.',
+      },
+    );
+  });
+
+  it('preserves the queue error when recording collection failure also fails', async () => {
+    const queueError = { response: { status: 503 } };
+    const stateError = new Error('state write failed');
+    postsService.findAll.mockResolvedValue({
+      docs: [
+        {
+          id: 'post-1',
+          brand: 'brand-1',
+          credential: { id: 'credential-1' },
+          externalId: 'facebook-1',
+          organization: 'org-1',
+          platform: CredentialPlatform.FACEBOOK,
+        },
+      ],
+    });
+    queueService.add.mockRejectedValueOnce(queueError);
+    analyticsCollectionState.markFailedBatch.mockRejectedValueOnce(stateError);
+
+    await expect(service.runFacebookAnalytics('org-1')).rejects.toBe(
+      queueError,
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      'AnalyticsSyncWorkflowService failed to record analytics collection failure',
+      stateError,
+      {
+        attemptKey: 'analyticsFacebookSync:org-1:495081',
+        queueName: 'analytics-facebook',
       },
     );
   });

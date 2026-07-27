@@ -37,6 +37,7 @@ import {
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -610,10 +611,7 @@ export class StripeCheckoutWebhookHandler {
 
     let brand = organization
       ? await this.brandsService.findOne(
-          {
-            isDeleted: false,
-            organizationId: String(organization.id),
-          },
+          scopedWhere(String(organization.id)),
           [],
         )
       : null;
@@ -645,10 +643,7 @@ export class StripeCheckoutWebhookHandler {
     }
 
     brand = await this.brandsService.findOne(
-      {
-        isDeleted: false,
-        organizationId: String(organization.id),
-      },
+      scopedWhere(String(organization.id)),
       [],
     );
 

@@ -1,31 +1,4 @@
-export interface AnalyticsCollectionTargetRef {
-  brandId: string;
-  id: string;
-  organizationId: string;
-  platform: string;
-}
-
-export interface AnalyticsCollectionFailure {
-  code: string;
-  isRetryable: boolean;
-  message: string;
-}
-
-export interface AnalyticsCollectionAttemptRef
-  extends AnalyticsCollectionTargetRef {
-  attemptKey?: string;
-}
-
-export interface ServerAnalyticsCollectionState {
-  markFailed(
-    target: AnalyticsCollectionAttemptRef,
-    failure: AnalyticsCollectionFailure,
-  ): Promise<void>;
-  markReady(
-    target: AnalyticsCollectionAttemptRef,
-    collectedAt?: Date,
-  ): Promise<void>;
-}
+import type { AnalyticsCollectionFailure } from '@genfeedai/interfaces';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -74,6 +47,14 @@ export function classifyAnalyticsCollectionError(
       code: 'analytics.rate_limited',
       isRetryable: true,
       message: `${label} analytics is temporarily rate limited.`,
+    };
+  }
+
+  if (status !== null && status >= 400 && status < 500) {
+    return {
+      code: 'analytics.collection_failed',
+      isRetryable: false,
+      message: `${label} analytics could not be collected.`,
     };
   }
 

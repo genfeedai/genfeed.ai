@@ -1,3 +1,4 @@
+export * from './analytics-capability.interface';
 export * from './channel-target.interface';
 export * from './recurrence-rule.interface';
 export * from './release-attachment.interface';

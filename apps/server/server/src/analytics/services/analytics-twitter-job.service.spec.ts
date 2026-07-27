@@ -1,8 +1,8 @@
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
 import type { TwitterAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import type {
-  ServerAnalyticsCollectionState,
   ServerCredentialStore,
   ServerLogger,
   ServerPostAnalytics,

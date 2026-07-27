@@ -19,13 +19,6 @@ export const SERVER_TOKENS = {
   brandMemorySync: 'SERVER_BRAND_MEMORY_SYNC',
 } as const;
 
-export type {
-  AnalyticsCollectionAttemptRef,
-  AnalyticsCollectionFailure,
-  AnalyticsCollectionTargetRef,
-  ServerAnalyticsCollectionState,
-} from './analytics/analytics-collection-state';
-
 export interface ServerConfig {
   get(key: string): string | undefined;
 }

@@ -1,11 +1,13 @@
 import { CredentialPlatform } from '@genfeedai/enums';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
+import type {
+  IReplyBotCredentialData,
+  ServerAnalyticsCollectionState,
+} from '@genfeedai/interfaces';
 import type { TwitterAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   SERVER_TOKENS,
-  type ServerAnalyticsCollectionState,
   type ServerCredentialStore,
   type ServerLogger,
   type ServerPostAnalytics,

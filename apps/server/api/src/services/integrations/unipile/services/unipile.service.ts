@@ -25,6 +25,7 @@ import {
   IntegrationPlatform as PrismaIntegrationPlatform,
   IntegrationStatus as PrismaIntegrationStatus,
 } from '@genfeedai/prisma';
+import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -85,11 +86,7 @@ export class UnipileService {
     }
 
     const existing = await this.prisma.orgIntegration.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId,
-        platform: PRISMA_UNIPILE_PLATFORM,
-      },
+      where: scopedWhere(organizationId, { platform: PRISMA_UNIPILE_PLATFORM }),
     });
 
     const encryptedToken = this.cryptoService.encrypt(input.apiKey);
@@ -123,11 +120,7 @@ export class UnipileService {
 
   async getStatus(organizationId: string): Promise<UnipileIntegrationStatus> {
     const integration = await this.prisma.orgIntegration.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId,
-        platform: PRISMA_UNIPILE_PLATFORM,
-      },
+      where: scopedWhere(organizationId, { platform: PRISMA_UNIPILE_PLATFORM }),
     });
 
     if (integration) {
@@ -324,12 +317,10 @@ export class UnipileService {
     organizationId: string,
   ): Promise<UnipileConnection> {
     const integration = await this.prisma.orgIntegration.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId,
+      where: scopedWhere(organizationId, {
         platform: PRISMA_UNIPILE_PLATFORM,
         status: PRISMA_ACTIVE_STATUS,
-      },
+      }),
     });
 
     if (integration) {

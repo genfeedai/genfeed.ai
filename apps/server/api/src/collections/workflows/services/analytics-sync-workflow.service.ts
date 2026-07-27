@@ -57,6 +57,18 @@ const ANALYTICS_THREADS_QUEUE = 'analytics-threads';
 const ANALYTICS_TWITTER_QUEUE = 'analytics-twitter';
 const ANALYTICS_YOUTUBE_QUEUE = 'analytics-youtube';
 
+const ANALYTICS_PLATFORM_LABELS: Partial<Record<CredentialPlatform, string>> = {
+  [CredentialPlatform.FACEBOOK]: 'Facebook',
+  [CredentialPlatform.INSTAGRAM]: 'Instagram',
+  [CredentialPlatform.LINKEDIN]: 'LinkedIn',
+  [CredentialPlatform.MASTODON]: 'Mastodon',
+  [CredentialPlatform.PINTEREST]: 'Pinterest',
+  [CredentialPlatform.THREADS]: 'Threads',
+  [CredentialPlatform.TIKTOK]: 'TikTok',
+  [CredentialPlatform.TWITTER]: 'Twitter',
+  [CredentialPlatform.YOUTUBE]: 'YouTube',
+};
+
 const HOUR_MS = 60 * 60 * 1000;
 const THIRTY_MINUTES_MS = 30 * 60 * 1000;
 const SIX_HOURS_MS = 6 * HOUR_MS;
@@ -529,10 +541,24 @@ export class AnalyticsSyncWorkflowService {
     try {
       await this.enqueue(queueName, jobData, backoffDelay);
     } catch (error: unknown) {
-      await this.analyticsCollectionState.markFailedBatch(
-        targets.map((target) => ({ ...target, attemptKey })),
-        classifyAnalyticsCollectionError(error, queueName),
-      );
+      const [firstTarget] = targets;
+      const platformLabel = firstTarget
+        ? (ANALYTICS_PLATFORM_LABELS[firstTarget.platform] ??
+          firstTarget.platform)
+        : 'Provider';
+
+      try {
+        await this.analyticsCollectionState.markFailedBatch(
+          targets.map((target) => ({ ...target, attemptKey })),
+          classifyAnalyticsCollectionError(error, platformLabel),
+        );
+      } catch (stateError: unknown) {
+        this.logger.error(
+          `${this.logContext} failed to record analytics collection failure`,
+          stateError,
+          { attemptKey, queueName },
+        );
+      }
       throw error;
     }
   }

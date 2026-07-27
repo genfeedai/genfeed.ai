@@ -2,13 +2,9 @@ import {
   CredentialPlatform,
   TargetAnalyticsCapability,
 } from '@genfeedai/enums';
+import type { SchedulerAnalyticsCapability } from '@genfeedai/interfaces';
 
 const HOUR_MS = 60 * 60 * 1000;
-
-export interface SchedulerAnalyticsCapability {
-  freshnessWindowMs: number | null;
-  status: TargetAnalyticsCapability;
-}
 
 const SUPPORTED_ANALYTICS_CAPABILITIES: Partial<
   Record<CredentialPlatform, SchedulerAnalyticsCapability>

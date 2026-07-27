@@ -6,6 +6,7 @@ import {
   type ServerLogger,
   type ServerPrisma,
 } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 
 @Injectable()
 export class AdOptimizationAuditLogsService {
@@ -52,10 +53,7 @@ export class AdOptimizationAuditLogsService {
       orderBy: { createdAt: 'desc' },
       skip: params?.offset ?? 0,
       take: params?.limit ?? 50,
-      where: {
-        isDeleted: false,
-        organizationId,
-      },
+      where: scopedWhere(organizationId),
     });
   }
 }

@@ -28,6 +28,7 @@ import {
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import type { ICampaignScope } from '@genfeedai/interfaces';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -329,12 +330,12 @@ export class DmCampaignExecutorService {
       return null;
     }
 
-    return this.credentialsService.findOne({
-      _id: credentialId,
-      ...(brandId ? { brandId } : {}),
-      isDeleted: false,
-      organizationId,
-    });
+    return this.credentialsService.findOne(
+      scopedWhere(organizationId, {
+        _id: credentialId,
+        ...(brandId ? { brandId } : {}),
+      }),
+    );
   }
 
   /**

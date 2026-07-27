@@ -1,9 +1,9 @@
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { ServerAnalyticsCollectionState } from '@genfeedai/interfaces';
 import type { YouTubeAnalyticsJobData } from '@genfeedai/queue-contracts';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   SERVER_TOKENS,
-  type ServerAnalyticsCollectionState,
   type ServerLogger,
   type ServerPostAnalytics,
   type ServerYouTubeAnalytics,
