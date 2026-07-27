@@ -1,8 +1,8 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { EMPTY_STATES, ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ModalEnum } from '@genfeedai/enums';
+import { APP_ROUTES, EMPTY_STATES, ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import {
   getSeatLimitForTier,
@@ -11,20 +11,26 @@ import {
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Member } from '@models/organization/member.model';
 import type { TableColumn } from '@props/ui/display/table.props';
-import { PagesService } from '@services/content/pages.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { MembersService } from '@services/organization/members.service';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { LazyModalMember } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
-import { HiOutlineUsers, HiUserPlus } from 'react-icons/hi2';
+import {
+  HiOutlineLockClosed,
+  HiOutlineUsers,
+  HiUserPlus,
+} from 'react-icons/hi2';
 
 function formatTierLabel(tier: string | null): string {
   if (!tier) {
@@ -34,22 +40,24 @@ function formatTierLabel(tier: string | null): string {
   return tier.charAt(0).toUpperCase() + tier.slice(1);
 }
 
-function formatSeatLabel(limit: number): string {
-  return limit === 1 ? 'team seat' : 'team seats';
-}
-
 function MembersListContent() {
   const notificationsService = NotificationsService.getInstance();
   const { organizationId, settings } = useBrand();
+  const { orgHref } = useOrgUrl();
   const searchParams = useSearchParams();
   const currentPage = Number(searchParams.get('page')) || 1;
+  const seatLimit = getSeatLimitForTier(settings?.subscriptionTier);
+  const upgradeTier = getUpgradeTierForLimit(
+    'seats',
+    settings?.subscriptionTier,
+  );
+  const isTeamSubscriptionLocked = seatLimit === 1 && upgradeTier !== null;
 
   const getMembersService = useAuthedService(
     useCallback((token: string) => MembersService.getInstance(token), []),
   );
 
   const [members, setMembers] = useState<Member[] | null>(null);
-  const [totalMembers, setTotalMembers] = useState<number>(0);
 
   const columns: TableColumn<Member>[] = [
     {
@@ -76,7 +84,8 @@ function MembersListContent() {
   ];
 
   const findAllMembers = useCallback(async () => {
-    if (!organizationId) {
+    if (!organizationId || isTeamSubscriptionLocked) {
+      setMembers([]);
       return;
     }
 
@@ -92,64 +101,74 @@ function MembersListContent() {
 
       const data = await service.findAll(query);
       setMembers(data);
-      // Seat-limit checks must use the org-wide total, not just this page of
-      // results. BaseService.findAll writes the paginated total into
-      // PagesService (same value AutoPagination shows). Fall back to the
-      // current page length if the total isn't populated for any reason.
-      setTotalMembers(Math.max(PagesService.getTotalDocs(), data.length));
       logger.info('GET /members success', data);
     } catch (error) {
       logger.error('GET /members failed', error);
       notificationsService.error('Failed to load members');
       setMembers([]);
-      setTotalMembers(0);
     }
-  }, [currentPage, getMembersService, notificationsService, organizationId]);
+  }, [
+    currentPage,
+    getMembersService,
+    isTeamSubscriptionLocked,
+    notificationsService,
+    organizationId,
+  ]);
 
   useEffect(() => {
     findAllMembers();
   }, [findAllMembers]);
 
-  const seatLimit = getSeatLimitForTier(settings?.subscriptionTier);
-  const isAtSeatLimit =
-    seatLimit !== null && members !== null && totalMembers >= seatLimit;
-  const memberLimitDescription = isAtSeatLimit
-    ? `Current plan includes ${seatLimit} ${formatSeatLabel(seatLimit)}. Upgrade to ${formatTierLabel(
-        getUpgradeTierForLimit('seats', settings?.subscriptionTier),
-      )} to invite more people.`
-    : undefined;
+  const upgradeTierLabel = formatTierLabel(upgradeTier);
 
   return (
     <Container
       label="Team Members"
-      description={memberLimitDescription}
       icon={HiOutlineUsers}
       right={
-        <Button
-          onClick={() => openModal(ModalEnum.MEMBER)}
-          icon={<HiUserPlus className="size-4" />}
-          label="Invite Member"
-          isDisabled={isAtSeatLimit}
-        />
+        isTeamSubscriptionLocked ? undefined : (
+          <Button
+            onClick={() => openModal(ModalEnum.MEMBER)}
+            icon={<HiUserPlus className="size-4" />}
+            label="Invite Member"
+          />
+        )
       }
     >
-      <AppTable<Member>
-        items={members ?? []}
-        columns={columns}
-        actions={[]}
-        isLoading={members === null}
-        getRowKey={(item) => item.id}
-        emptyLabel={EMPTY_STATES.MEMBERS_FOUND}
-      />
+      {isTeamSubscriptionLocked ? (
+        <CardEmpty
+          actions={
+            <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
+              <Link href={orgHref(APP_ROUTES.SETTINGS.BILLING)}>
+                Upgrade to {upgradeTierLabel}
+              </Link>
+            </Button>
+          }
+          description={`Your current plan is a solo workspace. Upgrade to ${upgradeTierLabel} to invite members and collaborate with your team.`}
+          icon={HiOutlineLockClosed}
+          label={`Unlock team members with ${upgradeTierLabel}`}
+        />
+      ) : (
+        <>
+          <AppTable<Member>
+            items={members ?? []}
+            columns={columns}
+            actions={[]}
+            isLoading={members === null}
+            getRowKey={(item) => item.id}
+            emptyLabel={EMPTY_STATES.MEMBERS_FOUND}
+          />
 
-      <div className="mt-4">
-        <AutoPagination showTotal totalLabel="members" />
-      </div>
+          <div className="mt-4">
+            <AutoPagination showTotal totalLabel="members" />
+          </div>
 
-      <LazyModalMember
-        organizationId={organizationId ?? ''}
-        onConfirm={findAllMembers}
-      />
+          <LazyModalMember
+            organizationId={organizationId ?? ''}
+            onConfirm={findAllMembers}
+          />
+        </>
+      )}
     </Container>
   );
 }
