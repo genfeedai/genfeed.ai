@@ -376,8 +376,8 @@ export default function IssuesList() {
 
   return (
     <Container>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-white">Tasks</h1>
+      <div className="mb-6 flex items-center justify-end">
+        <h1 className="sr-only">Tasks</h1>
         <div className="flex items-center gap-3">
           <Button
             variant={ButtonVariant.GHOST}

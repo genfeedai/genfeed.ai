@@ -37,6 +37,9 @@ describe('IssuesList view controls', () => {
     render(<IssuesList />);
 
     expect(await screen.findByText('No tasks found')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Tasks' })).toHaveClass(
+      'sr-only',
+    );
 
     const listView = screen.getByRole('button', { name: 'List view' });
     const kanbanView = screen.getByRole('button', { name: 'Kanban view' });

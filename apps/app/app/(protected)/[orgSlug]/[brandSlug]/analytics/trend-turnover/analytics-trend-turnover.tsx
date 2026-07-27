@@ -94,7 +94,7 @@ export default function AnalyticsTrendTurnover() {
               ))}
             </div>
           </div>
-          <Heading size="2xl" as="h1">
+          <Heading size="2xl" as="h1" className="sr-only">
             Trend Turnover Dashboard
           </Heading>
           <Text as="p" color="subtle-70" className="max-w-3xl">

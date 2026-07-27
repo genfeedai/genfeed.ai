@@ -221,7 +221,12 @@ describe('AnalyticsTrendTurnover', () => {
   it('loads trend turnover KPIs, chart, table, and volatility bars', async () => {
     render(<AnalyticsTrendTurnover />);
 
-    expect(screen.getByText('Trend Turnover Dashboard')).toBeVisible();
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Trend Turnover Dashboard',
+      }),
+    ).toHaveClass('sr-only');
     expect(screen.getByText('Loading table')).toBeVisible();
 
     await waitFor(() => {

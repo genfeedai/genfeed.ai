@@ -377,9 +377,12 @@ describe('AnalyticsTrends', () => {
   it('loads trend surfaces and routes interactive trend content', async () => {
     renderAnalyticsTrends();
 
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Social Media Trends',
-    );
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Social Media Trends',
+      }),
+    ).toHaveClass('sr-only');
     expect(await screen.findByText('AI video')).toBeInTheDocument();
     expect(screen.getByText('Creator ops')).toBeInTheDocument();
     expect(screen.getByText('#AIAgents')).toBeInTheDocument();
