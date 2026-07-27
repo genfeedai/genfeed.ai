@@ -114,7 +114,10 @@ describe('OrchestrationSkillsPage', () => {
     render(<OrchestrationSkillsPage />);
 
     expect(
-      await screen.findByRole('heading', { name: /brand content behavior/i }),
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /brand content behavior/i,
+      }),
     ).toHaveClass('sr-only');
     await waitFor(() => {
       expect(listSkillsMock).toHaveBeenCalledTimes(1);

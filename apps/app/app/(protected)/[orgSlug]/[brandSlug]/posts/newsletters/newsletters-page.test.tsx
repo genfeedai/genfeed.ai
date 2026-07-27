@@ -165,9 +165,9 @@ describe('NewslettersPage', () => {
   it('renders the brand-scoped newsletter workspace and filters archive items', () => {
     render(<NewslettersPage />);
 
-    expect(screen.getByRole('heading', { name: 'Newsletters' })).toHaveClass(
-      'sr-only',
-    );
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Newsletters' }),
+    ).toHaveClass('sr-only');
     expect(
       screen.getByText(/Build history-aware newsletters for Acme/),
     ).toBeVisible();
