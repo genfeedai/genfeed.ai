@@ -49,7 +49,7 @@ export default function ModalGalleryFooter({
             selectedItems.length > 0 && (
               <>
                 <Button
-                  variant={ButtonVariant.OUTLINE}
+                  variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                   label="Clear"
                   onClick={onClear}
@@ -81,7 +81,7 @@ export default function ModalGalleryFooter({
               <>
                 <Button
                   label="Clear"
-                  variant={ButtonVariant.OUTLINE}
+                  variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                   onClick={onClear}
                 />
@@ -111,7 +111,7 @@ export default function ModalGalleryFooter({
               <>
                 <Button
                   label="Clear"
-                  variant={ButtonVariant.OUTLINE}
+                  variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                   onClick={onClear}
                 />

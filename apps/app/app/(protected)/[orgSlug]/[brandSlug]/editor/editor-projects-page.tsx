@@ -123,37 +123,29 @@ export default function EditorProjectsPage() {
   return (
     <Container className="py-10">
       <div className="mb-8 flex items-start justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <Button
-              asChild
-              className="flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/40 transition-colors duration-150 hover:bg-white/[0.06] hover:text-foreground"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
+        <div className="flex items-center gap-3">
+          <Button
+            asChild
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-foreground/40 transition-colors duration-150 hover:bg-white/[0.06] hover:text-foreground"
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            <Link
+              aria-label={
+                isStudioEnabled ? 'Back to Studio' : 'Back to Library'
+              }
+              href={href(isStudioEnabled ? '/studio/video' : '/library')}
             >
-              <Link
-                aria-label={
-                  isStudioEnabled ? 'Back to Studio' : 'Back to Library'
-                }
-                href={href(isStudioEnabled ? '/studio/video' : '/library')}
-              >
-                <HiOutlineArrowLeft className="size-4" />
-              </Link>
-            </Button>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Video Editor
-            </h1>
-          </div>
-          <p className="text-foreground/60">
-            Advanced video editing with timeline, transitions, and professional
-            tools.
-          </p>
+              <HiOutlineArrowLeft className="size-4" />
+            </Link>
+          </Button>
+          <h1 className="sr-only">Video Editor</h1>
         </div>
 
         <Button
           asChild
           className="inline-flex items-center gap-2 bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          variant={ButtonVariant.UNSTYLED}
+          variant={ButtonVariant.DEFAULT}
           withWrapper={false}
         >
           <Link href={href('/editor/new')}>
@@ -218,7 +210,7 @@ export default function EditorProjectsPage() {
                     <Button
                       withWrapper={false}
                       size={ButtonSize.XS}
-                      variant={ButtonVariant.UNSTYLED}
+                      variant={ButtonVariant.DESTRUCTIVE}
                       onClick={(e) => handleDelete(e, project.id)}
                       className="rounded p-1 text-foreground/40 opacity-0 transition-opacity hover:bg-destructive/20 hover:text-destructive group-hover:opacity-100"
                       ariaLabel="Delete project"

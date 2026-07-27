@@ -351,7 +351,7 @@ export function Toolbar({
       {/* Debug Mode Badge */}
       {debugMode && (
         <Button
-          variant="outline"
+          variant="secondary"
           size="sm"
           onClick={() => openModal('settings')}
           title="Debug mode active - API calls are mocked"

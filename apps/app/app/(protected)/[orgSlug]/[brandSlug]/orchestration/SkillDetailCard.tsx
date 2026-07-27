@@ -89,7 +89,7 @@ export default function SkillDetailCard({
             <Button
               className="rounded-full"
               onClick={onOpenTestInChat}
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
             >
               <HiOutlineBeaker className="size-4" />
               Test with Agent
@@ -113,7 +113,7 @@ export default function SkillDetailCard({
                   className="rounded-full"
                   disabled={customizing}
                   onClick={onCustomize}
-                  variant={ButtonVariant.OUTLINE}
+                  variant={ButtonVariant.SECONDARY}
                 >
                   <HiOutlineSparkles className="size-4" />
                   {customizing ? 'Customizing…' : 'Customize'}

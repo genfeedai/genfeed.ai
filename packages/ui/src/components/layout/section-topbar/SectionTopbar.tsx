@@ -1,5 +1,6 @@
 'use client';
 
+import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { SectionTopbarProps } from '@genfeedai/props/ui/layout/section-topbar.props';
 
@@ -21,27 +22,33 @@ export default function SectionTopbar({
   tabs,
   className,
 }: SectionTopbarProps) {
+  const { hasCanonicalBreadcrumb } = useSidebarNavigation();
+
   return (
     <div
       data-testid="section-topbar"
       className={cn('w-full border-b border-border', className)}
     >
       <div className="flex w-full items-center justify-between gap-3 px-6 py-2">
-        <div className="flex min-w-0 items-baseline gap-2.5">
-          <div className="flex items-center gap-2">
-            {Icon ? (
-              <Icon className="size-4 flex-shrink-0 text-foreground/60" />
+        {hasCanonicalBreadcrumb ? (
+          <h1 className="sr-only">{title}</h1>
+        ) : (
+          <div className="flex min-w-0 items-baseline gap-2.5">
+            <div className="flex items-center gap-2">
+              {Icon ? (
+                <Icon className="size-4 flex-shrink-0 text-foreground/60" />
+              ) : null}
+              <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
+                {title}
+              </h1>
+            </div>
+            {subtitle ? (
+              <p className="hidden min-w-0 truncate text-xs text-foreground/55 lg:block">
+                {subtitle}
+              </p>
             ) : null}
-            <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
-              {title}
-            </h1>
           </div>
-          {subtitle ? (
-            <p className="hidden min-w-0 truncate text-xs text-foreground/55 lg:block">
-              {subtitle}
-            </p>
-          ) : null}
-        </div>
+        )}
 
         {actions ? (
           <div

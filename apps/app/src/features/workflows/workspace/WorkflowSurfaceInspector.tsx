@@ -351,7 +351,7 @@ export function WorkflowSurfaceInspector({
             icon={<HiOutlineArrowPath className="size-4" />}
             onClick={() => setReloadKey((current) => current + 1)}
             size={ButtonSize.SM}
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             Retry
@@ -485,7 +485,7 @@ export function WorkflowSurfaceInspector({
                 icon={<HiOutlineXMark className="size-4" />}
                 onClick={() => void submitApproval(false)}
                 size={ButtonSize.SM}
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
               >
                 Reject
@@ -535,7 +535,7 @@ export function WorkflowSurfaceInspector({
           </Button>
         ) : null}
         {workflowHref ? (
-          <Button asChild variant={ButtonVariant.OUTLINE} withWrapper={false}>
+          <Button asChild variant={ButtonVariant.SECONDARY} withWrapper={false}>
             <Link href={workflowHref}>
               <HiOutlineArrowTopRightOnSquare className="size-4" />
               Open workflow editor

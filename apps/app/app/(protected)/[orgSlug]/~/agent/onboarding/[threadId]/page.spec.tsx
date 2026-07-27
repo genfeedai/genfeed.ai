@@ -45,7 +45,7 @@ describe('ChatOnboardingThreadPage', () => {
     const { container } = render(<ChatOnboardingThreadPage />);
     expect(container.firstChild).toHaveClass(
       'flex',
-      'h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)]',
+      'h-full',
       'min-h-0',
       'flex-1',
       'flex-col',

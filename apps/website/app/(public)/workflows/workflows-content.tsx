@@ -194,7 +194,7 @@ export default function WorkflowsContent() {
             </ButtonTracked>
             <ButtonTracked
               asChild
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               trackingName="workflows_hero_click"
               trackingData={{ action: 'explore_studio' }}
@@ -378,7 +378,7 @@ export default function WorkflowsContent() {
               </ButtonTracked>
               <ButtonTracked
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
                 trackingName="workflows_cta_click"
                 trackingData={{ action: 'book_demo' }}

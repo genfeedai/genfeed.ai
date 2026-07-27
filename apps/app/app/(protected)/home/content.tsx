@@ -6,7 +6,6 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { useAccessState } from '@providers/access-state/access-state.provider';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
-import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import {
@@ -132,17 +131,8 @@ export default function OperationalHomeContent() {
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="flex flex-col gap-5 border-b border-white/[0.08] pb-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-3xl">
-          <Badge variant="outline">Human control plane</Badge>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-foreground sm:text-4xl">
-            Operational home
-          </h1>
-          <p className="mt-3 text-sm leading-7 text-foreground/55">
-            Supervise agent-created work, publishing readiness, connected
-            channels, and organization activity.
-          </p>
-        </div>
+      <div className="flex justify-end">
+        <h1 className="sr-only">Operational home</h1>
 
         {connection.status === 'configured' ? (
           <div
@@ -166,7 +156,7 @@ export default function OperationalHomeContent() {
             </div>
           </div>
         ) : null}
-      </header>
+      </div>
 
       {connection.status === 'loading' ? (
         <div
@@ -208,11 +198,11 @@ export default function OperationalHomeContent() {
         </Alert>
       ) : null}
 
-      <OperationalHomeSections brandSlug={brandSlug} orgSlug={orgSlug} />
-
       {connection.status === 'unconfigured' ? (
         <ConnectionState apiKeysHref={apiKeysHref} connectHref={connectHref} />
       ) : null}
+
+      <OperationalHomeSections brandSlug={brandSlug} orgSlug={orgSlug} />
     </main>
   );
 }

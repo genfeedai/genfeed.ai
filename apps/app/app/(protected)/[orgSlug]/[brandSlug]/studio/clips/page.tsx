@@ -83,12 +83,13 @@ export default function StudioClipsPage() {
 
     return (
       <div className="mx-auto max-w-4xl px-6 py-10">
+        <h1 className="sr-only">Clips</h1>
         <div className="mb-8">
           <div className="flex items-center gap-3">
             <HiOutlineMagnifyingGlass className="size-6 text-primary" />
-            <h1 className="text-2xl font-semibold text-zinc-100">
+            <h2 className="text-2xl font-semibold text-zinc-100">
               Review Highlights
-            </h1>
+            </h2>
           </div>
           <p className="mt-2 text-sm text-zinc-500">
             {isAnalyzing
@@ -243,7 +244,7 @@ export default function StudioClipsPage() {
               />
 
               <Button
-                variant={ButtonVariant.UNSTYLED}
+                variant={ButtonVariant.DEFAULT}
                 onClick={handleGenerate}
                 isDisabled={
                   isSubmitting ||

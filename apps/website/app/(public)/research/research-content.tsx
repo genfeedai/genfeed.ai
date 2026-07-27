@@ -132,7 +132,7 @@ export default function ResearchContent() {
             </ButtonTracked>
             <ButtonTracked
               asChild
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               trackingName="research_hero_click"
               trackingData={{ action: 'book_demo' }}
@@ -292,7 +292,7 @@ export default function ResearchContent() {
               </ButtonTracked>
               <ButtonTracked
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
                 trackingName="research_cta_click"
                 trackingData={{ action: 'book_demo' }}

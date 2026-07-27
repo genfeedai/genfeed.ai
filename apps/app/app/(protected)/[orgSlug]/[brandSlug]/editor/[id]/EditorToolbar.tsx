@@ -232,7 +232,7 @@ function EditorToolbar({
         {/* Save button */}
         <Button
           withWrapper={false}
-          variant={ButtonVariant.OUTLINE}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           onClick={onSave}
           isDisabled={!isDirty}

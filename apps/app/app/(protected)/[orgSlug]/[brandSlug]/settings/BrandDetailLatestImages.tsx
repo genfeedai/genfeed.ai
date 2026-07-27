@@ -24,7 +24,7 @@ export default function BrandDetailLatestImages({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
         >
-          <Link href={`${EnvironmentService.apps.app}/library/ingredients`}>
+          <Link href={`${EnvironmentService.apps.app}/library/overview`}>
             View All
           </Link>
         </Button>

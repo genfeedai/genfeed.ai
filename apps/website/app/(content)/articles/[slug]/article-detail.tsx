@@ -127,7 +127,7 @@ export default function ArticleDetail({
           </div>
 
           <Button
-            variant={ButtonVariant.SOFT}
+            variant={ButtonVariant.SECONDARY}
             className="border border-edge/[0.08] bg-fill/10 text-surface backdrop-blur-sm transition-all hover:border-edge/20 hover:bg-fill/20"
             onClick={handleShare}
           >

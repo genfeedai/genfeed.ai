@@ -5,8 +5,21 @@ import {
 } from './library-menu-items.config';
 
 describe('LIBRARY_MENU_ITEMS', () => {
-  it('lists every library category route', () => {
+  it('lists library destinations rather than asset-type filters', () => {
     expect(LIBRARY_MENU_ITEMS.map((item) => item.href)).toEqual([
+      '/library/overview',
+      '/library/videos',
+      '/library/moodboard',
+      '/workspace/activity',
+    ]);
+  });
+
+  it('matches every asset-type route through the Assets destination', () => {
+    const assetsItem = LIBRARY_MENU_ITEMS.find(
+      (item) => item.label === 'Assets',
+    );
+
+    expect(assetsItem?.matchPaths).toEqual([
       '/library/videos',
       '/library/images',
       '/library/gifs',
@@ -17,18 +30,7 @@ describe('LIBRARY_MENU_ITEMS', () => {
     ]);
   });
 
-  it('separates visual assets from utility assets with a divider', () => {
-    const voicesItem = LIBRARY_MENU_ITEMS.find(
-      (item) => item.href === '/library/voices',
-    );
-
-    expect(voicesItem).toMatchObject({
-      hasDividerAbove: true,
-      label: 'Voices',
-    });
-  });
-
-  it('points the library logo at the ingredients landing', () => {
-    expect(LIBRARY_LOGO_HREF).toBe('/library/ingredients');
+  it('points the library logo at the canonical overview', () => {
+    expect(LIBRARY_LOGO_HREF).toBe('/library/overview');
   });
 });

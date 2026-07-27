@@ -105,10 +105,10 @@ test.describe('Library Media Types', () => {
     test('should display the Library landing with workspace controls', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto('/library/ingredients');
+      await authenticatedPage.goto('/library/overview');
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/ingredients/);
+      await expect(authenticatedPage).toHaveURL(/overview/);
       await expect(
         authenticatedPage.getByTestId('library-landing-title'),
       ).toHaveText('Library');
@@ -128,7 +128,7 @@ test.describe('Library Media Types', () => {
         plan: 'pro',
       });
 
-      await authenticatedPage.goto('/library/ingredients');
+      await authenticatedPage.goto('/library/overview');
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       await expect(
@@ -144,7 +144,7 @@ test.describe('Library Media Types', () => {
     }) => {
       await mockContentLibrary(authenticatedPage, 'videos', 3);
 
-      await authenticatedPage.goto('/library/ingredients');
+      await authenticatedPage.goto('/library/overview');
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
       const videosEntry = authenticatedPage.getByTestId(

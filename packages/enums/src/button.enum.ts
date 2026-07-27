@@ -1,16 +1,11 @@
 export enum ButtonVariant {
   DEFAULT = 'default',
   SECONDARY = 'secondary',
-  DESTRUCTIVE = 'destructive',
-  OUTLINE = 'outline',
-  OUTLINE_WHITE = 'outline-white',
   GHOST = 'ghost',
+  DESTRUCTIVE = 'destructive',
   LINK = 'link',
-  SOFT = 'soft',
-  WHITE = 'white',
-  BLACK = 'black',
+  /** Escape hatch for internal composite controls that own their entire visual contract. */
   UNSTYLED = 'unstyled',
-  GENERATE = 'generate',
 }
 
 export enum ButtonSize {

@@ -136,7 +136,7 @@ export default function ModalBrandGenerate({
           />
 
           <Button
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             icon={<HiArrowUp />}
             type="submit"
             label={type === 'logo' ? 'Profile Picture' : 'Banner'}

@@ -41,16 +41,16 @@ describe('IssuesList view controls', () => {
       screen.getByRole('heading', { level: 1, name: 'Tasks' }),
     ).toHaveClass('sr-only');
 
-    const listView = screen.getByRole('button', { name: 'List view' });
-    const kanbanView = screen.getByRole('button', { name: 'Kanban view' });
+    const listView = screen.getByRole('radio', { name: 'List view' });
+    const kanbanView = screen.getByRole('radio', { name: 'Kanban view' });
 
-    expect(screen.getByRole('group', { name: 'Task view' })).toBeVisible();
-    expect(listView).toHaveAttribute('aria-pressed', 'true');
-    expect(kanbanView).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('group', { name: 'View' })).toBeVisible();
+    expect(listView).toHaveAttribute('aria-checked', 'true');
+    expect(kanbanView).toHaveAttribute('aria-checked', 'false');
 
     fireEvent.click(kanbanView);
 
-    expect(listView).toHaveAttribute('aria-pressed', 'false');
-    expect(kanbanView).toHaveAttribute('aria-pressed', 'true');
+    expect(listView).toHaveAttribute('aria-checked', 'false');
+    expect(kanbanView).toHaveAttribute('aria-checked', 'true');
   });
 });

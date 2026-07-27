@@ -246,7 +246,7 @@ export default function SignUpBetterAuth({
         <div className="space-y-3">
           <Button
             type="button"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             onClick={() => handleSocialSignUp('google')}
             icon={<FcGoogle className="size-4" aria-hidden="true" />}
             isLoading={isSocialSubmitting}
@@ -258,7 +258,7 @@ export default function SignUpBetterAuth({
 
           <Button
             asChild
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
             withWrapper={false}
           >

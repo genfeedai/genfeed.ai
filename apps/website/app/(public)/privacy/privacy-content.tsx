@@ -172,7 +172,7 @@ export default function PrivacyContent() {
               </p>
               <Button
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
               >
                 <Link href="mailto:privacy@genfeed.ai">

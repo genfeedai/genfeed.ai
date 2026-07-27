@@ -510,7 +510,7 @@ export default function BrandOSContent(): React.ReactElement {
               <Button
                 asChild
                 size={ButtonSize.PUBLIC}
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
               >
                 <Link href="/">Back to Genfeed.ai</Link>
               </Button>

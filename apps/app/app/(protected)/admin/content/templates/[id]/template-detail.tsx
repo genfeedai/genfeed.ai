@@ -1,6 +1,5 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
 import { Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -12,7 +11,6 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { VStack } from '@ui/layout/stack';
-import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import {
   Collapsible,
   CollapsibleContent,
@@ -20,7 +18,7 @@ import {
 } from '@ui/primitives/collapsible';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { DetailCard, MetadataRow } from './template-detail-helpers';
 import TemplateSidebar from './template-sidebar';
@@ -28,7 +26,6 @@ import TemplateVariablesCard from './template-variables-card';
 
 export default function TemplateDetail({ templateId }: TemplateDetailProps) {
   const { push } = useRouter();
-  const pathname = usePathname();
   const notificationsService = NotificationsService.getInstance();
 
   const getTemplatesService = useAuthedService((token: string) =>
@@ -64,12 +61,6 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background/40 px-4 py-6 sm:px-6 lg:px-10">
-        <Breadcrumb
-          segments={[
-            { href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES, label: 'Templates' },
-            { href: pathname, label: 'Loading...' },
-          ]}
-        />
         <div className="grid gap-6 lg:grid-cols-3">
           <SkeletonCard className="lg:col-span-2" showImage={false} />
           <SkeletonCard showImage={false} />
@@ -81,12 +72,6 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
   if (!template) {
     return (
       <div className="min-h-screen bg-background/40 px-4 py-6 sm:px-6 lg:px-10">
-        <Breadcrumb
-          segments={[
-            { href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES, label: 'Templates' },
-            { href: pathname, label: 'Not Found' },
-          ]}
-        />
         <Card>
           <div className="p-6">
             <Text color="subtle-70">
@@ -101,13 +86,6 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
 
   return (
     <div className="min-h-screen bg-background/40 px-4 py-6 sm:px-6 lg:px-10">
-      <Breadcrumb
-        segments={[
-          { href: APP_ROUTES.ADMIN.CONTENT.TEMPLATES, label: 'Templates' },
-          { href: pathname, label: template.name },
-        ]}
-      />
-
       <div className="mb-6 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Heading size="2xl">{template.name}</Heading>

@@ -30,6 +30,7 @@ export interface ConversationComposerShellContextValue {
   draftScopeKey: string | null;
   isConsequentiallyBlocked?: boolean;
   isComposerVisible?: boolean;
+  placement?: 'inspector' | 'overlay' | 'surface';
   portalTarget: HTMLElement | null;
   references?: readonly ConversationComposerContextReference[];
   scopeControls?: ReactNode;
@@ -53,6 +54,7 @@ export function ConversationComposerShellProvider({
   draftScopeKey,
   isConsequentiallyBlocked,
   isComposerVisible,
+  placement = 'surface',
   portalTarget,
   references,
   scopeControls,
@@ -67,6 +69,7 @@ export function ConversationComposerShellProvider({
       draftScopeKey,
       isConsequentiallyBlocked,
       isComposerVisible,
+      placement,
       portalTarget,
       references,
       scopeControls,
@@ -80,6 +83,7 @@ export function ConversationComposerShellProvider({
       draftScopeKey,
       isConsequentiallyBlocked,
       isComposerVisible,
+      placement,
       portalTarget,
       references,
       scopeControls,

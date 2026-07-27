@@ -14,8 +14,6 @@ const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'ci.yml',
-  'codebase-health.yml',
-  'curated-action-catalog.yml',
   'deploy-scripts-ci.yml',
   'desktop-qa.yml',
   'link-check.yml',

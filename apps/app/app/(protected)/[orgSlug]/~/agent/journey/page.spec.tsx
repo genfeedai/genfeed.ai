@@ -57,12 +57,14 @@ describe('ChatJourneyPage', () => {
     render(<ChatJourneyPage />);
 
     expect(refreshMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Activation Journey')).toBeInTheDocument();
     expect(
-      screen.getByText(
+      screen.getByRole('heading', { level: 1, name: 'Activation Journey' }),
+    ).toHaveClass('sr-only');
+    expect(
+      screen.queryByText(
         'Complete guided missions and unlock more credits as you go',
       ),
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Available to unlock')).toBeInTheDocument();
     expect(screen.getByText('Journey unlocked')).toBeInTheDocument();
     expect(screen.getByText('Journey total')).toBeInTheDocument();

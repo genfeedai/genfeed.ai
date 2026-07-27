@@ -2,6 +2,6 @@
 
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 
-export default function LibraryLandingCreditNotice() {
+export default function LibraryOverviewCreditNotice() {
   return <LowCreditsBanner variant="inline" />;
 }

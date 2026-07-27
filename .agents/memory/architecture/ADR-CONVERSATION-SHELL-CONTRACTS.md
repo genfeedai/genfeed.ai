@@ -12,11 +12,11 @@ Accepted
 
 ## Contract Version
 
-v3.0.0
+v3.2.0
 
 ## Last Updated
 
-2026-07-26
+2026-07-27
 
 ## Canonical Source
 
@@ -68,6 +68,17 @@ relaxed.
 
 Nothing in the v2 URL, precedence, approval, or multi-tab contracts is weakened.
 The one URL removal — reserved `thread` — narrows what the URL may assert.
+
+v3.1 makes composer placement explicit: it follows the active conversation. It
+is in the canvas on `/agent/**`, in the conversation inspector on every product
+route, and in the registered overlay while that overlay is active. Product
+canvases never host the agent composer.
+
+v3.2 makes protected-page identity explicit: the permanent topbar breadcrumb
+is the one visible page masthead. Product canvases keep a screen-reader-only h1,
+record and state headings, section headings, filters, tabs, and actions, but do
+not repeat the route title, description, icon, or a second breadcrumb inside
+content. It also makes `/library/overview` the Library landing route.
 
 ## Verified Baseline
 
@@ -164,6 +175,9 @@ the product surface owns.
 13. The nav column belongs to the module that owns the current surface. No
     surface may take another surface's column, and the conversation holds no
     standing claim on it.
+14. The topbar breadcrumb owns visible protected-page identity. A canvas never
+    repeats the route title, description, icon, or breadcrumb as an in-content
+    masthead.
 
 ## Canonical URL Contract
 
@@ -264,14 +278,17 @@ Rules:
    its collapsed state — zero width, `inert`, invisible — because unmounting
    takes the composer's input with it and drops an in-flight run. Only the
    presentation affordances may be gated on the open state.
-3. **Inspector presentation is chrome.** Open/closed, width, and which inspector
+3. **The composer follows the conversation.** The conversation canvas owns it
+   on `/agent/**`; otherwise the active desktop rail or mobile drawer owns it.
+   A registered overlay temporarily takes ownership from the base region.
+4. **Inspector presentation is chrome.** Open/closed, width, and which inspector
    tab is selected are ephemeral. They never enter the URL, never create history,
    and never mutate execution context.
-4. **A surface summarizes; it does not embed.** A product surface may expose its
+5. **A surface summarizes; it does not embed.** A product surface may expose its
    state to the conversation as at most one row of cards plus a deep link into
    the surface. The full surface is never rendered inside the conversation, and
    the conversation is never rendered inside a product surface's content area.
-5. **Consequential actions are the surface's, not the inspector's.** The
+6. **Consequential actions are the surface's, not the inspector's.** The
    conversation may propose; execution still requires the surface's own typed
    control under the precedence and approval rules below.
 
@@ -305,6 +322,11 @@ palette. It is decided by the route and nothing else.
    the inspector, never without an application around it.
 4. A registered route whose shell body cannot mount renders its children
    directly. Failure to mount the shell degrades the inspector, not the page.
+5. The canonical topbar breadcrumb is the visible page identity. Canvas content
+   keeps one screen-reader-only h1 for document structure, while record titles,
+   state messages, section headings, filters, tabs, and actions remain visible.
+   Shared page-header primitives must derive this behavior from the breadcrumb
+   provider rather than relying on every route to opt in.
 
 ## Context Precedence And Mutation Rules
 
@@ -421,21 +443,23 @@ for navigation or any consequential effect.
 Admin, settings, billing, credentials, policy, destructive management, agent
 onboarding, lab/internal pages, and full-screen editors remain canonical routes,
 but render as focused canvases inside the permanent shell. They do not bypass
-the shell through a dedicated route mode. A surface may declare that it owns its
-own primary input, which suppresses the shell composer on that surface; it does
-not suppress the frame.
+the shell through a dedicated route mode. A surface may own its own primary
+input in its canvas; the agent composer remains with the conversation in the
+inspector, so the two inputs never overlap. Neither input suppresses the frame.
 
 ## Protected-Route Inventory And Surface Classification
 
 The original v2 baseline was **206 parity-eligible canonical protected
 patterns** as of 2026-07-13. The current executable baseline in
-`reference_app_page_map.md` is **209 protected patterns plus two intentional
-hard-cut families** as of 2026-07-18. New protected routes enter the denominator
-immediately. Removing an entry requires a separate accepted product decision.
+`reference_app_page_map.md` is **211 protected patterns**, with two intentional
+hard-cut families outside the denominator, as of 2026-07-27. New protected
+routes enter the denominator immediately. Removing an entry requires a separate
+accepted product decision.
 
-v3 does not move the denominator. Demoting the conversation from a state to a
-surface removes no route: the `/agent/**` family stays registered and
-parity-eligible, and every other family is framed exactly as before.
+Demoting the conversation from a state to a surface removes no route: the
+`/agent/**` family stays registered and parity-eligible. The separately
+accepted Library compatibility hard cut reduces the current executable
+baseline by one.
 
 The app switcher is discovery for nine primary modules, not the inventory.
 
@@ -446,12 +470,12 @@ The app switcher is discovery for nine primary modules, not the inventory.
 | `/:orgSlug/~/agent/**`, `/:orgSlug/:brandSlug/agent/**`                | Organization or brand   | Canvas — the conversation's own surface            | New, journey, thread detail, onboarding, and onboarding thread routes. Only thread detail carries a thread id in its path.                                                            |
 | `/:orgSlug/~/{library,studio,posts,write,compose,workflows,editor}/**` | Organization            | Canvas                                             | Org-scoped catch-all products, workflow library/templates/executions/new/detail, editor projects/new/detail.                                                                         |
 | `/:orgSlug/~/settings/**`                                              | Organization            | Canvas                                             | Members, billing, credits, API keys, webhooks, policy, brands, models/types, scenes, personal, Help.                                                                                 |
-| `/:orgSlug/:brandSlug/{workspace,tasks,overview}/**`                   | Brand                   | Canvas; task detail may also register an overlay   | Dashboard, Inbox views, Activity, Tasks/detail, and the separate Overview Activities route.                                                                                          |
+| `/:orgSlug/:brandSlug/{workspace,overview}/**`                         | Brand                   | Canvas; task detail may also register an overlay   | Dashboard, Inbox views, Activity, Tasks/detail, and the separate Overview Activities route.                                                                                          |
 | `/:orgSlug/:brandSlug/messages`                                        | Brand                   | Canvas                                             | Full social messaging surface.                                                                                                                                                       |
 | `/:orgSlug/:brandSlug/research/**`                                     | Brand                   | Canvas                                             | Discovery, Socials, Ads, Google, Meta, Following, and platform routes.                                                                                                               |
 | `/:orgSlug/:brandSlug/studio/**`                                       | Brand                   | Canvas or focused editor                           | Type/detail plus Batch, Clips, and Fastlane.                                                                                                                                         |
 | `/:orgSlug/:brandSlug/{compose,editor}/**`                             | Brand                   | Canvas or focused editor                           | Article, Post, Newsletter, editor index/new/detail.                                                                                                                                  |
-| `/:orgSlug/:brandSlug/library/**`                                      | Brand                   | Canvas; entity detail may also register an overlay | Ingredients, Videos, Images, GIFs, Avatars, Voices, Music, Captions, and Moodboard.                                                                                                  |
+| `/:orgSlug/:brandSlug/library/**`                                      | Brand                   | Canvas; entity detail may also register an overlay | Overview, Videos, Images, GIFs, Avatars, Voices, Music, Captions, and Moodboard; Ingredients is a compatibility redirect.                                                            |
 | `/:orgSlug/:brandSlug/posts/**`                                        | Brand                   | Canvas; post detail may also register an overlay   | Detail, Composer, Analytics, Calendar, Newsletters, Published, Remix, Review, Scheduled.                                                                                             |
 | `/:orgSlug/:brandSlug/analytics/**`                                    | Brand                   | Canvas                                             | Posts, Brands/detail/platform, Insights, Hooks, Performance Lab, Trends/detail/platform, Trend Turnover, Streaks.                                                                    |
 | `/:orgSlug/:brandSlug/workflows/**`                                    | Brand                   | Canvas or focused editor                           | New/detail, Templates, Executions/detail. Workflows is not an app-switcher module.                                                                                                   |

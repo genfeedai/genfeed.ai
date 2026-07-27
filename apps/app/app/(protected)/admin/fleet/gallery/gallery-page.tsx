@@ -173,7 +173,7 @@ export default function GalleryPage() {
           {CONTENT_TABS.map((tab) => (
             <Button
               key={tab.key}
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
               withWrapper={false}
               className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                 contentRating === tab.key

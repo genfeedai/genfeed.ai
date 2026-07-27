@@ -78,7 +78,7 @@ export default function IllustrationActions({
           />
 
           <Button
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             icon={<HiArrowUp />}
             onClick={onGenerate}
             isLoading={isGenerating}

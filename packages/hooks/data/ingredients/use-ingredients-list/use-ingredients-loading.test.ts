@@ -87,6 +87,7 @@ describe('useIngredientsLoading', () => {
     currentPage: 1,
     form: mockForm as never,
     formatFilter: undefined,
+    loadFolders: true,
     onRefresh: vi.fn(),
     organizationId: 'org-1',
     parsedSearchParams: new URLSearchParams(),

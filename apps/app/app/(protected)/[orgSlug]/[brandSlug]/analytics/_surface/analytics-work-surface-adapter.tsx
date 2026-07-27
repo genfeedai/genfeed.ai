@@ -225,7 +225,7 @@ function AnalyticsInspector({
             icon={<HiArrowDownTray aria-hidden="true" className="size-4" />}
             onClick={onOpenExport}
             size={ButtonSize.SM}
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             Export scoped data

@@ -214,11 +214,11 @@ image and runs `test:e2e:release`, reporting to a deduped issue.
 
 ## 5. CI / test / tooling map
 
-### 5.1 CI surface (24 workflows — full table verified)
+### 5.1 CI surface (25 workflows — full table verified)
 
-- **On PR:** `ci.yml` (trust-gated: gitleaks, secretlint, react-doctor@0.5.6, architecture guards, format, lint, typecheck, build; heavy test shards only with `run_heavy_tests` or on push), `link-check.yml` (paths-filtered), and `codebase-health.yml` (Fallow changed-code audit, report-only).
+- **On PR:** `ci.yml` (trust-gated: gitleaks, secretlint, executable runtime/security contracts, format, lint, typecheck, changed tests, and build), plus path-scoped link, deploy-script, desktop, self-hosted install, and server-image checks.
 - **QA gate for releases:** `full-suite.yml` = ci(heavy) + `build-verify.yml` (boots all 12 bundles + EE api bundle) + `e2e.yml` (API e2e with Postgres/Redis service containers + 12-way sharded frontend e2e). Required by both `deploy-ecs.yml` and `docker-publish.yml`.
-- **Scheduled:** nightly e2e (`17 2 * * *`), nightly self-hosted release e2e (`23 5 * * *`), weekly coverage → Codecov (non-blocking), weekly `codebase-health.yml` (fallow 2.96.0 + `.fallowrc.json` + react-doctor@0.5.6 + skills integrity, report-only), daily Claude pattern miner.
+- **Scheduled:** nightly E2E, nightly self-hosted release E2E, CodeQL, Trivy security scans, and production deployment automation.
 - **Manual-only despite their names:** `codeql.yml`, `security-scan.yml` (Trivy), `ide-extension-ci.yml` — no cron, no PR trigger.
 - **Absent:** `dependabot.yml`, `CODEOWNERS` (find: 0 matches repo-wide).
 - OIDC AWS auth in deploy workflows; shared `setup-bun-env` composite (bun/turbo caches, 3× retry install); GHCR registry build cache with provenance/sbom.
@@ -235,7 +235,6 @@ image and runs `test:e2e:release`, reporting to a deduped issue.
 - Pre-commit (`.husky/pre-commit` via `core.hooksPath`): lint-staged → secretlint shim, biome-staged, `scripts/lint-no-raw-html.sh` (raw HTML element ban with primitive-dir whitelist).
 - Architecture guards run in CI: cron boundary, no-API-BullMQ-processors, import cycles, multi-tenancy, serializer drift, package API surface, design system, pages boundary, generated-source artifacts.
 - Knip dead-code config (`knip.config.ts`) — **stale**: declares workspaces `apps/server/fanvue` and `apps/server/llm` (don't exist) and omits `apps/server/images`/`voices` (exist).
-- `doctor.config.json` — consumed by react-doctor in ci.yml + codebase-health.yml.
 
 ---
 
@@ -252,10 +251,10 @@ Ordered by blast radius. These are observations from mapping, not yet a remediat
 7. **Root-level dependency hoisting:** ~135 runtime deps declared at the root `package.json` for a workspace monorepo. Version drift is prevented, but per-package dependency ownership is untrackable, knip accuracy suffers, and npm-published packages may under-declare their real deps.
 8. **Mongo ghosts in a Postgres system:** serializers emit `_id` for the server package type (`packages/serializers/src/builders/serializer.builder.ts`), `mongodb` remains a root devDependency for one-off migration scripts, and interceptors normalize response ids (`response-id-normalizer.interceptor.ts`). Post-migration cleanup was never finished.
 9. **Duplicated infrastructure primitives:** two S3 wrappers (`packages/libs/s3` vs `packages/storage`), two loggers (winston/pino), two `WorkflowExecutionProcessor` classes consuming the same `workflow-execution` queue (duplication acknowledged in a code comment at `workers/src/queues/queues.module.ts:330-331`), Bull Board monitoring only 1 of ~37 queues.
-10. **Security scanning is opt-in:** CodeQL and Trivy are dispatch-only; no dependabot; no CODEOWNERS. Combined with a public repo and 49 credentialed integrations, unpatched-dependency latency is unbounded.
-11. **Config-file rot is measurable:** knip ghost workspaces (fanvue/llm), react-doctor pinned at two versions (0.4.2 CI vs 0.5.6 weekly), doctor.config.json consumer ambiguity, images/voices healthcheck path inconsistency, browser-extension `npm exec` scripts.
+10. **Dependency update automation is absent:** no dependabot and no CODEOWNERS. CodeQL and Trivy run on schedules, but unpatched-dependency latency still depends on manual updates.
+11. **Config-file rot is measurable:** knip ghost workspaces (fanvue/llm), images/voices healthcheck path inconsistency, and browser-extension `npm exec` scripts.
 12. **Studio app observability/perf gaps:** no client-side Sentry in `apps/app`; all 192 routes fully dynamic; `typescript.ignoreBuildErrors: true` in the shared Next config (type safety rests solely on the separate turbo type-check gate).
-13. **Bus factor 1 at extreme velocity:** 1,327 commits / ~118K LOC / 65 packages / 24 workflows in 90 days by one person. Every risk above compounds with this one — the repo's guard-script culture is the correct mitigation and should keep expanding.
+13. **Bus factor 1 at extreme velocity:** 1,327 commits / ~118K LOC / 65 packages by one person. Every required CI check needs a direct executable, security, or delivery failure mode so validation remains affordable enough to run consistently.
 
 ---
 

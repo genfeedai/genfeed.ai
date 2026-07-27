@@ -277,7 +277,7 @@ export default function IngredientsListContent({
           action={{
             label: 'Clear Filters',
             onClick: onClearFilters,
-            variant: ButtonVariant.OUTLINE,
+            variant: ButtonVariant.SECONDARY,
           }}
           className="w-full max-w-lg"
         />

@@ -57,7 +57,6 @@ function NewslettersPageContent() {
     publishedNewsletters,
     push,
     search,
-    selectedBrand,
     selectedContextSet,
     selectedNewsletter,
     selectedNewsletterId,
@@ -84,14 +83,7 @@ function NewslettersPageContent() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="sr-only">Newsletters</h1>
-        <p className="text-sm text-muted-foreground">
-          Build history-aware newsletters for{' '}
-          {selectedBrand?.label ?? 'your brand'} with topic proposals,
-          continuity memory, and an editable review workflow.
-        </p>
-      </div>
+      <h1 className="sr-only">Newsletters</h1>
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <NewsletterGeneratePanel
@@ -147,8 +139,8 @@ function NewslettersPageContent() {
                   label={filter.label}
                   variant={
                     statusFilter === filter.value
-                      ? ButtonVariant.SOFT
-                      : ButtonVariant.UNSTYLED
+                      ? ButtonVariant.SECONDARY
+                      : ButtonVariant.GHOST
                   }
                   className={
                     statusFilter === filter.value
@@ -170,7 +162,7 @@ function NewslettersPageContent() {
             action={{
               label: 'Open Workflows',
               onClick: () => push(href('/workflows')),
-              variant: ButtonVariant.SOFT,
+              variant: ButtonVariant.SECONDARY,
             }}
           />
         ) : (

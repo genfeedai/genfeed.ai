@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockSidebarNavigation = vi.hoisted(() => ({
   activeGroupId: null as string | null,
   activePageLabel: null as string | null,
+  hasCanonicalBreadcrumb: false,
 }));
 
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
@@ -15,6 +16,7 @@ describe('ContainerTitle', () => {
   beforeEach(() => {
     mockSidebarNavigation.activeGroupId = null;
     mockSidebarNavigation.activePageLabel = null;
+    mockSidebarNavigation.hasCanonicalBreadcrumb = false;
   });
 
   it('renders plain text descriptions inside a paragraph', () => {
@@ -80,5 +82,23 @@ describe('ContainerTitle', () => {
 
     expect(heading).toHaveClass('sr-only');
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+  });
+
+  it('defers visible page identity to a canonical shell breadcrumb', () => {
+    mockSidebarNavigation.hasCanonicalBreadcrumb = true;
+
+    render(
+      <ContainerTitle
+        title="Library"
+        description="Browse reusable assets across your workspace."
+      />,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Library' }),
+    ).toHaveClass('sr-only');
+    expect(
+      screen.queryByText('Browse reusable assets across your workspace.'),
+    ).not.toBeInTheDocument();
   });
 });

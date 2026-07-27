@@ -1,5 +1,6 @@
 'use client';
 
+import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PageHeaderProps } from '@genfeedai/props/layout/page-header.props';
@@ -20,6 +21,7 @@ export default function PageHeader({
   className,
 }: PageHeaderProps) {
   const { push } = useRouter();
+  const { hasCanonicalBreadcrumb } = useSidebarNavigation();
 
   const handleBack = () => {
     if (onBack) {
@@ -60,7 +62,9 @@ export default function PageHeader({
           ))}
 
         <div className="flex-1">
-          {icon ? (
+          {hasCanonicalBreadcrumb ? (
+            <h1 className="sr-only">{title}</h1>
+          ) : icon ? (
             <ContainerTitle
               title={title}
               description={description}

@@ -135,7 +135,9 @@ export default function ServicesContent() {
                   <Button
                     asChild
                     variant={
-                      isFeatured ? ButtonVariant.WHITE : ButtonVariant.OUTLINE
+                      isFeatured
+                        ? ButtonVariant.DEFAULT
+                        : ButtonVariant.SECONDARY
                     }
                     size={ButtonSize.PUBLIC}
                     className="mt-12 w-full text-center"

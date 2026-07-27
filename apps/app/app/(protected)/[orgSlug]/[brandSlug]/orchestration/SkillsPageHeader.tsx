@@ -24,23 +24,15 @@ export default function SkillsPageHeader({
   return (
     <Card bodyClassName="gap-4 p-6" className="rounded-3xl">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="sr-only">Brand content behavior</h1>
-          <p className="max-w-3xl text-sm text-foreground/60">
-            Browse built-in Genfeed skills and customize them into org-owned
-            variants for{' '}
-            <span className="font-medium text-foreground">
-              {brandLabel || 'this brand'}
-            </span>
-            . Skill enablement is managed via brand agent configuration.
-          </p>
-        </div>
+        <h1 className="sr-only">
+          Brand content behavior for {brandLabel || 'this brand'}
+        </h1>
 
         <div className="flex flex-wrap gap-2">
           <Button
             className="rounded-full"
             onClick={onRefresh}
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
           >
             <HiOutlineArrowPath className="size-4" />
             Refresh
@@ -48,7 +40,7 @@ export default function SkillsPageHeader({
           <Button
             asChild
             className="rounded-full"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
           >
             <Link href={APP_ROUTES.AGENT.ROOT}>
               <HiOutlineSparkles className="size-4" />
@@ -67,7 +59,7 @@ export default function SkillsPageHeader({
             variant={
               sourceFilter === filter.value
                 ? ButtonVariant.DEFAULT
-                : ButtonVariant.OUTLINE
+                : ButtonVariant.SECONDARY
             }
           >
             {filter.label}

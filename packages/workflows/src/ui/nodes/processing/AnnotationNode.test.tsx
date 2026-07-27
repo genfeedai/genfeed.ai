@@ -54,7 +54,7 @@ vi.mock('../../ui/button', () => ({
     const variantClasses: Record<string, string> = {
       default: 'bg-primary text-primary-foreground',
       ghost: 'hover:bg-accent',
-      outline: 'border bg-background',
+      secondary: 'bg-secondary text-secondary-foreground',
     };
     return (
       <button
@@ -370,7 +370,7 @@ describe('AnnotationNode', () => {
   });
 
   describe('button variant', () => {
-    it('should use outline variant without annotations', () => {
+    it('should use secondary variant without annotations', () => {
       const propsWithImage = {
         ...defaultProps,
         data: { ...defaultProps.data, inputImage: '/test.jpg' },
@@ -378,7 +378,7 @@ describe('AnnotationNode', () => {
       render(<AnnotationNode {...propsWithImage} />);
 
       const button = screen.getByText('Add Annotations');
-      expect(button.closest('button')).toHaveClass('border');
+      expect(button.closest('button')).toHaveClass('bg-secondary');
     });
 
     it('should use default variant with annotations', () => {

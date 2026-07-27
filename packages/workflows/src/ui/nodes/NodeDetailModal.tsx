@@ -137,7 +137,7 @@ function NodeDetailHeader({
       </div>
       <div className="flex items-center gap-2">
         {displayUrl && (
-          <Button variant="outline" size="sm" onClick={onDownload}>
+          <Button variant="secondary" size="sm" onClick={onDownload}>
             <Download className="size-4 mr-1" />
             Download
           </Button>

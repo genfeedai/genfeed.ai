@@ -47,8 +47,8 @@ vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
   default: () => <div data-testid="dashboard-loading-fallback" />,
 }));
 
-vi.mock('../workspace-page', () => ({
-  default: () => <div data-testid="workspace-page-fallback" />,
+vi.mock('@app/(protected)/home/content', () => ({
+  default: () => <div data-testid="operational-home-fallback" />,
 }));
 
 describe('WorkspaceOverviewContent', () => {
@@ -70,14 +70,14 @@ describe('WorkspaceOverviewContent', () => {
       screen.getByTestId('dashboard-loading-fallback'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByTestId('workspace-page-fallback'),
+      screen.queryByTestId('operational-home-fallback'),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('dashboard-open-ui-renderer'),
     ).not.toBeInTheDocument();
   });
 
-  it('falls back to the default workspace page when no layout is persisted', () => {
+  it('renders the operational overview when no custom layout is persisted', () => {
     mocks.useDashboardLayout.mockReturnValue({
       isLoading: false,
       layout: undefined,
@@ -86,7 +86,7 @@ describe('WorkspaceOverviewContent', () => {
 
     render(<WorkspaceOverviewContent />);
 
-    expect(screen.getByTestId('workspace-page-fallback')).toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-fallback')).toBeInTheDocument();
     expect(mocks.hydrateLayout).not.toHaveBeenCalled();
     expect(
       screen.queryByTestId('dashboard-open-ui-renderer'),
@@ -104,7 +104,7 @@ describe('WorkspaceOverviewContent', () => {
     render(<WorkspaceOverviewContent />);
 
     expect(
-      screen.queryByTestId('workspace-page-fallback'),
+      screen.queryByTestId('operational-home-fallback'),
     ).not.toBeInTheDocument();
     expect(mocks.hydrateLayout).toHaveBeenCalledWith(
       document,

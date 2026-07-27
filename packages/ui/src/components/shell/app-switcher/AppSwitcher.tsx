@@ -22,7 +22,6 @@ import {
   HiOutlineChartBarSquare,
   HiOutlineChatBubbleLeftRight,
   HiOutlineCommandLine,
-  HiOutlineMagnifyingGlass,
   HiOutlinePaperAirplane,
   HiOutlineRectangleStack,
   HiOutlineShieldCheck,
@@ -37,7 +36,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../../../primitives/dropdown-menu';
-import { Input } from '../../../primitives/input';
 
 type LifecycleAppSwitcherItemConfig = AppSwitcherItemConfig & {
   activeIds?: AppContext[];
@@ -138,7 +136,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'create-library',
         label: 'Library',
         route: createScopedAppRoute({
-          brandPath: '/library/ingredients',
+          brandPath: '/library/overview',
           organizationPath: '/library',
         }),
       },
@@ -262,23 +260,6 @@ function getPrimaryApps(
   ).filter((app): app is LifecycleAppSwitcherItemConfig => Boolean(app));
 }
 
-function matchesAppSearch({
-  app,
-  query,
-  sectionLabel,
-}: {
-  app: LifecycleAppSwitcherItemConfig;
-  query: string;
-  sectionLabel?: string;
-}): boolean {
-  const haystack = [app.label, app.description, app.itemKey, sectionLabel]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-
-  return haystack.includes(query);
-}
-
 function isActiveApp(
   app: LifecycleAppSwitcherItemConfig,
   currentApp: AppContext,
@@ -386,22 +367,21 @@ function AppSwitcherGridItem({
         }
         onClick={() => onNavigateStart(navigationAnnouncement)}
         className={cn(
-          'group grid min-h-[5.75rem] min-w-0 grid-rows-[2.75rem_1.25rem] place-items-center gap-1.5 rounded-lg border border-transparent px-1.5 py-2 text-center outline-none transition-[border-color,background-color,box-shadow]',
-          'hover:border-border hover:bg-foreground/[0.04] focus-visible:border-border focus-visible:bg-foreground/[0.06] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-popover',
-          isActive &&
-            'border-border-strong bg-foreground/[0.08] shadow-border-strong',
+          'group grid min-h-[4.5rem] min-w-0 grid-rows-[2.25rem_1.125rem] place-items-center gap-1 rounded-lg px-1 py-1.5 text-center outline-none',
+          'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',
+          'focus:text-inherit data-[highlighted]:text-inherit',
         )}
       >
         <span
           className={cn(
-            'relative inline-flex size-10 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
+            'relative inline-flex size-9 items-center justify-center rounded-lg bg-background-secondary text-foreground/58 transition-colors',
             isActive
               ? 'bg-foreground text-background'
-              : 'group-hover:text-foreground/82',
+              : 'group-hover:bg-foreground group-hover:text-background group-focus-visible:bg-foreground group-focus-visible:text-background',
             isLocked && 'opacity-60',
           )}
         >
-          <Icon aria-hidden="true" className="size-5" />
+          <Icon aria-hidden="true" className="size-[1.125rem]" />
           {isLocked ? (
             <span className="absolute -right-1 -top-1 inline-flex size-4 items-center justify-center rounded-full bg-background text-foreground/70 shadow-border">
               <HiLockClosed aria-hidden="true" className="size-2.5" />
@@ -410,8 +390,11 @@ function AppSwitcherGridItem({
         </span>
         <span
           className={cn(
-            'block max-w-full truncate text-[13px] font-semibold leading-5',
-            isActive ? 'text-foreground' : 'text-foreground/58',
+            'block whitespace-nowrap text-xs font-semibold leading-[1.125rem]',
+            isActive
+              ? 'text-foreground'
+              : 'text-foreground/58 group-hover:text-foreground group-focus-visible:text-foreground',
+            'group-focus-visible:underline group-focus-visible:underline-offset-4',
             isLocked && 'text-foreground/45',
           )}
         >
@@ -436,8 +419,6 @@ export function AppSwitcher({
 }: AppSwitcherProps) {
   const isStudioEnabled = useFeatureFlag('studio');
   const preventTriggerAutoFocusRef = useRef(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [navigationAnnouncement, setNavigationAnnouncement] = useState('');
 
   function getRouteBrandSlug(app: AppSwitcherItemConfig) {
@@ -509,17 +490,6 @@ export function AppSwitcher({
     () => sections.flatMap((section) => section.apps),
     [sections],
   );
-  const sectionLabelByItemKey = useMemo(() => {
-    const labels = new Map<string, string>();
-
-    for (const section of sections) {
-      for (const app of section.apps) {
-        labels.set(app.itemKey, section.label);
-      }
-    }
-
-    return labels;
-  }, [sections]);
   const activeItemKey = getActiveItemKey({
     apps,
     brandSlug,
@@ -532,26 +502,17 @@ export function AppSwitcher({
     apps.find((app) => isActiveApp(app, currentApp));
   const ActiveIcon = activeApp?.icon ?? HiOutlineSquares2X2;
   const activeLabel = activeApp?.label ?? 'Apps';
-  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const visibleApps = useMemo(() => {
-    if (normalizedSearchQuery) {
-      return apps.filter((app) =>
-        matchesAppSearch({
-          app,
-          query: normalizedSearchQuery,
-          sectionLabel: sectionLabelByItemKey.get(app.itemKey),
-        }),
-      );
-    }
-
     const primaryApps = getPrimaryApps(apps);
 
     if (activeApp && !isPrimaryApp(activeApp)) {
       return [...primaryApps, activeApp];
     }
 
-    return primaryApps;
-  }, [activeApp, apps, normalizedSearchQuery, sectionLabelByItemKey]);
+    const adminApp = apps.find((app) => app.id === 'admin');
+
+    return adminApp ? [...primaryApps, adminApp] : primaryApps;
+  }, [activeApp, apps]);
   const tenantLabel = humanizeSlug(brandSlug || orgSlug);
 
   return (
@@ -585,10 +546,8 @@ export function AppSwitcher({
       <DropdownMenuContent
         align="end"
         sideOffset={8}
-        className="max-h-[min(80vh,38rem)] w-[calc(100vw-2rem)] overflow-y-auto p-0 sm:w-[23.5rem]"
+        className="max-h-[min(80vh,30rem)] w-[calc(100vw-2rem)] overflow-y-auto p-0 sm:w-[19rem]"
         onCloseAutoFocus={(event) => {
-          setSearchQuery('');
-
           if (!preventTriggerAutoFocusRef.current) {
             return;
           }
@@ -597,7 +556,7 @@ export function AppSwitcher({
           preventTriggerAutoFocusRef.current = false;
         }}
       >
-        <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border px-3.5 py-2.5">
+        <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border px-3 py-2">
           <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/52">
             Apps
           </div>
@@ -606,27 +565,7 @@ export function AppSwitcher({
           </div>
         </div>
 
-        <div className="px-3.5 pt-3">
-          <div className="relative">
-            <HiOutlineMagnifyingGlass
-              aria-hidden="true"
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/42"
-            />
-            <Input
-              ref={searchInputRef}
-              aria-label="Search apps"
-              autoFocus
-              className="h-10 rounded-lg border-border bg-background-secondary pl-9 pr-3 text-[13px] font-medium placeholder:text-foreground/46"
-              onChange={(event) => setSearchQuery(event.target.value)}
-              onKeyDown={(event) => event.stopPropagation()}
-              placeholder="Search apps"
-              type="search"
-              value={searchQuery}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-x-1 gap-y-2 px-3.5 py-3.5">
+        <div className="grid grid-cols-3 gap-1 px-2.5 py-2.5">
           {visibleApps.map((app) => {
             const navigation = resolveAppNavigation(app);
 
@@ -643,18 +582,6 @@ export function AppSwitcher({
             );
           })}
         </div>
-
-        {visibleApps.length === 0 ? (
-          <div className="px-3.5 pb-4 text-center text-[12px] font-medium text-foreground/46">
-            No apps found
-          </div>
-        ) : null}
-
-        {normalizedSearchQuery ? (
-          <div className="border-t border-border px-3.5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/42">
-            Search results
-          </div>
-        ) : null}
 
         <div className="sr-only" aria-live="polite">
           {activeApp ? (

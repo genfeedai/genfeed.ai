@@ -124,7 +124,7 @@ export default function PromptBarArticle({
 
           <div className="flex items-center gap-2">
             <Button
-              variant={ButtonVariant.GENERATE}
+              variant={ButtonVariant.DEFAULT}
               icon={<HiArrowUp />}
               isLoading={isEnhancing}
               isDisabled={isEnhancing || !prompt.trim()}

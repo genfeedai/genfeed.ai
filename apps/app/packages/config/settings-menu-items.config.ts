@@ -62,6 +62,7 @@ export interface BuildSettingsMenuItemsParams {
 function buildPersonalMenuItems(): MenuItemConfig[] {
   return [
     {
+      group: 'Account',
       href: APP_ROUTES.SETTINGS.ROOT,
       hrefScope: 'personal',
       isExactMatch: true,
@@ -70,6 +71,7 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
       solid: HiUser,
     },
     {
+      group: 'Support',
       href: APP_ROUTES.SETTINGS.HELP,
       hrefScope: 'personal',
       label: 'Help',
@@ -82,6 +84,7 @@ function buildPersonalMenuItems(): MenuItemConfig[] {
 function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
   return [
     {
+      group: 'Organization',
       href: APP_ROUTES.SETTINGS.ROOT,
       hrefScope: 'organization',
       isExactMatch: true,
@@ -90,6 +93,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       solid: HiBuildingOffice2,
     },
     {
+      group: 'Organization',
       href: APP_ROUTES.SETTINGS.MEMBERS,
       hrefScope: 'organization',
       label: 'Members',
@@ -99,6 +103,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
     ...(isEnterprise
       ? [
           {
+            group: 'Billing',
             href: APP_ROUTES.SETTINGS.BILLING,
             hrefScope: 'organization' as const,
             label: 'Billing',
@@ -108,6 +113,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
         ]
       : []),
     {
+      group: 'Billing',
       href: APP_ROUTES.SETTINGS.CREDITS,
       hrefScope: 'organization',
       label: 'Credits',
@@ -115,6 +121,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       solid: HiCreditCard,
     },
     {
+      group: 'Developer',
       href: APP_ROUTES.SETTINGS.API_KEYS,
       hrefScope: 'organization',
       label: 'API Keys',
@@ -122,6 +129,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       solid: HiKey,
     },
     {
+      group: 'Developer',
       href: APP_ROUTES.SETTINGS.WEBHOOKS,
       hrefScope: 'organization',
       label: 'Webhooks',
@@ -129,6 +137,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       solid: HiLink,
     },
     {
+      group: 'Governance',
       href: APP_ROUTES.SETTINGS.POLICY,
       hrefScope: 'organization',
       label: 'Policy',
@@ -138,6 +147,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
     {
       // Hub to the all-brands list; each brand's own settings open in the
       // brand scope from there.
+      group: 'Resources',
       href: APP_ROUTES.SETTINGS.BRANDS,
       hrefScope: 'organization',
       label: 'Brands',
@@ -149,6 +159,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
       // and pick the org default (used by the studio prompt bar). `/settings/
       // models` redirects to the first tab; the prefix keeps this row active
       // across every model type.
+      group: 'Resources',
       href: APP_ROUTES.SETTINGS.MODELS,
       hrefScope: 'organization',
       label: 'Models',
@@ -161,6 +172,7 @@ function buildOrganizationMenuItems(isEnterprise: boolean): MenuItemConfig[] {
 function buildBrandMenuItems(): MenuItemConfig[] {
   return [
     {
+      group: 'Identity',
       href: APP_ROUTES.SETTINGS.ROOT,
       hrefScope: 'brand',
       isExactMatch: true,
@@ -169,6 +181,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       solid: HiSquares2X2,
     },
     {
+      group: 'Identity',
       href: BRAND_SETTINGS.VOICE,
       hrefScope: 'brand',
       label: 'Voice',
@@ -176,6 +189,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       solid: HiMicrophone,
     },
     {
+      group: 'Identity',
       href: BRAND_SETTINGS.HARNESS,
       hrefScope: 'brand',
       label: 'Harness',
@@ -183,6 +197,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       solid: HiSparkles,
     },
     {
+      group: 'Identity',
       href: BRAND_SETTINGS.INTERVIEW,
       hrefScope: 'brand',
       label: 'Interview',
@@ -190,6 +205,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       solid: HiChatBubbleLeftRight,
     },
     {
+      group: 'Operations',
       href: BRAND_SETTINGS.PUBLISHING,
       hrefScope: 'brand',
       label: 'Publishing',
@@ -197,6 +213,7 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       solid: HiPaperAirplane,
     },
     {
+      group: 'Operations',
       href: BRAND_SETTINGS.AGENT_DEFAULTS,
       hrefScope: 'brand',
       label: 'Agent Defaults',

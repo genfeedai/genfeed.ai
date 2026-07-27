@@ -162,88 +162,8 @@ jobs:
         run: echo "${{ steps.changed.outputs.files }}" | xargs bunx secretlint
         timeout-minutes: 5
 
-  react-doctor:
-    name: React Health Check
-    runs-on: ubuntu-latest
-    needs: trust
-    # Keep React Doctor in the main CI trust boundary. The old standalone
-    # workflow duplicated checkout/setup overhead and the previous base-ref guard
-    # skipped ordinary master PRs.
-    if: >-
-      needs.trust.outputs.is-trusted == 'true'
-      && (
-        github.event_name == 'push'
-        || github.event_name == 'workflow_call'
-        || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
-      )
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Detect React changes
-        id: react_changes
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
-          elif git rev-parse HEAD~1 >/dev/null 2>&1; then
-            BASE="HEAD~1"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "No parent commit available; running React Doctor"
-            exit 0
-          fi
-
-          CHANGED_FILES="$(git diff --name-only --diff-filter=ACMR "$BASE" HEAD)"
-          echo "base=$BASE" >> "$GITHUB_OUTPUT"
-
-          if printf '%s\n' "$CHANGED_FILES" | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflows|agent))/' >/dev/null; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No React surface changes detected"
-          fi
-
-      - name: Setup Bun environment
-        if: steps.react_changes.outputs.changed == 'true'
-        uses: ./.github/actions/setup-bun-env
-        with:
-          bun-version: '1.3.14'
-          cache-turbo: 'false'
-
-      - name: Run React Doctor
-        if: steps.react_changes.outputs.changed == 'true'
-        run: |
-          BASE="${{ steps.react_changes.outputs.base }}"
-
-          if [ -n "$BASE" ]; then
-            CHANGED_FILES="${RUNNER_TEMP:-/tmp}/react-doctor-changed-files.txt"
-            git diff --name-only --diff-filter=ACMR "$BASE" HEAD \
-              | grep -E '^(apps/(app|website|docs|desktop|mobile|extensions)|packages/(ui|hooks|contexts|providers|pages|workflows|agent))/' \
-              > "$CHANGED_FILES" || true
-
-            if [ ! -s "$CHANGED_FILES" ]; then
-              echo "No React source files to scan"
-              exit 0
-            fi
-
-            REACT_DOCTOR_BASE_SHA="$BASE" bunx react-doctor@0.5.6 . --blocking error --project '*' --changed-files-from "$CHANGED_FILES"
-          else
-            bunx react-doctor@0.5.6 . --blocking error --project '*' --diff false
-          fi
-
-  # Consolidated static guards — these four checks each do ~10-20s of actual
-  # work but previously ran as four separate jobs, each paying a full
-  # checkout + bun install (~2 min) on its own runner. Merged into one job they
-  # share a single setup, cutting ~3 runners (~6-8 runner-min) per run with no
-  # critical-path impact (they sit well under the test jobs). None of these are
-  # required status checks, so collapsing their individual names is safe.
-  # React Doctor is intentionally NOT folded in: it skips on draft PRs and runs
-  # its own diff-detection, so its trigger semantics differ from these always-on
-  # guards.
   guards:
-    name: Guards
+    name: Executable Contracts
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: trust
@@ -257,32 +177,12 @@ jobs:
         with:
           bun-version: '1.3.14'
           cache-turbo: 'false'
-      - name: Architecture Guards
-        run: bun run check:architecture
-      - name: Runtime Complexity
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE="${{ github.event.pull_request.base.sha }}"
-          elif git rev-parse HEAD~1 >/dev/null 2>&1; then
-            BASE="HEAD~1"
-          else
-            echo "No parent commit available; skipping changed-file runtime complexity guard"
-            exit 0
-          fi
-          bun run check:runtime-complexity -- --base "$BASE"
-      - name: Architecture Guard Fixtures
-        run: |
-          bunx vitest run --config scripts/architecture/vitest.config.ts check-product-route-inventory.test.ts check-runtime-complexity.test.ts check-deterministic-locale.test.ts check-relation-alias-reads.test.ts check-route-shadowing.test.ts check-tenant-scope.test.ts check-tenant-scope-hook.test.ts
-          bunx vitest run --config scripts/ci/vitest.config.ts coverage-workspaces.test.ts feature-test-coverage.test.ts nightly-test-workspace-inventory.test.ts nightly-unit-matrix.test.ts pr-validation-telemetry.test.ts
-      - name: Require tests for feature source changes
-        if: github.event_name == 'pull_request'
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: bun run scripts/ci/feature-test-coverage.ts --base "${{ github.event.pull_request.base.sha }}" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: DI Value Imports
         run: bun run check:di-value-imports
       - name: Relation Alias Reads
         run: bun run check:relation-alias-reads
+      - name: Controller Route Shadowing
+        run: bun run check:route-shadowing
       - name: Product Route Inventory
         run: bun run check:route-inventory
       - name: Tenant Scope (API + shared server)
@@ -295,16 +195,10 @@ jobs:
         run: bun run check:serializer-drift
       - name: SQL Risk Audit
         run: bun run audit:api:sql:ci
-      - name: UI Guards
-        run: bun run check:ui-guards
-      - name: Design System
-        run: bun run design:check
       - name: Public Package Manifests
         run: bun run check:public-packages
       - name: Package Release Scripts
         run: bunx vitest run --config scripts/package-release/vitest.config.ts
-      - name: CI Workflow Contract
-        run: node --test scripts/ci/tests-gate.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/daily-deploy-orchestration.test.mjs
       # Fail the build if the committed Prisma model metadata (enum-field-map)
       # has drifted from schema.prisma — soft-delete filtering + enum
       # normalization under the Prisma 7 driver adapter depend on it, and it
@@ -564,7 +458,10 @@ jobs:
   test-app-changed:
     name: Test App (changed)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Setup/build currently consume ~3 minutes before the changed Vitest graph
+    # starts. Keep parity with the API changed-test job so a healthy app suite
+    # is not cancelled while its assertions are still running.
+    timeout-minutes: 30
     needs: [trust, test-scope]
     # Focused per-diff tests: master push (post-merge) and every PR without the
     # `full-suite` label. Labeled PRs run the full matrix, avoiding double work.

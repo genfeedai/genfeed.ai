@@ -8,6 +8,7 @@ describe('Card', () => {
     const { container } = render(<Card label="Surface">Body</Card>);
     expect(container.firstChild).toHaveClass('shadow-border');
     expect(container.firstChild).toHaveClass('bg-card');
+    expect(container.firstChild).not.toHaveClass('hover:shadow-border-strong');
   });
 
   it('renders header content when label and description are provided', () => {
@@ -39,6 +40,7 @@ describe('Card', () => {
       name: 'Interactive',
     });
 
+    expect(interactiveSurface).toHaveClass('hover:shadow-border-strong');
     interactiveSurface.focus();
     await user.keyboard('{Enter}');
     await user.keyboard(' ');

@@ -46,7 +46,7 @@ export default function ProductPricingCTA({
                 className="h-12 px-6 text-lg uppercase"
               />
               <Button
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 asChild
                 className="border-[var(--gen-accent-border)] hover:border-[var(--gen-accent-hover)] hover:bg-white/[0.04] h-12 px-6 text-lg uppercase"
               >
@@ -62,7 +62,7 @@ export default function ProductPricingCTA({
             </>
           ) : githubUrl ? (
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               asChild
               className="border-[var(--gen-accent-border)] hover:border-[var(--gen-accent-hover)] hover:bg-white/[0.04] h-12 px-6 text-lg uppercase"
             >
@@ -79,7 +79,7 @@ export default function ProductPricingCTA({
                 className="h-12 px-6 text-lg uppercase"
               />
               <Button
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 asChild
                 className="border-[var(--gen-accent-border)] hover:border-[var(--gen-accent-hover)] hover:bg-white/[0.04] h-12 px-6 text-lg"
               >

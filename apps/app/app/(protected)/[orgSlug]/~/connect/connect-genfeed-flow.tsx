@@ -21,7 +21,6 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ApiKeysService } from '@services/management/api-keys.service';
 import Card from '@ui/card/Card';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
-import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
@@ -324,17 +323,7 @@ export default function ConnectGenfeedFlow() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
-      <header>
-        <Badge variant="info">MCP connection</Badge>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">
-          Connect Genfeed
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Create or select a scoped key, configure your AI client, verify a real
-          MCP tool-discovery request, then continue to your first distribution
-          action.
-        </p>
-      </header>
+      <h1 className="sr-only">Connect Genfeed</h1>
 
       <ol
         className="grid gap-px bg-border sm:grid-cols-4"

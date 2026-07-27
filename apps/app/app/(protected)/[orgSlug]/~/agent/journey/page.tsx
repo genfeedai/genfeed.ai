@@ -70,23 +70,11 @@ export default function ChatJourneyPage() {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/80">
-              Activation Journey
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold text-foreground">
-              Complete guided missions and unlock more credits as you go
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Finish the guided missions inside GenFeed to improve generation
-              quality, generate your first image early, and keep your workspace
-              moving with additional credits.
-            </p>
-          </div>
+          <h1 className="sr-only">Activation Journey</h1>
           <Button
             asChild
             className="inline-flex rounded-full border border-primary/30 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
             <Link href={APP_ROUTES.ONBOARDING.PROVIDERS}>
@@ -183,7 +171,7 @@ export default function ChatJourneyPage() {
                 <Button
                   asChild
                   className="inline-flex rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-foreground hover:bg-white/5"
-                  variant={ButtonVariant.UNSTYLED}
+                  variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
                 >
                   <Link href={mission.ctaHref}>

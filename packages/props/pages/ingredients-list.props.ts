@@ -30,6 +30,7 @@ export type ImageToVideoPromptSubmit = PromptTextareaSchema & {
 };
 
 export interface IngredientsListProps extends IngredientsTypeProps {
+  folderNavigation?: 'content' | 'shell';
   scope?: PageScope.SUPERADMIN | PageScope.ORGANIZATION | PageScope.BRAND;
 }
 
@@ -102,6 +103,7 @@ export interface IngredientsListFooterProps {
   onCloseLightbox: () => void;
   selectedFolderForModal: IFolder | null;
   onFolderModalConfirm: (isRefreshing?: boolean) => void;
+  showFolderModal?: boolean;
 }
 
 export interface UseIngredientsListReturn {

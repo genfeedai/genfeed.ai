@@ -41,6 +41,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { createPortal } from 'react-dom';
 import {
   HiOutlineArrowPath,
   HiOutlineBolt,
@@ -52,6 +53,7 @@ import {
   HiOutlineLink,
   HiOutlinePaperAirplane,
 } from 'react-icons/hi2';
+import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import {
   createMessagesIdempotencyKey,
   createSocialConversationReference,
@@ -339,6 +341,94 @@ function ConversationRow({
   );
 }
 
+function MessagesConversationNavPanel({
+  busyAction,
+  conversations,
+  isLoading,
+  onNextPage,
+  onPreviousPage,
+  onSelect,
+  pagination,
+  selectedId,
+}: {
+  busyAction: string | null;
+  conversations: SocialConversationModel[];
+  isLoading: boolean;
+  onNextPage: () => void;
+  onPreviousPage: () => void;
+  onSelect: (conversationId: string) => void;
+  pagination: PaginationState;
+  selectedId: string | null;
+}) {
+  return (
+    <nav
+      aria-label="Social conversations"
+      className="flex h-full min-h-0 flex-col"
+    >
+      <div
+        className="flex h-12 shrink-0 items-center justify-between border-b border-white/[0.08] px-4"
+        data-testid="messages-conversation-nav-header"
+      >
+        <div className="flex items-center gap-2 text-sm font-medium text-white/76">
+          <HiOutlineInboxStack className="size-4 text-white/38" />
+          Conversations
+        </div>
+        <span className="text-xs text-white/32">{pagination.total}</span>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {isLoading ? (
+          <div className="p-4">
+            <LazyLoadingFallback variant="minimal" />
+          </div>
+        ) : conversations.length === 0 ? (
+          <div className="flex h-64 flex-col items-center justify-center px-6 text-center">
+            <HiOutlineChatBubbleLeftRight className="mb-3 size-8 text-white/20" />
+            <p className="text-sm text-white/50">No messages found</p>
+            <p className="mt-1 text-xs text-white/30">
+              New social conversations will appear here after sync.
+            </p>
+          </div>
+        ) : (
+          conversations.map((conversation) => (
+            <ConversationRow
+              conversation={conversation}
+              isDisabled={Boolean(busyAction)}
+              isSelected={conversation.id === selectedId}
+              key={conversation.id}
+              onSelect={onSelect}
+            />
+          ))
+        )}
+      </div>
+      {pagination.totalPages > 1 ? (
+        <div className="flex shrink-0 items-center justify-between border-t border-white/[0.08] px-3 py-2">
+          <Button
+            ariaLabel="Previous conversations page"
+            icon={<HiOutlineChevronLeft className="size-4" />}
+            isDisabled={!pagination.hasPrevious}
+            onClick={onPreviousPage}
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+          <span className="text-xs text-white/38">
+            Page {pagination.page} of {pagination.totalPages}
+          </span>
+          <Button
+            ariaLabel="Next conversations page"
+            icon={<HiOutlineChevronRight className="size-4" />}
+            isDisabled={!pagination.hasNext}
+            onClick={onNextPage}
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          />
+        </div>
+      ) : null}
+    </nav>
+  );
+}
+
 function MessageBubble({
   busyAction,
   canAttachReference,
@@ -444,6 +534,7 @@ export default function MessagesPage() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { replace } = useRouter();
+  const workspaceNavPanel = useWorkspaceNavPanel();
   const getMessagesService = useAuthedService((token: string) =>
     SocialMessagesService.getInstance(token),
   );
@@ -1115,33 +1206,35 @@ export default function MessagesPage() {
     postReplyReason: 'Select a conversation before replying.',
     sendDmReason: 'Select a conversation before sending a DM.',
   };
+  const conversationNavPanel = (
+    <MessagesConversationNavPanel
+      busyAction={busyAction}
+      conversations={conversations}
+      isLoading={isLoadingConversations}
+      onNextPage={() => setConversationPage((page) => page + 1)}
+      onPreviousPage={() =>
+        setConversationPage((page) => Math.max(1, page - 1))
+      }
+      onSelect={handleSelectConversation}
+      pagination={conversationPagination}
+      selectedId={selectedId}
+    />
+  );
+  const isConversationNavPortaled = Boolean(workspaceNavPanel?.portalTarget);
 
   return (
-    <Container>
+    <Container
+      bodyClassName="flex min-h-0 flex-1 flex-col"
+      className="flex h-full min-h-0 flex-col overflow-hidden"
+    >
+      {workspaceNavPanel?.portalTarget
+        ? createPortal(conversationNavPanel, workspaceNavPanel.portalTarget)
+        : null}
       <h1 className="sr-only">Messages</h1>
-      <div className="mb-5 flex flex-wrap items-center justify-end gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
-            icon={<HiOutlineArrowPath className="size-4" />}
-            isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
-            isLoading={busyAction === 'sync'}
-            onClick={handleSyncYoutube}
-          >
-            Sync YouTube
-          </Button>
-          <span
-            aria-live="polite"
-            className="text-xs capitalize text-white/38"
-            role="status"
-          >
-            Realtime: {connectionState}
-          </span>
-        </div>
-      </div>
-
-      <div className="mb-4 grid gap-2 md:grid-cols-[minmax(200px,1fr)_180px_180px_180px_140px]">
+      <div
+        className="mb-4 grid shrink-0 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_150px_150px_150px_120px_auto]"
+        data-testid="messages-filter-toolbar"
+      >
         <Input
           placeholder="Search people, handles, content"
           value={search}
@@ -1216,9 +1309,28 @@ export default function MessagesPage() {
             <SelectItem value="unread">Unread</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center justify-end gap-2 md:col-span-2 xl:col-span-1 xl:pl-2">
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            icon={<HiOutlineArrowPath className="size-4" />}
+            isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
+            isLoading={busyAction === 'sync'}
+            onClick={handleSyncYoutube}
+          >
+            Sync YouTube
+          </Button>
+          <span
+            aria-live="polite"
+            className="whitespace-nowrap text-xs capitalize text-white/38"
+            role="status"
+          >
+            Realtime: {connectionState}
+          </span>
+        </div>
       </div>
 
-      <div className="mb-4 grid gap-2 md:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_160px]">
+      <div className="mb-4 grid shrink-0 gap-2 md:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_160px]">
         <Input
           placeholder="Credential/account ID"
           value={credentialId}
@@ -1270,73 +1382,20 @@ export default function MessagesPage() {
         </div>
       ) : null}
 
-      <div className="grid min-h-[680px] overflow-hidden rounded bg-card shadow-border lg:grid-cols-[380px_minmax(0,1fr)]">
-        <div className="border-b border-white/[0.08] lg:border-b-0 lg:border-r">
-          <div className="flex h-12 items-center justify-between border-b border-white/[0.08] px-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-white/76">
-              <HiOutlineInboxStack className="size-4 text-white/38" />
-              Conversations
-            </div>
-            <span className="text-xs text-white/32">
-              {conversationPagination.total}
-            </span>
+      <div
+        className={cn(
+          'grid min-h-0 flex-1 overflow-hidden rounded bg-card shadow-border',
+          !isConversationNavPortaled && 'lg:grid-cols-[380px_minmax(0,1fr)]',
+        )}
+        data-testid="messages-surface-layout"
+      >
+        {!isConversationNavPortaled ? (
+          <div className="border-b border-white/[0.08] lg:border-b-0 lg:border-r">
+            {conversationNavPanel}
           </div>
-          <div className="max-h-[628px] overflow-y-auto">
-            {isLoadingConversations ? (
-              <div className="p-4">
-                <LazyLoadingFallback variant="minimal" />
-              </div>
-            ) : conversations.length === 0 ? (
-              <div className="flex h-64 flex-col items-center justify-center px-6 text-center">
-                <HiOutlineChatBubbleLeftRight className="mb-3 size-8 text-white/20" />
-                <p className="text-sm text-white/50">No messages found</p>
-                <p className="mt-1 text-xs text-white/30">
-                  New social conversations will appear here after sync.
-                </p>
-              </div>
-            ) : (
-              conversations.map((conversation) => (
-                <ConversationRow
-                  conversation={conversation}
-                  isDisabled={Boolean(busyAction)}
-                  isSelected={conversation.id === selectedId}
-                  key={conversation.id}
-                  onSelect={handleSelectConversation}
-                />
-              ))
-            )}
-          </div>
-          {conversationPagination.totalPages > 1 ? (
-            <div className="flex items-center justify-between border-t border-white/[0.08] px-3 py-2">
-              <Button
-                ariaLabel="Previous conversations page"
-                icon={<HiOutlineChevronLeft className="size-4" />}
-                isDisabled={!conversationPagination.hasPrevious}
-                onClick={() =>
-                  setConversationPage((page) => Math.max(1, page - 1))
-                }
-                size={ButtonSize.ICON}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
-              <span className="text-xs text-white/38">
-                Page {conversationPagination.page} of{' '}
-                {conversationPagination.totalPages}
-              </span>
-              <Button
-                ariaLabel="Next conversations page"
-                icon={<HiOutlineChevronRight className="size-4" />}
-                isDisabled={!conversationPagination.hasNext}
-                onClick={() => setConversationPage((page) => page + 1)}
-                size={ButtonSize.ICON}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
-            </div>
-          ) : null}
-        </div>
+        ) : null}
 
-        <div className="flex min-w-0 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-col">
           {selectedConversation ? (
             <>
               <div className="border-b border-white/[0.08] px-5 py-4">
@@ -1525,7 +1584,10 @@ export default function MessagesPage() {
               </div>
             </>
           ) : (
-            <div className="flex min-h-[680px] flex-col items-center justify-center px-6 text-center">
+            <div
+              className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center"
+              data-testid="messages-empty-state"
+            >
               <HiOutlineChatBubbleLeftRight className="mb-3 size-10 text-white/20" />
               <p className="text-sm text-white/50">Select a conversation</p>
             </div>

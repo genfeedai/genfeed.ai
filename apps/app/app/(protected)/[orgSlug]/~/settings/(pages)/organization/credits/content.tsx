@@ -9,6 +9,7 @@ export default function SettingsCreditsPage() {
 
   return (
     <div className="pb-10">
+      <h1 className="sr-only">Credits</h1>
       {selfHosted ? <ManagedCreditsCheckoutCard /> : <AddCreditsCard />}
     </div>
   );

@@ -152,7 +152,7 @@ export default function FastlaneSchedulePanel({
                       variant={
                         target.isSelected
                           ? ButtonVariant.DEFAULT
-                          : ButtonVariant.OUTLINE
+                          : ButtonVariant.SECONDARY
                       }
                       size={ButtonSize.SM}
                       label={target.isSelected ? 'Selected' : 'Select'}

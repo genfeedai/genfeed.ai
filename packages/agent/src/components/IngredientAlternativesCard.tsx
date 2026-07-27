@@ -157,7 +157,7 @@ export function IngredientAlternativesCard({
               {error}
             </div>
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={handleRetry}
               className="w-full"
             >
@@ -196,7 +196,7 @@ export function IngredientAlternativesCard({
                 Open in Library
               </a>
               <Button
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.SM}
                 onClick={handleRetry}
                 className="flex-1"

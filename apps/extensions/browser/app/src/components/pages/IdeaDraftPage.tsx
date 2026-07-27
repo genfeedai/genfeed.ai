@@ -210,7 +210,7 @@ export function IdeaDraftPage({
         <div className="flex gap-2">
           <Button
             type="button"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             onClick={handleReset}
           >
             Save another

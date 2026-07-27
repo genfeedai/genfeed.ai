@@ -13,9 +13,8 @@ import { HiOutlineArrowsPointingOut } from 'react-icons/hi2';
  * Deliberately thin. `AgentChatContainer` is entirely store-driven, so the
  * drawer needs no thread loading of its own — it reads the active thread from
  * the shared conversation store and stays in sync with the full surface. Its
- * prompt bar portals itself into the shell's floating composer slot, so this
- * panel renders the transcript only; the composer at the bottom of the canvas
- * is its input.
+ * prompt bar portals itself into the inspector's composer slot, keeping the
+ * transcript and its input together without covering the active canvas.
  */
 interface ConversationInspectorPanelProps {
   apiService: AgentApiService;

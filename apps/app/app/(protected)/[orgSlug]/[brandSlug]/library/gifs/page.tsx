@@ -13,7 +13,11 @@ export default function LibraryGifsPage() {
       <Suspense
         fallback={<SkeletonLoadingFallback type="masonry" count={12} />}
       >
-        <IngredientsList type="gifs" scope={PageScope.BRAND} />
+        <IngredientsList
+          folderNavigation="shell"
+          type="gifs"
+          scope={PageScope.BRAND}
+        />
       </Suspense>
     </IngredientsLayout>
   );

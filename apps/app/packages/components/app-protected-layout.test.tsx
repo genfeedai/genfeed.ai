@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { type ReactNode, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useWorkspaceNavPanel } from '@/components/workspace-shell/WorkspaceNavPanelContext';
 import AppProtectedLayoutSidebar from './AppProtectedLayoutSidebar';
 import AppProtectedLayout from './app-protected-layout';
 
@@ -55,6 +57,17 @@ const enabledCategoriesState = vi.hoisted(() => ({
   enabledCategories: ['image', 'video', 'avatar'],
   isLoading: false,
 }));
+
+function MessagesNavPanelProbe() {
+  const workspaceNavPanel = useWorkspaceNavPanel();
+
+  return workspaceNavPanel?.portalTarget
+    ? createPortal(
+        <div data-testid="social-conversation-list">Conversation list</div>,
+        workspaceNavPanel.portalTarget,
+      )
+    : null;
+}
 
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
@@ -835,7 +848,7 @@ describe('AppProtectedLayout', () => {
   it.each([
     ['/workspace/overview', 'Workspace'],
     ['/studio/image', 'Image'],
-    ['/library/images', 'Images'],
+    ['/library/images', 'Assets'],
     ['/research/discovery', 'Discovery'],
     ['/analytics/overview', 'Overview'],
     ['/workflows/executions', 'Runs'],
@@ -863,7 +876,8 @@ describe('AppProtectedLayout', () => {
   it.each([
     ['/org-123/~/settings/api-keys', 'Settings', 'API Keys'],
     ['/org-123/brand-123/research/following', 'Research', 'Following'],
-    ['/org-123/brand-123/library/ingredients', 'Library', 'Ingredients'],
+    ['/org-123/brand-123/library/overview', 'Library', 'Overview'],
+    ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
     ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
     ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
     ['/org-123/brand-123/analytics/trends', 'Analytics', 'Trends'],
@@ -1036,6 +1050,59 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
+  it('hands the nav column to the Messages conversation list', () => {
+    mockPathname.value = '/org-123/brand-123/messages';
+
+    render(
+      <AppProtectedLayout>
+        <MessagesNavPanelProbe />
+        <div>Messages canvas</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByTestId('messages-nav-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('messages-nav-panel')).toHaveTextContent(
+      'Conversation list',
+    );
+    expect(screen.getByTestId('social-conversation-list')).toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'messages',
+        items: [],
+        renderBody: expect.any(Function),
+        sectionLabel: 'Messages',
+        showPrimaryItems: false,
+      }),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'New Task' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Search' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('hands the nav column to the Library actions and folders panel', () => {
+    mockPathname.value = '/org-123/brand-123/library/videos';
+
+    render(
+      <AppProtectedLayout>
+        <div>Library canvas</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByTestId('library-nav-panel')).toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'library',
+        items: [],
+        renderBody: expect.any(Function),
+        sectionLabel: 'Library',
+        showPrimaryItems: false,
+      }),
+    );
+  });
+
   it('gives workflow routes their own nav column', () => {
     mockPathname.value = '/org-123/brand-123/workflows';
 
@@ -1080,7 +1147,7 @@ describe('AppProtectedLayout', () => {
 
   it.each([
     ['/org-123/brand-123/studio/image', 'studio', 'Studio'],
-    ['/org-123/brand-123/library/ingredients', 'library', 'Library'],
+    ['/org-123/brand-123/library/overview', 'library', 'Library'],
     ['/org-123/brand-123/analytics/overview', 'analytics', 'Analytics'],
     ['/org-123/brand-123/workflows', 'workflows', 'Workflows'],
     ['/org-123/brand-123/posts/remix', 'posts', 'Workspace'],

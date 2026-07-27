@@ -76,20 +76,20 @@ export default function NewsletterEditor({
         <div className="flex flex-wrap gap-2">
           <Button
             label="Save"
-            variant={ButtonVariant.SOFT}
+            variant={ButtonVariant.SECONDARY}
             isLoading={loadingAction === 'saving'}
             isDisabled={!editorDirty}
             onClick={onSave}
           />
           <Button
             label="Regenerate"
-            variant={ButtonVariant.SOFT}
+            variant={ButtonVariant.SECONDARY}
             isLoading={loadingAction === 'generatingDraft'}
             onClick={onRegenerate}
           />
           <Button
             label="Approve"
-            variant={ButtonVariant.SOFT}
+            variant={ButtonVariant.SECONDARY}
             icon={<HiCheckCircle />}
             isLoading={loadingAction === 'approving'}
             isDisabled={selectedNewsletter.status === 'published'}
@@ -97,7 +97,7 @@ export default function NewsletterEditor({
           />
           <Button
             label="Publish"
-            variant={ButtonVariant.SOFT}
+            variant={ButtonVariant.SECONDARY}
             icon={<HiSparkles />}
             isLoading={loadingAction === 'publishing'}
             isDisabled={selectedNewsletter.status === 'published'}

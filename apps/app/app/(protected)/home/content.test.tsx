@@ -154,7 +154,7 @@ describe('OperationalHomeContent', () => {
 
     expect(
       screen.getByRole('heading', { level: 1, name: 'Operational home' }),
-    ).toBeInTheDocument();
+    ).toHaveClass('sr-only');
     expect(
       screen.getByRole('heading', {
         level: 2,
@@ -167,7 +167,13 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.getByRole('link', { name: /Manage API keys/ }),
     ).toHaveAttribute('href', '/acme/~/settings/api-keys');
-    expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
+    const connectionState = screen.getByTestId('operational-home-unconfigured');
+    const operationalSections = screen.getByTestId('operational-home-sections');
+
+    expect(
+      connectionState.compareDocumentPosition(operationalSections) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('renders all operational control-plane sections when configured', () => {

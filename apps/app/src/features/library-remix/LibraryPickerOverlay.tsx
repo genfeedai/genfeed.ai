@@ -150,7 +150,7 @@ export default function LibraryPickerOverlay({
                 label="Retry"
                 onClick={retry}
                 size={ButtonSize.SM}
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
               />
             </div>
           </Alert>
@@ -194,7 +194,7 @@ export default function LibraryPickerOverlay({
                   isDisabled={isLoadingMore}
                   label={isLoadingMore ? 'Loading more…' : 'Load more'}
                   onClick={loadMore}
-                  variant={ButtonVariant.OUTLINE}
+                  variant={ButtonVariant.SECONDARY}
                 />
               </div>
             ) : null}

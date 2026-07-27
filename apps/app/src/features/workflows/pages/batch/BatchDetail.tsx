@@ -125,7 +125,7 @@ export default function BatchDetail({
           </div>
           <div className="flex flex-wrap gap-3">
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={onBackToComposer}
               className="rounded-xl"
             >
@@ -177,7 +177,7 @@ export default function BatchDetail({
 
           <div className="flex flex-wrap gap-2">
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               onClick={onSelectAll}
               disabled={availableOutputs.length === 0}
@@ -186,7 +186,7 @@ export default function BatchDetail({
               Select all
             </Button>
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               onClick={onClearSelection}
               disabled={!hasSelectedOutputs}
@@ -195,7 +195,7 @@ export default function BatchDetail({
               Clear selection
             </Button>
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               onClick={() => void onDownload('all')}
               disabled={availableOutputs.length === 0 || isRunningBulkAction}
@@ -204,7 +204,7 @@ export default function BatchDetail({
               Download all
             </Button>
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               onClick={() => void onDownload('selected')}
               disabled={!hasSelectedOutputs || isRunningBulkAction}
@@ -213,7 +213,7 @@ export default function BatchDetail({
               Download selected
             </Button>
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               onClick={() => onPublish('all')}
               disabled={availableOutputs.length === 0}
@@ -222,7 +222,7 @@ export default function BatchDetail({
               Publish all
             </Button>
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               onClick={() => onPublish('selected')}
               disabled={!hasSelectedOutputs}
@@ -231,7 +231,7 @@ export default function BatchDetail({
               Publish selected
             </Button>
             <Button
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
               onClick={() =>
                 onOpenInLibrary(hasSelectedOutputs ? 'selected' : 'all')
@@ -345,7 +345,7 @@ export default function BatchDetail({
 
                   <div className="flex flex-wrap gap-2">
                     <Button
-                      variant={ButtonVariant.OUTLINE}
+                      variant={ButtonVariant.SECONDARY}
                       size={ButtonSize.XS}
                       onClick={() =>
                         ingredient && void downloadIngredient(ingredient)
@@ -356,7 +356,7 @@ export default function BatchDetail({
                       Download
                     </Button>
                     <Button
-                      variant={ButtonVariant.OUTLINE}
+                      variant={ButtonVariant.SECONDARY}
                       size={ButtonSize.XS}
                       onClick={() => ingredient && onOpenPostModal(ingredient)}
                       disabled={!ingredient}
@@ -365,7 +365,7 @@ export default function BatchDetail({
                       Publish
                     </Button>
                     <Button
-                      variant={ButtonVariant.OUTLINE}
+                      variant={ButtonVariant.SECONDARY}
                       size={ButtonSize.XS}
                       onClick={() => libraryPath && onNavigate(libraryPath)}
                       disabled={!libraryPath}

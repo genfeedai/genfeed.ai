@@ -69,7 +69,11 @@ export default function AppLayout({
     ) : null;
 
   const layoutContent = (
-    <SidebarNavigationProvider breadcrumb={breadcrumb} items={menuItems}>
+    <SidebarNavigationProvider
+      breadcrumb={breadcrumb}
+      hasCanonicalPageIdentity={Boolean(topbarContent)}
+      items={menuItems}
+    >
       <div
         className="ship-ui min-h-screen overflow-x-hidden bg-background"
         data-workspace-shell={isWorkspaceShell ? 'true' : undefined}

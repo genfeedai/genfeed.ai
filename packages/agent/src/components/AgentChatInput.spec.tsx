@@ -93,6 +93,53 @@ describe('AgentChatInput', () => {
     expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
   });
 
+  it('uses the inspector rail treatment without duplicating shell context', () => {
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Default Workspace · Default Brand"
+        draftScopeKey="acme:thread-1:3"
+        placement="inspector"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatInput density="inspector" onSend={vi.fn()} />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(screen.getByTestId('agent-chat-input-shell')).toHaveClass(
+      'rounded-lg',
+    );
+    expect(
+      screen.queryByText('Default Workspace · Default Brand'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByLabelText('Open composer actions')).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox').closest('[data-density="inspector"]'),
+    ).toHaveClass('[&_.ProseMirror]:min-h-14');
+  });
+
+  it('keeps topbar-owned scope controls out of the prompt bar', () => {
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Default Workspace · Default Brand"
+        draftScopeKey="acme:thread-1:3"
+        portalTarget={null}
+        scopeControls={<button type="button">Change workspace scope</button>}
+        shellState="canvas"
+      >
+        <AgentChatInput onSend={vi.fn()} />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(
+      screen.getByText('Default Workspace · Default Brand'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Change workspace scope' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('adds pasted image files to the prompt attachments', () => {
     const addFiles = vi.fn();
     const file = new File(['image'], 'image.png', { type: 'image/png' });

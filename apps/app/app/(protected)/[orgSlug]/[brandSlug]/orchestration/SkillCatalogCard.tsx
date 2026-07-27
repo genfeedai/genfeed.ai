@@ -91,7 +91,7 @@ export default function SkillCatalogCard({
             variant={
               modalityFilter === filter.value
                 ? ButtonVariant.DEFAULT
-                : ButtonVariant.OUTLINE
+                : ButtonVariant.SECONDARY
             }
           >
             {filter.label}
@@ -105,7 +105,7 @@ export default function SkillCatalogCard({
             variant={
               stageFilter === filter.value
                 ? ButtonVariant.DEFAULT
-                : ButtonVariant.OUTLINE
+                : ButtonVariant.SECONDARY
             }
           >
             {filter.label}

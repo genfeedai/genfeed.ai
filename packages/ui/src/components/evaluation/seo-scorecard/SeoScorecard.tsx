@@ -188,7 +188,7 @@ export default function SeoScorecard({
           ? 'Save changes before scoring SEO'
           : `${actionLabel} SEO`
       }
-      variant={ButtonVariant.GENERATE}
+      variant={ButtonVariant.DEFAULT}
     />
   ) : undefined;
 

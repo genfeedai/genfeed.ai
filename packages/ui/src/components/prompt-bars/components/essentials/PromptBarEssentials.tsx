@@ -483,7 +483,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
             ) : null}
 
             <Button
-              variant={ButtonVariant.GENERATE}
+              variant={ButtonVariant.DEFAULT}
               icon={<HiArrowUp />}
               isDisabled={
                 isGenerateBlocked ||

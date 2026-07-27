@@ -90,7 +90,7 @@ export default function BotToggle({
         <div className="flex items-center gap-3">
           <div className={cn('p-3', iconBgColor)}>{icon}</div>
           <div>
-            <h1 className="text-2xl font-semibold">{title}</h1>
+            <h2 className="text-2xl font-semibold">{title}</h2>
             <p className="text-muted-foreground">{description}</p>
           </div>
         </div>

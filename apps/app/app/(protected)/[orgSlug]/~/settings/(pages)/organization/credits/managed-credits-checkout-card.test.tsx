@@ -96,6 +96,14 @@ describe('ManagedCreditsCheckoutCard', () => {
   it('starts managed checkout using the editable email and selected pack', async () => {
     render(<ManagedCreditsCheckoutCard />);
 
+    expect(screen.queryByText('Credit amount')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'Buy hosted image-generation credits and provision one managed key for this self-hosted install.',
+      ),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Billing / Add credit')).not.toBeInTheDocument();
+
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: 'buyer@example.com' },
     });
@@ -117,18 +125,27 @@ describe('ManagedCreditsCheckoutCard', () => {
     expect(locationState.href).toBe('https://checkout.stripe.test/session');
   });
 
+  it('requires an explicit credit amount selection before checkout', () => {
+    render(<ManagedCreditsCheckoutCard />);
+
+    expect(
+      screen.getByText('Choose an amount to continue.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Get credits' })).toBeDisabled();
+    expect(createCheckoutSessionMock).not.toHaveBeenCalled();
+  });
+
   it('blocks checkout when the email is missing', () => {
     render(<ManagedCreditsCheckoutCard />);
 
+    fireEvent.click(screen.getByText('$10'));
     fireEvent.change(screen.getByPlaceholderText('you@example.com'), {
       target: { value: '' },
     });
-    fireEvent.click(screen.getByText('Get credits'));
 
+    expect(screen.getByRole('button', { name: 'Get credits' })).toBeDisabled();
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
-    expect(notificationErrorMock).toHaveBeenCalledWith(
-      'Add a valid email before checkout.',
-    );
+    expect(notificationErrorMock).not.toHaveBeenCalled();
   });
 
   it('starts managed checkout using a custom whole-dollar amount', async () => {

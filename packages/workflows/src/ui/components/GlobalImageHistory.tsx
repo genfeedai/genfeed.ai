@@ -290,7 +290,7 @@ export function GlobalImageHistory() {
     <div ref={drawerRef} className="absolute bottom-4 right-64 z-10">
       <Button
         ref={triggerRef}
-        variant="outline"
+        variant="secondary"
         size="icon-sm"
         onClick={() => setIsOpen(!isOpen)}
         className="relative bg-secondary hover:bg-muted border-border text-muted-foreground hover:text-foreground shadow-dropdown"
@@ -327,7 +327,7 @@ export function GlobalImageHistory() {
               );
               return (
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={handleShowAll}
                   className="absolute animate-fan-enter bg-secondary hover:bg-muted border-border text-[10px] text-foreground hover:text-foreground shadow-dropdown whitespace-nowrap px-2 py-1 h-auto"

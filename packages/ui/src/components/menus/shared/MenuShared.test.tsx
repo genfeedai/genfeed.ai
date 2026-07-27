@@ -416,7 +416,7 @@ describe('MenuShared', () => {
         {
           drillDown: true,
           group: 'Library',
-          href: '/library/ingredients',
+          href: '/library/videos',
           label: 'Library',
         },
       ],
@@ -721,7 +721,11 @@ describe('MenuShared', () => {
     );
 
     expect(screen.queryByText('Chat')).not.toBeInTheDocument();
-    expect(screen.getByTestId('custom-body')).toBeInTheDocument();
+    const customBody = screen.getByTestId('custom-body');
+    expect(customBody).toBeInTheDocument();
+    expect(customBody.parentElement).toHaveClass('min-h-0');
+    expect(customBody.parentElement).toHaveClass('overflow-hidden');
+    expect(customBody.parentElement).not.toHaveClass('overflow-y-auto');
   });
 
   it('does not duplicate workspace context in the sidebar header', () => {

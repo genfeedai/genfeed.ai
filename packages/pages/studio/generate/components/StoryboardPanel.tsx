@@ -81,7 +81,7 @@ export function StoryboardPanel({
             label="Clear"
           />
           <Button
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
             onClick={onGenerate}
             isDisabled={

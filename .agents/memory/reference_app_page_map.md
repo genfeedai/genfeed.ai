@@ -8,7 +8,7 @@ type: reference
 
 Last audited: 2026-07-27.
 
-The current executable protected denominator is 211 canonical patterns. Two
+The current executable protected denominator is 212 canonical patterns. Two
 intentional hard-cut families remain outside the denominator. The app switcher
 is only a discovery subset.
 
@@ -24,7 +24,7 @@ Source of truth:
 - Sidebar resolver in `apps/app/packages/components/AppProtectedLayoutSidebar.tsx`
 - App switcher in `packages/ui/src/components/shell/app-switcher/AppSwitcher.tsx`
 
-The application registry mirrors all 211 parity-eligible patterns below and
+The application registry mirrors all 212 parity-eligible patterns below and
 keeps Notifications plus trusted pickers as explicit non-route surfaces. The
 two hard-cut families remain outside it.
 
@@ -195,9 +195,13 @@ Workspace:
 - `/:orgSlug/:brandSlug/workspace/overview`
 - `/:orgSlug/:brandSlug/workspace/inbox/:view`
 - `/:orgSlug/:brandSlug/workspace/activity`
-- `/:orgSlug/:brandSlug/tasks`
-- `/:orgSlug/:brandSlug/tasks/:id`
+- `/:orgSlug/:brandSlug/workspace/tasks`
+- `/:orgSlug/:brandSlug/workspace/tasks/:id`
 - `/:orgSlug/:brandSlug/overview/activities`
+
+Legacy `/:orgSlug/:brandSlug/tasks` and
+`/:orgSlug/:brandSlug/tasks/:id` links redirect to the corresponding canonical
+Workspace paths above.
 
 Agent:
 
@@ -241,7 +245,7 @@ Create/compose/editor:
 
 Library:
 
-- `/:orgSlug/:brandSlug/library/ingredients`
+- `/:orgSlug/:brandSlug/library/overview`
 - `/:orgSlug/:brandSlug/library/videos`
 - `/:orgSlug/:brandSlug/library/images`
 - `/:orgSlug/:brandSlug/library/gifs`
@@ -250,6 +254,12 @@ Library:
 - `/:orgSlug/:brandSlug/library/music`
 - `/:orgSlug/:brandSlug/library/captions`
 - `/:orgSlug/:brandSlug/library/moodboard`
+
+`/:orgSlug/:brandSlug/library/overview` is the canonical Library landing.
+Overview, Assets, Mood board, and shared Activity are navigation destinations.
+The remaining Library type routes encode the selected asset-type filter as
+shareable deep links; they are not separate sidebar modules. Folder selection
+is a URL-backed secondary sidebar filter.
 
 Publish/posts:
 

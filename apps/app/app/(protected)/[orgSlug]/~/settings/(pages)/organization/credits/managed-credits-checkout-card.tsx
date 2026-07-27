@@ -53,7 +53,6 @@ export default function ManagedCreditsCheckoutCard() {
 
   return (
     <CreditTopUpPanel
-      description="Buy hosted image-generation credits and provision one managed key for this self-hosted install."
       helperContent={
         <section
           className="max-w-xl space-y-3"
@@ -79,6 +78,7 @@ export default function ManagedCreditsCheckoutCard() {
           />
         </section>
       }
+      isSubmitDisabled={!email.trim()}
       isStartingCheckout={isStartingCheckout}
       submitLabel="Get credits"
       onSubmit={handleStartCheckout}

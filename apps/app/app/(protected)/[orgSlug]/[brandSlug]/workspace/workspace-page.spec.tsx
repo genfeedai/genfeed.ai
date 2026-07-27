@@ -688,7 +688,7 @@ describe('WorkspacePageContent', () => {
     ).toBeInTheDocument();
     expect(
       within(inspector).getByRole('link', { name: 'Open library' }),
-    ).toHaveAttribute('href', '/library/ingredients');
+    ).toHaveAttribute('href', '/library/overview');
   });
 
   it('surfaces the linked issue deep-link inside the task inspector', async () => {
@@ -724,7 +724,7 @@ describe('WorkspacePageContent', () => {
 
     expect(
       within(inspector).getByRole('link', { name: 'Open Issue' }),
-    ).toHaveAttribute('href', '/tasks/GEN-42');
+    ).toHaveAttribute('href', '/workspace/tasks/GEN-42');
     expect(within(inspector).getByText('Issue: GEN-42')).toBeInTheDocument();
   });
 });

@@ -314,7 +314,7 @@ function LibraryVoicesContent() {
             <span>{voicesError}</span>
             <Button
               label="Retry"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={() => {
                 void refreshVoices();
               }}

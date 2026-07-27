@@ -30,7 +30,6 @@ const KNOWN_PROTECTED_PREFIXES = [
   'compose',
   'editor',
   'research',
-  'tasks',
   'overview',
   'ingredients',
   'videos',
@@ -65,7 +64,7 @@ export function normalizeProtectedPathname(rawPathname: string): string {
  * (post-{@link normalizeProtectedPathname}), so pass a normalized pathname.
  *
  * Covers the five product sections plus their canonical route aliases: Workspace
- * (`/workspace`, `/overview`, `/tasks`), Library, Analytics, Workflows
+ * (`/workspace`, `/overview`), Library, Analytics, Workflows
  * (`/workflows`, `/orchestration`), and the Calendar (`/posts/calendar`). The
  * agent, settings, studio, compose, research, publish, messages, and admin
  * surfaces are intentionally NOT gated.
@@ -73,7 +72,6 @@ export function normalizeProtectedPathname(rawPathname: string): string {
 const ASSET_GATE_SECTION_PREFIXES = [
   '/workspace',
   '/overview',
-  '/tasks',
   '/library',
   '/analytics',
   '/workflows',

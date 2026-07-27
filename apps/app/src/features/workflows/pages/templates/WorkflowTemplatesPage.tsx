@@ -183,12 +183,6 @@ function WorkflowTemplatesPageContent() {
   if (isLoading || isBootstrapping) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="border-b border-white/[0.08] bg-card px-6 py-4">
-          <div className="mx-auto max-w-7xl">
-            <div className="h-7 w-36 animate-pulse rounded bg-muted" />
-            <div className="mt-2 h-4 w-60 animate-pulse rounded bg-muted" />
-          </div>
-        </header>
         <div className="border-b border-white/[0.08] bg-card/50 px-6 py-3">
           <div className="mx-auto flex max-w-7xl gap-2">
             {Array.from({ length: 5 }).map((_, i) => (
@@ -233,18 +227,7 @@ function WorkflowTemplatesPageContent() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-white/[0.08] bg-card px-6 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold">Templates</h1>
-            <p className="text-sm text-muted-foreground">
-              Start with a pre-built workflow template
-            </p>
-          </div>
-          {/* Navigation handled by sidebar */}
-        </div>
-      </header>
+      <h1 className="sr-only">Templates</h1>
 
       {/* Category Filter */}
       <div className="border-b border-white/[0.08] bg-card/50 px-6 py-3">
@@ -252,7 +235,7 @@ function WorkflowTemplatesPageContent() {
           {TEMPLATE_CATEGORIES.map((category) => (
             <Button
               key={category.id}
-              variant={ButtonVariant.UNSTYLED}
+              variant={ButtonVariant.GHOST}
               withWrapper={false}
               onClick={() =>
                 dispatch({ type: 'SET_CATEGORY', category: category.id })
@@ -281,7 +264,7 @@ function WorkflowTemplatesPageContent() {
             </p>
             {selectedCategory !== 'all' && (
               <Button
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 onClick={() =>
                   dispatch({ type: 'SET_CATEGORY', category: 'all' })
                 }

@@ -40,7 +40,7 @@ describe('workspace shell URL restoration', () => {
     '/acme/moonrise/posts/calendar',
     '/acme/moonrise/research/discovery',
     '/acme/moonrise/studio/image',
-    '/acme/moonrise/tasks/task-1',
+    '/acme/moonrise/workspace/tasks/task-1',
     '/acme/moonrise/workflows/templates',
     '/acme/moonrise/workspace/inbox/all',
     '/acme/~/write',

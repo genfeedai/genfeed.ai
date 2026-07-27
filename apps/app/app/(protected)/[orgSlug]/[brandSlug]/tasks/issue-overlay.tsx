@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
@@ -151,7 +152,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
 
   const handleOpenDetail = useCallback(() => {
     if (issue) {
-      push(`/tasks/${issue.identifier}`);
+      push(`${APP_ROUTES.WORKSPACE.TASKS}/${issue.identifier}`);
       closeIssueOverlay();
     }
   }, [issue, push]);

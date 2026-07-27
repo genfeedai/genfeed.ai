@@ -95,8 +95,16 @@ describe('AddCreditsCard', () => {
     for (const label of ['$10', '$20', '$50', '$100', '$1,000', 'Custom']) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
-    // Defaults to the smallest preset ($10 = 1,000 credits).
-    expect(screen.getAllByText('1,000 credits').length).toBeGreaterThan(0);
+  });
+
+  it('requires an explicit credit amount selection before checkout', () => {
+    render(<AddCreditsCard />);
+
+    expect(
+      screen.getByText('Choose an amount to continue.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add credit' })).toBeDisabled();
+    expect(createCheckoutSessionMock).not.toHaveBeenCalled();
   });
 
   it('updates the credit summary when a preset is selected', () => {

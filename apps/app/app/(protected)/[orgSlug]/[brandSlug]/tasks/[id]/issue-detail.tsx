@@ -313,7 +313,7 @@ export default function IssueDetail({
             <HiOutlineExclamationTriangle className="mb-3 size-8 text-white/20" />
             <p className="text-sm text-white/50">Issue not found</p>
             <Link
-              href={APP_ROUTES.TASKS.ROOT}
+              href={APP_ROUTES.WORKSPACE.TASKS}
               className="mt-3 text-xs text-muted-foreground hover:text-foreground"
             >
               Back to issues
@@ -328,7 +328,7 @@ export default function IssueDetail({
     <Container>
       <div className="mb-4">
         <Link
-          href={APP_ROUTES.TASKS.ROOT}
+          href={APP_ROUTES.WORKSPACE.TASKS}
           className="inline-flex items-center gap-1 text-xs text-white/40 transition-colors hover:text-white/60"
         >
           <HiArrowLeft className="size-3" />

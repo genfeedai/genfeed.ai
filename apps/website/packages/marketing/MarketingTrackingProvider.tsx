@@ -223,7 +223,7 @@ export default function MarketingTrackingProvider({
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               className="h-9 px-3 text-xs"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               type="button"
               onClick={() => persistConsent(createConsentState('denied'))}
             >

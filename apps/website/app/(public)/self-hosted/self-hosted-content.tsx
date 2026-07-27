@@ -117,7 +117,7 @@ export default function SelfHostedContent() {
             <Button
               asChild
               size={ButtonSize.PUBLIC}
-              variant={ButtonVariant.WHITE}
+              variant={ButtonVariant.DEFAULT}
             >
               <a href={repoHref} target="_blank" rel="noopener noreferrer">
                 View on GitHub
@@ -126,7 +126,7 @@ export default function SelfHostedContent() {
             <Button
               asChild
               size={ButtonSize.PUBLIC}
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
             >
               <a
                 href={cloudSignUpHref}
@@ -186,7 +186,7 @@ export default function SelfHostedContent() {
             <Button
               asChild
               size={ButtonSize.PUBLIC}
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
             >
               <a href={DOCS_URL} target="_blank" rel="noopener noreferrer">
                 Read the self-hosting docs

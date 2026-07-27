@@ -289,7 +289,7 @@ function KeyBlock({
           {label}
         </p>
         <Button
-          variant={ButtonVariant.SOFT}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           onClick={onCopy}
         >

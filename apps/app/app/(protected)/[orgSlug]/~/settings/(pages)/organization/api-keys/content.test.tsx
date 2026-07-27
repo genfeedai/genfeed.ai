@@ -291,10 +291,6 @@ describe('SettingsApiKeysPage', () => {
     expect(await screen.findByText('API Keys')).toBeInTheDocument();
     expect(screen.getByText('Genfeed API keys')).toBeInTheDocument();
     expect(await screen.findByText('MCP Key')).toBeInTheDocument();
-    expect(
-      screen.getByText(/server-configured providers by default/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/no credits are deducted/)).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Genfeed keys' })).toHaveAttribute(
       'data-state',
       'active',
@@ -302,6 +298,10 @@ describe('SettingsApiKeysPage', () => {
     expect(screen.queryByText('OpenAI')).not.toBeInTheDocument();
 
     await openProviderKeysTab();
+    expect(
+      screen.getByText(/server-configured providers by default/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/do not deduct credits/)).toBeInTheDocument();
     expect(screen.getByText('OpenAI')).toBeInTheDocument();
     expect(screen.getByText('Replicate')).toBeInTheDocument();
     expect(screen.getByText('r8_****1234')).toBeInTheDocument();

@@ -81,7 +81,9 @@ function ControlledDropdownStory() {
         />
       </div>
       <DropdownBase
-        trigger={<Button label="Controlled" variant={ButtonVariant.OUTLINE} />}
+        trigger={
+          <Button label="Controlled" variant={ButtonVariant.SECONDARY} />
+        }
         isOpen={isOpen}
         onOpenChange={setIsOpen}
       >

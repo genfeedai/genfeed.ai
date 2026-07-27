@@ -307,7 +307,7 @@ export default function FollowingPage() {
                 onClick={() => {
                   refetch().catch(() => undefined);
                 }}
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
               />
             </div>
           </Alert>

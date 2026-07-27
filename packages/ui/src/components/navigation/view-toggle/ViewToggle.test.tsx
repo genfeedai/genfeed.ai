@@ -47,11 +47,11 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const calendarButton = screen
-      .getByTestId('calendar-icon')
-      .closest('button');
-    expect(calendarButton).toHaveClass('bg-white/10');
-    expect(calendarButton).toHaveClass('text-foreground');
+    const calendarButton = screen.getByRole('radio', {
+      name: 'Calendar View',
+    });
+    expect(calendarButton).toHaveAttribute('data-state', 'on');
+    expect(calendarButton).toHaveAttribute('aria-checked', 'true');
   });
 
   it('calls onChange when view is clicked', () => {
@@ -64,15 +64,12 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const calendarButton = screen
-      .getByTestId('calendar-icon')
-      .closest('button');
-    fireEvent.click(calendarButton!);
+    fireEvent.click(screen.getByRole('radio', { name: 'Calendar View' }));
 
     expect(updateViewToggle).toHaveBeenCalledWith(ViewType.CALENDAR);
   });
 
-  it('applies inline-flex class for button group', () => {
+  it('renders the shared segmented control', () => {
     const updateViewToggle = vi.fn();
     const { container } = render(
       <ViewToggle
@@ -82,8 +79,8 @@ describe('ViewToggle', () => {
       />,
     );
 
-    // Component uses inline-flex for button group styling
-    expect(container.querySelector('.inline-flex')).toBeInTheDocument();
+    expect(container.querySelector('.gen-shell-segmented')).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'View' })).toBeVisible();
   });
 
   it('applies custom className', () => {
@@ -101,7 +98,7 @@ describe('ViewToggle', () => {
     expect(toggleContainer).toBeInTheDocument();
   });
 
-  it('renders buttons for each option', () => {
+  it('renders radio controls for each option', () => {
     const updateViewToggle = vi.fn();
     render(
       <ViewToggle
@@ -111,9 +108,8 @@ describe('ViewToggle', () => {
       />,
     );
 
-    // Verify all buttons are rendered
-    const buttons = screen.getAllByRole('button');
-    expect(buttons).toHaveLength(3);
+    const controls = screen.getAllByRole('radio');
+    expect(controls).toHaveLength(3);
 
     // Each button should have the icon
     expect(
@@ -137,7 +133,7 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const listButton = screen.getByTestId('list-icon').closest('button');
+    const listButton = screen.getByRole('radio', { name: 'List View' });
     expect(listButton).toHaveAttribute('aria-label', 'List View');
   });
 
@@ -160,11 +156,13 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const listButton = screen.getByTestId('list-icon').closest('button');
+    const listButton = screen.getByRole('radio', {
+      name: 'Switch to list view',
+    });
     expect(listButton).toHaveAttribute('aria-label', 'Switch to list view');
   });
 
-  it('applies correct button classes - ghost for all, elevated state for active', () => {
+  it('exposes a single active item through the toggle-group state', () => {
     const updateViewToggle = vi.fn();
     render(
       <ViewToggle
@@ -174,26 +172,18 @@ describe('ViewToggle', () => {
       />,
     );
 
-    const buttons = screen.getAllByRole('button');
-    buttons.forEach((button) => {
-      // All buttons render with CVA buttonVariants
-      expect(button).toBeInTheDocument();
+    const listButton = screen.getByRole('radio', { name: 'List View' });
+    const calendarButton = screen.getByRole('radio', {
+      name: 'Calendar View',
     });
+    const gridButton = screen.getByRole('radio', { name: 'Grid View' });
 
-    // Active button keeps ghost styling but adds an emphasized active background
-    const listButton = screen.getByTestId('list-icon').closest('button');
-    expect(listButton).toHaveClass('bg-white/10');
-    expect(listButton).toHaveClass('text-foreground');
-
-    // Inactive buttons stay ghost with subdued text and no active fill
-    const calendarButton = screen
-      .getByTestId('calendar-icon')
-      .closest('button');
-    const gridButton = screen.getByTestId('grid-icon').closest('button');
-    expect(calendarButton).toHaveClass('text-foreground/70');
-    expect(gridButton).toHaveClass('text-foreground/70');
-    expect(calendarButton).not.toHaveClass('bg-white/10');
-    expect(gridButton).not.toHaveClass('bg-white/10');
+    expect(listButton).toHaveAttribute('data-state', 'on');
+    expect(listButton).toHaveAttribute('aria-checked', 'true');
+    expect(calendarButton).toHaveAttribute('data-state', 'off');
+    expect(calendarButton).toHaveAttribute('aria-checked', 'false');
+    expect(gridButton).toHaveAttribute('data-state', 'off');
+    expect(gridButton).toHaveAttribute('aria-checked', 'false');
   });
 
   it('handles single option', () => {
@@ -209,7 +199,7 @@ describe('ViewToggle', () => {
     );
 
     expect(screen.getByTestId('list-icon')).toBeInTheDocument();
-    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getAllByRole('radio')).toHaveLength(1);
   });
 
   it('handles many options', () => {
@@ -236,6 +226,6 @@ describe('ViewToggle', () => {
       />,
     );
 
-    expect(screen.getAllByRole('button')).toHaveLength(5);
+    expect(screen.getAllByRole('radio')).toHaveLength(5);
   });
 });

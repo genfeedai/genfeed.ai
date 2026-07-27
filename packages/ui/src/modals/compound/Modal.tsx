@@ -34,7 +34,7 @@ import { useModalContentGlobalSideEffectCleanup } from '../../utils/modal-global
  *
  *     <Modal.Footer>
  *       <Modal.CloseButton asChild>
- *         <Button variant="outline">Cancel</Button>
+ *         <Button variant="secondary">Cancel</Button>
  *       </Modal.CloseButton>
  *       <Button variant="destructive" onClick={handleConfirm}>Confirm</Button>
  *     </Modal.Footer>

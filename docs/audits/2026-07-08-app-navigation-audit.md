@@ -43,7 +43,6 @@ Observed routes returning `500` with `Module not found`:
 | `/genfeed/~/posts` | 500 | `Module not found` |
 | `/genfeed/genfeedai/posts/remix` | 500 | `Module not found` |
 | `/genfeed/~/library` | 500 | `Module not found` |
-| `/genfeed/genfeedai/library/ingredients` | 500 | `Module not found` |
 | `/genfeed/~/settings/webhooks` | 500 | `Module not found` |
 | `/genfeed/genfeedai/settings` | 500 | `Module not found` |
 
@@ -216,7 +215,6 @@ Route/browser checks:
 
 | Check | Result |
 | --- | --- |
-| `/genfeed/genfeedai/library/ingredients` | 200, no build/module markers |
 | `/genfeed/genfeedai/library/images` | 200, no build/module markers |
 | Header group x vs body x on Library landing | `264` vs `264`, delta `0` |
 

@@ -49,6 +49,7 @@ interface AgentChatInputProps {
   removeAttachment?: (id: string) => void;
   getCompletedAttachments?: () => ChatAttachment[];
   clearAllAttachments?: () => void;
+  density?: 'compact' | 'default' | 'inspector';
 }
 
 function mapAttachmentToTrayAsset(
@@ -79,7 +80,10 @@ export function AgentChatInput({
   removeAttachment,
   getCompletedAttachments,
   clearAllAttachments,
+  density = 'default',
 }: AgentChatInputProps): ReactElement {
+  const isCompact = density === 'compact';
+  const isInspector = density === 'inspector';
   const {
     actionFeedback,
     canSendMessage,
@@ -128,7 +132,11 @@ export function AgentChatInput({
 
   return (
     <div
-      className="relative w-full"
+      className={cn(
+        'relative w-full',
+        isInspector && '[&_.ProseMirror]:min-h-14',
+      )}
+      data-density={density}
       onPaste={handlePasteImages}
       {...dragHandlers}
     >
@@ -155,16 +163,19 @@ export function AgentChatInput({
           // The prompt bar floats over the conversation/canvas, which scrolls
           // underneath it — the outer lift is what separates the two, so no
           // opaque filler band is needed below the composer.
-          'overflow-hidden rounded-xl border border-border bg-card shadow-composer transition-[border-color,box-shadow] focus-within:border-foreground/[0.18] focus-within:shadow-composer-strong',
+          'overflow-hidden border border-border bg-card shadow-composer transition-[border-color,box-shadow] focus-within:border-foreground/[0.18] focus-within:shadow-composer-strong',
+          isCompact || isInspector ? 'rounded-lg' : 'rounded-xl',
           isDragActive && 'ring-1 ring-primary/40',
         )}
         data-testid="agent-chat-input-shell"
         onPointerDown={handleShellPointerDown}
       >
-        <AgentComposerContextRail
-          attachmentCount={attachments.length}
-          referenceCount={references.length}
-        />
+        {isCompact || isInspector ? null : (
+          <AgentComposerContextRail
+            attachmentCount={attachments.length}
+            referenceCount={references.length}
+          />
+        )}
 
         {(hasAttachments || references.length > 0) && (
           <AgentChatInputAttachmentTray
@@ -176,7 +187,9 @@ export function AgentChatInput({
           />
         )}
 
-        <div className="px-3 pb-1 pt-2">
+        <div
+          className={cn(isCompact ? 'px-2 pb-0.5 pt-1.5' : 'px-3 pb-1 pt-2')}
+        >
           <EditorContent editor={editor} className="flex-1" />
 
           <AgentChatInputToolbar
@@ -198,6 +211,7 @@ export function AgentChatInput({
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
             showStop={showStop}
+            density={isCompact ? 'compact' : 'default'}
           />
         </div>
       </PromptBarShell>

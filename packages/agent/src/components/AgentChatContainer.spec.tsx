@@ -138,8 +138,15 @@ vi.mock('../utils/extract-thread-assets', () => ({
 }));
 
 vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
-  AgentChatInput: function MockAgentChatInput(props: { showStop?: boolean }) {
-    return <div>chat-input{props.showStop ? ' stop-visible' : ''}</div>;
+  AgentChatInput: function MockAgentChatInput(props: {
+    density?: string;
+    showStop?: boolean;
+  }) {
+    return (
+      <div data-density={props.density} data-testid="chat-input">
+        chat-input{props.showStop ? ' stop-visible' : ''}
+      </div>
+    );
   },
 }));
 
@@ -559,6 +566,38 @@ describe('AgentChatContainer', () => {
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
       'true',
     );
+  });
+
+  it('renders a full-width rail composer in the inspector portal', () => {
+    const apiService = createApiService();
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [buildAssistantMessage()];
+
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:thread-1:3"
+        placement="inspector"
+        portalTarget={portalTarget}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} isStreaming />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(
+      portalTarget.querySelector(
+        '[data-layout-mode="inflow"][data-max-width="full"]',
+      ),
+    ).not.toBeNull();
+    expect(screen.getByTestId('chat-input')).toHaveAttribute(
+      'data-density',
+      'inspector',
+    );
+    portalTarget.remove();
   });
 
   it('does not render a conversation composer when the product surface owns the primary input', () => {

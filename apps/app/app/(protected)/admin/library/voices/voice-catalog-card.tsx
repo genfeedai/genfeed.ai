@@ -83,7 +83,7 @@ export default function VoiceCatalogCard({
             size={ButtonSize.SM}
             variant={
               voice.isActive === false
-                ? ButtonVariant.OUTLINE
+                ? ButtonVariant.SECONDARY
                 : ButtonVariant.DEFAULT
             }
             withWrapper={false}
@@ -104,7 +104,7 @@ export default function VoiceCatalogCard({
             size={ButtonSize.SM}
             variant={
               voice.isDefaultSelectable === false
-                ? ButtonVariant.OUTLINE
+                ? ButtonVariant.SECONDARY
                 : ButtonVariant.SECONDARY
             }
             withWrapper={false}

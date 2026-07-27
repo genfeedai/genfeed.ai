@@ -18,6 +18,7 @@ export default function Container({
   left,
   right,
   children,
+  bodyClassName,
   fullWidth = true,
   className = '',
 }: ContainerProps) {
@@ -51,7 +52,7 @@ export default function Container({
       {(hasVisibleTitle || headerTabs || hasHeaderRight) && (
         <div
           className={cn(
-            'mb-4 flex items-center gap-4 border-b border-border pb-3',
+            'mb-4 flex items-center gap-4 pb-3',
             hasVisibleTitle ? 'justify-between' : 'justify-end',
             insetClassName,
           )}
@@ -88,7 +89,7 @@ export default function Container({
         </div>
       )}
 
-      <div className={cn(bodyInsetClassName)}>{children}</div>
+      <div className={cn(bodyInsetClassName, bodyClassName)}>{children}</div>
     </div>
   );
 }

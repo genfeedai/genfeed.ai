@@ -17,7 +17,11 @@ export default function LibraryAvatarsPage() {
       <Suspense
         fallback={<SkeletonLoadingFallback type="masonry" count={12} />}
       >
-        <IngredientsList type="avatars" scope={PageScope.ORGANIZATION} />
+        <IngredientsList
+          folderNavigation="shell"
+          type="avatars"
+          scope={PageScope.ORGANIZATION}
+        />
       </Suspense>
     </IngredientsLayout>
   );

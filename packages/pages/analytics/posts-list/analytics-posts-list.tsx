@@ -213,13 +213,13 @@ export default function AnalyticsPostsList() {
           {focusedPostId ? (
             <Button
               label="Clear Focus"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={() => setFocusedPost()}
             />
           ) : null}
           <Button
             label="Open In Agent"
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             onClick={() =>
               router.push(
                 buildAgentPromptHref(

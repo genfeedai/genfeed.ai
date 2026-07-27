@@ -62,7 +62,7 @@ function AgentRunThreadAction({
     <Button
       ariaLabel={`Open ${run.label} thread`}
       size={ButtonSize.XS}
-      variant={ButtonVariant.OUTLINE}
+      variant={ButtonVariant.SECONDARY}
       withWrapper={false}
       onClick={() => onOpenThread(threadId)}
     >
@@ -114,7 +114,7 @@ function AgentRunRetryAction({
       ariaLabel={`Retry ${run.label}`}
       isLoading={actionRunId === run.id}
       size={ButtonSize.XS}
-      variant={ButtonVariant.OUTLINE}
+      variant={ButtonVariant.SECONDARY}
       withWrapper={false}
       onClick={() => onRetry(run.id)}
     >
@@ -391,7 +391,7 @@ function AgentRunDetailUnavailable({
       </p>
       <Button
         size={ButtonSize.XS}
-        variant={ButtonVariant.OUTLINE}
+        variant={ButtonVariant.SECONDARY}
         withWrapper={false}
         onClick={onReload}
       >

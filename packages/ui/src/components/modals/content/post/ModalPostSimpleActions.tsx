@@ -38,7 +38,7 @@ export default function ModalPostSimpleActions({
             <Button
               type="button"
               label="View Details"
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               onClick={onViewDetailsClick}
               isDisabled={isSubmitting}
             />

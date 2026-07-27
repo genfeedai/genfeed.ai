@@ -366,7 +366,7 @@ export default function BrandDetailSocialMediaCard({
                     {summary.holdPublishing ? (
                       <Button
                         size={ButtonSize.SM}
-                        variant={ButtonVariant.OUTLINE}
+                        variant={ButtonVariant.SECONDARY}
                         onClick={() =>
                           setOverrideCredentialId(summary.credentialId)
                         }

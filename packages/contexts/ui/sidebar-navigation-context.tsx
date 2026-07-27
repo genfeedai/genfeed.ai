@@ -22,6 +22,8 @@ interface SidebarNavigationContextType {
   breadcrumbRootLabel: string;
   /** Canonical breadcrumb leaf, independent of sidebar discovery coverage. */
   breadcrumbPageLabel: string;
+  /** Whether the permanent shell supplied canonical page identity. */
+  hasCanonicalBreadcrumb: boolean;
   /** All grouped menu items for breadcrumb/navigation reference */
   groups: GroupedMenu[];
   /** Enter nested sidebar mode for a group */
@@ -112,6 +114,8 @@ function isPathActive(href: string, pathname: string | null): boolean {
 interface SidebarNavigationProviderProps {
   breadcrumb?: WorkspaceShellBreadcrumbMetadata;
   children: ReactNode;
+  /** The surrounding shell permanently owns visible page identity. */
+  hasCanonicalPageIdentity?: boolean;
   items: MenuItemConfig[];
 }
 
@@ -123,6 +127,7 @@ interface NestedGroupOverride {
 export function SidebarNavigationProvider({
   breadcrumb,
   children,
+  hasCanonicalPageIdentity = false,
   items,
 }: SidebarNavigationProviderProps) {
   const pathname = usePathname();
@@ -233,6 +238,7 @@ export function SidebarNavigationProvider({
       enterNestedGroup,
       exitNestedGroup,
       groups,
+      hasCanonicalBreadcrumb: hasCanonicalPageIdentity || Boolean(breadcrumb),
       nestedGroupId,
     }),
     [
@@ -240,6 +246,7 @@ export function SidebarNavigationProvider({
       nestedGroupId,
       derivedPageLabel,
       breadcrumb,
+      hasCanonicalPageIdentity,
       groups,
       enterNestedGroup,
       exitNestedGroup,
@@ -261,6 +268,7 @@ const DEFAULT_CONTEXT: SidebarNavigationContextType = {
   enterNestedGroup: () => {},
   exitNestedGroup: () => {},
   groups: [],
+  hasCanonicalBreadcrumb: false,
   nestedGroupId: null,
 };
 

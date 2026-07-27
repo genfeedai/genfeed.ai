@@ -35,17 +35,19 @@ describe('Container', () => {
     expect(rootElement).not.toHaveClass('max-w-none');
   });
 
-  it('keeps full-pane header dividers while insetting header content', () => {
+  it('keeps full-pane header content inset without rendering a divider', () => {
     const { container } = render(
       <Container label="Dashboard">content</Container>,
     );
     const rootElement = container.firstChild as HTMLElement;
-    const header = rootElement.querySelector('.border-b') as HTMLElement;
+    const header = screen.getByRole('heading', { name: 'Dashboard' })
+      .parentElement?.parentElement;
 
     expect(rootElement).not.toHaveClass('px-5');
     expect(header).toHaveClass('px-5');
     expect(header).toHaveClass('sm:px-6');
     expect(header).toHaveClass('lg:px-6');
+    expect(header).not.toHaveClass('border-b');
   });
 
   it('insets full-width body content to match the header gutter', () => {
@@ -60,6 +62,21 @@ describe('Container', () => {
     expect(bodyWrapper).toHaveClass('px-5');
     expect(bodyWrapper).toHaveClass('sm:px-6');
     expect(bodyWrapper).toHaveClass('lg:px-6');
+  });
+
+  it('supports full-height page body layouts', () => {
+    render(
+      <Container bodyClassName="flex min-h-0 flex-1 flex-col">
+        <div data-testid="body-content">content</div>
+      </Container>,
+    );
+
+    const bodyWrapper = screen.getByTestId('body-content').parentElement;
+
+    expect(bodyWrapper).toHaveClass('flex');
+    expect(bodyWrapper).toHaveClass('min-h-0');
+    expect(bodyWrapper).toHaveClass('flex-1');
+    expect(bodyWrapper).toHaveClass('flex-col');
   });
 
   it('does not double-inset constrained body content', () => {

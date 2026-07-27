@@ -112,7 +112,7 @@ export default function HomeHero(): React.ReactElement {
                 size={ButtonSize.PUBLIC}
                 trackingData={{ action: 'book_demo_hero' }}
                 trackingName="hero_cta_click"
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
               >
                 <a
                   href={EnvironmentService.calendly}

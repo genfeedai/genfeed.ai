@@ -13,8 +13,6 @@ const variantStyles: Partial<Record<ButtonVariant, string>> = {
     'bg-primary text-primary-foreground hover:bg-primary/90',
   [ButtonVariant.GHOST]: 'hover:bg-accent hover:text-accent-foreground',
   [ButtonVariant.LINK]: 'text-primary underline-offset-4 hover:underline',
-  [ButtonVariant.OUTLINE]:
-    'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
   [ButtonVariant.SECONDARY]:
     'bg-secondary text-secondary-foreground hover:bg-secondary/80',
 };

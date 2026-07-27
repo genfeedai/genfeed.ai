@@ -596,7 +596,7 @@ export default function CrossPostComposerPage() {
                   variant={
                     target.id === activeTarget.id
                       ? ButtonVariant.DEFAULT
-                      : ButtonVariant.OUTLINE
+                      : ButtonVariant.SECONDARY
                   }
                   onClick={() => setActiveTargetId(target.id)}
                 />

@@ -29,15 +29,22 @@ export default function ClipsProgressView({
       : project.mode === 'raw-cut'
         ? 'Processing YouTube video and creating raw cuts...'
         : 'Processing YouTube video and generating avatar clips...';
+  const statusHeading =
+    project.status === 'completed'
+      ? 'Clips ready'
+      : project.status === 'failed'
+        ? 'Clip generation failed'
+        : 'Generating clips';
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
+      <h1 className="sr-only">Clips</h1>
       <div className="mb-8">
         <div className="flex items-center gap-3">
           <HiOutlineFilm className="size-6 text-primary" />
-          <h1 className="text-2xl font-semibold text-zinc-100">
-            AI Clip Factory
-          </h1>
+          <h2 className="text-2xl font-semibold text-zinc-100">
+            {statusHeading}
+          </h2>
         </div>
         <p className="mt-2 text-sm text-zinc-500">
           {project.status === 'completed'

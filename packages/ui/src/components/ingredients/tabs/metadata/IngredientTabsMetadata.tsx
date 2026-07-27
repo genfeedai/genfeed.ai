@@ -229,7 +229,7 @@ export default function IngredientTabsMetadata({
           />
         }
         tooltip="Refresh metadata"
-        variant={ButtonVariant.OUTLINE}
+        variant={ButtonVariant.SECONDARY}
         size={ButtonSize.SM}
         onClick={handleRefreshMetadata}
         isDisabled={isRefreshing}

@@ -30,7 +30,7 @@ export function AgentThreadListErrorBanner({
           <span>{loadError}</span>
           <Button
             withWrapper={false}
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             className="h-7 px-2 text-[11px]"
             onClick={onRetry}
           >

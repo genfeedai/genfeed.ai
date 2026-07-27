@@ -85,8 +85,8 @@ describe('useOrgUrl', () => {
 
     expect(result.current.orgSlug).toBe('genfeed-ai');
     expect(result.current.brandSlug).toBe('');
-    expect(result.current.href('/library/ingredients')).toBe(
-      '/genfeed-ai/~/library/ingredients',
+    expect(result.current.href('/library/videos')).toBe(
+      '/genfeed-ai/~/library/videos',
     );
   });
 

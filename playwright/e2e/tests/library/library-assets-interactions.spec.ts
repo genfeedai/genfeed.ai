@@ -7,7 +7,7 @@ import {
 
 /**
  * Deep interaction specs for the brand-scoped asset library surfaces
- * (captions, gifs, ingredients). The shared API interceptor returns sample
+ * (captions, GIFs, videos). The shared API interceptor returns sample
  * collections so tables/grids populate. These specs exercise filter dropdowns,
  * search, sort, row/card detail open-close, create triggers, and pagination to
  * widen code coverage. Real selectors are preferred with `tryClick` fallbacks
@@ -89,10 +89,10 @@ test.describe('Library assets — deep interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('ingredients: landing filters, search, detail, and create flow', async ({
+  test('videos: filters, search, detail, and create flow', async ({
     authenticatedPage,
   }) => {
-    await assertRouteRenders(authenticatedPage, `${BRAND}/library/ingredients`);
+    await assertRouteRenders(authenticatedPage, `${BRAND}/library/videos`);
 
     await exerciseFilters(authenticatedPage);
     await exerciseDetailAndCreate(authenticatedPage);

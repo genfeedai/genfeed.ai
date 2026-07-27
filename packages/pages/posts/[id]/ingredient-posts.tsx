@@ -77,9 +77,9 @@ export default function IngredientPosts({
 
         {/* Info */}
         <div className="flex-1">
-          <h1 className="text-3xl font-bold mb-2">
+          <h2 className="text-3xl font-bold mb-2">
             {ingredient.metadataLabel || 'Untitled Ingredient'}
-          </h1>
+          </h2>
 
           {ingredient.metadataDescription && (
             <p className="text-foreground/70 mb-4">

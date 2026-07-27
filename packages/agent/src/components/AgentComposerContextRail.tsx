@@ -33,12 +33,6 @@ export function AgentComposerContextRail({
           {attachmentCount} {attachmentCount === 1 ? 'file' : 'files'}
         </span>
       ) : null}
-      <div
-        className="ml-auto flex shrink-0 items-center"
-        data-composer-scope-controls-slot="true"
-      >
-        {shell?.scopeControls}
-      </div>
     </div>
   );
 }

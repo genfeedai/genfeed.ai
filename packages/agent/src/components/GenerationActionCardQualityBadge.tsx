@@ -33,7 +33,7 @@ export function GenerationActionCardQualityBadge({
         )}
         {onRegenerate && (
           <Button
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
             onClick={onRegenerate}
             className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900"

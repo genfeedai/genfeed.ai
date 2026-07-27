@@ -43,7 +43,7 @@ const PaginationLink = ({
     className={cn(
       buttonVariants({
         size,
-        variant: isActive ? ButtonVariant.OUTLINE : ButtonVariant.GHOST,
+        variant: isActive ? ButtonVariant.SECONDARY : ButtonVariant.GHOST,
       }),
       className,
     )}

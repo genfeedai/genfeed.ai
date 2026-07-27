@@ -48,7 +48,7 @@ export function AgentWorkspacePageShell({
   );
 
   return (
-    <div className="flex h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0 w-full flex-1 flex-col overflow-hidden">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <AgentFullPage
         apiService={agentApiService}
         authReady={isLoaded}

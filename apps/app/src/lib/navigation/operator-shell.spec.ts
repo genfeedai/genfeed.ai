@@ -40,15 +40,14 @@ describe('operator-shell helpers', () => {
   });
 
   it('gates the first-asset unlock sections (and their aliases) only', () => {
-    // Gated sections + Workspace/Workflows aliases (Codex review: /tasks,
-    // /orchestration must be gated too).
+    // Gated sections + Workspace/Workflows aliases.
     for (const gated of [
       '/workspace',
       '/workspace/overview',
       '/overview',
-      '/tasks',
+      '/workspace/tasks',
       '/library',
-      '/library/ingredients',
+      '/library/overview',
       '/analytics',
       '/analytics/overview',
       '/workflows',

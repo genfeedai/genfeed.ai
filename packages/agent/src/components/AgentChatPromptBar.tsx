@@ -86,6 +86,7 @@ export function AgentChatPromptBar({
   socketConnectionState,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
+  const isInspectorComposer = composerShell?.placement === 'inspector';
   const statusStack = (
     <AgentComposerStatusStack
       activeWorkEvent={activeWorkEvent}
@@ -109,7 +110,7 @@ export function AgentChatPromptBar({
   const promptBar = (
     <PromptBarContainer
       layoutMode={composerShell?.portalTarget ? 'inflow' : layoutMode}
-      maxWidth="4xl"
+      maxWidth={isInspectorComposer ? 'full' : '4xl'}
       showTopFade={!composerShell?.portalTarget}
       topContent={topContent}
       zIndex={40}
@@ -134,6 +135,7 @@ export function AgentChatPromptBar({
         onStop={onStop}
         apiService={apiService}
         showStop={isRunActive}
+        density={isInspectorComposer ? 'inspector' : 'default'}
         attachments={chatAttachments}
         isUploading={isAttachmentUploading}
         dragState={dragState}

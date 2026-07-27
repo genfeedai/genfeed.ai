@@ -93,7 +93,7 @@ export default function FastlaneIdeaSelector({
               <Button
                 key={fmt}
                 variant={
-                  isSelected ? ButtonVariant.DEFAULT : ButtonVariant.OUTLINE
+                  isSelected ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
                 }
                 size={ButtonSize.SM}
                 label={FORMAT_LABELS[fmt]}
@@ -122,7 +122,7 @@ export default function FastlaneIdeaSelector({
         <p className="gen-label-sm text-muted-foreground">Ideas per format</p>
         <div className="flex items-center gap-3">
           <Button
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             label="-"
             isDisabled={count <= MIN_COUNT}
@@ -130,7 +130,7 @@ export default function FastlaneIdeaSelector({
           />
           <span className="text-lg font-semibold w-6 text-center">{count}</span>
           <Button
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             label="+"
             isDisabled={count >= MAX_COUNT}
@@ -158,7 +158,7 @@ export default function FastlaneIdeaSelector({
           <Badge variant="secondary">{creditEstimate} credits</Badge>
         </div>
         <Button
-          variant={ButtonVariant.GENERATE}
+          variant={ButtonVariant.DEFAULT}
           label="Generate ideas"
           isDisabled={selectedFormats.length === 0}
           isLoading={isLoading}

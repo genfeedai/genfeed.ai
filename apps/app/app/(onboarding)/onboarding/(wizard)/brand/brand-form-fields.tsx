@@ -181,7 +181,7 @@ export default function BrandFormFields({
       <div className="step-actions opacity-0">
         <div className="flex items-center gap-3">
           <Button
-            variant={ButtonVariant.WHITE}
+            variant={ButtonVariant.DEFAULT}
             size={ButtonSize.DEFAULT}
             label="Continue"
             icon={<HiArrowRight className="size-4" />}

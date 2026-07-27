@@ -65,6 +65,7 @@ export interface ContainerProps {
   activeTab?: string;
   onTabChange?: (tabId: string) => void;
   children: ReactNode;
+  bodyClassName?: string;
   className?: string;
   fullWidth?: boolean;
   left?: ReactNode;

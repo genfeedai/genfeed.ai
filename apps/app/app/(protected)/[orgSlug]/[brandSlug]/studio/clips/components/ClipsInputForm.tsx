@@ -25,19 +25,7 @@ export default function ClipsInputForm({
 }: ClipsInputFormProps) {
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
-      <div className="mb-8 text-center">
-        <div className="mb-4 flex justify-center">
-          <div className="rounded-2xl bg-primary/10 p-3">
-            <HiOutlineSparkles className="size-8 text-primary" />
-          </div>
-        </div>
-        <h1 className="text-3xl font-semibold text-zinc-100">
-          AI Clip Factory
-        </h1>
-        <p className="mt-2 text-sm text-zinc-500">
-          Turn a YouTube video into captioned raw cuts or AI avatar clips
-        </p>
-      </div>
+      <h1 className="sr-only">Clips</h1>
 
       <div className="space-y-5 rounded-xl bg-secondary p-6 shadow-border">
         {/* YouTube URL */}

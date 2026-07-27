@@ -100,7 +100,7 @@ export function AuthCheckEmail({
       <p className="text-sm text-muted-foreground">{description}</p>
       <Button
         asChild
-        variant={ButtonVariant.OUTLINE}
+        variant={ButtonVariant.SECONDARY}
         className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
         withWrapper={false}
       >

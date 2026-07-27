@@ -255,7 +255,7 @@ export function AgentStrategyStatus({
 
       {/* Run Now */}
       <Button
-        variant={ButtonVariant.OUTLINE}
+        variant={ButtonVariant.SECONDARY}
         onClick={handleRunNow}
         isDisabled={!strategy.isActive || !strategy.isEnabled}
         className="w-full"

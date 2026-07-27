@@ -169,8 +169,8 @@ describe('NewslettersPage', () => {
       screen.getByRole('heading', { level: 1, name: 'Newsletters' }),
     ).toHaveClass('sr-only');
     expect(
-      screen.getByText(/Build history-aware newsletters for Acme/),
-    ).toBeVisible();
+      screen.queryByText(/Build history-aware newsletters for Acme/),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Issue 1')).toBeVisible();
     expect(screen.getAllByText('Issue 2').length).toBeGreaterThan(0);
 

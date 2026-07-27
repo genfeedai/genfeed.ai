@@ -1,7 +1,10 @@
 'use client';
 
 import type { IngredientCategorySchema } from '@genfeedai/client/schemas';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import {
+  ITEMS_PER_PAGE,
+  LIBRARY_ASSETS_REFRESH_EVENT,
+} from '@genfeedai/constants';
 import { IngredientCategory, PageScope } from '@genfeedai/enums';
 import type {
   IFilters,
@@ -72,6 +75,7 @@ interface UseIngredientsLoadingProps {
   setIsRefreshing: (isRefreshing: boolean) => void;
   onRefresh?: (fn: () => void) => void;
   parsedSearchParams: URLSearchParams;
+  loadFolders: boolean;
 }
 
 export function useIngredientsLoading({
@@ -87,6 +91,7 @@ export function useIngredientsLoading({
   setIsRefreshing,
   onRefresh,
   parsedSearchParams,
+  loadFolders,
 }: UseIngredientsLoadingProps) {
   const notificationsService = NotificationsService.getInstance();
 
@@ -370,9 +375,34 @@ export function useIngredientsLoading({
     };
   }, [brandId, findAllIngredientsByCategory, onRefresh, scope]);
 
+  useEffect(() => {
+    const handleLibraryAssetsRefresh = () => {
+      void findAllIngredientsByCategory(true);
+    };
+
+    window.addEventListener(
+      LIBRARY_ASSETS_REFRESH_EVENT,
+      handleLibraryAssetsRefresh,
+    );
+
+    return () => {
+      window.removeEventListener(
+        LIBRARY_ASSETS_REFRESH_EVENT,
+        handleLibraryAssetsRefresh,
+      );
+    };
+  }, [findAllIngredientsByCategory]);
+
   // Load folders on mount
   useEffect(() => {
     const abortController = new AbortController();
+
+    if (!loadFolders) {
+      setIsLoadingFolders(false);
+      return () => {
+        abortController.abort();
+      };
+    }
 
     const shouldLoadFolders =
       scope === PageScope.SUPERADMIN ||
@@ -386,7 +416,7 @@ export function useIngredientsLoading({
     return () => {
       abortController.abort();
     };
-  }, [brandId, findAllFolders, scope]);
+  }, [brandId, findAllFolders, loadFolders, scope]);
 
   // Refetch when query changes
   useEffect(() => {

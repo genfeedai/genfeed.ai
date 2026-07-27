@@ -168,9 +168,9 @@ export default function ExecutionDetailPage({
   if (error && !execution) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
-        <h1 className="mb-4 text-2xl font-semibold">
+        <h2 className="mb-4 text-2xl font-semibold">
           Execution Failed To Load
-        </h1>
+        </h2>
         <p className="mb-6 text-muted-foreground">{error}</p>
         <Link
           href={href(APP_ROUTES.WORKFLOWS.EXECUTIONS)}
@@ -185,7 +185,7 @@ export default function ExecutionDetailPage({
   if (!execution) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
-        <h1 className="mb-4 text-2xl font-semibold">Execution Not Found</h1>
+        <h2 className="mb-4 text-2xl font-semibold">Execution Not Found</h2>
         <p className="mb-6 text-muted-foreground">
           The execution run you're looking for doesn't exist.
         </p>
@@ -269,7 +269,9 @@ export default function ExecutionDetailPage({
 
         {/* Download Logs */}
         <div className="mt-8 flex justify-end">
-          <Button variant={ButtonVariant.OUTLINE}>Download Logs (JSON)</Button>
+          <Button variant={ButtonVariant.SECONDARY}>
+            Download Logs (JSON)
+          </Button>
         </div>
       </main>
     </div>

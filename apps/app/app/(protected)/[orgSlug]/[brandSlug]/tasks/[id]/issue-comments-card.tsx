@@ -104,7 +104,7 @@ export default function IssueCommentsCard({
           value={commentBody}
         />
         <Button
-          variant={ButtonVariant.SOFT}
+          variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           disabled={isSubmitting || !commentBody.trim()}
           onClick={onAddComment}

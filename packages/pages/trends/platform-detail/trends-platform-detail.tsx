@@ -215,7 +215,7 @@ export default function TrendsPlatformDetail({
                     /* surfaced via hook */
                   });
                 }}
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
               />
             </div>
           </Alert>

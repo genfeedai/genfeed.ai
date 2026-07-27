@@ -2,21 +2,24 @@ import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { render, screen } from '@testing-library/react';
 import IssueDetailPage, * as PageModule from './page';
 
-vi.mock('./issue-detail', () => ({
-  default: ({
-    issueId,
-    useIdentifier,
-  }: {
-    issueId: string;
-    useIdentifier: boolean;
-  }) => (
-    <div data-testid="issue-detail">
-      {issueId}:{String(useIdentifier)}
-    </div>
-  ),
-}));
+vi.mock(
+  '@app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-detail',
+  () => ({
+    default: ({
+      issueId,
+      useIdentifier,
+    }: {
+      issueId: string;
+      useIdentifier: boolean;
+    }) => (
+      <div data-testid="issue-detail">
+        {issueId}:{String(useIdentifier)}
+      </div>
+    ),
+  }),
+);
 
-runPageModuleTests('app/(protected)/tasks/[id]/page', PageModule);
+runPageModuleTests('app/(protected)/workspace/tasks/[id]/page', PageModule);
 
 describe('IssueDetailPage', () => {
   it('renders the requested task detail surface', async () => {

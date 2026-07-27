@@ -48,7 +48,7 @@ export default function TrendDetailHeader({
             <span>•</span>
             <span>Trending Topic</span>
           </div>
-          <h1 className="text-2xl font-bold">{trend.topic}</h1>
+          <h2 className="text-2xl font-bold">{trend.topic}</h2>
         </div>
       </div>
     </div>

@@ -27,6 +27,9 @@ describe('SettingsCreditsPage', () => {
   it('renders managed credits for self-hosted installs', () => {
     render(<SettingsCreditsPage />);
 
+    expect(screen.getByRole('heading', { name: 'Credits' })).toHaveClass(
+      'sr-only',
+    );
     expect(screen.getByTestId('managed-credits-card')).toBeInTheDocument();
     expect(screen.queryByTestId('hosted-credits-card')).not.toBeInTheDocument();
   });

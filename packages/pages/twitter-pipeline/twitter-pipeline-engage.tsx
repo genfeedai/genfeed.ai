@@ -234,7 +234,7 @@ export default function TwitterPipelineEngage() {
           </Button>
 
           {(searchResults.length > 0 || opportunities.length > 0) && (
-            <Button variant={ButtonVariant.OUTLINE} onClick={handleReset}>
+            <Button variant={ButtonVariant.SECONDARY} onClick={handleReset}>
               <HiArrowPath className="size-4" />
               Reset
             </Button>

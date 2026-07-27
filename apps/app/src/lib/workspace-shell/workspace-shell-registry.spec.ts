@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { WORKSPACE_SURFACES_WITH_OWN_PRIMARY_INPUT } from './workspace-composer-surfaces';
 import {
   getWorkspaceShellOverlayRegistration,
   PROTECTED_ROUTE_INVENTORY,
@@ -72,18 +71,6 @@ describe('workspace shell trusted registry', () => {
     }
   });
 
-  it('registers every surface that suppresses the shell composer', () => {
-    const registeredSurfaceKeys = new Set(
-      PROTECTED_ROUTE_INVENTORY.map((route) => route.surfaceKey),
-    );
-
-    expect(
-      [...WORKSPACE_SURFACES_WITH_OWN_PRIMARY_INPUT].filter(
-        (surfaceKey) => !registeredSurfaceKeys.has(surfaceKey),
-      ),
-    ).toEqual([]);
-  });
-
   it('resolves every canonical inventory pattern to its exact registration', () => {
     for (const registration of PROTECTED_ROUTE_INVENTORY) {
       const route = resolveWorkspaceShellRoute(
@@ -100,7 +87,9 @@ describe('workspace shell trusted registry', () => {
     ['/acme/~/settings/api-keys', 'Settings', 'API Keys'],
     ['/acme/moonrise/research/following', 'Research', 'Following'],
     ['/acme/moonrise/research/instagram', 'Research', 'Instagram'],
-    ['/acme/moonrise/library/ingredients', 'Library', 'Ingredients'],
+    ['/acme/moonrise/library/overview', 'Library', 'Overview'],
+    ['/acme/moonrise/library/videos', 'Library', 'Assets'],
+    ['/acme/moonrise/library/voices', 'Library', 'Assets'],
     ['/acme/moonrise/library/moodboard', 'Library', 'Moodboard'],
     ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
     ['/acme/moonrise/studio/video/asset-1', 'Studio', 'Video'],

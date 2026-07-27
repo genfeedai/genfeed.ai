@@ -52,7 +52,6 @@ export default function AddCreditsCard() {
 
   return (
     <CreditTopUpPanel
-      description="Top up your hosted balance. 1 credit = $0.01."
       isStartingCheckout={isStartingCheckout}
       submitLabel="Add credit"
       onSubmit={handleAddCredits}

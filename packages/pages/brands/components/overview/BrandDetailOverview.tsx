@@ -63,7 +63,7 @@ export default function BrandDetailOverview({
       <div className="flex-grow flex flex-col gap-2">
         <div className="flex justify-between items-start gap-4">
           <div>
-            <h1 className="text-2xl font-bold mb-1">{brand.label}</h1>
+            <h2 className="text-2xl font-bold mb-1">{brand.label}</h2>
             <p className="text-muted-foreground">
               {brand.description || 'No description available'}
             </p>

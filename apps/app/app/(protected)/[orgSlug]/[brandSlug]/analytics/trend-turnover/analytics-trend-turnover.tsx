@@ -97,10 +97,6 @@ export default function AnalyticsTrendTurnover() {
           <Heading size="2xl" as="h1" className="sr-only">
             Trend Turnover Dashboard
           </Heading>
-          <Text as="p" color="subtle-70" className="max-w-3xl">
-            How quickly trends appear and die on each platform over the last{' '}
-            {period} days : higher turnover means faster-moving content cycles.
-          </Text>
         </VStack>
       </header>
 

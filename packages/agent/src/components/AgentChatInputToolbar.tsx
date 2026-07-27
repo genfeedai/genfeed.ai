@@ -1,6 +1,7 @@
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
@@ -35,6 +36,7 @@ interface AgentChatInputToolbarProps {
   shouldShowSendButton: boolean;
   shouldShowVoiceInput: boolean;
   showStop: boolean;
+  density?: 'compact' | 'default';
 }
 
 export function AgentChatInputToolbar({
@@ -54,9 +56,11 @@ export function AgentChatInputToolbar({
   shouldShowSendButton,
   shouldShowVoiceInput,
   showStop,
+  density = 'default',
 }: AgentChatInputToolbarProps): ReactElement {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isActionsOpen, setIsActionsOpen] = useState(false);
+  const isCompact = density === 'compact';
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>): void {
     const files = Array.from(event.target.files ?? []);
@@ -67,7 +71,12 @@ export function AgentChatInputToolbar({
   }
 
   return (
-    <div className="mt-1 flex min-h-10 items-center justify-between gap-2 border-t border-border/70 pt-2">
+    <div
+      className={cn(
+        'mt-1 flex items-center justify-between gap-2 border-t border-border/70',
+        isCompact ? 'min-h-9 pt-1' : 'min-h-10 pt-2',
+      )}
+    >
       <div className="flex min-w-0 items-center gap-1">
         {onAddFiles ? (
           <>
@@ -82,7 +91,7 @@ export function AgentChatInputToolbar({
             />
             <Button
               ariaLabel="Attach files"
-              className="size-9 shrink-0"
+              className={cn('shrink-0', isCompact ? 'size-8' : 'size-9')}
               icon={<HiOutlinePaperClip className="size-4" />}
               isDisabled={disabled}
               onClick={() => fileInputRef.current?.click()}
@@ -96,7 +105,7 @@ export function AgentChatInputToolbar({
 
         <Button
           ariaLabel="Add an existing content reference"
-          className="size-9 shrink-0"
+          className={cn('shrink-0', isCompact ? 'size-8' : 'size-9')}
           icon={<HiOutlineLink className="size-4" />}
           isDisabled={disabled || !hasEditor}
           onClick={onInsertReference}
@@ -110,13 +119,18 @@ export function AgentChatInputToolbar({
           <PopoverTrigger asChild>
             <Button
               ariaLabel="Open composer actions"
-              className="h-9 shrink-0 gap-1.5 px-2.5"
+              className={cn(
+                'shrink-0 gap-1.5',
+                isCompact ? 'size-8 px-0' : 'h-9 px-2.5',
+              )}
               icon={<HiOutlineBolt className="size-4" />}
               isDisabled={disabled || !hasEditor}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
             >
-              <span className="hidden text-xs sm:inline">Actions</span>
+              {isCompact ? null : (
+                <span className="hidden text-xs sm:inline">Actions</span>
+              )}
             </Button>
           </PopoverTrigger>
           <PopoverContent
@@ -167,7 +181,7 @@ export function AgentChatInputToolbar({
         {isTranscribing ? (
           <Button
             ariaLabel="Transcribing"
-            className="size-9 shrink-0"
+            className={cn('shrink-0', isCompact ? 'size-8' : 'size-9')}
             icon={
               <HiOutlineArrowPath className="size-4 animate-spin motion-reduce:animate-none" />
             }
@@ -179,7 +193,10 @@ export function AgentChatInputToolbar({
         ) : !showStop && isListening ? (
           <Button
             ariaLabel="Stop listening"
-            className="relative size-9 shrink-0 bg-destructive/15 text-destructive"
+            className={cn(
+              'relative shrink-0 bg-destructive/15 text-destructive',
+              isCompact ? 'size-8' : 'size-9',
+            )}
             onClick={onStopListening}
             size={ButtonSize.ICON}
             variant={ButtonVariant.GHOST}
@@ -194,7 +211,7 @@ export function AgentChatInputToolbar({
         ) : shouldShowVoiceInput ? (
           <Button
             ariaLabel="Start voice input"
-            className="size-9 shrink-0"
+            className={cn('shrink-0', isCompact ? 'size-8' : 'size-9')}
             icon={<HiOutlineMicrophone className="size-4" />}
             isDisabled={disabled}
             onClick={onStartListening}
@@ -205,7 +222,7 @@ export function AgentChatInputToolbar({
         ) : shouldShowSendButton ? (
           <Button
             ariaLabel="Send message"
-            className="size-9 shrink-0"
+            className={cn('shrink-0', isCompact ? 'size-8' : 'size-9')}
             icon={<HiArrowUp className="size-4" />}
             isDisabled={
               disabled || !hasEditor || !canSendMessage || isUploading
@@ -213,7 +230,7 @@ export function AgentChatInputToolbar({
             onClick={onSend}
             size={ButtonSize.ICON}
             tooltip="Send (Enter)"
-            variant={ButtonVariant.GENERATE}
+            variant={ButtonVariant.DEFAULT}
             withWrapper={false}
           />
         ) : null}

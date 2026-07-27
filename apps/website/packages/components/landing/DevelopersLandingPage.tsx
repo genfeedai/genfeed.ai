@@ -136,7 +136,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
             </ButtonTracked>
             <ButtonTracked
               asChild
-              variant={ButtonVariant.OUTLINE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.PUBLIC}
               trackingName="developers_hero_click"
               trackingData={{ action: 'view_github' }}
@@ -295,7 +295,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
               </ButtonTracked>
               <ButtonTracked
                 asChild
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.PUBLIC}
                 trackingName="developers_cta_click"
                 trackingData={{ action: 'view_github' }}

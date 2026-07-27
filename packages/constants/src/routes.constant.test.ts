@@ -51,6 +51,10 @@ describe('routes.constant', () => {
     );
   });
 
+  it('keeps Tasks inside the Workspace route family', () => {
+    expect(APP_ROUTES.WORKSPACE.TASKS).toBe('/workspace/tasks');
+  });
+
   it('builds scoped brand and organization routes', () => {
     expect(
       createBrandAppRoute(

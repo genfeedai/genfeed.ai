@@ -58,9 +58,10 @@ const ORG_SCOPED_PREFIXES = ['settings'] as const;
 const FLAT_PATH_REDIRECTS = new Map<string, string>([
   ['/analytics', '/analytics/overview'],
   ['/compose', '/compose/article'],
-  ['/library', '/library/ingredients'],
+  ['/library', '/library/overview'],
   ['/research', '/research/discovery'],
   ['/studio', '/studio/image'],
+  ['/tasks', '/workspace/tasks'],
   ['/workspace', '/workspace/overview'],
   ['/workspace/inbox', '/workspace/inbox/unread'],
 ]);
@@ -91,6 +92,27 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
 
 /** Slug segments must be alphanumeric + hyphens only (no dots, slashes, etc.). */
 const SLUG_RE = /^[a-zA-Z0-9-]+$/;
+
+function canonicalizeLegacyScopedProtectedPath(
+  pathname: string,
+): string | null {
+  const segments = pathname.split('/').filter(Boolean);
+  const [orgSlug, brandSlug, section, taskId] = segments;
+
+  if (
+    (segments.length !== 3 && segments.length !== 4) ||
+    section !== 'tasks' ||
+    !orgSlug ||
+    !brandSlug ||
+    !SLUG_RE.test(orgSlug) ||
+    !SLUG_RE.test(brandSlug)
+  ) {
+    return null;
+  }
+
+  const taskPath = taskId ? `/${taskId}` : '';
+  return `/${orgSlug}/${brandSlug}/workspace/tasks${taskPath}`;
+}
 
 function createSafeRedirectUrl(req: NextRequest, pathname: string): URL {
   const url = new URL(pathname, req.url);
@@ -350,13 +372,19 @@ type SlugResolution = {
   slugs: WorkspaceSlugs;
 };
 
+type WorkspaceSlugResolutionOptions = {
+  preferAvailableBrand?: boolean;
+};
+
 async function resolveActiveWorkspaceSlugs(
   token: string,
   cacheKey?: string | null,
   req?: NextRequest,
+  options?: WorkspaceSlugResolutionOptions,
 ): Promise<SlugResolution | null> {
+  const preferAvailableBrand = options?.preferAvailableBrand === true;
   const cached = readWorkspaceSlugCache(cacheKey);
-  if (cached) {
+  if (cached && (!preferAvailableBrand || cached.brandSlug)) {
     return { cookieValue: null, slugs: cached };
   }
 
@@ -364,7 +392,7 @@ async function resolveActiveWorkspaceSlugs(
     const cookieRaw = req.cookies.get(WORKSPACE_SLUG_COOKIE_NAME)?.value;
     if (cookieRaw) {
       const fromCookie = await decodeSlugCookie(cookieRaw);
-      if (fromCookie) {
+      if (fromCookie && (!preferAvailableBrand || fromCookie.brandSlug)) {
         writeWorkspaceSlugCache(cacheKey, fromCookie);
         return { cookieValue: null, slugs: fromCookie };
       }
@@ -403,7 +431,7 @@ async function resolveActiveWorkspaceSlugs(
   const resolvedBrand =
     activeBrandId && matchedBrand?.slug
       ? matchedBrand
-      : activeBrandId
+      : activeBrandId || preferAvailableBrand
         ? (brands.find((brand) => Boolean(brand.slug)) ?? matchedBrand)
         : undefined;
   const brandSlug = resolvedBrand?.slug;
@@ -577,9 +605,15 @@ async function resolveCanonicalProtectedPath(
   token: string,
   cacheKey?: string | null,
   req?: NextRequest,
+  options?: WorkspaceSlugResolutionOptions,
 ): Promise<CanonicalResolution | null> {
   const canonicalPath = canonicalizeFlatProtectedPath(pathname);
-  const resolution = await resolveActiveWorkspaceSlugs(token, cacheKey, req);
+  const resolution = await resolveActiveWorkspaceSlugs(
+    token,
+    cacheKey,
+    req,
+    options,
+  );
 
   if (!resolution) {
     return null;
@@ -700,6 +734,7 @@ async function redirectSignedInUserToDefaultRoute(
     token,
     cacheKey,
     req,
+    { preferAvailableBrand: true },
   );
 
   if (!resolved) {
@@ -743,6 +778,13 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  const canonicalLegacyPath = canonicalizeLegacyScopedProtectedPath(
+    req.nextUrl.pathname,
+  );
+  if (canonicalLegacyPath) {
+    return redirectPreservingSearch(req, canonicalLegacyPath);
+  }
+
   if (isDesktopClient()) {
     const { pathname } = req.nextUrl;
     const desktopToken = req.headers.get('x-genfeed-desktop-token')?.trim();
@@ -766,6 +808,7 @@ export async function proxy(req: NextRequest) {
           desktopToken,
           undefined,
           req,
+          { preferAvailableBrand: true },
         );
       };
 
@@ -782,7 +825,7 @@ export async function proxy(req: NextRequest) {
         return redirectPreservingSearch(req, '/login');
       }
 
-      const response = NextResponse.next();
+      const response = redirectDroppingSearch(req, resolved.path);
       if (resolved.cookieValue) {
         setSlugCookie(response, resolved.cookieValue);
       }
@@ -835,7 +878,7 @@ export async function proxy(req: NextRequest) {
     const { pathname } = req.nextUrl;
 
     if (pathname === '/') {
-      return NextResponse.next();
+      return redirectDroppingSearch(req, SEEDED_WORKSPACE_PATH);
     }
 
     if (isSeededWorkspaceEntrypoint(pathname)) {
@@ -917,10 +960,15 @@ export async function proxy(req: NextRequest) {
         token,
         sessionCookie,
         req,
+        { preferAvailableBrand: true },
       );
 
-      const response = NextResponse.next();
-      if (resolved?.cookieValue) {
+      if (!resolved) {
+        return NextResponse.next();
+      }
+
+      const response = redirectDroppingSearch(req, resolved.path);
+      if (resolved.cookieValue) {
         setSlugCookie(response, resolved.cookieValue);
       }
       return response;

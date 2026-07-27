@@ -196,7 +196,7 @@ export default function SiteFooter({
 
               <Button
                 size={ButtonSize.PUBLIC}
-                variant={ButtonVariant.BLACK}
+                variant={ButtonVariant.DEFAULT}
                 asChild
               >
                 <Link

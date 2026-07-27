@@ -438,7 +438,7 @@ export default function TrendsList() {
                     /* surfaced via hook */
                   });
                 }}
-                variant={ButtonVariant.OUTLINE}
+                variant={ButtonVariant.SECONDARY}
               />
             </div>
           </Alert>

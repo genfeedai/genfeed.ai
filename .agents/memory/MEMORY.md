@@ -31,6 +31,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — failed deploy: delete the unconsumed tag and re-cut the SAME version; never bump
 - [production_deploy_master_only](production_deploy_master_only.md) — never deploy a non-master ref to production unless Vincent explicitly overrides; master CI only
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
+- [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
 
 ## Rules (auto-loaded via `.claude/rules` symlink)
 
@@ -42,7 +43,7 @@ These are already in context every request — do not re-read them to "check".
 ## Architecture decisions
 
 - [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md) — 3 modes (SaaS/Community/Desktop) as `deployment × client`; Better Auth is the active baseline; platform admin via `users.platformRole`; multi-tenancy stays EE/SaaS; managed credits cloud-only. Supersedes the auth half of #95. Contributor doc: `docs/deployment-modes.md`
-- [ADR-CONVERSATION-SHELL-CONTRACTS](architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md) — v3: conversation is a surface (own route + inspector), not a shell state; canvas/overlay state, permanent frame, module-owned nav column, scope precedence, approval pins
+- [ADR-CONVERSATION-SHELL-CONTRACTS](architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md) — v3.2: conversation is a surface, composer follows it, frame/nav are route-owned, and the topbar breadcrumb owns visible page identity
 - [ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via the workflow engine
 - [ADR-PLG-BOUNDARY-OSS-CLOUD](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split
 - [ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION](architecture/ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION.md) — recurring agent automation
@@ -55,8 +56,6 @@ These are already in context every request — do not re-read them to "check".
 - [retire-redundant-product-routes](spec-retire-redundant-product-routes.md) · [decisions](decisions-retire-redundant-product-routes.md) — #1867
 - [filesystem-s3-path-containment](spec-filesystem-s3-path-containment.md) · [decisions](decisions-filesystem-s3-path-containment.md) — #2068
 - [scheduler-target-analytics](spec-scheduler-target-analytics.md) · [decisions](decisions-scheduler-target-analytics.md) — #1975
-- [pr-validation-telemetry](spec-pr-validation-telemetry.md) · [decisions](decisions-pr-validation-telemetry.md) — #1966
-- [pr-validation-superseded-waste](spec-pr-validation-superseded-waste.md) · [decisions](decisions-pr-validation-superseded-waste.md)
 - [brand-social-visual-enrichment](spec-brand-social-visual-enrichment.md) · [decisions](decisions-brand-social-visual-enrichment.md)
 - [mcp-instagram-meta-inspiration-remix](spec-mcp-instagram-meta-inspiration-remix.md) · [decisions](decisions-mcp-instagram-meta-inspiration-remix.md)
 - [local-development-host](spec-local-development-host.md) · [decisions](decisions-local-development-host.md)
@@ -72,7 +71,6 @@ These are already in context every request — do not re-read them to "check".
 - [project_desktop_byok_generation](project_desktop_byok_generation.md) — desktop generation is local-first
 - [project_desktop_first_run](project_desktop_first_run.md) — first run, workspaces, per-account sync consent
 - [project_ts6_prisma7_build_regression](project_ts6_prisma7_build_regression.md) — resolved 2026-06-03; stage 4 + migration-apply pending
-- [project_fallow](project_fallow.md) — codebase health (#83), weekly CI
 
 ## References
 

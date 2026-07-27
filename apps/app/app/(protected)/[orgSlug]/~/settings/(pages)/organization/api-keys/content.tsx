@@ -31,7 +31,6 @@ import {
   HiTrash,
 } from 'react-icons/hi2';
 import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
-import ApiKeysHeader from './api-keys-header';
 import ByokProviderCard from './byok-provider-card';
 
 type ApiKeysState = {
@@ -508,7 +507,7 @@ export default function SettingsApiKeysPage() {
 
   return (
     <div className="space-y-6">
-      <ApiKeysHeader />
+      <h1 className="sr-only">API Keys</h1>
 
       <Tabs defaultValue={desktop && !isReady ? 'providers' : 'genfeed'}>
         <TabsList aria-label="API key type">
@@ -743,6 +742,12 @@ export default function SettingsApiKeysPage() {
         </TabsContent>
 
         <TabsContent className="mt-4 space-y-3" value="providers">
+          <p className="text-sm leading-6 text-muted-foreground">
+            Genfeed uses the server-configured providers by default. Add your
+            own provider API keys only to override hosted access. Requests made
+            with your own key do not deduct credits.
+          </p>
+
           {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
 
           {!desktop && (!isReady || isLoading) ? (

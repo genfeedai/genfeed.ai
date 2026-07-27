@@ -1,13 +1,10 @@
 import { ButtonVariant, CardEmptySize } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { EmptyState, EmptyStateCard } from '@ui/card/EmptyState';
-import { HiInboxStack, HiPhoto, HiPlus, HiVideoCamera } from 'react-icons/hi2';
+import { HiInboxStack, HiPlus, HiVideoCamera } from 'react-icons/hi2';
 
 const InboxIcon = ({ className }: { className?: string }) => (
   <HiInboxStack className={className} />
-);
-const PhotoIcon = ({ className }: { className?: string }) => (
-  <HiPhoto className={className} />
 );
 const PlusIcon = ({ className }: { className?: string }) => (
   <HiPlus className={className} />
@@ -137,24 +134,6 @@ export const SecondaryAction: Story = {
         label: 'New Project',
         onClick: noop,
         variant: ButtonVariant.SECONDARY,
-      }}
-    />
-  ),
-};
-
-/**
- * With outline action variant
- */
-export const OutlineAction: Story = {
-  render: () => (
-    <EmptyState
-      icon={PhotoIcon}
-      title="No gallery items"
-      description="Add images to your gallery."
-      action={{
-        label: 'Upload Images',
-        onClick: noop,
-        variant: ButtonVariant.OUTLINE,
       }}
     />
   ),

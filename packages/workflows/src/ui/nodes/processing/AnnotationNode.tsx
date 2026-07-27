@@ -98,7 +98,7 @@ function AnnotationNodeComponent(props: NodeProps) {
           onClick={handleEditAnnotations}
           disabled={!inputImage}
           className="w-full"
-          variant={nodeData.hasAnnotations ? 'default' : 'outline'}
+          variant={nodeData.hasAnnotations ? 'default' : 'secondary'}
         >
           <Pencil className="mr-2 size-4" />
           {nodeData.hasAnnotations ? 'Edit Annotations' : 'Add Annotations'}
