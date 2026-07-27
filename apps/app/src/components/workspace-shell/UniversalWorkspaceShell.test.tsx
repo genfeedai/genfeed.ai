@@ -1024,7 +1024,7 @@ describe('UniversalWorkspaceShell', () => {
     );
   });
 
-  it('keeps effective scope in the inspector without duplicating composer controls', () => {
+  it('keeps effective scope in the inspector and renders composer controls once', () => {
     navigation.pathname = '/acme/moonrise/workspace/overview';
 
     render(
@@ -1036,8 +1036,8 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    expect(screen.queryByText('Scoped controls')).not.toBeInTheDocument();
-    expect(screen.queryByText('Thread scope')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Scoped controls')).toHaveLength(1);
+    expect(screen.getAllByText('Thread scope')).toHaveLength(1);
     expect(screen.getByTestId('workspace-effective-scope')).toBeInTheDocument();
   });
 

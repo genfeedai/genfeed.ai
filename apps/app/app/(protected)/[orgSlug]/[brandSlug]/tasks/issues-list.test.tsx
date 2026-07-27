@@ -44,7 +44,7 @@ describe('IssuesList view controls', () => {
     const listView = screen.getByRole('radio', { name: 'List view' });
     const kanbanView = screen.getByRole('radio', { name: 'Kanban view' });
 
-    expect(screen.getByRole('radiogroup', { name: 'View' })).toBeVisible();
+    expect(screen.getByRole('group', { name: 'View' })).toBeVisible();
     expect(listView).toHaveAttribute('aria-checked', 'true');
     expect(kanbanView).toHaveAttribute('aria-checked', 'false');
 

@@ -494,6 +494,10 @@ jobs:
             --maxWorkers=2 --passWithNoTests --changed "$BASE"
         env:
           NODE_ENV: test
+          # The affected graph can approach the complete app suite on a large
+          # shell PR. Its long-lived Vitest worker exceeded V8's 4 GiB default
+          # heap after ~500 files even though assertions continued to pass.
+          NODE_OPTIONS: --max-old-space-size=6144
 
   # Focused, blocking API tests on master push and every ordinary PR:
   # mirrors test-app-changed for apps/server/api — runs only the API tests whose
