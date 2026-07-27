@@ -138,4 +138,21 @@ describe('SidebarNavigationProvider', () => {
       screen.getByText('Assets|none|Library|Moodboard|canonical|1'),
     ).toBeInTheDocument();
   });
+
+  it('treats a permanent shell topbar as canonical page identity without route metadata', () => {
+    pathnameState.value = '/acme/~/settings/api-keys';
+
+    render(
+      <SidebarNavigationProvider
+        hasCanonicalPageIdentity
+        items={[{ href: '/settings/api-keys', label: 'API Keys' }]}
+      >
+        <NavigationState />
+      </SidebarNavigationProvider>,
+    );
+
+    expect(
+      screen.getByText('none|API Keys|none|API Keys|canonical|1'),
+    ).toBeInTheDocument();
+  });
 });

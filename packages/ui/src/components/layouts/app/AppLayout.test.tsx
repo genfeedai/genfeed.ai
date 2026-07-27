@@ -1,5 +1,6 @@
 import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import Container from '@ui/layout/container/Container';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -296,6 +297,29 @@ describe('AppLayout', () => {
       'border-b',
       'border-border',
     );
+  });
+
+  it('gives the permanent topbar sole ownership of visible page identity', () => {
+    const TopbarMock = () => <div data-testid="topbar-mock" />;
+
+    render(
+      <AppLayout topbarComponent={TopbarMock}>
+        <Container
+          description="Create keys for headless clients and MCP servers."
+          label="API Keys"
+        >
+          <div>Page controls</div>
+        </Container>
+      </AppLayout>,
+    );
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'API Keys' }),
+    ).toHaveClass('sr-only');
+    expect(
+      screen.queryByText('Create keys for headless clients and MCP servers.'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Page controls')).toBeInTheDocument();
   });
 
   it('does not offset the topbar for the collapsed bottom dock', () => {
