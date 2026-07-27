@@ -45,9 +45,11 @@ describe('ChatOnboardingPage', () => {
     const { container } = render(<ChatOnboardingPage />);
     expect(container.firstChild).toHaveClass(
       'flex',
-      'min-h-[calc(100vh-4rem)]',
+      'h-full',
+      'min-h-0',
       'flex-1',
       'flex-col',
+      'overflow-hidden',
     );
   });
 });

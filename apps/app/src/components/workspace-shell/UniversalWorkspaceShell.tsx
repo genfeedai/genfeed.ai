@@ -1099,12 +1099,9 @@ function UniversalWorkspaceShellContent({
                 aria-label="Primary workspace canvas"
                 className={cn(
                   'min-h-0 min-w-0 flex-1 bg-background',
-                  workflowSurfaceRoute.isGraphCanvas
+                  isAgentRoute || workflowSurfaceRoute.isGraphCanvas
                     ? 'overflow-hidden'
                     : 'overflow-auto',
-                  isCanvasComposerVisible &&
-                    !workflowSurfaceRoute.isGraphCanvas &&
-                    'pb-48 md:pb-56',
                 )}
                 data-testid="workspace-canvas-layout"
                 ref={primaryRegionRef}
@@ -1141,18 +1138,16 @@ function UniversalWorkspaceShellContent({
                 </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
               </section>
 
-              {/* The conversation route owns the full canvas, so its composer
-                remains a floating canvas control there. Product routes never
-                render this slot. */}
+              {/* The conversation route owns the full canvas. Its composer is a
+                bounded row beneath the transcript, so the canvas itself never
+                scrolls and the prompt bar never covers starter panels or the
+                final message. Product routes never render this slot. */}
               {isCanvasComposerVisible ? (
                 <div
-                  className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3 pb-3 md:px-5 md:pb-5"
+                  className="z-20 shrink-0 px-3 pb-3 md:px-5 md:pb-5"
                   data-testid="workspace-composer-slot"
                 >
-                  <div
-                    className="pointer-events-auto"
-                    ref={setComposerPortalTarget}
-                  />
+                  <div ref={setComposerPortalTarget} />
                 </div>
               ) : null}
             </div>

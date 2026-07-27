@@ -572,6 +572,17 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByTestId('conversation-inspector-provider'),
     ).toHaveAttribute('data-active', 'true');
     expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-composer-slot')).not.toHaveClass(
+      'absolute',
+    );
+    expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
+      'overflow-hidden',
+    );
+    expect(screen.getByTestId('workspace-canvas-layout')).not.toHaveClass(
+      'overflow-auto',
+      'pb-48',
+      'md:pb-56',
+    );
     expect(
       screen.queryByTestId('workspace-inspector-composer-slot'),
     ).not.toBeInTheDocument();

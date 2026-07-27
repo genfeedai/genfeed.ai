@@ -2,7 +2,7 @@ import { AgentWorkspacePageShell } from '../AgentWorkspacePageShell';
 
 export default function ChatOnboardingPage() {
   return (
-    <div className="relative flex min-h-[calc(100vh-4rem)] flex-1 flex-col">
+    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <AgentWorkspacePageShell />
     </div>
   );
