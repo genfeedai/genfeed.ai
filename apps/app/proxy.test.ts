@@ -731,6 +731,41 @@ describe('proxy', () => {
     );
   });
 
+  it.each([
+    ['/acme/moonrise-studio/tasks', '/acme/moonrise-studio/workspace/tasks'],
+    [
+      '/acme/moonrise-studio/tasks/GEN-42',
+      '/acme/moonrise-studio/workspace/tasks/GEN-42',
+    ],
+  ])('redirects legacy scoped task route %s to %s', async (pathname, canonicalPathname) => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest(pathname, { search: '?view=kanban' }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      `http://localhost:3000${canonicalPathname}?view=kanban`,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('canonicalizes the legacy flat tasks route before workspace scoping', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/tasks', { search: '?view=kanban' }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/tasks?view=kanban',
+    );
+  });
+
   it('redirects signed-in flat protected routes to org views when no brand is selected', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);

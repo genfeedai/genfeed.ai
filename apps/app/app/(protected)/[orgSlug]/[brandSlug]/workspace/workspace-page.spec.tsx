@@ -724,7 +724,7 @@ describe('WorkspacePageContent', () => {
 
     expect(
       within(inspector).getByRole('link', { name: 'Open Issue' }),
-    ).toHaveAttribute('href', '/tasks/GEN-42');
+    ).toHaveAttribute('href', '/workspace/tasks/GEN-42');
     expect(within(inspector).getByText('Issue: GEN-42')).toBeInTheDocument();
   });
 });

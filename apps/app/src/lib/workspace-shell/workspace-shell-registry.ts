@@ -122,7 +122,6 @@ const BREADCRUMB_ROOT_LABELS = Object.freeze({
   research: 'Research',
   settings: 'Settings',
   studio: 'Studio',
-  tasks: 'Workspace',
   workflows: 'Workflows',
   workspace: 'Workspace',
   write: 'Compose',
@@ -167,7 +166,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/settings': 'General',
   '/:orgSlug/:brandSlug/studio/:type': ':type',
   '/:orgSlug/:brandSlug/studio/:type/:id': ':type',
-  '/:orgSlug/:brandSlug/tasks/:id': 'Task',
+  '/:orgSlug/:brandSlug/workspace/tasks/:id': 'Task',
   '/:orgSlug/:brandSlug/workflows/:id': 'Workflow',
   '/:orgSlug/:brandSlug/workflows/executions/:id': 'Run',
   '/:orgSlug/:brandSlug/workflows/new': 'New Workflow',
@@ -550,8 +549,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/workspace/inbox/:view',
       '/:orgSlug/:brandSlug/workspace/activity',
-      '/:orgSlug/:brandSlug/tasks',
-      '/:orgSlug/:brandSlug/tasks/:id',
+      '/:orgSlug/:brandSlug/workspace/tasks',
+      '/:orgSlug/:brandSlug/workspace/tasks/:id',
       '/:orgSlug/:brandSlug/overview/activities',
     ],
     {

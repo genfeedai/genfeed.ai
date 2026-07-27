@@ -200,9 +200,6 @@ export const APP_ROUTES = {
     ROOT: '/studio',
     VIDEO: '/studio/video',
   },
-  TASKS: {
-    ROOT: '/tasks',
-  },
   WORKFLOWS: {
     /** @deprecated Use ORCHESTRATION.AUTOPILOT. Retained for legacy deep links. */
     AUTOPILOT: '/workflows/autopilot',
@@ -221,6 +218,7 @@ export const APP_ROUTES = {
     INBOX_UNREAD: '/workspace/inbox/unread',
     OVERVIEW: '/workspace/overview',
     ROOT: '/workspace',
+    TASKS: '/workspace/tasks',
   },
 } as const;
 
@@ -236,7 +234,6 @@ export const APP_ROUTE_PREFIXES = {
   POSTS: APP_ROUTES.POSTS.ROOT,
   SETTINGS: APP_ROUTES.SETTINGS.ROOT,
   STUDIO: APP_ROUTES.STUDIO.ROOT,
-  TASKS: APP_ROUTES.TASKS.ROOT,
   WORKFLOWS: APP_ROUTES.WORKFLOWS.ROOT,
   WORKSPACE: APP_ROUTES.WORKSPACE.ROOT,
 } as const;

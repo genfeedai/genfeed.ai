@@ -195,9 +195,13 @@ Workspace:
 - `/:orgSlug/:brandSlug/workspace/overview`
 - `/:orgSlug/:brandSlug/workspace/inbox/:view`
 - `/:orgSlug/:brandSlug/workspace/activity`
-- `/:orgSlug/:brandSlug/tasks`
-- `/:orgSlug/:brandSlug/tasks/:id`
+- `/:orgSlug/:brandSlug/workspace/tasks`
+- `/:orgSlug/:brandSlug/workspace/tasks/:id`
 - `/:orgSlug/:brandSlug/overview/activities`
+
+Legacy `/:orgSlug/:brandSlug/tasks` and
+`/:orgSlug/:brandSlug/tasks/:id` links redirect to the corresponding canonical
+Workspace paths above.
 
 Agent:
 

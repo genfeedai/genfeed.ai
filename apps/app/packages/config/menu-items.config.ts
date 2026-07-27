@@ -42,9 +42,9 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: AppMenuGroup.Root,
-    href: APP_ROUTES.TASKS.ROOT,
+    href: APP_ROUTES.WORKSPACE.TASKS,
     label: 'Tasks',
-    matchPaths: [APP_ROUTES.TASKS.ROOT],
+    matchPaths: [APP_ROUTES.WORKSPACE.TASKS],
     outline: HiOutlineClipboardDocumentList,
     solid: HiClipboardDocumentList,
   },

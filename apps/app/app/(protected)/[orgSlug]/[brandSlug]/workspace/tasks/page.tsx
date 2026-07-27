@@ -1,6 +1,6 @@
+import IssuesList from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/issues-list';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import IssuesList from './issues-list';
 
 export const generateMetadata = createPageMetadata('Tasks');
 

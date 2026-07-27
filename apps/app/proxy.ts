@@ -61,6 +61,7 @@ const FLAT_PATH_REDIRECTS = new Map<string, string>([
   ['/library', '/library/overview'],
   ['/research', '/research/discovery'],
   ['/studio', '/studio/image'],
+  ['/tasks', '/workspace/tasks'],
   ['/workspace', '/workspace/overview'],
   ['/workspace/inbox', '/workspace/inbox/unread'],
 ]);
@@ -91,6 +92,27 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
 
 /** Slug segments must be alphanumeric + hyphens only (no dots, slashes, etc.). */
 const SLUG_RE = /^[a-zA-Z0-9-]+$/;
+
+function canonicalizeLegacyScopedProtectedPath(
+  pathname: string,
+): string | null {
+  const segments = pathname.split('/').filter(Boolean);
+  const [orgSlug, brandSlug, section, taskId] = segments;
+
+  if (
+    (segments.length !== 3 && segments.length !== 4) ||
+    section !== 'tasks' ||
+    !orgSlug ||
+    !brandSlug ||
+    !SLUG_RE.test(orgSlug) ||
+    !SLUG_RE.test(brandSlug)
+  ) {
+    return null;
+  }
+
+  const taskPath = taskId ? `/${taskId}` : '';
+  return `/${orgSlug}/${brandSlug}/workspace/tasks${taskPath}`;
+}
 
 function createSafeRedirectUrl(req: NextRequest, pathname: string): URL {
   const url = new URL(pathname, req.url);
@@ -754,6 +776,13 @@ export async function proxy(req: NextRequest) {
 
   if (isPlaywrightBypassRequest(req)) {
     return NextResponse.next();
+  }
+
+  const canonicalLegacyPath = canonicalizeLegacyScopedProtectedPath(
+    req.nextUrl.pathname,
+  );
+  if (canonicalLegacyPath) {
+    return redirectPreservingSearch(req, canonicalLegacyPath);
   }
 
   if (isDesktopClient()) {

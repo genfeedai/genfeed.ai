@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
   DefinitionDetail,
@@ -97,7 +98,7 @@ export default function IssueSidebar({
                 <DefinitionTerm variant="label">Parent Issue</DefinitionTerm>
                 <DefinitionDetail variant="inline">
                   <Link
-                    href={`/tasks/${issue.parentId}`}
+                    href={`${APP_ROUTES.WORKSPACE.TASKS}/${issue.parentId}`}
                     className="text-muted-foreground hover:text-foreground"
                   >
                     View parent

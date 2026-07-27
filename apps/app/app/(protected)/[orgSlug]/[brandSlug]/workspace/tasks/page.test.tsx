@@ -2,11 +2,11 @@ import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { render, screen } from '@testing-library/react';
 import TasksPage, * as PageModule from './page';
 
-vi.mock('./issues-list', () => ({
+vi.mock('@app/(protected)/[orgSlug]/[brandSlug]/tasks/issues-list', () => ({
   default: () => <div data-testid="issues-list" />,
 }));
 
-runPageModuleTests('app/(protected)/tasks/page', PageModule);
+runPageModuleTests('app/(protected)/workspace/tasks/page', PageModule);
 
 describe('TasksPage', () => {
   it('renders the tasks list surface', () => {

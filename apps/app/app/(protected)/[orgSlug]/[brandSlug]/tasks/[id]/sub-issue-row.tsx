@@ -1,5 +1,6 @@
 'use client';
 
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Task, TaskStatus } from '@services/management/tasks.service';
@@ -24,7 +25,7 @@ export function SubIssueRow({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
     >
-      <Link href={`/tasks/${issue.identifier}`}>
+      <Link href={`${APP_ROUTES.WORKSPACE.TASKS}/${issue.identifier}`}>
         <span className="text-xs font-mono text-white/40">
           {issue.identifier}
         </span>
