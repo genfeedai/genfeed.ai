@@ -5,6 +5,7 @@ import MembersList from './members-list';
 
 const mocks = vi.hoisted(() => ({
   findAll: vi.fn(),
+  getMembersService: vi.fn(),
   loggerError: vi.fn(),
   loggerInfo: vi.fn(),
   notificationsError: vi.fn(),
@@ -23,8 +24,7 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('token-1'),
+  useAuthedService: () => mocks.getMembersService,
 }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
@@ -121,6 +121,9 @@ describe('MembersList seat limit', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.findAll.mockResolvedValue([]);
+    mocks.getMembersService.mockResolvedValue({
+      findAll: mocks.findAll,
+    });
   });
 
   it('replaces the member table with an upgrade state for solo plans', async () => {
