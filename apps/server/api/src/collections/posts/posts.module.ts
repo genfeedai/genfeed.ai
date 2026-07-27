@@ -16,7 +16,6 @@ import { PostsOperationsController } from '@api/collections/posts/controllers/op
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import { PostAnalyticsCollectionStateService } from '@api/collections/posts/services/post-analytics-collection-state.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -31,7 +30,10 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { SeoModule } from '@api/services/seo/seo.module';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { forwardRef, Module } from '@nestjs/common';
+import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
+import { SERVER_TOKENS } from '@server/server.dependencies';
 
 @Module({
   // PostsOperationsController must register before PostsController: its static
@@ -72,6 +74,7 @@ import { forwardRef, Module } from '@nestjs/common';
     CreditsGuard,
     CreditsInterceptor,
     PostAnalyticsCollectionStateService,
+    { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     PostAnalyticsService,
     PostGenerationService,
     PostThreadGenerationService,

@@ -1,14 +1,14 @@
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TargetAnalyticsCollectionState } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
-import { scopedWhere } from '@genfeedai/server';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
+import { scopedWhere } from '@server/tenancy/scoped-where';
 import type {
   AnalyticsCollectionAttemptRef,
   AnalyticsCollectionFailure,
   AnalyticsCollectionTargetRef,
   ServerAnalyticsCollectionState,
-} from '@server/server.dependencies';
+} from '../analytics-collection-state';
 
 export interface MarkAnalyticsCollectionPendingInput {
   attemptKey: string;
@@ -20,7 +20,10 @@ export interface MarkAnalyticsCollectionPendingInput {
 export class PostAnalyticsCollectionStateService
   implements ServerAnalyticsCollectionState
 {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(SERVER_TOKENS.prisma)
+    private readonly prisma: Pick<ServerPrisma, 'post'>,
+  ) {}
 
   async markPending(input: MarkAnalyticsCollectionPendingInput): Promise<void> {
     const targetsByScope = new Map<string, AnalyticsCollectionTargetRef[]>();

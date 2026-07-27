@@ -24,7 +24,6 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import { PostAnalyticsCollectionStateService } from '@api/collections/posts/services/post-analytics-collection-state.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.module';
@@ -64,11 +63,13 @@ import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { LoggerService } from '@libs/logger/logger.service';
+import { PrismaService } from '@libs/prisma/prisma.service';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 import { AnalyticsSocialJobService } from '@server/analytics/services/analytics-social-job.service';
 import { AnalyticsTwitterJobService } from '@server/analytics/services/analytics-twitter-job.service';
 import { AnalyticsYouTubeJobService } from '@server/analytics/services/analytics-youtube-job.service';
+import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
 import { SERVER_TOKENS } from '@server/server.dependencies';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 // --- collections/ processors ---
@@ -174,6 +175,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     AnalyticsSocialJobService,
     AnalyticsTwitterJobService,
     AnalyticsYouTubeJobService,
+    PostAnalyticsCollectionStateService,
     {
       provide: SERVER_TOKENS.credentials,
       useExisting: CredentialsService,
@@ -181,6 +183,10 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     {
       provide: SERVER_TOKENS.analyticsCollectionState,
       useExisting: PostAnalyticsCollectionStateService,
+    },
+    {
+      provide: SERVER_TOKENS.prisma,
+      useExisting: PrismaService,
     },
     {
       provide: SERVER_TOKENS.instagram,

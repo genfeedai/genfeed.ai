@@ -1,5 +1,4 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
-import { PostAnalyticsCollectionStateService } from '@api/collections/posts/services/post-analytics-collection-state.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueueService } from '@api/queues/core/queue.service';
@@ -11,12 +10,11 @@ import type {
   TwitterAnalyticsJobData,
   YouTubeAnalyticsJobData,
 } from '@genfeedai/queue-contracts';
-import {
-  classifyAnalyticsCollectionError,
-  scopedWhere,
-} from '@genfeedai/server';
+import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
+import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
 
 type AnalyticsSyncWorkflowAction =
   | 'analyticsFacebookSync'

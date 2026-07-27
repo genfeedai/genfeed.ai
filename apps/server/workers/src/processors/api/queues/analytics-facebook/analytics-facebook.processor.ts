@@ -1,6 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import { PostAnalyticsCollectionStateService } from '@api/collections/posts/services/post-analytics-collection-state.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { CredentialPlatform } from '@genfeedai/enums';
@@ -16,7 +15,12 @@ import {
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Inject } from '@nestjs/common';
 import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
+import {
+  SERVER_TOKENS,
+  type ServerAnalyticsCollectionState,
+} from '@server/server.dependencies';
 import { Job } from 'bullmq';
 
 @Processor(ANALYTICS_FACEBOOK_QUEUE)
@@ -28,7 +32,8 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
     private readonly postAnalyticsService: PostAnalyticsService,
-    private readonly analyticsCollectionState: PostAnalyticsCollectionStateService,
+    @Inject(SERVER_TOKENS.analyticsCollectionState)
+    private readonly analyticsCollectionState: ServerAnalyticsCollectionState,
     private readonly postsService: PostsService,
     private readonly logger: LoggerService,
   ) {

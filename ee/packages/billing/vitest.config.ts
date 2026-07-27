@@ -79,6 +79,14 @@ export default defineConfig({
         replacement: pkg('types/src'),
       },
       {
+        find: /^@genfeedai\/api-types\/(.*)$/,
+        replacement: pkg('api-types/src/$1'),
+      },
+      {
+        find: '@genfeedai/api-types',
+        replacement: pkg('api-types/src'),
+      },
+      {
         // Subpath regex must precede the bare alias so subpaths win.
         find: /^@genfeedai\/interfaces\/(.*)$/,
         replacement: pkg('interfaces/src/$1'),

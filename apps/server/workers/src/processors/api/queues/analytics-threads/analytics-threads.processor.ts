@@ -1,5 +1,4 @@
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
-import { PostAnalyticsCollectionStateService } from '@api/collections/posts/services/post-analytics-collection-state.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import {
@@ -13,7 +12,12 @@ import {
   type ProcessorCircuitBreaker,
 } from '@libs/utils/circuit-breaker/circuit-breaker.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Inject } from '@nestjs/common';
 import { classifyAnalyticsCollectionError } from '@server/analytics/analytics-collection-state';
+import {
+  SERVER_TOKENS,
+  type ServerAnalyticsCollectionState,
+} from '@server/server.dependencies';
 import { Job } from 'bullmq';
 
 @Processor(ANALYTICS_THREADS_QUEUE)
@@ -24,7 +28,8 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
   constructor(
     private readonly threadsService: ThreadsService,
     private readonly postAnalyticsService: PostAnalyticsService,
-    private readonly analyticsCollectionState: PostAnalyticsCollectionStateService,
+    @Inject(SERVER_TOKENS.analyticsCollectionState)
+    private readonly analyticsCollectionState: ServerAnalyticsCollectionState,
     private readonly postsService: PostsService,
     private readonly logger: LoggerService,
   ) {

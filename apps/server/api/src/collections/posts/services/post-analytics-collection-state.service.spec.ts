@@ -1,9 +1,9 @@
-import { PostAnalyticsCollectionStateService } from '@api/collections/posts/services/post-analytics-collection-state.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   TargetAnalyticsCollectionState,
 } from '@genfeedai/enums';
+import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
 
 function createHarness() {
   const updateMany = vi.fn().mockResolvedValue({ count: 1 });
