@@ -25,6 +25,7 @@ import { format } from 'date-fns';
 import { useEffect, useMemo } from 'react';
 
 export default function IngredientsList({
+  folderNavigation = 'content',
   type: typeProp,
   scope = PageScope.BRAND,
 }: IngredientsListProps) {
@@ -99,7 +100,7 @@ export default function IngredientsList({
     tags,
     fontFamilies,
     blacklists,
-  } = useIngredientsList({ scope, type });
+  } = useIngredientsList({ folderNavigation, scope, type });
   const { openPostBatchModal } = usePostModal({
     onRefresh: () => {
       void handleRefresh(true);
@@ -204,16 +205,24 @@ export default function IngredientsList({
         </Alert>
       ) : null}
       {!loadError || isUsingCache ? (
-        <div className="grid gap-6 xl:grid-cols-[minmax(13rem,14rem)_minmax(0,1fr)]">
-          <IngredientsListSidebar
-            scope={scope}
-            folders={folders}
-            selectedFolderId={selectedFolderId}
-            isLoading={isLoadingFolders}
-            onSelectFolder={handleSelectFolder}
-            onDropIngredient={handleFolderDrop}
-            onCreateFolder={handleCreateFolder}
-          />
+        <div
+          className={
+            folderNavigation === 'content'
+              ? 'grid gap-6 xl:grid-cols-[minmax(13rem,14rem)_minmax(0,1fr)]'
+              : 'min-w-0'
+          }
+        >
+          {folderNavigation === 'content' ? (
+            <IngredientsListSidebar
+              scope={scope}
+              folders={folders}
+              selectedFolderId={selectedFolderId}
+              isLoading={isLoadingFolders}
+              onSelectFolder={handleSelectFolder}
+              onDropIngredient={handleFolderDrop}
+              onCreateFolder={handleCreateFolder}
+            />
+          ) : null}
 
           <div className="min-w-0">
             <IngredientsListContent
@@ -268,6 +277,7 @@ export default function IngredientsList({
         onCloseLightbox={closeLightbox}
         selectedFolderForModal={selectedFolderForModal}
         onFolderModalConfirm={handleFolderModalConfirm}
+        showFolderModal={folderNavigation === 'content'}
       />
 
       {handleConvertToVideo &&

@@ -31,6 +31,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — failed deploy: delete the unconsumed tag and re-cut the SAME version; never bump
 - [production_deploy_master_only](production_deploy_master_only.md) — never deploy a non-master ref to production unless Vincent explicitly overrides; master CI only
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
+- [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
 
 ## Rules (auto-loaded via `.claude/rules` symlink)
 

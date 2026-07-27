@@ -5,6 +5,7 @@ export * from './carousel.constant';
 export * from './empty-states.constant';
 export * from './error-messages.constant';
 export * from './gallery.constant';
+export * from './library.constant';
 export * from './lifecycle-emails.constant';
 export * from './media.constant';
 export * from './model-aspect-ratios.constant';

@@ -254,7 +254,10 @@ Library:
 
 `/:orgSlug/:brandSlug/library/overview` is the canonical Library landing.
 `/:orgSlug/:brandSlug/library/ingredients` remains registered only to redirect
-old links to the overview.
+old links to the overview. Overview, Assets, Mood board, and shared Activity
+are navigation destinations. The remaining Library type routes encode the
+selected asset-type filter as shareable deep links; they are not separate
+sidebar modules. Folder selection is a URL-backed secondary sidebar filter.
 
 Publish/posts:
 

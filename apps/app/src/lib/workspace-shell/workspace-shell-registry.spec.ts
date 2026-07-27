@@ -89,6 +89,8 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/research/instagram', 'Research', 'Instagram'],
     ['/acme/moonrise/library/overview', 'Library', 'Overview'],
     ['/acme/moonrise/library/ingredients', 'Library', 'Ingredients'],
+    ['/acme/moonrise/library/videos', 'Library', 'Assets'],
+    ['/acme/moonrise/library/voices', 'Library', 'Assets'],
     ['/acme/moonrise/library/moodboard', 'Library', 'Moodboard'],
     ['/acme/moonrise/studio/clips', 'Studio', 'Clips'],
     ['/acme/moonrise/studio/video/asset-1', 'Studio', 'Video'],

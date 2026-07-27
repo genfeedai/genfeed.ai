@@ -18,6 +18,7 @@ import {
   HiOutlineSquares2X2,
 } from 'react-icons/hi2';
 import type { IngredientsLayoutConfig } from './ingredients-layout.config';
+import LibraryAssetTypeFilter from './library-asset-type-filter';
 
 type IngredientsLayoutToolbarProps = {
   config: IngredientsLayoutConfig;
@@ -44,6 +45,8 @@ export default function IngredientsLayoutToolbar({
 
   return (
     <div className="flex items-center gap-2">
+      {scope === PageScope.BRAND ? <LibraryAssetTypeFilter /> : null}
+
       <ButtonRefresh onClick={onRefresh} isRefreshing={isRefreshing} />
 
       <FiltersButton

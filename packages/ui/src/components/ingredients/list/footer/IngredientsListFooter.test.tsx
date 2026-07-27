@@ -1,6 +1,6 @@
 import { PageScope } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import IngredientsListFooter from '@ui/ingredients/list/footer/IngredientsListFooter';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -42,5 +42,11 @@ describe('IngredientsListFooter', () => {
     const { container } = render(<IngredientsListFooter {...baseProps} />);
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
+  });
+
+  it('does not duplicate the folder modal when the shell owns folders', () => {
+    render(<IngredientsListFooter {...baseProps} showFolderModal={false} />);
+
+    expect(screen.queryByTestId('lazy-modal-folder')).not.toBeInTheDocument();
   });
 });

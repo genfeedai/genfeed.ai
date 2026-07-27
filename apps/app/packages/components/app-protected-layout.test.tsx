@@ -848,7 +848,7 @@ describe('AppProtectedLayout', () => {
   it.each([
     ['/workspace/overview', 'Workspace'],
     ['/studio/image', 'Image'],
-    ['/library/images', 'Images'],
+    ['/library/images', 'Assets'],
     ['/research/discovery', 'Discovery'],
     ['/analytics/overview', 'Overview'],
     ['/workflows/executions', 'Runs'],
@@ -878,6 +878,7 @@ describe('AppProtectedLayout', () => {
     ['/org-123/brand-123/research/following', 'Research', 'Following'],
     ['/org-123/brand-123/library/overview', 'Library', 'Overview'],
     ['/org-123/brand-123/library/ingredients', 'Library', 'Ingredients'],
+    ['/org-123/brand-123/library/videos', 'Library', 'Assets'],
     ['/org-123/brand-123/library/moodboard', 'Library', 'Moodboard'],
     ['/org-123/brand-123/studio/clips', 'Studio', 'Clips'],
     ['/org-123/brand-123/analytics/trends', 'Analytics', 'Trends'],
@@ -1080,6 +1081,27 @@ describe('AppProtectedLayout', () => {
     expect(
       screen.queryByRole('button', { name: 'Search' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('hands the nav column to the Library actions and folders panel', () => {
+    mockPathname.value = '/org-123/brand-123/library/videos';
+
+    render(
+      <AppProtectedLayout>
+        <div>Library canvas</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByTestId('library-nav-panel')).toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'library',
+        items: [],
+        renderBody: expect.any(Function),
+        sectionLabel: 'Library',
+        showPrimaryItems: false,
+      }),
+    );
   });
 
   it('gives workflow routes their own nav column', () => {

@@ -14,6 +14,7 @@ import { useCallback, useMemo } from 'react';
 export type { ImageToVideoGenerationPayload } from '@genfeedai/interfaces';
 
 export function useIngredientsList({
+  folderNavigation = 'content',
   type,
   scope = PageScope.BRAND,
 }: IngredientsListProps): UseIngredientsListReturn {
@@ -45,6 +46,7 @@ export function useIngredientsList({
     currentPage,
     form,
     formatFilter,
+    loadFolders: folderNavigation === 'content',
     onRefresh,
     organizationId,
     parsedSearchParams,

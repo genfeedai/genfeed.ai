@@ -17,7 +17,11 @@ export default function LibraryVideosPage() {
       <Suspense
         fallback={<SkeletonLoadingFallback type="masonry" count={12} />}
       >
-        <IngredientsList type="videos" scope={PageScope.BRAND} />
+        <IngredientsList
+          folderNavigation="shell"
+          type="videos"
+          scope={PageScope.BRAND}
+        />
       </Suspense>
     </IngredientsLayout>
   );

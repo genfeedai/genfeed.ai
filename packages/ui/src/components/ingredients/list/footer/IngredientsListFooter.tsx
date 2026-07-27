@@ -14,6 +14,7 @@ export default function IngredientsListFooter({
   onCloseLightbox,
   selectedFolderForModal,
   onFolderModalConfirm,
+  showFolderModal = true,
 }: IngredientsListFooterProps) {
   return (
     <>
@@ -26,12 +27,14 @@ export default function IngredientsListFooter({
         />
       )}
 
-      <LazyModalFolder
-        item={selectedFolderForModal}
-        onConfirm={onFolderModalConfirm}
-        brandId={brandId || undefined}
-        scope={scope}
-      />
+      {showFolderModal ? (
+        <LazyModalFolder
+          item={selectedFolderForModal}
+          onConfirm={onFolderModalConfirm}
+          brandId={brandId || undefined}
+          scope={scope}
+        />
+      ) : null}
     </>
   );
 }

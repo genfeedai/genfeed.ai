@@ -243,7 +243,24 @@ function AppLayoutWithDynamicMenu({
         : null,
     [isMessagesRoute, setWorkspaceNavPanelPortalTarget],
   );
-  const activeNavPanel = conversationNavPanel ?? messagesNavPanel;
+  const libraryNavPanel = useMemo<SidebarNavPanel | null>(
+    () =>
+      isLibraryRoute && setWorkspaceNavPanelPortalTarget
+        ? {
+            render: () => (
+              <div
+                className="flex h-full min-h-0 flex-col"
+                data-testid="library-nav-panel"
+                ref={setWorkspaceNavPanelPortalTarget}
+              />
+            ),
+            sectionLabel: 'Library',
+          }
+        : null,
+    [isLibraryRoute, setWorkspaceNavPanelPortalTarget],
+  );
+  const activeNavPanel =
+    conversationNavPanel ?? messagesNavPanel ?? libraryNavPanel;
 
   const menuComponent = useMemo(() => {
     // Only the focused onboarding flow runs without navigation. Canvas surfaces

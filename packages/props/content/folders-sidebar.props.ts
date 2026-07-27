@@ -7,4 +7,5 @@ export interface FoldersSidebarProps {
   onDropIngredient?: (ingredient: IIngredient, folder: IFolder | null) => void;
   onCreateFolder?: () => void;
   isLoading?: boolean;
+  variant?: 'navigation' | 'panel';
 }

@@ -198,6 +198,16 @@ describe('IngredientsList', () => {
     );
   });
 
+  it('moves folder navigation out of the asset grid for Library routes', () => {
+    mockUseBrand.mockReturnValue({ selectedBrand: undefined });
+    mockUseIngredientsList.mockReturnValue(buildIngredientsListReturn());
+
+    render(<IngredientsList folderNavigation="shell" />);
+
+    expect(screen.queryByTestId('ingredients-sidebar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('ingredients-content')).toBeInTheDocument();
+  });
+
   it('renders a recoverable error state and retries the shared query', () => {
     const handleRefresh = vi.fn().mockResolvedValue(undefined);
     mockUseBrand.mockReturnValue({ selectedBrand: undefined });

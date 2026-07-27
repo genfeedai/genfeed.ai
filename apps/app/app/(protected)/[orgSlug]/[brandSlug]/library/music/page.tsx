@@ -17,7 +17,11 @@ export default function LibraryMusicPage() {
       <Suspense
         fallback={<SkeletonLoadingFallback type="masonry" count={12} />}
       >
-        <IngredientsList type="musics" scope={PageScope.BRAND} />
+        <IngredientsList
+          folderNavigation="shell"
+          type="musics"
+          scope={PageScope.BRAND}
+        />
       </Suspense>
     </IngredientsLayout>
   );
