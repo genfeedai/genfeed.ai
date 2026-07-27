@@ -65,6 +65,7 @@ export class ReleaseRecurrenceMaterializerService {
       : undefined;
     return Boolean(
       recurrence &&
+        group &&
         recurrence.isExhausted !== true &&
         TERMINAL_RELEASE_STATES.has(group.status),
     );
@@ -279,11 +280,11 @@ export class ReleaseRecurrenceMaterializerService {
   ): Promise<{ id: string }> {
     const occurrence = await tx.postGroup.create({
       data: {
-        attachments: context.group.attachments,
+        attachments: this.copyJson(context.group.attachments),
         baseContent: context.group.baseContent,
         brandId: context.group.brandId,
         idempotencyKey: context.occurrenceKey,
-        media: context.group.media,
+        media: this.copyJson(context.group.media),
         organizationId: context.group.organizationId,
         ownerId: context.group.ownerId,
         recurrence: this.toJson({
@@ -363,7 +364,7 @@ export class ReleaseRecurrenceMaterializerService {
         sourceWorkflowId: sourceTarget.sourceWorkflowId,
         sourceWorkflowName: sourceTarget.sourceWorkflowName,
         status: PostStatus.SCHEDULED,
-        targetAttachments: sourceTarget.targetAttachments,
+        targetAttachments: this.copyJson(sourceTarget.targetAttachments),
         targetExecutionState: TargetExecutionState.SCHEDULED,
         targetIdempotencyKey: this.targetKey(
           context.rootReleaseId,
@@ -371,7 +372,7 @@ export class ReleaseRecurrenceMaterializerService {
           sourceTarget.originalPostId ?? sourceTarget.id,
         ),
         targetReadiness: sourceTarget.targetReadiness ?? Prisma.JsonNull,
-        targetSettings: sourceTarget.targetSettings,
+        targetSettings: this.copyJson(sourceTarget.targetSettings),
         targetValidationIssues: sourceTarget.targetValidationIssues,
         targetValidationState: sourceTarget.targetValidationState,
         timezone: sourceTarget.timezone,
@@ -519,5 +520,9 @@ export class ReleaseRecurrenceMaterializerService {
 
   private toJson(value: unknown): Prisma.InputJsonValue {
     return value as Prisma.InputJsonValue;
+  }
+
+  private copyJson(value: Prisma.JsonValue) {
+    return value === null ? Prisma.JsonNull : this.toJson(value);
   }
 }
