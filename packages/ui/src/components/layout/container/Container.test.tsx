@@ -64,6 +64,21 @@ describe('Container', () => {
     expect(bodyWrapper).toHaveClass('lg:px-6');
   });
 
+  it('supports full-height page body layouts', () => {
+    render(
+      <Container bodyClassName="flex min-h-0 flex-1 flex-col">
+        <div data-testid="body-content">content</div>
+      </Container>,
+    );
+
+    const bodyWrapper = screen.getByTestId('body-content').parentElement;
+
+    expect(bodyWrapper).toHaveClass('flex');
+    expect(bodyWrapper).toHaveClass('min-h-0');
+    expect(bodyWrapper).toHaveClass('flex-1');
+    expect(bodyWrapper).toHaveClass('flex-col');
+  });
+
   it('does not double-inset constrained body content', () => {
     render(
       <Container fullWidth={false} label="Dashboard">

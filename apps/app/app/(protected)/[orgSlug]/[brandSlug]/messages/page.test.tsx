@@ -1,6 +1,12 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { ChangeEvent, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SocialMessagesPage from './page';
@@ -329,5 +335,42 @@ describe('SocialMessagesPage', () => {
     );
     expect(mocks.postReply).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('Reply posted.')).toBeInTheDocument();
+  });
+
+  it('keeps the empty inbox header fixed and contains the empty surface without page overflow', async () => {
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [],
+      page: 1,
+      pageSize: 50,
+      total: 0,
+      totalPages: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    expect(await screen.findByText('No messages found')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('messages-conversation-nav-header'),
+    ).toHaveTextContent('Conversations');
+
+    const toolbar = screen.getByTestId('messages-filter-toolbar');
+    expect(
+      within(toolbar).getByPlaceholderText('Search people, handles, content'),
+    ).toBeInTheDocument();
+    expect(
+      within(toolbar).getByRole('button', { name: /sync youtube/i }),
+    ).toBeInTheDocument();
+
+    expect(screen.getByTestId('messages-surface-layout')).toHaveClass(
+      'min-h-0',
+      'flex-1',
+      'overflow-hidden',
+    );
+    expect(screen.getByTestId('messages-empty-state')).toHaveClass(
+      'min-h-0',
+      'flex-1',
+    );
   });
 });

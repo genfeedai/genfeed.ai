@@ -365,7 +365,10 @@ function MessagesConversationNavPanel({
       aria-label="Social conversations"
       className="flex h-full min-h-0 flex-col"
     >
-      <div className="flex h-12 shrink-0 items-center justify-between border-b border-white/[0.08] px-4">
+      <div
+        className="flex h-12 shrink-0 items-center justify-between border-b border-white/[0.08] px-4"
+        data-testid="messages-conversation-nav-header"
+      >
         <div className="flex items-center gap-2 text-sm font-medium text-white/76">
           <HiOutlineInboxStack className="size-4 text-white/38" />
           Conversations
@@ -1220,34 +1223,18 @@ export default function MessagesPage() {
   const isConversationNavPortaled = Boolean(workspaceNavPanel?.portalTarget);
 
   return (
-    <Container>
+    <Container
+      bodyClassName="flex min-h-0 flex-1 flex-col"
+      className="flex h-full min-h-0 flex-col overflow-hidden"
+    >
       {workspaceNavPanel?.portalTarget
         ? createPortal(conversationNavPanel, workspaceNavPanel.portalTarget)
         : null}
       <h1 className="sr-only">Messages</h1>
-      <div className="mb-5 flex flex-wrap items-center justify-end gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.SM}
-            icon={<HiOutlineArrowPath className="size-4" />}
-            isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
-            isLoading={busyAction === 'sync'}
-            onClick={handleSyncYoutube}
-          >
-            Sync YouTube
-          </Button>
-          <span
-            aria-live="polite"
-            className="text-xs capitalize text-white/38"
-            role="status"
-          >
-            Realtime: {connectionState}
-          </span>
-        </div>
-      </div>
-
-      <div className="mb-4 grid gap-2 md:grid-cols-[minmax(200px,1fr)_180px_180px_180px_140px]">
+      <div
+        className="mb-4 grid shrink-0 gap-2 md:grid-cols-2 xl:grid-cols-[minmax(220px,1fr)_150px_150px_150px_120px_auto]"
+        data-testid="messages-filter-toolbar"
+      >
         <Input
           placeholder="Search people, handles, content"
           value={search}
@@ -1322,9 +1309,28 @@ export default function MessagesPage() {
             <SelectItem value="unread">Unread</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center justify-end gap-2 md:col-span-2 xl:col-span-1 xl:pl-2">
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            icon={<HiOutlineArrowPath className="size-4" />}
+            isDisabled={Boolean(busyAction) && busyAction !== 'sync'}
+            isLoading={busyAction === 'sync'}
+            onClick={handleSyncYoutube}
+          >
+            Sync YouTube
+          </Button>
+          <span
+            aria-live="polite"
+            className="whitespace-nowrap text-xs capitalize text-white/38"
+            role="status"
+          >
+            Realtime: {connectionState}
+          </span>
+        </div>
       </div>
 
-      <div className="mb-4 grid gap-2 md:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_160px]">
+      <div className="mb-4 grid shrink-0 gap-2 md:grid-cols-[minmax(160px,1fr)_minmax(160px,1fr)_160px]">
         <Input
           placeholder="Credential/account ID"
           value={credentialId}
@@ -1378,9 +1384,10 @@ export default function MessagesPage() {
 
       <div
         className={cn(
-          'grid min-h-[680px] overflow-hidden rounded bg-card shadow-border',
+          'grid min-h-0 flex-1 overflow-hidden rounded bg-card shadow-border',
           !isConversationNavPortaled && 'lg:grid-cols-[380px_minmax(0,1fr)]',
         )}
+        data-testid="messages-surface-layout"
       >
         {!isConversationNavPortaled ? (
           <div className="border-b border-white/[0.08] lg:border-b-0 lg:border-r">
@@ -1388,7 +1395,7 @@ export default function MessagesPage() {
           </div>
         ) : null}
 
-        <div className="flex min-w-0 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-col">
           {selectedConversation ? (
             <>
               <div className="border-b border-white/[0.08] px-5 py-4">
@@ -1577,7 +1584,10 @@ export default function MessagesPage() {
               </div>
             </>
           ) : (
-            <div className="flex min-h-[680px] flex-col items-center justify-center px-6 text-center">
+            <div
+              className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center"
+              data-testid="messages-empty-state"
+            >
               <HiOutlineChatBubbleLeftRight className="mb-3 size-10 text-white/20" />
               <p className="text-sm text-white/50">Select a conversation</p>
             </div>

@@ -18,6 +18,7 @@ export default function Container({
   left,
   right,
   children,
+  bodyClassName,
   fullWidth = true,
   className = '',
 }: ContainerProps) {
@@ -88,7 +89,7 @@ export default function Container({
         </div>
       )}
 
-      <div className={cn(bodyInsetClassName)}>{children}</div>
+      <div className={cn(bodyInsetClassName, bodyClassName)}>{children}</div>
     </div>
   );
 }

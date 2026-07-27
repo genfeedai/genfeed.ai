@@ -216,9 +216,7 @@ export default function MenuShared({
           ) : null}
 
           {bodyContent ? (
-            <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
-              {bodyContent}
-            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">{bodyContent}</div>
           ) : nestedGroup && nestedGroupId ? (
             <div
               className="flex-1 overflow-hidden"
