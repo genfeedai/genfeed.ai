@@ -458,7 +458,10 @@ jobs:
   test-app-changed:
     name: Test App (changed)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Setup/build currently consume ~3 minutes before the changed Vitest graph
+    # starts. Keep parity with the API changed-test job so a healthy app suite
+    # is not cancelled while its assertions are still running.
+    timeout-minutes: 30
     needs: [trust, test-scope]
     # Focused per-diff tests: master push (post-merge) and every PR without the
     # `full-suite` label. Labeled PRs run the full matrix, avoiding double work.
