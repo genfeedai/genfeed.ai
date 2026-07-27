@@ -9,13 +9,14 @@ import { OrganizationsModule } from '@api/collections/organizations/organization
 import { SettingsModule } from '@api/collections/settings/settings.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { UsersController } from '@api/collections/users/controllers/users.controller';
+import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CommonModule } from '@api/common/common.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
-  controllers: [UsersController],
+  controllers: [UsersRelationshipsController, UsersController],
   exports: [UsersService],
   imports: [
     forwardRef(() => BrandsModule),

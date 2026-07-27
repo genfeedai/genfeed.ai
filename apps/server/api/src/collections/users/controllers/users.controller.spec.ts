@@ -3,6 +3,7 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersController } from '@api/collections/users/controllers/users.controller';
+import { UsersRelationshipsController } from '@api/collections/users/controllers/users-relationships.controller';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth-identity-cache.service';
@@ -13,6 +14,7 @@ import { FilesClientService } from '@server/services/files-microservice/client/f
 
 describe('UsersController', () => {
   let controller: UsersController;
+  let relationshipsController: UsersRelationshipsController;
   let usersService: Record<string, ReturnType<typeof vi.fn>>;
   let settingsService: Record<string, ReturnType<typeof vi.fn>>;
   let brandsService: Record<string, ReturnType<typeof vi.fn>>;
@@ -91,9 +93,17 @@ describe('UsersController', () => {
       brandsService as unknown as BrandsService,
       usersService as unknown as UsersService,
       subscriptionsService as unknown as ISubscriptionsService,
+      filesClientService as unknown as FilesClientService,
+      membersService as unknown as MembersService,
+      requestContextCacheService as unknown as RequestContextCacheService,
+      accessBootstrapCacheService as unknown as AccessBootstrapCacheService,
+      betterAuthIdentityCacheService as unknown as BetterAuthIdentityCacheService,
+    );
+    relationshipsController = new UsersRelationshipsController(
+      brandsService as unknown as BrandsService,
+      usersService as unknown as UsersService,
       organizationsService as unknown as OrganizationsService,
       settingsService as unknown as SettingsService,
-      filesClientService as unknown as FilesClientService,
       mockLogger as unknown as LoggerService,
       membersService as unknown as MembersService,
       requestContextCacheService as unknown as RequestContextCacheService,
@@ -108,6 +118,66 @@ describe('UsersController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+    expect(relationshipsController).toBeDefined();
+  });
+
+  describe('relationship reads and selection', () => {
+    it('scopes visible brands to the current organization and member restrictions', async () => {
+      membersService.findOne.mockResolvedValue({
+        brands: ['brand-1', 'brand-2'],
+      });
+      brandsService.findAll.mockResolvedValue({ docs: [] });
+
+      await relationshipsController.findMeBrands(mockUser, mockRequest, {
+        limit: 20,
+      } as never);
+
+      expect(brandsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: { credentials: true },
+          where: {
+            _id: { in: ['brand-1', 'brand-2'] },
+            isDeleted: false,
+            organization: orgId,
+          },
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('persists organization selection and invalidates access caches', async () => {
+      organizationsService.findOne.mockResolvedValue({
+        id: 'organization-canonical-id',
+      });
+      organizationsService.patch.mockResolvedValue({
+        id: 'organization-canonical-id',
+        isSelected: true,
+      });
+
+      await relationshipsController.updateOrganizationSelection(
+        mockRequest,
+        mockUser,
+        'organization-canonical-id',
+      );
+
+      expect(organizationsService.findOne).toHaveBeenCalledWith({
+        _id: 'organization-canonical-id',
+        isDeleted: false,
+        user: userId,
+      });
+      expect(usersService.patch).toHaveBeenCalledWith(userId, {
+        lastUsedOrganizationId: 'organization-canonical-id',
+      });
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        userId,
+      );
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith(userId);
+      expect(
+        betterAuthIdentityCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith(userId);
+    });
   });
 
   describe('findMe', () => {
@@ -198,7 +268,10 @@ describe('UsersController', () => {
         },
       });
 
-      const result = await controller.findMeSettings(mockRequest, mockUser);
+      const result = await relationshipsController.findMeSettings(
+        mockRequest,
+        mockUser,
+      );
 
       expect(result).toBeDefined();
       expect(usersService.findOne).toHaveBeenCalled();
@@ -211,7 +284,7 @@ describe('UsersController', () => {
       });
 
       await expect(
-        controller.findMeSettings(mockRequest, mockUser),
+        relationshipsController.findMeSettings(mockRequest, mockUser),
       ).rejects.toThrow();
     });
   });
@@ -228,10 +301,14 @@ describe('UsersController', () => {
         theme: 'light',
       });
 
-      const result = await controller.updateMeSettings(mockRequest, mockUser, {
-        isSidebarProgressCollapsed: true,
-        theme: 'light',
-      } as never);
+      const result = await relationshipsController.updateMeSettings(
+        mockRequest,
+        mockUser,
+        {
+          isSidebarProgressCollapsed: true,
+          theme: 'light',
+        } as never,
+      );
 
       expect(settingsService.patch).toHaveBeenCalledWith(
         settingsId,
@@ -253,9 +330,13 @@ describe('UsersController', () => {
         isSidebarProgressCollapsed: false,
       });
 
-      const result = await controller.updateMeSettings(mockRequest, mockUser, {
-        isSidebarProgressCollapsed: false,
-      } as never);
+      const result = await relationshipsController.updateMeSettings(
+        mockRequest,
+        mockUser,
+        {
+          isSidebarProgressCollapsed: false,
+        } as never,
+      );
 
       expect(settingsService.patch).toHaveBeenCalledWith(
         settingsId,
@@ -277,9 +358,13 @@ describe('UsersController', () => {
         isSidebarProgressCollapsed: true,
       });
 
-      const result = await controller.updateMeSettings(mockRequest, mockUser, {
-        isSidebarProgressCollapsed: true,
-      } as never);
+      const result = await relationshipsController.updateMeSettings(
+        mockRequest,
+        mockUser,
+        {
+          isSidebarProgressCollapsed: true,
+        } as never,
+      );
 
       expect(settingsService.patch).toHaveBeenCalledWith(
         settingsId,
@@ -305,9 +390,13 @@ describe('UsersController', () => {
         theme: 'light',
       });
 
-      const result = await controller.updateMeSettings(mockRequest, mockUser, {
-        theme: 'light',
-      } as never);
+      const result = await relationshipsController.updateMeSettings(
+        mockRequest,
+        mockUser,
+        {
+          theme: 'light',
+        } as never,
+      );
 
       expect(settingsService.findOne).toHaveBeenCalledWith({
         isDeleted: false,
@@ -335,9 +424,13 @@ describe('UsersController', () => {
         theme: 'light',
       });
 
-      const result = await controller.updateSettings(mockRequest, userId, {
-        theme: 'light',
-      } as never);
+      const result = await relationshipsController.updateSettings(
+        mockRequest,
+        userId,
+        {
+          theme: 'light',
+        } as never,
+      );
 
       expect(usersService.findOne).toHaveBeenCalledWith({
         _id: userId,
@@ -457,7 +550,7 @@ describe('UsersController', () => {
         label: 'Selected Brand',
       });
 
-      const result = await controller.updateBrandSelection(
+      const result = await relationshipsController.updateBrandSelection(
         mockRequest,
         mockUser,
         legacyMongoId.toString(),
