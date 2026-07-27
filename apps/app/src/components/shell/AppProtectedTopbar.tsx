@@ -355,8 +355,8 @@ function AppProtectedTopbarContent({
               data-testid="topbar-inspector-toggle"
               ariaLabel={
                 workspaceInspector.isOpen
-                  ? 'Collapse context inspector'
-                  : 'Expand context inspector'
+                  ? 'Collapse workspace inspector'
+                  : 'Expand workspace inspector'
               }
               onClick={workspaceInspector.toggle}
             >

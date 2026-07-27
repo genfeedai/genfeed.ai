@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { WORKSPACE_SURFACES_WITH_OWN_PRIMARY_INPUT } from './workspace-composer-surfaces';
 import {
   getWorkspaceShellOverlayRegistration,
   PROTECTED_ROUTE_INVENTORY,
@@ -70,18 +69,6 @@ describe('workspace shell trusted registry', () => {
       expect(route.safeFallback).toMatch(/^\//);
       expect(route.surfaceKey).not.toHaveLength(0);
     }
-  });
-
-  it('registers every surface that suppresses the shell composer', () => {
-    const registeredSurfaceKeys = new Set(
-      PROTECTED_ROUTE_INVENTORY.map((route) => route.surfaceKey),
-    );
-
-    expect(
-      [...WORKSPACE_SURFACES_WITH_OWN_PRIMARY_INPUT].filter(
-        (surfaceKey) => !registeredSurfaceKeys.has(surfaceKey),
-      ),
-    ).toEqual([]);
   });
 
   it('resolves every canonical inventory pattern to its exact registration', () => {

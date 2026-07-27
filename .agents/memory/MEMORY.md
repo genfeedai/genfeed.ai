@@ -42,7 +42,7 @@ These are already in context every request — do not re-read them to "check".
 ## Architecture decisions
 
 - [ADR-DEPLOYMENT-MODES](architecture/ADR-DEPLOYMENT-MODES.md) — 3 modes (SaaS/Community/Desktop) as `deployment × client`; Better Auth is the active baseline; platform admin via `users.platformRole`; multi-tenancy stays EE/SaaS; managed credits cloud-only. Supersedes the auth half of #95. Contributor doc: `docs/deployment-modes.md`
-- [ADR-CONVERSATION-SHELL-CONTRACTS](architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md) — v3: conversation is a surface (own route + inspector), not a shell state; canvas/overlay state, permanent frame, module-owned nav column, scope precedence, approval pins
+- [ADR-CONVERSATION-SHELL-CONTRACTS](architecture/ADR-CONVERSATION-SHELL-CONTRACTS.md) — v3.1: conversation is a surface (own route + inspector), composer follows it, permanent frame and module-owned nav column
 - [ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL](architecture/ADR-DYNAMIC-SCHEDULING-WORKFLOW-CANONICAL.md) — scheduling via the workflow engine
 - [ADR-PLG-BOUNDARY-OSS-CLOUD](architecture/ADR-PLG-BOUNDARY-OSS-CLOUD.md) — OSS vs cloud feature split
 - [ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION](architecture/ADR-WORKFLOW-BACKED-RECURRING-AGENT-AUTOMATION.md) — recurring agent automation

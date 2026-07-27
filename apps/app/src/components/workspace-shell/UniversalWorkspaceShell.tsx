@@ -68,7 +68,6 @@ import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
-import { surfaceOwnsPrimaryInput } from '@/lib/workspace-shell/workspace-composer-surfaces';
 import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
 import {
   removeWorkspaceShellOverlayParams,
@@ -317,18 +316,11 @@ function UniversalWorkspaceShellContent({
       ),
     [rawPathname, searchParamsString],
   );
-  // The floating composer is the conversation's own prompt bar. On a canvas
-  // surface that already ships a primary input — Studio's generation bar, the
-  // post composer, the editor, the messages reply box — it only ever rendered
-  // as a second prompt bar carrying the same suggestion chips, so it stands
-  // down there and the surface owns its input.
-  const isShellComposerVisible =
-    state !== 'overlay' && !surfaceOwnsPrimaryInput(surfaceKey);
-  // Registered overlays provide their own composer portal even though the
-  // canvas slot stands down. Outside an overlay, a product-owned primary input
-  // is the only composer for that surface.
-  const isConversationComposerVisible =
-    state === 'overlay' || isShellComposerVisible;
+  // The composer follows the conversation surface. `/agent/*` owns the canvas,
+  // so its composer stays there. Every product route keeps its canvas clear and
+  // hosts the composer with the conversation in the inspector. Registered
+  // overlays temporarily take portal ownership from either base region.
+  const isCanvasComposerVisible = state !== 'overlay' && isAgentRoute;
   const draftScopeKey = `${orgSlug || 'unknown'}:${effectiveThreadId ?? 'new'}:${activeThread?.contextVersion ?? 0}`;
   // Human-readable breadcrumb leaf resolved from the route registry
   // (param-interpolated), never the raw `route:/…` pattern from `routeKey`.
@@ -900,6 +892,8 @@ function UniversalWorkspaceShellContent({
   ) => {
     const isAgentOwned = agentPanelSlot !== null && hasAgentInspectorPanel;
     const activeInspectorTab = conversationSlot ? inspectorTab : 'context';
+    const isInspectorComposerOwner =
+      conversationSlot !== null && state !== 'overlay';
 
     return (
       <Tabs
@@ -943,6 +937,13 @@ function UniversalWorkspaceShellContent({
             value="conversation"
           >
             {conversationSlot}
+            {isInspectorComposerOwner ? (
+              <div
+                className="shrink-0 border-t border-border p-3"
+                data-testid="workspace-inspector-composer-slot"
+                ref={setComposerPortalTarget}
+              />
+            ) : null}
           </TabsContent>
         ) : null}
 
@@ -1055,7 +1056,7 @@ function UniversalWorkspaceShellContent({
         dispatchAction={handleComposerAction}
         draftScopeKey={draftScopeKey}
         isConsequentiallyBlocked={conversationScope.isConsequentiallyBlocked}
-        isComposerVisible={isConversationComposerVisible}
+        isComposerVisible
         portalTarget={composerPortalTarget}
         references={activeResearchSurfaceAdapter?.references}
         scopeControls={
@@ -1086,9 +1087,9 @@ function UniversalWorkspaceShellContent({
             className="h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0"
             data-testid="workspace-shell-regions"
           >
-            {/* Flex column for the regions, with the composer absolutely pinned to
-              its bottom edge — hence `relative` here. The composer floats over
-              the active region rather than reserving a row of its own. */}
+            {/* The route owns the canvas. Only the conversation route overlays
+              its composer here; product routes keep their composer with the
+              conversation inside the inspector. */}
             <div className="relative flex h-full min-h-0 min-w-0 flex-col">
               {/* One region, always. The route owns what it renders here —
                 `/agent/*` renders the conversation as its page, every other
@@ -1098,16 +1099,11 @@ function UniversalWorkspaceShellContent({
                 aria-label="Primary workspace canvas"
                 className={cn(
                   'min-h-0 min-w-0 flex-1 bg-background',
-                  // Scrolling surfaces clear the floating composer so their last
-                  // row can still be scrolled into view. A graph canvas owns its
-                  // own viewport, so it keeps the full box.
                   workflowSurfaceRoute.isGraphCanvas
                     ? 'overflow-hidden'
                     : 'overflow-auto',
-                  // Only reserve room under the scroll box while the floating
-                  // composer is actually overlaying it.
-                  !workflowSurfaceRoute.isGraphCanvas &&
-                    isShellComposerVisible &&
+                  isCanvasComposerVisible &&
+                    !workflowSurfaceRoute.isGraphCanvas &&
                     'pb-48 md:pb-56',
                 )}
                 data-testid="workspace-canvas-layout"
@@ -1131,7 +1127,7 @@ function UniversalWorkspaceShellContent({
                     variant={ButtonVariant.GHOST}
                     withWrapper={false}
                   >
-                    Context
+                    Inspector
                   </Button>
                 </div>
                 <ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider
@@ -1145,12 +1141,10 @@ function UniversalWorkspaceShellContent({
                 </ResearchWorkspaceSurfaceAdapterRegistrationContext.Provider>
               </section>
 
-              {/* Floated, not docked: a reserved last row painted an opaque band
-                under the prompt bar. The composer now overlays the bottom of the
-                stack and the regions below scroll under it, kept reachable by
-                their own bottom padding. `pointer-events-none` on the frame so
-                the gap either side of the bar stays scrollable. */}
-              {isShellComposerVisible ? (
+              {/* The conversation route owns the full canvas, so its composer
+                remains a floating canvas control there. Product routes never
+                render this slot. */}
+              {isCanvasComposerVisible ? (
                 <div
                   className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3 pb-3 md:px-5 md:pb-5"
                   data-testid="workspace-composer-slot"
@@ -1170,7 +1164,7 @@ function UniversalWorkspaceShellContent({
               topbar and main content reserve space for it through
               --workspace-inspector-width, which is how the rail pushes content. */}
             <aside
-              aria-label="Context inspector"
+              aria-label="Workspace inspector"
               className={cn(
                 'fixed right-0 bottom-0 z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
                 isInspectorOpen && 'border-l border-border',
@@ -1191,7 +1185,7 @@ function UniversalWorkspaceShellContent({
                   aria-valuemax={INSPECTOR_MAX_WIDTH}
                   aria-valuemin={INSPECTOR_MIN_WIDTH}
                   aria-valuenow={inspectorWidth ?? INSPECTOR_DEFAULT_WIDTH}
-                  ariaLabel="Resize context inspector"
+                  ariaLabel="Resize workspace inspector"
                   className="absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize"
                   onKeyDown={handleInspectorResizeKeyDown}
                   onMouseDown={handleInspectorResizeStart}
@@ -1200,12 +1194,10 @@ function UniversalWorkspaceShellContent({
                   withWrapper={false}
                 />
               ) : null}
-              {/* Rendered through the collapse, not gated on it: the
-                conversation's prompt bar lives in the shell composer, so
-                unmounting the rail would take the composer's input with it and
-                drop an in-flight run. Collapsed means zero width, `inert`, and
-                invisible — not gone. The agent portal target stays gated, since
-                a panel portaled into a hidden rail has nowhere to be seen. */}
+              {/* Rendered through the collapse, not gated on it: the conversation
+                and its composer stay mounted at zero width so a collapse cannot
+                drop a draft or in-flight run. Only presentation portals are
+                gated, since they have nowhere to be seen in a hidden rail. */}
               {renderInspectorContent(
                 isInspectorOpen ? (
                   <div
@@ -1224,12 +1216,12 @@ function UniversalWorkspaceShellContent({
           >
             <DrawerContent className="max-h-[85vh] rounded-t-[var(--radius-workspace-overlay)]">
               <DrawerHeader>
-                <DrawerTitle>Context inspector</DrawerTitle>
+                <DrawerTitle>Workspace inspector</DrawerTitle>
                 <DrawerDescription>
-                  Context for the active canonical product route.
+                  Conversation and context for the active workspace surface.
                 </DrawerDescription>
               </DrawerHeader>
-              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                 {renderInspectorContent(null, conversationInspectorSlot)}
               </div>
             </DrawerContent>

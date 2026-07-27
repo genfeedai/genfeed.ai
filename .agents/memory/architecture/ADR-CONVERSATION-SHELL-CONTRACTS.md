@@ -12,7 +12,7 @@ Accepted
 
 ## Contract Version
 
-v3.0.0
+v3.1.0
 
 ## Last Updated
 
@@ -68,6 +68,11 @@ relaxed.
 
 Nothing in the v2 URL, precedence, approval, or multi-tab contracts is weakened.
 The one URL removal — reserved `thread` — narrows what the URL may assert.
+
+v3.1 makes composer placement explicit: it follows the active conversation. It
+is in the canvas on `/agent/**`, in the conversation inspector on every product
+route, and in the registered overlay while that overlay is active. Product
+canvases never host the agent composer.
 
 ## Verified Baseline
 
@@ -264,14 +269,17 @@ Rules:
    its collapsed state — zero width, `inert`, invisible — because unmounting
    takes the composer's input with it and drops an in-flight run. Only the
    presentation affordances may be gated on the open state.
-3. **Inspector presentation is chrome.** Open/closed, width, and which inspector
+3. **The composer follows the conversation.** The conversation canvas owns it
+   on `/agent/**`; otherwise the active desktop rail or mobile drawer owns it.
+   A registered overlay temporarily takes ownership from the base region.
+4. **Inspector presentation is chrome.** Open/closed, width, and which inspector
    tab is selected are ephemeral. They never enter the URL, never create history,
    and never mutate execution context.
-4. **A surface summarizes; it does not embed.** A product surface may expose its
+5. **A surface summarizes; it does not embed.** A product surface may expose its
    state to the conversation as at most one row of cards plus a deep link into
    the surface. The full surface is never rendered inside the conversation, and
    the conversation is never rendered inside a product surface's content area.
-5. **Consequential actions are the surface's, not the inspector's.** The
+6. **Consequential actions are the surface's, not the inspector's.** The
    conversation may propose; execution still requires the surface's own typed
    control under the precedence and approval rules below.
 
@@ -421,9 +429,9 @@ for navigation or any consequential effect.
 Admin, settings, billing, credentials, policy, destructive management, agent
 onboarding, lab/internal pages, and full-screen editors remain canonical routes,
 but render as focused canvases inside the permanent shell. They do not bypass
-the shell through a dedicated route mode. A surface may declare that it owns its
-own primary input, which suppresses the shell composer on that surface; it does
-not suppress the frame.
+the shell through a dedicated route mode. A surface may own its own primary
+input in its canvas; the agent composer remains with the conversation in the
+inspector, so the two inputs never overlap. Neither input suppresses the frame.
 
 ## Protected-Route Inventory And Surface Classification
 

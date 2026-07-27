@@ -464,6 +464,9 @@ describe('AppProtectedTopbar', () => {
     render(<AppProtectedTopbar />);
 
     const inspectorToggle = screen.getByTestId('topbar-inspector-toggle');
+    expect(inspectorToggle).toHaveAccessibleName(
+      'Collapse workspace inspector',
+    );
     expect(inspectorToggle).toHaveAttribute(
       'aria-controls',
       'workspace-context-inspector',

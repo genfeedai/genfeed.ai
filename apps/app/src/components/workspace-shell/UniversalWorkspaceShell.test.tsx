@@ -7,6 +7,10 @@ import {
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+import {
+  useWorkspaceInspector,
+  WorkspaceInspectorProvider,
+} from './WorkspaceInspectorContext';
 import { useRegisterWorkspaceSurfaceAdapter } from './WorkspaceSurfaceAdapterContext';
 
 const navigation = vi.hoisted(() => ({
@@ -48,6 +52,7 @@ vi.mock('@genfeedai/agent', () => ({
     dispatchAction,
     draftScopeKey,
     isComposerVisible,
+    portalTarget,
     scopeControls,
   }: {
     artifactReferences?: ReadonlyArray<{
@@ -67,6 +72,7 @@ vi.mock('@genfeedai/agent', () => ({
     }) => void;
     draftScopeKey: string;
     isComposerVisible?: boolean;
+    portalTarget?: HTMLElement | null;
     scopeControls?: ReactNode;
   }) => (
     <div
@@ -75,6 +81,9 @@ vi.mock('@genfeedai/agent', () => ({
         ?.map((item) => item.reference.recordId)
         .join(',')}
       data-composer-visible={String(isComposerVisible)}
+      data-composer-target={
+        portalTarget?.dataset.testid ?? (portalTarget ? 'unknown' : 'inline')
+      }
       data-draft-scope={draftScopeKey}
     >
       {children}
@@ -386,6 +395,16 @@ function AnalyticsAdapterFixture() {
   return <div>Post analytics canvas</div>;
 }
 
+function InspectorToggleFixture() {
+  const inspector = useWorkspaceInspector();
+
+  return (
+    <button type="button" onClick={inspector?.toggle}>
+      Toggle inspector
+    </button>
+  );
+}
+
 describe('UniversalWorkspaceShell', () => {
   beforeEach(() => {
     navigation.pathname = '/acme/~/agent/thread-1';
@@ -477,6 +496,9 @@ describe('UniversalWorkspaceShell', () => {
     expect(screen.getAllByText('Studio inspector')).not.toHaveLength(0);
     expect(screen.queryByTestId('workspace-composer-slot')).toBeNull();
     expect(
+      screen.getByTestId('workspace-inspector-composer-slot'),
+    ).toBeInTheDocument();
+    expect(
       screen.getByTestId('conversation-inspector-provider'),
     ).toHaveAttribute('data-active', 'false');
     expect(
@@ -487,7 +509,13 @@ describe('UniversalWorkspaceShell', () => {
     ).toHaveAttribute('data-composer-references', 'ingredient-1');
     expect(
       screen.getByText('Studio canvas').closest('[data-composer-visible]'),
-    ).toHaveAttribute('data-composer-visible', 'false');
+    ).toHaveAttribute('data-composer-visible', 'true');
+    expect(
+      screen.getByText('Studio canvas').closest('[data-composer-target]'),
+    ).toHaveAttribute(
+      'data-composer-target',
+      'workspace-inspector-composer-slot',
+    );
   });
 
   it('keeps a conversation created from Studio out of the canonical URL', () => {
@@ -539,10 +567,17 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByTestId('universal-workspace-shell').parentElement,
     ).toHaveAttribute('data-draft-scope', 'acme:thread-1:3');
-    expect(screen.getByLabelText('Context inspector')).toBeInTheDocument();
+    expect(screen.getByLabelText('Workspace inspector')).toBeInTheDocument();
     expect(
       screen.getByTestId('conversation-inspector-provider'),
     ).toHaveAttribute('data-active', 'true');
+    expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('workspace-inspector-composer-slot'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('universal-workspace-shell').parentElement,
+    ).toHaveAttribute('data-composer-target', 'workspace-composer-slot');
 
     navigation.pathname = '/acme/moonrise/workspace/overview';
     navigation.searchParams = new URLSearchParams();
@@ -555,17 +590,20 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByLabelText('Primary workspace canvas'),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Context inspector')).toBeInTheDocument();
+    expect(screen.getByLabelText('Workspace inspector')).toBeInTheDocument();
     expect(
       screen.getByTestId('conversation-inspector-provider'),
     ).toHaveAttribute('data-active', 'false');
-    expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
+    expect(screen.queryByTestId('workspace-composer-slot')).toBeNull();
+    expect(
+      screen.getByTestId('workspace-inspector-composer-slot'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-canvas-layout')).not.toHaveClass(
       'pb-48',
       'md:pb-56',
     );
     expect(
-      screen.getByRole('separator', { name: 'Resize context inspector' }),
+      screen.getByRole('separator', { name: 'Resize workspace inspector' }),
     ).toHaveAttribute('aria-valuenow', '320');
     expect(screen.getByTestId('canonical-canvas')).toBeInTheDocument();
     expect(screen.getByTestId('inspector-conversation')).toBeInTheDocument();
@@ -578,6 +616,12 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByTestId('universal-workspace-shell').parentElement,
     ).toHaveAttribute('data-draft-scope', 'acme:thread-1:3');
+    expect(
+      screen.getByTestId('universal-workspace-shell').parentElement,
+    ).toHaveAttribute(
+      'data-composer-target',
+      'workspace-inspector-composer-slot',
+    );
     expect(inspectorConversationMount).toHaveBeenCalledTimes(1);
     expect(router.replace).not.toHaveBeenCalledWith(
       expect.stringContaining('thread='),
@@ -613,12 +657,48 @@ describe('UniversalWorkspaceShell', () => {
 
     expect(screen.getByTestId('inspector-conversation')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Context' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Inspector' }));
 
     // Still exactly one: both inspector hosts stay in the DOM, so a second copy
     // here would portal a second prompt bar into the one shell composer slot.
     expect(screen.getAllByTestId('inspector-conversation')).toHaveLength(1);
-    expect(screen.getByText('Context inspector')).toBeInTheDocument();
+    expect(
+      screen.getAllByTestId('workspace-inspector-composer-slot'),
+    ).toHaveLength(1);
+    expect(screen.getByText('Workspace inspector')).toBeInTheDocument();
+  });
+
+  it('keeps the inspector conversation and composer mounted when collapsed', () => {
+    navigation.pathname = '/acme/moonrise/workspace/overview';
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <WorkspaceInspectorProvider>
+        <InspectorToggleFixture />
+        <UniversalWorkspaceShell agentApiService={agentApiService}>
+          <div>Workspace overview</div>
+        </UniversalWorkspaceShell>
+      </WorkspaceInspectorProvider>,
+    );
+
+    const conversation = screen.getByTestId('inspector-conversation');
+    const composerSlot = screen.getByTestId(
+      'workspace-inspector-composer-slot',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle inspector' }));
+
+    expect(screen.getByLabelText('Workspace inspector')).toHaveAttribute(
+      'inert',
+    );
+    expect(screen.getByLabelText('Workspace inspector')).toHaveStyle({
+      width: '0px',
+    });
+    expect(screen.getByTestId('inspector-conversation')).toBe(conversation);
+    expect(screen.getByTestId('workspace-inspector-composer-slot')).toBe(
+      composerSlot,
+    );
+    expect(inspectorConversationMount).toHaveBeenCalledTimes(1);
   });
 
   it('renders product-owned adapter context in the shared shell slots', () => {
@@ -757,7 +837,7 @@ describe('UniversalWorkspaceShell', () => {
     );
     expect(screen.getByTestId('workspace-dialog')).toBeInTheDocument();
     expect(screen.getByText('Studio')).toBeInTheDocument();
-    expect(screen.getByLabelText('Context inspector')).toBeInTheDocument();
+    expect(screen.getByLabelText('Workspace inspector')).toBeInTheDocument();
     expect(screen.getByTestId('inspector-conversation')).toBeInTheDocument();
     expect(
       screen.getByText('No resource reference selected'),
@@ -766,10 +846,19 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByTestId('workspace-overlay-composer-slot'),
     ).toBeInTheDocument();
     expect(
+      screen.queryByTestId('workspace-inspector-composer-slot'),
+    ).not.toBeInTheDocument();
+    expect(
       screen
         .getByTestId('workspace-overlay-composer-slot')
         .closest('[data-composer-visible]'),
     ).toHaveAttribute('data-composer-visible', 'true');
+    expect(
+      screen.getByTestId('universal-workspace-shell').parentElement,
+    ).toHaveAttribute(
+      'data-composer-target',
+      'workspace-overlay-composer-slot',
+    );
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Dismiss workspace overlay' }),
