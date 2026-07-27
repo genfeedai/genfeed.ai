@@ -5,7 +5,7 @@ import { PublicPostsController } from '@api/endpoints/public/controllers/posts/p
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { PostStatus } from '@genfeedai/enums';
+import { AssetScope, IngredientStatus, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -47,6 +47,7 @@ vi.mock('@genfeedai/serializers', async (importOriginal) => {
 
 describe('PublicPostsController', () => {
   let controller: PublicPostsController;
+  let ingredientsService: vi.Mocked<IngredientsService>;
   let postsService: vi.Mocked<PostsService>;
   let loggerService: vi.Mocked<LoggerService>;
 
@@ -86,6 +87,7 @@ describe('PublicPostsController', () => {
       .compile();
 
     controller = module.get<PublicPostsController>(PublicPostsController);
+    ingredientsService = module.get(IngredientsService);
     postsService = module.get(PostsService);
     loggerService = module.get(LoggerService);
 
@@ -215,6 +217,58 @@ describe('PublicPostsController', () => {
         where: Record<string, unknown>;
       };
       expect(callArgs.where.brand).toBeUndefined();
+    });
+  });
+
+  describe('findPublicIngredients', () => {
+    it('uses deterministic Prisma-supported ordering for the reported request shape', async () => {
+      const request = {
+        originalUrl:
+          '/v1/public/posts/ingredients?limit=15&page=1&sort=createdAt%3A+-1',
+        query: {
+          limit: '15',
+          page: '1',
+          sort: 'createdAt: -1',
+        },
+      } as unknown as Request;
+      const query = createBaseQuery({
+        limit: 15,
+        page: 1,
+        sort: 'createdAt: -1',
+      });
+      const mockIngredients = {
+        docs: [],
+        page: 1,
+        totalDocs: 0,
+      };
+
+      ingredientsService.findAll.mockResolvedValue(mockIngredients as never);
+
+      const result = await controller.findPublicIngredients(request, query);
+
+      expect(ingredientsService.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: [{ createdAt: -1 }, { id: -1 }],
+          where: {
+            isDeleted: false,
+            scope: AssetScope.PUBLIC,
+            status: IngredientStatus.GENERATED,
+          },
+        },
+        expect.objectContaining({
+          limit: 15,
+          page: 1,
+          pagination: true,
+        }),
+      );
+      expect(ingredientsService.findAll.mock.calls[0][0]).not.toHaveProperty(
+        'orderBy.totalPosts',
+      );
+      expect(loggerService.log).toHaveBeenCalledWith(
+        'PublicPostsController findPublicIngredients',
+        { query },
+      );
+      expect(result).toEqual({ data: [] });
     });
   });
 
